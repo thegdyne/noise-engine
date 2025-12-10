@@ -66,7 +66,8 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_selected.connect(self.on_generator_selected)
         self.generator_grid.generator_parameter_changed.connect(self.on_generator_param_changed)
         self.generator_grid.generator_filter_changed.connect(self.on_generator_filter_changed)
-        self.generator_grid.generator_clock_changed.connect(self.on_generator_clock_changed)
+        self.generator_grid.generator_clock_enabled_changed.connect(self.on_generator_clock_enabled)
+        self.generator_grid.generator_clock_rate_changed.connect(self.on_generator_clock_rate)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
         self.mixer_panel = MixerPanel(num_generators=8)
@@ -192,6 +193,8 @@ class MainFrame(QMainWindow):
         self.master_bpm = bpm
         self.bpm_label.setText(f"{bpm} BPM")
         self.modulation_sources.set_master_bpm(bpm)
+        if self.osc_connected:
+            self.osc.client.send_message("/noise/clock/bpm", [bpm])
         print(f"Master clock: {bpm} BPM")
         
     def toggle_connection(self):
@@ -212,7 +215,6 @@ class MainFrame(QMainWindow):
                 self.modulation_sources.set_master_bpm(self.master_bpm)
                 
                 print("✓ Connected to SuperCollider")
-                print("✓ Initial parameters sent")
             else:
                 self.status_label.setText("● Connection Failed")
                 self.status_label.setStyleSheet("color: red;")
@@ -242,14 +244,22 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message("/noise/gen/filterType", [slot_id, filter_map[filter_type]])
         print(f"Gen {slot_id} filter: {filter_type}")
         
-    def on_generator_clock_changed(self, slot_id, clock_div):
-        """Handle generator clock routing change."""
-        print(f"Gen {slot_id} clock: {clock_div}")
+    def on_generator_clock_enabled(self, slot_id, enabled):
+        """Handle generator envelope ON/OFF."""
+        if self.osc_connected:
+            self.osc.client.send_message("/noise/gen/envEnabled", [slot_id, 1 if enabled else 0])
+        state = "ON" if enabled else "OFF (drone)"
+        print(f"Gen {slot_id} envelope: {state}")
+        
+    def on_generator_clock_rate(self, slot_id, rate):
+        """Handle generator clock rate change."""
+        rate_map = {"CLK": 1, "/2": 2, "/4": 4, "/8": 8, "/16": 16}
+        if self.osc_connected:
+            self.osc.client.send_message("/noise/gen/clockDiv", [slot_id, rate_map[rate]])
+        print(f"Gen {slot_id} clock rate: {rate}")
         
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection."""
-        print(f"Generator {slot_id} selected")
-        
         current_type = self.generator_grid.get_slot(slot_id).generator_type
         
         if current_type == "Empty":
@@ -291,8 +301,6 @@ class MainFrame(QMainWindow):
                 
     def on_effect_selected(self, slot_id):
         """Handle effect slot selection."""
-        print(f"Effect slot {slot_id} selected")
-        
         current_type = self.effects_chain.get_slot(slot_id).effect_type
         
         if current_type == "Empty":
@@ -302,14 +310,12 @@ class MainFrame(QMainWindow):
             self.active_effects[slot_id] = new_type
             if self.osc_connected:
                 self.osc.client.send_message("/noise/fidelity_amount", [0.75])
-                print(f"Activated {new_type} at 75%")
         elif current_type == "Fidelity":
             new_type = "Empty"
             if slot_id in self.active_effects:
                 del self.active_effects[slot_id]
             if self.osc_connected:
                 self.osc.client.send_message("/noise/fidelity_amount", [1.0])
-                print(f"Fidelity passthrough (100%)")
         else:
             new_type = "Empty"
         
@@ -317,7 +323,6 @@ class MainFrame(QMainWindow):
             
     def on_effect_amount_changed(self, slot_id, amount):
         """Handle effect amount change."""
-        print(f"Effect {slot_id} amount: {amount:.2f}")
         if self.osc_connected and slot_id in self.active_effects:
             self.osc.client.send_message("/noise/fidelity_amount", [amount])
         

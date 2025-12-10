@@ -15,7 +15,8 @@ class GeneratorGrid(QWidget):
     generator_selected = pyqtSignal(int)
     generator_parameter_changed = pyqtSignal(int, str, float)
     generator_filter_changed = pyqtSignal(int, str)
-    generator_clock_changed = pyqtSignal(int, str)
+    generator_clock_enabled_changed = pyqtSignal(int, bool)
+    generator_clock_rate_changed = pyqtSignal(int, str)
     
     def __init__(self, rows=2, cols=4, parent=None):
         super().__init__(parent)
@@ -47,7 +48,8 @@ class GeneratorGrid(QWidget):
                 slot.clicked.connect(self.on_slot_clicked)
                 slot.parameter_changed.connect(self.on_parameter_changed)
                 slot.filter_type_changed.connect(self.on_filter_changed)
-                slot.vca_clock_changed.connect(self.on_clock_changed)
+                slot.clock_enabled_changed.connect(self.on_clock_enabled_changed)
+                slot.clock_rate_changed.connect(self.on_clock_rate_changed)
                 grid.addWidget(slot, row, col)
                 self.slots[slot_id] = slot
                 slot_id += 1
@@ -66,9 +68,13 @@ class GeneratorGrid(QWidget):
         """Handle filter type change."""
         self.generator_filter_changed.emit(slot_id, filter_type)
         
-    def on_clock_changed(self, slot_id, clock_div):
-        """Handle clock routing change."""
-        self.generator_clock_changed.emit(slot_id, clock_div)
+    def on_clock_enabled_changed(self, slot_id, enabled):
+        """Handle clock enable toggle."""
+        self.generator_clock_enabled_changed.emit(slot_id, enabled)
+        
+    def on_clock_rate_changed(self, slot_id, rate):
+        """Handle clock rate change."""
+        self.generator_clock_rate_changed.emit(slot_id, rate)
         
     def get_slot(self, slot_id):
         """Get a specific slot."""
