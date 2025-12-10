@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
-from src.gui.modulation_panel import ModulationPanel
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.effects_chain import EffectsChain
@@ -33,8 +32,8 @@ class MainFrame(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("Noise Engine")
-        self.setMinimumSize(1400, 850)
-        self.setGeometry(100, 50, 1600, 900)
+        self.setMinimumSize(1200, 700)
+        self.setGeometry(100, 50, 1400, 800)
         
         self.setAttribute(Qt.WA_AcceptTouchEvents, False)
         
@@ -63,10 +62,6 @@ class MainFrame(QMainWindow):
         content_layout = QHBoxLayout()
         content_layout.setContentsMargins(5, 5, 5, 5)
         content_layout.setSpacing(10)
-        
-        self.modulation_panel = ModulationPanel()
-        self.modulation_panel.parameter_changed.connect(self.on_parameter_changed)
-        content_layout.addWidget(self.modulation_panel, stretch=2)
         
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
         self.generator_grid.generator_selected.connect(self.on_generator_selected)
@@ -160,7 +155,7 @@ class MainFrame(QMainWindow):
         container = QFrame()
         container.setFrameShape(QFrame.StyledPanel)
         container.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-top: 1px solid {COLORS['border_light']};")
-        container.setFixedHeight(120)
+        container.setFixedHeight(140)
         
         layout = QHBoxLayout(container)
         layout.setContentsMargins(5, 5, 5, 5)
@@ -168,15 +163,6 @@ class MainFrame(QMainWindow):
         
         self.modulation_sources = ModulationSources()
         layout.addWidget(self.modulation_sources, stretch=2)
-        
-        middle = QFrame()
-        middle.setStyleSheet(f"border: 1px solid {COLORS['border']}; border-radius: 3px;")
-        middle_layout = QVBoxLayout(middle)
-        middle_label = QLabel("[TBD]")
-        middle_label.setAlignment(Qt.AlignCenter)
-        middle_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        middle_layout.addWidget(middle_label)
-        layout.addWidget(middle, stretch=1)
         
         self.effects_chain = EffectsChain()
         self.effects_chain.effect_selected.connect(self.on_effect_selected)
@@ -202,11 +188,6 @@ class MainFrame(QMainWindow):
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 self.mixer_panel.set_io_status(audio=True)
                 
-                for param_id in self.modulation_panel.parameters.keys():
-                    value = self.modulation_panel.get_parameter_value(param_id)
-                    if value is not None:
-                        self.osc.send_parameter(param_id, value)
-                
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
                 self.modulation_sources.set_master_bpm(self.master_bpm)
             else:
@@ -218,11 +199,6 @@ class MainFrame(QMainWindow):
             self.status_label.setText("● Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
             self.mixer_panel.set_io_status(audio=False)
-            
-    def on_parameter_changed(self, param_id, value):
-        """Handle global modulation parameter change."""
-        if self.osc_connected:
-            self.osc.send_parameter(param_id, value)
         
     def on_generator_param_changed(self, slot_id, param_name, value):
         """Handle per-generator parameter change."""

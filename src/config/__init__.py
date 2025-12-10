@@ -45,6 +45,15 @@ GENERATORS = {
 # Cycle order when clicking generator slot
 GENERATOR_CYCLE = ["Empty", "Test Synth", "PT2399"]
 
+# === LFO ===
+LFO_WAVEFORMS = ["SIN", "SAW", "SQR", "S&H"]
+LFO_WAVEFORM_INDEX = {
+    "SIN": 0,
+    "SAW": 1,
+    "SQR": 2,
+    "S&H": 3
+}
+
 # === OSC ===
 OSC_HOST = "127.0.0.1"
 OSC_SEND_PORT = 57120
@@ -84,78 +93,4 @@ SIZES = {
     'effect_slot_width': 70,
     'lfo_widget_width': 60,
     'buttons_column_width': 38,
-}
-
-# === GLOBAL PARAMETERS ===
-# These are the global modulation parameters (not per-generator)
-PARAMETERS = {
-    'gravity': {
-        'name': 'Gravity',
-        'short': 'GRV',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'description': 'Gravitational pull strength'
-    },
-    'density': {
-        'name': 'Density',
-        'short': 'DNS',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'description': 'Particle/grain density'
-    },
-    'filter_cutoff': {
-        'name': 'Filter Cutoff',
-        'short': 'FLT',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.7,
-        'description': 'Filter cutoff frequency'
-    },
-    'amplitude': {
-        'name': 'Amplitude',
-        'short': 'AMP',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'description': 'Output amplitude'
-    }
-}
-
-# === GLOBAL PARAMETERS ===
-# These are the global modulation parameters (not per-generator)
-PARAMETERS = {
-    'gravity': {
-        'name': 'Gravity',
-        'short': 'GRV',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'description': 'Gravitational pull strength'
-    },
-    'density': {
-        'name': 'Density',
-        'short': 'DNS',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'description': 'Particle/grain density'
-    },
-    'filter_cutoff': {
-        'name': 'Filter Cutoff',
-        'short': 'FLT',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.7,
-        'description': 'Filter cutoff frequency'
-    },
-    'amplitude': {
-        'name': 'Amplitude',
-        'short': 'AMP',
-        'min': 0.0,
-        'max': 1.0,
-        'default': 0.5,
-        'description': 'Output amplitude'
-    }
 }
