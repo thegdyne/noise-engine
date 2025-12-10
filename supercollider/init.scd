@@ -1,6 +1,6 @@
 /*
 Noise Engine - SuperCollider Initialization
-Multi-generator system with parameter buses
+Master bus with always-on passthrough/effects
 */
 
 s.waitForBoot({
@@ -8,18 +8,19 @@ s.waitForBoot({
     "=== Noise Engine - SuperCollider ===".postln;
     "Initializing parameter buses...".postln;
     
-    // Parameter buses (shared between OSC and all generators)
     ~params = Dictionary.new;
     ~params[\gravity] = Bus.control(s, 1).set(0.5);
     ~params[\density] = Bus.control(s, 1).set(0.5);
     ~params[\filter_cutoff] = Bus.control(s, 1).set(0.7);
     ~params[\amplitude] = Bus.control(s, 1).set(0.5);
     
-    // Generator instances (8 slots)
-    ~generators = Dictionary.new;
+    ~masterBus = Bus.audio(s, 2);
     
-    // Simple test synth (original)
+    ~generators = Dictionary.new;
+    ~masterEffects = nil;
+    
     SynthDef(\testSynth, {
+        arg out;
         var sig, env, freq, rate, pitch;
         
         var gravity = In.kr(~params[\gravity]);
@@ -34,20 +35,35 @@ s.waitForBoot({
         sig = PinkNoise.ar(0.5) * env;
         sig = sig + (SinOsc.ar(pitch) * 0.3 * env);
         
-        sig = RLPF.ar(
-            sig, 
-            filterCutoff.linexp(0.0, 1.0, 30, 18000),
-            0.2
-        );
-        
+        sig = RLPF.ar(sig, filterCutoff.linexp(0.0, 1.0, 30, 18000), 0.2);
         sig = sig * amplitude * 0.4;
-        Out.ar(0, sig ! 2);
+        
+        Out.ar(out, sig ! 2);
     }).add;
     
-    // Load PT2399 Grainy generator
     ("generators/pt2399_grainy.scd").loadRelative;
     
-    // OSC responders - receive parameters from Python
+    SynthDef(\masterPassthrough, {
+        arg inBus, outBus=0, fidelityAmount=1.0;
+        var sig, crushed, sampleRate, bandwidth;
+        
+        sig = In.ar(inBus, 2);
+        
+        // When fidelityAmount = 1.0, this is transparent passthrough
+        // When fidelityAmount < 1.0, apply degradation
+        
+        crushed = fidelityAmount.linexp(0.0, 1.0, 4, 16);
+        sig = sig.round(2.pow(crushed).reciprocal * 2) - 1;
+        
+        sampleRate = fidelityAmount.linexp(0.0, 1.0, 4000, 44100);
+        sig = Latch.ar(sig, Impulse.ar(sampleRate));
+        
+        bandwidth = fidelityAmount.linexp(0.0, 1.0, 2000, 18000);
+        sig = LPF.ar(sig, bandwidth);
+        
+        Out.ar(outBus, sig);
+    }).add;
+    
     OSCdef(\gravity, { |msg|
         ~params[\gravity].set(msg[1]);
     }, '/noise/gravity');
@@ -64,20 +80,24 @@ s.waitForBoot({
         ~params[\amplitude].set(msg[1]);
     }, '/noise/amplitude');
     
-    // Generator control - start/stop generators
+    OSCdef(\fidelityAmount, { |msg|
+        var amount = msg[1];
+        if(~masterEffects.notNil, {
+            ~masterEffects.set(\fidelityAmount, amount);
+        });
+    }, '/noise/fidelity_amount');
+    
     OSCdef(\startGenerator, { |msg|
         var slotID = msg[1].asInteger;
         var genType = msg[2].asSymbol;
         
-        // Stop existing generator in this slot if any
         if(~generators[slotID].notNil, {
             ~generators[slotID].free;
             ~generators[slotID] = nil;
         });
         
-        // Start new generator
-        ~generators[slotID] = Synth(genType);
-        "Started % in slot %".format(genType, slotID).postln;
+        ~generators[slotID] = Synth(genType, [\out, ~masterBus], addAction: \addToHead);
+        "Started % in slot % -> master bus".format(genType, slotID).postln;
     }, '/noise/start_generator');
     
     OSCdef(\stopGenerator, { |msg|
@@ -90,16 +110,24 @@ s.waitForBoot({
         });
     }, '/noise/stop_generator');
     
-    // Wait for server sync
     s.sync;
+    
+    // Start master passthrough (always on)
+    ~masterEffects = Synth(\masterPassthrough, [
+        \inBus, ~masterBus,
+        \outBus, 0,
+        \fidelityAmount, 1.0
+    ], addAction: \addToTail);
     
     "".postln;
     "✓ Noise Engine ready!".postln;
+    "✓ Master passthrough active".postln;
     "Available generators:".postln;
     "  - \\testSynth (simple pulsing noise)".postln;
     "  - \\pt2399Grainy (tape delay degradation)".postln;
+    "Available effects:".postln;
+    "  - Fidelity (bit crushing, sample rate reduction)".postln;
     "".postln;
     "Listening for OSC on port 57120".postln;
     "Waiting for Python GUI connection...".postln;
-    "(Python will start generators)".postln;
 });
