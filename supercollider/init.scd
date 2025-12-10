@@ -49,9 +49,6 @@ s.waitForBoot({
         
         sig = In.ar(inBus, 2);
         
-        // When fidelityAmount = 1.0, this is transparent passthrough
-        // When fidelityAmount < 1.0, apply degradation
-        
         crushed = fidelityAmount.linexp(0.0, 1.0, 4, 16);
         sig = sig.round(2.pow(crushed).reciprocal * 2) - 1;
         
@@ -112,7 +109,6 @@ s.waitForBoot({
     
     s.sync;
     
-    // Start master passthrough (always on)
     ~masterEffects = Synth(\masterPassthrough, [
         \inBus, ~masterBus,
         \outBus, 0,
