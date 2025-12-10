@@ -1,10 +1,9 @@
 """
-Generator Grid Component - Center frame
-Holds multiple generator slots
-Responsive grid layout
+Generator Grid Component
+2x4 grid of generator slots
 """
 
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 from .generator_slot import GeneratorSlot
@@ -13,8 +12,10 @@ from .generator_slot import GeneratorSlot
 class GeneratorGrid(QWidget):
     """Grid of generator slots."""
     
-    # Signals
-    generator_selected = pyqtSignal(int)  # Emits slot ID
+    generator_selected = pyqtSignal(int)
+    generator_parameter_changed = pyqtSignal(int, str, float)
+    generator_filter_changed = pyqtSignal(int, str)
+    generator_clock_changed = pyqtSignal(int, str)
     
     def __init__(self, rows=2, cols=4, parent=None):
         super().__init__(parent)
@@ -22,40 +23,52 @@ class GeneratorGrid(QWidget):
         self.cols = cols
         self.slots = {}
         
-        # Responsive sizing
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        
         self.setup_ui()
         
     def setup_ui(self):
         """Create the grid."""
-        layout = QGridLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(5)
         
-        # Title
         title = QLabel("GENERATORS")
-        title_font = QFont('Helvetica', 14, QFont.Bold)
+        title_font = QFont('Helvetica', 12, QFont.Bold)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title, 0, 0, 1, self.cols)
+        main_layout.addWidget(title)
         
-        # Create grid of slots
+        grid = QGridLayout()
+        grid.setSpacing(10)
+        
         slot_id = 1
         for row in range(self.rows):
             for col in range(self.cols):
                 slot = GeneratorSlot(slot_id, "Empty")
                 slot.clicked.connect(self.on_slot_clicked)
-                layout.addWidget(slot, row + 1, col)
-                # Equal stretch for all slots
-                layout.setRowStretch(row + 1, 1)
-                layout.setColumnStretch(col, 1)
+                slot.parameter_changed.connect(self.on_parameter_changed)
+                slot.filter_type_changed.connect(self.on_filter_changed)
+                slot.vca_clock_changed.connect(self.on_clock_changed)
+                grid.addWidget(slot, row, col)
                 self.slots[slot_id] = slot
                 slot_id += 1
                 
+        main_layout.addLayout(grid)
+        
     def on_slot_clicked(self, slot_id):
         """Handle slot click."""
         self.generator_selected.emit(slot_id)
+        
+    def on_parameter_changed(self, slot_id, param_name, value):
+        """Handle parameter change."""
+        self.generator_parameter_changed.emit(slot_id, param_name, value)
+        
+    def on_filter_changed(self, slot_id, filter_type):
+        """Handle filter type change."""
+        self.generator_filter_changed.emit(slot_id, filter_type)
+        
+    def on_clock_changed(self, slot_id, clock_div):
+        """Handle clock routing change."""
+        self.generator_clock_changed.emit(slot_id, clock_div)
         
     def get_slot(self, slot_id):
         """Get a specific slot."""
