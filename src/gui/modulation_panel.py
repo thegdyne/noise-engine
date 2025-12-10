@@ -34,24 +34,9 @@ class ModulationPanel(QWidget):
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         layout.addWidget(title)
         
-        # Parameters
-        params = [
-            ('gravity', 'Gravity', 0.5),
-            ('density', 'Density', 0.5),
-            ('filter_cutoff', 'Filter', 0.7),
-            ('amplitude', 'Amplitude', 0.5),
-        ]
-        
-        for param_id, label, default in params:
-            param_widget = self.create_parameter(param_id, label, default)
-            layout.addWidget(param_widget)
-            
-        layout.addStretch()
-        
-    def create_parameter(self, param_id, label, default):
-        """Create a parameter control."""
-        frame = QFrame()
-        frame.setStyleSheet(f"""
+        # Parameters in horizontal row with vertical sliders
+        params_frame = QFrame()
+        params_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['background']};
                 border: 1px solid {COLORS['border']};
@@ -59,56 +44,58 @@ class ModulationPanel(QWidget):
             }}
         """)
         
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(5)
+        params_layout = QHBoxLayout(params_frame)
+        params_layout.setContentsMargins(10, 10, 10, 10)
+        params_layout.setSpacing(15)
         
-        # Label
+        params = [
+            ('gravity', 'GRV', 'Gravity', 0.5),
+            ('density', 'DNS', 'Density', 0.5),
+            ('filter_cutoff', 'FLT', 'Filter', 0.7),
+            ('amplitude', 'AMP', 'Amplitude', 0.5),
+        ]
+        
+        for param_id, short_label, tooltip, default in params:
+            param_widget = self.create_parameter(param_id, short_label, tooltip, default)
+            params_layout.addWidget(param_widget)
+            
+        layout.addWidget(params_frame)
+        layout.addStretch()
+        
+    def create_parameter(self, param_id, label, tooltip, default):
+        """Create a vertical parameter control."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
+        
+        # Label at top
         lbl = QLabel(label)
-        lbl.setFont(QFont('Helvetica', 10, QFont.Bold))
-        lbl.setStyleSheet(f"color: {COLORS['text_bright']}; border: none;")
+        lbl.setFont(QFont('Courier', 9, QFont.Bold))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text_bright']};")
+        lbl.setToolTip(tooltip)
         layout.addWidget(lbl)
         
-        # Slider row
-        slider_layout = QHBoxLayout()
-        slider_layout.setSpacing(10)
-        
-        slider = QSlider(Qt.Horizontal)
+        # Vertical slider
+        slider = QSlider(Qt.Vertical)
         slider.setMinimum(0)
         slider.setMaximum(1000)
         slider.setValue(int(default * 1000))
-        slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: 1px solid {COLORS['border_light']};
-                height: 8px;
-                background: {COLORS['slider_groove']};
-                border-radius: 4px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {COLORS['slider_handle']};
-                border: 1px solid {COLORS['border_light']};
-                width: 16px;
-                margin: -4px 0;
-                border-radius: 8px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {COLORS['slider_handle_hover']};
-            }}
-        """)
+        slider.setMinimumHeight(80)
+        slider.setStyleSheet(slider_style())
+        slider.setToolTip(tooltip)
         slider.valueChanged.connect(
             lambda v, pid=param_id: self.on_value_changed(pid, v / 1000.0)
         )
-        slider_layout.addWidget(slider)
+        layout.addWidget(slider, alignment=Qt.AlignCenter)
         
-        # Value label
+        # Value label at bottom
         value_lbl = QLabel(f"{default:.2f}")
-        value_lbl.setFont(QFont('Courier', 9))
-        value_lbl.setFixedWidth(40)
-        value_lbl.setAlignment(Qt.AlignRight)
-        value_lbl.setStyleSheet(f"color: {COLORS['text']}; border: none;")
-        slider_layout.addWidget(value_lbl)
-        
-        layout.addLayout(slider_layout)
+        value_lbl.setFont(QFont('Courier', 8))
+        value_lbl.setAlignment(Qt.AlignCenter)
+        value_lbl.setStyleSheet(f"color: {COLORS['text']};")
+        layout.addWidget(value_lbl)
         
         self.parameters[param_id] = {
             'slider': slider,
@@ -116,7 +103,7 @@ class ModulationPanel(QWidget):
             'value': default
         }
         
-        return frame
+        return widget
         
     def on_value_changed(self, param_id, value):
         """Handle parameter value change."""

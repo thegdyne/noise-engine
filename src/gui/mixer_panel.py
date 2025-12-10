@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style
+from .theme import COLORS, button_style, slider_style
 
 
 class ChannelStrip(QWidget):
@@ -39,30 +39,13 @@ class ChannelStrip(QWidget):
         label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(label)
         
-        # Fader
+        # Fader (vertical)
         self.fader = QSlider(Qt.Vertical)
         self.fader.setMinimum(0)
         self.fader.setMaximum(1000)
         self.fader.setValue(800)
         self.fader.setMinimumHeight(80)
-        self.fader.setStyleSheet(f"""
-            QSlider::groove:vertical {{
-                border: 1px solid {COLORS['border_light']};
-                width: 6px;
-                background: {COLORS['slider_groove']};
-                border-radius: 3px;
-            }}
-            QSlider::handle:vertical {{
-                background: {COLORS['slider_handle']};
-                border: 1px solid {COLORS['border_light']};
-                height: 15px;
-                margin: 0 -4px;
-                border-radius: 4px;
-            }}
-            QSlider::handle:vertical:hover {{
-                background: {COLORS['slider_handle_hover']};
-            }}
-        """)
+        self.fader.setStyleSheet(slider_style())
         self.fader.valueChanged.connect(self.on_fader_changed)
         layout.addWidget(self.fader, alignment=Qt.AlignCenter)
         
@@ -159,7 +142,7 @@ class MixerPanel(QWidget):
             
         layout.addWidget(channels_frame)
         
-        # Master section
+        # Master section with vertical fader
         master_frame = QFrame()
         master_frame.setStyleSheet(f"""
             QFrame {{
@@ -177,30 +160,15 @@ class MixerPanel(QWidget):
         master_label.setStyleSheet(f"color: {COLORS['text_bright']}; border: none;")
         master_layout.addWidget(master_label)
         
-        self.master_fader = QSlider(Qt.Horizontal)
+        # Vertical master fader
+        self.master_fader = QSlider(Qt.Vertical)
         self.master_fader.setMinimum(0)
         self.master_fader.setMaximum(1000)
         self.master_fader.setValue(800)
-        self.master_fader.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: 1px solid {COLORS['border_light']};
-                height: 8px;
-                background: {COLORS['slider_groove']};
-                border-radius: 4px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {COLORS['slider_handle']};
-                border: 1px solid {COLORS['border_light']};
-                width: 16px;
-                margin: -4px 0;
-                border-radius: 8px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {COLORS['slider_handle_hover']};
-            }}
-        """)
+        self.master_fader.setMinimumHeight(60)
+        self.master_fader.setStyleSheet(slider_style())
         self.master_fader.valueChanged.connect(self.on_master_volume)
-        master_layout.addWidget(self.master_fader)
+        master_layout.addWidget(self.master_fader, alignment=Qt.AlignCenter)
         
         layout.addWidget(master_frame)
         

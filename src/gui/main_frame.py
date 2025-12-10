@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QFrame, QSlider)
+                             QPushButton, QLabel, QFrame)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -17,6 +17,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.effects_chain import EffectsChain
 from src.gui.modulation_sources import ModulationSources
+from src.gui.bpm_display import BPMDisplay
 from src.gui.theme import COLORS, button_style
 from src.audio.osc_bridge import OSCBridge
 
@@ -88,7 +89,7 @@ class MainFrame(QMainWindow):
         bar = QFrame()
         bar.setFrameShape(QFrame.StyledPanel)
         bar.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-bottom: 1px solid {COLORS['border_light']};")
-        bar.setFixedHeight(50)
+        bar.setFixedHeight(60)
         
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(10, 5, 10, 5)
@@ -101,41 +102,10 @@ class MainFrame(QMainWindow):
         
         layout.addStretch()
         
-        clock_label = QLabel("Clock:")
-        clock_label.setStyleSheet(f"color: {COLORS['text']};")
-        layout.addWidget(clock_label)
-        
-        self.bpm_label = QLabel("120 BPM")
-        bpm_font = QFont('Courier', 12, QFont.Bold)
-        self.bpm_label.setFont(bpm_font)
-        self.bpm_label.setStyleSheet(f"color: {COLORS['clock_pulse']};")
-        layout.addWidget(self.bpm_label)
-        
-        self.bpm_slider = QSlider(Qt.Horizontal)
-        self.bpm_slider.setMinimum(20)
-        self.bpm_slider.setMaximum(300)
-        self.bpm_slider.setValue(120)
-        self.bpm_slider.setFixedWidth(150)
-        self.bpm_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: 1px solid {COLORS['border_light']};
-                height: 8px;
-                background: {COLORS['slider_groove']};
-                border-radius: 4px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {COLORS['slider_handle']};
-                border: 1px solid {COLORS['border_light']};
-                width: 16px;
-                margin: -4px 0;
-                border-radius: 8px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {COLORS['slider_handle_hover']};
-            }}
-        """)
-        self.bpm_slider.valueChanged.connect(self.on_bpm_changed)
-        layout.addWidget(self.bpm_slider)
+        # Digital BPM display
+        self.bpm_display = BPMDisplay(initial_bpm=120)
+        self.bpm_display.bpm_changed.connect(self.on_bpm_changed)
+        layout.addWidget(self.bpm_display)
         
         layout.addStretch()
         
@@ -215,7 +185,6 @@ class MainFrame(QMainWindow):
     def on_bpm_changed(self, bpm):
         """Handle BPM change."""
         self.master_bpm = bpm
-        self.bpm_label.setText(f"{bpm} BPM")
         self.modulation_sources.set_master_bpm(bpm)
         if self.osc_connected:
             self.osc.client.send_message("/noise/clock/bpm", [bpm])
@@ -234,6 +203,9 @@ class MainFrame(QMainWindow):
                     value = self.modulation_panel.get_parameter_value(param_id)
                     if value is not None:
                         self.osc.send_parameter(param_id, value)
+                
+                # Send initial BPM
+                self.osc.client.send_message("/noise/clock/bpm", [self.master_bpm])
                 
                 self.modulation_sources.set_master_bpm(self.master_bpm)
             else:

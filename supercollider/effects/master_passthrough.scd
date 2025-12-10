@@ -17,11 +17,12 @@ Final output with fidelity control
 };
 
 ~startMasterPassthrough = {
+    // Add to fxGroup (runs AFTER generators)
     ~masterEffects = Synth(\masterPassthrough, [
         \inBus, ~masterBus,
         \outBus, 0,
         \fidelityAmount, 1.0
-    ], addAction: \addToTail);
+    ], ~fxGroup);
     
     "  ✓ Master passthrough running".postln;
 };

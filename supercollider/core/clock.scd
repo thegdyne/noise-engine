@@ -18,10 +18,16 @@ Generates BPM-synced triggers
 };
 
 ~startClock = {
+    // Create groups in correct order within default group
+    ~clockGroup = Group.head(s);
+    ~genGroup = Group.after(~clockGroup);
+    ~fxGroup = Group.after(~genGroup);
+    
     ~clockSynth = Synth(\masterClock, [
         \bpmBus, ~clockBus.index,
         \outBus, ~clockTrigBus.index
-    ], addAction: \addToHead);
+    ], ~clockGroup);
     
     "  ✓ Clock running".postln;
+    "  ✓ Groups: clock -> gen -> fx".postln;
 };

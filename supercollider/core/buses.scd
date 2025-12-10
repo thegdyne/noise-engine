@@ -28,7 +28,7 @@ Creates all control and audio buses
         ~genParams[slot][\attack] = Bus.control(s, 1).set(0.5);
         ~genParams[slot][\decay] = Bus.control(s, 1).set(0.5);
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
-        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);
+        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);  // 0 = free-running
         ~genParams[slot][\clockDiv] = Bus.control(s, 1).set(1);
     };
     
@@ -39,6 +39,10 @@ Creates all control and audio buses
     ~generators = Dictionary.new;
     ~masterEffects = nil;
     ~clockSynth = nil;
+    
+    // Groups will be created by clock.scd
+    ~clockGroup = nil;
+    ~genGroup = nil;
     
     "  ✓ Buses ready".postln;
 };

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS
+from .theme import COLORS, slider_style
 
 
 class EffectSlot(QWidget):
@@ -36,34 +36,18 @@ class EffectSlot(QWidget):
         self.type_label.setCursor(Qt.PointingHandCursor)
         layout.addWidget(self.type_label)
         
-        self.amount_slider = QSlider(Qt.Horizontal)
+        # Vertical amount slider
+        self.amount_slider = QSlider(Qt.Vertical)
         self.amount_slider.setMinimum(0)
         self.amount_slider.setMaximum(1000)
         self.amount_slider.setValue(500)
-        self.amount_slider.setFixedWidth(60)
-        self.amount_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: 1px solid {COLORS['border_light']};
-                height: 6px;
-                background: {COLORS['slider_groove']};
-                border-radius: 3px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {COLORS['slider_handle']};
-                border: 1px solid {COLORS['border_light']};
-                width: 12px;
-                margin: -3px 0;
-                border-radius: 6px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {COLORS['slider_handle_hover']};
-            }}
-        """)
+        self.amount_slider.setMinimumHeight(50)
+        self.amount_slider.setStyleSheet(slider_style())
         self.amount_slider.valueChanged.connect(self.on_amount_changed)
         self.amount_slider.setEnabled(False)
         layout.addWidget(self.amount_slider, alignment=Qt.AlignCenter)
         
-        self.setFixedSize(80, 60)
+        self.setFixedWidth(70)
         
     def update_style(self):
         """Update appearance based on state."""

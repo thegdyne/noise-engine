@@ -255,3 +255,10 @@ supercollider/
 - ENV OFF = drone or free-running (FRQ rate)
 - ENV ON = synced to master clock division
 **Rationale:** Musical timing, polyrhythmic possibilities
+
+---
+
+### [2025-12-10] Vertical Sliders Only
+**Decision:** All sliders in the UI must be vertical, no horizontal sliders
+**Rationale:** Consistent visual language, matches hardware mixer/synth paradigm
+**Applies to:** All components - modulation panel, mixer, effects, LFOs, generators

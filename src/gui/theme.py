@@ -1,6 +1,8 @@
 """
 Theme - Centralized color and style definitions
 All UI components reference this for consistent styling
+
+RULE: All sliders must be vertical - no horizontal sliders
 """
 
 # Base colors
@@ -119,7 +121,10 @@ def button_style(state='disabled'):
 
 
 def slider_style():
-    """Get standard vertical slider stylesheet."""
+    """Get standard vertical slider stylesheet.
+    
+    NOTE: All sliders in this project must be vertical.
+    """
     return f"""
         QSlider::groove:vertical {{
             border: 1px solid {COLORS['border_light']};
@@ -135,28 +140,6 @@ def slider_style():
             border-radius: 6px;
         }}
         QSlider::handle:vertical:hover {{
-            background: {COLORS['slider_handle_hover']};
-        }}
-    """
-
-
-def horizontal_slider_style():
-    """Get standard horizontal slider stylesheet."""
-    return f"""
-        QSlider::groove:horizontal {{
-            border: 1px solid {COLORS['border_light']};
-            height: 8px;
-            background: {COLORS['slider_groove']};
-            border-radius: 4px;
-        }}
-        QSlider::handle:horizontal {{
-            background: {COLORS['slider_handle']};
-            border: 1px solid {COLORS['border_light']};
-            width: 16px;
-            margin: -4px 0;
-            border-radius: 8px;
-        }}
-        QSlider::handle:horizontal:hover {{
             background: {COLORS['slider_handle_hover']};
         }}
     """

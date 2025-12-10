@@ -251,12 +251,15 @@ class GeneratorSlot(QWidget):
         self.filter_type = types[(idx + 1) % len(types)]
         self.filter_btn.setText(self.filter_type)
         self.filter_type_changed.emit(self.slot_id, self.filter_type)
+        print(f"Gen {self.slot_id} filter: {self.filter_type}")
         
     def toggle_clock(self):
         """Toggle envelope ON/OFF."""
         self.clock_enabled = not self.clock_enabled
         self.update_clock_style()
         self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
+        state = "ON" if self.clock_enabled else "OFF"
+        print(f"Gen {self.slot_id} ENV: {state}")
         
     def cycle_clock_rate(self):
         """Cycle through clock divisions."""
@@ -265,6 +268,7 @@ class GeneratorSlot(QWidget):
         self.clock_rate = rates[(idx + 1) % len(rates)]
         self.rate_btn.setText(self.clock_rate)
         self.clock_rate_changed.emit(self.slot_id, self.clock_rate)
+        print(f"Gen {self.slot_id} CLK: {self.clock_rate}")
         
     def on_param_changed(self, param_name, value):
         """Handle parameter change."""

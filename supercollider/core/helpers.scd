@@ -15,18 +15,26 @@ Reusable functions for generator management
             ~generators[slotID] = nil;
         });
         
-        ~generators[slotID] = Synth(genType, [
-            \out, ~masterBus,
-            \freqBus, params[\frequency].index,
-            \cutoffBus, params[\cutoff].index,
-            \resBus, params[\resonance].index,
-            \attackBus, params[\attack].index,
-            \decayBus, params[\decay].index,
-            \filterTypeBus, params[\filterType].index,
-            \envEnabledBus, params[\envEnabled].index,
-            \clockDivBus, params[\clockDiv].index,
-            \clockTrigBus, ~clockTrigBus.index
-        ], addAction: \addToHead);
+        // Debug: check genGroup exists
+        "Starting % in genGroup: %".format(genType, ~genGroup).postln;
+        
+        // Add to genGroup (must exist!)
+        if(~genGroup.notNil, {
+            ~generators[slotID] = Synth(genType, [
+                \out, ~masterBus,
+                \freqBus, params[\frequency].index,
+                \cutoffBus, params[\cutoff].index,
+                \resBus, params[\resonance].index,
+                \attackBus, params[\attack].index,
+                \decayBus, params[\decay].index,
+                \filterTypeBus, params[\filterType].index,
+                \envEnabledBus, params[\envEnabled].index,
+                \clockDivBus, params[\clockDiv].index,
+                \clockTrigBus, ~clockTrigBus.index
+            ], ~genGroup, \addToHead);
+        }, {
+            "ERROR: genGroup is nil!".postln;
+        });
         
         "Started % in slot %".format(genType, slotID).postln;
     };

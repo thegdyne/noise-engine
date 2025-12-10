@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style
+from .theme import COLORS, button_style, slider_style
 
 
 class LFOWidget(QWidget):
@@ -45,30 +45,13 @@ class LFOWidget(QWidget):
         self.wave_btn.clicked.connect(self.cycle_waveform)
         layout.addWidget(self.wave_btn, alignment=Qt.AlignCenter)
         
-        # Rate slider
-        self.rate_slider = QSlider(Qt.Horizontal)
+        # Vertical rate slider
+        self.rate_slider = QSlider(Qt.Vertical)
         self.rate_slider.setMinimum(0)
         self.rate_slider.setMaximum(1000)
         self.rate_slider.setValue(500)
-        self.rate_slider.setFixedWidth(60)
-        self.rate_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                border: 1px solid {COLORS['border_light']};
-                height: 6px;
-                background: {COLORS['slider_groove']};
-                border-radius: 3px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {COLORS['slider_handle']};
-                border: 1px solid {COLORS['border_light']};
-                width: 12px;
-                margin: -3px 0;
-                border-radius: 6px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {COLORS['slider_handle_hover']};
-            }}
-        """)
+        self.rate_slider.setMinimumHeight(40)
+        self.rate_slider.setStyleSheet(slider_style())
         self.rate_slider.valueChanged.connect(self.on_rate_changed)
         layout.addWidget(self.rate_slider, alignment=Qt.AlignCenter)
         
@@ -79,7 +62,7 @@ class LFOWidget(QWidget):
         self.rate_label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(self.rate_label)
         
-        self.setFixedSize(80, 90)
+        self.setFixedWidth(60)
         self.setStyleSheet(f"""
             LFOWidget {{
                 border: 1px solid {COLORS['border']};
