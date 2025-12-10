@@ -196,3 +196,27 @@ Arguments: out, freqBus, cutoffBus, resBus, attackBus, decayBus, filterTypeBus
 ```
 
 **Files affected:** `supercollider/init.scd`, all generator SynthDefs
+
+---
+
+### [2025-12-10] Per-Generator Parameters
+**Decision:** Each generator slot has 5 sliders + 3 buttons
+**Parameters:** FRQ, CUT, RES, ATK, DEC
+**Buttons:** Filter type (LP/HP/BP), ENV toggle, CLK rate
+**Rationale:** Independent control per generator, consistent interface
+
+### [2025-12-10] ENV Toggle Behavior  
+**Decision:** ENV OFF = drone (VCA always open), ENV ON = triggered envelope
+**Rationale:** Simple mental model - off means continuous, on means rhythmic
+
+### [2025-12-10] Generator Files Separated
+**Decision:** Each generator in its own file: `supercollider/generators/*.scd`
+**Rationale:** Edit one generator without touching init.scd, easy rollback, low-impact changes
+
+### [2025-12-10] Standard Generator Interface
+**Arguments:** out, freqBus, cutoffBus, resBus, attackBus, decayBus, filterTypeBus, envEnabledBus, clockDivBus
+**Rationale:** Any generator can be started with ~startGenerator helper, consistent wiring
+
+### [2025-12-10] Filter Range
+**Decision:** Cutoff range 80Hz - 16kHz for all generators
+**Rationale:** Full usable sweep from nearly closed to fully open
