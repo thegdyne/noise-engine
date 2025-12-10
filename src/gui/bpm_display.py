@@ -9,6 +9,7 @@ from PyQt5.QtGui import QFont
 
 from .theme import COLORS, MONO_FONT
 from .widgets import DragValue
+from src.config import BPM_DEFAULT, BPM_MIN, BPM_MAX, SIZES
 
 
 class BPMDisplay(QWidget):
@@ -16,11 +17,9 @@ class BPMDisplay(QWidget):
     
     bpm_changed = pyqtSignal(int)
     
-    def __init__(self, initial_bpm=120, parent=None):
+    def __init__(self, initial_bpm=None, parent=None):
         super().__init__(parent)
-        self.bpm = initial_bpm
-        self.min_bpm = 20
-        self.max_bpm = 300
+        self.bpm = initial_bpm if initial_bpm is not None else BPM_DEFAULT
         self.setup_ui()
         
     def setup_ui(self):
@@ -40,7 +39,7 @@ class BPMDisplay(QWidget):
         
         # Decrease button
         self.dec_btn = QPushButton("◀")
-        self.dec_btn.setFixedSize(28, 36)
+        self.dec_btn.setFixedSize(*SIZES['button_bpm'])
         self.dec_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #1a1a1a;
@@ -73,7 +72,7 @@ class BPMDisplay(QWidget):
         display_layout.addWidget(bpm_label)
         
         # Large draggable LED display - using DragValue widget
-        self.display = DragValue(self.bpm, self.min_bpm, self.max_bpm)
+        self.display = DragValue(self.bpm, BPM_MIN, BPM_MAX)
         self.display.setFont(QFont(MONO_FONT, 32, QFont.Bold))
         self.display.setAlignment(Qt.AlignCenter)
         self.display.setStyleSheet("""
@@ -90,7 +89,7 @@ class BPMDisplay(QWidget):
         
         # Increase button
         self.inc_btn = QPushButton("▶")
-        self.inc_btn.setFixedSize(28, 36)
+        self.inc_btn.setFixedSize(*SIZES['button_bpm'])
         self.inc_btn.setStyleSheet(self.dec_btn.styleSheet())
         self.inc_btn.pressed.connect(self.start_increase)
         self.inc_btn.released.connect(self.stop_repeat)
@@ -131,11 +130,11 @@ class BPMDisplay(QWidget):
         
     def change_bpm(self, delta):
         """Change BPM by delta."""
-        self.bpm = max(self.min_bpm, min(self.max_bpm, self.bpm + delta))
+        self.bpm = max(BPM_MIN, min(BPM_MAX, self.bpm + delta))
         self.display.set_value(self.bpm)
         self.bpm_changed.emit(self.bpm)
         
     def set_bpm(self, bpm):
         """Set BPM programmatically."""
-        self.bpm = max(self.min_bpm, min(self.max_bpm, bpm))
+        self.bpm = max(BPM_MIN, min(BPM_MAX, bpm))
         self.display.set_value(self.bpm)

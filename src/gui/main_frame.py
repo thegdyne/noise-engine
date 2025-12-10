@@ -20,22 +20,14 @@ from src.gui.modulation_sources import ModulationSources
 from src.gui.bpm_display import BPMDisplay
 from src.gui.theme import COLORS, button_style
 from src.audio.osc_bridge import OSCBridge
+from src.config import (
+    CLOCK_RATE_INDEX, FILTER_TYPE_INDEX, GENERATORS, GENERATOR_CYCLE,
+    BPM_DEFAULT, OSC_PATHS
+)
 
 
 class MainFrame(QMainWindow):
     """Main application window."""
-    
-    # Rate name -> index (matches clock.scd channel order)
-    RATE_INDEX = {
-        "x8": 0,   # 32nd notes
-        "x4": 1,   # 16th notes
-        "x2": 2,   # 8th notes
-        "CLK": 3,  # Quarter notes
-        "/2": 4,   # Half notes
-        "/4": 5,   # Whole notes
-        "/8": 6,   # 2 bars
-        "/16": 7   # 4 bars
-    }
     
     def __init__(self):
         super().__init__()
@@ -52,7 +44,7 @@ class MainFrame(QMainWindow):
         self.active_generators = {}
         self.active_effects = {}
         
-        self.master_bpm = 120
+        self.master_bpm = BPM_DEFAULT
         
         self.setup_ui()
         
@@ -114,7 +106,7 @@ class MainFrame(QMainWindow):
         
         layout.addStretch()
         
-        self.bpm_display = BPMDisplay(initial_bpm=120)
+        self.bpm_display = BPMDisplay(initial_bpm=BPM_DEFAULT)
         self.bpm_display.bpm_changed.connect(self.on_bpm_changed)
         layout.addWidget(self.bpm_display)
         
@@ -198,7 +190,7 @@ class MainFrame(QMainWindow):
         self.master_bpm = bpm
         self.modulation_sources.set_master_bpm(bpm)
         if self.osc_connected:
-            self.osc.client.send_message("/noise/clock/bpm", [bpm])
+            self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
         
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
@@ -215,7 +207,7 @@ class MainFrame(QMainWindow):
                     if value is not None:
                         self.osc.send_parameter(param_id, value)
                 
-                self.osc.client.send_message("/noise/clock/bpm", [self.master_bpm])
+                self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
                 self.modulation_sources.set_master_bpm(self.master_bpm)
             else:
                 self.status_label.setText("● Connection Failed")
@@ -235,48 +227,41 @@ class MainFrame(QMainWindow):
     def on_generator_param_changed(self, slot_id, param_name, value):
         """Handle per-generator parameter change."""
         if self.osc_connected:
-            self.osc.client.send_message(f"/noise/gen/{param_name}", [slot_id, value])
+            path = OSC_PATHS.get(f'gen_{param_name}', f'/noise/gen/{param_name}')
+            self.osc.client.send_message(path, [slot_id, value])
         
     def on_generator_filter_changed(self, slot_id, filter_type):
         """Handle generator filter type change."""
-        filter_map = {"LP": 0, "HP": 1, "BP": 2}
         if self.osc_connected:
-            self.osc.client.send_message("/noise/gen/filterType", [slot_id, filter_map[filter_type]])
+            self.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
         
     def on_generator_clock_enabled(self, slot_id, enabled):
         """Handle generator envelope ON/OFF."""
         if self.osc_connected:
-            self.osc.client.send_message("/noise/gen/envEnabled", [slot_id, 1 if enabled else 0])
+            self.osc.client.send_message(OSC_PATHS['gen_env_enabled'], [slot_id, 1 if enabled else 0])
         
     def on_generator_clock_rate(self, slot_id, rate):
         """Handle generator clock rate change - send index."""
-        rate_index = self.RATE_INDEX.get(rate, 3)  # Default to CLK
+        rate_index = CLOCK_RATE_INDEX.get(rate, 3)  # Default to CLK
         if self.osc_connected:
-            self.osc.client.send_message("/noise/gen/clockRate", [slot_id, rate_index])
+            self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
         print(f"Gen {slot_id} rate: {rate} (index {rate_index})")
         
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection."""
         current_type = self.generator_grid.get_slot(slot_id).generator_type
         
-        if current_type == "Empty":
-            new_type = "Test Synth"
-            synth_name = "testSynth"
-        elif current_type == "Test Synth":
-            new_type = "PT2399"
-            synth_name = "pt2399Grainy"
-        elif current_type == "PT2399":
-            new_type = "Empty"
-            synth_name = None
-        else:
-            new_type = "Empty"
-            synth_name = None
+        # Get next type in cycle
+        current_index = GENERATOR_CYCLE.index(current_type) if current_type in GENERATOR_CYCLE else 0
+        next_index = (current_index + 1) % len(GENERATOR_CYCLE)
+        new_type = GENERATOR_CYCLE[next_index]
+        synth_name = GENERATORS[new_type]
         
         self.generator_grid.set_generator_type(slot_id, new_type)
         
         if synth_name:
             if self.osc_connected:
-                self.osc.client.send_message("/noise/start_generator", [slot_id, synth_name])
+                self.osc.client.send_message(OSC_PATHS['start_generator'], [slot_id, synth_name])
             
             self.generator_grid.set_generator_active(slot_id, True)
             slot = self.generator_grid.get_slot(slot_id)
@@ -285,7 +270,7 @@ class MainFrame(QMainWindow):
             self.active_generators[slot_id] = synth_name
         else:
             if self.osc_connected:
-                self.osc.client.send_message("/noise/stop_generator", [slot_id])
+                self.osc.client.send_message(OSC_PATHS['stop_generator'], [slot_id])
             
             self.generator_grid.set_generator_active(slot_id, False)
             slot = self.generator_grid.get_slot(slot_id)
@@ -304,13 +289,13 @@ class MainFrame(QMainWindow):
             slot.set_amount(0.75)
             self.active_effects[slot_id] = new_type
             if self.osc_connected:
-                self.osc.client.send_message("/noise/fidelity_amount", [0.75])
+                self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [0.75])
         elif current_type == "Fidelity":
             new_type = "Empty"
             if slot_id in self.active_effects:
                 del self.active_effects[slot_id]
             if self.osc_connected:
-                self.osc.client.send_message("/noise/fidelity_amount", [1.0])
+                self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [1.0])
         else:
             new_type = "Empty"
         
@@ -319,7 +304,7 @@ class MainFrame(QMainWindow):
     def on_effect_amount_changed(self, slot_id, amount):
         """Handle effect amount change."""
         if self.osc_connected and slot_id in self.active_effects:
-            self.osc.client.send_message("/noise/fidelity_amount", [amount])
+            self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [amount])
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change."""

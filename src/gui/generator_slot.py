@@ -7,14 +7,9 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style
+from .theme import COLORS, button_style, MONO_FONT
 from .widgets import MiniSlider, CycleButton
-
-
-# Constants - could move to a config
-FILTER_TYPES = ["LP", "HP", "BP"]
-CLOCK_RATES = ["x8", "x4", "x2", "CLK", "/2", "/4", "/8", "/16"]
-CLOCK_DEFAULT_INDEX = 3  # CLK
+from src.config import FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES
 
 
 class GeneratorSlot(QWidget):
@@ -85,7 +80,7 @@ class GeneratorSlot(QWidget):
             param_layout.addStretch()
             
             lbl = QLabel(label)
-            lbl.setFont(QFont('Menlo', 8, QFont.Bold))
+            lbl.setFont(QFont(MONO_FONT, 8, QFont.Bold))
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet(f"color: {COLORS['text']};")
             param_layout.addWidget(lbl)
@@ -105,15 +100,15 @@ class GeneratorSlot(QWidget):
         
         # Buttons column
         buttons_widget = QWidget()
-        buttons_widget.setFixedWidth(38)
+        buttons_widget.setFixedWidth(SIZES['buttons_column_width'])
         buttons_layout = QVBoxLayout(buttons_widget)
         buttons_layout.setContentsMargins(0, 0, 0, 0)
         buttons_layout.setSpacing(3)
         
         # Filter type - CycleButton
         self.filter_btn = CycleButton(FILTER_TYPES, initial_index=0)
-        self.filter_btn.setFixedSize(36, 24)
-        self.filter_btn.setFont(QFont('Menlo', 9, QFont.Bold))
+        self.filter_btn.setFixedSize(*SIZES['button_medium'])
+        self.filter_btn.setFont(QFont(MONO_FONT, 9, QFont.Bold))
         self.filter_btn.setStyleSheet(button_style('enabled'))
         self.filter_btn.wrap = True  # Wrap LP -> HP -> BP -> LP
         self.filter_btn.value_changed.connect(self.on_filter_changed)
@@ -123,8 +118,8 @@ class GeneratorSlot(QWidget):
         
         # ENV toggle (not a cycle button - just on/off)
         self.clock_toggle = QPushButton("ENV")
-        self.clock_toggle.setFixedSize(36, 24)
-        self.clock_toggle.setFont(QFont('Menlo', 8, QFont.Bold))
+        self.clock_toggle.setFixedSize(*SIZES['button_medium'])
+        self.clock_toggle.setFont(QFont(MONO_FONT, 8, QFont.Bold))
         self.clock_toggle.setStyleSheet(button_style('disabled'))
         self.clock_toggle.clicked.connect(self.toggle_clock)
         self.clock_toggle.setEnabled(False)
@@ -133,8 +128,8 @@ class GeneratorSlot(QWidget):
         
         # CLK rate - CycleButton with scroll
         self.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
-        self.rate_btn.setFixedSize(36, 24)
-        self.rate_btn.setFont(QFont('Menlo', 8))
+        self.rate_btn.setFixedSize(*SIZES['button_medium'])
+        self.rate_btn.setFont(QFont(MONO_FONT, 8))
         self.rate_btn.setStyleSheet(button_style('inactive'))
         self.rate_btn.wrap = False  # Clamp at ends
         self.rate_btn.value_changed.connect(self.on_rate_changed)

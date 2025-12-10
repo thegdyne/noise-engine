@@ -9,6 +9,7 @@ from PyQt5.QtGui import QFont
 
 from .theme import COLORS, button_style, MONO_FONT
 from .widgets import DragSlider
+from src.config import SIZES, BPM_DEFAULT
 
 
 class LFOWidget(QWidget):
@@ -21,7 +22,7 @@ class LFOWidget(QWidget):
         super().__init__(parent)
         self.lfo_id = lfo_id
         self.waveform = "SIN"
-        self.master_bpm = 120
+        self.master_bpm = BPM_DEFAULT
         self.setup_ui()
         
     def setup_ui(self):
@@ -39,7 +40,7 @@ class LFOWidget(QWidget):
         
         # Waveform button
         self.wave_btn = QPushButton(self.waveform)
-        self.wave_btn.setFixedSize(40, 20)
+        self.wave_btn.setFixedSize(*SIZES['button_large'])
         self.wave_btn.setFont(QFont(MONO_FONT, 8))
         self.wave_btn.setStyleSheet(button_style('enabled'))
         self.wave_btn.clicked.connect(self.cycle_waveform)
@@ -47,7 +48,7 @@ class LFOWidget(QWidget):
         
         # Vertical rate slider
         self.rate_slider = DragSlider()
-        self.rate_slider.setMinimumHeight(40)
+        self.rate_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.rate_slider.valueChanged.connect(self.on_rate_changed)
         layout.addWidget(self.rate_slider, alignment=Qt.AlignCenter)
         
@@ -58,7 +59,7 @@ class LFOWidget(QWidget):
         self.rate_label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(self.rate_label)
         
-        self.setFixedWidth(60)
+        self.setFixedWidth(SIZES['lfo_widget_width'])
         self.setStyleSheet(f"""
             LFOWidget {{
                 border: 1px solid {COLORS['border']};

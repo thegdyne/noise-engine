@@ -9,6 +9,7 @@ from PyQt5.QtGui import QFont
 
 from .theme import COLORS, button_style, MONO_FONT
 from .widgets import DragSlider
+from src.config import SIZES
 
 
 class ChannelStrip(QWidget):
@@ -41,9 +42,9 @@ class ChannelStrip(QWidget):
         
         # Fader - DragSlider with fixed width
         self.fader = DragSlider()
-        self.fader.setFixedWidth(20)
+        self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
-        self.fader.setMinimumHeight(80)
+        self.fader.setMinimumHeight(SIZES['slider_height_large'])
         self.fader.valueChanged.connect(self.on_fader_changed)
         layout.addWidget(self.fader, alignment=Qt.AlignCenter)
         
@@ -52,14 +53,14 @@ class ChannelStrip(QWidget):
         btn_layout.setSpacing(2)
         
         self.mute_btn = QPushButton("M")
-        self.mute_btn.setFixedSize(20, 18)
+        self.mute_btn.setFixedSize(*SIZES['button_small'])
         self.mute_btn.setFont(QFont('Helvetica', 7, QFont.Bold))
         self.mute_btn.setStyleSheet(button_style('disabled'))
         self.mute_btn.clicked.connect(self.toggle_mute)
         btn_layout.addWidget(self.mute_btn, alignment=Qt.AlignCenter)
         
         self.solo_btn = QPushButton("S")
-        self.solo_btn.setFixedSize(20, 18)
+        self.solo_btn.setFixedSize(*SIZES['button_small'])
         self.solo_btn.setFont(QFont('Helvetica', 7, QFont.Bold))
         self.solo_btn.setStyleSheet(button_style('disabled'))
         self.solo_btn.clicked.connect(self.toggle_solo)
@@ -160,9 +161,9 @@ class MixerPanel(QWidget):
         
         # Vertical master fader - DragSlider with fixed width
         self.master_fader = DragSlider()
-        self.master_fader.setFixedWidth(25)
+        self.master_fader.setFixedWidth(SIZES['slider_width'])
         self.master_fader.setValue(800)
-        self.master_fader.setMinimumHeight(60)
+        self.master_fader.setMinimumHeight(SIZES['slider_height_medium'])
         self.master_fader.valueChanged.connect(self.on_master_volume)
         master_layout.addWidget(self.master_fader, alignment=Qt.AlignCenter)
         

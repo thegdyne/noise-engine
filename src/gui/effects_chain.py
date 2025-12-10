@@ -9,6 +9,7 @@ from PyQt5.QtGui import QFont
 
 from .theme import COLORS
 from .widgets import DragSlider
+from src.config import SIZES
 
 
 class EffectSlot(QWidget):
@@ -38,12 +39,12 @@ class EffectSlot(QWidget):
         
         # Vertical amount slider
         self.amount_slider = DragSlider()
-        self.amount_slider.setMinimumHeight(50)
+        self.amount_slider.setMinimumHeight(SIZES['slider_height_medium'])
         self.amount_slider.valueChanged.connect(self.on_amount_changed)
         self.amount_slider.setEnabled(False)
         layout.addWidget(self.amount_slider, alignment=Qt.AlignCenter)
         
-        self.setFixedWidth(70)
+        self.setFixedWidth(SIZES['effect_slot_width'])
         
     def update_style(self):
         """Update appearance based on state."""
