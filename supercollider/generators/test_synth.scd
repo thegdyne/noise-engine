@@ -2,20 +2,14 @@
 Test Synth Generator
 Pulse + noise with clock sync
 
-Parameters:
-- FRQ: oscillator frequency (50 - 2000 Hz)
-- CUT: filter cutoff (80 - 16000 Hz)
-- RES: filter resonance
-- ATK: envelope attack time
-- DEC: envelope decay time
-- ENV: OFF = drone, ON = clock sync
-- CLK: clock division (1, 2, 4, 8, 16)
+Selects trigger from master clock's 8 rate channels:
+  0=x8, 1=x4, 2=x2, 3=CLK, 4=/2, 5=/4, 6=/8, 7=/16
 */
 
 SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus, 
-                       filterTypeBus, envEnabledBus, clockDivBus, clockTrigBus|
+                       filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus|
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var env, envEnabled, clockDiv, clockTrig, dividedTrig;
+    var env, envEnabled, clockRate, allTrigs, trig;
     
     // Read params
     freq = In.kr(freqBus).linexp(0, 1, 50, 2000);
@@ -25,17 +19,19 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     decay = In.kr(decayBus).linexp(0, 1, 0.001, 4);
     filterType = In.kr(filterTypeBus);
     envEnabled = In.kr(envEnabledBus);
-    clockDiv = In.kr(clockDivBus);
+    clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\amplitude]);
     
-    // Clock trigger divided
-    clockTrig = In.ar(clockTrigBus);
-    dividedTrig = PulseDivider.ar(clockTrig, clockDiv);
+    // Read all 8 clock trigger channels
+    allTrigs = In.ar(clockTrigBus, 8);
     
-    // Envelope - must use audio rate throughout
+    // Select the trigger for our rate
+    trig = Select.ar(clockRate, allTrigs);
+    
+    // Envelope
     env = Select.ar(envEnabled, [
-        DC.ar(1.0),  // ENV OFF: constant 1.0 (drone)
-        EnvGen.ar(Env.perc(attack, decay), dividedTrig)  // ENV ON: triggered
+        DC.ar(1.0),  // ENV OFF: drone
+        EnvGen.ar(Env.perc(attack, decay), trig)  // ENV ON: triggered
     ]);
     
     // Sound source

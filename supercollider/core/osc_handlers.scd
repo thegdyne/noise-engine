@@ -49,9 +49,11 @@ All OSC message routing
         ~genParams[msg[1].asInteger][\envEnabled].set(msg[2].asInteger);
     }, '/noise/gen/envEnabled');
     
-    OSCdef(\genClockDiv, { |msg|
-        ~genParams[msg[1].asInteger][\clockDiv].set(msg[2].asInteger);
-    }, '/noise/gen/clockDiv');
+    OSCdef(\genClockRate, { |msg|
+        // Rate index: 0=x8, 1=x4, 2=x2, 3=CLK, 4=/2, 5=/4, 6=/8, 7=/16
+        ~genParams[msg[1].asInteger][\clockRate].set(msg[2].asInteger);
+        "Gen % clock rate index: %".format(msg[1], msg[2]).postln;
+    }, '/noise/gen/clockRate');
     
     // Generator control
     OSCdef(\startGenerator, { |msg|

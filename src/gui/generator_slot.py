@@ -33,6 +33,9 @@ class GeneratorSlot(QWidget):
     clock_enabled_changed = pyqtSignal(int, bool)
     clock_rate_changed = pyqtSignal(int, str)
     
+    # Clock rates: x8=32nd, x4=16th, x2=8th, CLK=quarter, /2=half, /4=whole, /8=2bar, /16=4bar
+    CLOCK_RATES = ["x8", "x4", "x2", "CLK", "/2", "/4", "/8", "/16"]
+    
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
         self.slot_id = slot_id
@@ -147,7 +150,7 @@ class GeneratorSlot(QWidget):
         self.rate_btn.setStyleSheet(button_style('inactive'))
         self.rate_btn.clicked.connect(self.cycle_clock_rate)
         self.rate_btn.setEnabled(False)
-        self.rate_btn.setToolTip("Clock division")
+        self.rate_btn.setToolTip("Clock rate: x8=32nd, x4=16th, x2=8th, CLK=1/4, /2=half, /4=whole")
         buttons_layout.addWidget(self.rate_btn)
         
         buttons_layout.addStretch()
@@ -262,10 +265,9 @@ class GeneratorSlot(QWidget):
         print(f"Gen {self.slot_id} ENV: {state}")
         
     def cycle_clock_rate(self):
-        """Cycle through clock divisions."""
-        rates = ["CLK", "/2", "/4", "/8", "/16"]
-        idx = rates.index(self.clock_rate)
-        self.clock_rate = rates[(idx + 1) % len(rates)]
+        """Cycle through clock rates."""
+        idx = self.CLOCK_RATES.index(self.clock_rate)
+        self.clock_rate = self.CLOCK_RATES[(idx + 1) % len(self.CLOCK_RATES)]
         self.rate_btn.setText(self.clock_rate)
         self.clock_rate_changed.emit(self.slot_id, self.clock_rate)
         print(f"Gen {self.slot_id} CLK: {self.clock_rate}")

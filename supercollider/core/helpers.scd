@@ -6,7 +6,6 @@ Reusable functions for generator management
 ~setupHelpers = {
     "Setting up helpers...".postln;
     
-    // Start any generator with standard params
     ~startGenerator = { |slotID, genType|
         var params = ~genParams[slotID];
         
@@ -15,10 +14,6 @@ Reusable functions for generator management
             ~generators[slotID] = nil;
         });
         
-        // Debug: check genGroup exists
-        "Starting % in genGroup: %".format(genType, ~genGroup).postln;
-        
-        // Add to genGroup (must exist!)
         if(~genGroup.notNil, {
             ~generators[slotID] = Synth(genType, [
                 \out, ~masterBus,
@@ -29,7 +24,7 @@ Reusable functions for generator management
                 \decayBus, params[\decay].index,
                 \filterTypeBus, params[\filterType].index,
                 \envEnabledBus, params[\envEnabled].index,
-                \clockDivBus, params[\clockDiv].index,
+                \clockRateBus, params[\clockRate].index,
                 \clockTrigBus, ~clockTrigBus.index
             ], ~genGroup, \addToHead);
         }, {
@@ -39,7 +34,6 @@ Reusable functions for generator management
         "Started % in slot %".format(genType, slotID).postln;
     };
     
-    // Stop generator
     ~stopGenerator = { |slotID|
         if(~generators[slotID].notNil, {
             ~generators[slotID].free;

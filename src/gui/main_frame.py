@@ -25,6 +25,18 @@ from src.audio.osc_bridge import OSCBridge
 class MainFrame(QMainWindow):
     """Main application window."""
     
+    # Rate name -> index (matches clock.scd channel order)
+    RATE_INDEX = {
+        "x8": 0,   # 32nd notes
+        "x4": 1,   # 16th notes
+        "x2": 2,   # 8th notes
+        "CLK": 3,  # Quarter notes
+        "/2": 4,   # Half notes
+        "/4": 5,   # Whole notes
+        "/8": 6,   # 2 bars
+        "/16": 7   # 4 bars
+    }
+    
     def __init__(self):
         super().__init__()
         
@@ -102,7 +114,6 @@ class MainFrame(QMainWindow):
         
         layout.addStretch()
         
-        # Digital BPM display
         self.bpm_display = BPMDisplay(initial_bpm=120)
         self.bpm_display.bpm_changed.connect(self.on_bpm_changed)
         layout.addWidget(self.bpm_display)
@@ -204,9 +215,7 @@ class MainFrame(QMainWindow):
                     if value is not None:
                         self.osc.send_parameter(param_id, value)
                 
-                # Send initial BPM
                 self.osc.client.send_message("/noise/clock/bpm", [self.master_bpm])
-                
                 self.modulation_sources.set_master_bpm(self.master_bpm)
             else:
                 self.status_label.setText("● Connection Failed")
@@ -240,10 +249,11 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message("/noise/gen/envEnabled", [slot_id, 1 if enabled else 0])
         
     def on_generator_clock_rate(self, slot_id, rate):
-        """Handle generator clock rate change."""
-        rate_map = {"CLK": 1, "/2": 2, "/4": 4, "/8": 8, "/16": 16}
+        """Handle generator clock rate change - send index."""
+        rate_index = self.RATE_INDEX.get(rate, 3)  # Default to CLK
         if self.osc_connected:
-            self.osc.client.send_message("/noise/gen/clockDiv", [slot_id, rate_map[rate]])
+            self.osc.client.send_message("/noise/gen/clockRate", [slot_id, rate_index])
+        print(f"Gen {slot_id} rate: {rate} (index {rate_index})")
         
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection."""

@@ -15,7 +15,7 @@ Creates all control and audio buses
     
     // Master clock
     ~clockBus = Bus.control(s, 1).set(120);
-    ~clockTrigBus = Bus.audio(s, 1);
+    ~clockTrigBus = Bus.audio(s, 8);  // 8 channels for 8 rates
     
     // Per-generator parameters (8 slots)
     ~genParams = Dictionary.new;
@@ -28,8 +28,8 @@ Creates all control and audio buses
         ~genParams[slot][\attack] = Bus.control(s, 1).set(0.5);
         ~genParams[slot][\decay] = Bus.control(s, 1).set(0.5);
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
-        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);  // 0 = free-running
-        ~genParams[slot][\clockDiv] = Bus.control(s, 1).set(1);
+        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);
+        ~genParams[slot][\clockRate] = Bus.control(s, 1).set(3);  // 3 = CLK (quarter notes)
     };
     
     // Audio buses
@@ -40,9 +40,10 @@ Creates all control and audio buses
     ~masterEffects = nil;
     ~clockSynth = nil;
     
-    // Groups will be created by clock.scd
+    // Groups
     ~clockGroup = nil;
     ~genGroup = nil;
+    ~fxGroup = nil;
     
     "  ✓ Buses ready".postln;
 };
