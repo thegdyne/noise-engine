@@ -493,3 +493,18 @@ Generators → Master Bus (internal) → [Effects Chain] → Output (speakers)
 - Expand modulation parameters (currently 4, target 8-12)
 - Build more generator types
 - Implement mixer volume control (currently visual only)
+
+---
+
+## Code Principles
+
+### DRY (Don't Repeat Yourself)
+- Use helper functions for repeated operations
+- Standard interfaces for similar components
+- Single point of change for shared behavior
+
+### Standard Generator Interface
+All generators in SuperCollider receive the same parameter buses:
+- FRQ, CUT, RES, ATK, DEC, FilterType
+- Each generator interprets these appropriately for its sound
+- Adding new generators = implement interface, don't repeat wiring

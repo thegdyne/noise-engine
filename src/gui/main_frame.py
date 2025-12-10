@@ -21,7 +21,7 @@ from src.audio.osc_bridge import OSCBridge
 
 
 class MainFrame(QMainWindow):
-    """Main application window with modular frame layout."""
+    """Main application window."""
     
     def __init__(self):
         super().__init__()
@@ -64,6 +64,9 @@ class MainFrame(QMainWindow):
         
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
         self.generator_grid.generator_selected.connect(self.on_generator_selected)
+        self.generator_grid.generator_parameter_changed.connect(self.on_generator_param_changed)
+        self.generator_grid.generator_filter_changed.connect(self.on_generator_filter_changed)
+        self.generator_grid.generator_clock_changed.connect(self.on_generator_clock_changed)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
         self.mixer_panel = MixerPanel(num_generators=8)
@@ -79,7 +82,7 @@ class MainFrame(QMainWindow):
         main_layout.addWidget(bottom_section)
         
     def create_top_bar(self):
-        """Create top bar with presets, clock, and connection."""
+        """Create top bar."""
         bar = QFrame()
         bar.setFrameShape(QFrame.StyledPanel)
         bar.setStyleSheet("background-color: #2a2a2a; border-bottom: 1px solid #555;")
@@ -155,7 +158,7 @@ class MainFrame(QMainWindow):
         return bar
         
     def create_bottom_section(self):
-        """Create bottom section with 3 parts: modulation, TBD, effects."""
+        """Create bottom section."""
         container = QFrame()
         container.setFrameShape(QFrame.StyledPanel)
         container.setStyleSheet("background-color: #2a2a2a; border-top: 1px solid #555;")
@@ -221,10 +224,27 @@ class MainFrame(QMainWindow):
             self.mixer_panel.set_io_status(audio=False)
             
     def on_parameter_changed(self, param_id, value):
-        """Handle modulation parameter change."""
+        """Handle global modulation parameter change."""
         if self.osc_connected:
             self.osc.send_parameter(param_id, value)
         print(f"{param_id}: {value:.3f}")
+        
+    def on_generator_param_changed(self, slot_id, param_name, value):
+        """Handle per-generator parameter change."""
+        if self.osc_connected:
+            self.osc.client.send_message(f"/noise/gen/{param_name}", [slot_id, value])
+        print(f"Gen {slot_id} {param_name}: {value:.3f}")
+        
+    def on_generator_filter_changed(self, slot_id, filter_type):
+        """Handle generator filter type change."""
+        filter_map = {"LP": 0, "HP": 1, "BP": 2}
+        if self.osc_connected:
+            self.osc.client.send_message("/noise/gen/filterType", [slot_id, filter_map[filter_type]])
+        print(f"Gen {slot_id} filter: {filter_type}")
+        
+    def on_generator_clock_changed(self, slot_id, clock_div):
+        """Handle generator clock routing change."""
+        print(f"Gen {slot_id} clock: {clock_div}")
         
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection."""

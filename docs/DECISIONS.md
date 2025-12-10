@@ -163,3 +163,36 @@ Generators → Internal Bus (~masterBus) → [Master Passthrough + Effects] → 
 
 **DO NOT:** Auto-load generators on startup
 **Files affected:** `src/main.py` (removed set_pt2399_generator call)
+
+---
+
+### [2025-12-10] DRY Code and Standard Interfaces
+**Decision:** Keep code DRY (Don't Repeat Yourself) - use functions to assign common values wherever possible
+**Rationale:** 
+- Reduces duplication and maintenance burden
+- Makes adding new generators/effects easier
+- Single point of change for shared behavior
+- Clearer code structure
+
+**Examples:**
+- SuperCollider: `~startGenerator` function handles starting any generator with standard params
+- All generators share same interface: `freqBus, cutoffBus, resBus, attackBus, decayBus, filterTypeBus`
+- New generators just implement the interface, don't repeat bus wiring
+
+**DO NOT:**
+- Copy/paste parameter wiring for each generator type
+- Hardcode bus assignments in multiple places
+- Create one-off handlers when a shared function works
+
+**Standard Generator Interface (SuperCollider):**
+```
+Arguments: out, freqBus, cutoffBus, resBus, attackBus, decayBus, filterTypeBus
+- freqBus: frequency/pitch (0-1 normalized)
+- cutoffBus: filter cutoff (0-1 normalized)  
+- resBus: filter resonance (0-1 normalized)
+- attackBus: VCA attack time (0-1 normalized)
+- decayBus: VCA decay time (0-1 normalized)
+- filterTypeBus: 0=LP, 1=HP, 2=BP
+```
+
+**Files affected:** `supercollider/init.scd`, all generator SynthDefs
