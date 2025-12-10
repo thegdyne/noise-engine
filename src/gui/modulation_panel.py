@@ -9,6 +9,7 @@ from PyQt5.QtGui import QFont
 
 from .theme import COLORS, MONO_FONT
 from .widgets import DragSlider
+from src.config import PARAMETERS
 
 
 class ModulationPanel(QWidget):
@@ -48,15 +49,14 @@ class ModulationPanel(QWidget):
         params_layout.setContentsMargins(10, 10, 10, 10)
         params_layout.setSpacing(15)
         
-        params = [
-            ('gravity', 'GRV', 'Gravity', 0.5),
-            ('density', 'DNS', 'Density', 0.5),
-            ('filter_cutoff', 'FLT', 'Filter', 0.7),
-            ('amplitude', 'AMP', 'Amplitude', 0.5),
-        ]
-        
-        for param_id, short_label, tooltip, default in params:
-            param_widget = self.create_parameter(param_id, short_label, tooltip, default)
+        # Build from config
+        for param_id, param_info in PARAMETERS.items():
+            param_widget = self.create_parameter(
+                param_id,
+                param_info['short'],
+                param_info['description'],
+                param_info['default']
+            )
             params_layout.addWidget(param_widget)
             
         layout.addWidget(params_frame)

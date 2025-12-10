@@ -279,3 +279,25 @@ supercollider/
 - Testable: widgets can be tested in isolation
 
 **Rule:** When adding UI behavior (scroll, cycle, drag), create a widget first, then use it.
+
+---
+
+### [2025-12-10] Centralized Configuration
+**Decision:** All constants, mappings, and magic numbers in `src/config/__init__.py`
+**Location:** `src/config/__init__.py`
+
+**Contains:**
+- Clock rates and mappings (CLOCK_RATES, CLOCK_RATE_INDEX)
+- Filter types and mappings (FILTER_TYPES, FILTER_TYPE_INDEX)
+- BPM limits (BPM_DEFAULT, BPM_MIN, BPM_MAX)
+- Generator registry (GENERATORS, GENERATOR_CYCLE)
+- OSC settings (OSC_HOST, OSC_PATHS, etc.)
+- Widget sizes (SIZES dict)
+
+**Rationale:**
+- Single source of truth
+- Adding a generator = one line change
+- Changing OSC paths = one place
+- Widget sizes consistent across components
+
+**Rule:** If it's a constant, mapping, or magic number, it belongs in config.
