@@ -99,12 +99,7 @@ s.waitForBoot({
     "  - \\testSynth (simple pulsing noise)".postln;
     "  - \\pt2399Grainy (tape delay degradation)".postln;
     "".postln;
-    
-    // AUTO-START: Start test synth in slot 1
-    ~generators[1] = Synth(\testSynth);
-    "✓ Auto-started Test Synth in slot 1".postln;
-    "".postln;
-    
     "Listening for OSC on port 57120".postln;
     "Waiting for Python GUI connection...".postln;
+    "(Python will start generators)".postln;
 });
