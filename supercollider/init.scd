@@ -1,6 +1,7 @@
 /*
 Noise Engine - SuperCollider Initialization
 Loads generators from separate files
+Master clock system with divisions
 */
 
 s.waitForBoot({
@@ -15,6 +16,10 @@ s.waitForBoot({
     ~params[\filter_cutoff] = Bus.control(s, 1).set(0.7);
     ~params[\amplitude] = Bus.control(s, 1).set(0.5);
     
+    // Master clock
+    ~clockBus = Bus.control(s, 1).set(120);  // BPM
+    ~clockTrigBus = Bus.audio(s, 1);          // Clock trigger signal
+    
     // Per-generator parameters (8 slots)
     ~genParams = Dictionary.new;
     8.do { |i|
@@ -27,7 +32,7 @@ s.waitForBoot({
         ~genParams[slot][\decay] = Bus.control(s, 1).set(0.5);
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
         ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);
-        ~genParams[slot][\clockDiv] = Bus.control(s, 1).set(1);
+        ~genParams[slot][\clockDiv] = Bus.control(s, 1).set(1);  // 1=CLK, 2=/2, 4=/4, etc
     };
     
     // Audio buses
@@ -36,6 +41,16 @@ s.waitForBoot({
     // Generator instances
     ~generators = Dictionary.new;
     ~masterEffects = nil;
+    ~clockSynth = nil;
+    
+    // Master clock synth - generates trigger at BPM
+    SynthDef(\masterClock, { |bpmBus, outBus|
+        var bpm, freq, trig;
+        bpm = In.kr(bpmBus);
+        freq = bpm / 60;  // Convert BPM to Hz
+        trig = Impulse.ar(freq);
+        Out.ar(outBus, trig);
+    }).add;
     
     // Helper function to start any generator with standard params
     ~startGenerator = { |slotID, genType|
@@ -55,7 +70,8 @@ s.waitForBoot({
             \decayBus, params[\decay].index,
             \filterTypeBus, params[\filterType].index,
             \envEnabledBus, params[\envEnabled].index,
-            \clockDivBus, params[\clockDiv].index
+            \clockDivBus, params[\clockDiv].index,
+            \clockTrigBus, ~clockTrigBus.index
         ], addAction: \addToHead);
         
         "Started % in slot %".format(genType, slotID).postln;
@@ -78,6 +94,12 @@ s.waitForBoot({
     }).add;
     
     // ========== OSC HANDLERS ==========
+    
+    // Master clock BPM
+    OSCdef(\clockBPM, { |msg|
+        ~clockBus.set(msg[1]);
+        "Master clock: % BPM".format(msg[1]).postln;
+    }, '/noise/clock/bpm');
     
     // Global
     OSCdef(\gravity, { |msg| ~params[\gravity].set(msg[1]); }, '/noise/gravity');
@@ -119,6 +141,7 @@ s.waitForBoot({
     
     OSCdef(\genClockDiv, { |msg|
         ~genParams[msg[1].asInteger][\clockDiv].set(msg[2].asInteger);
+        "Gen % clock div: %".format(msg[1], msg[2]).postln;
     }, '/noise/gen/clockDiv');
     
     // Generator control
@@ -137,6 +160,13 @@ s.waitForBoot({
     
     s.sync;
     
+    // Start master clock
+    ~clockSynth = Synth(\masterClock, [
+        \bpmBus, ~clockBus.index,
+        \outBus, ~clockTrigBus.index
+    ], addAction: \addToHead);
+    
+    // Start master passthrough
     ~masterEffects = Synth(\masterPassthrough, [
         \inBus, ~masterBus,
         \outBus, 0,
@@ -145,7 +175,8 @@ s.waitForBoot({
     
     "".postln;
     "✓ Noise Engine ready!".postln;
-    "✓ ENV OFF = drone, ENV ON = triggered".postln;
+    "✓ Master clock running".postln;
+    "✓ ENV OFF = drone, ENV ON = clock sync".postln;
     "".postln;
     "Listening for OSC on port 57120".postln;
 });
