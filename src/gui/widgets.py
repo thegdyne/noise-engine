@@ -3,14 +3,18 @@ Reusable UI Widgets
 Atomic components with no business logic - just behavior
 """
 
-from PyQt5.QtWidgets import QSlider, QPushButton
+from PyQt5.QtWidgets import QSlider, QPushButton, QApplication
 from PyQt5.QtCore import Qt, pyqtSignal
 
 from .theme import slider_style
 
 
 class MiniSlider(QSlider):
-    """Compact vertical slider."""
+    """
+    Compact vertical slider with click+drag anywhere behavior.
+    Click and drag up = increase, drag down = decrease.
+    Hold Shift for fine control.
+    """
     
     def __init__(self, parent=None):
         super().__init__(Qt.Vertical, parent)
@@ -20,6 +24,48 @@ class MiniSlider(QSlider):
         self.setFixedWidth(25)
         self.setMinimumHeight(50)
         self.setStyleSheet(slider_style())
+        
+        # Drag tracking
+        self.dragging = False
+        self.drag_start_y = 0
+        self.drag_start_value = 0
+        
+        # Sensitivity: pixels of mouse movement for full 0-1000 range
+        self.full_range_pixels = 100       # Normal: 100px = full range
+        self.fine_full_range_pixels = 400  # Shift: 400px = full range
+        
+    def mousePressEvent(self, event):
+        """Start drag from current value."""
+        if event.button() == Qt.LeftButton:
+            self.dragging = True
+            self.drag_start_y = event.pos().y()
+            self.drag_start_value = self.value()
+            
+    def mouseMoveEvent(self, event):
+        """Drag up = increase, drag down = decrease. Shift = fine control."""
+        if self.dragging:
+            # Check for shift modifier
+            modifiers = QApplication.keyboardModifiers()
+            if modifiers & Qt.ShiftModifier:
+                travel = self.fine_full_range_pixels
+            else:
+                travel = self.full_range_pixels
+            
+            # Calculate value change based on pixel movement
+            delta_y = self.drag_start_y - event.pos().y()  # Positive = moved up
+            value_range = self.maximum() - self.minimum()
+            delta_value = int((delta_y / travel) * value_range)
+            
+            new_value = self.drag_start_value + delta_value
+            new_value = max(self.minimum(), min(self.maximum(), new_value))
+            
+            if new_value != self.value():
+                self.setValue(new_value)
+                
+    def mouseReleaseEvent(self, event):
+        """End drag."""
+        if event.button() == Qt.LeftButton:
+            self.dragging = False
 
 
 class CycleButton(QPushButton):
@@ -40,14 +86,15 @@ class CycleButton(QPushButton):
         super().__init__(parent)
         self.values = values
         self.index = initial_index
-        self.wrap = False  # Set True to wrap at ends
+        self.wrap = False
         self._update_display()
         
         # Drag tracking
         self.dragging = False
         self.drag_start_y = 0
         self.drag_start_index = 0
-        self.drag_threshold = 15  # Pixels per step
+        self.drag_threshold = 15       # Normal: pixels per step
+        self.fine_drag_threshold = 40  # Shift held: more pixels per step
         self.moved_during_press = False
         
     def _update_display(self):
@@ -106,14 +153,20 @@ class CycleButton(QPushButton):
             self.moved_during_press = False
         
     def mouseMoveEvent(self, event):
-        """Handle drag - up = faster (lower index), down = slower (higher index)."""
+        """Handle drag - up = lower index, down = higher index. Shift = fine."""
         if self.dragging:
-            delta_y = self.drag_start_y - event.pos().y()  # Positive = moved up
-            steps = delta_y // self.drag_threshold
+            # Check for shift modifier
+            modifiers = QApplication.keyboardModifiers()
+            if modifiers & Qt.ShiftModifier:
+                threshold = self.fine_drag_threshold
+            else:
+                threshold = self.drag_threshold
+                
+            delta_y = self.drag_start_y - event.pos().y()
+            steps = int(delta_y / threshold)
             
-            new_index = self.drag_start_index - steps  # Up = lower index = faster
+            new_index = self.drag_start_index - steps
             
-            # Clamp or wrap
             if self.wrap:
                 new_index = new_index % len(self.values)
             else:
