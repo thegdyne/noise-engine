@@ -1,6 +1,6 @@
 """
 Modulation Sources Component
-LFOs and other modulation sources
+LFOs and other modulation sources - vertical layout for left panel
 """
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QFrame
@@ -13,7 +13,7 @@ from src.config import SIZES, BPM_DEFAULT, LFO_WAVEFORMS, CLOCK_RATES, CLOCK_DEF
 
 
 class LFOWidget(QWidget):
-    """Individual LFO control."""
+    """Individual LFO control - horizontal layout for side panel."""
     
     rate_changed = pyqtSignal(int, float)
     waveform_changed = pyqtSignal(int, str)
@@ -28,59 +28,68 @@ class LFOWidget(QWidget):
         self.setup_ui()
         
     def setup_ui(self):
-        """Create LFO widget."""
-        layout = QVBoxLayout(self)
+        """Create LFO widget - compact horizontal layout."""
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(3)
+        layout.setSpacing(5)
+        
+        # Left column - labels and buttons
+        left_col = QVBoxLayout()
+        left_col.setSpacing(3)
         
         # Title
         title = QLabel(f"LFO {self.lfo_id}")
         title.setFont(QFont('Helvetica', 9, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
-        layout.addWidget(title)
+        left_col.addWidget(title)
         
-        # Waveform button - CycleButton
+        # Waveform button
         self.wave_btn = CycleButton(LFO_WAVEFORMS, initial_index=0)
-        self.wave_btn.setFixedSize(*SIZES['button_large'])
+        self.wave_btn.setFixedSize(45, 20)
         self.wave_btn.setFont(QFont(MONO_FONT, 8))
         self.wave_btn.setStyleSheet(button_style('enabled'))
         self.wave_btn.wrap = True
         self.wave_btn.value_changed.connect(self.on_waveform_changed)
-        layout.addWidget(self.wave_btn, alignment=Qt.AlignCenter)
+        left_col.addWidget(self.wave_btn)
         
-        # Vertical rate slider
-        self.rate_slider = DragSlider()
-        self.rate_slider.setMinimumHeight(SIZES['slider_height_small'])
-        self.rate_slider.valueChanged.connect(self.on_rate_changed)
-        layout.addWidget(self.rate_slider, alignment=Qt.AlignCenter)
-        
-        # Rate label
-        self.rate_label = QLabel("5.0 Hz")
-        self.rate_label.setFont(QFont(MONO_FONT, 8))
-        self.rate_label.setAlignment(Qt.AlignCenter)
-        self.rate_label.setStyleSheet(f"color: {COLORS['text']};")
-        layout.addWidget(self.rate_label)
-        
-        # SYNC toggle
+        # SYNC button
         self.sync_btn = QPushButton("SYNC")
-        self.sync_btn.setFixedSize(*SIZES['button_large'])
+        self.sync_btn.setFixedSize(45, 20)
         self.sync_btn.setFont(QFont(MONO_FONT, 7, QFont.Bold))
         self.sync_btn.setStyleSheet(button_style('disabled'))
         self.sync_btn.clicked.connect(self.toggle_sync)
-        layout.addWidget(self.sync_btn, alignment=Qt.AlignCenter)
+        left_col.addWidget(self.sync_btn)
         
-        # CLK division button - CycleButton
+        # CLK division button
         self.clk_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
-        self.clk_btn.setFixedSize(*SIZES['button_large'])
+        self.clk_btn.setFixedSize(45, 20)
         self.clk_btn.setFont(QFont(MONO_FONT, 7))
         self.clk_btn.setStyleSheet(button_style('inactive'))
         self.clk_btn.wrap = False
         self.clk_btn.setEnabled(False)
         self.clk_btn.value_changed.connect(self.on_clock_rate_changed)
-        layout.addWidget(self.clk_btn, alignment=Qt.AlignCenter)
+        left_col.addWidget(self.clk_btn)
         
-        self.setFixedWidth(SIZES['lfo_widget_width'])
+        left_col.addStretch()
+        layout.addLayout(left_col)
+        
+        # Right column - rate slider
+        right_col = QVBoxLayout()
+        right_col.setSpacing(2)
+        
+        self.rate_slider = DragSlider()
+        self.rate_slider.setMinimumHeight(70)
+        self.rate_slider.valueChanged.connect(self.on_rate_changed)
+        right_col.addWidget(self.rate_slider, alignment=Qt.AlignCenter)
+        
+        self.rate_label = QLabel("5.0 Hz")
+        self.rate_label.setFont(QFont(MONO_FONT, 8))
+        self.rate_label.setAlignment(Qt.AlignCenter)
+        self.rate_label.setStyleSheet(f"color: {COLORS['text']};")
+        right_col.addWidget(self.rate_label)
+        
+        layout.addLayout(right_col)
+        
         self.setStyleSheet(f"""
             LFOWidget {{
                 border: 1px solid {COLORS['border']};
@@ -128,7 +137,7 @@ class LFOWidget(QWidget):
 
 
 class ModulationSources(QWidget):
-    """Container for modulation sources."""
+    """Container for modulation sources - vertical stack for side panel."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -136,26 +145,24 @@ class ModulationSources(QWidget):
         self.setup_ui()
         
     def setup_ui(self):
-        """Create modulation sources panel."""
+        """Create modulation sources panel - vertical layout."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+        layout.setContentsMargins(5, 10, 5, 10)
+        layout.setSpacing(10)
         
         title = QLabel("MOD SOURCES")
-        title.setFont(QFont('Helvetica', 10, QFont.Bold))
+        title.setFont(QFont('Helvetica', 12, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         layout.addWidget(title)
         
-        lfos_layout = QHBoxLayout()
-        lfos_layout.setSpacing(5)
-        
+        # Stack LFOs vertically
         for i in range(1, 4):
             lfo = LFOWidget(i)
-            lfos_layout.addWidget(lfo)
+            layout.addWidget(lfo)
             self.lfos[i] = lfo
             
-        layout.addLayout(lfos_layout)
+        layout.addStretch()
         
     def set_master_bpm(self, bpm):
         """Update BPM for all LFOs."""

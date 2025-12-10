@@ -63,6 +63,12 @@ class MainFrame(QMainWindow):
         content_layout.setContentsMargins(5, 5, 5, 5)
         content_layout.setSpacing(10)
         
+        # Left - MOD SOURCES
+        self.modulation_sources = ModulationSources()
+        self.modulation_sources.setFixedWidth(220)
+        content_layout.addWidget(self.modulation_sources)
+        
+        # Center - GENERATORS
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
         self.generator_grid.generator_selected.connect(self.on_generator_selected)
         self.generator_grid.generator_parameter_changed.connect(self.on_generator_param_changed)
@@ -71,6 +77,7 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_clock_rate_changed.connect(self.on_generator_clock_rate)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
+        # Right - MIXER
         self.mixer_panel = MixerPanel(num_generators=8)
         self.mixer_panel.generator_volume_changed.connect(self.on_generator_volume_changed)
         self.mixer_panel.generator_muted.connect(self.on_generator_muted)
@@ -80,6 +87,7 @@ class MainFrame(QMainWindow):
         
         main_layout.addLayout(content_layout, stretch=1)
         
+        # Bottom - EFFECTS only
         bottom_section = self.create_bottom_section()
         main_layout.addWidget(bottom_section)
         
@@ -151,23 +159,20 @@ class MainFrame(QMainWindow):
         return bar
         
     def create_bottom_section(self):
-        """Create bottom section."""
+        """Create bottom section - effects only."""
         container = QFrame()
         container.setFrameShape(QFrame.StyledPanel)
         container.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-top: 1px solid {COLORS['border_light']};")
-        container.setFixedHeight(140)
+        container.setFixedHeight(100)
         
         layout = QHBoxLayout(container)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
         
-        self.modulation_sources = ModulationSources()
-        layout.addWidget(self.modulation_sources, stretch=2)
-        
         self.effects_chain = EffectsChain()
         self.effects_chain.effect_selected.connect(self.on_effect_selected)
         self.effects_chain.effect_amount_changed.connect(self.on_effect_amount_changed)
-        layout.addWidget(self.effects_chain, stretch=2)
+        layout.addWidget(self.effects_chain)
         
         return container
         
