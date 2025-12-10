@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, MONO_FONT
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import MiniSlider, CycleButton
 from src.config import FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES
 
@@ -41,14 +41,14 @@ class GeneratorSlot(QWidget):
         header = QHBoxLayout()
         
         self.id_label = QLabel(f"GEN {self.slot_id}")
-        self.id_label.setFont(QFont('Helvetica', 9))
+        self.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
         self.id_label.setStyleSheet(f"color: {COLORS['text']};")
         header.addWidget(self.id_label)
         
         header.addStretch()
         
         self.type_label = QLabel(self.generator_type)
-        self.type_label.setFont(QFont('Helvetica', 11, QFont.Bold))
+        self.type_label.setFont(QFont(FONT_FAMILY, 11, QFont.Bold))
         self.type_label.setAlignment(Qt.AlignRight)
         self.type_label.setCursor(Qt.PointingHandCursor)
         header.addWidget(self.type_label)
@@ -80,7 +80,7 @@ class GeneratorSlot(QWidget):
             param_layout.addStretch()
             
             lbl = QLabel(label)
-            lbl.setFont(QFont(MONO_FONT, 8, QFont.Bold))
+            lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet(f"color: {COLORS['text']};")
             param_layout.addWidget(lbl)
@@ -108,33 +108,33 @@ class GeneratorSlot(QWidget):
         # Filter type - CycleButton
         self.filter_btn = CycleButton(FILTER_TYPES, initial_index=0)
         self.filter_btn.setFixedSize(*SIZES['button_medium'])
-        self.filter_btn.setFont(QFont(MONO_FONT, 9, QFont.Bold))
+        self.filter_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
         self.filter_btn.setStyleSheet(button_style('enabled'))
-        self.filter_btn.wrap = True  # Wrap LP -> HP -> BP -> LP
+        self.filter_btn.wrap = True
         self.filter_btn.value_changed.connect(self.on_filter_changed)
         self.filter_btn.setEnabled(False)
         self.filter_btn.setToolTip("Filter Type: LP / HP / BP")
         buttons_layout.addWidget(self.filter_btn)
         
-        # ENV toggle (not a cycle button - just on/off)
+        # ENV toggle
         self.clock_toggle = QPushButton("ENV")
         self.clock_toggle.setFixedSize(*SIZES['button_medium'])
-        self.clock_toggle.setFont(QFont(MONO_FONT, 8, QFont.Bold))
+        self.clock_toggle.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
         self.clock_toggle.setStyleSheet(button_style('disabled'))
         self.clock_toggle.clicked.connect(self.toggle_clock)
         self.clock_toggle.setEnabled(False)
         self.clock_toggle.setToolTip("Envelope ON/OFF (OFF = drone)")
         buttons_layout.addWidget(self.clock_toggle)
         
-        # CLK rate - CycleButton with scroll
+        # CLK rate - CycleButton
         self.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
         self.rate_btn.setFixedSize(*SIZES['button_medium'])
-        self.rate_btn.setFont(QFont(MONO_FONT, 8))
+        self.rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self.rate_btn.setStyleSheet(button_style('inactive'))
-        self.rate_btn.wrap = False  # Clamp at ends
+        self.rate_btn.wrap = False
         self.rate_btn.value_changed.connect(self.on_rate_changed)
         self.rate_btn.setEnabled(False)
-        self.rate_btn.setToolTip("Clock rate (scroll or click)\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16")
+        self.rate_btn.setToolTip("Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16")
         buttons_layout.addWidget(self.rate_btn)
         
         buttons_layout.addStretch()
@@ -147,12 +147,12 @@ class GeneratorSlot(QWidget):
         status_layout.setSpacing(15)
         
         self.audio_indicator = QLabel("🔇 Audio")
-        self.audio_indicator.setFont(QFont('Helvetica', 9))
+        self.audio_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
         self.audio_indicator.setStyleSheet(f"color: {COLORS['audio_off']};")
         status_layout.addWidget(self.audio_indicator)
         
         self.midi_indicator = QLabel("🎹 MIDI")
-        self.midi_indicator.setFont(QFont('Helvetica', 9))
+        self.midi_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
         self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
         status_layout.addWidget(self.midi_indicator)
         

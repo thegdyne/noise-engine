@@ -17,7 +17,7 @@ from src.gui.mixer_panel import MixerPanel
 from src.gui.effects_chain import EffectsChain
 from src.gui.modulation_sources import ModulationSources
 from src.gui.bpm_display import BPMDisplay
-from src.gui.theme import COLORS, button_style
+from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
     CLOCK_RATE_INDEX, FILTER_TYPE_INDEX, GENERATORS, GENERATOR_CYCLE,
@@ -102,8 +102,7 @@ class MainFrame(QMainWindow):
         layout.setContentsMargins(10, 5, 10, 5)
         
         title = QLabel("NOISE ENGINE")
-        title_font = QFont('Helvetica', 16, QFont.Bold)
-        title.setFont(title_font)
+        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['title'], QFont.Bold))
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         layout.addWidget(title)
         
@@ -120,8 +119,7 @@ class MainFrame(QMainWindow):
         layout.addWidget(preset_label)
         
         self.preset_name = QLabel("Init")
-        preset_font = QFont('Helvetica', 12)
-        self.preset_name.setFont(preset_font)
+        self.preset_name.setFont(QFont(FONT_FAMILY, FONT_SIZES['section']))
         self.preset_name.setStyleSheet(f"color: {COLORS['selected_text']};")
         layout.addWidget(self.preset_name)
         

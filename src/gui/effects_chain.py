@@ -7,12 +7,11 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS
+from .theme import COLORS, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import DragSlider
-from src.config import SIZES
 
 
-class EffectSlot(QWidget):
+class EffectSlot(QFrame):
     """Individual effect slot."""
     
     clicked = pyqtSignal(int)
@@ -28,23 +27,30 @@ class EffectSlot(QWidget):
     def setup_ui(self):
         """Create effect slot UI."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(8, 5, 8, 5)
         layout.setSpacing(3)
         
+        # Effect name at top
         self.type_label = QLabel(self.effect_type)
-        self.type_label.setFont(QFont('Helvetica', 9, QFont.Bold))
+        self.type_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
         self.type_label.setAlignment(Qt.AlignCenter)
         self.type_label.setCursor(Qt.PointingHandCursor)
         layout.addWidget(self.type_label)
         
-        # Vertical amount slider
+        # Slider in center
         self.amount_slider = DragSlider()
-        self.amount_slider.setMinimumHeight(SIZES['slider_height_medium'])
+        self.amount_slider.setFixedHeight(50)
         self.amount_slider.valueChanged.connect(self.on_amount_changed)
         self.amount_slider.setEnabled(False)
         layout.addWidget(self.amount_slider, alignment=Qt.AlignCenter)
         
-        self.setFixedWidth(SIZES['effect_slot_width'])
+        # Value label at bottom
+        self.amount_label = QLabel("---")
+        self.amount_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        self.amount_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.amount_label)
+        
+        self.setFixedWidth(70)
         
     def update_style(self):
         """Update appearance based on state."""
@@ -52,6 +58,7 @@ class EffectSlot(QWidget):
             border_color = COLORS['border']
             bg_color = COLORS['background']
             text_color = COLORS['text_dim']
+            self.amount_label.setText("---")
         else:
             border_color = COLORS['border_active']
             bg_color = '#1a2a1a'
@@ -65,6 +72,7 @@ class EffectSlot(QWidget):
             }}
         """)
         self.type_label.setStyleSheet(f"color: {text_color};")
+        self.amount_label.setStyleSheet(f"color: {COLORS['text']};")
         
     def set_effect_type(self, effect_type):
         """Change effect type."""
@@ -76,15 +84,22 @@ class EffectSlot(QWidget):
     def set_amount(self, amount):
         """Set effect amount (0-1)."""
         self.amount_slider.setValue(int(amount * 1000))
+        self.amount_label.setText(f"{int(amount * 100)}%")
         
     def on_amount_changed(self, value):
         """Handle amount slider change."""
-        self.amount_changed.emit(self.slot_id, value / 1000.0)
+        amount = value / 1000.0
+        self.amount_label.setText(f"{int(amount * 100)}%")
+        self.amount_changed.emit(self.slot_id, amount)
         
     def mousePressEvent(self, event):
         """Handle click to change effect type."""
         if event.button() == Qt.LeftButton:
-            self.clicked.emit(self.slot_id)
+            # Only trigger if clicking on label area
+            if event.pos().y() < 25:
+                self.clicked.emit(self.slot_id)
+            else:
+                super().mousePressEvent(event)
 
 
 class EffectsChain(QWidget):
@@ -101,33 +116,36 @@ class EffectsChain(QWidget):
         
     def setup_ui(self):
         """Create effects chain."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setSpacing(8)
         
-        title = QLabel("EFFECTS")
-        title.setFont(QFont('Helvetica', 10, QFont.Bold))
+        # Title
+        title = QLabel("FX")
+        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
+        title.setFixedWidth(25)
         layout.addWidget(title)
         
-        chain_layout = QHBoxLayout()
-        chain_layout.setSpacing(5)
-        
+        # Effect slots with arrows
         for i in range(1, self.num_slots + 1):
             slot = EffectSlot(i, "Empty")
             slot.clicked.connect(self.on_slot_clicked)
             slot.amount_changed.connect(self.on_amount_changed)
-            chain_layout.addWidget(slot)
+            layout.addWidget(slot)
             self.slots[i] = slot
             
             if i < self.num_slots:
                 arrow = QLabel("→")
+                arrow.setFont(QFont(FONT_FAMILY, FONT_SIZES['section']))
                 arrow.setStyleSheet(f"color: {COLORS['text_dim']};")
-                chain_layout.addWidget(arrow)
-                
-        layout.addLayout(chain_layout)
+                arrow.setFixedWidth(15)
+                arrow.setAlignment(Qt.AlignCenter)
+                layout.addWidget(arrow)
         
+        layout.addStretch()
+                
     def on_slot_clicked(self, slot_id):
         """Handle slot click."""
         self.effect_selected.emit(slot_id)

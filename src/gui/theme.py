@@ -6,16 +6,26 @@ RULE: All sliders must be vertical - no horizontal sliders
 """
 import platform
 
+# === FONTS ===
+FONT_FAMILY = 'Helvetica'
 MONO_FONT = 'Menlo' if platform.system() == 'Darwin' else 'Courier New'
+
+FONT_SIZES = {
+    'title': 16,      # Main titles (NOISE ENGINE)
+    'section': 12,    # Section headers (MIXER, EFFECTS)
+    'label': 10,      # Labels
+    'small': 9,       # Smaller labels
+    'tiny': 8,        # Button text, values
+}
 
 # Drag/scroll sensitivity settings
 DRAG_SENSITIVITY = {
-    'slider_normal': 100,          # Pixels for full slider range (0-1000)
-    'slider_fine': 400,            # Pixels for full range with Shift
-    'cycle_normal': 15,            # Pixels per step for CycleButton
-    'cycle_fine': 40,              # Pixels per step with Shift
-    'bpm_value_normal': 3,         # Pixels per BPM
-    'bpm_value_fine': 35,          # Pixels per BPM with Shift
+    'slider_normal': 100,
+    'slider_fine': 400,
+    'cycle_normal': 15,
+    'cycle_fine': 40,
+    'bpm_value_normal': 3,
+    'bpm_value_fine': 35,
 }
 
 # Base colors

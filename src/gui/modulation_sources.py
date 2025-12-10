@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, MONO_FONT
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import DragSlider, CycleButton
 from src.config import SIZES, BPM_DEFAULT, LFO_WAVEFORMS, CLOCK_RATES, CLOCK_DEFAULT_INDEX
 
@@ -39,14 +39,14 @@ class LFOWidget(QWidget):
         
         # Title
         title = QLabel(f"LFO {self.lfo_id}")
-        title.setFont(QFont('Helvetica', 9, QFont.Bold))
+        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         left_col.addWidget(title)
         
         # Waveform button
         self.wave_btn = CycleButton(LFO_WAVEFORMS, initial_index=0)
         self.wave_btn.setFixedSize(45, 20)
-        self.wave_btn.setFont(QFont(MONO_FONT, 8))
+        self.wave_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self.wave_btn.setStyleSheet(button_style('enabled'))
         self.wave_btn.wrap = True
         self.wave_btn.value_changed.connect(self.on_waveform_changed)
@@ -83,7 +83,7 @@ class LFOWidget(QWidget):
         right_col.addWidget(self.rate_slider, alignment=Qt.AlignCenter)
         
         self.rate_label = QLabel("5.0 Hz")
-        self.rate_label.setFont(QFont(MONO_FONT, 8))
+        self.rate_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self.rate_label.setAlignment(Qt.AlignCenter)
         self.rate_label.setStyleSheet(f"color: {COLORS['text']};")
         right_col.addWidget(self.rate_label)
@@ -151,7 +151,7 @@ class ModulationSources(QWidget):
         layout.setSpacing(10)
         
         title = QLabel("MOD SOURCES")
-        title.setFont(QFont('Helvetica', 12, QFont.Bold))
+        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         layout.addWidget(title)

@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, MONO_FONT
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import DragSlider
 from src.config import SIZES
 
@@ -35,12 +35,12 @@ class ChannelStrip(QWidget):
         
         # Channel label
         label = QLabel(self.label_text or str(self.channel_id))
-        label.setFont(QFont('Helvetica', 8))
+        label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
         label.setAlignment(Qt.AlignCenter)
         label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(label)
         
-        # Fader - DragSlider with fixed width
+        # Fader
         self.fader = DragSlider()
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
@@ -54,14 +54,14 @@ class ChannelStrip(QWidget):
         
         self.mute_btn = QPushButton("M")
         self.mute_btn.setFixedSize(*SIZES['button_small'])
-        self.mute_btn.setFont(QFont('Helvetica', 7, QFont.Bold))
+        self.mute_btn.setFont(QFont(FONT_FAMILY, 7, QFont.Bold))
         self.mute_btn.setStyleSheet(button_style('disabled'))
         self.mute_btn.clicked.connect(self.toggle_mute)
         btn_layout.addWidget(self.mute_btn, alignment=Qt.AlignCenter)
         
         self.solo_btn = QPushButton("S")
         self.solo_btn.setFixedSize(*SIZES['button_small'])
-        self.solo_btn.setFont(QFont('Helvetica', 7, QFont.Bold))
+        self.solo_btn.setFont(QFont(FONT_FAMILY, 7, QFont.Bold))
         self.solo_btn.setStyleSheet(button_style('disabled'))
         self.solo_btn.clicked.connect(self.toggle_solo)
         btn_layout.addWidget(self.solo_btn, alignment=Qt.AlignCenter)
@@ -112,8 +112,7 @@ class MixerPanel(QWidget):
         layout.setSpacing(5)
         
         title = QLabel("MIXER")
-        title_font = QFont('Helvetica', 12, QFont.Bold)
-        title.setFont(title_font)
+        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         layout.addWidget(title)
@@ -141,7 +140,7 @@ class MixerPanel(QWidget):
             
         layout.addWidget(channels_frame)
         
-        # Master section with vertical fader
+        # Master section
         master_frame = QFrame()
         master_frame.setStyleSheet(f"""
             QFrame {{
@@ -154,12 +153,11 @@ class MixerPanel(QWidget):
         master_layout.setContentsMargins(10, 5, 10, 5)
         
         master_label = QLabel("MASTER")
-        master_label.setFont(QFont('Helvetica', 9, QFont.Bold))
+        master_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
         master_label.setAlignment(Qt.AlignCenter)
         master_label.setStyleSheet(f"color: {COLORS['text_bright']}; border: none;")
         master_layout.addWidget(master_label)
         
-        # Vertical master fader - DragSlider with fixed width
         self.master_fader = DragSlider()
         self.master_fader.setFixedWidth(SIZES['slider_width'])
         self.master_fader.setValue(800)
@@ -182,12 +180,12 @@ class MixerPanel(QWidget):
         io_layout.setContentsMargins(10, 5, 10, 5)
         
         self.audio_status = QLabel("🔇 Audio")
-        self.audio_status.setFont(QFont('Helvetica', 9))
+        self.audio_status.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
         self.audio_status.setStyleSheet(f"color: {COLORS['audio_off']}; border: none;")
         io_layout.addWidget(self.audio_status)
         
         self.midi_status = QLabel("🎹 MIDI")
-        self.midi_status.setFont(QFont('Helvetica', 9))
+        self.midi_status.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
         self.midi_status.setStyleSheet(f"color: {COLORS['midi_off']}; border: none;")
         io_layout.addWidget(self.midi_status)
         

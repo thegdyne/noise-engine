@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, MONO_FONT
+from .theme import COLORS, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import DragValue
 from src.config import BPM_DEFAULT, BPM_MIN, BPM_MAX, SIZES
 
@@ -46,7 +46,7 @@ class BPMDisplay(QWidget):
                 color: {COLORS['text']};
                 border: 1px solid {COLORS['border']};
                 border-radius: 3px;
-                font-size: 12px;
+                font-size: {FONT_SIZES['section']}px;
             }}
             QPushButton:hover {{
                 background-color: #2a2a2a;
@@ -66,12 +66,12 @@ class BPMDisplay(QWidget):
         
         # Small "BPM" label above
         bpm_label = QLabel("BPM")
-        bpm_label.setFont(QFont('Helvetica', 8))
+        bpm_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
         bpm_label.setAlignment(Qt.AlignCenter)
         bpm_label.setStyleSheet("color: #666; background: transparent; border: none;")
         display_layout.addWidget(bpm_label)
         
-        # Large draggable LED display - using DragValue widget
+        # Large draggable LED display
         self.display = DragValue(self.bpm, BPM_MIN, BPM_MAX)
         self.display.setFont(QFont(MONO_FONT, 32, QFont.Bold))
         self.display.setAlignment(Qt.AlignCenter)
