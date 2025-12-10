@@ -1,6 +1,12 @@
 """
 Modulation Panel Component - Left frame
 High-resolution sliders for expressive performance
+
+CRITICAL DESIGN DECISIONS:
+- Slider resolution: 10000 steps (DO NOT reduce - see docs/DECISIONS.md)
+- Display format: Percentage 0-100% (DO NOT change to decimals)
+- Fine control: Shift+drag (DO NOT remove)
+- Orientation: Vertical only (DO NOT make horizontal)
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
@@ -10,17 +16,27 @@ from PyQt5.QtGui import QFont, QPainter, QColor
 
 
 class PerformanceSlider(QSlider):
-    """High-resolution slider with fine control mode."""
+    """
+    High-resolution slider with fine control mode.
+    
+    LOCKED SETTINGS (2025-12-10):
+    - Range: 0-10000 (10000 steps for smooth performance)
+    - Fine mode: Shift+drag = 10x slower
+    - Wheel: Mouse wheel for micro adjustments
+    
+    DO NOT change these without updating docs/DECISIONS.md
+    """
     
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
         self.fine_mode = False
         self.setMinimum(0)
-        self.setMaximum(10000)  # High resolution
+        self.setMaximum(10000)  # LOCKED: High resolution for performance
         self.setMinimumHeight(60)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         
-        # Anti-ghosting stylesheet
+        # LOCKED: Anti-ghosting stylesheet (required for macOS)
+        # See docs/DECISIONS.md - PyQt5 Slider Ghosting Fix
         self.setStyleSheet("""
             QSlider::groove:vertical {
                 border: 1px solid #999999;
@@ -60,7 +76,7 @@ class PerformanceSlider(QSlider):
             # Calculate smaller step size
             super().mouseMoveEvent(event)
             new = self.value()
-            # Reduce the change by 10x for fine control
+            # LOCKED: 10x reduction for fine control
             delta = new - current
             self.setValue(current + int(delta / 10))
         else:
@@ -76,7 +92,7 @@ class PerformanceSlider(QSlider):
     def mouseReleaseEvent(self, event):
         """Reset fine mode and fix ghosting."""
         self.fine_mode = False
-        self.repaint()
+        self.repaint()  # LOCKED: Required for ghosting fix
         super().mouseReleaseEvent(event)
 
 
@@ -154,7 +170,7 @@ class ModulationPanel(QWidget):
         
         header.addStretch()
         
-        # Value display (percentage)
+        # LOCKED: Value display as percentage (not decimals)
         default_pct = int(config['default'] * 100)
         value_label = QLabel(f"{default_pct}%")
         value_label.setAlignment(Qt.AlignRight)
@@ -167,7 +183,7 @@ class ModulationPanel(QWidget):
         
         layout.addLayout(header)
         
-        # High-resolution performance slider
+        # LOCKED: High-resolution performance slider (vertical)
         slider = PerformanceSlider(Qt.Vertical)
         
         # Set default (0-10000 range)
@@ -190,10 +206,10 @@ class ModulationPanel(QWidget):
     def on_slider_change(self, param_id, slider_value, config):
         """Handle slider change."""
         # Convert from 0-10000 to actual value
-        normalized = slider_value / 10000.0
+        normalized = slider_value / 10000.0  # LOCKED: 10000 resolution
         actual_value = config['min'] + normalized * (config['max'] - config['min'])
         
-        # Update display as percentage (0-100%)
+        # LOCKED: Display as percentage (0-100%)
         percentage = int(normalized * 100)
         self.value_labels[param_id].setText(f"{percentage}%")
         
@@ -204,6 +220,6 @@ class ModulationPanel(QWidget):
         if param_id in self.sliders:
             slider = self.sliders[param_id]
             config = self.parameters[param_id]
-            normalized = slider.value() / 10000.0
+            normalized = slider.value() / 10000.0  # LOCKED: 10000 resolution
             return config['min'] + normalized * (config['max'] - config['min'])
         return None
