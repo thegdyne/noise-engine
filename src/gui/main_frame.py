@@ -17,6 +17,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.effects_chain import EffectsChain
 from src.gui.modulation_sources import ModulationSources
+from src.gui.theme import COLORS, button_style
 from src.audio.osc_bridge import OSCBridge
 
 
@@ -86,7 +87,7 @@ class MainFrame(QMainWindow):
         """Create top bar."""
         bar = QFrame()
         bar.setFrameShape(QFrame.StyledPanel)
-        bar.setStyleSheet("background-color: #2a2a2a; border-bottom: 1px solid #555;")
+        bar.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-bottom: 1px solid {COLORS['border_light']};")
         bar.setFixedHeight(50)
         
         layout = QHBoxLayout(bar)
@@ -95,17 +96,19 @@ class MainFrame(QMainWindow):
         title = QLabel("NOISE ENGINE")
         title_font = QFont('Helvetica', 16, QFont.Bold)
         title.setFont(title_font)
+        title.setStyleSheet(f"color: {COLORS['text_bright']};")
         layout.addWidget(title)
         
         layout.addStretch()
         
         clock_label = QLabel("Clock:")
+        clock_label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(clock_label)
         
         self.bpm_label = QLabel("120 BPM")
         bpm_font = QFont('Courier', 12, QFont.Bold)
         self.bpm_label.setFont(bpm_font)
-        self.bpm_label.setStyleSheet("color: #44ff44;")
+        self.bpm_label.setStyleSheet(f"color: {COLORS['clock_pulse']};")
         layout.addWidget(self.bpm_label)
         
         self.bpm_slider = QSlider(Qt.Horizontal)
@@ -113,47 +116,68 @@ class MainFrame(QMainWindow):
         self.bpm_slider.setMaximum(300)
         self.bpm_slider.setValue(120)
         self.bpm_slider.setFixedWidth(150)
+        self.bpm_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                border: 1px solid {COLORS['border_light']};
+                height: 8px;
+                background: {COLORS['slider_groove']};
+                border-radius: 4px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {COLORS['slider_handle']};
+                border: 1px solid {COLORS['border_light']};
+                width: 16px;
+                margin: -4px 0;
+                border-radius: 8px;
+            }}
+            QSlider::handle:horizontal:hover {{
+                background: {COLORS['slider_handle_hover']};
+            }}
+        """)
         self.bpm_slider.valueChanged.connect(self.on_bpm_changed)
         layout.addWidget(self.bpm_slider)
         
         layout.addStretch()
         
         preset_label = QLabel("Preset:")
+        preset_label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(preset_label)
         
         self.preset_name = QLabel("Init")
         preset_font = QFont('Helvetica', 12)
         self.preset_name.setFont(preset_font)
-        self.preset_name.setStyleSheet("color: #0066cc;")
+        self.preset_name.setStyleSheet(f"color: {COLORS['selected_text']};")
         layout.addWidget(self.preset_name)
         
         save_btn = QPushButton("Save")
+        save_btn.setStyleSheet(button_style('disabled'))
         save_btn.setEnabled(False)
         layout.addWidget(save_btn)
         
         load_btn = QPushButton("Load")
+        load_btn.setStyleSheet(button_style('disabled'))
         load_btn.setEnabled(False)
         layout.addWidget(load_btn)
         
         layout.addStretch()
         
         self.connect_btn = QPushButton("Connect SuperCollider")
-        self.connect_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #555;
+        self.connect_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['border_light']};
                 color: white;
                 padding: 5px 15px;
                 border-radius: 3px;
-            }
-            QPushButton:hover {
-                background-color: #666;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['text']};
+            }}
         """)
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
         
         self.status_label = QLabel("● Disconnected")
-        self.status_label.setStyleSheet("color: red;")
+        self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
         
         return bar
@@ -162,7 +186,7 @@ class MainFrame(QMainWindow):
         """Create bottom section."""
         container = QFrame()
         container.setFrameShape(QFrame.StyledPanel)
-        container.setStyleSheet("background-color: #2a2a2a; border-top: 1px solid #555;")
+        container.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-top: 1px solid {COLORS['border_light']};")
         container.setFixedHeight(120)
         
         layout = QHBoxLayout(container)
@@ -173,11 +197,11 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.modulation_sources, stretch=2)
         
         middle = QFrame()
-        middle.setStyleSheet("border: 1px solid #333; border-radius: 3px;")
+        middle.setStyleSheet(f"border: 1px solid {COLORS['border']}; border-radius: 3px;")
         middle_layout = QVBoxLayout(middle)
         middle_label = QLabel("[TBD]")
         middle_label.setAlignment(Qt.AlignCenter)
-        middle_label.setStyleSheet("color: #444; border: none;")
+        middle_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
         middle_layout.addWidget(middle_label)
         layout.addWidget(middle, stretch=1)
         
@@ -195,7 +219,6 @@ class MainFrame(QMainWindow):
         self.modulation_sources.set_master_bpm(bpm)
         if self.osc_connected:
             self.osc.client.send_message("/noise/clock/bpm", [bpm])
-        print(f"Master clock: {bpm} BPM")
         
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
@@ -204,7 +227,7 @@ class MainFrame(QMainWindow):
                 self.osc_connected = True
                 self.connect_btn.setText("Disconnect")
                 self.status_label.setText("● Connected")
-                self.status_label.setStyleSheet("color: green;")
+                self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 self.mixer_panel.set_io_status(audio=True)
                 
                 for param_id in self.modulation_panel.parameters.keys():
@@ -213,50 +236,42 @@ class MainFrame(QMainWindow):
                         self.osc.send_parameter(param_id, value)
                 
                 self.modulation_sources.set_master_bpm(self.master_bpm)
-                
-                print("✓ Connected to SuperCollider")
             else:
                 self.status_label.setText("● Connection Failed")
-                self.status_label.setStyleSheet("color: red;")
+                self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
             self.osc_connected = False
             self.connect_btn.setText("Connect SuperCollider")
             self.status_label.setText("● Disconnected")
-            self.status_label.setStyleSheet("color: orange;")
+            self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
             self.mixer_panel.set_io_status(audio=False)
             
     def on_parameter_changed(self, param_id, value):
         """Handle global modulation parameter change."""
         if self.osc_connected:
             self.osc.send_parameter(param_id, value)
-        print(f"{param_id}: {value:.3f}")
         
     def on_generator_param_changed(self, slot_id, param_name, value):
         """Handle per-generator parameter change."""
         if self.osc_connected:
             self.osc.client.send_message(f"/noise/gen/{param_name}", [slot_id, value])
-        print(f"Gen {slot_id} {param_name}: {value:.3f}")
         
     def on_generator_filter_changed(self, slot_id, filter_type):
         """Handle generator filter type change."""
         filter_map = {"LP": 0, "HP": 1, "BP": 2}
         if self.osc_connected:
             self.osc.client.send_message("/noise/gen/filterType", [slot_id, filter_map[filter_type]])
-        print(f"Gen {slot_id} filter: {filter_type}")
         
     def on_generator_clock_enabled(self, slot_id, enabled):
         """Handle generator envelope ON/OFF."""
         if self.osc_connected:
             self.osc.client.send_message("/noise/gen/envEnabled", [slot_id, 1 if enabled else 0])
-        state = "ON" if enabled else "OFF (drone)"
-        print(f"Gen {slot_id} envelope: {state}")
         
     def on_generator_clock_rate(self, slot_id, rate):
         """Handle generator clock rate change."""
         rate_map = {"CLK": 1, "/2": 2, "/4": 4, "/8": 8, "/16": 16}
         if self.osc_connected:
             self.osc.client.send_message("/noise/gen/clockDiv", [slot_id, rate_map[rate]])
-        print(f"Gen {slot_id} clock rate: {rate}")
         
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection."""
@@ -280,7 +295,6 @@ class MainFrame(QMainWindow):
         if synth_name:
             if self.osc_connected:
                 self.osc.client.send_message("/noise/start_generator", [slot_id, synth_name])
-                print(f"Started {new_type} in slot {slot_id}")
             
             self.generator_grid.set_generator_active(slot_id, True)
             slot = self.generator_grid.get_slot(slot_id)
@@ -290,7 +304,6 @@ class MainFrame(QMainWindow):
         else:
             if self.osc_connected:
                 self.osc.client.send_message("/noise/stop_generator", [slot_id])
-                print(f"Stopped generator in slot {slot_id}")
             
             self.generator_grid.set_generator_active(slot_id, False)
             slot = self.generator_grid.get_slot(slot_id)
@@ -328,16 +341,16 @@ class MainFrame(QMainWindow):
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change."""
-        print(f"Generator {gen_id} volume: {volume:.2f}")
+        pass
         
     def on_generator_muted(self, gen_id, muted):
         """Handle generator mute."""
-        print(f"Generator {gen_id} {'muted' if muted else 'unmuted'}")
+        pass
         
     def on_generator_solo(self, gen_id, solo):
         """Handle generator solo."""
-        print(f"Generator {gen_id} {'solo' if solo else 'unsolo'}")
+        pass
         
     def on_master_volume_changed(self, volume):
         """Handle master volume change."""
-        print(f"Master volume: {volume:.2f}")
+        pass

@@ -6,7 +6,9 @@ Generator Grid Component
 from PyQt5.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
+
 from .generator_slot import GeneratorSlot
+from .theme import COLORS
 
 
 class GeneratorGrid(QWidget):
@@ -36,6 +38,7 @@ class GeneratorGrid(QWidget):
         title_font = QFont('Helvetica', 12, QFont.Bold)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet(f"color: {COLORS['text_bright']};")
         main_layout.addWidget(title)
         
         grid = QGridLayout()

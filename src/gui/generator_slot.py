@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
+from .theme import COLORS, button_style, slider_style
+
 
 class MiniSlider(QSlider):
     """Compact vertical slider for generator params."""
@@ -19,25 +21,7 @@ class MiniSlider(QSlider):
         self.setValue(500)
         self.setFixedWidth(25)
         self.setMinimumHeight(50)
-        
-        self.setStyleSheet("""
-            QSlider::groove:vertical {
-                border: 1px solid #555;
-                width: 8px;
-                background: #333;
-                border-radius: 4px;
-            }
-            QSlider::handle:vertical {
-                background: #888;
-                border: 1px solid #666;
-                height: 12px;
-                margin: 0 -3px;
-                border-radius: 6px;
-            }
-            QSlider::handle:vertical:hover {
-                background: #aaa;
-            }
-        """)
+        self.setStyleSheet(slider_style())
 
 
 class GeneratorSlot(QWidget):
@@ -58,7 +42,7 @@ class GeneratorSlot(QWidget):
         self.clock_enabled = False
         self.clock_rate = "CLK"
         
-        self.setMinimumSize(180, 200)
+        self.setMinimumSize(200, 200)
         self.setup_ui()
         self.update_style()
         
@@ -72,7 +56,7 @@ class GeneratorSlot(QWidget):
         
         self.id_label = QLabel(f"GEN {self.slot_id}")
         self.id_label.setFont(QFont('Helvetica', 9))
-        self.id_label.setStyleSheet("color: #888;")
+        self.id_label.setStyleSheet(f"color: {COLORS['text']};")
         header.addWidget(self.id_label)
         
         header.addStretch()
@@ -86,7 +70,7 @@ class GeneratorSlot(QWidget):
         layout.addLayout(header)
         
         params_frame = QFrame()
-        params_frame.setStyleSheet("background-color: #1a1a1a; border-radius: 4px;")
+        params_frame.setStyleSheet(f"background-color: {COLORS['background']}; border-radius: 4px;")
         params_layout = QHBoxLayout(params_frame)
         params_layout.setContentsMargins(8, 8, 8, 8)
         params_layout.setSpacing(5)
@@ -112,7 +96,7 @@ class GeneratorSlot(QWidget):
             lbl = QLabel(label)
             lbl.setFont(QFont('Courier', 8, QFont.Bold))
             lbl.setAlignment(Qt.AlignCenter)
-            lbl.setStyleSheet("color: #888;")
+            lbl.setStyleSheet(f"color: {COLORS['text']};")
             param_layout.addWidget(lbl)
             
             slider = MiniSlider()
@@ -126,70 +110,41 @@ class GeneratorSlot(QWidget):
             self.sliders[key] = slider
             params_layout.addWidget(param_widget)
         
+        # Spacer between sliders and buttons
+        params_layout.addSpacing(5)
+        
         # Buttons column
         buttons_widget = QWidget()
+        buttons_widget.setFixedWidth(38)
         buttons_layout = QVBoxLayout(buttons_widget)
-        buttons_layout.setContentsMargins(5, 0, 0, 0)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
         buttons_layout.setSpacing(3)
         
         # Filter type button
         self.filter_btn = QPushButton("LP")
-        self.filter_btn.setFixedSize(32, 22)
+        self.filter_btn.setFixedSize(36, 24)
         self.filter_btn.setFont(QFont('Courier', 9, QFont.Bold))
-        self.filter_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #335533;
-                color: #88ff88;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background-color: #446644;
-            }
-            QPushButton:disabled {
-                background-color: #222;
-                color: #444;
-            }
-        """)
+        self.filter_btn.setStyleSheet(button_style('enabled'))
         self.filter_btn.clicked.connect(self.cycle_filter_type)
         self.filter_btn.setEnabled(False)
         self.filter_btn.setToolTip("Filter Type: LP / HP / BP")
         buttons_layout.addWidget(self.filter_btn)
         
-        # Clock ON/OFF toggle (ENV button)
+        # ENV toggle
         self.clock_toggle = QPushButton("ENV")
-        self.clock_toggle.setFixedSize(32, 22)
-        self.clock_toggle.setFont(QFont('Courier', 7, QFont.Bold))
-        self.clock_toggle.setStyleSheet("""
-            QPushButton {
-                background-color: #333;
-                color: #666;
-                border-radius: 3px;
-            }
-            QPushButton:disabled {
-                background-color: #222;
-                color: #444;
-            }
-        """)
+        self.clock_toggle.setFixedSize(36, 24)
+        self.clock_toggle.setFont(QFont('Courier', 8, QFont.Bold))
+        self.clock_toggle.setStyleSheet(button_style('disabled'))
         self.clock_toggle.clicked.connect(self.toggle_clock)
         self.clock_toggle.setEnabled(False)
         self.clock_toggle.setToolTip("Envelope ON/OFF (OFF = drone)")
         buttons_layout.addWidget(self.clock_toggle)
         
-        # Clock rate button
+        # CLK rate button
         self.rate_btn = QPushButton("CLK")
-        self.rate_btn.setFixedSize(32, 22)
-        self.rate_btn.setFont(QFont('Courier', 7))
-        self.rate_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #222;
-                color: #444;
-                border-radius: 3px;
-            }
-            QPushButton:disabled {
-                background-color: #222;
-                color: #333;
-            }
-        """)
+        self.rate_btn.setFixedSize(36, 24)
+        self.rate_btn.setFont(QFont('Courier', 8))
+        self.rate_btn.setStyleSheet(button_style('inactive'))
         self.rate_btn.clicked.connect(self.cycle_clock_rate)
         self.rate_btn.setEnabled(False)
         self.rate_btn.setToolTip("Clock division")
@@ -206,12 +161,12 @@ class GeneratorSlot(QWidget):
         
         self.audio_indicator = QLabel("🔇 Audio")
         self.audio_indicator.setFont(QFont('Helvetica', 9))
-        self.audio_indicator.setStyleSheet("color: #555;")
+        self.audio_indicator.setStyleSheet(f"color: {COLORS['audio_off']};")
         status_layout.addWidget(self.audio_indicator)
         
         self.midi_indicator = QLabel("🎹 MIDI")
         self.midi_indicator.setFont(QFont('Helvetica', 9))
-        self.midi_indicator.setStyleSheet("color: #555;")
+        self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
         status_layout.addWidget(self.midi_indicator)
         
         status_layout.addStretch()
@@ -220,14 +175,14 @@ class GeneratorSlot(QWidget):
     def update_style(self):
         """Update appearance based on state."""
         if self.generator_type == "Empty":
-            border_color = "#333"
-            bg_color = "#1a1a1a"
+            border_color = COLORS['border']
+            bg_color = COLORS['background']
         elif self.active:
-            border_color = "#44aa44"
-            bg_color = "#1a2a1a"
+            border_color = COLORS['border_active']
+            bg_color = '#1a2a1a'
         else:
-            border_color = "#555"
-            bg_color = "#222"
+            border_color = COLORS['border_light']
+            bg_color = COLORS['background_light']
             
         self.setStyleSheet(f"""
             GeneratorSlot {{
@@ -240,44 +195,17 @@ class GeneratorSlot(QWidget):
     def update_clock_style(self):
         """Update clock button styles based on state."""
         if self.clock_enabled:
-            # ENV enabled - orange
-            self.clock_toggle.setStyleSheet("""
-                QPushButton {
-                    background-color: #664422;
-                    color: #ffaa44;
-                    border-radius: 3px;
-                }
-            """)
-            # Rate button active
+            # ENV enabled - GREEN
+            self.clock_toggle.setStyleSheet(button_style('enabled'))
+            # CLK rate - ORANGE (submenu active)
             self.rate_btn.setEnabled(True and self.generator_type != "Empty")
-            self.rate_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #553311;
-                    color: #ff8833;
-                    border-radius: 3px;
-                }
-                QPushButton:hover {
-                    background-color: #664422;
-                }
-            """)
+            self.rate_btn.setStyleSheet(button_style('submenu'))
         else:
-            # ENV disabled - gray
-            self.clock_toggle.setStyleSheet("""
-                QPushButton {
-                    background-color: #333;
-                    color: #666;
-                    border-radius: 3px;
-                }
-            """)
-            # Rate button inactive
+            # ENV disabled
+            self.clock_toggle.setStyleSheet(button_style('disabled'))
+            # CLK rate inactive
             self.rate_btn.setEnabled(False)
-            self.rate_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #222;
-                    color: #444;
-                    border-radius: 3px;
-                }
-            """)
+            self.rate_btn.setStyleSheet(button_style('inactive'))
         
     def set_generator_type(self, gen_type):
         """Change generator type."""
@@ -302,19 +230,19 @@ class GeneratorSlot(QWidget):
         """Update audio indicator."""
         if active:
             self.audio_indicator.setText("🔊 Audio")
-            self.audio_indicator.setStyleSheet("color: #44ff44;")
+            self.audio_indicator.setStyleSheet(f"color: {COLORS['audio_on']};")
         else:
             self.audio_indicator.setText("🔇 Audio")
-            self.audio_indicator.setStyleSheet("color: #555;")
+            self.audio_indicator.setStyleSheet(f"color: {COLORS['audio_off']};")
             
     def set_midi_status(self, active):
         """Update MIDI indicator."""
         if active:
             self.midi_indicator.setText("🎹 MIDI")
-            self.midi_indicator.setStyleSheet("color: #ffaa00;")
+            self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_on']};")
         else:
             self.midi_indicator.setText("🎹 MIDI")
-            self.midi_indicator.setStyleSheet("color: #555;")
+            self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
             
     def cycle_filter_type(self):
         """Cycle through filter types."""

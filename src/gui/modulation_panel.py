@@ -1,248 +1,132 @@
 """
-Modulation Panel Component - Left frame
-High-resolution sliders for expressive performance
-
-CRITICAL DESIGN DECISIONS:
-- Slider resolution: 10000 steps (DO NOT reduce - see docs/DECISIONS.md)
-- Display format: Percentage 0-100% (DO NOT change to decimals)
-- Fine control: Shift+drag = 3x slower (DO NOT remove)
-- Orientation: Vertical only (DO NOT make horizontal)
+Modulation Panel Component
+Global modulation parameters
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QSlider, QFrame, QSizePolicy)
-from PyQt5.QtCore import Qt, pyqtSignal, QEvent
+                             QSlider, QFrame)
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-
-class PerformanceSlider(QSlider):
-    """
-    High-resolution slider with dynamic fine control mode.
-    
-    LOCKED SETTINGS (2025-12-10):
-    - Range: 0-10000 (10000 steps for smooth performance)
-    - Fine mode: Shift during drag = 3x slower (can toggle mid-drag)
-    - Wheel: Mouse wheel for micro adjustments
-    
-    DO NOT change these without updating docs/DECISIONS.md
-    """
-    
-    def __init__(self, orientation, parent=None):
-        super().__init__(orientation, parent)
-        self.last_pos = None
-        self.accumulated_delta = 0.0
-        self.is_dragging = False
-        self.setMinimum(0)
-        self.setMaximum(10000)  # LOCKED: High resolution for performance
-        self.setMinimumHeight(60)
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        
-        # LOCKED: Anti-ghosting stylesheet (required for macOS)
-        self.setStyleSheet("""
-            QSlider::groove:vertical {
-                border: 1px solid #999999;
-                width: 10px;
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-                    stop:0 #B1B1B1, stop:1 #c4c4c4);
-                margin: 0 2px;
-                border-radius: 5px;
-            }
-            QSlider::handle:vertical {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                    stop:0 #d4d4d4, stop:1 #8f8f8f);
-                border: 1px solid #5c5c5c;
-                height: 20px;
-                margin: 0 -5px;
-                border-radius: 10px;
-            }
-            QSlider::handle:vertical:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                    stop:0 #f4f4f4, stop:1 #afafaf);
-            }
-        """)
-        
-        self.setFocusPolicy(Qt.StrongFocus)
-        
-    def mousePressEvent(self, event):
-        """Start drag tracking."""
-        self.is_dragging = True
-        self.last_pos = event.pos()
-        self.accumulated_delta = 0.0
-        super().mousePressEvent(event)
-        
-    def mouseMoveEvent(self, event):
-        """Check for Shift on every move - can toggle mid-drag."""
-        if not self.is_dragging or self.last_pos is None:
-            super().mouseMoveEvent(event)
-            return
-            
-        # Check Shift state DURING drag
-        fine_mode = event.modifiers() & Qt.ShiftModifier
-        
-        if fine_mode:
-            # Fine mode: manual pixel tracking with 3x reduction
-            current_pos = event.pos()
-            delta_y = self.last_pos.y() - current_pos.y()  # Inverted for vertical
-            self.last_pos = current_pos
-            
-            # Accumulate scaled delta (3x slower = divide by 3)
-            self.accumulated_delta += delta_y / 3.0
-            
-            # Apply when we have at least 1 pixel worth
-            if abs(self.accumulated_delta) >= 1.0:
-                steps = int(self.accumulated_delta)
-                # Convert pixel delta to slider steps
-                slider_delta = int(steps * (10000.0 / self.height()))
-                new_value = max(0, min(10000, self.value() + slider_delta))
-                self.setValue(new_value)
-                self.accumulated_delta -= steps
-                
-            # Don't call super - we're handling it
-        else:
-            # Normal mode: let Qt handle it
-            self.last_pos = event.pos()  # Update position for when Shift is pressed
-            super().mouseMoveEvent(event)
-    
-    def wheelEvent(self, event):
-        """Scroll wheel for micro adjustments."""
-        delta = event.angleDelta().y()
-        step = 10 if delta > 0 else -10
-        self.setValue(self.value() + step)
-        event.accept()
-        
-    def mouseReleaseEvent(self, event):
-        """Reset drag state and fix ghosting."""
-        self.is_dragging = False
-        self.last_pos = None
-        self.accumulated_delta = 0.0
-        self.repaint()  # LOCKED: Required for ghosting fix
-        super().mouseReleaseEvent(event)
+from .theme import COLORS, slider_style
 
 
 class ModulationPanel(QWidget):
-    """Panel with modulation parameter sliders."""
+    """Panel for global modulation parameters."""
     
-    # Signals
-    parameter_changed = pyqtSignal(str, float)  # (param_name, value)
+    parameter_changed = pyqtSignal(str, float)
     
-    def __init__(self, parameters=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        
-        # Default parameters if none provided
-        if parameters is None:
-            from src.config.parameters import PARAMETERS
-            self.parameters = PARAMETERS
-        else:
-            self.parameters = parameters
-            
-        self.sliders = {}
-        self.value_labels = {}
-        
-        # Responsive sizing
-        self.setMinimumWidth(150)
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        
+        self.parameters = {}
         self.setup_ui()
         
     def setup_ui(self):
-        """Create the modulation interface."""
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(15)
+        """Create the panel."""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
         
-        # Title
         title = QLabel("MODULATION")
         title_font = QFont('Helvetica', 12, QFont.Bold)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(title)
+        title.setStyleSheet(f"color: {COLORS['text_bright']};")
+        layout.addWidget(title)
         
-        # Separator
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        main_layout.addWidget(separator)
+        # Parameters
+        params = [
+            ('gravity', 'Gravity', 0.5),
+            ('density', 'Density', 0.5),
+            ('filter_cutoff', 'Filter', 0.7),
+            ('amplitude', 'Amplitude', 0.5),
+        ]
         
-        # Instructions
-        hint = QLabel("Shift = fine • Scroll = micro")
-        hint.setAlignment(Qt.AlignCenter)
-        hint.setStyleSheet("color: #888; font-size: 9px;")
-        main_layout.addWidget(hint)
-        
-        # Create sliders for each parameter
-        for param_id, param_config in self.parameters.items():
-            param_widget = self.create_parameter_control(param_id, param_config)
-            main_layout.addWidget(param_widget)
+        for param_id, label, default in params:
+            param_widget = self.create_parameter(param_id, label, default)
+            layout.addWidget(param_widget)
             
-        main_layout.addStretch()
+        layout.addStretch()
         
-    def create_parameter_control(self, param_id, config):
-        """Create a single parameter control."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+    def create_parameter(self, param_id, label, default):
+        """Create a parameter control."""
+        frame = QFrame()
+        frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {COLORS['background']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+            }}
+        """)
+        
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(5)
-        layout.setContentsMargins(0, 0, 0, 0)
         
-        # Header with name and value
-        header = QHBoxLayout()
+        # Label
+        lbl = QLabel(label)
+        lbl.setFont(QFont('Helvetica', 10, QFont.Bold))
+        lbl.setStyleSheet(f"color: {COLORS['text_bright']}; border: none;")
+        layout.addWidget(lbl)
         
-        # Parameter name
-        name_label = QLabel(config['name'])
-        name_font = QFont('Helvetica', 10, QFont.Bold)
-        name_label.setFont(name_font)
-        header.addWidget(name_label)
+        # Slider row
+        slider_layout = QHBoxLayout()
+        slider_layout.setSpacing(10)
         
-        header.addStretch()
-        
-        # LOCKED: Value display as percentage (not decimals)
-        default_pct = int(config['default'] * 100)
-        value_label = QLabel(f"{default_pct}%")
-        value_label.setAlignment(Qt.AlignRight)
-        value_font = QFont('Courier', 10, QFont.Bold)
-        value_label.setFont(value_font)
-        value_label.setStyleSheet("color: #0066cc;")
-        value_label.setCursor(Qt.PointingHandCursor)
-        value_label.setToolTip("Click to enter exact value")
-        header.addWidget(value_label)
-        
-        layout.addLayout(header)
-        
-        # LOCKED: High-resolution performance slider (vertical)
-        slider = PerformanceSlider(Qt.Vertical)
-        
-        # Set default (0-10000 range)
-        default_normalized = int((config['default'] - config['min']) / 
-                                (config['max'] - config['min']) * 10000)
-        slider.setValue(default_normalized)
-        
+        slider = QSlider(Qt.Horizontal)
+        slider.setMinimum(0)
+        slider.setMaximum(1000)
+        slider.setValue(int(default * 1000))
+        slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                border: 1px solid {COLORS['border_light']};
+                height: 8px;
+                background: {COLORS['slider_groove']};
+                border-radius: 4px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {COLORS['slider_handle']};
+                border: 1px solid {COLORS['border_light']};
+                width: 16px;
+                margin: -4px 0;
+                border-radius: 8px;
+            }}
+            QSlider::handle:horizontal:hover {{
+                background: {COLORS['slider_handle_hover']};
+            }}
+        """)
         slider.valueChanged.connect(
-            lambda val, pid=param_id, cfg=config: self.on_slider_change(pid, val, cfg)
+            lambda v, pid=param_id: self.on_value_changed(pid, v / 1000.0)
         )
+        slider_layout.addWidget(slider)
         
-        layout.addWidget(slider, alignment=Qt.AlignCenter, stretch=1)
+        # Value label
+        value_lbl = QLabel(f"{default:.2f}")
+        value_lbl.setFont(QFont('Courier', 9))
+        value_lbl.setFixedWidth(40)
+        value_lbl.setAlignment(Qt.AlignRight)
+        value_lbl.setStyleSheet(f"color: {COLORS['text']}; border: none;")
+        slider_layout.addWidget(value_lbl)
         
-        # Store references
-        self.sliders[param_id] = slider
-        self.value_labels[param_id] = value_label
+        layout.addLayout(slider_layout)
         
-        return widget
+        self.parameters[param_id] = {
+            'slider': slider,
+            'value_label': value_lbl,
+            'value': default
+        }
         
-    def on_slider_change(self, param_id, slider_value, config):
-        """Handle slider change."""
-        # Convert from 0-10000 to actual value
-        normalized = slider_value / 10000.0  # LOCKED: 10000 resolution
-        actual_value = config['min'] + normalized * (config['max'] - config['min'])
+        return frame
         
-        # LOCKED: Display as percentage (0-100%)
-        percentage = int(normalized * 100)
-        self.value_labels[param_id].setText(f"{percentage}%")
-        
-        self.parameter_changed.emit(param_id, actual_value)
-        
+    def on_value_changed(self, param_id, value):
+        """Handle parameter value change."""
+        if param_id in self.parameters:
+            self.parameters[param_id]['value'] = value
+            self.parameters[param_id]['value_label'].setText(f"{value:.2f}")
+            self.parameter_changed.emit(param_id, value)
+            
     def get_parameter_value(self, param_id):
         """Get current value of a parameter."""
-        if param_id in self.sliders:
-            slider = self.sliders[param_id]
-            config = self.parameters[param_id]
-            normalized = slider.value() / 10000.0  # LOCKED: 10000 resolution
-            return config['min'] + normalized * (config['max'] - config['min'])
+        if param_id in self.parameters:
+            return self.parameters[param_id]['value']
         return None
