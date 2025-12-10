@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QFrame)
+                             QPushButton, QLabel, QFrame, QSlider)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -16,6 +16,7 @@ from src.gui.modulation_panel import ModulationPanel
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.effects_chain import EffectsChain
+from src.gui.modulation_sources import ModulationSources
 from src.audio.osc_bridge import OSCBridge
 
 
@@ -26,8 +27,8 @@ class MainFrame(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("Noise Engine")
-        self.setMinimumSize(1200, 750)
-        self.setGeometry(100, 50, 1400, 850)
+        self.setMinimumSize(1400, 850)
+        self.setGeometry(100, 50, 1600, 900)
         
         self.setAttribute(Qt.WA_AcceptTouchEvents, False)
         
@@ -36,6 +37,8 @@ class MainFrame(QMainWindow):
         
         self.active_generators = {}
         self.active_effects = {}
+        
+        self.master_bpm = 120
         
         self.setup_ui()
         
@@ -72,13 +75,11 @@ class MainFrame(QMainWindow):
         
         main_layout.addLayout(content_layout, stretch=1)
         
-        self.effects_chain = EffectsChain()
-        self.effects_chain.effect_selected.connect(self.on_effect_selected)
-        self.effects_chain.effect_amount_changed.connect(self.on_effect_amount_changed)
-        main_layout.addWidget(self.effects_chain)
+        bottom_section = self.create_bottom_section()
+        main_layout.addWidget(bottom_section)
         
     def create_top_bar(self):
-        """Create top bar with presets and connection."""
+        """Create top bar with presets, clock, and connection."""
         bar = QFrame()
         bar.setFrameShape(QFrame.StyledPanel)
         bar.setStyleSheet("background-color: #2a2a2a; border-bottom: 1px solid #555;")
@@ -91,6 +92,25 @@ class MainFrame(QMainWindow):
         title_font = QFont('Helvetica', 16, QFont.Bold)
         title.setFont(title_font)
         layout.addWidget(title)
+        
+        layout.addStretch()
+        
+        clock_label = QLabel("Clock:")
+        layout.addWidget(clock_label)
+        
+        self.bpm_label = QLabel("120 BPM")
+        bpm_font = QFont('Courier', 12, QFont.Bold)
+        self.bpm_label.setFont(bpm_font)
+        self.bpm_label.setStyleSheet("color: #44ff44;")
+        layout.addWidget(self.bpm_label)
+        
+        self.bpm_slider = QSlider(Qt.Horizontal)
+        self.bpm_slider.setMinimum(20)
+        self.bpm_slider.setMaximum(300)
+        self.bpm_slider.setValue(120)
+        self.bpm_slider.setFixedWidth(150)
+        self.bpm_slider.valueChanged.connect(self.on_bpm_changed)
+        layout.addWidget(self.bpm_slider)
         
         layout.addStretch()
         
@@ -133,6 +153,42 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.status_label)
         
         return bar
+        
+    def create_bottom_section(self):
+        """Create bottom section with 3 parts: modulation, TBD, effects."""
+        container = QFrame()
+        container.setFrameShape(QFrame.StyledPanel)
+        container.setStyleSheet("background-color: #2a2a2a; border-top: 1px solid #555;")
+        container.setFixedHeight(200)
+        
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(10)
+        
+        self.modulation_sources = ModulationSources()
+        layout.addWidget(self.modulation_sources, stretch=1)
+        
+        middle = QFrame()
+        middle_layout = QVBoxLayout(middle)
+        middle_label = QLabel("[TBD]")
+        middle_label.setAlignment(Qt.AlignCenter)
+        middle_label.setStyleSheet("color: #666;")
+        middle_layout.addWidget(middle_label)
+        layout.addWidget(middle, stretch=1)
+        
+        self.effects_chain = EffectsChain()
+        self.effects_chain.effect_selected.connect(self.on_effect_selected)
+        self.effects_chain.effect_amount_changed.connect(self.on_effect_amount_changed)
+        layout.addWidget(self.effects_chain, stretch=1)
+        
+        return container
+        
+    def on_bpm_changed(self, bpm):
+        """Handle BPM change."""
+        self.master_bpm = bpm
+        self.bpm_label.setText(f"{bpm} BPM")
+        self.modulation_sources.set_master_bpm(bpm)
+        print(f"Master clock: {bpm} BPM")
         
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
@@ -211,7 +267,7 @@ class MainFrame(QMainWindow):
                 del self.active_generators[slot_id]
                 
     def on_effect_selected(self, slot_id):
-        """Handle effect slot selection - just visual toggle."""
+        """Handle effect slot selection."""
         print(f"Effect slot {slot_id} selected")
         
         current_type = self.effects_chain.get_slot(slot_id).effect_type
@@ -257,14 +313,3 @@ class MainFrame(QMainWindow):
     def on_master_volume_changed(self, volume):
         """Handle master volume change."""
         print(f"Master volume: {volume:.2f}")
-        
-    def set_pt2399_generator(self):
-        """Set up PT2399 generator in slot 1."""
-        self.generator_grid.set_generator_type(1, "PT2399")
-        self.generator_grid.set_generator_active(1, True)
-        self.active_generators[1] = "pt2399Grainy"
-        
-        slot = self.generator_grid.get_slot(1)
-        if slot:
-            slot.set_audio_status(True)
-            slot.set_midi_status(False)
