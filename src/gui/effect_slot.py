@@ -1,6 +1,5 @@
 """
-Effect Slot Component
-Individual effect in the chain
+Effect Slot Component - Compact version
 """
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSlider, QFrame
@@ -9,7 +8,7 @@ from PyQt5.QtGui import QFont
 
 
 class EffectSlot(QWidget):
-    """A single effect slot in the chain."""
+    """A single effect slot in the chain - compact."""
     
     clicked = pyqtSignal(int)
     amount_changed = pyqtSignal(int, float)
@@ -20,47 +19,43 @@ class EffectSlot(QWidget):
         self.effect_type = effect_type
         self.active = False
         
-        self.setMinimumSize(100, 120)
+        self.setMinimumSize(60, 80)
+        self.setMaximumWidth(80)
         self.setup_ui()
         
     def setup_ui(self):
         """Create slot interface."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(3)
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setSpacing(2)
         
-        # Effect type label
         self.type_label = QLabel(self.effect_type)
-        type_font = QFont('Helvetica', 10, QFont.Bold)
-        self.type_label.setFont(type_font)
+        self.type_label.setFont(QFont('Helvetica', 8, QFont.Bold))
         self.type_label.setAlignment(Qt.AlignCenter)
         self.type_label.setWordWrap(True)
+        self.type_label.setCursor(Qt.PointingHandCursor)
         layout.addWidget(self.type_label)
         
-        # Amount fader (vertical)
         self.amount_slider = QSlider(Qt.Vertical)
         self.amount_slider.setMinimum(0)
         self.amount_slider.setMaximum(100)
         self.amount_slider.setValue(75)
         self.amount_slider.setEnabled(False)
-        self.amount_slider.setFixedHeight(60)
+        self.amount_slider.setFixedHeight(40)
         
         self.amount_slider.setStyleSheet("""
             QSlider::groove:vertical {
-                border: 1px solid #999999;
+                border: 1px solid #666;
                 width: 6px;
-                background: #555;
+                background: #333;
                 border-radius: 3px;
             }
             QSlider::handle:vertical {
                 background: #888;
-                border: 1px solid #666;
-                height: 12px;
-                margin: 0 -3px;
-                border-radius: 6px;
-            }
-            QSlider::handle:vertical:hover {
-                background: #aaa;
+                border: 1px solid #555;
+                height: 10px;
+                margin: 0 -2px;
+                border-radius: 5px;
             }
         """)
         
@@ -71,11 +66,9 @@ class EffectSlot(QWidget):
         
         layout.addWidget(self.amount_slider, alignment=Qt.AlignCenter)
         
-        # Amount label
         self.amount_label = QLabel("75%")
         self.amount_label.setAlignment(Qt.AlignCenter)
-        amount_font = QFont('Courier', 8)
-        self.amount_label.setFont(amount_font)
+        self.amount_label.setFont(QFont('Courier', 7))
         layout.addWidget(self.amount_label)
         
         self.update_style()
@@ -83,23 +76,20 @@ class EffectSlot(QWidget):
     def update_style(self):
         """Update appearance based on state."""
         if self.effect_type == "Empty":
-            border_color = "#444"
+            border_color = "#333"
             bg_color = "#1a1a1a"
         elif self.active:
             border_color = "#4488ff"
             bg_color = "#1a2a3a"
         else:
-            border_color = "#666"
-            bg_color = "#2a2a2a"
+            border_color = "#555"
+            bg_color = "#252525"
             
         self.setStyleSheet(f"""
             EffectSlot {{
-                border: 2px solid {border_color};
-                border-radius: 5px;
+                border: 1px solid {border_color};
+                border-radius: 3px;
                 background-color: {bg_color};
-            }}
-            EffectSlot:hover {{
-                border-color: #888;
             }}
         """)
         
@@ -125,6 +115,5 @@ class EffectSlot(QWidget):
     def mousePressEvent(self, event):
         """Handle click on type label area."""
         if event.button() == Qt.LeftButton:
-            # Only trigger if clicking on the label area, not the slider
-            if event.pos().y() < 30:
+            if event.pos().y() < 25:
                 self.clicked.emit(self.slot_id)

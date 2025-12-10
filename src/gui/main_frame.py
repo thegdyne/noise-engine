@@ -159,27 +159,28 @@ class MainFrame(QMainWindow):
         container = QFrame()
         container.setFrameShape(QFrame.StyledPanel)
         container.setStyleSheet("background-color: #2a2a2a; border-top: 1px solid #555;")
-        container.setFixedHeight(200)
+        container.setFixedHeight(120)
         
         layout = QHBoxLayout(container)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
         
         self.modulation_sources = ModulationSources()
-        layout.addWidget(self.modulation_sources, stretch=1)
+        layout.addWidget(self.modulation_sources, stretch=2)
         
         middle = QFrame()
+        middle.setStyleSheet("border: 1px solid #333; border-radius: 3px;")
         middle_layout = QVBoxLayout(middle)
         middle_label = QLabel("[TBD]")
         middle_label.setAlignment(Qt.AlignCenter)
-        middle_label.setStyleSheet("color: #666;")
+        middle_label.setStyleSheet("color: #444; border: none;")
         middle_layout.addWidget(middle_label)
         layout.addWidget(middle, stretch=1)
         
         self.effects_chain = EffectsChain()
         self.effects_chain.effect_selected.connect(self.on_effect_selected)
         self.effects_chain.effect_amount_changed.connect(self.on_effect_amount_changed)
-        layout.addWidget(self.effects_chain, stretch=1)
+        layout.addWidget(self.effects_chain, stretch=2)
         
         return container
         
@@ -204,6 +205,8 @@ class MainFrame(QMainWindow):
                     value = self.modulation_panel.get_parameter_value(param_id)
                     if value is not None:
                         self.osc.send_parameter(param_id, value)
+                
+                self.modulation_sources.set_master_bpm(self.master_bpm)
                 
                 print("✓ Connected to SuperCollider")
                 print("✓ Initial parameters sent")

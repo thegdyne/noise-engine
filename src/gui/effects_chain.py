@@ -1,6 +1,6 @@
 """
-Effects Chain Component - Bottom section
-Master effects processing with 4 slots
+Effects Chain Component - Bottom right section
+Master effects processing with 4 slots - horizontal compact layout
 """
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
@@ -23,26 +23,17 @@ class EffectsChain(QWidget):
     def setup_ui(self):
         """Create the effects chain."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(10, 5, 10, 5)
         main_layout.setSpacing(5)
         
-        # Title
         title = QLabel("MASTER EFFECTS")
-        title_font = QFont('Helvetica', 12, QFont.Bold)
+        title_font = QFont('Helvetica', 11, QFont.Bold)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
         
-        # Separator
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        main_layout.addWidget(separator)
-        
-        # Slots in horizontal layout
         slots_layout = QHBoxLayout()
-        slots_layout.setSpacing(10)
-        
-        slots_layout.addStretch()
+        slots_layout.setSpacing(5)
         
         for i in range(1, 5):
             slot = EffectSlot(i, "Empty")
@@ -51,8 +42,6 @@ class EffectsChain(QWidget):
             slots_layout.addWidget(slot)
             self.slots[i] = slot
             
-        slots_layout.addStretch()
-        
         main_layout.addLayout(slots_layout)
         
     def on_slot_clicked(self, slot_id):
