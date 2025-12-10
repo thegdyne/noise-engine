@@ -11,7 +11,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
-from src.gui.main_frame import MainFrame
 
 
 def main():
@@ -21,20 +20,20 @@ def main():
     print("1. Start SuperCollider and run init.scd")
     print("2. Click 'Connect SuperCollider' in the app")
     print("3. Use modulation sliders to control sound")
-    print("4. Adjust generator volumes in mixer")
+    print("4. Click generator slots to cycle types")
     print("=" * 50)
     
+    # Create app first
     app = QApplication(sys.argv)
     
-    # Enable high DPI
-    app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    # Now we can import MainFrame (after QApplication exists)
+    from src.gui.main_frame import MainFrame
     
     # Create main window
     window = MainFrame()
     
-    # Set up test generator
-    window.set_test_generator()
+    # Set up PT2399 generator (matches what's in SuperCollider)
+    window.set_pt2399_generator()
     
     window.show()
     

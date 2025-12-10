@@ -38,8 +38,8 @@ class MainFrame(QMainWindow):
         self.osc = OSCBridge()
         self.osc_connected = False
         
-        # Active generators
-        self.active_generators = set()
+        # Active generators - DICT not set
+        self.active_generators = {}
         
         self.setup_ui()
         
@@ -205,7 +205,49 @@ class MainFrame(QMainWindow):
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection."""
         print(f"Generator {slot_id} selected")
-        # Future: Open generator config, change type, etc.
+        
+        # Cycle through generator types when clicked
+        current_type = self.generator_grid.get_slot(slot_id).generator_type
+        
+        if current_type == "Empty":
+            new_type = "Test Synth"
+            synth_name = "testSynth"
+        elif current_type == "Test Synth":
+            new_type = "PT2399"
+            synth_name = "pt2399Grainy"
+        elif current_type == "PT2399":
+            new_type = "Empty"
+            synth_name = None
+        else:
+            new_type = "Empty"
+            synth_name = None
+        
+        # Update GUI
+        self.generator_grid.set_generator_type(slot_id, new_type)
+        
+        if synth_name:
+            # Start generator via OSC
+            if self.osc_connected:
+                self.osc.client.send_message("/noise/start_generator", [slot_id, synth_name])
+                print(f"Started {new_type} in slot {slot_id}")
+            
+            self.generator_grid.set_generator_active(slot_id, True)
+            slot = self.generator_grid.get_slot(slot_id)
+            if slot:
+                slot.set_audio_status(True)
+            self.active_generators[slot_id] = synth_name
+        else:
+            # Stop generator via OSC
+            if self.osc_connected:
+                self.osc.client.send_message("/noise/stop_generator", [slot_id])
+                print(f"Stopped generator in slot {slot_id}")
+            
+            self.generator_grid.set_generator_active(slot_id, False)
+            slot = self.generator_grid.get_slot(slot_id)
+            if slot:
+                slot.set_audio_status(False)
+            if slot_id in self.active_generators:
+                del self.active_generators[slot_id]
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change."""
@@ -227,14 +269,12 @@ class MainFrame(QMainWindow):
         print(f"Master volume: {volume:.2f}")
         # Future: Send to audio engine
         
-    def set_test_generator(self):
-        """Set up the test generator in slot 1."""
-        # Mark generator 1 as test synth
-        self.generator_grid.set_generator_type(1, "Test Synth")
+    def set_pt2399_generator(self):
+        """Set up PT2399 generator in slot 1."""
+        self.generator_grid.set_generator_type(1, "PT2399")
         self.generator_grid.set_generator_active(1, True)
-        self.active_generators.add(1)
+        self.active_generators[1] = "pt2399Grainy"
         
-        # Set audio status
         slot = self.generator_grid.get_slot(1)
         if slot:
             slot.set_audio_status(True)

@@ -1,87 +1,110 @@
 /*
 Noise Engine - SuperCollider Initialization
-Expanded parameter ranges for more extreme control
+Multi-generator system with parameter buses
 */
 
 s.waitForBoot({
     
     "=== Noise Engine - SuperCollider ===".postln;
-    "Waiting for OSC messages on port 57120...".postln;
+    "Initializing parameter buses...".postln;
     
-    // Parameter buses (shared between OSC and synth)
+    // Parameter buses (shared between OSC and all generators)
     ~params = Dictionary.new;
     ~params[\gravity] = Bus.control(s, 1).set(0.5);
     ~params[\density] = Bus.control(s, 1).set(0.5);
     ~params[\filter_cutoff] = Bus.control(s, 1).set(0.7);
     ~params[\amplitude] = Bus.control(s, 1).set(0.5);
     
-    // Simple test synth - filtered noise with modulation
-    SynthDef(\noiseTest, {
+    // Generator instances (8 slots)
+    ~generators = Dictionary.new;
+    
+    // Simple test synth (original)
+    SynthDef(\testSynth, {
         var sig, env, freq, rate, pitch;
         
-        // Read parameters from buses
         var gravity = In.kr(~params[\gravity]);
         var density = In.kr(~params[\density]);
         var filterCutoff = In.kr(~params[\filter_cutoff]);
         var amplitude = In.kr(~params[\amplitude]);
         
-        // GRAVITY: Expanded range (20 - 5000 Hz) - MUCH WIDER!
         pitch = gravity.linexp(0.0, 1.0, 20, 5000);
-        
-        // DENSITY: Expanded range (0.1 - 100 Hz) - MUCH FASTER at peak!
         rate = density.linexp(0.0, 1.0, 0.1, 100);
         
-        // Generate pulsing noise with pitch modulation
         env = LFPulse.ar(rate, 0, 0.3);
-        
-        // Use gravity to modulate the noise itself
         sig = PinkNoise.ar(0.5) * env;
-        sig = sig + (SinOsc.ar(pitch) * 0.3 * env); // Add pitched component
+        sig = sig + (SinOsc.ar(pitch) * 0.3 * env);
         
-        // FILTER: Expanded range (30 - 18000 Hz) - Nearly full spectrum!
         sig = RLPF.ar(
             sig, 
             filterCutoff.linexp(0.0, 1.0, 30, 18000),
             0.2
         );
         
-        // Apply amplitude
         sig = sig * amplitude * 0.4;
-        
-        // Stereo output
         Out.ar(0, sig ! 2);
     }).add;
+    
+    // Load PT2399 Grainy generator
+    ("generators/pt2399_grainy.scd").loadRelative;
     
     // OSC responders - receive parameters from Python
     OSCdef(\gravity, { |msg|
         ~params[\gravity].set(msg[1]);
-        "Gravity: %".format(msg[1]).postln;
     }, '/noise/gravity');
     
     OSCdef(\density, { |msg|
         ~params[\density].set(msg[1]);
-        "Density: %".format(msg[1]).postln;
     }, '/noise/density');
     
     OSCdef(\filterCutoff, { |msg|
         ~params[\filter_cutoff].set(msg[1]);
-        "Filter Cutoff: %".format(msg[1]).postln;
     }, '/noise/filter_cutoff');
     
     OSCdef(\amplitude, { |msg|
         ~params[\amplitude].set(msg[1]);
-        "Amplitude: %".format(msg[1]).postln;
     }, '/noise/amplitude');
     
-    // Start the synth after a brief delay
+    // Generator control - start/stop generators
+    OSCdef(\startGenerator, { |msg|
+        var slotID = msg[1].asInteger;
+        var genType = msg[2].asSymbol;
+        
+        // Stop existing generator in this slot if any
+        if(~generators[slotID].notNil, {
+            ~generators[slotID].free;
+            ~generators[slotID] = nil;
+        });
+        
+        // Start new generator
+        ~generators[slotID] = Synth(genType);
+        "Started % in slot %".format(genType, slotID).postln;
+    }, '/noise/start_generator');
+    
+    OSCdef(\stopGenerator, { |msg|
+        var slotID = msg[1].asInteger;
+        
+        if(~generators[slotID].notNil, {
+            ~generators[slotID].free;
+            ~generators[slotID] = nil;
+            "Stopped generator in slot %".format(slotID).postln;
+        });
+    }, '/noise/stop_generator');
+    
+    // Wait for server sync
     s.sync;
-    "Starting synth...".postln;
-    ~synth = Synth(\noiseTest);
-    "✓ Noise Engine ready!".postln;
-    "Move sliders in Python GUI to control sound.".postln;
+    
     "".postln;
-    "EXPANDED RANGES:".postln;
-    "  Gravity: 20Hz - 5000Hz".postln;
-    "  Density: 0.1Hz - 100Hz (super fast!)".postln;
-    "  Filter: 30Hz - 18000Hz".postln;
+    "✓ Noise Engine ready!".postln;
+    "Available generators:".postln;
+    "  - \\testSynth (simple pulsing noise)".postln;
+    "  - \\pt2399Grainy (tape delay degradation)".postln;
+    "".postln;
+    
+    // AUTO-START: Start test synth in slot 1
+    ~generators[1] = Synth(\testSynth);
+    "✓ Auto-started Test Synth in slot 1".postln;
+    "".postln;
+    
+    "Listening for OSC on port 57120".postln;
+    "Waiting for Python GUI connection...".postln;
 });
