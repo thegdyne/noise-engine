@@ -5,23 +5,23 @@ High-resolution sliders for expressive performance
 CRITICAL DESIGN DECISIONS:
 - Slider resolution: 10000 steps (DO NOT reduce - see docs/DECISIONS.md)
 - Display format: Percentage 0-100% (DO NOT change to decimals)
-- Fine control: Shift+drag (DO NOT remove)
+- Fine control: Shift+drag = 3x slower (DO NOT remove)
 - Orientation: Vertical only (DO NOT make horizontal)
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QSlider, QFrame, QSizePolicy, QLineEdit)
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont, QPainter, QColor
+                             QSlider, QFrame, QSizePolicy)
+from PyQt5.QtCore import Qt, pyqtSignal, QEvent
+from PyQt5.QtGui import QFont
 
 
 class PerformanceSlider(QSlider):
     """
-    High-resolution slider with fine control mode.
+    High-resolution slider with dynamic fine control mode.
     
     LOCKED SETTINGS (2025-12-10):
     - Range: 0-10000 (10000 steps for smooth performance)
-    - Fine mode: Shift+drag = 10x slower
+    - Fine mode: Shift during drag = 3x slower (can toggle mid-drag)
     - Wheel: Mouse wheel for micro adjustments
     
     DO NOT change these without updating docs/DECISIONS.md
@@ -29,14 +29,15 @@ class PerformanceSlider(QSlider):
     
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
-        self.fine_mode = False
+        self.last_pos = None
+        self.accumulated_delta = 0.0
+        self.is_dragging = False
         self.setMinimum(0)
         self.setMaximum(10000)  # LOCKED: High resolution for performance
         self.setMinimumHeight(60)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         
         # LOCKED: Anti-ghosting stylesheet (required for macOS)
-        # See docs/DECISIONS.md - PyQt5 Slider Ghosting Fix
         self.setStyleSheet("""
             QSlider::groove:vertical {
                 border: 1px solid #999999;
@@ -60,26 +61,46 @@ class PerformanceSlider(QSlider):
             }
         """)
         
-        # Enable mouse wheel
         self.setFocusPolicy(Qt.StrongFocus)
         
     def mousePressEvent(self, event):
-        """Track if shift is held."""
-        self.fine_mode = event.modifiers() & Qt.ShiftModifier
+        """Start drag tracking."""
+        self.is_dragging = True
+        self.last_pos = event.pos()
+        self.accumulated_delta = 0.0
         super().mousePressEvent(event)
         
     def mouseMoveEvent(self, event):
-        """Apply fine control if shift held."""
-        if self.fine_mode:
-            # Get the current position and target position
-            current = self.value()
-            # Calculate smaller step size
+        """Check for Shift on every move - can toggle mid-drag."""
+        if not self.is_dragging or self.last_pos is None:
             super().mouseMoveEvent(event)
-            new = self.value()
-            # LOCKED: 10x reduction for fine control
-            delta = new - current
-            self.setValue(current + int(delta / 10))
+            return
+            
+        # Check Shift state DURING drag
+        fine_mode = event.modifiers() & Qt.ShiftModifier
+        
+        if fine_mode:
+            # Fine mode: manual pixel tracking with 3x reduction
+            current_pos = event.pos()
+            delta_y = self.last_pos.y() - current_pos.y()  # Inverted for vertical
+            self.last_pos = current_pos
+            
+            # Accumulate scaled delta (3x slower = divide by 3)
+            self.accumulated_delta += delta_y / 3.0
+            
+            # Apply when we have at least 1 pixel worth
+            if abs(self.accumulated_delta) >= 1.0:
+                steps = int(self.accumulated_delta)
+                # Convert pixel delta to slider steps
+                slider_delta = int(steps * (10000.0 / self.height()))
+                new_value = max(0, min(10000, self.value() + slider_delta))
+                self.setValue(new_value)
+                self.accumulated_delta -= steps
+                
+            # Don't call super - we're handling it
         else:
+            # Normal mode: let Qt handle it
+            self.last_pos = event.pos()  # Update position for when Shift is pressed
             super().mouseMoveEvent(event)
     
     def wheelEvent(self, event):
@@ -90,8 +111,10 @@ class PerformanceSlider(QSlider):
         event.accept()
         
     def mouseReleaseEvent(self, event):
-        """Reset fine mode and fix ghosting."""
-        self.fine_mode = False
+        """Reset drag state and fix ghosting."""
+        self.is_dragging = False
+        self.last_pos = None
+        self.accumulated_delta = 0.0
         self.repaint()  # LOCKED: Required for ghosting fix
         super().mouseReleaseEvent(event)
 
@@ -140,7 +163,7 @@ class ModulationPanel(QWidget):
         main_layout.addWidget(separator)
         
         # Instructions
-        hint = QLabel("Shift+drag = fine control")
+        hint = QLabel("Shift = fine • Scroll = micro")
         hint.setAlignment(Qt.AlignCenter)
         hint.setStyleSheet("color: #888; font-size: 9px;")
         main_layout.addWidget(hint)
