@@ -10,10 +10,12 @@ MONO_FONT = 'Menlo' if platform.system() == 'Darwin' else 'Courier New'
 
 # Drag/scroll sensitivity settings
 DRAG_SENSITIVITY = {
-    'slider_normal': 100,      # Pixels for full slider range
-    'slider_fine': 400,        # Pixels for full range with Shift
-    'cycle_normal': 15,        # Pixels per step for CycleButton
-    'cycle_fine': 40,          # Pixels per step with Shift
+    'slider_normal': 100,          # Pixels for full slider range (0-1000)
+    'slider_fine': 400,            # Pixels for full range with Shift
+    'cycle_normal': 15,            # Pixels per step for CycleButton
+    'cycle_fine': 40,              # Pixels per step with Shift
+    'bpm_value_normal': 3,         # Pixels per BPM
+    'bpm_value_fine': 35,          # Pixels per BPM with Shift
 }
 
 # Base colors
@@ -61,9 +63,8 @@ COLORS = {
 }
 
 # Override specific component colors if needed
-COMPONENT_COLORS = {
-    # Example: 'generator_slot.filter_btn.enabled': '#446644',
-}
+COMPONENT_COLORS = {}
+
 
 def get_color(key, component=None):
     """Get color by key, with optional component-specific override."""
@@ -71,7 +72,7 @@ def get_color(key, component=None):
         component_key = f"{component}.{key}"
         if component_key in COMPONENT_COLORS:
             return COMPONENT_COLORS[component_key]
-    return COLORS.get(key, '#ff00ff')  # Magenta = missing color
+    return COLORS.get(key, '#ff00ff')
 
 
 def button_style(state='disabled'):
@@ -117,7 +118,7 @@ def button_style(state='disabled'):
                 border-radius: 3px;
             }}
         """
-    else:  # disabled
+    else:
         return f"""
             QPushButton {{
                 background-color: {COLORS['disabled']};
@@ -132,10 +133,7 @@ def button_style(state='disabled'):
 
 
 def slider_style():
-    """Get standard vertical slider stylesheet.
-    
-    NOTE: All sliders in this project must be vertical.
-    """
+    """Get standard vertical slider stylesheet."""
     return f"""
         QSlider::groove:vertical {{
             border: 1px solid {COLORS['border_light']};

@@ -3,7 +3,7 @@ Reusable UI Widgets
 Atomic components with no business logic - just behavior
 """
 
-from PyQt5.QtWidgets import QSlider, QPushButton, QApplication
+from PyQt5.QtWidgets import QSlider, QPushButton, QLabel, QApplication
 from PyQt5.QtCore import Qt, pyqtSignal
 
 from .theme import slider_style, DRAG_SENSITIVITY
@@ -34,7 +34,7 @@ class DragSlider(QSlider):
         """Start drag from current value."""
         if event.button() == Qt.LeftButton:
             self.dragging = True
-            self.drag_start_y = event.pos().y()
+            self.drag_start_y = event.globalPos().y()
             self.drag_start_value = self.value()
             
     def mouseMoveEvent(self, event):
@@ -46,7 +46,7 @@ class DragSlider(QSlider):
             else:
                 travel = DRAG_SENSITIVITY['slider_normal']
             
-            delta_y = self.drag_start_y - event.pos().y()
+            delta_y = self.drag_start_y - event.globalPos().y()
             value_range = self.maximum() - self.minimum()
             delta_value = int((delta_y / travel) * value_range)
             
@@ -69,6 +69,79 @@ class MiniSlider(DragSlider):
         super().__init__(parent)
         self.setFixedWidth(25)
         self.setMinimumHeight(50)
+
+
+class DragValue(QLabel):
+    """
+    Label that supports click+drag to change integer value.
+    Drag up = increase, drag down = decrease.
+    Shift = fine control.
+    
+    Uses value_normal/value_fine sensitivity (pixels per unit).
+    """
+    
+    value_changed = pyqtSignal(int)
+    
+    def __init__(self, initial_value=0, min_val=0, max_val=100, parent=None):
+        super().__init__(parent)
+        self._value = initial_value
+        self.min_val = min_val
+        self.max_val = max_val
+        
+        # Drag tracking
+        self.dragging = False
+        self.drag_start_y = 0
+        self.drag_start_value = 0
+        self.accumulated_delta = 0.0
+        
+        self.setCursor(Qt.SizeVerCursor)
+        self._update_display()
+        
+    def _update_display(self):
+        """Update label text."""
+        self.setText(f"{self._value:03d}")
+        
+    def value(self):
+        """Get current value."""
+        return self._value
+        
+    def set_value(self, value):
+        """Set value programmatically."""
+        self._value = max(self.min_val, min(self.max_val, value))
+        self._update_display()
+        
+    def mousePressEvent(self, event):
+        """Start drag."""
+        if event.button() == Qt.LeftButton:
+            self.dragging = True
+            self.drag_start_y = event.globalPos().y()
+            self.drag_start_value = self._value
+            self.accumulated_delta = 0.0
+            
+    def mouseMoveEvent(self, event):
+        """Handle drag - up = increase, down = decrease."""
+        if self.dragging:
+            modifiers = QApplication.keyboardModifiers()
+            if modifiers & Qt.ShiftModifier:
+                pixels_per_unit = DRAG_SENSITIVITY['bpm_value_fine']
+            else:
+                pixels_per_unit = DRAG_SENSITIVITY['bpm_value_normal']
+            
+            delta_y = self.drag_start_y - event.globalPos().y()
+            delta_value = delta_y / pixels_per_unit
+            
+            new_value = int(self.drag_start_value + delta_value)
+            new_value = max(self.min_val, min(self.max_val, new_value))
+            
+            if new_value != self._value:
+                self._value = new_value
+                self._update_display()
+                self.value_changed.emit(self._value)
+                
+    def mouseReleaseEvent(self, event):
+        """End drag."""
+        if event.button() == Qt.LeftButton:
+            self.dragging = False
 
 
 class CycleButton(QPushButton):
@@ -149,7 +222,7 @@ class CycleButton(QPushButton):
         """Start drag tracking."""
         if event.button() == Qt.LeftButton:
             self.dragging = True
-            self.drag_start_y = event.pos().y()
+            self.drag_start_y = event.globalPos().y()
             self.drag_start_index = self.index
             self.moved_during_press = False
         
@@ -162,7 +235,7 @@ class CycleButton(QPushButton):
             else:
                 threshold = DRAG_SENSITIVITY['cycle_normal']
                 
-            delta_y = self.drag_start_y - event.pos().y()
+            delta_y = self.drag_start_y - event.globalPos().y()
             steps = int(delta_y / threshold)
             
             new_index = self.drag_start_index - steps

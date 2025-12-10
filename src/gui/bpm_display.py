@@ -1,17 +1,18 @@
 """
 BPM Display Component
-80s-style digital LED display like TR-909
+TR-909 style digital BPM display with click+drag to change value
 """
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont
 
 from .theme import COLORS, MONO_FONT
+from .widgets import DragValue
 
 
 class BPMDisplay(QWidget):
-    """Digital BPM display with increment/decrement buttons."""
+    """TR-909 style BPM display with drag-to-change."""
     
     bpm_changed = pyqtSignal(int)
     
@@ -23,126 +24,118 @@ class BPMDisplay(QWidget):
         self.setup_ui()
         
     def setup_ui(self):
-        """Create the display."""
+        """Create BPM display."""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(5, 2, 5, 2)
-        layout.setSpacing(3)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(8)
         
-        # Decrement button
-        self.dec_btn = QPushButton("◀")
-        self.dec_btn.setFixedSize(24, 30)
-        self.dec_btn.setFont(QFont('Helvetica', 10))
-        self.dec_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {COLORS['background']};
-                color: {COLORS['text']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 3px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['background_light']};
-            }}
-            QPushButton:pressed {{
-                background-color: {COLORS['border']};
-            }}
-        """)
-        self.dec_btn.clicked.connect(self.decrement)
-        self.dec_btn.setAutoRepeat(True)
-        self.dec_btn.setAutoRepeatDelay(300)
-        self.dec_btn.setAutoRepeatInterval(50)
-        layout.addWidget(self.dec_btn)
-        
-        # Digital display
-        display_frame = QWidget()
-        display_frame.setStyleSheet(f"""
+        # Container for 909 look
+        self.setStyleSheet(f"""
             QWidget {{
                 background-color: #0a0a0a;
-                border: 2px solid {COLORS['border']};
+                border: 2px solid {COLORS['border_light']};
                 border-radius: 4px;
             }}
         """)
-        display_layout = QVBoxLayout(display_frame)
-        display_layout.setContentsMargins(8, 4, 8, 4)
+        
+        # Decrease button
+        self.dec_btn = QPushButton("◀")
+        self.dec_btn.setFixedSize(28, 36)
+        self.dec_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #1a1a1a;
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 3px;
+                font-size: 12px;
+            }}
+            QPushButton:hover {{
+                background-color: #2a2a2a;
+            }}
+            QPushButton:pressed {{
+                background-color: #333;
+            }}
+        """)
+        self.dec_btn.pressed.connect(self.start_decrease)
+        self.dec_btn.released.connect(self.stop_repeat)
+        layout.addWidget(self.dec_btn)
+        
+        # BPM display section (vertical stack)
+        display_layout = QVBoxLayout()
+        display_layout.setContentsMargins(0, 0, 0, 0)
         display_layout.setSpacing(0)
         
-        # BPM label (small)
+        # Small "BPM" label above
         bpm_label = QLabel("BPM")
-        bpm_label.setFont(QFont('Helvetica', 7))
+        bpm_label.setFont(QFont('Helvetica', 8))
         bpm_label.setAlignment(Qt.AlignCenter)
-        bpm_label.setStyleSheet("color: #ff3333; background: transparent; border: none;")
+        bpm_label.setStyleSheet("color: #666; background: transparent; border: none;")
         display_layout.addWidget(bpm_label)
         
-        # Digital number display
-        self.display = QLabel(f"{self.bpm:03d}")
-        self.display.setFont(QFont('DS-Digital', 32, QFont.Bold))
+        # Large draggable LED display - using DragValue widget
+        self.display = DragValue(self.bpm, self.min_bpm, self.max_bpm)
+        self.display.setFont(QFont(MONO_FONT, 32, QFont.Bold))
         self.display.setAlignment(Qt.AlignCenter)
         self.display.setStyleSheet("""
             color: #ff3333;
             background: transparent;
             border: none;
-            font-family: 'Courier New', 'DS-Digital', monospace;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
         """)
-        self.display.setMinimumWidth(80)
+        self.display.setToolTip("Drag up/down to change BPM\nShift + drag for fine control")
+        self.display.value_changed.connect(self.on_drag_changed)
         display_layout.addWidget(self.display)
         
-        layout.addWidget(display_frame)
+        layout.addLayout(display_layout)
         
-        # Increment button
+        # Increase button
         self.inc_btn = QPushButton("▶")
-        self.inc_btn.setFixedSize(24, 30)
-        self.inc_btn.setFont(QFont('Helvetica', 10))
-        self.inc_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {COLORS['background']};
-                color: {COLORS['text']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 3px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['background_light']};
-            }}
-            QPushButton:pressed {{
-                background-color: {COLORS['border']};
-            }}
-        """)
-        self.inc_btn.clicked.connect(self.increment)
-        self.inc_btn.setAutoRepeat(True)
-        self.inc_btn.setAutoRepeatDelay(300)
-        self.inc_btn.setAutoRepeatInterval(50)
+        self.inc_btn.setFixedSize(28, 36)
+        self.inc_btn.setStyleSheet(self.dec_btn.styleSheet())
+        self.inc_btn.pressed.connect(self.start_increase)
+        self.inc_btn.released.connect(self.stop_repeat)
         layout.addWidget(self.inc_btn)
         
-    def increment(self):
-        """Increase BPM by 1."""
-        if self.bpm < self.max_bpm:
-            self.bpm += 1
-            self.update_display()
-            self.bpm_changed.emit(self.bpm)
+        # Auto-repeat timer
+        self.repeat_timer = QTimer()
+        self.repeat_timer.timeout.connect(self.repeat_action)
+        self.repeat_action_func = None
+        
+    def on_drag_changed(self, value):
+        """Handle drag value change."""
+        self.bpm = value
+        self.bpm_changed.emit(self.bpm)
+        
+    def start_increase(self):
+        """Start increasing BPM."""
+        self.change_bpm(1)
+        self.repeat_action_func = lambda: self.change_bpm(1)
+        self.repeat_timer.start(300)
+        
+    def start_decrease(self):
+        """Start decreasing BPM."""
+        self.change_bpm(-1)
+        self.repeat_action_func = lambda: self.change_bpm(-1)
+        self.repeat_timer.start(300)
+        
+    def repeat_action(self):
+        """Repeat the current action faster."""
+        if self.repeat_action_func:
+            self.repeat_action_func()
+            self.repeat_timer.setInterval(50)
             
-    def decrement(self):
-        """Decrease BPM by 1."""
-        if self.bpm > self.min_bpm:
-            self.bpm -= 1
-            self.update_display()
-            self.bpm_changed.emit(self.bpm)
-            
-    def update_display(self):
-        """Update the digital display."""
-        self.display.setText(f"{self.bpm:03d}")
+    def stop_repeat(self):
+        """Stop auto-repeat."""
+        self.repeat_timer.stop()
+        self.repeat_action_func = None
+        
+    def change_bpm(self, delta):
+        """Change BPM by delta."""
+        self.bpm = max(self.min_bpm, min(self.max_bpm, self.bpm + delta))
+        self.display.set_value(self.bpm)
+        self.bpm_changed.emit(self.bpm)
         
     def set_bpm(self, bpm):
-        """Set BPM value."""
+        """Set BPM programmatically."""
         self.bpm = max(self.min_bpm, min(self.max_bpm, bpm))
-        self.update_display()
-        
-    def get_bpm(self):
-        """Get current BPM."""
-        return self.bpm
-        
-    def wheelEvent(self, event):
-        """Handle mouse wheel for BPM adjustment."""
-        delta = event.angleDelta().y()
-        if delta > 0:
-            self.increment()
-        elif delta < 0:
-            self.decrement()
+        self.display.set_value(self.bpm)
