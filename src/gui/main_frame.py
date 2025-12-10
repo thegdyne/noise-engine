@@ -1,5 +1,14 @@
 """
 Main Frame - Combines all components
+
+CRITICAL DESIGN DECISIONS:
+- Layout proportions: Left 25% | Center 60% | Right 15% (DO NOT change)
+- All components are independent modules (DO NOT create dependencies)
+- Everything visible - no menu diving (DO NOT add tabs/hidden menus)
+- See docs/DECISIONS.md for full rationale
+"""
+"""
+Main Frame - Combines all components
 Left: Modulation | Center: Generators | Right: Mixer
 Top: Presets/Settings | Bottom: (Sequencer - future)
 """
