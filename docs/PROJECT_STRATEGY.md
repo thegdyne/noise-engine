@@ -458,3 +458,38 @@ slider.sliderReleased.connect(lambda s=slider: s.repaint())
 self.setAttribute(Qt.WA_AcceptTouchEvents, False)
 ```
 
+
+---
+
+## Phase Updates
+
+### Phase 1: COMPLETE ✓ (2025-12-10)
+- Frame architecture built and working
+- All components integrated (modulation, generators, mixer, effects)
+- Responsive layout
+- OSC connection functional
+- Test generator and PT2399 working
+- Generator cycling (click to switch types)
+
+### Phase 2: Effects Chain - COMPLETE ✓ (2025-12-10)
+- Built effects chain with 4 slots (bottom section)
+- Master bus routing architecture implemented
+- Fidelity effect working (bit crushing, sample rate reduction, bandwidth limiting)
+- Always-on passthrough system (audio flows even without effects)
+- Effect amount controls work in real-time
+- Sequencer moved to future phase (effects more immediately useful)
+
+**Architecture Decision:**
+```
+Generators → Master Bus (internal) → [Effects Chain] → Output (speakers)
+```
+- Generators write to internal stereo bus (~masterBus)
+- Master passthrough synth reads from bus, applies effects, outputs to speakers
+- Always-on passthrough at 100% = transparent (no degradation)
+- Effect slots modulate the passthrough parameters
+
+### Next Steps:
+- Add more effect types (reverb, delay, etc.)
+- Expand modulation parameters (currently 4, target 8-12)
+- Build more generator types
+- Implement mixer volume control (currently visual only)

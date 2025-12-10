@@ -107,3 +107,59 @@ When making significant design choices, add them here with:
 5. Which files implement it
 
 Update this file via git commit whenever decisions are made.
+
+---
+
+### [2025-12-10] Master Bus Architecture with Effects Chain
+**Decision:** All generators route through internal audio bus before output, with master effects processing
+**Architecture:**
+```
+Generators → Internal Bus (~masterBus) → [Master Passthrough + Effects] → Output
+```
+**Rationale:** 
+- Allows global effects processing on all generators uniformly
+- Clean separation between generation and output processing
+- Always-on passthrough ensures audio flows even without effects active
+- Effect slots modulate the passthrough synth parameters
+
+**DO NOT:** 
+- Route generators directly to hardware output (bypass master bus)
+- Require effects to be "on" for audio to pass through
+- Create per-generator effect chains (use master chain)
+
+**Files affected:** `supercollider/init.scd`, `src/gui/effects_chain.py`, `src/gui/effect_slot.py`, `src/gui/main_frame.py`
+
+---
+
+### [2025-12-10] Fidelity Effect as Master Effect
+**Decision:** Fidelity is a master effect applied to all generators uniformly
+**Parameters:**
+- Bit crushing (16-bit → 4-bit)
+- Sample rate reduction (44.1kHz → 4kHz) 
+- Bandwidth limiting (18kHz → 2kHz)
+- Amount: 100% = clean/transparent, 0% = maximum degradation
+
+**Rationale:** Global aesthetic control - affects entire output, not individual generators
+**DO NOT:** Make fidelity per-generator (it's a master effect)
+**Files affected:** `supercollider/init.scd` (masterPassthrough SynthDef)
+
+---
+
+### [2025-12-10] Effects Chain UI in Bottom Section
+**Decision:** Effects chain occupies bottom section (replaced sequencer placeholder)
+**Rationale:** Effects are more immediately useful than sequencer for early development
+**Layout:** 4 horizontal effect slots with vertical amount faders
+**DO NOT:** Move sequencer back to bottom until effects chain is complete
+**Files affected:** `src/gui/main_frame.py`, `src/gui/effects_chain.py`, `src/gui/effect_slot.py`
+
+---
+
+### [2025-12-10] Start with Empty Generators
+**Decision:** Application starts with all generator slots empty (no auto-loaded generators)
+**Rationale:** 
+- Prevents confusion (GUI showing generator that isn't actually running)
+- Clear cause-effect (click slot → generator starts → hear sound)
+- User explicitly chooses first generator
+
+**DO NOT:** Auto-load generators on startup
+**Files affected:** `src/main.py` (removed set_pt2399_generator call)
