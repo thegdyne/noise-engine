@@ -8,6 +8,14 @@ import platform
 
 MONO_FONT = 'Menlo' if platform.system() == 'Darwin' else 'Courier New'
 
+# Drag/scroll sensitivity settings
+DRAG_SENSITIVITY = {
+    'slider_normal': 100,      # Pixels for full slider range
+    'slider_fine': 400,        # Pixels for full range with Shift
+    'cycle_normal': 15,        # Pixels per step for CycleButton
+    'cycle_fine': 40,          # Pixels per step with Shift
+}
+
 # Base colors
 COLORS = {
     # States

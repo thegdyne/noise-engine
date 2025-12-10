@@ -3,12 +3,12 @@ Mixer Panel Component
 Volume faders and master output
 """
 
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QSlider, QPushButton, QFrame)
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, slider_style, MONO_FONT
+from .theme import COLORS, button_style, MONO_FONT
+from .widgets import DragSlider
 
 
 class ChannelStrip(QWidget):
@@ -39,13 +39,11 @@ class ChannelStrip(QWidget):
         label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(label)
         
-        # Fader (vertical)
-        self.fader = QSlider(Qt.Vertical)
-        self.fader.setMinimum(0)
-        self.fader.setMaximum(1000)
+        # Fader - DragSlider with fixed width
+        self.fader = DragSlider()
+        self.fader.setFixedWidth(20)
         self.fader.setValue(800)
         self.fader.setMinimumHeight(80)
-        self.fader.setStyleSheet(slider_style())
         self.fader.valueChanged.connect(self.on_fader_changed)
         layout.addWidget(self.fader, alignment=Qt.AlignCenter)
         
@@ -160,13 +158,11 @@ class MixerPanel(QWidget):
         master_label.setStyleSheet(f"color: {COLORS['text_bright']}; border: none;")
         master_layout.addWidget(master_label)
         
-        # Vertical master fader
-        self.master_fader = QSlider(Qt.Vertical)
-        self.master_fader.setMinimum(0)
-        self.master_fader.setMaximum(1000)
+        # Vertical master fader - DragSlider with fixed width
+        self.master_fader = DragSlider()
+        self.master_fader.setFixedWidth(25)
         self.master_fader.setValue(800)
         self.master_fader.setMinimumHeight(60)
-        self.master_fader.setStyleSheet(slider_style())
         self.master_fader.valueChanged.connect(self.on_master_volume)
         master_layout.addWidget(self.master_fader, alignment=Qt.AlignCenter)
         

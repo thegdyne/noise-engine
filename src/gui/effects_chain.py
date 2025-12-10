@@ -3,12 +3,12 @@ Effects Chain Component
 Horizontal chain of effect slots
 """
 
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
-                             QSlider, QFrame)
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, slider_style
+from .theme import COLORS
+from .widgets import DragSlider
 
 
 class EffectSlot(QWidget):
@@ -37,12 +37,8 @@ class EffectSlot(QWidget):
         layout.addWidget(self.type_label)
         
         # Vertical amount slider
-        self.amount_slider = QSlider(Qt.Vertical)
-        self.amount_slider.setMinimum(0)
-        self.amount_slider.setMaximum(1000)
-        self.amount_slider.setValue(500)
+        self.amount_slider = DragSlider()
         self.amount_slider.setMinimumHeight(50)
-        self.amount_slider.setStyleSheet(slider_style())
         self.amount_slider.valueChanged.connect(self.on_amount_changed)
         self.amount_slider.setEnabled(False)
         layout.addWidget(self.amount_slider, alignment=Qt.AlignCenter)

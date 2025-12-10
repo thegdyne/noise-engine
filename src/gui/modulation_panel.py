@@ -3,12 +3,12 @@ Modulation Panel Component
 Global modulation parameters
 """
 
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QSlider, QFrame)
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, slider_style, MONO_FONT
+from .theme import COLORS, MONO_FONT
+from .widgets import DragSlider
 
 
 class ModulationPanel(QWidget):
@@ -71,19 +71,16 @@ class ModulationPanel(QWidget):
         
         # Label at top
         lbl = QLabel(label)
-        lbl.setFont(QFont('Menlo', 9, QFont.Bold))
+        lbl.setFont(QFont(MONO_FONT, 9, QFont.Bold))
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(f"color: {COLORS['text_bright']};")
         lbl.setToolTip(tooltip)
         layout.addWidget(lbl)
         
         # Vertical slider
-        slider = QSlider(Qt.Vertical)
-        slider.setMinimum(0)
-        slider.setMaximum(1000)
-        slider.setValue(int(default * 1000))
+        slider = DragSlider()
         slider.setMinimumHeight(80)
-        slider.setStyleSheet(slider_style())
+        slider.setValue(int(default * 1000))
         slider.setToolTip(tooltip)
         slider.valueChanged.connect(
             lambda v, pid=param_id: self.on_value_changed(pid, v / 1000.0)
@@ -92,7 +89,7 @@ class ModulationPanel(QWidget):
         
         # Value label at bottom
         value_lbl = QLabel(f"{default:.2f}")
-        value_lbl.setFont(QFont('Menlo', 8))
+        value_lbl.setFont(QFont(MONO_FONT, 8))
         value_lbl.setAlignment(Qt.AlignCenter)
         value_lbl.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(value_lbl)

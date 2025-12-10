@@ -6,14 +6,16 @@ Atomic components with no business logic - just behavior
 from PyQt5.QtWidgets import QSlider, QPushButton, QApplication
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from .theme import slider_style
+from .theme import slider_style, DRAG_SENSITIVITY
 
 
-class MiniSlider(QSlider):
+class DragSlider(QSlider):
     """
-    Compact vertical slider with click+drag anywhere behavior.
+    Vertical slider with click+drag anywhere behavior.
     Click and drag up = increase, drag down = decrease.
     Hold Shift for fine control.
+    
+    Base class - use MiniSlider for generator params, or customize size.
     """
     
     def __init__(self, parent=None):
@@ -21,18 +23,12 @@ class MiniSlider(QSlider):
         self.setMinimum(0)
         self.setMaximum(1000)
         self.setValue(500)
-        self.setFixedWidth(25)
-        self.setMinimumHeight(50)
         self.setStyleSheet(slider_style())
         
         # Drag tracking
         self.dragging = False
         self.drag_start_y = 0
         self.drag_start_value = 0
-        
-        # Sensitivity: pixels of mouse movement for full 0-1000 range
-        self.full_range_pixels = 100       # Normal: 100px = full range
-        self.fine_full_range_pixels = 400  # Shift: 400px = full range
         
     def mousePressEvent(self, event):
         """Start drag from current value."""
@@ -44,15 +40,13 @@ class MiniSlider(QSlider):
     def mouseMoveEvent(self, event):
         """Drag up = increase, drag down = decrease. Shift = fine control."""
         if self.dragging:
-            # Check for shift modifier
             modifiers = QApplication.keyboardModifiers()
             if modifiers & Qt.ShiftModifier:
-                travel = self.fine_full_range_pixels
+                travel = DRAG_SENSITIVITY['slider_fine']
             else:
-                travel = self.full_range_pixels
+                travel = DRAG_SENSITIVITY['slider_normal']
             
-            # Calculate value change based on pixel movement
-            delta_y = self.drag_start_y - event.pos().y()  # Positive = moved up
+            delta_y = self.drag_start_y - event.pos().y()
             value_range = self.maximum() - self.minimum()
             delta_value = int((delta_y / travel) * value_range)
             
@@ -66,6 +60,15 @@ class MiniSlider(QSlider):
         """End drag."""
         if event.button() == Qt.LeftButton:
             self.dragging = False
+
+
+class MiniSlider(DragSlider):
+    """Compact vertical slider for generator params."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedWidth(25)
+        self.setMinimumHeight(50)
 
 
 class CycleButton(QPushButton):
@@ -93,8 +96,6 @@ class CycleButton(QPushButton):
         self.dragging = False
         self.drag_start_y = 0
         self.drag_start_index = 0
-        self.drag_threshold = 15       # Normal: pixels per step
-        self.fine_drag_threshold = 40  # Shift held: more pixels per step
         self.moved_during_press = False
         
     def _update_display(self):
@@ -155,12 +156,11 @@ class CycleButton(QPushButton):
     def mouseMoveEvent(self, event):
         """Handle drag - up = lower index, down = higher index. Shift = fine."""
         if self.dragging:
-            # Check for shift modifier
             modifiers = QApplication.keyboardModifiers()
             if modifiers & Qt.ShiftModifier:
-                threshold = self.fine_drag_threshold
+                threshold = DRAG_SENSITIVITY['cycle_fine']
             else:
-                threshold = self.drag_threshold
+                threshold = DRAG_SENSITIVITY['cycle_normal']
                 
             delta_y = self.drag_start_y - event.pos().y()
             steps = int(delta_y / threshold)
