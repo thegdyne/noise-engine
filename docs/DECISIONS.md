@@ -262,3 +262,20 @@ supercollider/
 **Decision:** All sliders in the UI must be vertical, no horizontal sliders
 **Rationale:** Consistent visual language, matches hardware mixer/synth paradigm
 **Applies to:** All components - modulation panel, mixer, effects, LFOs, generators
+
+---
+
+### [2025-12-10] Reusable Widget Pattern
+**Decision:** Separate UI behavior from business logic
+**Location:** `src/gui/widgets.py`
+**Widgets:**
+- `MiniSlider` - compact vertical slider
+- `CycleButton` - click/scroll to cycle through values
+
+**Rationale:**
+- DRY: widgets reusable across components
+- Separation: UI behavior vs application logic
+- Single responsibility: each widget does one thing
+- Testable: widgets can be tested in isolation
+
+**Rule:** When adding UI behavior (scroll, cycle, drag), create a widget first, then use it.

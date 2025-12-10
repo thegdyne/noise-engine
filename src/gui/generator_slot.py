@@ -3,25 +3,18 @@ Generator Slot Component
 Individual generator with base parameters
 """
 
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QSlider, QPushButton, QFrame)
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, slider_style
+from .theme import COLORS, button_style
+from .widgets import MiniSlider, CycleButton
 
 
-class MiniSlider(QSlider):
-    """Compact vertical slider for generator params."""
-    
-    def __init__(self, parent=None):
-        super().__init__(Qt.Vertical, parent)
-        self.setMinimum(0)
-        self.setMaximum(1000)
-        self.setValue(500)
-        self.setFixedWidth(25)
-        self.setMinimumHeight(50)
-        self.setStyleSheet(slider_style())
+# Constants - could move to a config
+FILTER_TYPES = ["LP", "HP", "BP"]
+CLOCK_RATES = ["x8", "x4", "x2", "CLK", "/2", "/4", "/8", "/16"]
+CLOCK_DEFAULT_INDEX = 3  # CLK
 
 
 class GeneratorSlot(QWidget):
@@ -33,17 +26,12 @@ class GeneratorSlot(QWidget):
     clock_enabled_changed = pyqtSignal(int, bool)
     clock_rate_changed = pyqtSignal(int, str)
     
-    # Clock rates: x8=32nd, x4=16th, x2=8th, CLK=quarter, /2=half, /4=whole, /8=2bar, /16=4bar
-    CLOCK_RATES = ["x8", "x4", "x2", "CLK", "/2", "/4", "/8", "/16"]
-    
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
         self.slot_id = slot_id
         self.generator_type = generator_type
         self.active = False
-        self.filter_type = "LP"
         self.clock_enabled = False
-        self.clock_rate = "CLK"
         
         self.setMinimumSize(200, 200)
         self.setup_ui()
@@ -113,7 +101,6 @@ class GeneratorSlot(QWidget):
             self.sliders[key] = slider
             params_layout.addWidget(param_widget)
         
-        # Spacer between sliders and buttons
         params_layout.addSpacing(5)
         
         # Buttons column
@@ -123,17 +110,18 @@ class GeneratorSlot(QWidget):
         buttons_layout.setContentsMargins(0, 0, 0, 0)
         buttons_layout.setSpacing(3)
         
-        # Filter type button
-        self.filter_btn = QPushButton("LP")
+        # Filter type - CycleButton
+        self.filter_btn = CycleButton(FILTER_TYPES, initial_index=0)
         self.filter_btn.setFixedSize(36, 24)
         self.filter_btn.setFont(QFont('Courier', 9, QFont.Bold))
         self.filter_btn.setStyleSheet(button_style('enabled'))
-        self.filter_btn.clicked.connect(self.cycle_filter_type)
+        self.filter_btn.wrap = True  # Wrap LP -> HP -> BP -> LP
+        self.filter_btn.value_changed.connect(self.on_filter_changed)
         self.filter_btn.setEnabled(False)
         self.filter_btn.setToolTip("Filter Type: LP / HP / BP")
         buttons_layout.addWidget(self.filter_btn)
         
-        # ENV toggle
+        # ENV toggle (not a cycle button - just on/off)
         self.clock_toggle = QPushButton("ENV")
         self.clock_toggle.setFixedSize(36, 24)
         self.clock_toggle.setFont(QFont('Courier', 8, QFont.Bold))
@@ -143,14 +131,15 @@ class GeneratorSlot(QWidget):
         self.clock_toggle.setToolTip("Envelope ON/OFF (OFF = drone)")
         buttons_layout.addWidget(self.clock_toggle)
         
-        # CLK rate button
-        self.rate_btn = QPushButton("CLK")
+        # CLK rate - CycleButton with scroll
+        self.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
         self.rate_btn.setFixedSize(36, 24)
         self.rate_btn.setFont(QFont('Courier', 8))
         self.rate_btn.setStyleSheet(button_style('inactive'))
-        self.rate_btn.clicked.connect(self.cycle_clock_rate)
+        self.rate_btn.wrap = False  # Clamp at ends
+        self.rate_btn.value_changed.connect(self.on_rate_changed)
         self.rate_btn.setEnabled(False)
-        self.rate_btn.setToolTip("Clock rate: x8=32nd, x4=16th, x2=8th, CLK=1/4, /2=half, /4=whole")
+        self.rate_btn.setToolTip("Clock rate (scroll or click)\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16")
         buttons_layout.addWidget(self.rate_btn)
         
         buttons_layout.addStretch()
@@ -198,15 +187,11 @@ class GeneratorSlot(QWidget):
     def update_clock_style(self):
         """Update clock button styles based on state."""
         if self.clock_enabled:
-            # ENV enabled - GREEN
             self.clock_toggle.setStyleSheet(button_style('enabled'))
-            # CLK rate - ORANGE (submenu active)
             self.rate_btn.setEnabled(True and self.generator_type != "Empty")
             self.rate_btn.setStyleSheet(button_style('submenu'))
         else:
-            # ENV disabled
             self.clock_toggle.setStyleSheet(button_style('disabled'))
-            # CLK rate inactive
             self.rate_btn.setEnabled(False)
             self.rate_btn.setStyleSheet(button_style('inactive'))
         
@@ -221,7 +206,6 @@ class GeneratorSlot(QWidget):
         self.filter_btn.setEnabled(enabled)
         self.clock_toggle.setEnabled(enabled)
         self.update_clock_style()
-        
         self.update_style()
         
     def set_active(self, active):
@@ -247,30 +231,19 @@ class GeneratorSlot(QWidget):
             self.midi_indicator.setText("🎹 MIDI")
             self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
             
-    def cycle_filter_type(self):
-        """Cycle through filter types."""
-        types = ["LP", "HP", "BP"]
-        idx = types.index(self.filter_type)
-        self.filter_type = types[(idx + 1) % len(types)]
-        self.filter_btn.setText(self.filter_type)
-        self.filter_type_changed.emit(self.slot_id, self.filter_type)
-        print(f"Gen {self.slot_id} filter: {self.filter_type}")
+    def on_filter_changed(self, filter_type):
+        """Handle filter button change."""
+        self.filter_type_changed.emit(self.slot_id, filter_type)
         
     def toggle_clock(self):
         """Toggle envelope ON/OFF."""
         self.clock_enabled = not self.clock_enabled
         self.update_clock_style()
         self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
-        state = "ON" if self.clock_enabled else "OFF"
-        print(f"Gen {self.slot_id} ENV: {state}")
         
-    def cycle_clock_rate(self):
-        """Cycle through clock rates."""
-        idx = self.CLOCK_RATES.index(self.clock_rate)
-        self.clock_rate = self.CLOCK_RATES[(idx + 1) % len(self.CLOCK_RATES)]
-        self.rate_btn.setText(self.clock_rate)
-        self.clock_rate_changed.emit(self.slot_id, self.clock_rate)
-        print(f"Gen {self.slot_id} CLK: {self.clock_rate}")
+    def on_rate_changed(self, rate):
+        """Handle rate button change."""
+        self.clock_rate_changed.emit(self.slot_id, rate)
         
     def on_param_changed(self, param_name, value):
         """Handle parameter change."""
