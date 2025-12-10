@@ -411,3 +411,50 @@ noise-engine/
 ---
 
 **This is our north star. When in doubt, return to these principles.**
+
+---
+
+## Known Technical Issues & Solutions
+
+### PyQt5 Slider Ghosting on macOS
+
+**Problem:** QSlider widgets show visual artifacts/ghosting when dragged on macOS.
+
+**Solution:** Apply custom stylesheet + repaint on release
+```python
+# Custom stylesheet for sliders
+slider.setStyleSheet("""
+    QSlider::groove:vertical {
+        border: 1px solid #999999;
+        width: 10px;
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+            stop:0 #B1B1B1, stop:1 #c4c4c4);
+        margin: 0 2px;
+        border-radius: 5px;
+    }
+    QSlider::handle:vertical {
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+            stop:0 #d4d4d4, stop:1 #8f8f8f);
+        border: 1px solid #5c5c5c;
+        height: 20px;
+        margin: 0 -5px;
+        border-radius: 10px;
+    }
+    QSlider::handle:vertical:hover {
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+            stop:0 #f4f4f4, stop:1 #afafaf);
+    }
+""")
+
+# Force repaint on release
+slider.sliderReleased.connect(lambda s=slider: s.repaint())
+```
+
+**When to apply:** Every QSlider in every component.
+
+**Window-level fix:**
+```python
+# In main window __init__
+self.setAttribute(Qt.WA_AcceptTouchEvents, False)
+```
+
