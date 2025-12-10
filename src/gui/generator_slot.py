@@ -38,14 +38,6 @@ class MiniSlider(QSlider):
                 background: #aaa;
             }
         """)
-        
-    def set_normalized(self, value):
-        """Set value 0.0-1.0"""
-        self.setValue(int(value * 1000))
-        
-    def get_normalized(self):
-        """Get value 0.0-1.0"""
-        return self.value() / 1000.0
 
 
 class GeneratorSlot(QWidget):
@@ -54,8 +46,8 @@ class GeneratorSlot(QWidget):
     clicked = pyqtSignal(int)
     parameter_changed = pyqtSignal(int, str, float)
     filter_type_changed = pyqtSignal(int, str)
-    clock_enabled_changed = pyqtSignal(int, bool)  # ON/OFF
-    clock_rate_changed = pyqtSignal(int, str)      # division
+    clock_enabled_changed = pyqtSignal(int, bool)
+    clock_rate_changed = pyqtSignal(int, str)
     
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
@@ -63,8 +55,8 @@ class GeneratorSlot(QWidget):
         self.generator_type = generator_type
         self.active = False
         self.filter_type = "LP"
-        self.clock_enabled = False  # OFF = drone mode
-        self.clock_rate = "CLK"     # default division
+        self.clock_enabled = False
+        self.clock_rate = "CLK"
         
         self.setMinimumSize(180, 200)
         self.setup_ui()
@@ -100,7 +92,7 @@ class GeneratorSlot(QWidget):
         params_layout.setSpacing(5)
         
         params = [
-            ('FRQ', 'frequency', 'Frequency / Pitch'),
+            ('FRQ', 'frequency', 'Frequency / Rate'),
             ('CUT', 'cutoff', 'Filter Cutoff'),
             ('RES', 'resonance', 'Filter Resonance'),
             ('ATK', 'attack', 'VCA Attack'),
@@ -163,7 +155,7 @@ class GeneratorSlot(QWidget):
         self.filter_btn.setToolTip("Filter Type: LP / HP / BP")
         buttons_layout.addWidget(self.filter_btn)
         
-        # Clock ON/OFF toggle
+        # Clock ON/OFF toggle (ENV button)
         self.clock_toggle = QPushButton("ENV")
         self.clock_toggle.setFixedSize(32, 22)
         self.clock_toggle.setFont(QFont('Courier', 7, QFont.Bold))
@@ -248,25 +240,28 @@ class GeneratorSlot(QWidget):
     def update_clock_style(self):
         """Update clock button styles based on state."""
         if self.clock_enabled:
+            # ENV enabled - orange
             self.clock_toggle.setStyleSheet("""
                 QPushButton {
-                    background-color: #335533;
-                    color: #88ff88;
+                    background-color: #664422;
+                    color: #ffaa44;
                     border-radius: 3px;
                 }
             """)
+            # Rate button active
             self.rate_btn.setEnabled(True and self.generator_type != "Empty")
             self.rate_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #333;
-                    color: #888;
+                    background-color: #553311;
+                    color: #ff8833;
                     border-radius: 3px;
                 }
                 QPushButton:hover {
-                    background-color: #444;
+                    background-color: #664422;
                 }
             """)
         else:
+            # ENV disabled - gray
             self.clock_toggle.setStyleSheet("""
                 QPushButton {
                     background-color: #333;
@@ -274,6 +269,7 @@ class GeneratorSlot(QWidget):
                     border-radius: 3px;
                 }
             """)
+            # Rate button inactive
             self.rate_btn.setEnabled(False)
             self.rate_btn.setStyleSheet("""
                 QPushButton {
@@ -327,15 +323,12 @@ class GeneratorSlot(QWidget):
         self.filter_type = types[(idx + 1) % len(types)]
         self.filter_btn.setText(self.filter_type)
         self.filter_type_changed.emit(self.slot_id, self.filter_type)
-        print(f"Gen {self.slot_id} filter: {self.filter_type}")
         
     def toggle_clock(self):
         """Toggle envelope ON/OFF."""
         self.clock_enabled = not self.clock_enabled
         self.update_clock_style()
         self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
-        state = "ON" if self.clock_enabled else "OFF (drone)"
-        print(f"Gen {self.slot_id} envelope: {state}")
         
     def cycle_clock_rate(self):
         """Cycle through clock divisions."""
@@ -344,7 +337,6 @@ class GeneratorSlot(QWidget):
         self.clock_rate = rates[(idx + 1) % len(rates)]
         self.rate_btn.setText(self.clock_rate)
         self.clock_rate_changed.emit(self.slot_id, self.clock_rate)
-        print(f"Gen {self.slot_id} clock rate: {self.clock_rate}")
         
     def on_param_changed(self, param_name, value):
         """Handle parameter change."""

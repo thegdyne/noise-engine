@@ -1,51 +1,56 @@
 /*
 PT2399 Grainy Generator
-Now supports routing to master bus
+Granular noise bursts with filter and saturation
+
+Parameters:
+- FRQ: grain rate (0.5 - 80 Hz)
+- CUT: filter cutoff (80 - 16000 Hz)
+- RES: filter resonance
+- ATK: grain attack time
+- DEC: grain decay time
+- Filter Type: LP / HP / BP
 */
 
-SynthDef(\pt2399Grainy, {
-    arg out=0;
-    
-    var sig, grain, env, trig, rate, pitch, crush, flutter;
-    var gravity, density, filterCutoff, amplitude;
+SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                          filterTypeBus, envEnabledBus, clockDivBus|
+    var sig, grain, env, trig, rate, filterFreq, rq, filterType, attack, decay, amp;
     var panPos;
     
-    gravity = In.kr(~params[\gravity]);
-    density = In.kr(~params[\density]);
-    filterCutoff = In.kr(~params[\filter_cutoff]);
-    amplitude = In.kr(~params[\amplitude]);
+    // FRQ controls grain rate
+    rate = In.kr(freqBus).linexp(0, 1, 0.5, 80);
+    filterFreq = In.kr(cutoffBus).linexp(0, 1, 80, 16000);
+    rq = In.kr(resBus).linlin(0, 1, 1, 0.1);
+    attack = In.kr(attackBus).linexp(0, 1, 0.001, 0.5);
+    decay = In.kr(decayBus).linexp(0, 1, 0.01, 2);
+    filterType = In.kr(filterTypeBus);
+    amp = In.kr(~params[\amplitude]);
     
-    rate = density.linexp(0.0, 1.0, 0.5, 120);
+    // Trigger from FRQ
     trig = Impulse.kr(rate);
+    env = EnvGen.kr(Env.perc(attack, decay), trig);
     
-    pitch = gravity.linexp(0.0, 1.0, 0.25, 4.0);
-    flutter = LFNoise1.kr(3).range(0.95, 1.05);
-    pitch = pitch * flutter;
-    
-    env = EnvGen.kr(
-        Env.perc(0.001, gravity.linexp(0.0, 1.0, 0.01, 0.2)),
-        trig
-    );
-    
-    grain = PinkNoise.ar(0.5);
-    
-    crush = (1.0 - gravity).linexp(0.0, 1.0, 4, 16);
-    grain = grain.round(2.pow(crush).reciprocal * 2) - 1;
+    // Clean noise source
+    grain = WhiteNoise.ar(0.7);
     
     sig = grain * env;
     
-    sig = Latch.ar(sig, Impulse.ar(filterCutoff.linexp(0.0, 1.0, 2000, 44100)));
+    // Filter before distortion
+    sig = Select.ar(filterType, [
+        LPF.ar(sig, filterFreq),
+        HPF.ar(sig, filterFreq),
+        BPF.ar(sig, filterFreq, rq)
+    ]);
     
-    sig = RLPF.ar(sig, filterCutoff.linexp(0.0, 1.0, 200, 8000), 0.3);
+    // Light saturation
+    sig = (sig * 2).tanh * 0.6;
     
-    sig = (sig * 2).tanh * 0.5;
-    
+    // Random pan per grain
     panPos = TRand.kr(-1.0, 1.0, trig);
     sig = Pan2.ar(sig, panPos);
     
-    sig = sig * amplitude * 0.4;
+    sig = sig * amp;
     
     Out.ar(out, sig);
 }).add;
 
-"✓ PT2399 Grainy generator loaded".postln;
+"  ✓ pt2399Grainy loaded".postln;
