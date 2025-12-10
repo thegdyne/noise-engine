@@ -1,24 +1,13 @@
 /*
 Test Synth Generator
 Pulse + noise with clock sync
-
-Parameters:
-- FRQ: oscillator frequency (50 - 2000 Hz)
-- CUT: filter cutoff (80 - 16000 Hz)
-- RES: filter resonance
-- ATK: envelope attack time
-- DEC: envelope decay time
-- ENV: OFF = drone, ON = clock sync
-- CLK: clock division (1, 2, 4, 8, 16)
 */
 
 SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus, 
                        filterTypeBus, envEnabledBus, clockDivBus, clockTrigBus|
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var env, trig, envEnabled, clockDiv, clockTrig, dividedTrig;
-    var divCount;
+    var env, envEnabled, clockDiv, clockTrig, dividedTrig;
     
-    // Read params
     freq = In.kr(freqBus).linexp(0, 1, 50, 2000);
     filterFreq = In.kr(cutoffBus).linexp(0, 1, 80, 16000);
     rq = In.kr(resBus).linlin(0, 1, 1, 0.1);
@@ -29,29 +18,20 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     clockDiv = In.kr(clockDivBus);
     amp = In.kr(~params[\amplitude]);
     
-    // Master clock trigger
     clockTrig = In.ar(clockTrigBus);
+    dividedTrig = PulseDivider.ar(clockTrig, clockDiv);
     
-    // Divide clock
-    divCount = PulseCount.ar(clockTrig);
-    dividedTrig = Trig1.ar((divCount % clockDiv) < 0.5, 0.001) * clockTrig;
-    
-    // Convert to kr
-    trig = Trig1.kr(A2K.kr(dividedTrig), 0.001);
-    
-    // ENV OFF = always on, ENV ON = triggered
     env = Select.kr(envEnabled, [
         1.0,
-        EnvGen.kr(Env.perc(attack, decay), trig)
+        EnvGen.ar(Env.perc(attack, decay), dividedTrig)
     ]);
     
-    // Sound source
     sig = Pulse.ar(freq, 0.5, 0.3) + PinkNoise.ar(0.2);
     
-    // Filter
+    // RLPF/RHPF for resonance control
     sig = Select.ar(filterType, [
-        LPF.ar(sig, filterFreq),
-        HPF.ar(sig, filterFreq),
+        RLPF.ar(sig, filterFreq, rq),
+        RHPF.ar(sig, filterFreq, rq),
         BPF.ar(sig, filterFreq, rq)
     ]);
     
@@ -60,4 +40,4 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig ! 2);
 }).add;
 
-"  ✓ testSynth loaded (with clock sync)".postln;
+"  ✓ testSynth loaded".postln;
