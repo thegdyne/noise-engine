@@ -114,7 +114,7 @@ class ControlInterface(QMainWindow):
         
         # Value display
         value_label = QLabel(f"{config['default']:.2f}")
-        value_font = QFont('Courier', 12, QFont.Bold)
+        value_font = QFont('Menlo', 12, QFont.Bold)
         value_label.setFont(value_font)
         value_label.setStyleSheet("color: #0066cc;")
         value_label.setAlignment(Qt.AlignCenter)

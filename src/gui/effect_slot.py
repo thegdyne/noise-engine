@@ -68,7 +68,7 @@ class EffectSlot(QWidget):
         
         self.amount_label = QLabel("75%")
         self.amount_label.setAlignment(Qt.AlignCenter)
-        self.amount_label.setFont(QFont('Courier', 7))
+        self.amount_label.setFont(QFont('Menlo', 7))
         layout.addWidget(self.amount_label)
         
         self.update_style()

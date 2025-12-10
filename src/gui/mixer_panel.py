@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, slider_style
+from .theme import COLORS, button_style, slider_style, MONO_FONT
 
 
 class ChannelStrip(QWidget):

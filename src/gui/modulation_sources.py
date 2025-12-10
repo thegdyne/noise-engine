@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, slider_style
+from .theme import COLORS, button_style, slider_style, MONO_FONT
 
 
 class LFOWidget(QWidget):
@@ -40,7 +40,7 @@ class LFOWidget(QWidget):
         # Waveform button
         self.wave_btn = QPushButton(self.waveform)
         self.wave_btn.setFixedSize(40, 20)
-        self.wave_btn.setFont(QFont('Courier', 8))
+        self.wave_btn.setFont(QFont('Menlo', 8))
         self.wave_btn.setStyleSheet(button_style('enabled'))
         self.wave_btn.clicked.connect(self.cycle_waveform)
         layout.addWidget(self.wave_btn, alignment=Qt.AlignCenter)
@@ -57,7 +57,7 @@ class LFOWidget(QWidget):
         
         # Rate label
         self.rate_label = QLabel("1.0 Hz")
-        self.rate_label.setFont(QFont('Courier', 8))
+        self.rate_label.setFont(QFont('Menlo', 8))
         self.rate_label.setAlignment(Qt.AlignCenter)
         self.rate_label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(self.rate_label)

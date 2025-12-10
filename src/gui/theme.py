@@ -4,6 +4,9 @@ All UI components reference this for consistent styling
 
 RULE: All sliders must be vertical - no horizontal sliders
 """
+import platform
+
+MONO_FONT = 'Menlo' if platform.system() == 'Darwin' else 'Courier New'
 
 # Base colors
 COLORS = {

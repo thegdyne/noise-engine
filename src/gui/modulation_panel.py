@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, slider_style
+from .theme import COLORS, slider_style, MONO_FONT
 
 
 class ModulationPanel(QWidget):
@@ -71,7 +71,7 @@ class ModulationPanel(QWidget):
         
         # Label at top
         lbl = QLabel(label)
-        lbl.setFont(QFont('Courier', 9, QFont.Bold))
+        lbl.setFont(QFont('Menlo', 9, QFont.Bold))
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(f"color: {COLORS['text_bright']};")
         lbl.setToolTip(tooltip)
@@ -92,7 +92,7 @@ class ModulationPanel(QWidget):
         
         # Value label at bottom
         value_lbl = QLabel(f"{default:.2f}")
-        value_lbl.setFont(QFont('Courier', 8))
+        value_lbl.setFont(QFont('Menlo', 8))
         value_lbl.setAlignment(Qt.AlignCenter)
         value_lbl.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(value_lbl)
