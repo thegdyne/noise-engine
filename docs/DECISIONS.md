@@ -220,3 +220,38 @@ Arguments: out, freqBus, cutoffBus, resBus, attackBus, decayBus, filterTypeBus
 ### [2025-12-10] Filter Range
 **Decision:** Cutoff range 80Hz - 16kHz for all generators
 **Rationale:** Full usable sweep from nearly closed to fully open
+
+---
+
+### [2025-12-10] SuperCollider Modular Structure
+**Decision:** Split SuperCollider code into separate files by function
+**Structure:**
+```
+supercollider/
+├── init.scd                    # Loader only
+├── core/
+│   ├── buses.scd               # ~setupBuses
+│   ├── clock.scd               # ~setupClock, ~startClock
+│   ├── helpers.scd             # ~startGenerator, ~stopGenerator
+│   └── osc_handlers.scd        # ~setupOSC
+├── generators/
+│   ├── test_synth.scd          # Standalone SynthDef
+│   └── pt2399_grainy.scd       # Standalone SynthDef
+└── effects/
+    └── master_passthrough.scd  # ~setupMasterPassthrough, ~startMasterPassthrough
+```
+**Rationale:**
+- Each file has one purpose
+- Edit generators without touching core
+- Easy rollback per component
+- Clear load order dependencies
+- Works well with Claude session workflow
+
+### [2025-12-10] Master Clock System
+**Decision:** Central clock with divisions for envelope sync
+**Implementation:**
+- masterClock synth generates BPM-based triggers
+- PulseDivider.ar for clean divisions (CLK, /2, /4, /8, /16)
+- ENV OFF = drone or free-running (FRQ rate)
+- ENV ON = synced to master clock division
+**Rationale:** Musical timing, polyrhythmic possibilities
