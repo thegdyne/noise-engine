@@ -1,6 +1,6 @@
 /*
 Noise Engine - SuperCollider Initialization
-Simple test synth that responds to OSC parameters from Python
+Expanded parameter ranges for more extreme control
 */
 
 s.waitForBoot({
@@ -25,11 +25,11 @@ s.waitForBoot({
         var filterCutoff = In.kr(~params[\filter_cutoff]);
         var amplitude = In.kr(~params[\amplitude]);
         
-        // Map gravity to pitch modulation (50 - 2000 Hz) - MORE RANGE!
-        pitch = gravity.linexp(0.0, 1.0, 50, 2000);
+        // GRAVITY: Expanded range (20 - 5000 Hz) - MUCH WIDER!
+        pitch = gravity.linexp(0.0, 1.0, 20, 5000);
         
-        // Map density to pulse rate (0.5 - 30 Hz) - MORE RANGE!
-        rate = density.linexp(0.0, 1.0, 0.5, 30);
+        // DENSITY: Expanded range (0.1 - 100 Hz) - MUCH FASTER at peak!
+        rate = density.linexp(0.0, 1.0, 0.1, 100);
         
         // Generate pulsing noise with pitch modulation
         env = LFPulse.ar(rate, 0, 0.3);
@@ -38,10 +38,10 @@ s.waitForBoot({
         sig = PinkNoise.ar(0.5) * env;
         sig = sig + (SinOsc.ar(pitch) * 0.3 * env); // Add pitched component
         
-        // Filter with cutoff control (100 - 12000 Hz) - WIDER RANGE!
+        // FILTER: Expanded range (30 - 18000 Hz) - Nearly full spectrum!
         sig = RLPF.ar(
             sig, 
-            filterCutoff.linexp(0.0, 1.0, 100, 12000),
+            filterCutoff.linexp(0.0, 1.0, 30, 18000),
             0.2
         );
         
@@ -79,4 +79,9 @@ s.waitForBoot({
     ~synth = Synth(\noiseTest);
     "✓ Noise Engine ready!".postln;
     "Move sliders in Python GUI to control sound.".postln;
+    "".postln;
+    "EXPANDED RANGES:".postln;
+    "  Gravity: 20Hz - 5000Hz".postln;
+    "  Density: 0.1Hz - 100Hz (super fast!)".postln;
+    "  Filter: 30Hz - 18000Hz".postln;
 });
