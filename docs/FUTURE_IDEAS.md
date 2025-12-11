@@ -14,8 +14,8 @@ Captured ideas for potential future development.
 
 ## Generator System
 
-- Adding customised control parameters to generators
-- MIDI pitch/gate to generators (not just clock-triggered)
+- ~~Adding customised control parameters to generators~~ ✓ Done (JSON custom_params)
+- ~~MIDI pitch/gate to generators (not just clock-triggered)~~ ✓ Started (pitch_target system)
 - MIDI channel assign per generator
 - Central MIDI config (JSON, not visible in UI)
 
@@ -23,11 +23,11 @@ Captured ideas for potential future development.
 
 ## New Generators
 
-- Granular sampler
-- FM noise
-- Physical modeling (resonant body)
+- ~~Granular sampler~~ ✓ Done (granular.scd)
+- ~~FM noise~~ ✓ Done (fm.scd)
+- ~~Physical modeling (resonant body)~~ ✓ Done (modal.scd)
 - Sample-based (load audio files)
-- Karplus-Strong variations
+- ~~Karplus-Strong variations~~ ✓ Done (karplus_strong.scd)
 - Tracking oscillator / sub osc (follows pitch, outputs square sub)
 
 ---

@@ -1,6 +1,6 @@
 # Noise Engine - Project Strategy
 
-**Last Updated:** December 10, 2024
+**Last Updated:** December 11, 2025
 
 ---
 
@@ -119,32 +119,52 @@ generators:
 
 ## Current Status
 
-### ✅ Working (Iteration 1-2 Complete)
+### ✅ Complete
 
+**Core Architecture:**
 - Python GUI with PyQt5
-- 4 vertical sliders (Gravity, Density, Filter Cutoff, Amplitude)
-- SuperCollider test synth (pulsing filtered noise)
-- OSC bridge (Python → SuperCollider)
-- Real-time parameter control
-- Expanded parameter ranges
-- Git repository established: https://github.com/thegdyne/noise-engine
+- SuperCollider audio engine with OSC bridge
+- Modular frame layout (left/center/right/bottom)
+- Git repository: https://github.com/thegdyne/noise-engine
 
-### 🔨 Next (Phase 1 - In Progress)
+**Generator System (20 generators):**
+- 8-slot generator grid with per-generator parameters
+- Standard params: FRQ, CUT, RES, ATK, DEC + filter type (LP/HP/BP)
+- Custom params: up to 5 per generator via JSON config
+- pitch_target system: per-generator MIDI note routing
+- Clock sync with 8 rate divisions
+- Auto-loading SynthDefs from generators/ directory
 
-**Build the Frame:**
-1. Create modular frame layout (left/center/right/bottom/top)
-2. Build mixer panel component (right frame)
-3. Place current test generator into first slot
-4. Verify frame + mixer + generator integration
+**Generator Types:**
+- Synthesis: Subtractive, Additive, Granular, FM, Wavetable, Karplus-Strong, Modal
+- Relaxation: VCO Relax, CapSense, UJT Relax, Neon
+- Sirens: 4060 Siren, FBI Siren
+- Ring Mods: Diode Ring, 4-Quad Ring, VCA Ring
+- Other: PT2399 Grainy, Geiger, Giant B0N0, Test Synth
+
+**Effects:**
+- Master bus architecture (generators → bus → effects → output)
+- Effects chain with 4 slots
+- Fidelity effect (bit crush, sample rate, bandwidth)
+
+**Mixer:**
+- Per-generator volume faders
+- Mute/solo buttons
+- Master fader
+
+### 🔨 In Progress
+
+- Testing and refining generator SynthDefs
+- MIDI input preparation (pitch_target routing ready)
 
 ### ⏳ Future Phases
 
-**Phase 2:** Expand modulation panel, add more parameters
-**Phase 3:** Add more generator types (PT2399, Sampler, Clicks, etc.)
-**Phase 4:** Build sequencer functionality
-**Phase 5:** Add MIDI input (Akai MIDIMix)
-**Phase 6:** Add MIDI output (CV.OCD → Eurorack)
-**Phase 7:** Visual layer (particles, physics-based graphics)
+**Phase 3:** MIDI input (Akai MIDIMix CC mapping)
+**Phase 4:** MIDI note → generator pitch routing
+**Phase 5:** MIDI output (CV.OCD → Eurorack)
+**Phase 6:** More effects (reverb, delay, etc.)
+**Phase 7:** Sequencer
+**Phase 8:** Visual layer (particles, physics-based graphics)
 
 ---
 
@@ -477,7 +497,6 @@ self.setAttribute(Qt.WA_AcceptTouchEvents, False)
 - Fidelity effect working (bit crushing, sample rate reduction, bandwidth limiting)
 - Always-on passthrough system (audio flows even without effects)
 - Effect amount controls work in real-time
-- Sequencer moved to future phase (effects more immediately useful)
 
 **Architecture Decision:**
 ```
@@ -488,11 +507,13 @@ Generators → Master Bus (internal) → [Effects Chain] → Output (speakers)
 - Always-on passthrough at 100% = transparent (no degradation)
 - Effect slots modulate the passthrough parameters
 
-### Next Steps:
-- Add more effect types (reverb, delay, etc.)
-- Expand modulation parameters (currently 4, target 8-12)
-- Build more generator types
-- Implement mixer volume control (currently visual only)
+### Phase 2.5: Generator System - COMPLETE ✓ (2025-12-11)
+- 20 generators with JSON configs and SynthDefs
+- Per-generator custom parameters (up to 5 per generator)
+- pitch_target system for MIDI note routing
+- LP/HP/BP filter support via shared ~multiFilter helper
+- Auto-loader for SynthDefs from generators/ directory
+- MIT License added, source attributions documented
 
 ---
 

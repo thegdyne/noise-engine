@@ -581,3 +581,63 @@ supercollider/generators/
 - `supercollider/core/helpers.scd` (pass custom buses to Synth)
 - `supercollider/generators/*.scd` (accept custom buses)
 - `supercollider/generators/*.json` (new files)
+
+---
+
+### [2025-12-11] pitch_target System
+**Decision:** Per-generator JSON config can specify which parameter receives MIDI note pitch
+**Rationale:** Different generators have different "pitch" concepts (VCO frequency vs delay time vs sample rate)
+**Implementation:**
+- `pitch_target: null` or missing → FRQ is pitch param (default)
+- `pitch_target: 0-4` → custom param at that index is pitch param
+- GUI: FRQ greyed out when overridden, target param shows ♪ indicator
+**DO NOT:**
+- Hardcode pitch routing in Python
+- Assume FRQ always means pitch
+**Files affected:**
+- `supercollider/generators/*.json` (pitch_target field)
+- `src/config/__init__.py` (get_generator_pitch_target function)
+- `src/gui/generator_slot.py` (grey out FRQ, show ♪ indicator)
+
+---
+
+### [2025-12-11] Shared Filter Helper
+**Decision:** All generators use `~multiFilter` helper for LP/HP/BP filtering
+**Rationale:** DRY - filter logic defined once, consistent behavior across generators
+**Implementation:**
+```supercollider
+sig = ~multiFilter.(sig, filterType, cutoff, res);
+// filterType: 0=LP, 1=HP, 2=BP
+```
+**DO NOT:**
+- Duplicate filter logic in each SynthDef
+- Forget the 4th argument (filterType)
+**Files affected:**
+- `supercollider/core/helpers.scd` (~multiFilter definition)
+- `supercollider/generators/*.scd` (all use ~multiFilter)
+
+---
+
+### [2025-12-11] Generator SynthDef Auto-Loading
+**Decision:** init.scd automatically loads all .scd files from generators/ directory
+**Rationale:** Adding new generator = drop in files, no manual init.scd editing
+**Implementation:**
+```supercollider
+~generatorFiles = PathName(~generatorPath).files.select({ |f| f.extension == "scd" });
+~generatorFiles.do({ |file| file.fullPath.load; });
+```
+**DO NOT:**
+- Manually list generators in init.scd
+- Put non-generator .scd files in generators/ directory
+**Files affected:**
+- `supercollider/init.scd`
+
+---
+
+### [2025-12-11] MIT License
+**Decision:** Project uses MIT License (same as Mutable Instruments)
+**Rationale:** Permissive, compatible with hardware/synth community norms
+**Files affected:**
+- `LICENSE`
+- `README.md` (license section)
+- `docs/index.html` (footer attribution)
