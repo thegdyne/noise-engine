@@ -448,3 +448,62 @@ FONT_SIZES = {
 **Rationale:** Performance instrument needs value feedback without cluttering static UI
 **DO NOT:** Show popup when not actively dragging
 **Files affected:** `src/gui/widgets.py` (ValuePopup class, DragSlider integration)
+
+---
+
+### [2025-12-11] Full Theme Centralization (Fonts, Colors, Sizes)
+**Decision:** All visual styling flows from `src/gui/theme.py`
+
+**FONT_SIZES dict:**
+```python
+'display': 32,     # Large displays (BPM)
+'title': 16,       # Main titles
+'section': 12,     # Section headers
+'slot_title': 11,  # Generator/effect slot titles
+'label': 10,       # Labels
+'small': 9,        # Smaller labels
+'tiny': 8,         # Button text, values
+'micro': 7,        # Smallest (mute/solo buttons)
+```
+
+**COLORS dict additions:**
+- `background_dark` - deepest background (#0a0a0a)
+- `active_bg` - active slot background (#1a2a1a)
+- `text_label` - label text (#666)
+- `bpm_text` - LED display color (#ff3333)
+- `*_hover` variants for button states
+
+**Rationale:**
+- Changing a color/font = one place in theme.py
+- Enables future skin system
+- Consistent visual language across components
+
+**DO NOT:**
+- Use hex color literals outside theme.py
+- Use numeric font sizes in QFont() calls
+- Create inline QSlider stylesheets (use `slider_style()`)
+
+**Files affected:** All `src/gui/*.py` components now import from theme
+
+---
+
+### [2025-12-11] SSOT Validation Tool
+**Decision:** `tools/check_ssot.sh` validates single-source-of-truth compliance
+
+**Checks (critical - ❌):**
+- Hardcoded fonts in QFont() calls
+- Hardcoded hex colors outside theme.py
+- Hardcoded font sizes
+- Inline slider stylesheets
+
+**Checks (warnings - ⚠️):**
+- Hardcoded effect type strings
+- Hardcoded widget sizes
+
+**Usage:** Run before commits to catch violations early
+```bash
+~/repos/noise-engine/tools/check_ssot.sh
+```
+
+**Rationale:** Automated enforcement prevents drift back to scattered definitions
+**Files affected:** `tools/check_ssot.sh`
