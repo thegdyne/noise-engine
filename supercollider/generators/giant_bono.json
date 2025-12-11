@@ -5,7 +5,7 @@
         {
             "key": "courics",
             "label": "CRC",
-            "tooltip": "Courics (PLL frequency, 1V/Couric)",
+            "tooltip": "Courics - PLL frequency (0.02x-50x base freq)",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -15,8 +15,8 @@
         {
             "key": "pll_to_delay",
             "label": "P>D",
-            "tooltip": "PLL to Delay (chaos interaction)",
-            "default": 0.5,
+            "tooltip": "PLL↔Delay chaos interaction (0=stable, 1=chaos)",
+            "default": 0.3,
             "min": 0.0,
             "max": 1.0,
             "curve": "lin",
@@ -25,17 +25,17 @@
         {
             "key": "delay_feedback",
             "label": "DFB",
-            "tooltip": "Delay Feedback (overdriven PT2399)",
-            "default": 0.6,
+            "tooltip": "Delay Feedback (high=runaway oscillation)",
+            "default": 0.4,
             "min": 0.0,
             "max": 1.0,
-            "curve": "lin",
+            "curve": "exp",
             "unit": ""
         },
         {
             "key": "delay_time",
             "label": "DLY",
-            "tooltip": "Delay Time",
+            "tooltip": "Delay Time (1ms-500ms)",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -45,7 +45,7 @@
         {
             "key": "character",
             "label": "CHR",
-            "tooltip": "Character (nutty chunks <-> liquid green)",
+            "tooltip": "Character (nutty chunks ↔ liquid green)",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -58,6 +58,6 @@
         "source": "Nonlinear Circuits (NLC)",
         "module": "Giant B0N0",
         "url": "https://www.nonlinearcircuits.com",
-        "notes": "Chaotic PLL (CD4046) with overdriven PT2399 delay in feedback path. Inspired by research on chaos in PLL circuits."
+        "notes": "Chaotic PLL (CD4046) with overdriven PT2399 delay in feedback. VCO+DoubleSaw+PC1 outputs. '1V per Couric' tuning. Inspired by research on chaos in PLL circuits."
     }
 }
