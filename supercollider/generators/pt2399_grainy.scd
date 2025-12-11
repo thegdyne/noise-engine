@@ -114,7 +114,7 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     
     // === ENVELOPE AS FINAL VCA ===
     // Clock trigger
-    allTrigs = In.ar(clockTrigBus, 8);
+    allTrigs = In.ar(clockTrigBus, 12);
     clockTrig = Select.ar(clockRate, allTrigs);
     
     // ENV OFF = pass through (drone), ENV ON = envelope gates output

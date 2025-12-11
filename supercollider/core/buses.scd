@@ -22,7 +22,7 @@ Default values are real values (not normalized):
     
     // Master clock
     ~clockBus = Bus.control(s, 1).set(120);
-    ~clockTrigBus = Bus.audio(s, 8);  // 8 channels for 8 rates
+    ~clockTrigBus = Bus.audio(s, 12);  // 12 channels for 12 rates
     
     // Per-generator parameters (8 slots)
     // Default values are real values matching Python config
@@ -37,7 +37,7 @@ Default values are real values (not normalized):
         ~genParams[slot][\decay] = Bus.control(s, 1).set(0.04);            // s (~40ms)
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
         ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);
-        ~genParams[slot][\clockRate] = Bus.control(s, 1).set(3);  // 3 = CLK (quarter notes)
+        ~genParams[slot][\clockRate] = Bus.control(s, 1).set(6);  // 6 = CLK (quarter notes)
         
         // Custom params (5 per slot) - defaults based on generator JSON
         ~genParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });

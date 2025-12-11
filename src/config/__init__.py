@@ -115,19 +115,23 @@ def format_value(value, param):
 
 
 # === CLOCK ===
-CLOCK_RATES = ["x8", "x4", "x2", "CLK", "/2", "/4", "/8", "/16"]
-CLOCK_DEFAULT_INDEX = 3  # CLK
+CLOCK_RATES = ["/32", "/16", "/12", "/8", "/4", "/2", "CLK", "x2", "x4", "x12", "x16", "x32"]
+CLOCK_DEFAULT_INDEX = 6  # CLK
 
-# Rate name -> SuperCollider index
+# Rate name -> SuperCollider index (matches list order)
 CLOCK_RATE_INDEX = {
-    "x8": 0,   # 32nd notes
-    "x4": 1,   # 16th notes
-    "x2": 2,   # 8th notes
-    "CLK": 3,  # Quarter notes
-    "/2": 4,   # Half notes
-    "/4": 5,   # Whole notes
-    "/8": 6,   # 2 bars
-    "/16": 7   # 4 bars
+    "/32": 0,   # 8 bars
+    "/16": 1,   # 4 bars
+    "/12": 2,   # 3 bars
+    "/8": 3,    # 2 bars
+    "/4": 4,    # Whole notes
+    "/2": 5,    # Half notes
+    "CLK": 6,   # Quarter notes
+    "x2": 7,    # 8th notes
+    "x4": 8,    # 16th notes
+    "x12": 9,   # Triplet 16ths
+    "x16": 10,  # 64th notes
+    "x32": 11   # 128th notes
 }
 
 # === FILTER ===
