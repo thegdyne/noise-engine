@@ -1,0 +1,63 @@
+{
+    "name": "Giant B0N0",
+    "synthdef": "giantBono",
+    "custom_params": [
+        {
+            "key": "courics",
+            "label": "CRC",
+            "tooltip": "Courics (PLL frequency, 1V/Couric)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "exp",
+            "unit": ""
+        },
+        {
+            "key": "pll_to_delay",
+            "label": "P>D",
+            "tooltip": "PLL to Delay (chaos interaction)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "delay_feedback",
+            "label": "DFB",
+            "tooltip": "Delay Feedback (overdriven PT2399)",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "delay_time",
+            "label": "DLY",
+            "tooltip": "Delay Time",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "exp",
+            "unit": ""
+        },
+        {
+            "key": "character",
+            "label": "CHR",
+            "tooltip": "Character (nutty chunks <-> liquid green)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "reference": {
+        "designer": "Andrew F",
+        "source": "Nonlinear Circuits (NLC)",
+        "module": "Giant B0N0",
+        "url": "https://www.nonlinearcircuits.com",
+        "notes": "Chaotic PLL (CD4046) with overdriven PT2399 delay in feedback path. Inspired by research on chaos in PLL circuits."
+    }
+}
