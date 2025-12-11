@@ -47,7 +47,7 @@ class GeneratorSlot(QWidget):
         self.gate_timer.timeout.connect(self._gate_off)
         self.gate_timer.setSingleShot(True)
         
-        self.setMinimumSize(200, 200)
+        self.setMinimumSize(200, 220)
         self.setup_ui()
         self.update_style()
         
@@ -221,13 +221,14 @@ class GeneratorSlot(QWidget):
         self.midi_btn.setToolTip("MIDI Input Channel (OFF or 1-16)")
         buttons_layout.addWidget(self.midi_btn)
         
-        # Mute/Gate row
+        # Mute/Gate row - small buttons side by side
         mute_gate_row = QHBoxLayout()
-        mute_gate_row.setSpacing(3)
+        mute_gate_row.setSpacing(2)
+        mute_gate_row.setContentsMargins(0, 0, 0, 0)
         
         # Mute button
         self.mute_btn = QPushButton("M")
-        self.mute_btn.setFixedSize(20, 20)
+        self.mute_btn.setFixedSize(18, 18)
         self.mute_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro'], QFont.Bold))
         self.mute_btn.setStyleSheet(mute_button_style(False))
         self.mute_btn.clicked.connect(self.toggle_mute)
@@ -236,7 +237,7 @@ class GeneratorSlot(QWidget):
         
         # Gate indicator LED
         self.gate_led = QLabel()
-        self.gate_led.setFixedSize(20, 20)
+        self.gate_led.setFixedSize(18, 18)
         self.gate_led.setStyleSheet(gate_indicator_style(False))
         self.gate_led.setToolTip("Gate Activity")
         mute_gate_row.addWidget(self.gate_led)

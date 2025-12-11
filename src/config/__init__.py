@@ -306,5 +306,5 @@ SIZES = {
     # Containers
     'effect_slot_width': 70,
     'lfo_widget_width': 60,
-    'buttons_column_width': 38,
+    'buttons_column_width': 44,
 }
