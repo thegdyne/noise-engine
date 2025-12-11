@@ -61,7 +61,7 @@ GENERATOR_PARAMS = [
         'tooltip': 'VCA Decay',
         'default': 0.26,  # ~40ms
         'min': 0.0001,    # 0.1ms - super snappy
-        'max': 2.0,
+        'max': 30.0,      # 30 seconds - Maths-style range
         'curve': 'exp',
         'unit': 's',
         'invert': False,
