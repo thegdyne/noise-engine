@@ -146,19 +146,17 @@ OSC messages to Python:
         ("  -> Creating MIDI trigger for slot " ++ slot).postln;
         Synth(\midiTrigger, [
             \trigBus, ~clockTrigBus.index,
-            \numChannels, ~clockRates.size,
             \amp, velocity
         ], ~clockGroup, \addToTail);  // Add to tail so it runs after clock synth
     });
 };
 
 // One-shot trigger synth for MIDI notes
-// Writes a trigger pulse to ALL clock trigger bus channels
+// Writes a trigger pulse to ALL clock trigger bus channels (13 = ~clockRates.size)
 // This way the generator will receive it regardless of which clock rate it's using
-SynthDef(\midiTrigger, { |trigBus=0, numChannels=13, amp=1|
+SynthDef(\midiTrigger, { |trigBus=0, amp=1|
     var trig = Trig1.ar(DC.ar(1), 0.001);  // 1ms trigger pulse
-    var sig = (trig * amp) ! numChannels;  // Same trigger on all channels
-    // Add to existing clock signal (ReplaceOut would overwrite)
+    var sig = (trig * amp) ! 13;  // Same trigger on all 13 channels
     Out.ar(trigBus, sig);
     FreeSelf.kr(TDelay.kr(Impulse.kr(0), 0.01));
 }).add;
