@@ -257,7 +257,7 @@ This is a personal project, but ideas and feedback are welcome:
 
 ## License
 
-[To be determined]
+MIT License - see [LICENSE](LICENSE) for details.
 
 ## Credits
 
@@ -269,7 +269,13 @@ This is a personal project, but ideas and feedback are welcome:
 - PyQt5 by Riverbank Computing
 - python-osc by attwad
 
+**Generator concepts derived from:**
+- Elektor Magazine articles (relaxation oscillators, sirens, ring modulators)
+- Nonlinear Circuits by Andrew F (Giant B0N0)
+- See [docs/REFERENCES.md](docs/REFERENCES.md) for full source documentation
+
 **Inspired by:**
 - Modular synthesis philosophy
+- Mutable Instruments (open source precedent)
 - Physics-based interaction design
 - Hybrid computer/modular workflows
