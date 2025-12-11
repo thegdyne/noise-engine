@@ -1,33 +1,126 @@
-// Modal - Resonant body simulation
-SynthDef(\modal, {
-    |out=0, amp=0.5, gate=1,
-    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.001, dec=0.3,
-    material=0.5, brightness=0.5, decay_time=0.5, mode_density=0.5, inharmonicity=0.2|
+/*
+Modal Generator
+Resonant body physical model (bells, plates, strings, tubes)
+
+Signal flow: P1-P5 → Exciter → Modal Resonators → Filter → ENVELOPE → Output
+
+Standard params:
+  - frequency: fundamental pitch (20-8000 Hz)
+  - cutoff: 1-16000 Hz
+  - resonance: 0.001-1.0
+  - attack/decay: final VCA envelope
+
+Custom params:
+  - custom[0] material: 0-4 discrete (bell/plate/string/tube/custom)
+  - custom[1] brightness: 0-1 (high mode amplitudes)
+  - custom[2] decay_shape: 0-1 (mode decay ratios)
+  - custom[3] density: 2-16 discrete (number of modes)
+  - custom[4] inharmonicity: 0-1 (mode ratio stretch)
+
+ENV OFF = continuous modal resonance (retriggered internally)
+ENV ON = clock-synced envelope gates final output
+*/
+
+SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                    filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                    customBus0, customBus1, customBus2, customBus3, customBus4|
+    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
+    var envEnabled, clockRate, allTrigs, clockTrig;
+    var material, brightness, decayShape, density, inharm;
+    var exciter, modes, modeRatios, internalTrig;
     
-    var sig, exc, env, modes;
+    // Read standard params
+    freq = In.kr(freqBus);
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envEnabled = In.kr(envEnabledBus);
+    clockRate = In.kr(clockRateBus);
+    amp = In.kr(~params[\amplitude]);
     
-    // Exciter (impulse with variable material hardness)
-    exc = Impulse.ar(0) * EnvGen.ar(Env.perc(0.0001, material.linexp(0, 1, 0.001, 0.05)));
-    exc = exc + (WhiteNoise.ar * EnvGen.ar(Env.perc(0.0001, 0.002)) * (1 - material));
+    // Read custom params
+    material = In.kr(customBus0);     // 0-4 discrete
+    brightness = In.kr(customBus1);   // 0-1
+    decayShape = In.kr(customBus2);   // 0-1
+    density = In.kr(customBus3);      // 2-16
+    inharm = In.kr(customBus4);       // 0-1
     
-    // Modal resonances (bank of bandpass filters)
-    modes = Mix.fill(8, { |i|
+    // === SOUND SOURCE (runs continuously) ===
+    
+    // Internal trigger for continuous excitation
+    internalTrig = Impulse.ar(0.5);  // Re-excite every 2 seconds
+    
+    // Exciter (noise burst)
+    exciter = WhiteNoise.ar * EnvGen.ar(Env.perc(0.0001, 0.01), internalTrig);
+    
+    // === MODAL RESONATORS ===
+    // Generate up to 16 resonant modes
+    modes = Mix.fill(16, { |i|
         var modeNum = i + 1;
-        // Inharmonic mode frequencies (like bells/bars)
-        var modeFreq = freq * (modeNum ** (1 + (inharmonicity * 0.5)));
-        var modeDecay = decay_time.linexp(0, 1, 0.1, 4) / modeNum;
-        var modeAmp = 1 / (modeNum ** (1 - brightness));
+        var modeFreq, modeAmp, modeDecay, modeQ;
+        var baseRatio;
         
-        Ringz.ar(exc, modeFreq.min(18000), modeDecay) * modeAmp
-    }) * 0.1;
+        // Material-dependent mode ratios
+        // 0=bell (inharmonic), 1=plate, 2=string, 3=tube, 4=custom
+        baseRatio = Select.kr(material.round, [
+            // Bell: 1, 2.0, 2.8, 3.9, 5.2, 6.7... (approximate)
+            [1, 2.0, 2.83, 3.9, 5.2, 6.7, 8.3, 10.1, 12.0, 14.1, 16.3, 18.6, 21.0, 23.5, 26.1, 28.8].at(i),
+            // Plate: 1, 1.6, 2.1, 2.5, 2.9, 3.2...
+            [1, 1.59, 2.14, 2.65, 3.16, 3.65, 4.15, 4.64, 5.14, 5.63, 6.13, 6.62, 7.12, 7.61, 8.11, 8.6].at(i),
+            // String: harmonic 1, 2, 3, 4...
+            (modeNum),
+            // Tube: odd harmonics 1, 3, 5, 7...
+            (modeNum * 2 - 1),
+            // Custom: slightly stretched
+            (modeNum ** 1.02)
+        ]);
+        
+        // Apply inharmonicity stretch
+        modeFreq = freq * baseRatio * (1 + (inharm * 0.1 * (modeNum - 1)));
+        modeFreq = modeFreq.clip(20, 18000);
+        
+        // Mode amplitude (higher modes quieter, brightness boosts them)
+        modeAmp = (1 / (modeNum ** (1.5 - brightness))) * brightness.linlin(0, 1, 0.5, 1.2);
+        
+        // Mode decay (higher modes decay faster, decayShape controls ratio)
+        modeDecay = 0.5 / (modeNum ** decayShape.linlin(0, 1, 0.3, 1.5));
+        modeDecay = modeDecay.clip(0.01, 2);
+        
+        // Mode Q (resonance sharpness)
+        modeQ = 100 + (brightness * 400);
+        
+        // Resonant bandpass for each mode
+        Ringz.ar(
+            exciter,
+            modeFreq,
+            modeDecay,
+            modeAmp
+        ) * (modeNum <= density) * 0.1
+    });
     
     sig = modes;
     
-    // Output filter
-    sig = ~multiFilter.(sig, filterType, cutoff, res);
+    // Slight saturation for body warmth
+    sig = (sig * 1.5).tanh;
     
-    // Envelope
-    env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
+    // Stereo spread
+    sig = Pan2.ar(sig, LFNoise1.kr(0.2).range(-0.4, 0.4));
     
-    Out.ar(out, (sig * amp * env) ! 2);
+    // === FILTER ===
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    
+    // === ENVELOPE AS FINAL VCA ===
+    allTrigs = In.ar(clockTrigBus, 12);
+    clockTrig = Select.ar(clockRate, allTrigs);
+    
+    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
+    sig = Select.ar(envEnabled, [sig, sig * env]);
+    
+    sig = sig * amp;
+    
+    Out.ar(out, sig);
 }).add;
+
+"  ✓ modal loaded".postln;

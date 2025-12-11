@@ -1,34 +1,115 @@
-// CapSense - Charge-time capacitive sense relaxation oscillator
-SynthDef(\capsense, {
-    |out=0, amp=0.5, gate=1,
-    freq=220, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
-    capacitance=0.5, dac_level=0.5, threshold=0.5, charge_cycles=0.5, filtering=0.5|
+/*
+CapSense Generator
+Charge-time capacitive sensor relaxation oscillator
+Based on Elektor Magazine July/August 2011 article
+
+Signal flow: P1-P5 → Capacitive Oscillator → Filter → ENVELOPE → Output
+
+Models the behavior of charge-time measurement where:
+- iDAC charges a sensor capacitor through known current
+- Comparator fires when voltage crosses threshold
+- Discharge resets the cycle
+- Larger capacitance = slower charge = lower frequency
+
+Standard params:
+  - frequency: base oscillator rate (20-8000 Hz)
+  - cutoff: 1-16000 Hz
+  - resonance: 0.001-1.0
+  - attack/decay: final VCA envelope
+
+Custom params:
+  - custom[0] sensor_cap: 0-1 (simulated sensor capacitance, affects ramp time)
+  - custom[1] idac_current: 0-1 (charge current slope)
+  - custom[2] threshold: 0.1-0.95 (comparator trigger point)
+  - custom[3] measure_cycles: 1-16 discrete (resolution/averaging)
+  - custom[4] noise_filter: 0-1 (environmental noise/filtering)
+
+ENV OFF = continuous capacitive oscillation
+ENV ON = clock-synced envelope gates final output
+*/
+
+SynthDef(\capsense, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                       filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                       customBus0, customBus1, customBus2, customBus3, customBus4|
+    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
+    var envEnabled, clockRate, allTrigs, clockTrig;
+    var sensorCap, idacCurrent, threshold, cycles, noiseFilter;
+    var rampFreq, ramp, comparator, pulseOut, averaged;
+    var envNoise, capNoise;
     
-    var sig, env, chargeFreq, discharge;
+    // Read standard params
+    freq = In.kr(freqBus);
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envEnabled = In.kr(envEnabledBus);
+    clockRate = In.kr(clockRateBus);
+    amp = In.kr(~params[\amplitude]);
     
-    // Charge frequency based on capacitance (smaller cap = higher freq)
-    chargeFreq = freq * capacitance.linexp(0, 1, 4, 0.25) * dac_level.linexp(0, 1, 0.5, 2);
+    // Read custom params
+    sensorCap = In.kr(customBus0);      // 0-1 (higher = slower)
+    idacCurrent = In.kr(customBus1);    // 0-1 (higher = faster charge)
+    threshold = In.kr(customBus2);      // 0.1-0.95
+    cycles = In.kr(customBus3);         // 1-16 discrete
+    noiseFilter = In.kr(customBus4);    // 0-1
     
-    // Simulate charge/discharge cycle
-    sig = LFSaw.ar(chargeFreq, 0, 0.5, 0.5); // Sawtooth = charging capacitor
+    // === SOUND SOURCE (runs continuously) ===
     
-    // Threshold comparator creates pulse
-    discharge = (sig > threshold).lag(0.001);
+    // Effective frequency based on cap and current
+    // f = I / (C * V_threshold) - simplified model
+    // Higher cap = lower freq, higher current = higher freq
+    rampFreq = freq * idacCurrent.linexp(0, 1, 0.25, 4) / sensorCap.linexp(0, 1, 1, 4);
+    rampFreq = rampFreq.clip(1, 20000);
     
-    // Mix of charge ramp and discharge clicks
-    sig = (sig * (1 - discharge)) + (discharge * Impulse.ar(chargeFreq) * 2);
+    // Capacitor voltage ramp (sawtooth represents charging)
+    ramp = LFSaw.ar(rampFreq, 0, 0.5, 0.5);  // 0 to 1 ramp
     
-    // Cycle-based texture
-    sig = sig + (LFPulse.ar(chargeFreq / charge_cycles.linlin(0, 1, 2, 16)) * 0.1);
+    // Environmental noise on the "sensor" (touch noise, EMI, etc.)
+    envNoise = LFNoise1.ar(100) * noiseFilter * 0.1;
+    capNoise = LFNoise0.ar(rampFreq * 0.1) * noiseFilter * 0.05;
+    ramp = ramp + envNoise + capNoise;
     
-    // Internal filtering
-    sig = LPF.ar(sig, filtering.linexp(0, 1, 500, 10000));
+    // Comparator: fires when ramp crosses threshold
+    comparator = (ramp > threshold);
     
-    // Output filter
-    sig = ~multiFilter.(sig, filterType, cutoff, res);
+    // Pulse output (the discharge transient)
+    pulseOut = Trig.ar(comparator, 0.001) * 2 - 1;
     
-    // Envelope
-    env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
+    // Multiple measurement cycles (averaging for resolution)
+    // Simulated by mixing slightly phase-shifted versions
+    averaged = Mix.fill(cycles.round.asInteger.max(1).min(16), { |i|
+        var phaseShift = i / cycles.max(1) * 0.1;
+        var shiftedRamp = LFSaw.ar(rampFreq * (1 + (phaseShift * 0.01)), 0, 0.5, 0.5);
+        (shiftedRamp > threshold).lag(0.0001) * (i < cycles)
+    }) / cycles.max(1);
     
-    Out.ar(out, (sig * amp * env) ! 2);
+    // Mix pulse transients with filtered ramp character
+    sig = (pulseOut * 0.5) + (averaged * 0.5);
+    
+    // Add some of the raw ramp for texture (charge curve character)
+    sig = sig + (ramp * 0.2 * (1 - noiseFilter));
+    
+    // Noise filtering (smoothing like in real CapSense ICs)
+    sig = LPF.ar(sig, noiseFilter.linexp(0, 1, 16000, 2000));
+    
+    // Stereo spread
+    sig = Pan2.ar(sig, LFNoise1.kr(0.3).range(-0.3, 0.3));
+    
+    // === FILTER ===
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    
+    // === ENVELOPE AS FINAL VCA ===
+    allTrigs = In.ar(clockTrigBus, 12);
+    clockTrig = Select.ar(clockRate, allTrigs);
+    
+    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
+    sig = Select.ar(envEnabled, [sig, sig * env]);
+    
+    sig = sig * amp;
+    
+    Out.ar(out, sig);
 }).add;
+
+"  ✓ capsense loaded".postln;

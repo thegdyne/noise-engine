@@ -1,38 +1,100 @@
-// Subtractive - Classic oscillator + filter
-SynthDef(\subtractive, {
-    |out=0, amp=0.5, gate=1,
-    freq=220, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
-    waveform=0.5, sub_osc=0.3, osc_mix=0.5, noise_amt=0.1, drive=0.3|
+/*
+Subtractive Generator
+Classic oscillator + filter synthesis
+
+Signal flow: P1-P5 → Oscillators → Mix → Filter → ENVELOPE → Output
+
+Standard params:
+  - frequency: base oscillator pitch (20-8000 Hz)
+  - cutoff: 1-16000 Hz
+  - resonance: 0.001-1.0
+  - attack/decay: final VCA envelope
+
+Custom params:
+  - custom[0] osc_waveform: 0-3 (saw/square/tri/noise)
+  - custom[1] sub_osc_level: 0-1 (sub oscillator amount)
+  - custom[2] osc_mix: 0-1 (OSC1 <-> OSC2 crossfade)
+  - custom[3] noise_amount: 0-1 (noise layer)
+  - custom[4] filter_drive: 0-1 (pre-filter saturation)
+
+ENV OFF = drone (continuous output)
+ENV ON = clock-synced envelope gates final output
+*/
+
+SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                          filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                          customBus0, customBus1, customBus2, customBus3, customBus4|
+    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
+    var envEnabled, clockRate, allTrigs, clockTrig;
+    var waveform, subLevel, oscMix, noiseAmt, drive;
+    var osc1, osc2, sub, noise, saw, square, tri, noiseOsc;
     
-    var osc1, osc2, sub, noise, sig, env;
+    // Read standard params
+    freq = In.kr(freqBus);
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envEnabled = In.kr(envEnabledBus);
+    clockRate = In.kr(clockRateBus);
+    amp = In.kr(~params[\amplitude]);
     
-    // Main oscillators (saw <-> pulse)
-    osc1 = SelectX.ar(waveform, [
-        Saw.ar(freq),
-        Pulse.ar(freq, 0.5)
-    ]);
+    // Read custom params (values come pre-mapped from GUI)
+    waveform = In.kr(customBus0);    // 0-3 discrete
+    subLevel = In.kr(customBus1);    // 0-1
+    oscMix = In.kr(customBus2);      // 0-1
+    noiseAmt = In.kr(customBus3);    // 0-1
+    drive = In.kr(customBus4);       // 0-1
+    
+    // === SOUND SOURCE (runs continuously) ===
+    
+    // Core waveforms
+    saw = Saw.ar(freq);
+    square = Pulse.ar(freq, 0.5);
+    tri = LFTri.ar(freq);
+    noiseOsc = WhiteNoise.ar;
+    
+    // Waveform select (0=saw, 1=square, 2=tri, 3=noise)
+    osc1 = SelectX.ar(waveform, [saw, square, tri, noiseOsc]);
+    
+    // Second oscillator slightly detuned for thickness
     osc2 = SelectX.ar(waveform, [
         Saw.ar(freq * 1.005),
-        Pulse.ar(freq * 0.995, 0.4)
+        Pulse.ar(freq * 0.995, 0.45),
+        LFTri.ar(freq * 1.003),
+        PinkNoise.ar
     ]);
     
-    // Sub oscillator (one octave down)
-    sub = Pulse.ar(freq * 0.5, 0.5) * sub_osc;
+    // Sub oscillator (one octave down, square wave for punch)
+    sub = Pulse.ar(freq * 0.5, 0.5) * subLevel;
     
-    // Noise
-    noise = WhiteNoise.ar * noise_amt;
+    // Noise layer
+    noise = WhiteNoise.ar * noiseAmt * 0.5;
     
-    // Mix
-    sig = (osc1 * (1 - osc_mix)) + (osc2 * osc_mix) + sub + noise;
+    // Mix oscillators
+    sig = ((osc1 * (1 - oscMix)) + (osc2 * oscMix)) * 0.5;
+    sig = sig + sub + noise;
     
-    // Drive/saturation
+    // Pre-filter drive/saturation
     sig = (sig * (1 + (drive * 4))).tanh;
     
-    // Filter
-    sig = ~multiFilter.(sig, filterType, cutoff, res);
+    // Stereo spread from slight pitch wobble
+    sig = Pan2.ar(sig, LFNoise1.kr(0.3).range(-0.3, 0.3));
     
-    // Envelope
-    env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
+    // === FILTER ===
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
-    Out.ar(out, (sig * amp * env) ! 2);
+    // === ENVELOPE AS FINAL VCA ===
+    allTrigs = In.ar(clockTrigBus, 12);
+    clockTrig = Select.ar(clockRate, allTrigs);
+    
+    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
+    sig = Select.ar(envEnabled, [sig, sig * env]);
+    
+    sig = sig * amp;
+    
+    Out.ar(out, sig);
 }).add;
+
+"  ✓ subtractive loaded".postln;

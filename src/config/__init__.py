@@ -151,8 +151,36 @@ BPM_MAX = 300
 
 # === GENERATORS ===
 # Cycle order when clicking generator slot
-# Other generators have SynthDefs ready but need testing
-GENERATOR_CYCLE = ["Empty", "Test Synth", "PT2399", "Geiger", "VCO Relax", "Giant B0N0"]
+# All generators now have SynthDefs with standard signal flow
+GENERATOR_CYCLE = [
+    "Empty",
+    # Basic synthesis
+    "Test Synth",
+    "Subtractive",
+    "Additive",
+    "FM",
+    "Wavetable",
+    "Granular",
+    # Physical modeling
+    "Karplus",
+    "Modal",
+    # Relaxation oscillators (Elektor-inspired)
+    "VCO Relax",
+    "UJT Relax",
+    "Neon",
+    "CapSense",
+    # Siren circuits (Elektor-inspired)
+    "4060 Siren",
+    "FBI Siren",
+    # Ring modulators (Elektor Formant)
+    "Diode Ring",
+    "4-Quad Ring",
+    "VCA Ring",
+    # Noise/chaos
+    "PT2399",
+    "Geiger",
+    "Giant B0N0",
+]
 
 # Maximum custom params per generator
 MAX_CUSTOM_PARAMS = 5

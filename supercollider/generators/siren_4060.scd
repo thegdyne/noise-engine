@@ -1,37 +1,124 @@
-// 4060 Siren - Counter + mux wailing siren
-SynthDef(\siren4060, {
-    |out=0, amp=0.5, gate=1,
-    freq=440, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
-    osc_resistance=0.5, resistor_pattern=4, tone_cap=0.5, counter_bits=5, drive_level=0.7|
+/*
+4060 Siren Generator
+CD4060 counter/oscillator with analog mux siren
+Based on Elektor Magazine December 2006 i-TRIXX "When the siren sounds..."
+
+Signal flow: P1-P5 → Counter → Mux → Tone Oscillator → Filter → ENVELOPE → Output
+
+Models the CD4060 siren circuit:
+- Internal RC oscillator sets base rate
+- 14-stage binary counter divides clock
+- Counter outputs select resistors via analog mux
+- Selected resistance sets tone oscillator pitch
+- Result: stepped pitch patterns for siren effect
+
+Standard params:
+  - frequency: base tone pitch (20-8000 Hz)
+  - cutoff: 1-16000 Hz
+  - resonance: 0.001-1.0
+  - attack/decay: final VCA envelope
+
+Custom params:
+  - custom[0] osc_resistance: 0-1 (tone VCO base frequency)
+  - custom[1] resistor_pattern: 0-7 discrete (pitch step sequence)
+  - custom[2] tone_cap: 0-1 (sweep speed/rate)
+  - custom[3] counter_bits: 2-8 discrete (pattern complexity)
+  - custom[4] drive_level: 0-1 (output saturation)
+
+ENV OFF = continuous siren wail
+ENV ON = clock-synced envelope gates final output
+*/
+
+SynthDef(\siren4060, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                        filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                        customBus0, customBus1, customBus2, customBus3, customBus4|
+    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
+    var envEnabled, clockRate, allTrigs, clockTrig;
+    var oscRes, pattern, toneCap, counterBits, drive;
+    var counterRate, counter, muxOut, toneFreq;
+    var patternRatios, selectedRatio;
     
-    var sig, env, baseFreq, stepFreq, pattern, counter;
+    // Read standard params
+    freq = In.kr(freqBus);
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envEnabled = In.kr(envEnabledBus);
+    clockRate = In.kr(clockRateBus);
+    amp = In.kr(~params[\amplitude]);
     
-    // Base oscillator frequency
-    baseFreq = freq * osc_resistance.linexp(0, 1, 0.5, 2);
+    // Read custom params
+    oscRes = In.kr(customBus0);        // 0-1
+    pattern = In.kr(customBus1);       // 0-7 discrete
+    toneCap = In.kr(customBus2);       // 0-1
+    counterBits = In.kr(customBus3);   // 2-8
+    drive = In.kr(customBus4);         // 0-1
     
-    // Counter stepping through pattern (simulates 4060 + mux)
-    counter = LFSaw.kr(tone_cap.linexp(0, 1, 0.2, 5)).range(0, counter_bits.linlin(0, 1, 2, 8).round);
+    // === SOUND SOURCE (runs continuously) ===
     
-    // Stepped frequency pattern (resistor chain selection)
-    pattern = Select.kr(counter.floor % 8, [
-        1.0, 1.2, 0.9, 1.5, 0.8, 1.3, 1.1, 0.7
-    ] * (resistor_pattern.linlin(0, 7, 0.5, 2)));
+    // Counter clock rate (internal RC oscillator)
+    counterRate = toneCap.linexp(0, 1, 0.5, 20);  // Steps per second
     
-    // Siren tone with stepped pitch
-    stepFreq = baseFreq * pattern;
-    sig = Pulse.ar(stepFreq, 0.5);
+    // Counter (0 to 2^bits - 1, cycling)
+    counter = LFSaw.kr(counterRate / counterBits.max(2), 0, 0.5, 0.5);
+    counter = (counter * counterBits.pow(2)).floor;
     
-    // Add harmonics for that cheap speaker sound
-    sig = sig + (Pulse.ar(stepFreq * 2, 0.3) * 0.3);
+    // Pattern-dependent frequency ratios (resistor ladder values)
+    // Different patterns give different siren characters
+    patternRatios = Select.kr(pattern.round, [
+        // 0: Rising siren (police style)
+        counter.linlin(0, counterBits.pow(2), 0.5, 2),
+        // 1: Falling siren
+        counter.linlin(0, counterBits.pow(2), 2, 0.5),
+        // 2: Two-tone (European style)
+        ((counter % 2) * 0.5) + 0.75,
+        // 3: Wail (up-down-up-down)
+        (counter.fold(0, counterBits.pow(2) / 2) / (counterBits.pow(2) / 2) * 0.8) + 0.6,
+        // 4: Yelp (rapid alternating)
+        ((counter % 4) / 4 * 0.6) + 0.7,
+        // 5: Stepped scale
+        (counter / counterBits.pow(2)).pow(0.5) * 1.5 + 0.5,
+        // 6: Random-ish (counter bits as frequency selectors)
+        ((counter * 1.618).fold(0, 1) * 1.2) + 0.6,
+        // 7: Phaser (slow sweep with steps)
+        (counter.linlin(0, counterBits.pow(2), 0.8, 1.2) * SinOsc.kr(0.3).range(0.9, 1.1))
+    ]);
     
-    // Drive/saturation
-    sig = (sig * drive_level.linexp(0, 1, 1, 4)).tanh;
+    // Tone oscillator frequency
+    toneFreq = freq * oscRes.linexp(0, 1, 0.5, 2) * patternRatios;
+    toneFreq = toneFreq.clip(20, 20000);
     
-    // Filter
-    sig = ~multiFilter.(sig, filterType, cutoff, res);
+    // Square wave tone (like 555/4060 output)
+    sig = Pulse.ar(toneFreq, 0.5);
     
-    // Envelope
-    env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
+    // Add some harmonic richness
+    sig = sig + (Pulse.ar(toneFreq * 2.01, 0.5) * 0.3);
+    sig = sig + (Pulse.ar(toneFreq * 0.5, 0.5) * 0.2);
     
-    Out.ar(out, (sig * amp * env) ! 2);
+    // Drive/saturation (loudspeaker overdrive character)
+    sig = (sig * (1 + (drive * 4))).tanh;
+    
+    // Slight detuning wobble (component tolerances)
+    sig = sig * (1 + (LFNoise1.kr(5) * 0.01));
+    
+    // Stereo spread
+    sig = Pan2.ar(sig, SinOsc.kr(counterRate * 0.1).range(-0.4, 0.4));
+    
+    // === FILTER ===
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    
+    // === ENVELOPE AS FINAL VCA ===
+    allTrigs = In.ar(clockTrigBus, 12);
+    clockTrig = Select.ar(clockRate, allTrigs);
+    
+    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
+    sig = Select.ar(envEnabled, [sig, sig * env]);
+    
+    sig = sig * amp;
+    
+    Out.ar(out, sig);
 }).add;
+
+"  ✓ siren4060 loaded".postln;

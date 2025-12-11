@@ -1,45 +1,113 @@
-// Granular - Micro-sample clouds
-SynthDef(\granular, {
-    |out=0, amp=0.5, gate=1,
-    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
-    pitch_ratio=1.0, grain_size=0.5, density=0.5, jitter=0.3, spread=0.5|
+/*
+Granular Generator
+Micro-sample cloud synthesis using sine grains
+
+Signal flow: P1-P5 → Grain Triggers → Grain Synthesis → Filter → ENVELOPE → Output
+
+Standard params:
+  - frequency: grain center pitch (20-8000 Hz)
+  - cutoff: 1-16000 Hz
+  - resonance: 0.001-1.0
+  - attack/decay: final VCA envelope
+
+Custom params:
+  - custom[0] pitch_shift: -24 to +24 semitones
+  - custom[1] grain_size: 0.01-0.5s (grain duration)
+  - custom[2] grain_density: 1-100 grains/sec
+  - custom[3] position_jitter: 0-1 (pitch/time randomness)
+  - custom[4] stereo_spread: 0-1 (pan width)
+
+ENV OFF = continuous grain cloud
+ENV ON = clock-synced envelope gates final output
+*/
+
+SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                       filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                       customBus0, customBus1, customBus2, customBus3, customBus4|
+    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
+    var envEnabled, clockRate, allTrigs, clockTrig;
+    var pitchShift, grainSize, density, jitter, spread;
+    var trig, grainFreq, grainDur, pan;
     
-    var sig, env, trig, grainDur, pos;
+    // Read standard params
+    freq = In.kr(freqBus);
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envEnabled = In.kr(envEnabledBus);
+    clockRate = In.kr(clockRateBus);
+    amp = In.kr(~params[\amplitude]);
     
-    // Grain trigger with density control
-    trig = Impulse.kr(density.linexp(0, 1, 5, 100));
+    // Read custom params
+    pitchShift = In.kr(customBus0);   // -24 to +24 semitones
+    grainSize = In.kr(customBus1);    // 0.01-0.5s
+    density = In.kr(customBus2);      // 1-100 grains/sec
+    jitter = In.kr(customBus3);       // 0-1
+    spread = In.kr(customBus4);       // 0-1
     
-    // Grain duration
-    grainDur = grain_size.linexp(0, 1, 0.01, 0.2);
+    // === SOUND SOURCE (runs continuously) ===
     
-    // Position jitter
-    pos = LFNoise1.kr(10) * jitter;
+    // Grain trigger with variable density
+    trig = Impulse.ar(density);
     
-    // Granular synthesis using GrainSin (sine grains at harmonic frequencies)
+    // Grain frequency with pitch shift and jitter
+    grainFreq = freq * (2 ** (pitchShift / 12));
+    grainFreq = grainFreq * (1 + (TRand.ar(-1, 1, trig) * jitter * 0.2));
+    grainFreq = grainFreq.clip(20, 20000);
+    
+    // Grain duration with jitter
+    grainDur = grainSize * (1 + (TRand.ar(-0.5, 0.5, trig) * jitter));
+    grainDur = grainDur.clip(0.005, 0.5);
+    
+    // Stereo pan per grain
+    pan = TRand.ar(-1, 1, trig) * spread;
+    
+    // Main grain synthesis using GrainSin
     sig = GrainSin.ar(
         numChannels: 2,
         trigger: trig,
         dur: grainDur,
-        freq: freq * pitch_ratio * (1 + (LFNoise1.kr(20) * jitter * 0.1)),
-        pan: LFNoise1.kr(5) * spread
+        freq: grainFreq,
+        pan: pan,
+        mul: 0.3
     );
     
-    // Add some texture with noise grains
-    sig = sig + GrainBuf.ar(
+    // Add texture layer with noise grains at related frequency
+    sig = sig + GrainSin.ar(
         numChannels: 2,
-        trigger: trig,
+        trigger: Dust.ar(density * 0.3),
         dur: grainDur * 0.5,
-        sndbuf: LocalBuf(SampleRate.ir * 0.1).set(WhiteNoise.ar),
-        rate: pitch_ratio,
-        pos: pos.abs,
-        pan: LFNoise1.kr(3) * spread
-    ) * 0.1;
+        freq: grainFreq * TRand.ar(0.99, 1.01, trig),
+        pan: TRand.ar(-1, 1, Dust.ar(density * 0.3)) * spread,
+        mul: 0.1
+    );
     
-    // Filter
-    sig = ~multiFilter.(sig, filterType, cutoff, res);
+    // Add subtle noise grains for texture
+    sig = sig + (GrainBuf.ar(
+        numChannels: 2,
+        trigger: Dust.ar(density * 0.2),
+        dur: grainDur * 0.3,
+        sndbuf: LocalBuf(512).set(Array.fill(512, { |i| sin(i * 0.1) * (1 - (i/512)) })),
+        rate: grainFreq / 440,
+        pan: TRand.ar(-1, 1, Dust.ar(density * 0.2)) * spread,
+        mul: 0.05 * jitter
+    ));
     
-    // Envelope
-    env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
+    // === FILTER ===
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
-    Out.ar(out, sig * amp * env);
+    // === ENVELOPE AS FINAL VCA ===
+    allTrigs = In.ar(clockTrigBus, 12);
+    clockTrig = Select.ar(clockRate, allTrigs);
+    
+    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
+    sig = Select.ar(envEnabled, [sig, sig * env]);
+    
+    sig = sig * amp;
+    
+    Out.ar(out, sig);
 }).add;
+
+"  ✓ granular loaded".postln;

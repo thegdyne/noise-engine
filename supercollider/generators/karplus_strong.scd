@@ -1,39 +1,112 @@
-// Karplus-Strong - Plucked string physical model
-SynthDef(\karplusStrong, {
-    |out=0, amp=0.5, gate=1,
-    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.001, dec=0.3,
-    exciter=0.5, lpf_coef=0.5, feedback_amt=0.99, stretch=0.5, damping=0.5|
+/*
+Karplus-Strong Generator
+Plucked string physical model synthesis
+
+Signal flow: P1-P5 → Exciter → Delay Loop → Filter → ENVELOPE → Output
+
+Standard params:
+  - frequency: string pitch (20-8000 Hz)
+  - cutoff: 1-16000 Hz
+  - resonance: 0.001-1.0
+  - attack/decay: final VCA envelope
+
+Custom params:
+  - custom[0] excitation_color: 0-1 (dark noise <-> bright impulse)
+  - custom[1] lowpass_coeff: 0-1 (loop filter, controls brightness/decay)
+  - custom[2] feedback_gain: 0.9-0.999 (decay time)
+  - custom[3] stretch_factor: 0-1 (inharmonicity, string stiffness)
+  - custom[4] damping: 0-1 (additional high-freq damping)
+
+ENV OFF = continuous plucked string (retriggered by internal impulse)
+ENV ON = clock-synced envelope gates final output
+*/
+
+SynthDef(\karplusStrong, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                            filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                            customBus0, customBus1, customBus2, customBus3, customBus4|
+    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
+    var envEnabled, clockRate, allTrigs, clockTrig;
+    var excColor, lpfCoeff, fbGain, stretch, damping;
+    var exciter, delayTime, delayed, loopSig, loopFilter;
+    var internalTrig;
     
-    var sig, exc, env, delayTime;
+    // Read standard params
+    freq = In.kr(freqBus);
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envEnabled = In.kr(envEnabledBus);
+    clockRate = In.kr(clockRateBus);
+    amp = In.kr(~params[\amplitude]);
     
-    // Delay time for pitch
-    delayTime = 1 / freq;
+    // Read custom params
+    excColor = In.kr(customBus0);     // 0-1
+    lpfCoeff = In.kr(customBus1);     // 0-1
+    fbGain = In.kr(customBus2);       // 0.9-0.999
+    stretch = In.kr(customBus3);      // 0-1
+    damping = In.kr(customBus4);      // 0-1
     
-    // Exciter (noise burst with variable brightness)
-    exc = SelectX.ar(exciter, [
-        PinkNoise.ar,
-        WhiteNoise.ar,
-        Impulse.ar(0) + (WhiteNoise.ar * 0.5)
-    ]) * EnvGen.ar(Env.perc(0.001, 0.01));
+    // === SOUND SOURCE (runs continuously) ===
     
-    // Karplus-Strong delay line with feedback
-    sig = exc + LocalIn.ar(1);
-    sig = DelayC.ar(sig, 0.1, delayTime * stretch.linlin(0, 1, 0.99, 1.01));
+    // Internal trigger for continuous plucking (slow rate for drone mode)
+    internalTrig = Impulse.ar(0.5);  // Re-excite every 2 seconds
     
-    // Lowpass in feedback (string damping)
-    sig = LPF.ar(sig, lpf_coef.linexp(0, 1, 500, 10000));
-    sig = sig * feedback_amt.linlin(0, 1, 0.9, 0.999);
+    // Delay time for pitch (with stretch for inharmonicity)
+    delayTime = (1 / freq.clip(20, 8000)) * stretch.linlin(0, 1, 1, 1.02);
+    delayTime = delayTime.clip(0.00005, 0.05);  // Clamp for safety
     
-    // Additional damping
-    sig = sig * (1 - (damping * 0.01));
+    // === EXCITER ===
+    // Mix between filtered noise (dark) and impulse+noise (bright)
+    exciter = SelectX.ar(excColor, [
+        // Dark: Pink noise burst
+        PinkNoise.ar * EnvGen.ar(Env.perc(0.001, 0.02), internalTrig),
+        // Bright: Impulse + white noise
+        (Impulse.ar(0) + (WhiteNoise.ar * 0.7)) * EnvGen.ar(Env.perc(0.0001, 0.01), internalTrig)
+    ]);
     
-    LocalOut.ar(sig);
+    // === DELAY LOOP (Karplus-Strong) ===
+    loopSig = LocalIn.ar(1);
     
-    // Output filter
-    sig = ~multiFilter.(sig, filterType, cutoff, res);
+    // Delay line
+    delayed = DelayC.ar(
+        exciter + loopSig,
+        0.05,
+        delayTime
+    );
     
-    // Envelope
-    env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
+    // Loop filter (string damping) - lowpass in feedback
+    loopFilter = LPF.ar(delayed, lpfCoeff.linexp(0, 1, 500, 12000));
     
-    Out.ar(out, (sig * amp * env) ! 2);
+    // Additional damping (high-freq absorption)
+    loopFilter = LPF.ar(loopFilter, (1 - damping).linexp(0, 1, 1000, 16000));
+    
+    // Apply feedback gain (controls decay)
+    loopFilter = loopFilter * fbGain;
+    
+    // Feed back into loop
+    LocalOut.ar(loopFilter);
+    
+    // Use delayed signal as output
+    sig = delayed;
+    
+    // Slight stereo spread
+    sig = Pan2.ar(sig, LFNoise1.kr(0.3).range(-0.2, 0.2));
+    
+    // === FILTER ===
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    
+    // === ENVELOPE AS FINAL VCA ===
+    allTrigs = In.ar(clockTrigBus, 12);
+    clockTrig = Select.ar(clockRate, allTrigs);
+    
+    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
+    sig = Select.ar(envEnabled, [sig, sig * env]);
+    
+    sig = sig * amp * 2;  // Boost because KS can be quiet
+    
+    Out.ar(out, sig);
 }).add;
+
+"  ✓ karplusStrong loaded".postln;
