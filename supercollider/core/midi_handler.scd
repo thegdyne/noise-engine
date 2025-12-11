@@ -42,10 +42,17 @@ OSC messages to Python:
     // Python address for sending gate notifications
     ~pythonAddr = NetAddr("127.0.0.1", 57121);
     
-    // Initialize MIDI client (but don't connect yet)
-    MIDIClient.init;
+    // Defer MIDI client init to avoid blocking
+    {
+        try {
+            MIDIClient.init;
+            "  ✓ MIDI client initialized".postln;
+        } { |error|
+            "  ✗ MIDI client init failed (no MIDI devices?)".postln;
+        };
+    }.defer(0.5);
     
-    "  ✓ MIDI client initialized (not connected)".postln;
+    "  ✓ MIDI setup complete (client init deferred)".postln;
 };
 
 // Connect MIDI and set up handlers
