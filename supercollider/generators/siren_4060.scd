@@ -28,7 +28,7 @@ SynthDef(\siren4060, {
     sig = (sig * drive_level.linexp(0, 1, 1, 4)).tanh;
     
     // Filter
-    sig = ~multiFilter.(sig, cutoff, res);
+    sig = RLPF.ar(sig, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

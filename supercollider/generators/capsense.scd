@@ -25,7 +25,7 @@ SynthDef(\capsense, {
     sig = LPF.ar(sig, filtering.linexp(0, 1, 500, 10000));
     
     // Output filter
-    sig = ~multiFilter.(sig, cutoff, res);
+    sig = RLPF.ar(sig, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

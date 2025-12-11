@@ -33,7 +33,7 @@ SynthDef(\wavetable, {
     sig = LPF.ar(sig, interpolation.linexp(0, 1, 2000, 20000));
     
     // Filter
-    sig = ~multiFilter.(sig, cutoff, res);
+    sig = RLPF.ar(sig, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

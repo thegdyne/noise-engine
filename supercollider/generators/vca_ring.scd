@@ -28,7 +28,7 @@ SynthDef(\vcaRing, {
     sig = (sig * (1 + drive * 3)).tanh;
     
     // Filter
-    sig = ~multiFilter.(sig, cutoff, res);
+    sig = RLPF.ar(sig, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

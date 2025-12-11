@@ -23,7 +23,7 @@ SynthDef(\diodeRing, {
     sig = sig + (sig.squared * (1 - balance) * 0.1);
     
     // Filter
-    sig = ~multiFilter.(sig, cutoff, res);
+    sig = RLPF.ar(sig, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

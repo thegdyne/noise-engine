@@ -25,7 +25,7 @@ SynthDef(\neonRelax, {
     sig = (charge * 0.3) + (glow * 0.5) + (sig * 2);
     
     // Filter
-    sig = ~multiFilter.(sig, cutoff, res);
+    sig = RLPF.ar(sig, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
