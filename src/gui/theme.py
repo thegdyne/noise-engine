@@ -80,6 +80,18 @@ COLORS = {
     'midi_off': '#555',
     'clock_pulse': '#44ff44',
     
+    # Generator controls (skinnable)
+    'mute_on': '#ff4444',
+    'mute_on_text': '#ffffff',
+    'mute_off': '#442222',
+    'mute_off_text': '#884444',
+    'gate_on': '#44ff44',
+    'gate_off': '#223322',
+    'midi_ch_bg': '#222244',
+    'midi_ch_text': '#8888ff',
+    'midi_ch_off_bg': '#222',
+    'midi_ch_off_text': '#555',
+    
     # Sliders/controls
     'slider_groove': '#333',
     'slider_handle': '#888',
@@ -176,3 +188,74 @@ def slider_style():
             background: {COLORS['slider_handle_hover']};
         }}
     """
+
+
+# === SKINNABLE GENERATOR CONTROL STYLES ===
+# These are separated for future skin system
+
+def mute_button_style(muted=False):
+    """Mute button style - bright red when muted."""
+    if muted:
+        return f"""
+            QPushButton {{
+                background-color: {COLORS['mute_on']};
+                color: {COLORS['mute_on_text']};
+                border-radius: 3px;
+                font-weight: bold;
+            }}
+        """
+    else:
+        return f"""
+            QPushButton {{
+                background-color: {COLORS['mute_off']};
+                color: {COLORS['mute_off_text']};
+                border-radius: 3px;
+            }}
+            QPushButton:hover {{
+                background-color: #553333;
+            }}
+        """
+
+
+def gate_indicator_style(active=False):
+    """Gate LED indicator - flashes green on triggers."""
+    if active:
+        return f"""
+            QLabel {{
+                background-color: {COLORS['gate_on']};
+                border-radius: 4px;
+                border: 1px solid #66ff66;
+            }}
+        """
+    else:
+        return f"""
+            QLabel {{
+                background-color: {COLORS['gate_off']};
+                border-radius: 4px;
+                border: 1px solid #334433;
+            }}
+        """
+
+
+def midi_channel_style(active=True):
+    """MIDI channel button style."""
+    if active:
+        return f"""
+            QPushButton {{
+                background-color: {COLORS['midi_ch_bg']};
+                color: {COLORS['midi_ch_text']};
+                border-radius: 3px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #333366;
+            }}
+        """
+    else:
+        return f"""
+            QPushButton {{
+                background-color: {COLORS['midi_ch_off_bg']};
+                color: {COLORS['midi_ch_off_text']};
+                border-radius: 3px;
+            }}
+        """

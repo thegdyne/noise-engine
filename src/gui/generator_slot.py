@@ -4,16 +4,20 @@ Individual generator with base parameters
 """
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
+from .theme import (COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES,
+                    mute_button_style, gate_indicator_style, midi_channel_style)
 from .widgets import MiniSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
     GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE, map_value, 
     get_generator_custom_params, get_generator_pitch_target
 )
+
+# MIDI channels - OFF plus 1-16
+MIDI_CHANNELS = ["OFF"] + [str(i) for i in range(1, 17)]
 
 
 class GeneratorSlot(QWidget):
@@ -26,6 +30,8 @@ class GeneratorSlot(QWidget):
     filter_type_changed = pyqtSignal(int, str)
     clock_enabled_changed = pyqtSignal(int, bool)
     clock_rate_changed = pyqtSignal(int, str)
+    mute_changed = pyqtSignal(int, bool)  # slot_id, muted
+    midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel (0=OFF, 1-16)
     
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
@@ -33,6 +39,13 @@ class GeneratorSlot(QWidget):
         self.generator_type = generator_type
         self.active = False
         self.clock_enabled = False
+        self.muted = False
+        self.midi_channel = 0  # 0 = OFF, 1-16 = channels
+        
+        # Gate indicator flash timer
+        self.gate_timer = QTimer()
+        self.gate_timer.timeout.connect(self._gate_off)
+        self.gate_timer.setSingleShot(True)
         
         self.setMinimumSize(200, 200)
         self.setup_ui()
@@ -194,6 +207,41 @@ class GeneratorSlot(QWidget):
         self.rate_btn.setEnabled(False)
         self.rate_btn.setToolTip("Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16")
         buttons_layout.addWidget(self.rate_btn)
+        
+        # Separator/spacer
+        buttons_layout.addSpacing(6)
+        
+        # MIDI channel selector
+        self.midi_btn = CycleButton(MIDI_CHANNELS, initial_index=0)
+        self.midi_btn.setFixedSize(*SIZES['button_medium'])
+        self.midi_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
+        self.midi_btn.setStyleSheet(midi_channel_style(False))
+        self.midi_btn.wrap = True
+        self.midi_btn.value_changed.connect(self.on_midi_channel_changed)
+        self.midi_btn.setToolTip("MIDI Input Channel (OFF or 1-16)")
+        buttons_layout.addWidget(self.midi_btn)
+        
+        # Mute/Gate row
+        mute_gate_row = QHBoxLayout()
+        mute_gate_row.setSpacing(3)
+        
+        # Mute button
+        self.mute_btn = QPushButton("M")
+        self.mute_btn.setFixedSize(20, 20)
+        self.mute_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro'], QFont.Bold))
+        self.mute_btn.setStyleSheet(mute_button_style(False))
+        self.mute_btn.clicked.connect(self.toggle_mute)
+        self.mute_btn.setToolTip("Mute Generator")
+        mute_gate_row.addWidget(self.mute_btn)
+        
+        # Gate indicator LED
+        self.gate_led = QLabel()
+        self.gate_led.setFixedSize(20, 20)
+        self.gate_led.setStyleSheet(gate_indicator_style(False))
+        self.gate_led.setToolTip("Gate Activity")
+        mute_gate_row.addWidget(self.gate_led)
+        
+        buttons_layout.addLayout(mute_gate_row)
         
         buttons_layout.addStretch()
         params_layout.addWidget(buttons_widget)
@@ -397,3 +445,28 @@ class GeneratorSlot(QWidget):
             param_config = custom_params[param_index]
             real_value = map_value(normalized, param_config)
             self.custom_parameter_changed.emit(self.slot_id, param_index, real_value)
+    
+    def toggle_mute(self):
+        """Toggle mute state."""
+        self.muted = not self.muted
+        self.mute_btn.setStyleSheet(mute_button_style(self.muted))
+        self.mute_changed.emit(self.slot_id, self.muted)
+    
+    def on_midi_channel_changed(self, channel_str):
+        """Handle MIDI channel change."""
+        if channel_str == "OFF":
+            self.midi_channel = 0
+            self.midi_btn.setStyleSheet(midi_channel_style(False))
+        else:
+            self.midi_channel = int(channel_str)
+            self.midi_btn.setStyleSheet(midi_channel_style(True))
+        self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
+    
+    def flash_gate(self):
+        """Flash the gate LED (call when gate trigger received)."""
+        self.gate_led.setStyleSheet(gate_indicator_style(True))
+        self.gate_timer.start(80)  # LED on for 80ms
+    
+    def _gate_off(self):
+        """Turn off gate LED after flash."""
+        self.gate_led.setStyleSheet(gate_indicator_style(False))

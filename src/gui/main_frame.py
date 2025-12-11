@@ -77,6 +77,8 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_filter_changed.connect(self.on_generator_filter_changed)
         self.generator_grid.generator_clock_enabled_changed.connect(self.on_generator_clock_enabled)
         self.generator_grid.generator_clock_rate_changed.connect(self.on_generator_clock_rate)
+        self.generator_grid.generator_mute_changed.connect(self.on_generator_mute)
+        self.generator_grid.generator_midi_channel_changed.connect(self.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
         # Right - MIXER
@@ -235,6 +237,18 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
         print(f"Gen {slot_id} rate: {rate} (index {rate_index})")
+    
+    def on_generator_mute(self, slot_id, muted):
+        """Handle generator mute from slot button."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1 if muted else 0])
+        print(f"Gen {slot_id} mute: {muted}")
+    
+    def on_generator_midi_channel(self, slot_id, channel):
+        """Handle generator MIDI channel change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_midi_channel'], [slot_id, channel])
+        print(f"Gen {slot_id} MIDI channel: {channel}")
         
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection (legacy click handler)."""

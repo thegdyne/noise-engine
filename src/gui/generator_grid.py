@@ -21,6 +21,8 @@ class GeneratorGrid(QWidget):
     generator_filter_changed = pyqtSignal(int, str)
     generator_clock_enabled_changed = pyqtSignal(int, bool)
     generator_clock_rate_changed = pyqtSignal(int, str)
+    generator_mute_changed = pyqtSignal(int, bool)  # slot_id, muted
+    generator_midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel
     
     def __init__(self, rows=2, cols=4, parent=None):
         super().__init__(parent)
@@ -56,6 +58,8 @@ class GeneratorGrid(QWidget):
                 slot.filter_type_changed.connect(self.on_filter_changed)
                 slot.clock_enabled_changed.connect(self.on_clock_enabled_changed)
                 slot.clock_rate_changed.connect(self.on_clock_rate_changed)
+                slot.mute_changed.connect(self.on_mute_changed)
+                slot.midi_channel_changed.connect(self.on_midi_channel_changed)
                 grid.addWidget(slot, row, col)
                 self.slots[slot_id] = slot
                 slot_id += 1
@@ -89,6 +93,14 @@ class GeneratorGrid(QWidget):
     def on_clock_rate_changed(self, slot_id, rate):
         """Handle clock rate change."""
         self.generator_clock_rate_changed.emit(slot_id, rate)
+    
+    def on_mute_changed(self, slot_id, muted):
+        """Handle mute toggle."""
+        self.generator_mute_changed.emit(slot_id, muted)
+    
+    def on_midi_channel_changed(self, slot_id, channel):
+        """Handle MIDI channel change."""
+        self.generator_midi_channel_changed.emit(slot_id, channel)
         
     def get_slot(self, slot_id):
         """Get a specific slot."""

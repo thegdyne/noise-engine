@@ -280,6 +280,8 @@ OSC_PATHS = {
     'gen_filter_type': '/noise/gen/filterType',
     'gen_env_enabled': '/noise/gen/envEnabled',
     'gen_clock_rate': '/noise/gen/clockRate',
+    'gen_mute': '/noise/gen/mute',
+    'gen_midi_channel': '/noise/gen/midiChannel',
     'gen_custom': '/noise/gen/custom',  # /noise/gen/custom/{slot}/{param_index}
     'start_generator': '/noise/start_generator',
     'stop_generator': '/noise/stop_generator',
