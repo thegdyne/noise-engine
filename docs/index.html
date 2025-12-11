@@ -170,6 +170,59 @@
         .arch-box.widgets { border-left: 3px solid var(--accent-orange); }
         .arch-box.components { border-left: 3px solid var(--accent-green); }
         
+        .generators { padding: 60px 0; border-top: 1px solid var(--border); }
+        .gen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        
+        .gen-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 18px;
+            opacity: 0.5;
+        }
+        
+        .gen-card.active {
+            opacity: 1;
+            border-color: var(--accent-green);
+            box-shadow: 0 0 15px rgba(68, 255, 136, 0.1);
+        }
+        
+        .gen-card h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--text-bright);
+            margin-bottom: 5px;
+        }
+        
+        .gen-card.active h3 { color: var(--accent-green); }
+        
+        .gen-card .gen-desc {
+            font-size: 12px;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+        
+        .gen-params {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .gen-params .param {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 3px 8px;
+            border-radius: 3px;
+            color: var(--accent-cyan);
+        }
+        
+        .gen-params .param.unused {
+            color: var(--text);
+            opacity: 0.5;
+        }
+        
         .future { padding: 60px 0; border-top: 1px solid var(--border); }
         .roadmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
         
@@ -258,15 +311,16 @@
                 <span class="badge supercollider">SuperCollider</span>
                 <span class="badge pyqt">PyQt5</span>
                 <span class="badge ssot">SSOT <span class="pct">95%</span></span>
+                <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">9 Generators</span>
             </div>
         </header>
         
         <section class="hero">
             <div class="hero-text">
                 <h2>8-slot noise generator with modular architecture</h2>
-                <p>Run different noise synths simultaneously. Each generator has multimode filter (LP/BP/HP), clock-synced envelope, and independent parameters.</p>
+                <p>Run different noise synths simultaneously. Each generator has 5 standard params plus up to 5 custom params, multimode filter (LP/BP/HP), and clock-synced envelope.</p>
                 <p>3 LFOs with sync-to-clock. 4-slot FX chain. Central BPM control.</p>
-                <p>Python frontend talks to SuperCollider backend via OSC. Adding a new generator = one .scd file + one line of config.</p>
+                <p>Python frontend talks to SuperCollider backend via OSC. Adding a new generator = one .scd file + one .json config.</p>
             </div>
             <div class="hero-visual">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -292,8 +346,8 @@
                     <h3><span class="feature-icon">◈</span> Generators</h3>
                     <ul>
                         <li>8 independent slots</li>
-                        <li>Test Synth, PT2399-based</li>
                         <li>Per-gen: FRQ, CUT, RES, ATK, DEC</li>
+                        <li>5 custom params per type (P1-P5)</li>
                         <li>Multimode filter (LP/BP/HP)</li>
                         <li>Clock-synced envelope</li>
                         <li>8 clock rates (x8 to /16)</li>
@@ -328,6 +382,109 @@
             </div>
         </section>
         
+        <section class="generators">
+            <h2 class="section-title">Generator Types</h2>
+            <p style="margin-bottom: 25px; font-size: 14px;">
+                Each generator has 5 standard params (FRQ, CUT, RES, ATK, DEC) plus up to 5 custom params defined in JSON configs.
+                Custom params appear in the top row - greyed out when unused.
+            </p>
+            <div class="gen-grid">
+                <div class="gen-card active">
+                    <h3>PT2399</h3>
+                    <p class="gen-desc">Grainy bursts with analog delay</p>
+                    <div class="gen-params">
+                        <span class="param">DLY</span>
+                        <span class="param">FBK</span>
+                        <span class="param">MIX</span>
+                    </div>
+                </div>
+                <div class="gen-card active">
+                    <h3>Test Synth</h3>
+                    <p class="gen-desc">Basic noise burst generator</p>
+                    <div class="gen-params">
+                        <span class="param unused">—</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>Subtractive</h3>
+                    <p class="gen-desc">Classic oscillator + filter</p>
+                    <div class="gen-params">
+                        <span class="param">WAV</span>
+                        <span class="param">SUB</span>
+                        <span class="param">MIX</span>
+                        <span class="param">NOI</span>
+                        <span class="param">DRV</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>Additive</h3>
+                    <p class="gen-desc">Harmonic partial synthesis</p>
+                    <div class="gen-params">
+                        <span class="param">RAT</span>
+                        <span class="param">CRV</span>
+                        <span class="param">NUM</span>
+                        <span class="param">ENV</span>
+                        <span class="param">TLT</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>Granular</h3>
+                    <p class="gen-desc">Micro-sample clouds</p>
+                    <div class="gen-params">
+                        <span class="param">PIT</span>
+                        <span class="param">SIZ</span>
+                        <span class="param">DEN</span>
+                        <span class="param">JIT</span>
+                        <span class="param">SPR</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>FM</h3>
+                    <p class="gen-desc">Frequency modulation synthesis</p>
+                    <div class="gen-params">
+                        <span class="param">RAT</span>
+                        <span class="param">IDX</span>
+                        <span class="param">IEN</span>
+                        <span class="param">ALG</span>
+                        <span class="param">FBK</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>Wavetable</h3>
+                    <p class="gen-desc">Morphing waveform scanning</p>
+                    <div class="gen-params">
+                        <span class="param">TBL</span>
+                        <span class="param">SCN</span>
+                        <span class="param">DTN</span>
+                        <span class="param">UNI</span>
+                        <span class="param">INT</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>Karplus</h3>
+                    <p class="gen-desc">Plucked string physical model</p>
+                    <div class="gen-params">
+                        <span class="param">EXC</span>
+                        <span class="param">LPF</span>
+                        <span class="param">FBK</span>
+                        <span class="param">STR</span>
+                        <span class="param">DMP</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>Modal</h3>
+                    <p class="gen-desc">Resonant body simulation</p>
+                    <div class="gen-params">
+                        <span class="param">MAT</span>
+                        <span class="param">BRT</span>
+                        <span class="param">DCS</span>
+                        <span class="param">DNS</span>
+                        <span class="param">INH</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
         <section class="architecture">
             <h2 class="section-title">Architecture</h2>
             <div class="arch-diagram">
@@ -339,6 +496,15 @@
                         <span class="arch-box config">sizes</span>
                         <span class="arch-box config">OSC paths</span>
                         <span class="arch-box config">GENERATOR_PARAMS</span>
+                    </div>
+                </div>
+                <div class="arch-layer">
+                    <span class="arch-label">Generator JSON</span>
+                    <div class="arch-boxes">
+                        <span class="arch-box config">name</span>
+                        <span class="arch-box config">synthdef</span>
+                        <span class="arch-box config">custom_params[]</span>
+                        <span class="arch-box config">steps (discrete)</span>
                     </div>
                 </div>
                 <div class="arch-layer">
@@ -380,7 +546,8 @@
                 </p>
                 <ul style="font-size: 13px; list-style: none; color: var(--text);">
                     <li style="padding: 3px 0;">✓ Colors, fonts, sizes → <code style="color: var(--accent-cyan);">theme.py</code></li>
-                    <li style="padding: 3px 0;">✓ Generator params → <code style="color: var(--accent-cyan);">config/GENERATOR_PARAMS</code></li>
+                    <li style="padding: 3px 0;">✓ Standard params → <code style="color: var(--accent-cyan);">config/GENERATOR_PARAMS</code></li>
+                    <li style="padding: 3px 0;">✓ Custom params → <code style="color: var(--accent-cyan);">generators/*.json</code></li>
                     <li style="padding: 3px 0;">✓ OSC paths, rates → <code style="color: var(--accent-cyan);">config/__init__.py</code></li>
                     <li style="padding: 3px 0;">✓ Validated by <code style="color: var(--accent-cyan);">tools/check_ssot.sh</code></li>
                 </ul>
@@ -391,13 +558,15 @@
             <h2 class="section-title">Future Plans</h2>
             <div class="roadmap">
                 <div class="roadmap-section">
-                    <h3>New Generators</h3>
+                    <h3>Generator SynthDefs</h3>
                     <ul>
-                        <li>Granular sampler</li>
-                        <li>FM noise</li>
-                        <li>Physical modeling</li>
-                        <li>Karplus-Strong</li>
-                        <li>Tracking sub oscillator</li>
+                        <li>Subtractive (config ready)</li>
+                        <li>Additive (config ready)</li>
+                        <li>Granular (config ready)</li>
+                        <li>FM (config ready)</li>
+                        <li>Wavetable (config ready)</li>
+                        <li>Karplus-Strong (config ready)</li>
+                        <li>Modal (config ready)</li>
                     </ul>
                 </div>
                 <div class="roadmap-section">
@@ -449,6 +618,9 @@
         <section class="milestones">
             <h2 class="section-title">Milestones</h2>
             <ul class="milestones-list">
+                <li><span class="milestone-date">2025-12-11</span> 9 generator types with JSON configs</li>
+                <li><span class="milestone-date">2025-12-11</span> Per-generator custom parameters (P1-P5)</li>
+                <li><span class="milestone-date">2025-12-11</span> Shared ~multiFilter helper (LP/BP/HP)</li>
                 <li><span class="milestone-date">2025-12-11</span> SSOT validation tool + 95% compliance</li>
                 <li><span class="milestone-date">2025-12-11</span> Added milestone update tool</li>
                 <li><span class="milestone-date">2025-12-11</span> GitHub Pages landing page</li>
