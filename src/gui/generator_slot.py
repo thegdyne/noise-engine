@@ -242,7 +242,12 @@ class GeneratorSlot(QWidget):
         enabled = gen_type != "Empty"
         pitch_target = get_generator_pitch_target(gen_type)
         
+        # Reset standard sliders to defaults
         for key, slider in self.sliders.items():
+            param = next((p for p in GENERATOR_PARAMS if p['key'] == key), None)
+            if param:
+                slider.setValue(int(param['default'] * 1000))
+            
             if key == 'frequency' and pitch_target is not None:
                 # FRQ disabled when pitch_target points to custom param
                 slider.setEnabled(False)
@@ -261,7 +266,7 @@ class GeneratorSlot(QWidget):
         self.update_clock_style()
         self.update_style()
         
-        # Update custom params for this generator
+        # Update custom params for this generator (also resets to defaults)
         self.update_custom_params(gen_type)
     
     def update_custom_params(self, gen_type):
@@ -290,6 +295,7 @@ class GeneratorSlot(QWidget):
                 self.custom_labels[i].setText(f"P{i+1}")
                 self.custom_labels[i].setStyleSheet(f"color: {COLORS['text_dim']};")
                 self.custom_sliders[i].set_param_config(None)
+                self.custom_sliders[i].setValue(500)  # Reset to midpoint
                 self.custom_sliders[i].setToolTip("")
                 self.custom_sliders[i].setEnabled(False)
         
