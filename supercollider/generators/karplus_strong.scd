@@ -15,7 +15,7 @@ Custom params:
   - custom[1] lowpass_coeff: 0-1 (loop filter, controls brightness/decay)
   - custom[2] feedback_gain: 0.9-0.999 (decay time)
   - custom[3] stretch_factor: 0-1 (inharmonicity, string stiffness)
-  - custom[4] damping: 0-1 (additional high-freq damping)
+  - custom[4] retrig_rate: 0.1-50 Hz (excitation rate)
 
 ENV OFF = continuous plucked string (retriggered by internal impulse)
 ENV ON = clock-synced envelope gates final output
@@ -26,7 +26,7 @@ SynthDef(\karplusStrong, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus
                             customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
     var envEnabled, clockRate, allTrigs, clockTrig;
-    var excColor, lpfCoeff, fbGain, stretch, damping;
+    var excColor, lpfCoeff, fbGain, stretch, retrigRate;
     var exciter, delayTime, delayed, loopSig, loopFilter;
     var internalTrig;
     
@@ -46,12 +46,12 @@ SynthDef(\karplusStrong, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus
     lpfCoeff = In.kr(customBus1);     // 0-1
     fbGain = In.kr(customBus2);       // 0.9-0.999
     stretch = In.kr(customBus3);      // 0-1
-    damping = In.kr(customBus4);      // 0-1
+    retrigRate = In.kr(customBus4);   // 0.1-50 Hz
     
     // === SOUND SOURCE (runs continuously) ===
     
-    // Internal trigger for continuous plucking (slow rate for drone mode)
-    internalTrig = Impulse.ar(0.5);  // Re-excite every 2 seconds
+    // Internal trigger for continuous plucking
+    internalTrig = Impulse.ar(retrigRate);
     
     // Delay time for pitch (with stretch for inharmonicity)
     delayTime = (1 / freq.clip(20, 8000)) * stretch.linlin(0, 1, 1, 1.02);
@@ -78,9 +78,6 @@ SynthDef(\karplusStrong, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus
     
     // Loop filter (string damping) - lowpass in feedback
     loopFilter = LPF.ar(delayed, lpfCoeff.linexp(0, 1, 500, 12000));
-    
-    // Additional damping (high-freq absorption)
-    loopFilter = LPF.ar(loopFilter, (1 - damping).linexp(0, 1, 1000, 16000));
     
     // Apply feedback gain (controls decay)
     loopFilter = loopFilter * fbGain;

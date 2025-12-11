@@ -15,7 +15,7 @@ Custom params:
   - custom[1] brightness: 0-1 (high mode amplitudes)
   - custom[2] decay_shape: 0-1 (mode decay ratios)
   - custom[3] density: 2-16 discrete (number of modes)
-  - custom[4] inharmonicity: 0-1 (mode ratio stretch)
+  - custom[4] retrig_rate: 0.1-50 Hz (excitation rate)
 
 ENV OFF = continuous modal resonance (retriggered internally)
 ENV ON = clock-synced envelope gates final output
@@ -26,7 +26,7 @@ SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                     customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
     var envEnabled, clockRate, allTrigs, clockTrig;
-    var material, brightness, decayShape, density, inharm;
+    var material, brightness, decayShape, density, retrigRate;
     var exciter, modes, modeRatios, internalTrig;
     
     // Read standard params
@@ -45,12 +45,12 @@ SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     brightness = In.kr(customBus1);   // 0-1
     decayShape = In.kr(customBus2);   // 0-1
     density = In.kr(customBus3);      // 2-16
-    inharm = In.kr(customBus4);       // 0-1
+    retrigRate = In.kr(customBus4);   // 0.1-50 Hz
     
     // === SOUND SOURCE (runs continuously) ===
     
     // Internal trigger for continuous excitation
-    internalTrig = Impulse.ar(0.5);  // Re-excite every 2 seconds
+    internalTrig = Impulse.ar(retrigRate);
     
     // Exciter (noise burst)
     exciter = WhiteNoise.ar * EnvGen.ar(Env.perc(0.0001, 0.01), internalTrig);
@@ -78,8 +78,8 @@ SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
             (modeNum ** 1.02)
         ]);
         
-        // Apply inharmonicity stretch
-        modeFreq = freq * baseRatio * (1 + (inharm * 0.1 * (modeNum - 1)));
+        // Mode frequency
+        modeFreq = freq * baseRatio;
         modeFreq = modeFreq.clip(20, 18000);
         
         // Mode amplitude (higher modes quieter, brightness boosts them)

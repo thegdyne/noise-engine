@@ -14,13 +14,21 @@ fi
 
 echo "📦 Extracting to temp directory..."
 rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR"
 unzip -q "$DOWNLOAD" -d "$TEMP_DIR"
+
+# Detect if zip has a subfolder or extracts to root
+if [ -d "$TEMP_DIR/noise-engine-main" ]; then
+    EXTRACT_DIR="$TEMP_DIR/noise-engine-main"
+else
+    EXTRACT_DIR="$TEMP_DIR"
+fi
 
 echo ""
 echo "📋 Changes from Claude:"
 echo "========================"
-CHANGES=$(diff -rq "$REPO_DIR" "$TEMP_DIR/noise-engine-main" 2>/dev/null | grep -v ".git" | grep -v "venv" | grep -v "__pycache__" | grep -v "presets" | grep "^Files")
-NEW_FILES=$(diff -rq "$REPO_DIR" "$TEMP_DIR/noise-engine-main" 2>/dev/null | grep "Only in $TEMP_DIR")
+CHANGES=$(diff -rq "$REPO_DIR" "$EXTRACT_DIR" 2>/dev/null | grep -v ".git" | grep -v "venv" | grep -v "__pycache__" | grep -v "presets" | grep "^Files")
+NEW_FILES=$(diff -rq "$REPO_DIR" "$EXTRACT_DIR" 2>/dev/null | grep "Only in $EXTRACT_DIR")
 
 if [ -z "$CHANGES" ] && [ -z "$NEW_FILES" ]; then
     echo "No changes to apply."
@@ -38,7 +46,7 @@ read -p "Apply these changes? (y/n) " -n 1 -r
 echo ""
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    cp -r "$TEMP_DIR/noise-engine-main/"* "$REPO_DIR/"
+    cp -r "$EXTRACT_DIR/"* "$REPO_DIR/"
     echo "✅ Files updated"
     
     rm -rf "$TEMP_DIR"
