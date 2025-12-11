@@ -95,16 +95,19 @@ SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     allMidiTrigs = In.ar(midiTrigBus, 8);
     midiTrig = Select.ar(slotIndex, allMidiTrigs);
     
-    // Select trigger source: 0=OFF (drone), 1=CLK, 2=MIDI
-    trig = Select.ar(envSource, [DC.ar(0), clockTrig, midiTrig]);
-    
-    // Envelope - only applies when envSource > 0
-    env = Select.ar(envSource > 0, [
-        DC.ar(1.0),  // envSource=0: drone (no envelope)
-        EnvGen.ar(Env.perc(attack, decay), trig)  // envSource>0: triggered envelope
+    // Select trigger based on envSource: 0=none, 1=clock, 2=midi
+    // Using K2A to ensure proper trigger detection
+    trig = Select.ar(envSource, [
+        DC.ar(0),      // 0: OFF - no triggers
+        clockTrig,     // 1: CLK - clock triggers only  
+        midiTrig       // 2: MIDI - midi triggers only
     ]);
     
-    sig = sig * env * amp;
+    // Envelope
+    env = EnvGen.ar(Env.perc(attack, decay), trig);
+    
+    // Apply envelope only when envSource > 0, otherwise drone
+    sig = sig * Select.kr(envSource > 0, [1.0, env]) * amp;
     
     Out.ar(out, sig);
 }).add;
