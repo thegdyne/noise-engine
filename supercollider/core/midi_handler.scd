@@ -142,23 +142,23 @@ OSC messages to Python:
 
 // Trigger MIDI gate for a generator
 ~triggerMidiGate = { |slot, velocity=1.0|
-    if(~clockGroup.notNil && ~midiTrigBus.notNil, {
+    if(~clockGroup.notNil && ~clockTrigBus.notNil, {
         ("  -> Creating MIDI trigger for slot " ++ slot).postln;
         Synth(\midiTrigger, [
-            \trigBus, ~midiTrigBus.index,
-            \slot, slot - 1,  // 0-indexed for bus channel
+            \trigBus, ~clockTrigBus.index,
+            \numChannels, ~clockRates.size,
             \amp, velocity
-        ], ~clockGroup, \addToHead);
+        ], ~clockGroup, \addToTail);  // Add to tail so it runs after clock synth
     });
 };
 
 // One-shot trigger synth for MIDI notes
-// Writes a trigger pulse to the MIDI trigger bus for a specific slot
-SynthDef(\midiTrigger, { |trigBus=0, slot=0, amp=1|
+// Writes a trigger pulse to ALL clock trigger bus channels
+// This way the generator will receive it regardless of which clock rate it's using
+SynthDef(\midiTrigger, { |trigBus=0, numChannels=13, amp=1|
     var trig = Trig1.ar(DC.ar(1), 0.001);  // 1ms trigger pulse
-    var sig = Array.fill(8, { |i| 
-        if(i == slot, { trig * amp }, { DC.ar(0) })
-    });
+    var sig = (trig * amp) ! numChannels;  // Same trigger on all channels
+    // Add to existing clock signal (ReplaceOut would overwrite)
     Out.ar(trigBus, sig);
     FreeSelf.kr(TDelay.kr(Impulse.kr(0), 0.01));
 }).add;

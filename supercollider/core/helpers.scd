@@ -38,8 +38,6 @@ Reusable functions for generator management
                 \envEnabledBus, params[\envEnabled].index,
                 \clockRateBus, params[\clockRate].index,
                 \clockTrigBus, ~clockTrigBus.index,
-                \midiTrigBus, ~midiTrigBus.index,
-                \slotIndex, slotID - 1,  // 0-indexed for bus channel
                 // Custom params (5 per generator)
                 \customBus0, customBuses[0].index,
                 \customBus1, customBuses[1].index,

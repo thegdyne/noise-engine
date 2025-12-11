@@ -29,9 +29,6 @@ Default values are real values (not normalized):
     ~clockBus = Bus.control(s, 1).set(120);
     ~clockTrigBus = Bus.audio(s, ~clockRates.size);
     
-    // MIDI trigger bus - 8 channels, one per generator slot
-    ~midiTrigBus = Bus.audio(s, 8);
-    
     // Per-generator parameters (8 slots)
     // Default values are real values matching Python config
     ~genParams = Dictionary.new;

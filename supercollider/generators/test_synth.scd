@@ -22,10 +22,9 @@ Selects trigger from master clock's 8 rate channels:
 
 SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus, 
                        filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
                        customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var env, envEnabled, clockRate, allTrigs, trig, midiTrig, combinedTrig;
+    var env, envEnabled, clockRate, allTrigs, trig;
     
     // Read params - now receiving real values directly
     freq = In.kr(freqBus);           // Already in Hz (0.5-80)
@@ -44,16 +43,10 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Select the trigger for our rate
     trig = Select.ar(clockRate, allTrigs);
     
-    // MIDI trigger for this slot
-    midiTrig = In.ar(midiTrigBus, 8)[slotIndex];
-    
-    // Combine clock and MIDI triggers
-    combinedTrig = trig + midiTrig;
-    
     // Envelope
     env = Select.ar(envEnabled, [
         DC.ar(1.0),  // ENV OFF: drone
-        EnvGen.ar(Env.perc(attack, decay), combinedTrig)  // ENV ON: triggered
+        EnvGen.ar(Env.perc(attack, decay), trig)  // ENV ON: triggered
     ]);
     
     // Sound source
