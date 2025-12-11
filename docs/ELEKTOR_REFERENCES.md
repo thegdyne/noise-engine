@@ -28,6 +28,12 @@ Circuit concepts and parameters for Noise Engine generators are derived from art
 | Formant ring modulator (mk II) | April 2008 | Retronics: "Formant music synthesiser" | `diode_ring`, `fourquad_ring`, `vca_ring` | Revisiting 1977–78 Formant; ring mod as add-on module |
 | Original Formant ring mod | May 1977 – April 1978 (multi-part) | "Formant" synthesiser series – C. Chapman | `diode_ring`, `fourquad_ring`, `vca_ring` | Original DIY modular synth series |
 
+## Geiger Counter
+
+| Circuit Type | Source | Generator | Notes |
+|--------------|--------|-----------|-------|
+| GM tube click generator | Physics model | `geiger` | Based on Geiger-Müller tube behavior: Poisson-distributed clicks, dead time clustering, discharge transients |
+
 ## Parameter Mapping
 
 Each generator's custom parameters (P1–P5) are derived from the physical controls and circuit characteristics documented in the source articles:
@@ -49,6 +55,13 @@ Each generator's custom parameters (P1–P5) are derived from the physical contr
 - **Input levels** → sideband strength
 - **Balance/null trims** → carrier suppression
 - **Topology** → clean vs distorted character
+
+### Geiger Counter
+- **Count rate** → average clicks/second (Poisson statistics)
+- **Dead time** → tube recovery, click clustering at high rates
+- **Click brightness** → spectral content of discharge transient
+- **Click decay** → tube/speaker resonance ringout
+- **Background noise** → continuous tube hiss between clicks
 
 ## Further Reading
 
