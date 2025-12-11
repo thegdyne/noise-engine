@@ -17,7 +17,7 @@
             "label": "SIZ",
             "tooltip": "Grain Size",
             "default": 0.1,
-            "min": 0.01,
+            "min": 0.001,
             "max": 0.5,
             "curve": "exp",
             "unit": "s"
