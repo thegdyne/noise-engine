@@ -142,26 +142,25 @@ OSC messages to Python:
 
 // Trigger MIDI gate for a generator
 ~triggerMidiGate = { |slot, velocity=1.0|
-    // Create a one-shot trigger synth that fires immediately
-    var rateIndex = 6;  // CLK rate
-    
-    if(~clockGroup.notNil && ~clockTrigBus.notNil, {
+    if(~clockGroup.notNil && ~midiTrigBus.notNil, {
+        ("  -> Creating MIDI trigger for slot " ++ slot).postln;
         Synth(\midiTrigger, [
-            \trigBus, ~clockTrigBus.index,
-            \rateIndex, rateIndex,
+            \trigBus, ~midiTrigBus.index,
+            \slot, slot - 1,  // 0-indexed for bus channel
             \amp, velocity
-        ], ~clockGroup);
+        ], ~clockGroup, \addToHead);
     });
 };
 
 // One-shot trigger synth for MIDI notes
-SynthDef(\midiTrigger, { |trigBus=0, rateIndex=6, amp=1|
-    var trig = Impulse.ar(0);  // Single trigger at start
-    var sig = Array.fill(13, { |i| 
-        if(i == rateIndex, { trig * amp }, { DC.ar(0) })
+// Writes a trigger pulse to the MIDI trigger bus for a specific slot
+SynthDef(\midiTrigger, { |trigBus=0, slot=0, amp=1|
+    var trig = Trig1.ar(DC.ar(1), 0.001);  // 1ms trigger pulse
+    var sig = Array.fill(8, { |i| 
+        if(i == slot, { trig * amp }, { DC.ar(0) })
     });
     Out.ar(trigBus, sig);
-    FreeSelf.kr(Impulse.kr(0));  // Free after one control period
+    FreeSelf.kr(TDelay.kr(Impulse.kr(0), 0.01));
 }).add;
 
 // OSC handlers for MIDI

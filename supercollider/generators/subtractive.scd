@@ -23,9 +23,10 @@ ENV ON = clock-synced envelope gates final output
 
 SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                           filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                          midiTrigBus=0, slotIndex=0,
                           customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var envEnabled, clockRate, allTrigs, clockTrig;
+    var envEnabled, clockRate, allTrigs, clockTrig, midiTrig, combinedTrig;
     var waveform, subLevel, oscMix, noiseAmt, drive;
     var osc1, osc2, sub, noise, saw, square, tri, noiseOsc;
     
@@ -86,10 +87,17 @@ SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     // === ENVELOPE AS FINAL VCA ===
+    // Clock triggers
     allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     clockTrig = Select.ar(clockRate, allTrigs);
     
-    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
+    // MIDI trigger for this slot
+    midiTrig = In.ar(midiTrigBus, 8)[slotIndex];
+    
+    // Combine clock and MIDI triggers
+    combinedTrig = clockTrig + midiTrig;
+    
+    env = EnvGen.ar(Env.perc(attack, decay), combinedTrig);
     sig = Select.ar(envEnabled, [sig, sig * env]);
     
     sig = sig * amp;
