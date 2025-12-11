@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSlider, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
+from .theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES, slider_style
+
 
 class EffectSlot(QWidget):
     """A single effect slot in the chain - compact."""
@@ -30,7 +32,7 @@ class EffectSlot(QWidget):
         layout.setSpacing(2)
         
         self.type_label = QLabel(self.effect_type)
-        self.type_label.setFont(QFont('Helvetica', 8, QFont.Bold))
+        self.type_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny'], QFont.Bold))
         self.type_label.setAlignment(Qt.AlignCenter)
         self.type_label.setWordWrap(True)
         self.type_label.setCursor(Qt.PointingHandCursor)
@@ -42,22 +44,7 @@ class EffectSlot(QWidget):
         self.amount_slider.setValue(75)
         self.amount_slider.setEnabled(False)
         self.amount_slider.setFixedHeight(40)
-        
-        self.amount_slider.setStyleSheet("""
-            QSlider::groove:vertical {
-                border: 1px solid #666;
-                width: 6px;
-                background: #333;
-                border-radius: 3px;
-            }
-            QSlider::handle:vertical {
-                background: #888;
-                border: 1px solid #555;
-                height: 10px;
-                margin: 0 -2px;
-                border-radius: 5px;
-            }
-        """)
+        self.amount_slider.setStyleSheet(slider_style())
         
         self.amount_slider.valueChanged.connect(
             lambda val: self.amount_changed.emit(self.slot_id, val / 100.0)
@@ -68,7 +55,7 @@ class EffectSlot(QWidget):
         
         self.amount_label = QLabel("75%")
         self.amount_label.setAlignment(Qt.AlignCenter)
-        self.amount_label.setFont(QFont('Menlo', 7))
+        self.amount_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         layout.addWidget(self.amount_label)
         
         self.update_style()
@@ -76,14 +63,14 @@ class EffectSlot(QWidget):
     def update_style(self):
         """Update appearance based on state."""
         if self.effect_type == "Empty":
-            border_color = "#333"
-            bg_color = "#1a1a1a"
+            border_color = COLORS['border']
+            bg_color = COLORS['background']
         elif self.active:
-            border_color = "#4488ff"
-            bg_color = "#1a2a3a"
+            border_color = COLORS['selected']
+            bg_color = COLORS['background_highlight']
         else:
-            border_color = "#555"
-            bg_color = "#252525"
+            border_color = COLORS['border_light']
+            bg_color = COLORS['background_light']
             
         self.setStyleSheet(f"""
             EffectSlot {{
