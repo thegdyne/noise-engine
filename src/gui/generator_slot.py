@@ -117,6 +117,7 @@ class GeneratorSlot(QWidget):
             self.custom_labels.append(lbl)
             
             slider = MiniSlider()
+            slider.setFixedHeight(60)  # Fixed height for consistency
             slider.setEnabled(False)
             slider.normalizedValueChanged.connect(
                 lambda norm, idx=i: self.on_custom_param_changed(idx, norm)
@@ -147,8 +148,6 @@ class GeneratorSlot(QWidget):
             param_layout.setContentsMargins(0, 0, 0, 0)
             param_layout.setSpacing(2)
             
-            param_layout.addStretch()
-            
             lbl = QLabel(param['label'])
             lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
             lbl.setAlignment(Qt.AlignCenter)
@@ -156,6 +155,7 @@ class GeneratorSlot(QWidget):
             param_layout.addWidget(lbl)
             
             slider = MiniSlider(param_config=param)
+            slider.setFixedHeight(60)  # Fixed height for consistency
             slider.setToolTip(param['tooltip'])
             slider.normalizedValueChanged.connect(
                 lambda norm, p=param: self.on_param_changed(p['key'], norm, p)
