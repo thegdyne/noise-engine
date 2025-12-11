@@ -242,11 +242,18 @@ class GeneratorSlot(QWidget):
         enabled = gen_type != "Empty"
         pitch_target = get_generator_pitch_target(gen_type)
         
-        # Reset standard sliders to defaults
+        # Reset standard sliders to defaults and send values
         for key, slider in self.sliders.items():
             param = next((p for p in GENERATOR_PARAMS if p['key'] == key), None)
             if param:
-                slider.setValue(int(param['default'] * 1000))
+                default_val = int(param['default'] * 1000)
+                # Force send even if value is same (bus might have old value)
+                slider.blockSignals(True)
+                slider.setValue(default_val)
+                slider.blockSignals(False)
+                # Always emit to update SuperCollider
+                real_value = map_value(param['default'], param)
+                self.parameter_changed.emit(self.slot_id, key, real_value)
             
             if key == 'frequency' and pitch_target is not None:
                 # FRQ disabled when pitch_target points to custom param
@@ -288,14 +295,23 @@ class GeneratorSlot(QWidget):
                 
                 self.custom_labels[i].setText(label_text)
                 from src.config import format_value
+                # Block signals while setting up
+                self.custom_sliders[i].blockSignals(True)
                 self.custom_sliders[i].set_param_config(param, format_value)
+                self.custom_sliders[i].blockSignals(False)
                 self.custom_sliders[i].setToolTip(param.get('tooltip', ''))
                 self.custom_sliders[i].setEnabled(True)
+                # Force send default value to SuperCollider
+                default = param.get('default', 0.5)
+                real_value = map_value(default, param)
+                self.custom_parameter_changed.emit(self.slot_id, i, real_value)
             else:
                 self.custom_labels[i].setText(f"P{i+1}")
                 self.custom_labels[i].setStyleSheet(f"color: {COLORS['text_dim']};")
+                self.custom_sliders[i].blockSignals(True)
                 self.custom_sliders[i].set_param_config(None)
                 self.custom_sliders[i].setValue(500)  # Reset to midpoint
+                self.custom_sliders[i].blockSignals(False)
                 self.custom_sliders[i].setToolTip("")
                 self.custom_sliders[i].setEnabled(False)
         
