@@ -27,7 +27,7 @@ GENERATOR_PARAMS = [
         'label': 'CUT',
         'tooltip': 'Filter Cutoff',
         'default': 1.0,  # Fully up = filter open
-        'min': 80.0,
+        'min': 1.0,      # 1Hz - effectively closed
         'max': 16000.0,
         'curve': 'exp',
         'unit': 'Hz',
