@@ -1,6 +1,7 @@
 {
     "name": "PT2399",
     "synthdef": "pt2399Grainy",
+    "pitch_target": 0,
     "custom_params": [
         {
             "key": "delay_time",

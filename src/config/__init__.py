@@ -154,7 +154,7 @@ GENERATOR_CYCLE = ["Empty", "Test Synth", "PT2399"]
 MAX_CUSTOM_PARAMS = 5
 
 # Generator configs loaded from JSON files
-# Maps display name -> {"synthdef": str, "custom_params": list}
+# Maps display name -> {"synthdef": str, "custom_params": list, "pitch_target": int|None}
 _GENERATOR_CONFIGS = {}
 
 def _load_generator_configs():
@@ -167,7 +167,7 @@ def _load_generator_configs():
     project_dir = os.path.dirname(src_dir)
     generators_dir = os.path.join(project_dir, 'supercollider', 'generators')
     
-    _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": []}}
+    _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": [], "pitch_target": None}}
     
     if not os.path.exists(generators_dir):
         print(f"Warning: Generators directory not found: {generators_dir}")
@@ -183,7 +183,8 @@ def _load_generator_configs():
                     if name:
                         _GENERATOR_CONFIGS[name] = {
                             "synthdef": config.get('synthdef'),
-                            "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS]
+                            "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
+                            "pitch_target": config.get('pitch_target')  # None if not specified
                         }
             except (json.JSONDecodeError, IOError) as e:
                 print(f"Warning: Failed to load {filepath}: {e}")
@@ -205,6 +206,16 @@ def get_generator_custom_params(name):
     """Get custom params list for a generator display name."""
     config = _GENERATOR_CONFIGS.get(name, {})
     return config.get('custom_params', [])
+
+def get_generator_pitch_target(name):
+    """Get pitch target for a generator.
+    
+    Returns:
+        None: FRQ is the pitch param (normal)
+        0-4: Custom param index is the pitch param
+    """
+    config = _GENERATOR_CONFIGS.get(name, {})
+    return config.get('pitch_target')
 
 # Legacy GENERATORS dict for compatibility (built from JSON)
 GENERATORS = {name: cfg['synthdef'] for name, cfg in _GENERATOR_CONFIGS.items()}

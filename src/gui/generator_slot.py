@@ -11,7 +11,8 @@ from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import MiniSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
-    GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, map_value, get_generator_custom_params
+    GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, map_value, get_generator_custom_params,
+    get_generator_pitch_target
 )
 
 
@@ -109,6 +110,7 @@ class GeneratorSlot(QWidget):
         
         # Build sliders from config
         self.sliders = {}
+        self.slider_labels = {}
         
         for param in GENERATOR_PARAMS:
             param_widget = QWidget()
@@ -133,6 +135,7 @@ class GeneratorSlot(QWidget):
             param_layout.addWidget(slider, alignment=Qt.AlignCenter)
             
             self.sliders[param['key']] = slider
+            self.slider_labels[param['key']] = lbl
             params_layout.addWidget(param_widget)
         
         params_layout.addSpacing(5)
@@ -237,8 +240,22 @@ class GeneratorSlot(QWidget):
         self.type_label.setText(gen_type)
         
         enabled = gen_type != "Empty"
-        for slider in self.sliders.values():
-            slider.setEnabled(enabled)
+        pitch_target = get_generator_pitch_target(gen_type)
+        
+        for key, slider in self.sliders.items():
+            if key == 'frequency' and pitch_target is not None:
+                # FRQ disabled when pitch_target points to custom param
+                slider.setEnabled(False)
+            else:
+                slider.setEnabled(enabled)
+        
+        # Update FRQ label to show it's overridden
+        if 'frequency' in self.slider_labels:
+            if pitch_target is not None:
+                self.slider_labels['frequency'].setStyleSheet(f"color: {COLORS['text_dim']};")
+            else:
+                self.slider_labels['frequency'].setStyleSheet(f"color: {COLORS['text']};")
+        
         self.filter_btn.setEnabled(enabled)
         self.clock_toggle.setEnabled(enabled)
         self.update_clock_style()
@@ -250,12 +267,21 @@ class GeneratorSlot(QWidget):
     def update_custom_params(self, gen_type):
         """Update custom param sliders for current generator type."""
         custom_params = get_generator_custom_params(gen_type)
+        pitch_target = get_generator_pitch_target(gen_type)
         
         for i in range(MAX_CUSTOM_PARAMS):
             if i < len(custom_params):
                 param = custom_params[i]
-                self.custom_labels[i].setText(param['label'])
-                self.custom_labels[i].setStyleSheet(f"color: {COLORS['text']};")
+                label_text = param['label']
+                
+                # Add pitch indicator if this is the pitch target
+                if pitch_target == i:
+                    label_text = f"♪{label_text}"
+                    self.custom_labels[i].setStyleSheet(f"color: {COLORS['enabled_text']};")
+                else:
+                    self.custom_labels[i].setStyleSheet(f"color: {COLORS['text']};")
+                
+                self.custom_labels[i].setText(label_text)
                 self.custom_sliders[i].set_param_config(param)
                 self.custom_sliders[i].setToolTip(param.get('tooltip', ''))
                 self.custom_sliders[i].setEnabled(True)
