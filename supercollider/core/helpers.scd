@@ -35,11 +35,11 @@ Reusable functions for generator management
                 \attackBus, params[\attack].index,
                 \decayBus, params[\decay].index,
                 \filterTypeBus, params[\filterType].index,
-                \envEnabledBus, params[\envEnabled].index,  // Legacy
-                \envSourceBus, params[\envSource].index,    // New: 0=OFF, 1=CLK, 2=MIDI
+                \envEnabledBus, params[\envEnabled].index,
+                \envSourceBus, params[\envSource].index,    // New generators use this
                 \clockRateBus, params[\clockRate].index,
                 \clockTrigBus, ~clockTrigBus.index,
-                \midiTrigBus, ~midiTrigBus.index,
+                \midiTrigBus, if(~midiTrigBus.notNil, { ~midiTrigBus.index }, { 0 }),
                 \slotIndex, slotID - 1,  // 0-indexed for MIDI trigger bus channel
                 // Custom params (5 per generator)
                 \customBus0, customBuses[0].index,
