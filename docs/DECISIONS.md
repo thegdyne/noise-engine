@@ -301,3 +301,93 @@ supercollider/
 - Widget sizes consistent across components
 
 **Rule:** If it's a constant, mapping, or magic number, it belongs in config.
+
+---
+
+### [2025-12-11] Font Centralization in Theme
+**Decision:** All fonts defined in `src/gui/theme.py`, not scattered in components
+**Implementation:**
+```python
+FONT_FAMILY = 'Helvetica'
+MONO_FONT = 'Menlo'  # or 'Courier New' on non-Mac
+FONT_SIZES = {
+    'title': 16,    # Main titles (NOISE ENGINE)
+    'section': 12,  # Section headers (MIXER, EFFECTS)
+    'label': 10,    # Labels
+    'small': 9,     # Smaller labels
+    'tiny': 8,      # Button text, values
+}
+```
+**Rationale:** Single source of truth for typography, easy to change globally
+**DO NOT:** Hardcode font names or sizes in component files
+**Files affected:** `src/gui/theme.py`, all component files updated to import from theme
+
+---
+
+### [2025-12-11] UI Layout Reorganization
+**Decision:** New layout arrangement for main window
+**Layout:**
+```
+┌────────────────────────────────────────────────────────┐
+│  TOP BAR (BPM, Connect, Preset)                        │
+├──────────┬─────────────────────────────────┬───────────┤
+│          │                                 │           │
+│   MOD    │      GENERATORS (2x4)           │   MIXER   │
+│ SOURCES  │                                 │           │
+│  (LFOs)  │                                 │           │
+│          │                                 │           │
+├──────────┴─────────────────────────────────┴───────────┤
+│  EFFECTS CHAIN                                         │
+└────────────────────────────────────────────────────────┘
+```
+**Rationale:** 
+- MOD SOURCES on left (fixed 220px) - modulation is input/control
+- GENERATORS in center - main focus, most screen space
+- MIXER on right - output stage
+- EFFECTS at bottom - final processing before output
+
+**DO NOT:** Move modulation back to bottom, put mixer in center
+**Files affected:** `src/gui/main_frame.py`, `src/gui/modulation_sources.py`
+
+---
+
+### [2025-12-11] Effects Chain Compact Design
+**Decision:** Effect slots are compact vertical cards (70px wide)
+**Layout per slot:**
+```
+┌────────┐
+│  Name  │  ← Click to change type
+│  ░░░░  │  ← Vertical slider
+│  75%   │  ← Value display
+└────────┘
+```
+**Rationale:** Matches generator slider style, compact, clear hierarchy
+**DO NOT:** Use horizontal sliders, put slider outside the card boundary
+**Files affected:** `src/gui/effects_chain.py`
+
+---
+
+### [2025-12-11] GitHub Pages Documentation Site
+**Decision:** Project landing page hosted via GitHub Pages at `/docs/index.html`
+**Contains:** Features, architecture, future plans, milestones, skin previews
+**Rationale:** Public-facing project overview, shareable, always current
+**DO NOT:** Put sensitive/internal info on public page
+**Files affected:** `docs/index.html`
+
+---
+
+### [2025-12-11] Milestone Update Tool
+**Decision:** Shell script to add dated milestones to landing page
+**Usage:** `./tools/add_milestone.sh "Description of milestone"`
+**Rationale:** Quick way to log progress without manual HTML editing
+**DO NOT:** Use for every commit - only significant features/milestones
+**Files affected:** `tools/add_milestone.sh`, `docs/index.html`
+
+---
+
+### [2025-12-11] Mockups Directory for Skin Concepts
+**Decision:** Static HTML/CSS mockups stored in `docs/mockups/`
+**Purpose:** Design reference only, not production code
+**Rationale:** Visualize skin ideas before implementing in PyQt
+**DO NOT:** Use mockup code directly - real skins will use centralized theme
+**Files affected:** `docs/mockups/`, `docs/mockups/README.md`
