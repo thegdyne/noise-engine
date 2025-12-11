@@ -26,8 +26,7 @@ OSC messages to Python:
 ~setupMIDI = {
     "Setting up MIDI...".postln;
     
-    // Clear any existing MIDI responders from previous runs
-    MIDIFunc.freeAll;
+    // Clear any existing named MIDI responders from previous runs
     MIDIdef.freeAll;
     
     // Disconnect any existing MIDI connections
