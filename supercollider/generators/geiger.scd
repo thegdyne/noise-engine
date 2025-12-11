@@ -67,9 +67,9 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Brightness adds highpass to let through more high harmonics
     click = click + (HPF.ar(click, clickBrightness.linexp(0.001, 1, 200, 8000)) * clickBrightness * 2);
     
-    // Background tube hiss/crackle
-    noise = PinkNoise.ar * backgroundNoise * 0.1;
-    noise = noise + (Dust.ar(countRate * 10) * 0.02 * backgroundNoise);
+    // Background tube hiss/crackle - silent at 0, loud at max
+    noise = PinkNoise.ar * backgroundNoise * 0.5;
+    noise = noise + (Dust.ar(countRate * 10) * 0.1 * backgroundNoise);
     
     sig = click + noise;
     
