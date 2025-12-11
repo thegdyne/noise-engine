@@ -22,10 +22,11 @@ ENV ON = clock-synced envelope gates final output
 */
 
 SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                          filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                          filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
+                          midiTrigBus=0, slotIndex=0,
                           customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var envEnabled, clockRate, allTrigs, clockTrig;
+    var envSource, clockRate, allTrigs, clockTrig, midiTrig, trig;
     var waveform, subLevel, oscMix, noiseAmt, drive;
     var osc1, osc2, sub, noise, saw, square, tri, noiseOsc;
     
@@ -36,7 +37,7 @@ SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     attack = In.kr(attackBus);
     decay = In.kr(decayBus);
     filterType = In.kr(filterTypeBus);
-    envEnabled = In.kr(envEnabledBus);
+    envSource = In.kr(envSourceBus);  // 0=OFF, 1=CLK, 2=MIDI
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\amplitude]);
     
@@ -86,13 +87,23 @@ SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     // === ENVELOPE AS FINAL VCA ===
+    // Clock trigger
     allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     clockTrig = Select.ar(clockRate, allTrigs);
     
-    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
-    sig = Select.ar(envEnabled, [sig, sig * env]);
+    // MIDI trigger for this slot
+    midiTrig = In.ar(midiTrigBus, 8)[slotIndex];
     
-    sig = sig * amp;
+    // Select trigger source: 0=OFF (drone), 1=CLK, 2=MIDI
+    trig = Select.ar(envSource, [DC.ar(0), clockTrig, midiTrig]);
+    
+    // Envelope - only applies when envSource > 0
+    env = Select.ar(envSource > 0, [
+        DC.ar(1.0),  // envSource=0: drone (no envelope)
+        EnvGen.ar(Env.perc(attack, decay), trig)  // envSource>0: triggered envelope
+    ]);
+    
+    sig = sig * env * amp;
     
     Out.ar(out, sig);
 }).add;

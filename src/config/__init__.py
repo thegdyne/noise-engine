@@ -136,6 +136,10 @@ CLOCK_DEFAULT_INDEX = 6  # CLK
 # Rate name -> SuperCollider index (auto-generated from CLOCK_RATES for SSOT)
 CLOCK_RATE_INDEX = {rate: i for i, rate in enumerate(CLOCK_RATES)}
 
+# === ENVELOPE SOURCE ===
+ENV_SOURCES = ["OFF", "CLK", "MIDI"]
+ENV_SOURCE_INDEX = {source: i for i, source in enumerate(ENV_SOURCES)}
+
 # === FILTER ===
 FILTER_TYPES = ["LP", "HP", "BP"]
 
@@ -279,6 +283,7 @@ OSC_PATHS = {
     'gen_decay': '/noise/gen/decay',
     'gen_filter_type': '/noise/gen/filterType',
     'gen_env_enabled': '/noise/gen/envEnabled',
+    'gen_env_source': '/noise/gen/envSource',  # 0=OFF, 1=CLK, 2=MIDI
     'gen_clock_rate': '/noise/gen/clockRate',
     'gen_mute': '/noise/gen/mute',
     'gen_midi_channel': '/noise/gen/midiChannel',

@@ -29,6 +29,9 @@ Default values are real values (not normalized):
     ~clockBus = Bus.control(s, 1).set(120);
     ~clockTrigBus = Bus.audio(s, ~clockRates.size);
     
+    // MIDI trigger bus - 8 audio channels, one per generator slot
+    ~midiTrigBus = Bus.audio(s, 8);
+    
     // Per-generator parameters (8 slots)
     // Default values are real values matching Python config
     ~genParams = Dictionary.new;
@@ -41,7 +44,8 @@ Default values are real values (not normalized):
         ~genParams[slot][\attack] = Bus.control(s, 1).set(0.0001);         // s (snappiest)
         ~genParams[slot][\decay] = Bus.control(s, 1).set(0.04);            // s (~40ms)
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
-        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);
+        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);          // Legacy, kept for compat
+        ~genParams[slot][\envSource] = Bus.control(s, 1).set(0);           // 0=OFF, 1=CLK, 2=MIDI
         ~genParams[slot][\clockRate] = Bus.control(s, 1).set(6);  // 6 = CLK (quarter notes)
         
         // Custom params (5 per slot) - defaults based on generator JSON

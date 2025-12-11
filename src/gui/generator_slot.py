@@ -13,7 +13,8 @@ from .widgets import MiniSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
     GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE, map_value, 
-    get_generator_custom_params, get_generator_pitch_target
+    get_generator_custom_params, get_generator_pitch_target,
+    ENV_SOURCES, ENV_SOURCE_INDEX
 )
 
 # MIDI channels - OFF plus 1-16
@@ -28,7 +29,8 @@ class GeneratorSlot(QWidget):
     parameter_changed = pyqtSignal(int, str, float)  # slot_id, param_key, real_value
     custom_parameter_changed = pyqtSignal(int, int, float)  # slot_id, param_index, real_value
     filter_type_changed = pyqtSignal(int, str)
-    clock_enabled_changed = pyqtSignal(int, bool)
+    clock_enabled_changed = pyqtSignal(int, bool)  # Legacy - kept for compatibility
+    env_source_changed = pyqtSignal(int, int)  # slot_id, source (0=OFF, 1=CLK, 2=MIDI)
     clock_rate_changed = pyqtSignal(int, str)
     mute_changed = pyqtSignal(int, bool)  # slot_id, muted
     midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel (0=OFF, 1-16)
@@ -38,7 +40,8 @@ class GeneratorSlot(QWidget):
         self.slot_id = slot_id
         self.generator_type = generator_type
         self.active = False
-        self.clock_enabled = False
+        self.clock_enabled = False  # Legacy
+        self.env_source = 0  # 0=OFF, 1=CLK, 2=MIDI
         self.muted = False
         self.midi_channel = 0  # 0 = OFF, 1-16 = channels
         
@@ -191,15 +194,16 @@ class GeneratorSlot(QWidget):
         self.filter_btn.setToolTip("Filter Type: LP / HP / BP")
         buttons_layout.addWidget(self.filter_btn)
         
-        # ENV toggle
-        self.clock_toggle = QPushButton("ENV")
-        self.clock_toggle.setFixedSize(*SIZES['button_medium'])
-        self.clock_toggle.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-        self.clock_toggle.setStyleSheet(button_style('disabled'))
-        self.clock_toggle.clicked.connect(self.toggle_clock)
-        self.clock_toggle.setEnabled(False)
-        self.clock_toggle.setToolTip("Envelope ON/OFF (OFF = drone)")
-        buttons_layout.addWidget(self.clock_toggle)
+        # ENV source - CycleButton (OFF/CLK/MIDI)
+        self.env_btn = CycleButton(ENV_SOURCES, initial_index=0)
+        self.env_btn.setFixedSize(*SIZES['button_medium'])
+        self.env_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
+        self.env_btn.setStyleSheet(button_style('disabled'))
+        self.env_btn.wrap = True
+        self.env_btn.value_changed.connect(self.on_env_source_changed)
+        self.env_btn.setEnabled(False)
+        self.env_btn.setToolTip("Envelope source: OFF (drone), CLK (clock), MIDI")
+        buttons_layout.addWidget(self.env_btn)
         
         # CLK rate - CycleButton
         self.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
@@ -292,15 +296,19 @@ class GeneratorSlot(QWidget):
             }}
         """)
         
-    def update_clock_style(self):
-        """Update clock button styles based on state."""
-        if self.clock_enabled:
-            self.clock_toggle.setStyleSheet(button_style('enabled'))
+    def update_env_style(self):
+        """Update ENV button styles based on state."""
+        if self.env_source == 0:  # OFF
+            self.env_btn.setStyleSheet(button_style('disabled'))
+            self.rate_btn.setEnabled(False)
+            self.rate_btn.setStyleSheet(button_style('inactive'))
+        elif self.env_source == 1:  # CLK
+            self.env_btn.setStyleSheet(button_style('enabled'))
             self.rate_btn.setEnabled(True and self.generator_type != "Empty")
             self.rate_btn.setStyleSheet(button_style('submenu'))
-        else:
-            self.clock_toggle.setStyleSheet(button_style('disabled'))
-            self.rate_btn.setEnabled(False)
+        else:  # MIDI
+            self.env_btn.setStyleSheet(button_style('enabled'))
+            self.rate_btn.setEnabled(False)  # Rate doesn't matter for MIDI
             self.rate_btn.setStyleSheet(button_style('inactive'))
         
     def set_generator_type(self, gen_type):
@@ -314,6 +322,13 @@ class GeneratorSlot(QWidget):
         pitch_target = get_generator_pitch_target(gen_type)
         
         # Reset ENV to off (drone mode by default)
+        self.env_source = 0
+        self.env_btn.blockSignals(True)
+        self.env_btn.set_index(0)
+        self.env_btn.blockSignals(False)
+        self.env_source_changed.emit(self.slot_id, 0)
+        
+        # Legacy - keep clock_enabled in sync
         self.clock_enabled = False
         self.clock_enabled_changed.emit(self.slot_id, False)
         
@@ -350,8 +365,8 @@ class GeneratorSlot(QWidget):
                 self.slider_labels['frequency'].setStyleSheet(f"color: {COLORS['text']};")
         
         self.filter_btn.setEnabled(enabled)
-        self.clock_toggle.setEnabled(enabled)
-        self.update_clock_style()
+        self.env_btn.setEnabled(enabled)
+        self.update_env_style()
         self.update_style()
         
         # Update custom params for this generator (also resets to defaults)
@@ -428,10 +443,14 @@ class GeneratorSlot(QWidget):
         self.generator_type = gen_type
         self.generator_changed.emit(self.slot_id, gen_type)
         
-    def toggle_clock(self):
-        """Toggle envelope ON/OFF."""
-        self.clock_enabled = not self.clock_enabled
-        self.update_clock_style()
+    def on_env_source_changed(self, source_str):
+        """Handle ENV source button change."""
+        self.env_source = ENV_SOURCE_INDEX[source_str]
+        self.update_env_style()
+        self.env_source_changed.emit(self.slot_id, self.env_source)
+        
+        # Legacy - keep clock_enabled in sync (ON if CLK or MIDI)
+        self.clock_enabled = self.env_source > 0
         self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
         
     def on_rate_changed(self, rate):

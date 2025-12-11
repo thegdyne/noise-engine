@@ -19,7 +19,8 @@ class GeneratorGrid(QWidget):
     generator_parameter_changed = pyqtSignal(int, str, float)
     generator_custom_parameter_changed = pyqtSignal(int, int, float)  # slot_id, param_index, value
     generator_filter_changed = pyqtSignal(int, str)
-    generator_clock_enabled_changed = pyqtSignal(int, bool)
+    generator_clock_enabled_changed = pyqtSignal(int, bool)  # Legacy
+    generator_env_source_changed = pyqtSignal(int, int)  # slot_id, source (0=OFF, 1=CLK, 2=MIDI)
     generator_clock_rate_changed = pyqtSignal(int, str)
     generator_mute_changed = pyqtSignal(int, bool)  # slot_id, muted
     generator_midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel
@@ -57,6 +58,7 @@ class GeneratorGrid(QWidget):
                 slot.custom_parameter_changed.connect(self.on_custom_parameter_changed)
                 slot.filter_type_changed.connect(self.on_filter_changed)
                 slot.clock_enabled_changed.connect(self.on_clock_enabled_changed)
+                slot.env_source_changed.connect(self.on_env_source_changed)
                 slot.clock_rate_changed.connect(self.on_clock_rate_changed)
                 slot.mute_changed.connect(self.on_mute_changed)
                 slot.midi_channel_changed.connect(self.on_midi_channel_changed)
@@ -87,8 +89,12 @@ class GeneratorGrid(QWidget):
         self.generator_filter_changed.emit(slot_id, filter_type)
         
     def on_clock_enabled_changed(self, slot_id, enabled):
-        """Handle clock enable toggle."""
+        """Handle clock enable toggle (legacy)."""
         self.generator_clock_enabled_changed.emit(slot_id, enabled)
+    
+    def on_env_source_changed(self, slot_id, source):
+        """Handle ENV source change."""
+        self.generator_env_source_changed.emit(slot_id, source)
         
     def on_clock_rate_changed(self, slot_id, rate):
         """Handle clock rate change."""

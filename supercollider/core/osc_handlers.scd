@@ -49,6 +49,14 @@ All OSC message routing
         ~genParams[msg[1].asInteger][\envEnabled].set(msg[2].asInteger);
     }, '/noise/gen/envEnabled');
     
+    // Envelope source: 0=OFF, 1=CLK, 2=MIDI
+    OSCdef(\genEnvSource, { |msg|
+        var slot = msg[1].asInteger;
+        var source = msg[2].asInteger;
+        ~genParams[slot][\envSource].set(source);
+        ("Gen " ++ slot ++ " env source: " ++ ["OFF", "CLK", "MIDI"][source]).postln;
+    }, '/noise/gen/envSource');
+    
     OSCdef(\genClockRate, { |msg|
         // Rate index: 0=/32 ... 6=CLK ... 12=x32
         ~genParams[msg[1].asInteger][\clockRate].set(msg[2].asInteger);
