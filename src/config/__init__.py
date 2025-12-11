@@ -74,13 +74,13 @@ def map_value(normalized, param):
     Map normalized 0-1 slider value to real parameter value.
     Handles linear/exponential curves and inversion.
     """
-    if param['invert']:
+    if param.get('invert', False):
         normalized = 1.0 - normalized
     
     min_val = param['min']
     max_val = param['max']
     
-    if param['curve'] == 'exp':
+    if param.get('curve', 'lin') == 'exp':
         # Exponential mapping
         return min_val * math.pow(max_val / min_val, normalized)
     else:
@@ -92,7 +92,7 @@ def format_value(value, param):
     """
     Format a real value with its unit for display.
     """
-    unit = param['unit']
+    unit = param.get('unit', '')
     
     if unit == 'Hz':
         if value >= 1000:
