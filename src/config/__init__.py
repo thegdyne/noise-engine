@@ -130,7 +130,7 @@ def format_value(value, param):
 
 
 # === CLOCK ===
-CLOCK_RATES = ["/32", "/16", "/12", "/8", "/4", "/2", "CLK", "x2", "x4", "x12", "x16", "x32"]
+CLOCK_RATES = ["/32", "/16", "/12", "/8", "/4", "/2", "CLK", "x2", "x4", "x8", "x12", "x16", "x32"]
 CLOCK_DEFAULT_INDEX = 6  # CLK
 
 # Rate name -> SuperCollider index (matches list order)

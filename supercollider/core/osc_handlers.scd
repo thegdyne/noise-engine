@@ -50,9 +50,8 @@ All OSC message routing
     }, '/noise/gen/envEnabled');
     
     OSCdef(\genClockRate, { |msg|
-        // Rate index: 0=x8, 1=x4, 2=x2, 3=CLK, 4=/2, 5=/4, 6=/8, 7=/16
+        // Rate index: 0=/32 ... 6=CLK ... 12=x32
         ~genParams[msg[1].asInteger][\clockRate].set(msg[2].asInteger);
-        "Gen % clock rate index: %".format(msg[1], msg[2]).postln;
     }, '/noise/gen/clockRate');
     
     // Per-generator custom parameters

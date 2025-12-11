@@ -22,7 +22,7 @@ Default values are real values (not normalized):
     
     // Master clock
     ~clockBus = Bus.control(s, 1).set(120);
-    ~clockTrigBus = Bus.audio(s, 12);  // 12 channels for 12 rates
+    ~clockTrigBus = Bus.audio(s, 13);  // 13 channels for 13 rates
     
     // Per-generator parameters (8 slots)
     // Default values are real values matching Python config

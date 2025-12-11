@@ -2,7 +2,7 @@
 PT2399 Chaos Generator
 The unhinged version - dying chip simulation with MADNESS macro
 
-Signal flow: Noise → Delay/Chaos → Degradation → Filter → ENVELOPE → Output
+Signal flow: Noise Bursts → Delay/Chaos → Degradation → Filter → ENVELOPE → Output
 
 Standard params:
   - frequency: not used (noise source)
@@ -13,16 +13,19 @@ Standard params:
 Custom params:
   - custom[0] delay_time: 0.005-5.0 s (longer = more degradation)
   - custom[1] feedback: 0.0-0.95 (high values = self-oscillation)
-  - custom[2] wet_dry: 0.0-1.0 (dry signal <-> wet chaos)
+  - custom[2] retrig_rate: 0.1-50 Hz (burst rate, free-running with jitter)
   - custom[3] madness: 0.0-1.0 (THE MACRO: normal PT2399 <-> complete meltdown)
-  - custom[4] tone: 0.0-1.0 (dark <-> bright)
+  - custom[4] wet_dry: 0.0-1.0 (dry signal <-> wet chaos)
 
 MADNESS controls:
   - 0.0: Relatively normal PT2399 (mild degradation, stable feedback)
   - 0.5: Getting weird (more artifacts, wobble, crackle)
   - 1.0: Complete meltdown (self-oscillation, extreme bitcrush, chaos)
 
-ENV OFF = drone (continuous output)
+RTG gives rhythmic chaos bursts rather than constant noise wall.
+Jitter amount increases with madness for more unpredictable timing.
+
+ENV OFF = drone (continuous output based on RTG)
 ENV ON = clock-synced envelope gates final output
 
 See also: PT2399 for the musical/tame version
@@ -33,12 +36,13 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                           customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, grain, env, filterFreq, rq, filterType, attack, decay, amp;
     var panPos, envEnabled, clockRate, allTrigs, clockTrig;
-    var delayTime, feedback, wetDry, madness, tone;
+    var delayTime, feedback, retrigRate, madness, wetDry;
     var delayed, dry, fbSig, degraded, fbDistort;
     var degradeAmt, chaosAmt;
     var degradeNormal, degradeCrazy, chaosNormal, chaosCrazy;
     var fbMax, fbGain, wobbleDepth, wobbleRate, pitchWobble;
     var srClockNormal, srClockCrazy, srClock, roundStep;
+    var internalTrig, jitteredRate, burstEnv;
     
     // Read standard params
     filterFreq = In.kr(cutoffBus);
@@ -53,9 +57,9 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Read custom params
     delayTime = In.kr(customBus0).clip(0.005, 5.0);
     feedback = In.kr(customBus1).clip(0.0, 0.95);
-    wetDry = In.kr(customBus2).clip(0.0, 1.0);
+    retrigRate = In.kr(customBus2).clip(0.1, 50.0);
     madness = In.kr(customBus3).clip(0.0, 1.0);
-    tone = In.kr(customBus4).clip(0.0, 1.0);
+    wetDry = In.kr(customBus4).clip(0.0, 1.0);
     
     // === MORPHING DEGRADE/CHAOS AMOUNTS ===
     // "Normal PT2399" profile (milder)
@@ -72,9 +76,25 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     degradeAmt = degradeAmt.clip(0.0, 1.0);
     chaosAmt = chaosAmt.clip(0.0, 2.0);
     
+    // === INTERNAL TRIGGER WITH JITTER ===
+    // Jitter increases with madness - more unpredictable at high madness
+    jitteredRate = retrigRate * LFNoise1.kr(retrigRate * 0.5).range(
+        1 - (0.3 * madness),  // up to 30% slower
+        1 + (0.5 * madness)   // up to 50% faster
+    );
+    internalTrig = Impulse.ar(jitteredRate);
+    
+    // Burst envelope - short attack, variable decay
+    burstEnv = EnvGen.ar(
+        Env.perc(0.001, LFNoise1.kr(2).range(0.01, 0.1 + (madness * 0.2))),
+        internalTrig
+    );
+    
     // === SOUND SOURCE ===
     grain = WhiteNoise.ar(0.7);
-    sig = (grain * 2).tanh * 0.6;
+    // Gate the noise with burst envelope
+    sig = grain * burstEnv;
+    sig = (sig * 2).tanh * 0.6;
     
     panPos = LFNoise1.kr(0.5).range(-0.5, 0.5);
     dry = Pan2.ar(sig, panPos);
@@ -150,7 +170,7 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     );
     
     // === BANDWIDTH LIMITING ===
-    degraded = LPF.ar(fbDistort, tone.linexp(0, 1, 1500, 12000));
+    degraded = LPF.ar(fbDistort, filterFreq.clip(100, 16000));
     degraded = HPF.ar(degraded, 20 + (chaosAmt * 100));
     
     // Mix delay with degraded
@@ -167,7 +187,7 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     // === ENVELOPE AS FINAL VCA ===
-    allTrigs = In.ar(clockTrigBus, 12);
+    allTrigs = In.ar(clockTrigBus, 13);
     clockTrig = Select.ar(clockRate, allTrigs);
     
     env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
