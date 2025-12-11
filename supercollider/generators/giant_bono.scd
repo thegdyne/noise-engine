@@ -60,7 +60,8 @@ SynthDef(\giantBono, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // === CHAOTIC PLL ===
     
     // PLL VCO frequency - HUGE range (0.02x to 50x base freq)
-    pllFreq = freq * courics.linexp(0, 1, 0.02, 50);
+    // Clamp to 20kHz max to prevent silence at extremes
+    pllFreq = (freq * courics.linexp(0, 1, 0.02, 50)).clip(1, 20000);
     
     // Multiple chaos sources (like real PLL instability)
     chaos1 = LFNoise0.kr(pllFreq * 0.1);           // Fast random
