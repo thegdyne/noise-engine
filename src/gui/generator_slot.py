@@ -11,7 +11,7 @@ from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import MiniSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
-    GENERATOR_PARAMS, map_value
+    GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, map_value, get_generator_custom_params
 )
 
 
@@ -20,6 +20,7 @@ class GeneratorSlot(QWidget):
     
     clicked = pyqtSignal(int)
     parameter_changed = pyqtSignal(int, str, float)  # slot_id, param_key, real_value
+    custom_parameter_changed = pyqtSignal(int, int, float)  # slot_id, param_index, real_value
     filter_type_changed = pyqtSignal(int, str)
     clock_enabled_changed = pyqtSignal(int, bool)
     clock_rate_changed = pyqtSignal(int, str)
@@ -60,8 +61,50 @@ class GeneratorSlot(QWidget):
         
         params_frame = QFrame()
         params_frame.setStyleSheet(f"background-color: {COLORS['background']}; border-radius: 4px;")
-        params_layout = QHBoxLayout(params_frame)
-        params_layout.setContentsMargins(8, 8, 8, 8)
+        params_frame.setObjectName("paramsFrame")
+        params_outer = QVBoxLayout(params_frame)
+        params_outer.setContentsMargins(8, 8, 8, 8)
+        params_outer.setSpacing(8)
+        
+        # === CUSTOM PARAMS ROW (per-generator) ===
+        custom_row = QHBoxLayout()
+        custom_row.setSpacing(5)
+        
+        self.custom_sliders = []
+        self.custom_labels = []
+        
+        for i in range(MAX_CUSTOM_PARAMS):
+            param_widget = QWidget()
+            param_layout = QVBoxLayout(param_widget)
+            param_layout.setContentsMargins(0, 0, 0, 0)
+            param_layout.setSpacing(2)
+            
+            lbl = QLabel(f"P{i+1}")
+            lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+            param_layout.addWidget(lbl)
+            self.custom_labels.append(lbl)
+            
+            slider = MiniSlider()
+            slider.setEnabled(False)
+            slider.normalizedValueChanged.connect(
+                lambda norm, idx=i: self.on_custom_param_changed(idx, norm)
+            )
+            param_layout.addWidget(slider, alignment=Qt.AlignCenter)
+            self.custom_sliders.append(slider)
+            
+            custom_row.addWidget(param_widget)
+        
+        # Spacer to match buttons column
+        custom_spacer = QWidget()
+        custom_spacer.setFixedWidth(SIZES['buttons_column_width'] + 5)
+        custom_row.addWidget(custom_spacer)
+        
+        params_outer.addLayout(custom_row)
+        
+        # === STANDARD PARAMS ROW ===
+        params_layout = QHBoxLayout()
         params_layout.setSpacing(5)
         
         # Build sliders from config
@@ -136,6 +179,8 @@ class GeneratorSlot(QWidget):
         buttons_layout.addStretch()
         params_layout.addWidget(buttons_widget)
         
+        params_outer.addLayout(params_layout)
+        
         layout.addWidget(params_frame)
         
         # Status
@@ -199,6 +244,28 @@ class GeneratorSlot(QWidget):
         self.update_clock_style()
         self.update_style()
         
+        # Update custom params for this generator
+        self.update_custom_params(gen_type)
+    
+    def update_custom_params(self, gen_type):
+        """Update custom param sliders for current generator type."""
+        custom_params = get_generator_custom_params(gen_type)
+        
+        for i in range(MAX_CUSTOM_PARAMS):
+            if i < len(custom_params):
+                param = custom_params[i]
+                self.custom_labels[i].setText(param['label'])
+                self.custom_labels[i].setStyleSheet(f"color: {COLORS['text']};")
+                self.custom_sliders[i].set_param_config(param)
+                self.custom_sliders[i].setToolTip(param.get('tooltip', ''))
+                self.custom_sliders[i].setEnabled(True)
+            else:
+                self.custom_labels[i].setText(f"P{i+1}")
+                self.custom_labels[i].setStyleSheet(f"color: {COLORS['text_dim']};")
+                self.custom_sliders[i].set_param_config(None)
+                self.custom_sliders[i].setToolTip("")
+                self.custom_sliders[i].setEnabled(False)
+        
     def set_active(self, active):
         """Set active state."""
         self.active = active
@@ -240,6 +307,14 @@ class GeneratorSlot(QWidget):
         """Handle parameter change - emit real mapped value."""
         real_value = map_value(normalized, param_config)
         self.parameter_changed.emit(self.slot_id, param_key, real_value)
+    
+    def on_custom_param_changed(self, param_index, normalized):
+        """Handle custom parameter change - emit real mapped value."""
+        custom_params = get_generator_custom_params(self.generator_type)
+        if param_index < len(custom_params):
+            param_config = custom_params[param_index]
+            real_value = map_value(normalized, param_config)
+            self.custom_parameter_changed.emit(self.slot_id, param_index, real_value)
         
     def mousePressEvent(self, event):
         """Handle click to change generator type."""

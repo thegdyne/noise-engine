@@ -507,3 +507,77 @@ FONT_SIZES = {
 
 **Rationale:** Automated enforcement prevents drift back to scattered definitions
 **Files affected:** `tools/check_ssot.sh`
+
+---
+
+### [2025-12-11] Per-Generator Custom Parameters
+**Decision:** Each generator can define up to 5 custom parameters in a companion JSON file
+
+**File structure:**
+```
+supercollider/generators/
+    pt2399_grainy.scd       # SynthDef code
+    pt2399_grainy.json      # Custom params definition
+    test_synth.scd
+    test_synth.json         # Empty custom_params for generators with no custom params
+```
+
+**JSON format:**
+```json
+{
+    "name": "PT2399",
+    "synthdef": "pt2399Grainy",
+    "custom_params": [
+        {
+            "key": "delay_time",
+            "label": "DLY",
+            "tooltip": "Delay Time",
+            "default": 0.5,
+            "min": 0.01,
+            "max": 0.5,
+            "curve": "exp",
+            "unit": "s",
+            "invert": false
+        }
+    ]
+}
+```
+
+**UI layout:**
+```
+┌─────────────────────────────────────────┐
+│ GEN 1                        Test Synth │
+│  P1    P2    P3    P4    P5  [LP][ENV]  │  ← custom params (greyed if unused)
+│   │     │     │     │     │  [CLK]      │
+│  FRQ   CUT   RES   ATK   DEC            │  ← standard params (shared)
+│   │     │     │     │     │             │
+│ 🔊 Audio    🎹 MIDI                     │
+└─────────────────────────────────────────┘
+```
+
+**Config changes:**
+- `GENERATOR_CYCLE` stays in main config (explicit ordering)
+- `GENERATORS` dict built dynamically from JSON files
+- New functions: `get_generator_custom_params()`, `get_generator_synthdef()`
+- OSC path: `/noise/gen/custom/{slot}/{param_index}`
+
+**Rationale:**
+- Definition lives with the generator code
+- Adding custom params = edit JSON, update SynthDef
+- UI adapts automatically per generator
+- Standard params still shared across all generators
+
+**DO NOT:**
+- Define more than 5 custom params per generator
+- Forget to add JSON when creating new generator
+
+**Files affected:**
+- `src/config/__init__.py` (JSON loading, new functions)
+- `src/gui/generator_slot.py` (custom params row)
+- `src/gui/generator_grid.py` (signal forwarding)
+- `src/gui/main_frame.py` (OSC routing)
+- `supercollider/core/buses.scd` (custom param buses)
+- `supercollider/core/osc_handlers.scd` (custom param handlers)
+- `supercollider/core/helpers.scd` (pass custom buses to Synth)
+- `supercollider/generators/*.scd` (accept custom buses)
+- `supercollider/generators/*.json` (new files)

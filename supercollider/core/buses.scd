@@ -38,6 +38,9 @@ Default values are real values (not normalized):
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
         ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);
         ~genParams[slot][\clockRate] = Bus.control(s, 1).set(3);  // 3 = CLK (quarter notes)
+        
+        // Custom params (5 per slot) - defaults based on generator JSON
+        ~genParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });
     };
     
     // Audio buses

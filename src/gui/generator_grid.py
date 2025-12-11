@@ -16,6 +16,7 @@ class GeneratorGrid(QWidget):
     
     generator_selected = pyqtSignal(int)
     generator_parameter_changed = pyqtSignal(int, str, float)
+    generator_custom_parameter_changed = pyqtSignal(int, int, float)  # slot_id, param_index, value
     generator_filter_changed = pyqtSignal(int, str)
     generator_clock_enabled_changed = pyqtSignal(int, bool)
     generator_clock_rate_changed = pyqtSignal(int, str)
@@ -49,6 +50,7 @@ class GeneratorGrid(QWidget):
                 slot = GeneratorSlot(slot_id, "Empty")
                 slot.clicked.connect(self.on_slot_clicked)
                 slot.parameter_changed.connect(self.on_parameter_changed)
+                slot.custom_parameter_changed.connect(self.on_custom_parameter_changed)
                 slot.filter_type_changed.connect(self.on_filter_changed)
                 slot.clock_enabled_changed.connect(self.on_clock_enabled_changed)
                 slot.clock_rate_changed.connect(self.on_clock_rate_changed)
@@ -65,6 +67,10 @@ class GeneratorGrid(QWidget):
     def on_parameter_changed(self, slot_id, param_name, value):
         """Handle parameter change."""
         self.generator_parameter_changed.emit(slot_id, param_name, value)
+    
+    def on_custom_parameter_changed(self, slot_id, param_index, value):
+        """Handle custom parameter change."""
+        self.generator_custom_parameter_changed.emit(slot_id, param_index, value)
         
     def on_filter_changed(self, slot_id, filter_type):
         """Handle filter type change."""

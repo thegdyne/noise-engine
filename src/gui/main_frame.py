@@ -72,6 +72,7 @@ class MainFrame(QMainWindow):
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
         self.generator_grid.generator_selected.connect(self.on_generator_selected)
         self.generator_grid.generator_parameter_changed.connect(self.on_generator_param_changed)
+        self.generator_grid.generator_custom_parameter_changed.connect(self.on_generator_custom_param_changed)
         self.generator_grid.generator_filter_changed.connect(self.on_generator_filter_changed)
         self.generator_grid.generator_clock_enabled_changed.connect(self.on_generator_clock_enabled)
         self.generator_grid.generator_clock_rate_changed.connect(self.on_generator_clock_rate)
@@ -208,6 +209,12 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             path = OSC_PATHS.get(f'gen_{param_name}', f'/noise/gen/{param_name}')
             self.osc.client.send_message(path, [slot_id, value])
+    
+    def on_generator_custom_param_changed(self, slot_id, param_index, value):
+        """Handle per-generator custom parameter change."""
+        if self.osc_connected:
+            path = f"{OSC_PATHS['gen_custom']}/{slot_id}/{param_index}"
+            self.osc.client.send_message(path, [value])
         
     def on_generator_filter_changed(self, slot_id, filter_type):
         """Handle generator filter type change."""

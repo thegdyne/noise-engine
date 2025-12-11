@@ -55,6 +55,17 @@ All OSC message routing
         "Gen % clock rate index: %".format(msg[1], msg[2]).postln;
     }, '/noise/gen/clockRate');
     
+    // Per-generator custom parameters
+    // Path format: /noise/gen/custom/{slot}/{param_index}
+    8.do { |i|
+        var slot = i + 1;
+        5.do { |p|
+            OSCdef(("genCustom" ++ slot ++ "_" ++ p).asSymbol, { |msg|
+                ~genParams[slot][\custom][p].set(msg[1].asFloat);
+            }, "/noise/gen/custom/" ++ slot ++ "/" ++ p);
+        };
+    };
+    
     // Generator control
     OSCdef(\startGenerator, { |msg|
         ~startGenerator.(msg[1].asInteger, msg[2].asSymbol);

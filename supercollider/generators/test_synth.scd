@@ -14,12 +14,15 @@ Receives real parameter values from Python:
   - attack: 0.001-0.5 s
   - decay: 0.01-2.0 s
 
+Custom params: none (test_synth.json has empty custom_params)
+
 Selects trigger from master clock's 8 rate channels:
   0=x8, 1=x4, 2=x2, 3=CLK, 4=/2, 5=/4, 6=/8, 7=/16
 */
 
 SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus, 
-                       filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus|
+                       filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                       customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp;
     var env, envEnabled, clockRate, allTrigs, trig;
     

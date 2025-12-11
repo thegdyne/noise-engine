@@ -8,6 +8,7 @@ Reusable functions for generator management
     
     ~startGenerator = { |slotID, genType|
         var params = ~genParams[slotID];
+        var customBuses = params[\custom];
         
         if(~generators[slotID].notNil, {
             ~generators[slotID].free;
@@ -25,7 +26,13 @@ Reusable functions for generator management
                 \filterTypeBus, params[\filterType].index,
                 \envEnabledBus, params[\envEnabled].index,
                 \clockRateBus, params[\clockRate].index,
-                \clockTrigBus, ~clockTrigBus.index
+                \clockTrigBus, ~clockTrigBus.index,
+                // Custom params (5 per generator)
+                \customBus0, customBuses[0].index,
+                \customBus1, customBuses[1].index,
+                \customBus2, customBuses[2].index,
+                \customBus3, customBuses[3].index,
+                \customBus4, customBuses[4].index
             ], ~genGroup, \addToHead);
         }, {
             "ERROR: genGroup is nil!".postln;
