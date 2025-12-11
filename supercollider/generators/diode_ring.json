@@ -52,5 +52,11 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "May 1977 – April 1978 (Formant series), April 2008 (Retronics)",
+        "article": "Formant synthesiser series – C. Chapman",
+        "notes": "Passive diode ring balanced modulator from the Elektor Formant modular synthesiser"
+    }
 }

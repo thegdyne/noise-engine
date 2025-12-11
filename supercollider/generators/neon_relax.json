@@ -52,5 +52,11 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "November 2014",
+        "article": "Neon bulb article",
+        "notes": "RC neon relaxation oscillator with breakdown/extinguish hysteresis behavior"
+    }
 }

@@ -53,5 +53,11 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "March 2007",
+        "article": "Signal generator / function generator test article",
+        "notes": "XR2206/MAX038-style relaxation VCO with current-source charging timing capacitor"
+    }
 }

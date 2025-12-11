@@ -53,5 +53,11 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "May 1977 – April 1978 (Formant series), April 2008 (Retronics)",
+        "article": "Formant synthesiser series – C. Chapman",
+        "notes": "VCA-based ring modulator using OTA/dual-VCA topology from Formant modular system"
+    }
 }

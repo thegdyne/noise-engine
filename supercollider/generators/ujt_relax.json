@@ -52,5 +52,12 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "July/August 2011 (Vol. 37, No. 415/416)",
+        "article": "NPN Relaxation Oscillators – Burkhard Kainka",
+        "project": "110037",
+        "notes": "Classic RC relaxation oscillators for NPN transistors, UJTs, PUTs"
+    }
 }

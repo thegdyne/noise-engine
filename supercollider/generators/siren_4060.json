@@ -54,5 +54,11 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "December 2006 (i-TRIXX supplement)",
+        "article": "When the siren sounds…",
+        "notes": "CD4060 counter/oscillator with analogue multiplexer stepping through resistor chain for siren patterns"
+    }
 }

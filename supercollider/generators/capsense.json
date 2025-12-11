@@ -53,5 +53,11 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "July/August 2011 (Vol. 37, No. 415/416)",
+        "article": "Capacitive sensing article",
+        "notes": "Charge-time measurement relaxation oscillator for sensor capacitance"
+    }
 }

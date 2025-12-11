@@ -52,5 +52,11 @@
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "reference": {
+        "source": "Elektor Magazine",
+        "issue": "March 2006",
+        "article": "FBI siren with flashing light – Arthur Schilp",
+        "notes": "Dual 555 (NE556) design: one timer for slow sweep + lamp, one as audio VCO driving loudspeaker"
+    }
 }
