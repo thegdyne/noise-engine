@@ -1,6 +1,6 @@
 {
     "name": "CapSense",
-    "synthdef": "capSense",
+    "synthdef": "capsense",
     "custom_params": [
         {
             "key": "sensor_cap",

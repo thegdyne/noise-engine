@@ -144,8 +144,36 @@ BPM_MIN = 20
 BPM_MAX = 300
 
 # === GENERATORS ===
-# Cycle order when clicking generator slot (only config needed per generator)
-GENERATOR_CYCLE = ["Empty", "Test Synth", "PT2399"]
+# Cycle order when clicking generator slot
+GENERATOR_CYCLE = [
+    "Empty",
+    # Active (have SynthDefs)
+    "Test Synth",
+    "PT2399",
+    # Synthesis
+    "Subtractive",
+    "Additive",
+    "Granular",
+    "FM",
+    "Wavetable",
+    "Karplus",
+    "Modal",
+    # Relaxation oscillators
+    "VCO Relax",
+    "CapSense",
+    "UJT Relax",
+    "Neon",
+    # Sirens
+    "4060 Siren",
+    "FBI Siren",
+    # Ring modulators
+    "Diode Ring",
+    "4-Quad Ring",
+    "VCA Ring",
+    # Other
+    "Geiger",
+    "Giant B0N0",
+]
 
 # Maximum custom params per generator
 MAX_CUSTOM_PARAMS = 5

@@ -1,6 +1,6 @@
 {
     "name": "FM",
-    "synthdef": "fmSynth",
+    "synthdef": "fm",
     "custom_params": [
         {
             "key": "ratio",
