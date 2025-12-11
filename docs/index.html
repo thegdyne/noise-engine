@@ -19,11 +19,7 @@
             --accent-cyan: #44ddff;
         }
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             background: var(--bg-dark);
@@ -32,13 +28,8 @@
             line-height: 1.6;
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
         
-        /* Header */
         header {
             padding: 60px 0 40px;
             border-bottom: 1px solid var(--border);
@@ -52,24 +43,10 @@
             letter-spacing: -2px;
         }
         
-        .logo span {
-            color: var(--accent-green);
-            text-shadow: 0 0 20px var(--accent-green);
-        }
+        .logo span { color: var(--accent-green); text-shadow: 0 0 20px var(--accent-green); }
+        .tagline { font-size: 20px; color: var(--text); margin-top: 10px; }
         
-        .tagline {
-            font-size: 20px;
-            color: var(--text);
-            margin-top: 10px;
-        }
-        
-        .badges {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
+        .badges { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
         .badge {
             font-family: 'Space Mono', monospace;
             font-size: 12px;
@@ -78,12 +55,10 @@
             background: var(--bg-card);
             border: 1px solid var(--border);
         }
-        
         .badge.python { border-color: #3776ab; color: #3776ab; }
         .badge.supercollider { border-color: #bb2222; color: #bb2222; }
         .badge.pyqt { border-color: #41cd52; color: #41cd52; }
         
-        /* Hero */
         .hero {
             padding: 60px 0;
             display: grid;
@@ -92,15 +67,8 @@
             align-items: center;
         }
         
-        .hero-text h2 {
-            font-size: 28px;
-            color: var(--text-bright);
-            margin-bottom: 20px;
-        }
-        
-        .hero-text p {
-            margin-bottom: 15px;
-        }
+        .hero-text h2 { font-size: 28px; color: var(--text-bright); margin-bottom: 20px; }
+        .hero-text p { margin-bottom: 15px; }
         
         .hero-visual {
             background: var(--bg-panel);
@@ -127,32 +95,10 @@
             flex: 1;
         }
         
-        .flow-node.active {
-            border-color: var(--accent-green);
-            box-shadow: 0 0 15px rgba(68, 255, 136, 0.2);
-        }
-        
-        .flow-node h4 {
-            color: var(--accent-green);
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-        
-        .flow-node p {
-            font-size: 10px;
-            color: var(--text);
-        }
-        
-        .flow-arrow {
-            color: var(--text);
-            font-size: 20px;
-        }
-        
-        /* Features Grid */
-        .features {
-            padding: 60px 0;
-            border-top: 1px solid var(--border);
-        }
+        .flow-node.active { border-color: var(--accent-green); box-shadow: 0 0 15px rgba(68, 255, 136, 0.2); }
+        .flow-node h4 { color: var(--accent-green); font-size: 12px; margin-bottom: 5px; }
+        .flow-node p { font-size: 10px; color: var(--text); }
+        .flow-arrow { color: var(--text); font-size: 20px; }
         
         .section-title {
             font-family: 'Space Mono', monospace;
@@ -163,11 +109,8 @@
             margin-bottom: 30px;
         }
         
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-        }
+        .features { padding: 60px 0; border-top: 1px solid var(--border); }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         
         .feature-card {
             background: var(--bg-panel);
@@ -196,29 +139,11 @@
             font-size: 14px;
         }
         
-        .feature-card ul {
-            list-style: none;
-            font-size: 14px;
-        }
+        .feature-card ul { list-style: none; font-size: 14px; }
+        .feature-card li { padding: 3px 0; padding-left: 15px; position: relative; }
+        .feature-card li::before { content: '›'; position: absolute; left: 0; color: var(--accent-green); }
         
-        .feature-card li {
-            padding: 3px 0;
-            padding-left: 15px;
-            position: relative;
-        }
-        
-        .feature-card li::before {
-            content: '›';
-            position: absolute;
-            left: 0;
-            color: var(--accent-green);
-        }
-        
-        /* Architecture */
-        .architecture {
-            padding: 60px 0;
-            border-top: 1px solid var(--border);
-        }
+        .architecture { padding: 60px 0; border-top: 1px solid var(--border); }
         
         .arch-diagram {
             background: var(--bg-panel);
@@ -230,48 +155,17 @@
             overflow-x: auto;
         }
         
-        .arch-layer {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-            gap: 20px;
-        }
-        
-        .arch-label {
-            width: 120px;
-            color: var(--text);
-            text-align: right;
-        }
-        
-        .arch-boxes {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .arch-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 8px 15px;
-            border-radius: 3px;
-        }
-        
+        .arch-layer { display: flex; align-items: center; margin: 10px 0; gap: 20px; }
+        .arch-label { width: 120px; color: var(--text); text-align: right; }
+        .arch-boxes { display: flex; gap: 10px; flex-wrap: wrap; }
+        .arch-box { background: var(--bg-card); border: 1px solid var(--border); padding: 8px 15px; border-radius: 3px; }
         .arch-box.config { border-left: 3px solid var(--accent-cyan); }
         .arch-box.theme { border-left: 3px solid var(--accent-magenta); }
         .arch-box.widgets { border-left: 3px solid var(--accent-orange); }
         .arch-box.components { border-left: 3px solid var(--accent-green); }
         
-        /* Future Plans */
-        .future {
-            padding: 60px 0;
-            border-top: 1px solid var(--border);
-        }
-        
-        .roadmap {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
+        .future { padding: 60px 0; border-top: 1px solid var(--border); }
+        .roadmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
         
         .roadmap-section {
             background: var(--bg-panel);
@@ -289,32 +183,12 @@
             border-bottom: 1px solid var(--border);
         }
         
-        .roadmap-section ul {
-            list-style: none;
-            font-size: 13px;
-        }
+        .roadmap-section ul { list-style: none; font-size: 13px; }
+        .roadmap-section li { padding: 5px 0; color: var(--text); }
+        .roadmap-section li::before { content: '○ '; color: var(--text); }
         
-        .roadmap-section li {
-            padding: 5px 0;
-            color: var(--text);
-        }
-        
-        .roadmap-section li::before {
-            content: '○ ';
-            color: var(--text);
-        }
-        
-        /* Skins Preview */
-        .skins {
-            padding: 60px 0;
-            border-top: 1px solid var(--border);
-        }
-        
-        .skins-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-        }
+        .skins { padding: 60px 0; border-top: 1px solid var(--border); }
+        .skins-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
         
         .skin-preview {
             background: var(--bg-panel);
@@ -325,35 +199,27 @@
             font-size: 12px;
         }
         
-        .skin-preview .skin-icon {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        
+        .skin-preview .skin-icon { font-size: 24px; margin-bottom: 10px; }
         .skin-preview.winamp { border-color: #00ff00; color: #00ff00; }
         .skin-preview.rebirth { border-color: #ff6600; color: #ff6600; }
         .skin-preview.win31 { border-color: #c0c0c0; color: #c0c0c0; }
         .skin-preview.bladerunner { border-color: #ff4444; color: #ff4444; }
         .skin-preview.tron { border-color: #00ffff; color: #00ffff; }
         
-        /* Footer */
-        footer {
-            padding: 40px 0;
-            border-top: 1px solid var(--border);
-            text-align: center;
-            font-size: 13px;
-        }
-        
-        footer a {
+        .milestones { padding: 60px 0; border-top: 1px solid var(--border); }
+        .milestones-list { list-style: none; max-width: 600px; }
+        .milestones-list li { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .milestone-date {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
             color: var(--accent-green);
-            text-decoration: none;
+            margin-right: 15px;
         }
         
-        footer a:hover {
-            text-decoration: underline;
-        }
+        footer { padding: 40px 0; border-top: 1px solid var(--border); text-align: center; font-size: 13px; }
+        footer a { color: var(--accent-green); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
         
-        /* LED Display Effect */
         .led-display {
             font-family: 'Space Mono', monospace;
             font-size: 32px;
@@ -366,33 +232,13 @@
             display: inline-block;
         }
         
-        /* Responsive */
         @media (max-width: 768px) {
-            .hero {
-                grid-template-columns: 1fr;
-            }
-            
-            .logo {
-                font-size: 32px;
-            }
-            
-            .signal-flow {
-                flex-direction: column;
-            }
-            
-            .flow-arrow {
-                transform: rotate(90deg);
-            }
-            
-            .arch-layer {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .arch-label {
-                text-align: left;
-                width: auto;
-            }
+            .hero { grid-template-columns: 1fr; }
+            .logo { font-size: 32px; }
+            .signal-flow { flex-direction: column; }
+            .flow-arrow { transform: rotate(90deg); }
+            .arch-layer { flex-direction: column; align-items: flex-start; }
+            .arch-label { text-align: left; width: auto; }
         }
     </style>
 </head>
@@ -421,25 +267,13 @@
                     <div style="font-size: 11px; color: #666; margin-top: 5px;">BPM</div>
                 </div>
                 <div class="signal-flow">
-                    <div class="flow-node active">
-                        <h4>GENERATORS</h4>
-                        <p>8 slots</p>
-                    </div>
+                    <div class="flow-node active"><h4>GENERATORS</h4><p>8 slots</p></div>
                     <span class="flow-arrow">→</span>
-                    <div class="flow-node">
-                        <h4>MIXER</h4>
-                        <p>levels</p>
-                    </div>
+                    <div class="flow-node"><h4>MIXER</h4><p>levels</p></div>
                     <span class="flow-arrow">→</span>
-                    <div class="flow-node">
-                        <h4>FX CHAIN</h4>
-                        <p>4 slots</p>
-                    </div>
+                    <div class="flow-node"><h4>FX CHAIN</h4><p>4 slots</p></div>
                     <span class="flow-arrow">→</span>
-                    <div class="flow-node">
-                        <h4>OUTPUT</h4>
-                        <p>master</p>
-                    </div>
+                    <div class="flow-node"><h4>OUTPUT</h4><p>master</p></div>
                 </div>
             </div>
         </section>
@@ -579,30 +413,30 @@
         <section class="skins">
             <h2 class="section-title">Planned Skins</h2>
             <div class="skins-grid">
-                <div class="skin-preview winamp">
-                    <div class="skin-icon">▶</div>
-                    Winamp
-                </div>
-                <div class="skin-preview rebirth">
-                    <div class="skin-icon">◉</div>
-                    ReBirth
-                </div>
-                <div class="skin-preview win31">
-                    <div class="skin-icon">▢</div>
-                    Win 3.1
-                </div>
-                <div class="skin-preview bladerunner">
-                    <div class="skin-icon">◈</div>
-                    Blade Runner
-                </div>
-                <div class="skin-preview tron">
-                    <div class="skin-icon">◇</div>
-                    Tron
-                </div>
+                <div class="skin-preview winamp"><div class="skin-icon">▶</div>Winamp</div>
+                <div class="skin-preview rebirth"><div class="skin-icon">◉</div>ReBirth</div>
+                <div class="skin-preview win31"><div class="skin-icon">▢</div>Win 3.1</div>
+                <div class="skin-preview bladerunner"><div class="skin-icon">◈</div>Blade Runner</div>
+                <div class="skin-preview tron"><div class="skin-icon">◇</div>Tron</div>
             </div>
             <p style="margin-top: 20px; font-size: 13px; color: var(--text);">
                 Also planned: Doom, Terminator 1 & 2, Golden Axe
             </p>
+        </section>
+        
+        <section class="milestones">
+            <h2 class="section-title">Milestones</h2>
+            <ul class="milestones-list">
+                <li><span class="milestone-date">2025-12-11</span> GitHub Pages landing page</li>
+                <li><span class="milestone-date">2025-12-11</span> Winamp skin mockup</li>
+                <li><span class="milestone-date">2025-12-11</span> LFO sync + clock division</li>
+                <li><span class="milestone-date">2025-12-11</span> Centralized config + theme system</li>
+                <li><span class="milestone-date">2025-12-11</span> DragSlider / CycleButton widgets</li>
+                <li><span class="milestone-date">2025-12-11</span> Effects chain UI</li>
+                <li><span class="milestone-date">2025-12-10</span> 8 clock rates (x8 to /16)</li>
+                <li><span class="milestone-date">2025-12-10</span> 8-slot generator system</li>
+                <li><span class="milestone-date">2025-12-10</span> SuperCollider OSC integration</li>
+            </ul>
         </section>
         
         <footer>
