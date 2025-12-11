@@ -311,7 +311,7 @@
                 <span class="badge supercollider">SuperCollider</span>
                 <span class="badge pyqt">PyQt5</span>
                 <span class="badge ssot">SSOT <span class="pct">95%</span></span>
-                <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">9 Generators</span>
+                <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">13 Generators</span>
             </div>
         </header>
         
@@ -482,6 +482,50 @@
                         <span class="param">INH</span>
                     </div>
                 </div>
+                <div class="gen-card">
+                    <h3>VCO Relax</h3>
+                    <p class="gen-desc">XR2206/MAX038 style VCO</p>
+                    <div class="gen-params">
+                        <span class="param">CUR</span>
+                        <span class="param">CAP</span>
+                        <span class="param">VCO</span>
+                        <span class="param">WAV</span>
+                        <span class="param">SYM</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>CapSense</h3>
+                    <p class="gen-desc">Charge-time capacitive sense</p>
+                    <div class="gen-params">
+                        <span class="param">CAP</span>
+                        <span class="param">DAC</span>
+                        <span class="param">THR</span>
+                        <span class="param">CYC</span>
+                        <span class="param">FLT</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>UJT Relax</h3>
+                    <p class="gen-desc">NPN/UJT/PUT relaxation</p>
+                    <div class="gen-params">
+                        <span class="param">RC</span>
+                        <span class="param">THR</span>
+                        <span class="param">VCC</span>
+                        <span class="param">FBK</span>
+                        <span class="param">NEG</span>
+                    </div>
+                </div>
+                <div class="gen-card">
+                    <h3>Neon</h3>
+                    <p class="gen-desc">Neon bulb RC oscillator</p>
+                    <div class="gen-params">
+                        <span class="param">RC</span>
+                        <span class="param">Vb</span>
+                        <span class="param">Vd</span>
+                        <span class="param">V0</span>
+                        <span class="param">HYS</span>
+                    </div>
+                </div>
             </div>
         </section>
         
@@ -567,6 +611,10 @@
                         <li>Wavetable (config ready)</li>
                         <li>Karplus-Strong (config ready)</li>
                         <li>Modal (config ready)</li>
+                        <li>VCO Relax (config ready)</li>
+                        <li>CapSense (config ready)</li>
+                        <li>UJT Relax (config ready)</li>
+                        <li>Neon (config ready)</li>
                     </ul>
                 </div>
                 <div class="roadmap-section">
@@ -618,7 +666,7 @@
         <section class="milestones">
             <h2 class="section-title">Milestones</h2>
             <ul class="milestones-list">
-                <li><span class="milestone-date">2025-12-11</span> 9 generator types with JSON configs</li>
+                <li><span class="milestone-date">2025-12-11</span> 13 generator types (4 relaxation oscillators added)</li>
                 <li><span class="milestone-date">2025-12-11</span> Per-generator custom parameters (P1-P5)</li>
                 <li><span class="milestone-date">2025-12-11</span> Shared ~multiFilter helper (LP/BP/HP)</li>
                 <li><span class="milestone-date">2025-12-11</span> SSOT validation tool + 95% compliance</li>

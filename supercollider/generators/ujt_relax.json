@@ -1,0 +1,56 @@
+{
+    "name": "UJT Relax",
+    "synthdef": "ujtRelax",
+    "custom_params": [
+        {
+            "key": "rc_time",
+            "label": "RC",
+            "tooltip": "RC Time Constant (base period)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "exp",
+            "unit": ""
+        },
+        {
+            "key": "device_threshold",
+            "label": "THR",
+            "tooltip": "Device Threshold (trigger/peak voltage)",
+            "default": 0.6,
+            "min": 0.2,
+            "max": 0.9,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "supply_voltage",
+            "label": "VCC",
+            "tooltip": "Supply Voltage (charge range)",
+            "default": 0.7,
+            "min": 0.3,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "feedback_network",
+            "label": "FBK",
+            "tooltip": "Feedback Network (pulse width/shape)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "neg_resistance",
+            "label": "NEG",
+            "tooltip": "Negative Resistance (snap action)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ]
+}
