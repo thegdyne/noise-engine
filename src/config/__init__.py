@@ -148,7 +148,7 @@ BPM_MAX = 300
 # === GENERATORS ===
 # Cycle order when clicking generator slot
 # Other generators have SynthDefs ready but need testing
-GENERATOR_CYCLE = ["Empty", "Test Synth", "PT2399"]
+GENERATOR_CYCLE = ["Empty", "Test Synth", "PT2399", "Geiger"]
 
 # Maximum custom params per generator
 MAX_CUSTOM_PARAMS = 5
