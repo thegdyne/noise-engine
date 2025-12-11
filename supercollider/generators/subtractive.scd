@@ -26,7 +26,7 @@ SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                           midiTrigBus=0, slotIndex=0,
                           customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var envSource, clockRate, allTrigs, clockTrig, midiTrig, trig;
+    var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
     var waveform, subLevel, oscMix, noiseAmt, drive;
     var osc1, osc2, sub, noise, saw, square, tri, noiseOsc;
     
@@ -91,8 +91,9 @@ SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     clockTrig = Select.ar(clockRate, allTrigs);
     
-    // MIDI trigger for this slot
-    midiTrig = In.ar(midiTrigBus, 8)[slotIndex];
+    // MIDI trigger - read all 8 channels and select by slotIndex
+    allMidiTrigs = In.ar(midiTrigBus, 8);
+    midiTrig = Select.ar(slotIndex, allMidiTrigs);
     
     // Select trigger source: 0=OFF (drone), 1=CLK, 2=MIDI
     trig = Select.ar(envSource, [DC.ar(0), clockTrig, midiTrig]);
