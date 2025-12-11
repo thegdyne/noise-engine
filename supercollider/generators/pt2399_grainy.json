@@ -1,40 +1,56 @@
 {
     "name": "PT2399",
     "synthdef": "pt2399Grainy",
-    "pitch_target": 0,
     "custom_params": [
         {
             "key": "delay_time",
             "label": "DLY",
             "tooltip": "Delay Time",
-            "default": 0.5,
-            "min": 0.005,
-            "max": 5.0,
+            "default": 0.3,
+            "min": 0.001,
+            "max": 0.5,
             "curve": "exp",
-            "unit": "s",
-            "invert": false
+            "unit": "s"
         },
         {
             "key": "feedback",
             "label": "FBK",
             "tooltip": "Feedback Amount",
-            "default": 0.3,
+            "default": 0.4,
             "min": 0.0,
-            "max": 0.95,
+            "max": 0.85,
             "curve": "lin",
-            "unit": "",
-            "invert": false
+            "unit": ""
         },
         {
-            "key": "wet_dry",
-            "label": "MIX",
-            "tooltip": "Wet/Dry Mix",
+            "key": "bandwidth",
+            "label": "BW",
+            "tooltip": "Input Bandwidth (narrow=tonal)",
+            "default": 0.3,
+            "min": 0.01,
+            "max": 1.0,
+            "curve": "exp",
+            "unit": ""
+        },
+        {
+            "key": "tone",
+            "label": "TNE",
+            "tooltip": "Delay Tone (dark <-> bright)",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
             "curve": "lin",
-            "unit": "",
-            "invert": false
+            "unit": ""
+        },
+        {
+            "key": "grit",
+            "label": "GRT",
+            "tooltip": "Lo-fi Grit Amount",
+            "default": 0.2,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
         }
     ]
 }

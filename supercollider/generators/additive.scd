@@ -57,13 +57,15 @@ SynthDef(\additive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         // Frequency: fundamental * harmonic * ratio spread
         partialFreq = (freq * harmonic * partialRatio.linlin(0.5, 4.0, 0.98, 1.02)).clip(20, 20000);
         
-        // Amplitude: rolloff based on curve and tilt
-        // Higher harmonics get quieter, curve controls how fast
-        partialAmp = (1 / (harmonic ** (1 + partialCurve.abs))) * 
-                     (tilt.linlin(-1, 1, 0.5, 1.5) ** (harmonic.neg + 1));
+        // Amplitude: always roll off higher partials, curve controls steepness
+        // partialCurve 0 = gentle 1/n rolloff, positive = steeper, negative = flatter
+        partialAmp = 1 / (harmonic ** (1.5 + partialCurve));
+        
+        // Apply tilt (dark <-> bright bias)
+        partialAmp = partialAmp * (1 + (tilt * (harmonic - 1) * 0.1));
         
         // Slight detuning per partial for richness
-        partialPhase = LFNoise1.kr(0.1 + (i * 0.02)).range(-0.01, 0.01);
+        partialPhase = LFNoise1.kr(0.1 + (i * 0.02)).range(-0.003, 0.003);
         
         // Per-partial amplitude modulation (envelope depth)
         partialAmp = partialAmp * (1 - (envDepth * LFNoise1.kr(0.5 + (i * 0.1)).range(0, 0.3)));
@@ -72,13 +74,11 @@ SynthDef(\additive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         SinOsc.ar(partialFreq * (1 + partialPhase)) * partialAmp * (harmonic <= numPartials)
     });
     
-    sig = partials * 0.3;  // Scale for headroom
-    
-    // Add subtle beating between partials
-    sig = sig + (SinOsc.ar(freq * 0.999) * 0.02);
+    // Normalize by number of partials to prevent loudness explosion
+    sig = partials / numPartials.sqrt * 0.5;
     
     // Stereo spread
-    sig = Pan2.ar(sig, LFNoise1.kr(0.2).range(-0.4, 0.4));
+    sig = Pan2.ar(sig, LFNoise1.kr(0.2).range(-0.3, 0.3));
     
     // === FILTER ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);

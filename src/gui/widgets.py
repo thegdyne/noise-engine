@@ -337,7 +337,7 @@ class CycleButton(QPushButton):
             self.moved_during_press = False
         
     def mouseMoveEvent(self, event):
-        """Handle drag - up = lower index, down = higher index. Shift = fine."""
+        """Handle drag - up = higher index (faster), down = lower index (slower). Shift = fine."""
         if self.dragging:
             modifiers = QApplication.keyboardModifiers()
             if modifiers & Qt.ShiftModifier:
@@ -348,7 +348,8 @@ class CycleButton(QPushButton):
             delta_y = self.drag_start_y - event.globalPos().y()
             steps = int(delta_y / threshold)
             
-            new_index = self.drag_start_index - steps
+            # Up = higher index (toward x2, x4 = faster triggers)
+            new_index = self.drag_start_index + steps
             
             if self.wrap:
                 new_index = new_index % len(self.values)

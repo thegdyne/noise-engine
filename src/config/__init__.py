@@ -193,6 +193,7 @@ GENERATOR_CYCLE = [
     "VCA Ring",
     # Noise/chaos
     "PT2399",
+    "PT Chaos",
     "Geiger",
     "Giant B0N0",
 ]
