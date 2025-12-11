@@ -273,6 +273,8 @@ class CycleButton(QPushButton):
         self.values = values
         self.index = initial_index
         self.wrap = False
+        self.wrap_at_start = False  # Only wrap when going up from index 0
+        self.sensitivity_key = 'cycle'  # Key prefix for DRAG_SENSITIVITY lookup
         self._update_display()
         
         # Drag tracking
@@ -341,9 +343,9 @@ class CycleButton(QPushButton):
         if self.dragging:
             modifiers = QApplication.keyboardModifiers()
             if modifiers & Qt.ShiftModifier:
-                threshold = DRAG_SENSITIVITY['cycle_fine']
+                threshold = DRAG_SENSITIVITY[f'{self.sensitivity_key}_fine']
             else:
-                threshold = DRAG_SENSITIVITY['cycle_normal']
+                threshold = DRAG_SENSITIVITY[f'{self.sensitivity_key}_normal']
                 
             delta_y = self.drag_start_y - event.globalPos().y()
             steps = int(delta_y / threshold)
@@ -353,6 +355,9 @@ class CycleButton(QPushButton):
             
             if self.wrap:
                 new_index = new_index % len(self.values)
+            elif self.wrap_at_start and new_index < 0:
+                # Only wrap when going below 0 (up from Empty)
+                new_index = len(self.values) + (new_index % len(self.values))
             else:
                 new_index = max(0, min(len(self.values) - 1, new_index))
             

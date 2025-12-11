@@ -56,6 +56,8 @@ class GeneratorSlot(QWidget):
         # Generator type selector - drag or click to change
         initial_index = GENERATOR_CYCLE.index(self.generator_type) if self.generator_type in GENERATOR_CYCLE else 0
         self.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
+        self.type_btn.wrap = True  # Wrap around list both directions
+        self.type_btn.sensitivity_key = 'generator'  # Faster drag for long list
         self.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
         self.type_btn.setStyleSheet(f"""
             QPushButton {{
@@ -66,7 +68,7 @@ class GeneratorSlot(QWidget):
                 padding: 2px 4px;
             }}
             QPushButton:hover {{
-                color: {COLORS['accent']};
+                color: {COLORS['enabled_text']};
             }}
         """)
         self.type_btn.value_changed.connect(self.on_generator_type_changed)

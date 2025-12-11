@@ -27,6 +27,8 @@ DRAG_SENSITIVITY = {
     'slider_fine': 400,
     'cycle_normal': 15,
     'cycle_fine': 40,
+    'generator_normal': 8,
+    'generator_fine': 20,
     'bpm_value_normal': 3,
     'bpm_value_fine': 35,
 }
