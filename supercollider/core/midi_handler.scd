@@ -34,81 +34,95 @@ OSC messages to Python:
     ~midiConnected = false;
     ~midiPortIndex = -1;
     
+    // MIDI function references (nil until connected)
+    ~midiNoteOnFunc = nil;
+    ~midiNoteOffFunc = nil;
+    ~midiCCFunc = nil;
+    
     // Python address for sending gate notifications
     ~pythonAddr = NetAddr("127.0.0.1", 57121);
     
-    // Initialize MIDI client
+    // Initialize MIDI client (but don't connect yet)
     MIDIClient.init;
     
-    // Note On handler
-    ~midiNoteOnFunc = MIDIFunc.noteOn({ |vel, note, chan, src|
-        var midiChannel = chan + 1;  // Convert 0-15 to 1-16
+    "  ✓ MIDI client initialized (not connected)".postln;
+};
+
+// Connect MIDI and set up handlers
+~connectMIDI = { |portIndex|
+    // Clean up any existing handlers
+    if(~midiNoteOnFunc.notNil, { ~midiNoteOnFunc.free; ~midiNoteOnFunc = nil; });
+    if(~midiNoteOffFunc.notNil, { ~midiNoteOffFunc.free; ~midiNoteOffFunc = nil; });
+    if(~midiCCFunc.notNil, { ~midiCCFunc.free; ~midiCCFunc = nil; });
+    
+    MIDIIn.disconnectAll;
+    
+    if(portIndex >= 0 && portIndex < MIDIClient.sources.size, {
+        MIDIIn.connect(0, portIndex);
+        ~midiConnected = true;
+        ~midiPortIndex = portIndex;
+        ("MIDI connected to: " ++ MIDIClient.sources[portIndex].device).postln;
         
-        // Safety check - make sure arrays exist
-        if(~genMidiChannel.notNil && ~genMuted.notNil && ~genParams.notNil, {
-            // Find generators listening on this channel
-            8.do { |i|
-                var slot = i + 1;
-                var genChannel = ~genMidiChannel[i];
-                var isMuted = ~genMuted[i];
-                
-                // Check for nil values
-                if(genChannel.notNil && isMuted.notNil, {
-                    if(genChannel == midiChannel && isMuted.not, {
-                        var freq = note.midicps;
-                        var amp = vel / 127.0;
-                        
-                        // Set frequency from note (with nil check)
-                        if(~genParams[slot].notNil && ~genParams[slot][\frequency].notNil, {
-                            ~genParams[slot][\frequency].set(freq);
-                        });
-                        
-                        // Trigger envelope if generator exists
-                        if(~generators.notNil && ~generators[slot].notNil, {
-                            // Send gate to Python for LED
-                            if(~pythonAddr.notNil, {
-                                ~pythonAddr.sendMsg('/noise/midi/gate', slot);
-                            });
-                            
-                            // Trigger the envelope
-                            ~triggerMidiGate.(slot, amp);
-                        });
-                    });
-                });
-            };
+        // Now set up handlers
+        ~midiNoteOnFunc = MIDIFunc.noteOn({ |vel, note, chan, src|
+            ~handleMidiNoteOn.(vel, note, chan);
         });
+        
+        ~midiNoteOffFunc = MIDIFunc.noteOff({ |vel, note, chan, src|
+            // Future: handle note off for ADSR
+        });
+        
+        ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
+            // Future: map CCs to parameters
+        });
+        
+        "  ✓ MIDI handlers active".postln;
+    }, {
+        ~midiConnected = false;
+        ~midiPortIndex = -1;
+        "MIDI disconnected".postln;
     });
+};
+
+// Handle MIDI note on
+~handleMidiNoteOn = { |vel, note, chan|
+    var midiChannel = chan + 1;  // Convert 0-15 to 1-16
     
-    // Note Off handler (for future ADSR support)
-    ~midiNoteOffFunc = MIDIFunc.noteOff({ |vel, note, chan, src|
-        // For now, we use perc envelopes so note off isn't needed
-        // Future: implement ADSR with proper gate off
-    });
-    
-    // CC handler (for future parameter control)
-    ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
-        // Future: map CCs to generator parameters
-        // Example: CC1 (mod wheel) could control filter cutoff
-    });
-    
-    "  ✓ MIDI handlers ready".postln;
+    // Find generators listening on this channel
+    8.do { |i|
+        var slot = i + 1;
+        var genChannel = ~genMidiChannel[i];
+        var isMuted = ~genMuted[i];
+        
+        if(genChannel == midiChannel && isMuted.not, {
+            var freq = note.midicps;
+            var amp = vel / 127.0;
+            
+            // Set frequency from note
+            if(~genParams[slot].notNil && ~genParams[slot][\frequency].notNil, {
+                ~genParams[slot][\frequency].set(freq);
+            });
+            
+            // Trigger envelope if generator exists
+            if(~generators[slot].notNil, {
+                // Send gate to Python for LED
+                ~pythonAddr.sendMsg('/noise/midi/gate', slot);
+                
+                // Trigger the envelope
+                ~triggerMidiGate.(slot, amp);
+            });
+        });
+    };
 };
 
 // Trigger MIDI gate for a generator
 ~triggerMidiGate = { |slot, velocity=1.0|
     // Create a one-shot trigger synth that fires immediately
-    // This writes to the clock trigger bus at CLK rate (index 6)
-    // so the existing envelope system picks it up
+    var rateIndex = 6;  // CLK rate
     
-    // For MIDI, we always trigger at the base clock rate (CLK = index 6)
-    // The generator's clock rate setting only affects internal clock triggers
-    var rateIndex = 6;
-    
-    if(~generators[slot].notNil && ~clockGroup.notNil, {
-        // The generators read from clockTrigBus, but for MIDI we need
-        // to inject a trigger. We'll use a dedicated trigger synth.
+    if(~clockGroup.notNil && ~clockTrigBus.notNil, {
         Synth(\midiTrigger, [
-            \trigBus, ~clockTrigBus,
+            \trigBus, ~clockTrigBus.index,
             \rateIndex, rateIndex,
             \amp, velocity
         ], ~clockGroup);
@@ -116,7 +130,7 @@ OSC messages to Python:
 };
 
 // One-shot trigger synth for MIDI notes
-SynthDef(\midiTrigger, { |trigBus, rateIndex=6, amp=1|
+SynthDef(\midiTrigger, { |trigBus=0, rateIndex=6, amp=1|
     var trig = Impulse.ar(0);  // Single trigger at start
     var sig = Array.fill(13, { |i| 
         if(i == rateIndex, { trig * amp }, { DC.ar(0) })
@@ -132,25 +146,7 @@ SynthDef(\midiTrigger, { |trigBus, rateIndex=6, amp=1|
     // Connect to MIDI device
     OSCdef(\midiDevice, { |msg|
         var portIndex = msg[1].asInteger;
-        
-        if(portIndex < 0, {
-            // Disconnect
-            MIDIIn.disconnectAll;
-            ~midiConnected = false;
-            ~midiPortIndex = -1;
-            "MIDI disconnected".postln;
-        }, {
-            // Connect to specified port
-            if(portIndex < MIDIClient.sources.size, {
-                MIDIIn.disconnectAll;
-                MIDIIn.connect(0, portIndex);
-                ~midiConnected = true;
-                ~midiPortIndex = portIndex;
-                ("MIDI connected to: " ++ MIDIClient.sources[portIndex].device).postln;
-            }, {
-                ("MIDI port index out of range: " ++ portIndex).postln;
-            });
-        });
+        ~connectMIDI.(portIndex);
     }, '/noise/midi/device');
     
     // Set generator MIDI channel
@@ -172,12 +168,6 @@ SynthDef(\midiTrigger, { |trigBus, rateIndex=6, amp=1|
         if(slot >= 1 && slot <= 8, {
             ~genMuted[slot - 1] = muted;
             ("Gen " ++ slot ++ " mute: " ++ muted).postln;
-            
-            // Also mute/unmute the synth audio
-            if(~generators[slot].notNil, {
-                // Could set amplitude to 0, or use a gate
-                // For now just track the state
-            });
         });
     }, '/noise/gen/mute');
     
