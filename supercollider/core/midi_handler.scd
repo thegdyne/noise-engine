@@ -44,32 +44,39 @@ OSC messages to Python:
     ~midiNoteOnFunc = MIDIFunc.noteOn({ |vel, note, chan, src|
         var midiChannel = chan + 1;  // Convert 0-15 to 1-16
         
-        // Find generators listening on this channel
-        8.do { |i|
-            var slot = i + 1;
-            var genChannel = ~genMidiChannel[i];
-            
-            if(genChannel == midiChannel && ~genMuted[i].not, {
-                var freq = note.midicps;
-                var amp = vel / 127.0;
+        // Safety check - make sure arrays exist
+        if(~genMidiChannel.notNil && ~genMuted.notNil && ~genParams.notNil, {
+            // Find generators listening on this channel
+            8.do { |i|
+                var slot = i + 1;
+                var genChannel = ~genMidiChannel[i];
+                var isMuted = ~genMuted[i];
                 
-                // Set frequency from note
-                ~genParams[slot][\frequency].set(freq);
-                
-                // Trigger envelope if ENV is enabled
-                // The envelope is triggered by writing to a trigger bus
-                // For now, we'll create a trigger synth
-                if(~generators[slot].notNil, {
-                    // Send gate to Python for LED
-                    ~pythonAddr.sendMsg('/noise/midi/gate', slot);
-                    
-                    // If envelope is enabled, trigger it
-                    // This is handled by the clock trigger bus normally,
-                    // but for MIDI we need a one-shot trigger
-                    ~triggerMidiGate.(slot, amp);
+                // Check for nil values
+                if(genChannel.notNil && isMuted.notNil, {
+                    if(genChannel == midiChannel && isMuted.not, {
+                        var freq = note.midicps;
+                        var amp = vel / 127.0;
+                        
+                        // Set frequency from note (with nil check)
+                        if(~genParams[slot].notNil && ~genParams[slot][\frequency].notNil, {
+                            ~genParams[slot][\frequency].set(freq);
+                        });
+                        
+                        // Trigger envelope if generator exists
+                        if(~generators.notNil && ~generators[slot].notNil, {
+                            // Send gate to Python for LED
+                            if(~pythonAddr.notNil, {
+                                ~pythonAddr.sendMsg('/noise/midi/gate', slot);
+                            });
+                            
+                            // Trigger the envelope
+                            ~triggerMidiGate.(slot, amp);
+                        });
+                    });
                 });
-            });
-        };
+            };
+        });
     });
     
     // Note Off handler (for future ADSR support)
