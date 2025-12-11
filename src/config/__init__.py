@@ -286,6 +286,9 @@ OSC_PATHS = {
     'start_generator': '/noise/start_generator',
     'stop_generator': '/noise/stop_generator',
     'fidelity_amount': '/noise/fidelity_amount',
+    # MIDI
+    'midi_device': '/noise/midi/device',
+    'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash
 }
 
 # === WIDGET SIZES ===

@@ -17,6 +17,7 @@ from src.gui.mixer_panel import MixerPanel
 from src.gui.effects_chain import EffectsChain
 from src.gui.modulation_sources import ModulationSources
 from src.gui.bpm_display import BPMDisplay
+from src.gui.midi_selector import MIDISelector
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
@@ -116,6 +117,13 @@ class MainFrame(QMainWindow):
         self.bpm_display.bpm_changed.connect(self.on_bpm_changed)
         layout.addWidget(self.bpm_display)
         
+        layout.addSpacing(20)
+        
+        # MIDI device selector
+        self.midi_selector = MIDISelector()
+        self.midi_selector.device_changed.connect(self.on_midi_device_changed)
+        layout.addWidget(self.midi_selector)
+        
         layout.addStretch()
         
         preset_label = QLabel("Preset:")
@@ -197,6 +205,13 @@ class MainFrame(QMainWindow):
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
                 self.modulation_sources.set_master_bpm(self.master_bpm)
+                
+                # Send current MIDI device if one is selected
+                current_midi = self.midi_selector.get_current_device()
+                if current_midi:
+                    port_index = self.midi_selector.get_port_index(current_midi)
+                    if port_index >= 0:
+                        self.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
             else:
                 self.status_label.setText("● Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
@@ -206,6 +221,18 @@ class MainFrame(QMainWindow):
             self.status_label.setText("● Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
             self.mixer_panel.set_io_status(audio=False)
+    
+    def on_midi_device_changed(self, device_name):
+        """Handle MIDI device selection change."""
+        if self.osc_connected:
+            if device_name:
+                port_index = self.midi_selector.get_port_index(device_name)
+                if port_index >= 0:
+                    self.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
+                    print(f"MIDI device: {device_name} (port {port_index})")
+            else:
+                self.osc.client.send_message(OSC_PATHS['midi_device'], [-1])  # -1 = disconnect
+                print("MIDI device: None")
         
     def on_generator_param_changed(self, slot_id, param_name, value):
         """Handle per-generator parameter change."""
