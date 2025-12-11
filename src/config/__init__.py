@@ -48,8 +48,8 @@ GENERATOR_PARAMS = [
         'key': 'attack',
         'label': 'ATK',
         'tooltip': 'VCA Attack',
-        'default': 0.5,
-        'min': 0.001,
+        'default': 0.0,  # Snappiest
+        'min': 0.0001,
         'max': 0.5,
         'curve': 'exp',
         'unit': 's',
@@ -59,7 +59,7 @@ GENERATOR_PARAMS = [
         'key': 'decay',
         'label': 'DEC',
         'tooltip': 'VCA Decay',
-        'default': 0.5,
+        'default': 0.26,  # ~40ms
         'min': 0.01,
         'max': 2.0,
         'curve': 'exp',
