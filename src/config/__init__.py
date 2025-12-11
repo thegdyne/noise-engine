@@ -26,7 +26,7 @@ GENERATOR_PARAMS = [
         'key': 'cutoff',
         'label': 'CUT',
         'tooltip': 'Filter Cutoff',
-        'default': 0.5,
+        'default': 1.0,  # Fully up = filter open
         'min': 80.0,
         'max': 16000.0,
         'curve': 'exp',
@@ -37,7 +37,7 @@ GENERATOR_PARAMS = [
         'key': 'resonance',
         'label': 'RES',
         'tooltip': 'Filter Resonance',
-        'default': 0.5,
+        'default': 0.0,  # Fully down = no resonance
         'min': 0.1,
         'max': 1.0,
         'curve': 'lin',

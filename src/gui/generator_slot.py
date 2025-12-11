@@ -282,7 +282,8 @@ class GeneratorSlot(QWidget):
                     self.custom_labels[i].setStyleSheet(f"color: {COLORS['text']};")
                 
                 self.custom_labels[i].setText(label_text)
-                self.custom_sliders[i].set_param_config(param)
+                from src.config import format_value
+                self.custom_sliders[i].set_param_config(param, format_value)
                 self.custom_sliders[i].setToolTip(param.get('tooltip', ''))
                 self.custom_sliders[i].setEnabled(True)
             else:

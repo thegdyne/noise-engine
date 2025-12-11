@@ -81,13 +81,17 @@ class DragSlider(QSlider):
     def set_param_config(self, param_config, format_func=None):
         """
         Set parameter config for value mapping and popup display.
-        param_config: dict with min, max, curve, unit, invert
+        param_config: dict with min, max, curve, unit, invert, default
         format_func: function(value, param) -> str for display
         """
         self._param_config = param_config
         self._format_func = format_func
-        if self._popup is None:
-            self._popup = ValuePopup()
+        if param_config is not None:
+            if self._popup is None:
+                self._popup = ValuePopup()
+            # Set slider to default value
+            default = param_config.get('default', 0.5)
+            self.setValue(int(default * 1000))
             
     def get_mapped_value(self):
         """Get the real mapped value based on param config."""
@@ -175,8 +179,6 @@ class MiniSlider(DragSlider):
         if param_config:
             from src.config import format_value
             self.set_param_config(param_config, format_value)
-            # Set default value
-            self.setValue(int(param_config['default'] * 1000))
 
 
 class DragValue(QLabel):
