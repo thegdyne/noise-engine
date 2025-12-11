@@ -7,8 +7,8 @@
             "label": "DLY",
             "tooltip": "Delay Time",
             "default": 0.5,
-            "min": 0.01,
-            "max": 0.5,
+            "min": 0.005,
+            "max": 5.0,
             "curve": "exp",
             "unit": "s",
             "invert": false

@@ -10,7 +10,7 @@ Standard params (from Python config):
   - decay: 0.01-2.0 s
 
 Custom params (from pt2399_grainy.json):
-  - custom[0] delay_time: 0.01-0.5 s
+  - custom[0] delay_time: 0.005-5.0 s
   - custom[1] feedback: 0.0-0.95
   - custom[2] wet_dry: 0.0-1.0
 
@@ -72,7 +72,7 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     dry = Pan2.ar(sig, panPos);
     
     // PT2399-style delay with feedback
-    delayed = CombL.ar(dry, 0.5, delayTime, feedback * 4);
+    delayed = CombL.ar(dry, 5.0, delayTime, feedback * 4);
     
     // Wet/dry mix
     sig = (dry * (1 - wetDry)) + (delayed * wetDry);
