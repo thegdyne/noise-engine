@@ -276,6 +276,12 @@ OSC_RECEIVE_PORT = 57121
 
 OSC_PATHS = {
     'clock_bpm': '/noise/clock/bpm',
+    # Global params
+    'gravity': '/noise/gravity',
+    'density': '/noise/density',
+    'filter_cutoff': '/noise/filter_cutoff',
+    'amplitude': '/noise/amplitude',
+    # Per-generator params
     'gen_frequency': '/noise/gen/frequency',
     'gen_cutoff': '/noise/gen/cutoff',
     'gen_resonance': '/noise/gen/resonance',

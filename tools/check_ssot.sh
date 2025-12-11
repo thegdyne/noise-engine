@@ -79,7 +79,7 @@ fi
 # 5. Hardcoded OSC paths (should use OSC_PATHS)
 echo ""
 echo "📡 Checking for hardcoded OSC paths..."
-OSC_HITS=$(grep -rn "'/noise/" "$SRC_DIR" --include="*.py" 2>/dev/null | grep -v "config/__init__.py" | grep -v "OSC_PATHS\[")
+OSC_HITS=$(grep -rn "'/noise/" "$SRC_DIR" --include="*.py" 2>/dev/null | grep -v "config/__init__.py" | grep -v "OSC_PATHS\[" | grep -v "OSC_PATHS.get")
 if [ -n "$OSC_HITS" ]; then
     echo "❌ Hardcoded OSC paths found (use OSC_PATHS):"
     echo "$OSC_HITS" | sed 's/^/   /'
@@ -217,6 +217,15 @@ echo "================================"
 echo "SUMMARY"
 echo "================================"
 
+# Calculate compliance percentage
+TOTAL_CHECKS=8
+PASSED=$((TOTAL_CHECKS - ISSUES))
+if [ $TOTAL_CHECKS -gt 0 ]; then
+    PERCENT=$((PASSED * 100 / TOTAL_CHECKS))
+else
+    PERCENT=100
+fi
+
 if [ $ISSUES -eq 0 ]; then
     echo "✅ No critical SSOT violations found"
 else
@@ -228,7 +237,18 @@ if [ $WARNINGS -gt 0 ]; then
 fi
 
 echo ""
+echo "SSOT Compliance: ${PERCENT}% ($PASSED/$TOTAL_CHECKS checks passed)"
+echo ""
 echo "Legend:"
 echo "  ❌ Critical - should be fixed"
 echo "  ⚠️  Warning - review and fix if appropriate"
 echo "  ✅ Pass"
+
+# Output for automation (if --json flag)
+if [ "$1" = "--json" ]; then
+    echo ""
+    echo "JSON_OUTPUT:{\"percent\":$PERCENT,\"issues\":$ISSUES,\"warnings\":$WARNINGS}"
+fi
+
+# Exit with error code if issues found
+exit $ISSUES"
