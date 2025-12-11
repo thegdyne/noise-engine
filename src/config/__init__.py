@@ -174,6 +174,7 @@ GENERATOR_CYCLE = [
     # Siren circuits (Elektor-inspired)
     "4060 Siren",
     "FBI Siren",
+    "FBI Doppler",
     # Ring modulators (Elektor Formant)
     "Diode Ring",
     "4-Quad Ring",
