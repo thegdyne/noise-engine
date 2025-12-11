@@ -264,6 +264,12 @@ class GeneratorSlot(QWidget):
         self.clock_enabled = False
         self.clock_enabled_changed.emit(self.slot_id, False)
         
+        # Reset filter to LP
+        self.filter_btn.blockSignals(True)
+        self.filter_btn.set_index(0)  # LP is index 0
+        self.filter_btn.blockSignals(False)
+        self.filter_type_changed.emit(self.slot_id, "LP")
+        
         # Reset standard sliders to defaults and send values
         for key, slider in self.sliders.items():
             param = next((p for p in GENERATOR_PARAMS if p['key'] == key), None)
