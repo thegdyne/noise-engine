@@ -146,13 +146,17 @@ class GeneratorSlot(QWidget):
             param_widget = QWidget()
             param_layout = QVBoxLayout(param_widget)
             param_layout.setContentsMargins(0, 0, 0, 0)
-            param_layout.setSpacing(2)
+            param_layout.setSpacing(0)
+            
+            # Push content to bottom so label stays directly above slider
+            param_layout.addStretch()
             
             lbl = QLabel(param['label'])
             lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet(f"color: {COLORS['text']};")
-            param_layout.addWidget(lbl)
+            lbl.setFixedHeight(14)  # Fixed label height
+            param_layout.addWidget(lbl, alignment=Qt.AlignHCenter)
             
             slider = MiniSlider(param_config=param)
             slider.setFixedHeight(60)  # Fixed height for consistency
@@ -161,7 +165,7 @@ class GeneratorSlot(QWidget):
                 lambda norm, p=param: self.on_param_changed(p['key'], norm, p)
             )
             slider.setEnabled(False)
-            param_layout.addWidget(slider, alignment=Qt.AlignCenter)
+            param_layout.addWidget(slider, alignment=Qt.AlignHCenter)
             
             self.sliders[param['key']] = slider
             self.slider_labels[param['key']] = lbl
