@@ -72,13 +72,17 @@ OSC messages to Python:
     MIDIIn.disconnectAll;
     
     if(portIndex >= 0 && portIndex < MIDIClient.sources.size, {
+        var src = MIDIClient.sources[portIndex];
+        ("Connecting to MIDI port " ++ portIndex ++ ": " ++ src.device).postln;
+        
         MIDIIn.connect(0, portIndex);
         ~midiConnected = true;
         ~midiPortIndex = portIndex;
-        ("MIDI connected to: " ++ MIDIClient.sources[portIndex].device).postln;
+        ("MIDI connected to: " ++ src.device).postln;
         
         // Now set up handlers
         ~midiNoteOnFunc = MIDIFunc.noteOn({ |vel, note, chan, src|
+            ("MIDIFunc.noteOn triggered!").postln;
             ~handleMidiNoteOn.(vel, note, chan);
         });
         
@@ -94,13 +98,15 @@ OSC messages to Python:
     }, {
         ~midiConnected = false;
         ~midiPortIndex = -1;
-        "MIDI disconnected".postln;
+        ("MIDI disconnected (port " ++ portIndex ++ ")").postln;
     });
 };
 
 // Handle MIDI note on
 ~handleMidiNoteOn = { |vel, note, chan|
     var midiChannel = chan + 1;  // Convert 0-15 to 1-16
+    
+    ("MIDI Note: " ++ note ++ " vel: " ++ vel ++ " chan: " ++ midiChannel).postln;
     
     // Find generators listening on this channel
     8.do { |i|
@@ -112,6 +118,8 @@ OSC messages to Python:
             var freq = note.midicps;
             var amp = vel / 127.0;
             
+            ("  -> Routing to Gen " ++ slot ++ " freq: " ++ freq).postln;
+            
             // Set frequency from note
             if(~genParams[slot].notNil && ~genParams[slot][\frequency].notNil, {
                 ~genParams[slot][\frequency].set(freq);
@@ -119,11 +127,14 @@ OSC messages to Python:
             
             // Trigger envelope if generator exists
             if(~generators[slot].notNil, {
+                ("  -> Triggering gate for Gen " ++ slot).postln;
                 // Send gate to Python for LED
                 ~pythonAddr.sendMsg('/noise/midi/gate', slot);
                 
                 // Trigger the envelope
                 ~triggerMidiGate.(slot, amp);
+            }, {
+                ("  -> Gen " ++ slot ++ " not running").postln;
             });
         });
     };

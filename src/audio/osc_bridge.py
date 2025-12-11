@@ -9,18 +9,22 @@ from pythonosc import udp_client
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import ThreadingOSCUDPServer
 import threading
+from PyQt5.QtCore import QObject, pyqtSignal
 from src.config import OSC_HOST, OSC_SEND_PORT, OSC_RECEIVE_PORT
 
 
-class OSCBridge:
+class OSCBridge(QObject):
     """Manages OSC communication with SuperCollider."""
     
+    # Signal for thread-safe gate trigger notification
+    gate_triggered = pyqtSignal(int)  # slot_id
+    
     def __init__(self):
+        super().__init__()
         self.client = None
         self.server = None
         self.server_thread = None
         self.connected = False
-        self.gate_callback = None  # Callback for gate triggers
         
     def connect(self, host=None, port=None):
         """Connect to SuperCollider and start receiving."""
@@ -64,20 +68,17 @@ class OSCBridge:
             print(f"Warning: Could not start OSC receive server: {e}")
     
     def _handle_gate(self, address, *args):
-        """Handle gate trigger from SC."""
-        if len(args) > 0 and self.gate_callback:
+        """Handle gate trigger from SC - emit signal for thread safety."""
+        if len(args) > 0:
             slot_id = int(args[0])
-            self.gate_callback(slot_id)
+            # Emit signal - Qt will marshal this to the main thread
+            self.gate_triggered.emit(slot_id)
     
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""
         # Uncomment for debugging:
         # print(f"OSC received: {address} {args}")
         pass
-    
-    def set_gate_callback(self, callback):
-        """Set callback for gate triggers. callback(slot_id)"""
-        self.gate_callback = callback
             
     def send_parameter(self, param_name, value):
         """Send parameter change to SuperCollider."""

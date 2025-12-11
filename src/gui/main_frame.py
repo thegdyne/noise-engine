@@ -196,8 +196,8 @@ class MainFrame(QMainWindow):
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
         if not self.osc_connected:
-            # Set up gate callback before connecting
-            self.osc.set_gate_callback(self.on_gate_trigger)
+            # Connect gate signal before connecting
+            self.osc.gate_triggered.connect(self.on_gate_trigger)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -219,6 +219,10 @@ class MainFrame(QMainWindow):
                 self.status_label.setText("● Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
+            try:
+                self.osc.gate_triggered.disconnect(self.on_gate_trigger)
+            except:
+                pass
             self.osc.disconnect()
             self.osc_connected = False
             self.connect_btn.setText("Connect SuperCollider")
