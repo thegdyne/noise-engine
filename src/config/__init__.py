@@ -38,9 +38,9 @@ GENERATOR_PARAMS = [
         'label': 'RES',
         'tooltip': 'Filter Resonance',
         'default': 0.0,  # Fully down = no resonance
-        'min': 0.1,
+        'min': 0.001,    # Self-oscillation territory
         'max': 1.0,
-        'curve': 'lin',
+        'curve': 'exp',  # Exponential - gets intense at top
         'unit': '',
         'invert': True,  # High slider = low rq = more resonance
     },

@@ -8,11 +8,12 @@ Reusable functions for generator management
     
     // Shared multimode filter with BPF gain compensation
     // filterType: 0=LP, 1=HP, 2=BP
+    // At low rq (high res), filters will self-oscillate
     ~multiFilter = { |sig, filterType, filterFreq, rq|
         Select.ar(filterType, [
             RLPF.ar(sig, filterFreq, rq),
             RHPF.ar(sig, filterFreq, rq),
-            BPF.ar(sig, filterFreq, rq, mul: rq.sqrt.reciprocal)
+            BPF.ar(sig, filterFreq, rq, mul: rq.sqrt.reciprocal.min(15))
         ])
     };
     
