@@ -391,3 +391,60 @@ FONT_SIZES = {
 **Rationale:** Visualize skin ideas before implementing in PyQt
 **DO NOT:** Use mockup code directly - real skins will use centralized theme
 **Files affected:** `docs/mockups/`, `docs/mockups/README.md`
+
+---
+
+### [2025-12-11] Config-Driven Generator Parameters (Single Source of Truth)
+**Decision:** All generator parameters defined once in `GENERATOR_PARAMS` list in `src/config/__init__.py`
+**Parameter Definition:**
+```python
+{
+    'key': 'cutoff',      # Internal name
+    'label': 'CUT',       # UI display
+    'tooltip': 'Filter Cutoff',
+    'default': 0.5,       # Normalized default (0-1)
+    'min': 80.0,          # Real minimum value
+    'max': 16000.0,       # Real maximum value  
+    'curve': 'exp',       # 'lin' or 'exp' mapping
+    'unit': 'Hz',         # Display unit
+    'invert': False,      # High slider = low value?
+}
+```
+**Value Flow:**
+1. User moves slider (0-1000 internal range)
+2. Python normalizes to 0-1
+3. `map_value()` converts to real value using config (curve, range, invert)
+4. Real value sent over OSC
+5. SuperCollider receives and uses directly (no mapping in SynthDefs)
+
+**Rationale:** 
+- Adding a parameter = one dict entry in config
+- UI labels, tooltips, ranges, curves all in one place
+- SynthDefs become simpler (no linexp/linlin)
+- Display formatting centralized in `format_value()`
+
+**DO NOT:** 
+- Hardcode parameter lists in UI components
+- Do value mapping in SuperCollider SynthDefs
+- Add parameters without updating GENERATOR_PARAMS
+
+**Files affected:** 
+- `src/config/__init__.py` (GENERATOR_PARAMS, map_value, format_value)
+- `src/gui/widgets.py` (MiniSlider accepts param_config)
+- `src/gui/generator_slot.py` (builds sliders from config)
+- `supercollider/generators/*.scd` (receive real values)
+- `supercollider/core/buses.scd` (default values are real)
+
+---
+
+### [2025-12-11] ValuePopup Widget for Live Parameter Display
+**Decision:** Floating popup shows real value during slider drag
+**Behavior:**
+- Appears when drag starts
+- Follows slider handle position  
+- Shows formatted value with unit (e.g., "1.1kHz", "22ms")
+- Disappears on drag release
+
+**Rationale:** Performance instrument needs value feedback without cluttering static UI
+**DO NOT:** Show popup when not actively dragging
+**Files affected:** `src/gui/widgets.py` (ValuePopup class, DragSlider integration)

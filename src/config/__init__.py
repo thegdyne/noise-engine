@@ -3,6 +3,113 @@ Central Configuration
 All constants, mappings, and settings in one place
 """
 
+import math
+
+# === GENERATOR PARAMETERS ===
+# Single source of truth for all generator parameters
+# Order determines UI slider order
+GENERATOR_PARAMS = [
+    {
+        'key': 'frequency',
+        'label': 'FRQ',
+        'tooltip': 'Frequency / Rate',
+        'default': 0.5,
+        'min': 0.5,
+        'max': 80.0,
+        'curve': 'exp',
+        'unit': 'Hz',
+        'invert': False,
+    },
+    {
+        'key': 'cutoff',
+        'label': 'CUT',
+        'tooltip': 'Filter Cutoff',
+        'default': 0.5,
+        'min': 80.0,
+        'max': 16000.0,
+        'curve': 'exp',
+        'unit': 'Hz',
+        'invert': False,
+    },
+    {
+        'key': 'resonance',
+        'label': 'RES',
+        'tooltip': 'Filter Resonance',
+        'default': 0.5,
+        'min': 0.1,
+        'max': 1.0,
+        'curve': 'lin',
+        'unit': '',
+        'invert': True,  # High slider = low rq = more resonance
+    },
+    {
+        'key': 'attack',
+        'label': 'ATK',
+        'tooltip': 'VCA Attack',
+        'default': 0.5,
+        'min': 0.001,
+        'max': 0.5,
+        'curve': 'exp',
+        'unit': 's',
+        'invert': False,
+    },
+    {
+        'key': 'decay',
+        'label': 'DEC',
+        'tooltip': 'VCA Decay',
+        'default': 0.5,
+        'min': 0.01,
+        'max': 2.0,
+        'curve': 'exp',
+        'unit': 's',
+        'invert': False,
+    },
+]
+
+
+def map_value(normalized, param):
+    """
+    Map normalized 0-1 slider value to real parameter value.
+    Handles linear/exponential curves and inversion.
+    """
+    if param['invert']:
+        normalized = 1.0 - normalized
+    
+    min_val = param['min']
+    max_val = param['max']
+    
+    if param['curve'] == 'exp':
+        # Exponential mapping
+        return min_val * math.pow(max_val / min_val, normalized)
+    else:
+        # Linear mapping
+        return min_val + (max_val - min_val) * normalized
+
+
+def format_value(value, param):
+    """
+    Format a real value with its unit for display.
+    """
+    unit = param['unit']
+    
+    if unit == 'Hz':
+        if value >= 1000:
+            return f"{value/1000:.1f}kHz"
+        else:
+            return f"{value:.0f}Hz"
+    elif unit == 's':
+        if value < 0.01:
+            return f"{value*1000:.1f}ms"
+        elif value < 1.0:
+            return f"{value*1000:.0f}ms"
+        else:
+            return f"{value:.2f}s"
+    elif unit == '':
+        return f"{value:.2f}"
+    else:
+        return f"{value:.2f}{unit}"
+
+
 # === CLOCK ===
 CLOCK_RATES = ["x8", "x4", "x2", "CLK", "/2", "/4", "/8", "/16"]
 CLOCK_DEFAULT_INDEX = 3  # CLK

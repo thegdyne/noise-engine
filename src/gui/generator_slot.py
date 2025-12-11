@@ -9,14 +9,17 @@ from PyQt5.QtGui import QFont
 
 from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import MiniSlider, CycleButton
-from src.config import FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES
+from src.config import (
+    FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
+    GENERATOR_PARAMS, map_value
+)
 
 
 class GeneratorSlot(QWidget):
     """A single generator slot with base parameters."""
     
     clicked = pyqtSignal(int)
-    parameter_changed = pyqtSignal(int, str, float)
+    parameter_changed = pyqtSignal(int, str, float)  # slot_id, param_key, real_value
     filter_type_changed = pyqtSignal(int, str)
     clock_enabled_changed = pyqtSignal(int, bool)
     clock_rate_changed = pyqtSignal(int, str)
@@ -61,17 +64,10 @@ class GeneratorSlot(QWidget):
         params_layout.setContentsMargins(8, 8, 8, 8)
         params_layout.setSpacing(5)
         
-        params = [
-            ('FRQ', 'frequency', 'Frequency / Rate'),
-            ('CUT', 'cutoff', 'Filter Cutoff'),
-            ('RES', 'resonance', 'Filter Resonance'),
-            ('ATK', 'attack', 'VCA Attack'),
-            ('DEC', 'decay', 'VCA Decay'),
-        ]
-        
+        # Build sliders from config
         self.sliders = {}
         
-        for label, key, tooltip in params:
+        for param in GENERATOR_PARAMS:
             param_widget = QWidget()
             param_layout = QVBoxLayout(param_widget)
             param_layout.setContentsMargins(0, 0, 0, 0)
@@ -79,21 +75,21 @@ class GeneratorSlot(QWidget):
             
             param_layout.addStretch()
             
-            lbl = QLabel(label)
+            lbl = QLabel(param['label'])
             lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet(f"color: {COLORS['text']};")
             param_layout.addWidget(lbl)
             
-            slider = MiniSlider()
-            slider.setToolTip(tooltip)
-            slider.valueChanged.connect(
-                lambda v, k=key: self.on_param_changed(k, v / 1000.0)
+            slider = MiniSlider(param_config=param)
+            slider.setToolTip(param['tooltip'])
+            slider.normalizedValueChanged.connect(
+                lambda norm, p=param: self.on_param_changed(p['key'], norm, p)
             )
             slider.setEnabled(False)
             param_layout.addWidget(slider, alignment=Qt.AlignCenter)
             
-            self.sliders[key] = slider
+            self.sliders[param['key']] = slider
             params_layout.addWidget(param_widget)
         
         params_layout.addSpacing(5)
@@ -240,9 +236,10 @@ class GeneratorSlot(QWidget):
         """Handle rate button change."""
         self.clock_rate_changed.emit(self.slot_id, rate)
         
-    def on_param_changed(self, param_name, value):
-        """Handle parameter change."""
-        self.parameter_changed.emit(self.slot_id, param_name, value)
+    def on_param_changed(self, param_key, normalized, param_config):
+        """Handle parameter change - emit real mapped value."""
+        real_value = map_value(normalized, param_config)
+        self.parameter_changed.emit(self.slot_id, param_key, real_value)
         
     def mousePressEvent(self, event):
         """Handle click to change generator type."""

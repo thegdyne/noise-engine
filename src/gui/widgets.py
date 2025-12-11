@@ -3,10 +3,48 @@ Reusable UI Widgets
 Atomic components with no business logic - just behavior
 """
 
-from PyQt5.QtWidgets import QSlider, QPushButton, QLabel, QApplication
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QSlider, QPushButton, QLabel, QApplication, QWidget
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPoint
+from PyQt5.QtGui import QFont
 
-from .theme import slider_style, DRAG_SENSITIVITY
+from .theme import slider_style, DRAG_SENSITIVITY, COLORS, MONO_FONT, FONT_SIZES
+
+
+class ValuePopup(QLabel):
+    """
+    Floating popup that displays a value near a slider handle.
+    Shows during drag, hides on release.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        self.setStyleSheet(f"""
+            QLabel {{
+                background-color: {COLORS['background_highlight']};
+                color: {COLORS['text_bright']};
+                border: 1px solid {COLORS['border_light']};
+                border-radius: 3px;
+                padding: 2px 5px;
+            }}
+        """)
+        self.setAlignment(Qt.AlignCenter)
+        self.hide()
+        self.setWindowFlags(Qt.ToolTip)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        
+    def show_value(self, text, global_pos):
+        """Show popup with text at position."""
+        self.setText(text)
+        self.adjustSize()
+        # Position to the right of the handle
+        self.move(global_pos.x() + 15, global_pos.y() - self.height() // 2)
+        self.show()
+        self.raise_()
+        
+    def hide_value(self):
+        """Hide the popup."""
+        self.hide()
 
 
 class DragSlider(QSlider):
@@ -15,8 +53,13 @@ class DragSlider(QSlider):
     Click and drag up = increase, drag down = decrease.
     Hold Shift for fine control.
     
+    Supports optional ValuePopup for displaying mapped values during drag.
+    
     Base class - use MiniSlider for generator params, or customize size.
     """
+    
+    # Signal emits normalized 0-1 value
+    normalizedValueChanged = pyqtSignal(float)
     
     def __init__(self, parent=None):
         super().__init__(Qt.Vertical, parent)
@@ -30,12 +73,67 @@ class DragSlider(QSlider):
         self.drag_start_y = 0
         self.drag_start_value = 0
         
+        # Value popup (optional)
+        self._popup = None
+        self._param_config = None
+        self._format_func = None
+        
+    def set_param_config(self, param_config, format_func=None):
+        """
+        Set parameter config for value mapping and popup display.
+        param_config: dict with min, max, curve, unit, invert
+        format_func: function(value, param) -> str for display
+        """
+        self._param_config = param_config
+        self._format_func = format_func
+        if self._popup is None:
+            self._popup = ValuePopup()
+            
+    def get_mapped_value(self):
+        """Get the real mapped value based on param config."""
+        if self._param_config is None:
+            return self.value() / 1000.0
+        
+        from src.config import map_value
+        normalized = self.value() / 1000.0
+        return map_value(normalized, self._param_config)
+        
+    def _update_popup(self):
+        """Update popup position and value during drag."""
+        if self._popup is None or self._param_config is None:
+            return
+            
+        mapped_value = self.get_mapped_value()
+        
+        if self._format_func:
+            text = self._format_func(mapped_value, self._param_config)
+        else:
+            text = f"{mapped_value:.2f}"
+        
+        # Get handle position in global coords
+        handle_pos = self._get_handle_global_pos()
+        self._popup.show_value(text, handle_pos)
+        
+    def _get_handle_global_pos(self):
+        """Calculate global position of slider handle."""
+        # Slider geometry
+        groove_margin = 5
+        available_height = self.height() - 2 * groove_margin
+        
+        # Value position (inverted because 0 is at bottom for vertical)
+        value_ratio = (self.value() - self.minimum()) / (self.maximum() - self.minimum())
+        handle_y = groove_margin + (1.0 - value_ratio) * available_height
+        
+        local_pos = QPoint(self.width(), int(handle_y))
+        return self.mapToGlobal(local_pos)
+        
     def mousePressEvent(self, event):
         """Start drag from current value."""
         if event.button() == Qt.LeftButton:
             self.dragging = True
             self.drag_start_y = event.globalPos().y()
             self.drag_start_value = self.value()
+            self._update_popup()
             
     def mouseMoveEvent(self, event):
         """Drag up = increase, drag down = decrease. Shift = fine control."""
@@ -55,20 +153,30 @@ class DragSlider(QSlider):
             
             if new_value != self.value():
                 self.setValue(new_value)
+                self.normalizedValueChanged.emit(new_value / 1000.0)
+                self._update_popup()
                 
     def mouseReleaseEvent(self, event):
         """End drag."""
         if event.button() == Qt.LeftButton:
             self.dragging = False
+            if self._popup:
+                self._popup.hide_value()
 
 
 class MiniSlider(DragSlider):
-    """Compact vertical slider for generator params."""
+    """Compact vertical slider for generator params with value popup support."""
     
-    def __init__(self, parent=None):
+    def __init__(self, param_config=None, parent=None):
         super().__init__(parent)
         self.setFixedWidth(25)
         self.setMinimumHeight(50)
+        
+        if param_config:
+            from src.config import format_value
+            self.set_param_config(param_config, format_value)
+            # Set default value
+            self.setValue(int(param_config['default'] * 1000))
 
 
 class DragValue(QLabel):

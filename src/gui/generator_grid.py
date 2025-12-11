@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
 from .generator_slot import GeneratorSlot
-from .theme import COLORS
+from .theme import COLORS, FONT_FAMILY, FONT_SIZES
 
 
 class GeneratorGrid(QWidget):
@@ -35,8 +35,7 @@ class GeneratorGrid(QWidget):
         main_layout.setSpacing(5)
         
         title = QLabel("GENERATORS")
-        title_font = QFont('Helvetica', 12, QFont.Bold)
-        title.setFont(title_font)
+        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         main_layout.addWidget(title)
