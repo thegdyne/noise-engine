@@ -40,6 +40,11 @@ s.waitForBoot({
     (~basePath +/+ "core/osc_handlers.scd").load;
     ~setupOSC.();
     
+    // Load MIDI handler
+    (~basePath +/+ "core/midi_handler.scd").load;
+    ~setupMIDI.();
+    ~setupMIDIOSC.();
+    
     s.sync;
     
     // Start audio

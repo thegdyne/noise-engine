@@ -196,6 +196,9 @@ class MainFrame(QMainWindow):
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
         if not self.osc_connected:
+            # Set up gate callback before connecting
+            self.osc.set_gate_callback(self.on_gate_trigger)
+            
             if self.osc.connect():
                 self.osc_connected = True
                 self.connect_btn.setText("Disconnect")
@@ -216,11 +219,18 @@ class MainFrame(QMainWindow):
                 self.status_label.setText("● Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
+            self.osc.disconnect()
             self.osc_connected = False
             self.connect_btn.setText("Connect SuperCollider")
             self.status_label.setText("● Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
             self.mixer_panel.set_io_status(audio=False)
+    
+    def on_gate_trigger(self, slot_id):
+        """Handle gate trigger from SC - flash LED."""
+        slot = self.generator_grid.get_slot(slot_id)
+        if slot:
+            slot.flash_gate()
     
     def on_midi_device_changed(self, device_name):
         """Handle MIDI device selection change."""
