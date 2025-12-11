@@ -60,8 +60,8 @@ SynthDef(\giantBono, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // === CHAOTIC PLL ===
     
     // PLL VCO frequency - HUGE range (0.02x to 50x base freq)
-    // Clamp to 20kHz max to prevent silence at extremes
-    pllFreq = (freq * courics.linexp(0, 1, 0.02, 50)).clip(1, 20000);
+    // Clamp base to 15kHz so modulated freqs stay audible
+    pllFreq = (freq * courics.linexp(0, 1, 0.02, 50)).clip(1, 15000);
     
     // Multiple chaos sources (like real PLL instability)
     chaos1 = LFNoise0.kr(pllFreq * 0.1);           // Fast random
@@ -75,13 +75,15 @@ SynthDef(\giantBono, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     feedback = LocalIn.ar(1);
     
     // VCO with heavy modulation from chaos AND delay feedback
+    // Clamp final freq to prevent ultrasonic silence
     vco = Pulse.ar(
-        pllFreq * (1 + (chaosMix * 0.5) + (feedback * pllToDelay * 2)),
+        (pllFreq * (1 + (chaosMix * 0.5) + (feedback * pllToDelay * 2))).clip(1, 20000),
         (0.5 + (chaos1 * 0.3 * pllToDelay)).clip(0.1, 0.9)  // PWM from chaos
     );
     
     // Double saw - "dirty filthy sawtooth" at ~2x freq
-    doubleSaw = Saw.ar(pllFreq * (2.01 + (chaos2 * 0.2 * pllToDelay)));
+    // Clamp to audible
+    doubleSaw = Saw.ar((pllFreq * (2.01 + (chaos2 * 0.2 * pllToDelay))).clip(1, 20000));
     doubleSaw = (doubleSaw * (2 + (pllToDelay * 3))).tanh;  // Overdrive the saw
     
     // PC1 - phase comparator output (XOR-like behavior)
