@@ -213,6 +213,8 @@ class MainFrame(QMainWindow):
     def on_generator_custom_param_changed(self, slot_id, param_index, value):
         """Handle per-generator custom parameter change."""
         if self.osc_connected:
+            # Safety clamp to prevent OSC float overflow
+            value = max(-1e30, min(1e30, float(value)))
             path = f"{OSC_PATHS['gen_custom']}/{slot_id}/{param_index}"
             self.osc.client.send_message(path, [value])
         

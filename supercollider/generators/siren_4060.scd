@@ -63,27 +63,27 @@ SynthDef(\siren4060, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     
     // Counter (0 to 2^bits - 1, cycling)
     counter = LFSaw.kr(counterRate / counterBits.max(2), 0, 0.5, 0.5);
-    counter = (counter * counterBits.pow(2)).floor;
+    counter = (counter * 16).floor / 16;  // Quantize to 16 steps
     
     // Pattern-dependent frequency ratios (resistor ladder values)
     // Different patterns give different siren characters
     patternRatios = Select.kr(pattern.round, [
         // 0: Rising siren (police style)
-        counter.linlin(0, counterBits.pow(2), 0.5, 2),
+        counter.linlin(0, 1, 0.5, 2),
         // 1: Falling siren
-        counter.linlin(0, counterBits.pow(2), 2, 0.5),
+        counter.linlin(0, 1, 2, 0.5),
         // 2: Two-tone (European style)
-        ((counter % 2) * 0.5) + 0.75,
+        (LFPulse.kr(counterRate * 2) * 0.5) + 0.75,
         // 3: Wail (up-down-up-down)
-        (counter.fold(0, counterBits.pow(2) / 2) / (counterBits.pow(2) / 2) * 0.8) + 0.6,
+        (LFTri.kr(counterRate) * 0.4) + 1.0,
         // 4: Yelp (rapid alternating)
-        ((counter % 4) / 4 * 0.6) + 0.7,
+        (LFPulse.kr(counterRate * 4) * 0.3) + 0.85,
         // 5: Stepped scale
-        (counter / counterBits.pow(2)).pow(0.5) * 1.5 + 0.5,
-        // 6: Random-ish (counter bits as frequency selectors)
-        ((counter * 1.618).fold(0, 1) * 1.2) + 0.6,
+        (counter.pow(0.5) * 1.5) + 0.5,
+        // 6: Random-ish
+        (LFNoise0.kr(counterRate * 2) * 0.3) + 1.0,
         // 7: Phaser (slow sweep with steps)
-        (counter.linlin(0, counterBits.pow(2), 0.8, 1.2) * SinOsc.kr(0.3).range(0.9, 1.1))
+        (counter * SinOsc.kr(0.3).range(0.8, 1.2))
     ]);
     
     // Tone oscillator frequency

@@ -84,16 +84,8 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         mul: 0.1
     );
     
-    // Add subtle noise grains for texture
-    sig = sig + (GrainBuf.ar(
-        numChannels: 2,
-        trigger: Dust.ar(density * 0.2),
-        dur: grainDur * 0.3,
-        sndbuf: LocalBuf(512).set(Array.fill(512, { |i| sin(i * 0.1) * (1 - (i/512)) })),
-        rate: grainFreq / 440,
-        pan: TRand.ar(-1, 1, Dust.ar(density * 0.2)) * spread,
-        mul: 0.05 * jitter
-    ));
+    // Add subtle noise texture (simpler than GrainBuf)
+    sig = sig + (PinkNoise.ar * EnvGen.ar(Env.perc(0.001, grainDur), Dust.ar(density * 0.2)) * 0.05 * jitter);
     
     // === FILTER ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);

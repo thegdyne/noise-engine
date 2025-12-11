@@ -74,20 +74,35 @@ def map_value(normalized, param):
     Map normalized 0-1 slider value to real parameter value.
     Handles linear/exponential curves and inversion.
     """
+    # Clamp normalized to valid range
+    normalized = max(0.0, min(1.0, normalized))
+    
     if param.get('invert', False):
         normalized = 1.0 - normalized
     
-    min_val = param['min']
-    max_val = param['max']
+    min_val = param.get('min', 0.0)
+    max_val = param.get('max', 1.0)
     
     if param.get('curve', 'lin') == 'exp':
         # Exponential mapping (need non-zero min)
         if min_val <= 0:
             min_val = 0.001  # Prevent division by zero
-        return min_val * math.pow(max_val / min_val, normalized)
+        if max_val <= 0:
+            max_val = 1.0
+        result = min_val * math.pow(max_val / min_val, normalized)
     else:
         # Linear mapping
-        return min_val + (max_val - min_val) * normalized
+        result = min_val + (max_val - min_val) * normalized
+    
+    # Clamp result to prevent float overflow in OSC
+    # IEEE 754 single-precision float max is ~3.4e38
+    result = max(-1e30, min(1e30, result))
+    
+    # Handle NaN/Inf
+    if math.isnan(result) or math.isinf(result):
+        result = float(param.get('default', 0.5))
+    
+    return result
 
 
 def format_value(value, param):

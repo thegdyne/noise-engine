@@ -17,7 +17,7 @@
             "label": "SCN",
             "tooltip": "Table Scan Rate",
             "default": 0.0,
-            "min": 0.0,
+            "min": 0.001,
             "max": 10.0,
             "curve": "exp",
             "unit": "Hz"
