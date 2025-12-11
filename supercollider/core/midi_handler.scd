@@ -26,6 +26,13 @@ OSC messages to Python:
 ~setupMIDI = {
     "Setting up MIDI...".postln;
     
+    // Clear any existing MIDI responders from previous runs
+    MIDIFunc.freeAll;
+    MIDIdef.freeAll;
+    
+    // Disconnect any existing MIDI connections
+    try { MIDIIn.disconnectAll } { };
+    
     // Per-generator MIDI settings
     ~genMidiChannel = Array.fill(8, { 0 });  // 0 = OFF, 1-16 = channel
     ~genMuted = Array.fill(8, { false });
@@ -46,13 +53,14 @@ OSC messages to Python:
     {
         try {
             MIDIClient.init;
-            "  ✓ MIDI client initialized".postln;
+            MIDIIn.disconnectAll;  // Disconnect again after init
+            "  ✓ MIDI client initialized (all inputs disconnected)".postln;
         } { |error|
-            "  ✗ MIDI client init failed (no MIDI devices?)".postln;
+            "  ✗ MIDI client init failed".postln;
         };
     }.defer(0.5);
     
-    "  ✓ MIDI setup complete (client init deferred)".postln;
+    "  ✓ MIDI setup complete".postln;
 };
 
 // Connect MIDI and set up handlers
