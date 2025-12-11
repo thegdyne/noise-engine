@@ -11,15 +11,16 @@ from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import MiniSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
-    GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, map_value, get_generator_custom_params,
-    get_generator_pitch_target
+    GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE, map_value, 
+    get_generator_custom_params, get_generator_pitch_target
 )
 
 
 class GeneratorSlot(QWidget):
     """A single generator slot with base parameters."""
     
-    clicked = pyqtSignal(int)
+    clicked = pyqtSignal(int)  # Legacy - kept for compatibility
+    generator_changed = pyqtSignal(int, str)  # slot_id, generator_type
     parameter_changed = pyqtSignal(int, str, float)  # slot_id, param_key, real_value
     custom_parameter_changed = pyqtSignal(int, int, float)  # slot_id, param_index, real_value
     filter_type_changed = pyqtSignal(int, str)
@@ -52,11 +53,24 @@ class GeneratorSlot(QWidget):
         
         header.addStretch()
         
-        self.type_label = QLabel(self.generator_type)
-        self.type_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
-        self.type_label.setAlignment(Qt.AlignRight)
-        self.type_label.setCursor(Qt.PointingHandCursor)
-        header.addWidget(self.type_label)
+        # Generator type selector - drag or click to change
+        initial_index = GENERATOR_CYCLE.index(self.generator_type) if self.generator_type in GENERATOR_CYCLE else 0
+        self.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
+        self.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
+        self.type_btn.setStyleSheet(f"""
+            QPushButton {{
+                color: {COLORS['text']};
+                background: transparent;
+                border: none;
+                text-align: right;
+                padding: 2px 4px;
+            }}
+            QPushButton:hover {{
+                color: {COLORS['accent']};
+            }}
+        """)
+        self.type_btn.value_changed.connect(self.on_generator_type_changed)
+        header.addWidget(self.type_btn)
         
         layout.addLayout(header)
         
@@ -237,7 +251,9 @@ class GeneratorSlot(QWidget):
     def set_generator_type(self, gen_type):
         """Change generator type."""
         self.generator_type = gen_type
-        self.type_label.setText(gen_type)
+        self.type_btn.blockSignals(True)
+        self.type_btn.set_value(gen_type)
+        self.type_btn.blockSignals(False)
         
         enabled = gen_type != "Empty"
         pitch_target = get_generator_pitch_target(gen_type)
@@ -345,6 +361,11 @@ class GeneratorSlot(QWidget):
     def on_filter_changed(self, filter_type):
         """Handle filter button change."""
         self.filter_type_changed.emit(self.slot_id, filter_type)
+    
+    def on_generator_type_changed(self, gen_type):
+        """Handle generator type change from CycleButton."""
+        self.generator_type = gen_type
+        self.generator_changed.emit(self.slot_id, gen_type)
         
     def toggle_clock(self):
         """Toggle envelope ON/OFF."""
@@ -368,9 +389,3 @@ class GeneratorSlot(QWidget):
             param_config = custom_params[param_index]
             real_value = map_value(normalized, param_config)
             self.custom_parameter_changed.emit(self.slot_id, param_index, real_value)
-        
-    def mousePressEvent(self, event):
-        """Handle click to change generator type."""
-        if event.button() == Qt.LeftButton:
-            if event.pos().y() < 30:
-                self.clicked.emit(self.slot_id)

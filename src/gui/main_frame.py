@@ -70,7 +70,8 @@ class MainFrame(QMainWindow):
         
         # Center - GENERATORS
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
-        self.generator_grid.generator_selected.connect(self.on_generator_selected)
+        self.generator_grid.generator_selected.connect(self.on_generator_selected)  # Legacy
+        self.generator_grid.generator_changed.connect(self.on_generator_changed)
         self.generator_grid.generator_parameter_changed.connect(self.on_generator_param_changed)
         self.generator_grid.generator_custom_parameter_changed.connect(self.on_generator_custom_param_changed)
         self.generator_grid.generator_filter_changed.connect(self.on_generator_filter_changed)
@@ -236,15 +237,16 @@ class MainFrame(QMainWindow):
         print(f"Gen {slot_id} rate: {rate} (index {rate_index})")
         
     def on_generator_selected(self, slot_id):
-        """Handle generator slot selection."""
-        current_type = self.generator_grid.get_slot(slot_id).generator_type
+        """Handle generator slot selection (legacy click handler)."""
+        # Legacy - cycles through generators on click
+        # New behavior uses on_generator_changed from CycleButton
+        pass
+    
+    def on_generator_changed(self, slot_id, new_type):
+        """Handle generator type change from CycleButton."""
+        synth_name = GENERATORS.get(new_type)
         
-        # Get next type in cycle
-        current_index = GENERATOR_CYCLE.index(current_type) if current_type in GENERATOR_CYCLE else 0
-        next_index = (current_index + 1) % len(GENERATOR_CYCLE)
-        new_type = GENERATOR_CYCLE[next_index]
-        synth_name = GENERATORS[new_type]
-        
+        # Update the slot (custom params, etc)
         self.generator_grid.set_generator_type(slot_id, new_type)
         
         if synth_name:

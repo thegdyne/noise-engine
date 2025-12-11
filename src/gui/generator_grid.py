@@ -14,7 +14,8 @@ from .theme import COLORS, FONT_FAMILY, FONT_SIZES
 class GeneratorGrid(QWidget):
     """Grid of generator slots."""
     
-    generator_selected = pyqtSignal(int)
+    generator_selected = pyqtSignal(int)  # Legacy
+    generator_changed = pyqtSignal(int, str)  # slot_id, generator_type
     generator_parameter_changed = pyqtSignal(int, str, float)
     generator_custom_parameter_changed = pyqtSignal(int, int, float)  # slot_id, param_index, value
     generator_filter_changed = pyqtSignal(int, str)
@@ -48,7 +49,8 @@ class GeneratorGrid(QWidget):
         for row in range(self.rows):
             for col in range(self.cols):
                 slot = GeneratorSlot(slot_id, "Empty")
-                slot.clicked.connect(self.on_slot_clicked)
+                slot.clicked.connect(self.on_slot_clicked)  # Legacy
+                slot.generator_changed.connect(self.on_generator_changed)
                 slot.parameter_changed.connect(self.on_parameter_changed)
                 slot.custom_parameter_changed.connect(self.on_custom_parameter_changed)
                 slot.filter_type_changed.connect(self.on_filter_changed)
@@ -61,8 +63,12 @@ class GeneratorGrid(QWidget):
         main_layout.addLayout(grid)
         
     def on_slot_clicked(self, slot_id):
-        """Handle slot click."""
+        """Handle slot click (legacy)."""
         self.generator_selected.emit(slot_id)
+    
+    def on_generator_changed(self, slot_id, gen_type):
+        """Handle generator type change."""
+        self.generator_changed.emit(slot_id, gen_type)
         
     def on_parameter_changed(self, slot_id, param_name, value):
         """Handle parameter change."""
