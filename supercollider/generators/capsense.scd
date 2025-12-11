@@ -101,7 +101,7 @@ SynthDef(\capsense, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     // === ENVELOPE AS FINAL VCA ===
-    allTrigs = In.ar(clockTrigBus, 13);
+    allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     clockTrig = Select.ar(clockRate, allTrigs);
     
     env = EnvGen.ar(Env.perc(attack, decay), clockTrig);

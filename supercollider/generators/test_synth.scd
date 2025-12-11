@@ -38,7 +38,7 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     amp = In.kr(~params[\amplitude]);
     
     // Read all 8 clock trigger channels
-    allTrigs = In.ar(clockTrigBus, 13);
+    allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     
     // Select the trigger for our rate
     trig = Select.ar(clockRate, allTrigs);

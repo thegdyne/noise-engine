@@ -10,6 +10,11 @@ Default values are real values (not normalized):
   - decay: 0.04 s (~40ms)
 */
 
+// === CLOCK RATES (SSOT) ===
+// Multipliers relative to quarter note (slowest to fastest)
+// This is the single source of truth for clock rates
+~clockRates = [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+
 ~setupBuses = {
     "Setting up buses...".postln;
     
@@ -20,9 +25,9 @@ Default values are real values (not normalized):
     ~params[\filter_cutoff] = Bus.control(s, 1).set(0.7);
     ~params[\amplitude] = Bus.control(s, 1).set(0.5);
     
-    // Master clock
+    // Master clock - uses ~clockRates.size for channel count
     ~clockBus = Bus.control(s, 1).set(120);
-    ~clockTrigBus = Bus.audio(s, 13);  // 13 channels for 13 rates
+    ~clockTrigBus = Bus.audio(s, ~clockRates.size);
     
     // Per-generator parameters (8 slots)
     // Default values are real values matching Python config
@@ -56,5 +61,5 @@ Default values are real values (not normalized):
     ~genGroup = nil;
     ~fxGroup = nil;
     
-    "  ✓ Buses ready".postln;
+    "  ✓ Buses ready (% clock rates)".format(~clockRates.size).postln;
 };

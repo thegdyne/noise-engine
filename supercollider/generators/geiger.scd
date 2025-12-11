@@ -81,7 +81,7 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     
     // === ENVELOPE AS FINAL VCA ===
     // Clock trigger
-    allTrigs = In.ar(clockTrigBus, 13);
+    allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     clockTrig = Select.ar(clockRate, allTrigs);
     
     // ENV OFF = pass through (continuous clicks), ENV ON = envelope gates output
