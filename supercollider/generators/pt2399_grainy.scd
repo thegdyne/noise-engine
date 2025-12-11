@@ -72,9 +72,6 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     grain = WhiteNoise.ar(0.7);
     sig = grain * env;
     
-    // Filter
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    
     // Saturation
     sig = (sig * 2).tanh * 0.6;
     
@@ -135,6 +132,9 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     
     // Wet/dry mix
     sig = (dry * (1 - wetDry)) + (delayed * wetDry);
+    
+    // Apply main filter to final output
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     sig = sig * amp;
     
