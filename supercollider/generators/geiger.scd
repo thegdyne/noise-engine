@@ -1,7 +1,7 @@
 // Geiger - Radioactive click generator
 SynthDef(\geiger, {
     |out=0, amp=0.5, gate=1,
-    freq=440, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
+    freq=440, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
     count_rate=5, dead_time=0.3, click_brightness=0.6, click_decay=0.4, background_noise=0.1|
     
     var trig, click, noise, sig, env, effectiveRate;
@@ -29,7 +29,7 @@ SynthDef(\geiger, {
     sig = click + noise;
     
     // Output filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

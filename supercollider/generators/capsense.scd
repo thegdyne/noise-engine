@@ -1,7 +1,7 @@
 // CapSense - Charge-time capacitive sense relaxation oscillator
 SynthDef(\capsense, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
     capacitance=0.5, dac_level=0.5, threshold=0.5, charge_cycles=0.5, filtering=0.5|
     
     var sig, env, chargeFreq, discharge;
@@ -25,7 +25,7 @@ SynthDef(\capsense, {
     sig = LPF.ar(sig, filtering.linexp(0, 1, 500, 10000));
     
     // Output filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

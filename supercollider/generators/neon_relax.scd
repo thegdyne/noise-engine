@@ -1,7 +1,7 @@
 // Neon - Neon bulb RC relaxation oscillator
 SynthDef(\neonRelax, {
     |out=0, amp=0.5, gate=1,
-    freq=110, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
+    freq=110, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
     rc_time=0.5, breakdown_v=0.7, extinguish_v=0.3, peak_v=0.8, hysteresis=0.5|
     
     var sig, env, oscFreq, charge, fire, glow;
@@ -25,7 +25,7 @@ SynthDef(\neonRelax, {
     sig = (charge * 0.3) + (glow * 0.5) + (sig * 2);
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

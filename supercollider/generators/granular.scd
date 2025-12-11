@@ -1,7 +1,7 @@
 // Granular - Micro-sample clouds
 SynthDef(\granular, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
     pitch_ratio=1.0, grain_size=0.5, density=0.5, jitter=0.3, spread=0.5|
     
     var sig, env, trig, grainDur, pos;
@@ -36,7 +36,7 @@ SynthDef(\granular, {
     ) * 0.1;
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

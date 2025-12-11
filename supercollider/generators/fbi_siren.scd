@@ -1,7 +1,7 @@
 // FBI Siren - NE556 dual-timer wail
 SynthDef(\fbiSiren, {
     |out=0, amp=0.5, gate=1,
-    freq=600, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
+    freq=600, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
     audio_rc=0.5, lfo_rate=2.0, mod_depth=0.6, mod_curve=0.5, drive_level=0.7|
     
     var sig, env, lfo, modFreq, vco;
@@ -29,7 +29,7 @@ SynthDef(\fbiSiren, {
     sig = BPF.ar(sig, 1200, 0.5) + (sig * 0.5);
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

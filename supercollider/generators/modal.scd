@@ -1,7 +1,7 @@
 // Modal - Resonant body simulation
 SynthDef(\modal, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=4000, res=0.3, atk=0.001, dec=0.3,
+    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.001, dec=0.3,
     material=0.5, brightness=0.5, decay_time=0.5, mode_density=0.5, inharmonicity=0.2|
     
     var sig, exc, env, modes;
@@ -24,7 +24,7 @@ SynthDef(\modal, {
     sig = modes;
     
     // Output filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

@@ -1,7 +1,7 @@
 // UJT Relax - NPN/UJT/PUT relaxation oscillator
 SynthDef(\ujtRelax, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
     rc_time=0.5, trigger_threshold=0.5, supply_voltage=0.5, feedback_amt=0.3, neg_resistance=0.3|
     
     var sig, env, oscFreq, charge, discharge, click;
@@ -27,7 +27,7 @@ SynthDef(\ujtRelax, {
     LocalOut.ar(DelayN.ar(sig, 0.01, 1/oscFreq * 0.5));
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

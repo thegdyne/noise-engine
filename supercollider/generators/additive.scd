@@ -1,7 +1,7 @@
 // Additive - Harmonic partial synthesis
 SynthDef(\additive, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
     ratio_spread=1.0, amp_curve=0.7, num_partials=0.5, env_depth=0.5, spectral_tilt=0.5|
     
     var sig, env, partials, numP;
@@ -21,7 +21,7 @@ SynthDef(\additive, {
     });
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Master envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

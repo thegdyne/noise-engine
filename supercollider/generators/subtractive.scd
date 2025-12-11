@@ -1,7 +1,7 @@
 // Subtractive - Classic oscillator + filter
 SynthDef(\subtractive, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
     waveform=0.5, sub_osc=0.3, osc_mix=0.5, noise_amt=0.1, drive=0.3|
     
     var osc1, osc2, sub, noise, sig, env;
@@ -29,7 +29,7 @@ SynthDef(\subtractive, {
     sig = (sig * (1 + (drive * 4))).tanh;
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

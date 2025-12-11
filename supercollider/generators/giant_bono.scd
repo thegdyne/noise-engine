@@ -2,7 +2,7 @@
 // Based on Andrew F's Nonlinear Circuits design
 SynthDef(\giantBono, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
     courics=0.5, pll_to_delay=0.5, delay_feedback=0.6, delay_time=0.4, character=0.5|
     
     var pllFreq, pll, delayed, feedback, sig, env, chaos;
@@ -44,7 +44,7 @@ SynthDef(\giantBono, {
     ]);
     
     // Output filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

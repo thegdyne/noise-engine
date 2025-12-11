@@ -1,7 +1,7 @@
 // Karplus-Strong - Plucked string physical model
 SynthDef(\karplusStrong, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=4000, res=0.3, atk=0.001, dec=0.3,
+    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.001, dec=0.3,
     exciter=0.5, lpf_coef=0.5, feedback_amt=0.99, stretch=0.5, damping=0.5|
     
     var sig, exc, env, delayTime;
@@ -30,7 +30,7 @@ SynthDef(\karplusStrong, {
     LocalOut.ar(sig);
     
     // Output filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

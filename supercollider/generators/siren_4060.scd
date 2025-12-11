@@ -1,7 +1,7 @@
 // 4060 Siren - Counter + mux wailing siren
 SynthDef(\siren4060, {
     |out=0, amp=0.5, gate=1,
-    freq=440, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
+    freq=440, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
     osc_resistance=0.5, resistor_pattern=4, tone_cap=0.5, counter_bits=5, drive_level=0.7|
     
     var sig, env, baseFreq, stepFreq, pattern, counter;
@@ -28,7 +28,7 @@ SynthDef(\siren4060, {
     sig = (sig * drive_level.linexp(0, 1, 1, 4)).tanh;
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

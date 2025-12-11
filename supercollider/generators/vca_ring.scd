@@ -1,7 +1,7 @@
 // VCA Ring - OTA/Dual-VCA topology
 SynthDef(\vcaRing, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
     carrier_freq=440, audio_level=0.7, cv_depth=0.8, topology=1, drive=0.3|
     
     var carrier, audio, sig, env;
@@ -28,7 +28,7 @@ SynthDef(\vcaRing, {
     sig = (sig * (1 + drive * 3)).tanh;
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

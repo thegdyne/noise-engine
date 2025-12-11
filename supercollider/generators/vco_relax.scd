@@ -1,7 +1,7 @@
 // VCO Relax - XR2206/MAX038 style relaxation oscillator
 SynthDef(\vcoRelax, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=2000, res=0.5, atk=0.01, dec=0.3,
     current_src=0.5, timing_cap=0.5, vco_cv=0.5, waveform=0.5, symmetry=0.5|
     
     var sig, env, baseFreq, tri, saw, pulse;
@@ -24,7 +24,7 @@ SynthDef(\vcoRelax, {
     sig = sig + (LFNoise1.ar(baseFreq * 0.1) * 0.02);
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);

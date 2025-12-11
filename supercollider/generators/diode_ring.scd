@@ -1,7 +1,7 @@
 // Diode Ring - Passive balanced modulator
 SynthDef(\diodeRing, {
     |out=0, amp=0.5, gate=1,
-    freq=220, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
+    freq=220, filterType=0, cutoff=4000, res=0.3, atk=0.01, dec=0.3,
     carrier_freq=440, modulator_freq=110, input_level=0.7, balance=0.5, carrier_leak=0.1|
     
     var carrier, modulator, sig, env;
@@ -23,7 +23,7 @@ SynthDef(\diodeRing, {
     sig = sig + (sig.squared * (1 - balance) * 0.1);
     
     // Filter
-    sig = RLPF.ar(sig, cutoff, res);
+    sig = ~multiFilter.(sig, filterType, cutoff, res);
     
     // Envelope
     env = EnvGen.kr(Env.asr(atk, 1, dec), gate, doneAction: 2);
