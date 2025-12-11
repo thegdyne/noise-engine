@@ -27,10 +27,14 @@ s.waitForBoot({
     (~basePath +/+ "effects/master_passthrough.scd").load;
     ~setupMasterPassthrough.();
     
-    // Load generators
+    // Load generators (auto-load all .scd files)
     "Loading generators...".postln;
-    (~basePath +/+ "generators/test_synth.scd").load;
-    (~basePath +/+ "generators/pt2399_grainy.scd").load;
+    ~generatorPath = ~basePath +/+ "generators/";
+    ~generatorFiles = PathName(~generatorPath).files.select({ |f| f.extension == "scd" });
+    ~generatorFiles.do({ |file|
+        file.fullPath.load;
+        ("  ✓ " ++ file.fileNameWithoutExtension).postln;
+    });
     
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
@@ -45,14 +49,8 @@ s.waitForBoot({
     "".postln;
     "========================================".postln;
     "✓ Noise Engine ready!".postln;
-    "✓ Modules loaded:".postln;
-    "    - core/buses".postln;
-    "    - core/clock".postln;
-    "    - core/helpers".postln;
-    "    - core/osc_handlers".postln;
-    "    - effects/master_passthrough".postln;
-    "    - generators/test_synth".postln;
-    "    - generators/pt2399_grainy".postln;
+    "✓ Core modules loaded".postln;
+    ("✓ " ++ ~generatorFiles.size ++ " generators available").postln;
     "========================================".postln;
     "".postln;
     "Listening for OSC on port 57120".postln;
