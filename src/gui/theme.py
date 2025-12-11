@@ -11,11 +11,14 @@ FONT_FAMILY = 'Helvetica'
 MONO_FONT = 'Menlo' if platform.system() == 'Darwin' else 'Courier New'
 
 FONT_SIZES = {
+    'display': 32,    # Large displays (BPM)
     'title': 16,      # Main titles (NOISE ENGINE)
     'section': 12,    # Section headers (MIXER, EFFECTS)
+    'slot_title': 11, # Generator/effect slot titles
     'label': 10,      # Labels
     'small': 9,       # Smaller labels
     'tiny': 8,        # Button text, values
+    'micro': 7,       # Smallest text (mute/solo buttons)
 }
 
 # Drag/scroll sensitivity settings
@@ -33,6 +36,7 @@ COLORS = {
     # States
     'enabled': '#335533',
     'enabled_text': '#88ff88',
+    'enabled_hover': '#446644',
     'disabled': '#333',
     'disabled_text': '#666',
     'inactive': '#222',
@@ -41,15 +45,19 @@ COLORS = {
     # Semantic colors
     'active': '#335533',
     'active_text': '#88ff88',
+    'active_bg': '#1a2a1a',
     'submenu': '#553311',
     'submenu_text': '#ff8833',
+    'submenu_hover': '#664422',
     'selected': '#333355',
     'selected_text': '#8888ff',
     'warning': '#553333',
     'warning_text': '#ff8888',
+    'warning_hover': '#664444',
     
     # UI elements
     'background': '#1a1a1a',
+    'background_dark': '#0a0a0a',
     'background_light': '#222',
     'background_highlight': '#2a2a2a',
     'border': '#333',
@@ -58,6 +66,10 @@ COLORS = {
     'text': '#888',
     'text_bright': '#aaa',
     'text_dim': '#555',
+    'text_label': '#666',
+    
+    # Special displays
+    'bpm_text': '#ff3333',
     
     # Indicators
     'audio_on': '#44ff44',
@@ -95,7 +107,7 @@ def button_style(state='disabled'):
                 border-radius: 3px;
             }}
             QPushButton:hover {{
-                background-color: #446644;
+                background-color: {COLORS['enabled_hover']};
             }}
         """
     elif state == 'submenu':
@@ -106,7 +118,7 @@ def button_style(state='disabled'):
                 border-radius: 3px;
             }}
             QPushButton:hover {{
-                background-color: #664422;
+                background-color: {COLORS['submenu_hover']};
             }}
         """
     elif state == 'warning':
@@ -117,7 +129,7 @@ def button_style(state='disabled'):
                 border-radius: 3px;
             }}
             QPushButton:hover {{
-                background-color: #664444;
+                background-color: {COLORS['warning_hover']};
             }}
         """
     elif state == 'inactive':

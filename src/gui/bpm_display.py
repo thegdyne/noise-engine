@@ -31,7 +31,7 @@ class BPMDisplay(QWidget):
         # Container for 909 look
         self.setStyleSheet(f"""
             QWidget {{
-                background-color: #0a0a0a;
+                background-color: {COLORS['background_dark']};
                 border: 2px solid {COLORS['border_light']};
                 border-radius: 4px;
             }}
@@ -42,17 +42,17 @@ class BPMDisplay(QWidget):
         self.dec_btn.setFixedSize(*SIZES['button_bpm'])
         self.dec_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #1a1a1a;
+                background-color: {COLORS['background']};
                 color: {COLORS['text']};
                 border: 1px solid {COLORS['border']};
                 border-radius: 3px;
                 font-size: {FONT_SIZES['section']}px;
             }}
             QPushButton:hover {{
-                background-color: #2a2a2a;
+                background-color: {COLORS['background_highlight']};
             }}
             QPushButton:pressed {{
-                background-color: #333;
+                background-color: {COLORS['border']};
             }}
         """)
         self.dec_btn.pressed.connect(self.start_decrease)
@@ -68,15 +68,15 @@ class BPMDisplay(QWidget):
         bpm_label = QLabel("BPM")
         bpm_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
         bpm_label.setAlignment(Qt.AlignCenter)
-        bpm_label.setStyleSheet("color: #666; background: transparent; border: none;")
+        bpm_label.setStyleSheet(f"color: {COLORS['text_label']}; background: transparent; border: none;")
         display_layout.addWidget(bpm_label)
         
         # Large draggable LED display
         self.display = DragValue(self.bpm, BPM_MIN, BPM_MAX)
-        self.display.setFont(QFont(MONO_FONT, 32, QFont.Bold))
+        self.display.setFont(QFont(MONO_FONT, FONT_SIZES['display'], QFont.Bold))
         self.display.setAlignment(Qt.AlignCenter)
-        self.display.setStyleSheet("""
-            color: #ff3333;
+        self.display.setStyleSheet(f"""
+            color: {COLORS['bpm_text']};
             background: transparent;
             border: none;
             letter-spacing: 3px;

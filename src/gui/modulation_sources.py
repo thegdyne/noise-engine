@@ -55,7 +55,7 @@ class LFOWidget(QWidget):
         # SYNC button
         self.sync_btn = QPushButton("SYNC")
         self.sync_btn.setFixedSize(45, 20)
-        self.sync_btn.setFont(QFont(MONO_FONT, 7, QFont.Bold))
+        self.sync_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro'], QFont.Bold))
         self.sync_btn.setStyleSheet(button_style('disabled'))
         self.sync_btn.clicked.connect(self.toggle_sync)
         left_col.addWidget(self.sync_btn)
@@ -63,7 +63,7 @@ class LFOWidget(QWidget):
         # CLK division button
         self.clk_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
         self.clk_btn.setFixedSize(45, 20)
-        self.clk_btn.setFont(QFont(MONO_FONT, 7))
+        self.clk_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.clk_btn.setStyleSheet(button_style('inactive'))
         self.clk_btn.wrap = False
         self.clk_btn.setEnabled(False)

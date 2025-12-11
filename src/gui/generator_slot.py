@@ -51,7 +51,7 @@ class GeneratorSlot(QWidget):
         header.addStretch()
         
         self.type_label = QLabel(self.generator_type)
-        self.type_label.setFont(QFont(FONT_FAMILY, 11, QFont.Bold))
+        self.type_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
         self.type_label.setAlignment(Qt.AlignRight)
         self.type_label.setCursor(Qt.PointingHandCursor)
         header.addWidget(self.type_label)
@@ -162,7 +162,7 @@ class GeneratorSlot(QWidget):
             bg_color = COLORS['background']
         elif self.active:
             border_color = COLORS['border_active']
-            bg_color = '#1a2a1a'
+            bg_color = COLORS['active_bg']
         else:
             border_color = COLORS['border_light']
             bg_color = COLORS['background_light']

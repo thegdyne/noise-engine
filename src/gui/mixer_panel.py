@@ -54,14 +54,14 @@ class ChannelStrip(QWidget):
         
         self.mute_btn = QPushButton("M")
         self.mute_btn.setFixedSize(*SIZES['button_small'])
-        self.mute_btn.setFont(QFont(FONT_FAMILY, 7, QFont.Bold))
+        self.mute_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro'], QFont.Bold))
         self.mute_btn.setStyleSheet(button_style('disabled'))
         self.mute_btn.clicked.connect(self.toggle_mute)
         btn_layout.addWidget(self.mute_btn, alignment=Qt.AlignCenter)
         
         self.solo_btn = QPushButton("S")
         self.solo_btn.setFixedSize(*SIZES['button_small'])
-        self.solo_btn.setFont(QFont(FONT_FAMILY, 7, QFont.Bold))
+        self.solo_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro'], QFont.Bold))
         self.solo_btn.setStyleSheet(button_style('disabled'))
         self.solo_btn.clicked.connect(self.toggle_solo)
         btn_layout.addWidget(self.solo_btn, alignment=Qt.AlignCenter)

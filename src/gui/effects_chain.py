@@ -61,7 +61,7 @@ class EffectSlot(QFrame):
             self.amount_label.setText("---")
         else:
             border_color = COLORS['border_active']
-            bg_color = '#1a2a1a'
+            bg_color = COLORS['active_bg']
             text_color = COLORS['enabled_text']
             
         self.setStyleSheet(f"""
