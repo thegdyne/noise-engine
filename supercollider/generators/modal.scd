@@ -64,11 +64,12 @@ SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         
         // Material-dependent mode ratios
         // 0=bell (inharmonic), 1=plate, 2=string, 3=tube, 4=custom
+        // Using formulas instead of array lookup for SC compatibility
         baseRatio = Select.kr(material.round, [
-            // Bell: 1, 2.0, 2.8, 3.9, 5.2, 6.7... (approximate)
-            [1, 2.0, 2.83, 3.9, 5.2, 6.7, 8.3, 10.1, 12.0, 14.1, 16.3, 18.6, 21.0, 23.5, 26.1, 28.8].at(i),
-            // Plate: 1, 1.6, 2.1, 2.5, 2.9, 3.2...
-            [1, 1.59, 2.14, 2.65, 3.16, 3.65, 4.15, 4.64, 5.14, 5.63, 6.13, 6.62, 7.12, 7.61, 8.11, 8.6].at(i),
+            // Bell: approximate inharmonic series (based on circular membrane)
+            (modeNum ** 1.85) * 0.8,
+            // Plate: slightly inharmonic
+            (modeNum ** 1.15),
             // String: harmonic 1, 2, 3, 4...
             (modeNum),
             // Tube: odd harmonics 1, 3, 5, 7...

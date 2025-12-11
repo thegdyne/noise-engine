@@ -78,9 +78,9 @@ SynthDef(\capsense, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     pulseOut = Trig.ar(comparator, 0.001) * 2 - 1;
     
     // Multiple measurement cycles (averaging for resolution)
-    // Simulated by mixing slightly phase-shifted versions
-    averaged = Mix.fill(cycles.round.asInteger.max(1).min(16), { |i|
-        var phaseShift = i / cycles.max(1) * 0.1;
+    // Fixed 8 voices, use cycles param to control mix amount
+    averaged = Mix.fill(8, { |i|
+        var phaseShift = i / 8 * 0.1;
         var shiftedRamp = LFSaw.ar(rampFreq * (1 + (phaseShift * 0.01)), 0, 0.5, 0.5);
         (shiftedRamp > threshold).lag(0.0001) * (i < cycles)
     }) / cycles.max(1);
