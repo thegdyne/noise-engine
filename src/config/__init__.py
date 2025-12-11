@@ -81,7 +81,9 @@ def map_value(normalized, param):
     max_val = param['max']
     
     if param.get('curve', 'lin') == 'exp':
-        # Exponential mapping
+        # Exponential mapping (need non-zero min)
+        if min_val <= 0:
+            min_val = 0.001  # Prevent division by zero
         return min_val * math.pow(max_val / min_val, normalized)
     else:
         # Linear mapping
@@ -145,35 +147,8 @@ BPM_MAX = 300
 
 # === GENERATORS ===
 # Cycle order when clicking generator slot
-GENERATOR_CYCLE = [
-    "Empty",
-    # Active (have SynthDefs)
-    "Test Synth",
-    "PT2399",
-    # Synthesis
-    "Subtractive",
-    "Additive",
-    "Granular",
-    "FM",
-    "Wavetable",
-    "Karplus",
-    "Modal",
-    # Relaxation oscillators
-    "VCO Relax",
-    "CapSense",
-    "UJT Relax",
-    "Neon",
-    # Sirens
-    "4060 Siren",
-    "FBI Siren",
-    # Ring modulators
-    "Diode Ring",
-    "4-Quad Ring",
-    "VCA Ring",
-    # Other
-    "Geiger",
-    "Giant B0N0",
-]
+# Other generators have SynthDefs ready but need testing
+GENERATOR_CYCLE = ["Empty", "Test Synth", "PT2399"]
 
 # Maximum custom params per generator
 MAX_CUSTOM_PARAMS = 5
