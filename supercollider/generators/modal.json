@@ -1,0 +1,58 @@
+{
+    "name": "Modal",
+    "synthdef": "modal",
+    "custom_params": [
+        {
+            "key": "material",
+            "label": "MAT",
+            "tooltip": "Material Type (bell/plate/string/tube/custom)",
+            "default": 0,
+            "min": 0,
+            "max": 4,
+            "steps": 5,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "brightness",
+            "label": "BRT",
+            "tooltip": "Brightness (high mode amplitudes)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "decay_shape",
+            "label": "DCS",
+            "tooltip": "Decay Shape (mode decay ratios)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "density",
+            "label": "DNS",
+            "tooltip": "Mode Density (number of modes)",
+            "default": 8,
+            "min": 2,
+            "max": 16,
+            "steps": 15,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "inharmonicity",
+            "label": "INH",
+            "tooltip": "Inharmonicity (mode ratio stretch)",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ]
+}

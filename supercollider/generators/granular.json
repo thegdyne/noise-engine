@@ -1,0 +1,56 @@
+{
+    "name": "Granular",
+    "synthdef": "granular",
+    "custom_params": [
+        {
+            "key": "pitch_shift",
+            "label": "PIT",
+            "tooltip": "Pitch Shift",
+            "default": 0,
+            "min": -24,
+            "max": 24,
+            "curve": "lin",
+            "unit": "st"
+        },
+        {
+            "key": "grain_size",
+            "label": "SIZ",
+            "tooltip": "Grain Size",
+            "default": 0.1,
+            "min": 0.01,
+            "max": 0.5,
+            "curve": "exp",
+            "unit": "s"
+        },
+        {
+            "key": "grain_density",
+            "label": "DEN",
+            "tooltip": "Grain Density (grains/sec)",
+            "default": 20,
+            "min": 1,
+            "max": 100,
+            "curve": "exp",
+            "unit": "g/s"
+        },
+        {
+            "key": "position_jitter",
+            "label": "JIT",
+            "tooltip": "Position Jitter (randomness)",
+            "default": 0.1,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "stereo_spread",
+            "label": "SPR",
+            "tooltip": "Stereo Spread",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ]
+}

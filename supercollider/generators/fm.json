@@ -1,0 +1,57 @@
+{
+    "name": "FM",
+    "synthdef": "fmSynth",
+    "custom_params": [
+        {
+            "key": "ratio",
+            "label": "RAT",
+            "tooltip": "Modulator:Carrier Ratio",
+            "default": 1.0,
+            "min": 0.5,
+            "max": 8.0,
+            "curve": "lin",
+            "unit": ":1"
+        },
+        {
+            "key": "index",
+            "label": "IDX",
+            "tooltip": "Modulation Index (depth)",
+            "default": 1.0,
+            "min": 0.0,
+            "max": 20.0,
+            "curve": "exp",
+            "unit": ""
+        },
+        {
+            "key": "index_env",
+            "label": "IEN",
+            "tooltip": "Index Envelope Amount",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "algorithm",
+            "label": "ALG",
+            "tooltip": "FM Algorithm (operator routing)",
+            "default": 0,
+            "min": 0,
+            "max": 7,
+            "steps": 8,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "feedback",
+            "label": "FBK",
+            "tooltip": "Operator Feedback",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ]
+}
