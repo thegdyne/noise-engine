@@ -3,6 +3,13 @@ Noise Engine - SuperCollider Initialization
 Modular loader - each component in its own file
 */
 
+// Configure server options BEFORE booting
+(
+s.options.numAudioBusChannels = 256;  // Plenty of audio buses
+s.options.numControlBusChannels = 4096;
+s.options.memSize = 65536;  // More memory for buffers
+);
+
 s.waitForBoot({
     
     "".postln;
