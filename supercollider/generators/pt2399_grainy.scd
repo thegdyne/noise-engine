@@ -62,11 +62,7 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = grain * env;
     
     // Filter
-    sig = Select.ar(filterType, [
-        RLPF.ar(sig, filterFreq, rq),
-        RHPF.ar(sig, filterFreq, rq),
-        BPF.ar(sig, filterFreq, rq)
-    ]);
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     // Saturation
     sig = (sig * 2).tanh * 0.6;

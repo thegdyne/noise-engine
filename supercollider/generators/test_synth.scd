@@ -53,11 +53,7 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = Pulse.ar(freq, 0.5, 0.3) + PinkNoise.ar(0.2);
     
     // Filter
-    sig = Select.ar(filterType, [
-        RLPF.ar(sig, filterFreq, rq),
-        RHPF.ar(sig, filterFreq, rq),
-        BPF.ar(sig, filterFreq, rq)
-    ]);
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     sig = sig * env * amp * 0.15;
     

@@ -6,6 +6,16 @@ Reusable functions for generator management
 ~setupHelpers = {
     "Setting up helpers...".postln;
     
+    // Shared multimode filter with BPF gain compensation
+    // filterType: 0=LP, 1=HP, 2=BP
+    ~multiFilter = { |sig, filterType, filterFreq, rq|
+        Select.ar(filterType, [
+            RLPF.ar(sig, filterFreq, rq),
+            RHPF.ar(sig, filterFreq, rq),
+            BPF.ar(sig, filterFreq, rq, mul: rq.sqrt.reciprocal)
+        ])
+    };
+    
     ~startGenerator = { |slotID, genType|
         var params = ~genParams[slotID];
         var customBuses = params[\custom];
