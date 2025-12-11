@@ -242,6 +242,10 @@ class GeneratorSlot(QWidget):
         enabled = gen_type != "Empty"
         pitch_target = get_generator_pitch_target(gen_type)
         
+        # Reset ENV to off (drone mode by default)
+        self.clock_enabled = False
+        self.clock_enabled_changed.emit(self.slot_id, False)
+        
         # Reset standard sliders to defaults and send values
         for key, slider in self.sliders.items():
             param = next((p for p in GENERATOR_PARAMS if p['key'] == key), None)
