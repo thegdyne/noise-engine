@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noise Engine - Modular Noise Synthesizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #12121a;
+            --bg-card: #1a1a25;
+            --border: #2a2a3a;
+            --text: #888899;
+            --text-bright: #ccccdd;
+            --accent-green: #44ff88;
+            --accent-orange: #ff8844;
+            --accent-magenta: #ff44aa;
+            --accent-cyan: #44ddff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            padding: 60px 0 40px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--text-bright);
+            letter-spacing: -2px;
+        }
+        
+        .logo span {
+            color: var(--accent-green);
+            text-shadow: 0 0 20px var(--accent-green);
+        }
+        
+        .tagline {
+            font-size: 20px;
+            color: var(--text);
+            margin-top: 10px;
+        }
+        
+        .badges {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            padding: 5px 12px;
+            border-radius: 3px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+        }
+        
+        .badge.python { border-color: #3776ab; color: #3776ab; }
+        .badge.supercollider { border-color: #bb2222; color: #bb2222; }
+        .badge.pyqt { border-color: #41cd52; color: #41cd52; }
+        
+        /* Hero */
+        .hero {
+            padding: 60px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+        
+        .hero-text h2 {
+            font-size: 28px;
+            color: var(--text-bright);
+            margin-bottom: 20px;
+        }
+        
+        .hero-text p {
+            margin-bottom: 15px;
+        }
+        
+        .hero-visual {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Space Mono', monospace;
+        }
+        
+        .signal-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .flow-node {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .flow-node.active {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 15px rgba(68, 255, 136, 0.2);
+        }
+        
+        .flow-node h4 {
+            color: var(--accent-green);
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .flow-node p {
+            font-size: 10px;
+            color: var(--text);
+        }
+        
+        .flow-arrow {
+            color: var(--text);
+            font-size: 20px;
+        }
+        
+        /* Features Grid */
+        .features {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+        }
+        
+        .section-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--accent-orange);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 25px;
+        }
+        
+        .feature-card h3 {
+            color: var(--text-bright);
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .feature-card ul {
+            list-style: none;
+            font-size: 14px;
+        }
+        
+        .feature-card li {
+            padding: 3px 0;
+            padding-left: 15px;
+            position: relative;
+        }
+        
+        .feature-card li::before {
+            content: '›';
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+        }
+        
+        /* Architecture */
+        .architecture {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+        }
+        
+        .arch-diagram {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        
+        .arch-layer {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 20px;
+        }
+        
+        .arch-label {
+            width: 120px;
+            color: var(--text);
+            text-align: right;
+        }
+        
+        .arch-boxes {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .arch-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 15px;
+            border-radius: 3px;
+        }
+        
+        .arch-box.config { border-left: 3px solid var(--accent-cyan); }
+        .arch-box.theme { border-left: 3px solid var(--accent-magenta); }
+        .arch-box.widgets { border-left: 3px solid var(--accent-orange); }
+        .arch-box.components { border-left: 3px solid var(--accent-green); }
+        
+        /* Future Plans */
+        .future {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+        }
+        
+        .roadmap {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .roadmap-section {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+        }
+        
+        .roadmap-section h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--accent-cyan);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .roadmap-section ul {
+            list-style: none;
+            font-size: 13px;
+        }
+        
+        .roadmap-section li {
+            padding: 5px 0;
+            color: var(--text);
+        }
+        
+        .roadmap-section li::before {
+            content: '○ ';
+            color: var(--text);
+        }
+        
+        /* Skins Preview */
+        .skins {
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+        }
+        
+        .skins-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .skin-preview {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        .skin-preview .skin-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .skin-preview.winamp { border-color: #00ff00; color: #00ff00; }
+        .skin-preview.rebirth { border-color: #ff6600; color: #ff6600; }
+        .skin-preview.win31 { border-color: #c0c0c0; color: #c0c0c0; }
+        .skin-preview.bladerunner { border-color: #ff4444; color: #ff4444; }
+        .skin-preview.tron { border-color: #00ffff; color: #00ffff; }
+        
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* LED Display Effect */
+        .led-display {
+            font-family: 'Space Mono', monospace;
+            font-size: 32px;
+            color: #ff3333;
+            text-shadow: 0 0 10px #ff3333;
+            letter-spacing: 3px;
+            background: #0a0a0a;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo {
+                font-size: 32px;
+            }
+            
+            .signal-flow {
+                flex-direction: column;
+            }
+            
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+            
+            .arch-layer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .arch-label {
+                text-align: left;
+                width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">NOISE<span>_</span>ENGINE</div>
+            <p class="tagline">Modular noise synthesizer • Python GUI • SuperCollider audio</p>
+            <div class="badges">
+                <span class="badge python">Python</span>
+                <span class="badge supercollider">SuperCollider</span>
+                <span class="badge pyqt">PyQt5</span>
+            </div>
+        </header>
+        
+        <section class="hero">
+            <div class="hero-text">
+                <h2>8-slot noise generator with modular architecture</h2>
+                <p>Run different noise synths simultaneously. Each generator has multimode filter (LP/BP/HP), clock-synced envelope, and independent parameters.</p>
+                <p>3 LFOs with sync-to-clock. 4-slot FX chain. Central BPM control.</p>
+                <p>Python frontend talks to SuperCollider backend via OSC. Adding a new generator = one .scd file + one line of config.</p>
+            </div>
+            <div class="hero-visual">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <span class="led-display">120</span>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">BPM</div>
+                </div>
+                <div class="signal-flow">
+                    <div class="flow-node active">
+                        <h4>GENERATORS</h4>
+                        <p>8 slots</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node">
+                        <h4>MIXER</h4>
+                        <p>levels</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node">
+                        <h4>FX CHAIN</h4>
+                        <p>4 slots</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node">
+                        <h4>OUTPUT</h4>
+                        <p>master</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="features">
+            <h2 class="section-title">Current Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3><span class="feature-icon">◈</span> Generators</h3>
+                    <ul>
+                        <li>8 independent slots</li>
+                        <li>Test Synth, PT2399-based</li>
+                        <li>Per-gen: FRQ, CUT, RES, ATK, DEC</li>
+                        <li>Multimode filter (LP/BP/HP)</li>
+                        <li>Clock-synced envelope</li>
+                        <li>8 clock rates (x8 to /16)</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="feature-icon">◎</span> Modulation</h3>
+                    <ul>
+                        <li>3 LFOs</li>
+                        <li>Waveforms: SIN, SAW, SQR, S&H</li>
+                        <li>Free running or clock sync</li>
+                        <li>Separate clock division per LFO</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="feature-icon">◐</span> Effects</h3>
+                    <ul>
+                        <li>4-slot serial FX chain</li>
+                        <li>Fidelity (bit crush / sample rate)</li>
+                        <li>Per-effect amount control</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="feature-icon">▥</span> Mixer</h3>
+                    <ul>
+                        <li>8 channel faders</li>
+                        <li>Mute / Solo per channel</li>
+                        <li>Master output</li>
+                        <li>Audio/MIDI status</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section class="architecture">
+            <h2 class="section-title">Architecture</h2>
+            <div class="arch-diagram">
+                <div class="arch-layer">
+                    <span class="arch-label">Config</span>
+                    <div class="arch-boxes">
+                        <span class="arch-box config">constants</span>
+                        <span class="arch-box config">mappings</span>
+                        <span class="arch-box config">sizes</span>
+                        <span class="arch-box config">OSC paths</span>
+                    </div>
+                </div>
+                <div class="arch-layer">
+                    <span class="arch-label">Theme</span>
+                    <div class="arch-boxes">
+                        <span class="arch-box theme">colors</span>
+                        <span class="arch-box theme">fonts</span>
+                        <span class="arch-box theme">styles</span>
+                        <span class="arch-box theme">sensitivity</span>
+                    </div>
+                </div>
+                <div class="arch-layer">
+                    <span class="arch-label">Widgets</span>
+                    <div class="arch-boxes">
+                        <span class="arch-box widgets">DragSlider</span>
+                        <span class="arch-box widgets">CycleButton</span>
+                        <span class="arch-box widgets">DragValue</span>
+                    </div>
+                </div>
+                <div class="arch-layer">
+                    <span class="arch-label">Components</span>
+                    <div class="arch-boxes">
+                        <span class="arch-box components">GeneratorSlot</span>
+                        <span class="arch-box components">MixerPanel</span>
+                        <span class="arch-box components">EffectsChain</span>
+                        <span class="arch-box components">LFOWidget</span>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 20px; font-size: 14px;">
+                <strong>Design principle:</strong> "Can I change X without touching Y?"
+            </p>
+        </section>
+        
+        <section class="future">
+            <h2 class="section-title">Future Plans</h2>
+            <div class="roadmap">
+                <div class="roadmap-section">
+                    <h3>New Generators</h3>
+                    <ul>
+                        <li>Granular sampler</li>
+                        <li>FM noise</li>
+                        <li>Physical modeling</li>
+                        <li>Karplus-Strong</li>
+                        <li>Tracking sub oscillator</li>
+                    </ul>
+                </div>
+                <div class="roadmap-section">
+                    <h3>Modulators</h3>
+                    <ul>
+                        <li>Chaos (Triple Sloths style)</li>
+                        <li>More LFO shapes</li>
+                        <li>Clockable envelope generator</li>
+                        <li>Modulation routing matrix</li>
+                    </ul>
+                </div>
+                <div class="roadmap-section">
+                    <h3>Effects</h3>
+                    <ul>
+                        <li>Tape delay (clock synced)</li>
+                        <li>Spring reverb</li>
+                        <li>Digital reverb</li>
+                        <li>90s chorus/flanger</li>
+                        <li>Saturation</li>
+                    </ul>
+                </div>
+                <div class="roadmap-section">
+                    <h3>System</h3>
+                    <ul>
+                        <li>Preset save/load</li>
+                        <li>MIDI learn (CC mapping)</li>
+                        <li>MIDI pitch/gate per generator</li>
+                        <li>Eurorack send/return</li>
+                        <li>Oscilloscope display</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section class="skins">
+            <h2 class="section-title">Planned Skins</h2>
+            <div class="skins-grid">
+                <div class="skin-preview winamp">
+                    <div class="skin-icon">▶</div>
+                    Winamp
+                </div>
+                <div class="skin-preview rebirth">
+                    <div class="skin-icon">◉</div>
+                    ReBirth
+                </div>
+                <div class="skin-preview win31">
+                    <div class="skin-icon">▢</div>
+                    Win 3.1
+                </div>
+                <div class="skin-preview bladerunner">
+                    <div class="skin-icon">◈</div>
+                    Blade Runner
+                </div>
+                <div class="skin-preview tron">
+                    <div class="skin-icon">◇</div>
+                    Tron
+                </div>
+            </div>
+            <p style="margin-top: 20px; font-size: 13px; color: var(--text);">
+                Also planned: Doom, Terminator 1 & 2, Golden Axe
+            </p>
+        </section>
+        
+        <footer>
+            <p>
+                <a href="https://github.com/garethmillar/noise-engine">GitHub Repository</a> •
+                Built with Python, PyQt5, SuperCollider
+            </p>
+            <p style="margin-top: 10px; color: var(--text);">
+                A modular noise instrument for experimental sound design
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
