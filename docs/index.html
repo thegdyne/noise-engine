@@ -58,6 +58,12 @@
         .badge.python { border-color: #3776ab; color: #3776ab; }
         .badge.supercollider { border-color: #bb2222; color: #bb2222; }
         .badge.pyqt { border-color: #41cd52; color: #41cd52; }
+        .badge.ssot { 
+            border-color: var(--accent-green); 
+            color: var(--accent-green);
+            background: rgba(68, 255, 136, 0.1);
+        }
+        .badge.ssot .pct { font-weight: 700; }
         
         .hero {
             padding: 60px 0;
@@ -251,6 +257,7 @@
                 <span class="badge python">Python</span>
                 <span class="badge supercollider">SuperCollider</span>
                 <span class="badge pyqt">PyQt5</span>
+                <span class="badge ssot">SSOT <span class="pct">95%</span></span>
             </div>
         </header>
         
@@ -331,6 +338,7 @@
                         <span class="arch-box config">mappings</span>
                         <span class="arch-box config">sizes</span>
                         <span class="arch-box config">OSC paths</span>
+                        <span class="arch-box config">GENERATOR_PARAMS</span>
                     </div>
                 </div>
                 <div class="arch-layer">
@@ -338,6 +346,7 @@
                     <div class="arch-boxes">
                         <span class="arch-box theme">colors</span>
                         <span class="arch-box theme">fonts</span>
+                        <span class="arch-box theme">font sizes</span>
                         <span class="arch-box theme">styles</span>
                         <span class="arch-box theme">sensitivity</span>
                     </div>
@@ -346,8 +355,10 @@
                     <span class="arch-label">Widgets</span>
                     <div class="arch-boxes">
                         <span class="arch-box widgets">DragSlider</span>
+                        <span class="arch-box widgets">MiniSlider</span>
                         <span class="arch-box widgets">CycleButton</span>
                         <span class="arch-box widgets">DragValue</span>
+                        <span class="arch-box widgets">ValuePopup</span>
                     </div>
                 </div>
                 <div class="arch-layer">
@@ -360,9 +371,20 @@
                     </div>
                 </div>
             </div>
-            <p style="margin-top: 20px; font-size: 14px;">
-                <strong>Design principle:</strong> "Can I change X without touching Y?"
-            </p>
+            <div style="margin-top: 25px; padding: 20px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;">
+                <h4 style="color: var(--accent-green); font-family: 'Space Mono', monospace; font-size: 13px; margin-bottom: 12px;">
+                    ◈ Single Source of Truth (95%)
+                </h4>
+                <p style="font-size: 13px; margin-bottom: 10px;">
+                    <strong>Design principle:</strong> "Can I change X without touching Y?"
+                </p>
+                <ul style="font-size: 13px; list-style: none; color: var(--text);">
+                    <li style="padding: 3px 0;">✓ Colors, fonts, sizes → <code style="color: var(--accent-cyan);">theme.py</code></li>
+                    <li style="padding: 3px 0;">✓ Generator params → <code style="color: var(--accent-cyan);">config/GENERATOR_PARAMS</code></li>
+                    <li style="padding: 3px 0;">✓ OSC paths, rates → <code style="color: var(--accent-cyan);">config/__init__.py</code></li>
+                    <li style="padding: 3px 0;">✓ Validated by <code style="color: var(--accent-cyan);">tools/check_ssot.sh</code></li>
+                </ul>
+            </div>
         </section>
         
         <section class="future">
@@ -427,6 +449,7 @@
         <section class="milestones">
             <h2 class="section-title">Milestones</h2>
             <ul class="milestones-list">
+                <li><span class="milestone-date">2025-12-11</span> SSOT validation tool + 95% compliance</li>
                 <li><span class="milestone-date">2025-12-11</span> Added milestone update tool</li>
                 <li><span class="milestone-date">2025-12-11</span> GitHub Pages landing page</li>
                 <li><span class="milestone-date">2025-12-11</span> Winamp skin mockup</li>
