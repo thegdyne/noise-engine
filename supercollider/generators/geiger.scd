@@ -5,7 +5,7 @@ Radioactive click generator with Poisson distribution
 Signal flow: P1-P5 → Click generation → Filter → ENVELOPE → Output
 
 Standard params:
-  - frequency: not used
+  - frequency: click pitch (resonant frequency)
   - cutoff: 80-16000 Hz
   - resonance: 0.1-1.0
   - attack: 0.001-0.5 s (final VCA attack)
@@ -25,12 +25,13 @@ ENV ON = clock-synced envelope gates final output
 SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                      filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
                      customBus0, customBus1, customBus2, customBus3, customBus4|
-    var sig, click, noise, env, filterFreq, rq, filterType, attack, decay, amp;
+    var sig, click, noise, env, freq, filterFreq, rq, filterType, attack, decay, amp;
     var envEnabled, clockRate, allTrigs, clockTrig;
     var countRate, deadTime, clickBrightness, clickDecay, backgroundNoise;
     var trig, effectiveRate;
     
     // Read standard params
+    freq = In.kr(freqBus);
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
@@ -60,9 +61,11 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         trig
     ) * WhiteNoise.ar;
     
-    // Brightness = highpass filter on click (soft thud <-> sharp crack)
-    click = HPF.ar(click, clickBrightness.linexp(0.001, 1, 200, 8000));
-    click = click * 4;
+    // Pitched click - resonant bandpass at FRQ
+    click = BPF.ar(click, freq.clip(20, 16000), 0.1) * 8;
+    
+    // Brightness adds highpass to let through more high harmonics
+    click = click + (HPF.ar(click, clickBrightness.linexp(0.001, 1, 200, 8000)) * clickBrightness * 2);
     
     // Background tube hiss/crackle
     noise = PinkNoise.ar * backgroundNoise * 0.1;
