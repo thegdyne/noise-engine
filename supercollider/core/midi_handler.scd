@@ -90,14 +90,14 @@ OSC messages to Python:
 // Trigger MIDI gate for a generator
 ~triggerMidiGate = { |slot, velocity=1.0|
     // Create a one-shot trigger synth that fires immediately
-    // This writes to the clock trigger bus at the generator's rate index
+    // This writes to the clock trigger bus at CLK rate (index 6)
     // so the existing envelope system picks it up
     
-    var rateIndex = ~genParams[slot][\clockRate].getSynchronous ? 6;
+    // For MIDI, we always trigger at the base clock rate (CLK = index 6)
+    // The generator's clock rate setting only affects internal clock triggers
+    var rateIndex = 6;
     
-    // Simple approach: just retrigger the synth's envelope
-    // by sending a control message
-    if(~generators[slot].notNil, {
+    if(~generators[slot].notNil && ~clockGroup.notNil, {
         // The generators read from clockTrigBus, but for MIDI we need
         // to inject a trigger. We'll use a dedicated trigger synth.
         Synth(\midiTrigger, [
