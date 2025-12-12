@@ -24,11 +24,12 @@ Reusable functions for generator management
     // Envelope VCA - applies envelope based on envSource (OFF/CLK/MIDI)
     // This is the SINGLE SOURCE OF TRUTH for envelope triggering
     // envSource: 0=OFF (drone), 1=CLK (clock), 2=MIDI (midi trigger)
+    // NOTE: 13 clock rates and 8 MIDI channels must match buses.scd
     ~envVCA = { |sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex|
         var allTrigs, clockTrig, allMidiTrigs, midiTrig, trig, env;
         
-        // Clock trigger - select from clock rate bus
-        allTrigs = In.ar(clockTrigBus, ~clockRates.size);
+        // Clock trigger - select from clock rate bus (13 rates)
+        allTrigs = In.ar(clockTrigBus, 13);
         clockTrig = Select.ar(clockRate, allTrigs);
         
         // MIDI trigger - read all 8 channels and select by slotIndex
