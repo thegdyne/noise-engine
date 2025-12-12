@@ -1,6 +1,58 @@
 # Noise Engine - Project Strategy
 
-**Last Updated:** December 11, 2025
+**Last Updated:** December 12, 2025
+
+---
+
+## Development Workflow
+
+### Git Branches
+
+- **main** - Stable, tested code. What gets merged here should work.
+- **dev** - Working branch for changes from Claude or local edits.
+
+### Daily Workflow
+
+1. **Get updates from Claude:**
+   ```bash
+   # Download noise-engine-updated.zip to ~/Downloads/
+   ~/repos/noise-engine/tools/update_from_claude.sh  # Auto-checkouts dev
+   git add -A
+   git commit -m "Brief description of changes"
+   git push
+   ```
+
+2. **Run SSOT check before merging:**
+   ```bash
+   bash tools/ssot.sh  # Runs check + updates badge
+   ```
+
+3. **When tested and working, merge to main:**
+   ```bash
+   git checkout main
+   git merge dev
+   git push
+   git checkout dev  # Back to dev for next changes
+   ```
+
+### Tools
+
+| Script | Purpose |
+|--------|---------|
+| `tools/update_from_claude.sh` | Extract Claude's zip, apply changes, auto-checkout dev |
+| `tools/check_ssot.sh` | Check Single Source of Truth compliance |
+| `tools/update_ssot_badge.sh` | Update badge percentage in docs/index.html |
+| `tools/ssot.sh` | Wrapper: runs check + badge update |
+
+### SSOT (Single Source of Truth)
+
+All constants live in one place. The check verifies:
+- No hardcoded fonts/colors/sizes in GUI code
+- All generators use shared helpers (~envVCA, ~multiFilter)
+- OSC paths match between Python and SuperCollider
+- No deprecated patterns
+
+Target: **100% compliance** before merging to main.
 
 ---
 
