@@ -749,7 +749,7 @@
             </div>
             <div style="margin-top: 25px; padding: 20px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;">
                 <h4 style="color: var(--accent-green); font-family: 'Space Mono', monospace; font-size: 13px; margin-bottom: 12px;">
-                    ◈ Single Source of Truth (95%)
+                    ◈ Single Source of Truth (100%)
                 </h4>
                 <p style="font-size: 13px; margin-bottom: 10px;">
                     <strong>Design principle:</strong> "Can I change X without touching Y?"
@@ -759,6 +759,7 @@
                     <li style="padding: 3px 0;">✓ Standard params → <code style="color: var(--accent-cyan);">config/GENERATOR_PARAMS</code></li>
                     <li style="padding: 3px 0;">✓ Custom params → <code style="color: var(--accent-cyan);">generators/*.json</code></li>
                     <li style="padding: 3px 0;">✓ OSC paths, rates → <code style="color: var(--accent-cyan);">config/__init__.py</code></li>
+                    <li style="padding: 3px 0;">✓ SC signal helpers → <code style="color: var(--accent-cyan);">~envVCA, ~multiFilter, ~stereoSpread</code></li>
                     <li style="padding: 3px 0;">✓ Validated by <code style="color: var(--accent-cyan);">tools/check_ssot.sh</code></li>
                 </ul>
             </div>
@@ -826,6 +827,10 @@
         <section class="milestones">
             <h2 class="section-title">Milestones</h2>
             <ul class="milestones-list">
+                <li><span class="milestone-date">2025-12-12</span> Major refactor: ~envVCA and ~stereoSpread helpers (50% code reduction)</li>
+                <li><span class="milestone-date">2025-12-12</span> MIDI envelope triggering (envSource: OFF/CLK/MIDI)</li>
+                <li><span class="milestone-date">2025-12-12</span> Sticky slot settings (ENV, clock rate, MIDI channel preserved on generator change)</li>
+                <li><span class="milestone-date">2025-12-12</span> SSOT compliance 100%</li>
                 <li><span class="milestone-date">2025-12-11</span> All 22 generators implemented with standard signal flow</li>
                 <li><span class="milestone-date">2025-12-11</span> 20 generator types (+ NLC Giant B0N0)</li>
                 <li><span class="milestone-date">2025-12-11</span> PT2399 Chaos generator with MADNESS macro</li>
