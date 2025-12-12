@@ -125,29 +125,56 @@ Then just type `noise` to activate project environment.
 
 ## Current Status
 
-### ✅ Working (v0.1 - Iteration 2)
+### ✅ Working (December 2025)
 
-- Python GUI with 4 vertical sliders
-- SuperCollider test synth (pulsing filtered noise)
-- Real-time OSC control
-- Modular component architecture established
-- Expanded parameter ranges (extreme control)
+**Core System:**
+- Python GUI with PyQt5
+- SuperCollider audio engine via OSC
+- Robust connection with ping/pong verification and heartbeat monitoring
+- 8-slot generator grid
 
-### 🔨 In Progress (Phase 1)
+**Generators (22 total):**
+- Synthesis: Subtractive, Additive, FM, Wavetable, Granular
+- Physical: Karplus-Strong, Modal
+- Relaxation oscillators: VCO, UJT, Neon, CapSense
+- Sirens: 4060, FBI, FBI Doppler  
+- Ring Modulators: Diode, 4-Quad, VCA
+- Effects/Chaos: PT2399 Grainy, PT2399 Chaos, Geiger, Giant B0N0
+- Test synth
 
-- Frame layout with modular panels
-- Mixer panel with per-generator control
-- Generator slot system
+**Per-Generator Features:**
+- 5 standard params (FRQ, CUT, RES, ATK, DEC)
+- Up to 5 custom params per generator (JSON config)
+- Multimode filter (LP/HP/BP)
+- Envelope source: OFF (drone), CLK (clock sync), MIDI (note trigger)
+- MIDI channel assignment per slot
+- Sticky slot settings (persist when changing generator type)
+
+**MIDI:**
+- MIDI input device selection
+- Per-slot MIDI channel
+- MIDI note triggering with velocity
+- MIDI retrig for Modal/Karplus (continuous strike while key held)
+
+**Effects:**
+- 4-slot effects chain
+- Fidelity effect (bit crush, sample rate, bandwidth)
+
+### 🔨 In Progress
+
+- Modulation sources (LFOs) - UI visible but not connected
+- Per-channel mixer - UI visible but not connected
+- See `docs/TECH_DEBT.md` for known issues
 
 ### ⏳ Roadmap
 
-- Additional generator types (PT2399, Sampler, Clicks, etc.)
-- Full modulation system (12-24 parameters)
-- Sequencer with routing control
-- MIDI input support
-- MIDI output to CV converters
+- Preset save/load system
+- MIDI CC mapping (MIDI Learn)
+- More effects (reverb, delay, chorus)
+- Sequencer
 - Visual layer (physics-based graphics)
-- Preset management system
+
+See `docs/FUTURE_IDEAS.md` for full feature wishlist.
 
 ## Configuration
 
@@ -184,25 +211,36 @@ controller:
 
 ## Generator Types
 
-### Planned Generators
+### Available (22 generators)
 
 **Synthesis:**
-- PT2399 Grainy - Tape delay degradation and granular processing
-- Filtered Noise - Dynamic noise shaping
-- Click/Pop - Geiger-style random events
-- Bat Detector - High-frequency chirps
-- Sonar - Pings and frequency sweeps
+- Subtractive, Additive, FM, Wavetable, Granular
 
-**Sample-Based:**
-- Sampler - Folder-based sample playback
-  - One-shot mode
-  - Loop mode
-  - Granular mode
-  - Scrub mode
+**Physical Modeling:**
+- Karplus-Strong (plucked string)
+- Modal (struck resonant body)
 
-**Hybrid:**
-- Sample + synthesis processing
-- Multiple signal path combinations
+**Relaxation Oscillators:**
+- VCO Relax, UJT Relax, Neon, CapSense
+
+**Sirens:**
+- 4060 Siren, FBI Siren, FBI Doppler
+
+**Ring Modulators:**
+- Diode Ring, 4-Quad Ring, VCA Ring
+
+**Effects/Chaos:**
+- PT2399 Grainy (tape degradation)
+- PT2399 Chaos (extreme feedback)
+- Geiger (random clicks)
+- Giant B0N0 (Nonlinear Circuits chaos)
+
+### Planned
+
+- Sample-based (load audio files)
+- Phase distortion
+- Formant/speech synthesis
+- Tracking oscillator / sub osc
 
 ## Output Capabilities
 

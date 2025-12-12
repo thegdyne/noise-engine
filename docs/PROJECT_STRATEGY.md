@@ -40,9 +40,9 @@
 | Script | Purpose |
 |--------|---------|
 | `tools/update_from_claude.sh` | Extract Claude's zip, apply changes, auto-checkout dev |
-| `tools/check_ssot.sh` | Check Single Source of Truth compliance |
-| `tools/update_ssot_badge.sh` | Update badge percentage in docs/index.html |
-| `tools/ssot.sh` | Wrapper: runs check + badge update |
+| `tools/ssot.sh` | Run SSOT check + update badge + auto-commit |
+| `tools/_check_ssot.sh` | Internal: SSOT compliance check |
+| `tools/_update_ssot_badge.sh` | Internal: Update badge in index.html |
 
 ### SSOT (Single Source of Truth)
 

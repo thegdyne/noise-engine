@@ -4,9 +4,12 @@
 - `docs/PROJECT_STRATEGY.md` - Architecture, principles, current status
 - `docs/DECISIONS.md` - All design decisions (DO NOT violate these)
 - `docs/BLUEPRINT.md` - Code organization rules
+- `docs/TECH_DEBT.md` - Known issues to fix
+- `docs/FUTURE_IDEAS.md` - Planned features
 
 ## Workflow
 
+### Code Changes
 Every response with code changes MUST end with:
 
 ```bash
@@ -18,6 +21,15 @@ git push
 ```
 
 Download must be named `noise-engine-updated.zip`.
+
+### Merging to Main
+Only merge to main when **explicitly agreed** with the user:
+```bash
+git checkout main
+git merge dev
+git push
+git checkout dev
+```
 
 ## Critical: OSC Connection
 
@@ -65,6 +77,19 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 ~stereoSpread.(sig, rate, width)  // optional stereo movement
 ```
 
+### Generator JSON Config
+```json
+{
+    "name": "MyGenerator",
+    "synthdef": "myGenerator",
+    "midi_retrig": false,
+    "pitch_target": null,
+    "custom_params": [
+        {"key": "param1", "label": "P1", "default": 0.5, "min": 0, "max": 1, "curve": "lin"}
+    ]
+}
+```
+
 ## Do NOT
 
 - Use horizontal sliders (except sequencer)
@@ -74,9 +99,10 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 - Forget the git workflow at the end
 - Reset slot settings (ENV, clock rate, MIDI channel, filter) when changing generator type - these are STICKY per slot
 - Duplicate envelope/filter code in generators - USE HELPERS
-- Use `~clockRates.size` in helpers - hardcode 13 (clock rates) and 8 (MIDI channels)
+- Use `~clockRates.size` in helpers - hardcode 13 (clock rates) and 8 (slots)
 - Hardcode OSC paths - use OSC_PATHS from config
 - Commit debug output to main branch
+- Merge to main without explicit user agreement
 
 ## Debugging
 
@@ -93,7 +119,19 @@ See `docs/DEBUGGING.md` for common issues and solutions.
 
 After making changes, verify SSOT compliance:
 ```bash
-bash tools/ssot.sh  # Runs check AND updates badge
+bash tools/ssot.sh  # Runs check, updates badge, commits if changed
 ```
 
 100% = 👑 crown appears on the badge!
+
+## Tools Reference
+
+| Script | Purpose |
+|--------|---------|
+| `tools/update_from_claude.sh` | Extract Claude's zip, apply changes, auto-checkout dev |
+| `tools/ssot.sh` | Run SSOT check + update badge + auto-commit |
+| `tools/_check_ssot.sh` | Internal: SSOT compliance check |
+| `tools/_update_ssot_badge.sh` | Internal: Update badge in index.html |
+| `tools/debug_add.sh` | Add debug output to SC files |
+| `tools/debug_remove.sh` | Remove debug output from SC files |
+| `tools/add_milestone.sh` | Add milestone to index.html |
