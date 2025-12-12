@@ -328,6 +328,14 @@ class GeneratorSlot(QWidget):
         self.env_btn.blockSignals(False)
         self.env_source_changed.emit(self.slot_id, 0)
         
+        # Reset MIDI channel to OFF
+        self.midi_channel = 0
+        self.midi_btn.blockSignals(True)
+        self.midi_btn.set_index(0)  # OFF
+        self.midi_btn.blockSignals(False)
+        self.midi_btn.setStyleSheet(midi_channel_style(False))
+        self.midi_channel_changed.emit(self.slot_id, 0)
+        
         # Legacy - keep clock_enabled in sync
         self.clock_enabled = False
         self.clock_enabled_changed.emit(self.slot_id, False)
@@ -448,6 +456,16 @@ class GeneratorSlot(QWidget):
         self.env_source = ENV_SOURCE_INDEX[source_str]
         self.update_env_style()
         self.env_source_changed.emit(self.slot_id, self.env_source)
+        
+        # Auto-set MIDI channel when switching to MIDI mode
+        if self.env_source == 2:  # MIDI
+            # Set MIDI channel to match generator slot (1-8)
+            self.midi_channel = self.slot_id
+            self.midi_btn.blockSignals(True)
+            self.midi_btn.set_index(self.slot_id)  # Index 0=OFF, 1-16=channels
+            self.midi_btn.blockSignals(False)
+            self.midi_btn.setStyleSheet(midi_channel_style(True))
+            self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
         
         # Legacy - keep clock_enabled in sync (ON if CLK or MIDI)
         self.clock_enabled = self.env_source > 0
