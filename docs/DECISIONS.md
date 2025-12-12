@@ -641,3 +641,39 @@ sig = ~multiFilter.(sig, filterType, cutoff, res);
 - `LICENSE`
 - `README.md` (license section)
 - `docs/index.html` (footer attribution)
+
+---
+
+### [2025-12-12] Envelope Source System (envSource replaces envEnabled)
+**Decision:** Generators use `envSource` (0=OFF, 1=CLK, 2=MIDI) instead of binary `envEnabled`
+**Rationale:** 
+- Supports three distinct modes: drone, clock-triggered, MIDI-triggered
+- MIDI mode triggers envelope from external keyboard, ignores internal clock
+- Clean separation of trigger sources
+
+**Implementation:**
+```supercollider
+// SynthDef signature includes:
+envSourceBus=0, midiTrigBus=0, slotIndex=0
+
+// Trigger selection:
+trig = Select.ar(envSource, [
+    DC.ar(0),      // 0: OFF - drone, no triggers
+    clockTrig,     // 1: CLK - clock triggers only  
+    midiTrig       // 2: MIDI - midi triggers only
+]);
+
+// Apply envelope only when envSource > 0
+sig = sig * Select.kr(envSource > 0, [1.0, env]) * amp;
+```
+
+**DO NOT:**
+- Use old `envEnabled` binary toggle in new generators
+- Mix clock and MIDI triggers (it's one or the other)
+- Forget `midiTrigBus` and `slotIndex` in SynthDef signature
+
+**Files affected:**
+- All `supercollider/generators/*.scd`
+- `supercollider/core/buses.scd` (envSource bus, midiTrigBus)
+- `supercollider/core/helpers.scd` (passes envSourceBus, midiTrigBus, slotIndex)
+- `supercollider/core/midi_handler.scd` (triggers midiTrigBus)
