@@ -136,19 +136,82 @@ echo ""
 echo "🎵 SUPERCOLLIDER CHECKS"
 echo "-----------------------"
 
-# 9. Hardcoded array sizes that should match config
+# 9. Check generators use ~envVCA helper
 echo ""
-echo "🔢 Checking for magic numbers in SC..."
-MAGIC_HITS=$(grep -rn "! 8\|! 13\|Array.fill(8\|Array.fill(13" "$SC_DIR" --include="*.scd" 2>/dev/null)
-if [ -n "$MAGIC_HITS" ]; then
-    echo "⚠️  Magic numbers found (verify match config):"
-    echo "$MAGIC_HITS" | sed 's/^/   /' | head -10
-    WARNINGS=$((WARNINGS + 1))
+echo "🔊 Checking generators use ~envVCA helper..."
+GEN_DIR="$SC_DIR/generators"
+MISSING_ENVVCA=""
+for f in "$GEN_DIR"/*.scd; do
+    if ! grep -q "~envVCA" "$f" 2>/dev/null; then
+        MISSING_ENVVCA="$MISSING_ENVVCA   $(basename $f)\n"
+    fi
+done
+if [ -n "$MISSING_ENVVCA" ]; then
+    echo "❌ Generators NOT using ~envVCA helper:"
+    echo -e "$MISSING_ENVVCA"
+    ISSUES=$((ISSUES + 1))
 else
-    echo "✅ No suspicious magic numbers"
+    echo "✅ All generators use ~envVCA helper"
 fi
 
-# 10. Check OSC path consistency between SC and Python
+# 10. Check generators use ~multiFilter helper
+echo ""
+echo "🎛️ Checking generators use ~multiFilter helper..."
+MISSING_FILTER=""
+for f in "$GEN_DIR"/*.scd; do
+    if ! grep -q "~multiFilter" "$f" 2>/dev/null; then
+        MISSING_FILTER="$MISSING_FILTER   $(basename $f)\n"
+    fi
+done
+if [ -n "$MISSING_FILTER" ]; then
+    echo "❌ Generators NOT using ~multiFilter helper:"
+    echo -e "$MISSING_FILTER"
+    ISSUES=$((ISSUES + 1))
+else
+    echo "✅ All generators use ~multiFilter helper"
+fi
+
+# 11. Check for old envEnabled pattern (should be envSource)
+echo ""
+echo "🔄 Checking for deprecated envEnabled pattern..."
+OLD_ENV_HITS=$(grep -rn "envEnabled\s*>" "$SC_DIR/generators" --include="*.scd" 2>/dev/null | grep -v "envEnabledBus")
+if [ -n "$OLD_ENV_HITS" ]; then
+    echo "❌ Old envEnabled pattern found (use envSource):"
+    echo "$OLD_ENV_HITS" | sed 's/^/   /'
+    ISSUES=$((ISSUES + $(count_lines "$OLD_ENV_HITS")))
+else
+    echo "✅ No deprecated envEnabled usage"
+fi
+
+# 12. Check for duplicated envelope code (should use helper)
+echo ""
+echo "📋 Checking for duplicated envelope code..."
+DUP_ENV_HITS=$(grep -rn "Select.ar(envSource" "$SC_DIR/generators" --include="*.scd" 2>/dev/null)
+if [ -n "$DUP_ENV_HITS" ]; then
+    echo "❌ Inline envelope logic found (should use ~envVCA):"
+    echo "$DUP_ENV_HITS" | sed 's/^/   /' | head -5
+    COUNT=$(count_lines "$DUP_ENV_HITS")
+    if [ "$COUNT" -gt 5 ]; then
+        echo "   ... and $((COUNT - 5)) more"
+    fi
+    ISSUES=$((ISSUES + 1))
+else
+    echo "✅ No duplicated envelope code"
+fi
+
+# 13. Hardcoded array sizes that should match config
+echo ""
+echo "🔢 Checking for magic numbers in SC..."
+MAGIC_HITS=$(grep -rn "In.ar(midiTrigBus, 8)\|In.ar(clockTrigBus, 13)" "$SC_DIR/generators" --include="*.scd" 2>/dev/null)
+if [ -n "$MAGIC_HITS" ]; then
+    echo "⚠️  Hardcoded bus sizes in generators (should be in helper):"
+    echo "$MAGIC_HITS" | sed 's/^/   /' | head -5
+    WARNINGS=$((WARNINGS + 1))
+else
+    echo "✅ No hardcoded bus sizes in generators"
+fi
+
+# 14. Check OSC path consistency between SC and Python
 echo ""
 echo "📡 Checking OSC path consistency..."
 SC_PATHS=$(grep -roh "'/noise/[^']*'" "$SC_DIR" --include="*.scd" 2>/dev/null | sort -u | tr -d "'")
@@ -204,8 +267,31 @@ if [ -f "$CONFIG_FILE" ]; then
     # Count generator params
     PARAM_COUNT=$(grep -c "'key':" "$CONFIG_FILE")
     echo "  • GENERATOR_PARAMS: $PARAM_COUNT params"
+    
+    # Count SC generators
+    SC_GEN_COUNT=$(ls -1 "$SC_DIR/generators"/*.scd 2>/dev/null | wc -l | tr -d ' ')
+    echo "  • SC Generators: $SC_GEN_COUNT files"
 else
     echo "⚠️  Config file not found at $CONFIG_FILE"
+fi
+
+# ============================================
+# HELPERS INVENTORY
+# ============================================
+echo ""
+echo ""
+echo "🔧 HELPERS INVENTORY"
+echo "--------------------"
+
+HELPERS_FILE="$SC_DIR/core/helpers.scd"
+if [ -f "$HELPERS_FILE" ]; then
+    echo "Signal processing helpers in helpers.scd:"
+    grep -o "~[a-zA-Z]*\s*=" "$HELPERS_FILE" | sed 's/\s*=$//' | sort -u | while read helper; do
+        USAGE=$(grep -rl "$helper\." "$SC_DIR/generators" --include="*.scd" 2>/dev/null | wc -l | tr -d ' ')
+        echo "  • $helper - used in $USAGE generators"
+    done
+else
+    echo "⚠️  Helpers file not found at $HELPERS_FILE"
 fi
 
 # ============================================
@@ -218,7 +304,7 @@ echo "SUMMARY"
 echo "================================"
 
 # Calculate compliance percentage
-TOTAL_CHECKS=8
+TOTAL_CHECKS=12
 PASSED=$((TOTAL_CHECKS - ISSUES))
 if [ $TOTAL_CHECKS -gt 0 ]; then
     PERCENT=$((PASSED * 100 / TOTAL_CHECKS))
@@ -251,4 +337,4 @@ if [ "$1" = "--json" ]; then
 fi
 
 # Exit with error code if issues found
-exit $ISSUES"
+exit $ISSUES
