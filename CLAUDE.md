@@ -93,8 +93,7 @@ See `docs/DEBUGGING.md` for common issues and solutions.
 
 After making changes, verify SSOT compliance:
 ```bash
-./tools/check_ssot.sh        # Run compliance check
-./tools/update_ssot_badge.sh  # Update badge in index.html
+bash tools/ssot.sh  # Runs check AND updates badge
 ```
 
 100% = 👑 crown appears on the badge!
