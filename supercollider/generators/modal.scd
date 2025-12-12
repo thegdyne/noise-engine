@@ -10,6 +10,9 @@ Custom params:
   - P3 decay_shape: 0-1 (quick <-> ringing)
   - P4 density: 1-20 (number of modes)
   - P5 retrig_rate: 0.1-50 Hz (internal strike rate)
+
+MIDI retrig mode: When envSource=MIDI, external triggers drive the exciter
+at ~30Hz while key is held. The retrig_rate param is ignored in this mode.
 */
 
 SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -18,7 +21,8 @@ SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                     customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
     var material, brightness, decayShape, density, retrigRate;
-    var exciter, modes, internalTrig;
+    var exciter, modes, exciterTrig;
+    var allMidiTrigs, midiTrig;
     
     // Standard params
     freq = In.kr(freqBus);
@@ -38,9 +42,19 @@ SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     density = In.kr(customBus3);
     retrigRate = In.kr(customBus4);
     
+    // === EXCITER TRIGGER ===
+    // In MIDI mode (envSource=2), use MIDI trigger bus (continuous 30Hz from held key)
+    // Otherwise use internal retrig rate
+    allMidiTrigs = In.ar(midiTrigBus, 8);
+    midiTrig = Select.ar(slotIndex, allMidiTrigs);
+    
+    exciterTrig = Select.ar(envSource > 1, [
+        Impulse.ar(retrigRate),  // Internal retrig (envSource 0 or 1)
+        midiTrig                  // MIDI retrig (envSource 2)
+    ]);
+    
     // === SOUND SOURCE ===
-    internalTrig = Impulse.ar(retrigRate);
-    exciter = WhiteNoise.ar * EnvGen.ar(Env.perc(0.0001, 0.005), internalTrig);
+    exciter = WhiteNoise.ar * EnvGen.ar(Env.perc(0.0001, 0.005), exciterTrig);
     
     modes = Mix.fill(12, { |i|
         var modeFreq, modeAmp, modeDecay, ratio;

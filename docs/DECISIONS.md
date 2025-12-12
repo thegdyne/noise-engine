@@ -795,3 +795,49 @@ SynthDef(\genName, { |out, freqBus, cutoffBus, ...|
 **Files affected:**
 - `supercollider/core/helpers.scd` (helper definitions)
 - `supercollider/generators/*.scd` (all 22 generators use helpers)
+
+---
+
+### [2025-12-12] MIDI Retrig Mode for Struck/Plucked Generators
+**Decision:** Generators with internal retrigger (modal, karplus) use continuous triggering in MIDI mode
+
+**Problem:** 
+Modal and Karplus-Strong have internal `Impulse.ar(retrigRate)` for self-triggering. When playing via MIDI keyboard, the VCA opens but the exciter fires on its own schedule, causing laggy/unresponsive feel.
+
+**Solution:**
+- Add `"midi_retrig": true` flag to generator JSON config
+- In MIDI mode (envSource=2), generators use MIDI trigger bus instead of internal retrigger
+- SC sends continuous 30Hz triggers while key is held (via `midiRetrigContinuous` synth)
+- RTG knob is greyed out in MIDI mode (not applicable)
+- Drone/CLK modes unchanged - still use internal retrig rate
+
+**Architecture:**
+```
+Generator JSON:
+  "midi_retrig": true  // Flag for modal, karplus
+
+Python:
+  on_generator_changed → send /noise/gen/midiRetrig [slot, 1/0]
+  env_source_changed → grey out RTG if midi_retrig && envSource==MIDI
+
+SC midi_handler.scd:
+  ~genMidiRetrig[slot] = true/false
+  Note on + midi_retrig → start midiRetrigContinuous synth (30Hz triggers)
+  Note off → free midiRetrigContinuous synth
+
+Generator SynthDef:
+  exciterTrig = Select.ar(envSource > 1, [
+      Impulse.ar(retrigRate),  // Internal (OFF/CLK)
+      midiTrig                  // External (MIDI)
+  ]);
+```
+
+**Files affected:**
+- `supercollider/generators/modal.json` - add midi_retrig flag
+- `supercollider/generators/karplus_strong.json` - add midi_retrig flag
+- `supercollider/generators/modal.scd` - use midiTrig for exciter in MIDI mode
+- `supercollider/generators/karplus_strong.scd` - use midiTrig for exciter in MIDI mode
+- `supercollider/core/midi_handler.scd` - handle midi_retrig, continuous trigger synth
+- `src/config/__init__.py` - add get_generator_midi_retrig(), OSC path
+- `src/gui/generator_slot.py` - grey out RTG in MIDI mode
+- `src/gui/main_frame.py` - send midi_retrig flag on generator change

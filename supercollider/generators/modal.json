@@ -1,6 +1,7 @@
 {
     "name": "Modal",
     "synthdef": "modal",
+    "midi_retrig": true,
     "custom_params": [
         {
             "key": "material",

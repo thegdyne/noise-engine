@@ -7,6 +7,7 @@ Features:
 - Route note on/off to generators by MIDI channel
 - Send gate triggers back to Python for LED flashing
 - Support per-generator mute
+- MIDI retrig mode for struck/plucked generators (continuous triggers while key held)
 
 MIDI Channel mapping:
 - Each generator has a midiChannel (0=OFF, 1-16=channel)
@@ -18,6 +19,7 @@ OSC messages from Python:
 - /noise/midi/device [portIndex] - Connect to MIDI port (-1 = disconnect)
 - /noise/gen/midiChannel [slot, channel] - Set generator's MIDI channel
 - /noise/gen/mute [slot, muted] - Set generator mute state
+- /noise/gen/midiRetrig [slot, enabled] - Set MIDI retrig mode for generator
 
 OSC messages to Python:
 - /noise/midi/gate [slot] - Gate triggered (for LED flash)
@@ -35,6 +37,8 @@ OSC messages to Python:
     // Per-generator MIDI settings
     ~genMidiChannel = Array.fill(8, { 0 });  // 0 = OFF, 1-16 = channel
     ~genMuted = Array.fill(8, { false });
+    ~genMidiRetrig = Array.fill(8, { false });  // true = continuous retrig while key held
+    ~genRetrigSynths = Array.fill(8, { nil });  // Active retrig synths per slot
     
     // MIDI connection state
     ~midiConnected = false;
@@ -82,12 +86,11 @@ OSC messages to Python:
         
         // Now set up handlers
         ~midiNoteOnFunc = MIDIFunc.noteOn({ |vel, note, chan, src|
-            ("MIDIFunc.noteOn triggered!").postln;
             ~handleMidiNoteOn.(vel, note, chan);
         });
         
         ~midiNoteOffFunc = MIDIFunc.noteOff({ |vel, note, chan, src|
-            // Future: handle note off for ADSR
+            ~handleMidiNoteOff.(vel, note, chan);
         });
         
         ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
@@ -106,19 +109,16 @@ OSC messages to Python:
 ~handleMidiNoteOn = { |vel, note, chan|
     var midiChannel = chan + 1;  // Convert 0-15 to 1-16
     
-    ("MIDI Note: " ++ note ++ " vel: " ++ vel ++ " chan: " ++ midiChannel).postln;
-    
     // Find generators listening on this channel
     8.do { |i|
         var slot = i + 1;
         var genChannel = ~genMidiChannel[i];
         var isMuted = ~genMuted[i];
+        var needsRetrig = ~genMidiRetrig[i];
         
         if(genChannel == midiChannel && isMuted.not, {
             var freq = note.midicps;
             var amp = vel / 127.0;
-            
-            ("  -> Routing to Gen " ++ slot ++ " freq: " ++ freq).postln;
             
             // Set frequency from note
             if(~genParams[slot].notNil && ~genParams[slot][\frequency].notNil, {
@@ -127,25 +127,66 @@ OSC messages to Python:
             
             // Trigger envelope if generator exists
             if(~generators[slot].notNil, {
-                ("  -> Triggering gate for Gen " ++ slot).postln;
                 // Send gate to Python for LED
                 ~pythonAddr.sendMsg('/noise/midi/gate', slot);
                 
-                // Trigger the envelope
-                ~triggerMidiGate.(slot, amp);
-            }, {
-                ("  -> Gen " ++ slot ++ " not running").postln;
+                if(needsRetrig, {
+                    // Continuous retrig mode - start fast triggering synth
+                    ~startMidiRetrig.(slot, amp);
+                }, {
+                    // Normal mode - single trigger
+                    ~triggerMidiGate.(slot, amp);
+                });
             });
         });
     };
 };
 
-// Trigger MIDI gate for a generator
+// Handle MIDI note off
+~handleMidiNoteOff = { |vel, note, chan|
+    var midiChannel = chan + 1;
+    
+    // Stop retrig synths for generators on this channel
+    8.do { |i|
+        var slot = i + 1;
+        var genChannel = ~genMidiChannel[i];
+        var needsRetrig = ~genMidiRetrig[i];
+        
+        if(genChannel == midiChannel && needsRetrig, {
+            ~stopMidiRetrig.(slot);
+        });
+    };
+};
+
+// Start continuous MIDI retriggering for a slot
+~startMidiRetrig = { |slot, velocity=1.0|
+    // Stop any existing retrig synth for this slot
+    ~stopMidiRetrig.(slot);
+    
+    if(~clockGroup.notNil && ~midiTrigBus.notNil, {
+        // Create a synth that sends continuous triggers at ~30Hz while running
+        ~genRetrigSynths[slot - 1] = Synth(\midiRetrigContinuous, [
+            \trigBus, ~midiTrigBus.index + slot - 1,
+            \rate, 30,  // 30Hz retrigger rate
+            \amp, velocity
+        ], ~clockGroup, \addToTail);
+    });
+};
+
+// Stop continuous MIDI retriggering for a slot
+~stopMidiRetrig = { |slot|
+    var synth = ~genRetrigSynths[slot - 1];
+    if(synth.notNil, {
+        synth.free;
+        ~genRetrigSynths[slot - 1] = nil;
+    });
+};
+
+// Trigger MIDI gate for a generator (single pulse)
 ~triggerMidiGate = { |slot, velocity=1.0|
     if(~clockGroup.notNil && ~midiTrigBus.notNil, {
-        ("  -> Creating MIDI trigger for slot " ++ slot ++ " on bus " ++ (~midiTrigBus.index + slot - 1)).postln;
         Synth(\midiTrigger, [
-            \trigBus, ~midiTrigBus.index + slot - 1,  // Write to specific channel
+            \trigBus, ~midiTrigBus.index + slot - 1,
             \amp, velocity
         ], ~clockGroup, \addToTail);
     });
@@ -157,6 +198,13 @@ SynthDef(\midiTrigger, { |trigBus=0, amp=1|
     var trig = Trig1.ar(DC.ar(1), 0.001);  // 1ms trigger pulse
     Out.ar(trigBus, trig * amp);
     FreeSelf.kr(TDelay.kr(Impulse.kr(0), 0.01));
+}).add;
+
+// Continuous trigger synth for MIDI retrig mode
+// Sends triggers at specified rate while running
+SynthDef(\midiRetrigContinuous, { |trigBus=0, rate=30, amp=1|
+    var trig = Impulse.ar(rate);
+    Out.ar(trigBus, trig * amp);
 }).add;
 
 // OSC handlers for MIDI
@@ -190,6 +238,17 @@ SynthDef(\midiTrigger, { |trigBus=0, amp=1|
             ("Gen " ++ slot ++ " mute: " ++ muted).postln;
         });
     }, '/noise/gen/mute');
+    
+    // Set generator MIDI retrig mode
+    OSCdef(\genMidiRetrig, { |msg|
+        var slot = msg[1].asInteger;
+        var enabled = msg[2].asInteger > 0;
+        
+        if(slot >= 1 && slot <= 8, {
+            ~genMidiRetrig[slot - 1] = enabled;
+            ("Gen " ++ slot ++ " MIDI retrig: " ++ enabled).postln;
+        });
+    }, '/noise/gen/midiRetrig');
     
     "  ✓ MIDI OSC handlers ready".postln;
 };

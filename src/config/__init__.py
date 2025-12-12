@@ -257,6 +257,31 @@ def get_generator_pitch_target(name):
     config = _GENERATOR_CONFIGS.get(name, {})
     return config.get('pitch_target')
 
+def get_generator_midi_retrig(name):
+    """Check if generator needs MIDI retriggering.
+    
+    For struck/plucked generators (modal, karplus), MIDI mode needs
+    continuous retriggering while key is held, not just a single strike.
+    
+    Returns:
+        bool: True if generator needs MIDI retrig behaviour
+    """
+    config = _GENERATOR_CONFIGS.get(name, {})
+    return config.get('midi_retrig', False)
+
+def get_generator_retrig_param_index(name):
+    """Get the index of the retrig_rate param if it exists.
+    
+    Returns:
+        int or None: Index (0-4) of retrig param, or None if not found
+    """
+    config = _GENERATOR_CONFIGS.get(name, {})
+    params = config.get('custom_params', [])
+    for i, param in enumerate(params):
+        if param.get('key') == 'retrig_rate':
+            return i
+    return None
+
 # Legacy GENERATORS dict for compatibility (built from JSON)
 GENERATORS = {name: cfg['synthdef'] for name, cfg in _GENERATOR_CONFIGS.items()}
 
@@ -300,6 +325,7 @@ OSC_PATHS = {
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash
+    'midi_retrig': '/noise/gen/midiRetrig',  # Flag for MIDI continuous retriggering
     # Connection management
     'ping': '/noise/ping',
     'pong': '/noise/pong',

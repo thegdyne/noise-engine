@@ -14,6 +14,7 @@ from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
     GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE, map_value, 
     get_generator_custom_params, get_generator_pitch_target,
+    get_generator_midi_retrig, get_generator_retrig_param_index,
     ENV_SOURCES, ENV_SOURCE_INDEX
 )
 
@@ -384,6 +385,8 @@ class GeneratorSlot(QWidget):
         """Update custom param sliders for current generator type."""
         custom_params = get_generator_custom_params(gen_type)
         pitch_target = get_generator_pitch_target(gen_type)
+        midi_retrig = get_generator_midi_retrig(gen_type)
+        retrig_param_index = get_generator_retrig_param_index(gen_type)
         
         for i in range(MAX_CUSTOM_PARAMS):
             if i < len(custom_params):
@@ -404,7 +407,14 @@ class GeneratorSlot(QWidget):
                 self.custom_sliders[i].set_param_config(param, format_value)
                 self.custom_sliders[i].blockSignals(False)
                 self.custom_sliders[i].setToolTip(param.get('tooltip', ''))
-                self.custom_sliders[i].setEnabled(True)
+                
+                # Grey out RTG param in MIDI mode for midi_retrig generators
+                if midi_retrig and i == retrig_param_index and self.env_source == 2:
+                    self.custom_sliders[i].setEnabled(False)
+                    self.custom_labels[i].setStyleSheet(f"color: {COLORS['text_dim']};")
+                else:
+                    self.custom_sliders[i].setEnabled(True)
+                
                 # Force send default value to SuperCollider
                 default = param.get('default', 0.5)
                 real_value = map_value(default, param)
@@ -418,6 +428,20 @@ class GeneratorSlot(QWidget):
                 self.custom_sliders[i].blockSignals(False)
                 self.custom_sliders[i].setToolTip("")
                 self.custom_sliders[i].setEnabled(False)
+    
+    def _update_retrig_param_state(self):
+        """Update RTG param enable state based on env_source and generator type."""
+        midi_retrig = get_generator_midi_retrig(self.generator_type)
+        retrig_param_index = get_generator_retrig_param_index(self.generator_type)
+        
+        if midi_retrig and retrig_param_index is not None:
+            # Grey out RTG in MIDI mode, enable otherwise
+            if self.env_source == 2:  # MIDI
+                self.custom_sliders[retrig_param_index].setEnabled(False)
+                self.custom_labels[retrig_param_index].setStyleSheet(f"color: {COLORS['text_dim']};")
+            else:
+                self.custom_sliders[retrig_param_index].setEnabled(True)
+                self.custom_labels[retrig_param_index].setStyleSheet(f"color: {COLORS['text']};")
         
     def set_active(self, active):
         """Set active state."""
@@ -466,6 +490,9 @@ class GeneratorSlot(QWidget):
             self.midi_btn.blockSignals(False)
             self.midi_btn.setStyleSheet(midi_channel_style(True))
             self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
+        
+        # Update RTG param enable state for midi_retrig generators
+        self._update_retrig_param_state()
         
         # Legacy - keep clock_enabled in sync (ON if CLK or MIDI)
         self.clock_enabled = self.env_source > 0

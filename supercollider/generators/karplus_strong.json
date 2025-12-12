@@ -1,6 +1,7 @@
 {
     "name": "Karplus",
     "synthdef": "karplusStrong",
+    "midi_retrig": true,
     "custom_params": [
         {
             "key": "excitation_color",
