@@ -338,5 +338,12 @@ if [ "$1" = "--json" ]; then
     echo "JSON_OUTPUT:{\"percent\":$PERCENT,\"issues\":$ISSUES,\"warnings\":$WARNINGS}"
 fi
 
+# Auto-update badge in docs
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/update_ssot_badge.sh" ]; then
+    echo ""
+    "$SCRIPT_DIR/update_ssot_badge.sh"
+fi
+
 # Exit with error code if issues found
 exit $ISSUES
