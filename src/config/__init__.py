@@ -300,6 +300,11 @@ OSC_PATHS = {
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash
+    # Connection management
+    'ping': '/noise/ping',
+    'pong': '/noise/pong',
+    'heartbeat': '/noise/heartbeat',
+    'heartbeat_ack': '/noise/heartbeat_ack',
 }
 
 # === WIDGET SIZES ===

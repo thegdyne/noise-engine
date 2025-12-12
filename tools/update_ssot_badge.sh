@@ -33,6 +33,16 @@ if [ -f "$INDEX_FILE" ]; then
     # Update the architecture section percentage
     sed -i '' "s/Single Source of Truth ([0-9]*%)/Single Source of Truth (${PERCENT}%)/" "$INDEX_FILE"
     
+    # Add or remove 'perfect' class based on 100%
+    if [ "$PERCENT" -eq 100 ]; then
+        # Add 'perfect' class if not already there
+        sed -i '' 's/class="badge ssot"/class="badge ssot perfect"/' "$INDEX_FILE"
+        echo "👑 PERFECT SCORE! Crown activated!"
+    else
+        # Remove 'perfect' class if present
+        sed -i '' 's/class="badge ssot perfect"/class="badge ssot"/' "$INDEX_FILE"
+    fi
+    
     echo "✅ Updated $INDEX_FILE with SSOT ${PERCENT}%"
 else
     echo "❌ index.html not found at $INDEX_FILE"

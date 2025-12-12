@@ -93,10 +93,12 @@ class OSCBridge(QObject):
     
     def _verify_connection(self):
         """Send ping and wait for pong response."""
+        from src.config import OSC_PATHS
+        
         self._ping_received = False
         
         # Send ping
-        self.client.send_message('/noise/ping', [1])
+        self.client.send_message(OSC_PATHS['ping'], [1])
         
         # Wait for pong (blocking with timeout)
         start_time = time.time()
@@ -111,6 +113,8 @@ class OSCBridge(QObject):
     
     def _check_heartbeat(self):
         """Called by timer - send heartbeat and check for response."""
+        from src.config import OSC_PATHS
+        
         if not self.connected or not self.client:
             return
         
@@ -132,7 +136,7 @@ class OSCBridge(QObject):
         # Send next heartbeat
         self._heartbeat_received = False
         try:
-            self.client.send_message('/noise/heartbeat', [1])
+            self.client.send_message(OSC_PATHS['heartbeat'], [1])
         except Exception as e:
             print(f"✗ Heartbeat send failed: {e}")
             self._missed_heartbeats += 1
@@ -150,16 +154,16 @@ class OSCBridge(QObject):
     
     def _start_server(self):
         """Start OSC server to receive messages from SC."""
-        from src.config import OSC_RECEIVE_PORT
+        from src.config import OSC_RECEIVE_PORT, OSC_PATHS
         
         dispatcher = Dispatcher()
         
         # Connection management
-        dispatcher.map("/noise/pong", self._handle_pong)
-        dispatcher.map("/noise/heartbeat_ack", self._handle_heartbeat_ack)
+        dispatcher.map(OSC_PATHS['pong'], self._handle_pong)
+        dispatcher.map(OSC_PATHS['heartbeat_ack'], self._handle_heartbeat_ack)
         
         # Handle gate triggers from SC
-        dispatcher.map("/noise/midi/gate", self._handle_gate)
+        dispatcher.map(OSC_PATHS['midi_gate'], self._handle_gate)
         
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
