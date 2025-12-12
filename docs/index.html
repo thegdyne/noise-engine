@@ -66,6 +66,8 @@
         }
         .badge.ssot .pct { font-weight: 700; }
         
+        /* First User Celebration Banner - added after badges */
+        
         /* Princess Peach style crown for 100% SSOT */
         .crown {
             display: none;
@@ -93,6 +95,82 @@
         @keyframes crownSpin {
             0% { transform: translateX(-50%) rotateY(0deg); }
             100% { transform: translateX(-50%) rotateY(360deg); }
+        }
+        
+        /* 🎉 FIRST USER CELEBRATION 🎉 */
+        .celebration-banner {
+            background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%);
+            border: 2px solid gold;
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin: 30px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+        .celebration-banner h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            color: gold;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px gold;
+        }
+        .celebration-banner p {
+            color: var(--text-bright);
+            font-size: 16px;
+        }
+        .celebration-banner .user-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        /* Fireworks */
+        .firework {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: fireworkBurst 1.5s ease-out infinite;
+        }
+        .firework:nth-child(1) { left: 10%; top: 20%; background: #ff6b6b; animation-delay: 0s; }
+        .firework:nth-child(2) { left: 20%; top: 60%; background: #feca57; animation-delay: 0.3s; }
+        .firework:nth-child(3) { left: 80%; top: 30%; background: #48dbfb; animation-delay: 0.6s; }
+        .firework:nth-child(4) { left: 90%; top: 70%; background: #ff9ff3; animation-delay: 0.9s; }
+        .firework:nth-child(5) { left: 50%; top: 10%; background: #54a0ff; animation-delay: 0.2s; }
+        .firework:nth-child(6) { left: 70%; top: 80%; background: #5f27cd; animation-delay: 0.5s; }
+        
+        @keyframes fireworkBurst {
+            0% { transform: scale(0); opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+            50% { transform: scale(1); opacity: 1; box-shadow: 0 0 20px 10px currentColor; }
+            100% { transform: scale(1.5); opacity: 0; box-shadow: 0 0 40px 20px transparent; }
+        }
+        
+        /* Party poppers on sides */
+        .party-popper {
+            font-size: 40px;
+            animation: popperBounce 0.5s ease-in-out infinite alternate;
+        }
+        .party-popper.left { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); }
+        .party-popper.right { position: absolute; right: 15px; top: 50%; transform: translateY(-50%) scaleX(-1); }
+        
+        @keyframes popperBounce {
+            0% { transform: translateY(-50%) rotate(-10deg); }
+            100% { transform: translateY(-50%) rotate(10deg); }
+        }
+        .party-popper.right {
+            animation: popperBounceRight 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes popperBounceRight {
+            0% { transform: translateY(-50%) scaleX(-1) rotate(-10deg); }
+            100% { transform: translateY(-50%) scaleX(-1) rotate(10deg); }
         }
         
         .hero {
@@ -409,6 +487,22 @@
                 </div>
             </div>
         </section>
+        
+        <!-- 🎉 FIRST USER CELEBRATION 🎉 -->
+        <div class="celebration-banner">
+            <div class="firework"></div>
+            <div class="firework"></div>
+            <div class="firework"></div>
+            <div class="firework"></div>
+            <div class="firework"></div>
+            <div class="firework"></div>
+            <span class="party-popper left">🎉</span>
+            <span class="party-popper right">🎉</span>
+            <h3>🎊 WE HAVE OUR FIRST USER! 🎊</h3>
+            <p>David is officially <strong>User 01</strong> of Noise Engine!</p>
+            <p style="font-size: 14px; margin-top: 8px; color: var(--text);">December 12, 2025 - A historic moment</p>
+            <div class="user-badge">👑 USER 01</div>
+        </div>
         
         <section class="hero">
             <div class="hero-text">
