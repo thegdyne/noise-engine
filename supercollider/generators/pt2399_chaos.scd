@@ -37,7 +37,7 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                           customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, grain, env, filterFreq, rq, filterType, attack, decay, amp;
     var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
-    var delayTime, feedback, retrigRate, madness, wetDry;
+    var panPos, delayTime, feedback, retrigRate, madness, wetDry;
     var delayed, dry, fbSig, degraded, fbDistort;
     var degradeAmt, chaosAmt;
     var degradeNormal, degradeCrazy, chaosNormal, chaosCrazy;

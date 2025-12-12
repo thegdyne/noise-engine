@@ -29,7 +29,7 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                           customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, source, env, freq, filterFreq, rq, filterType, attack, decay, amp;
     var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
-    var delayTime, feedback, bandwidth, tone, grit;
+    var panPos, delayTime, feedback, bandwidth, tone, grit;
     var delayed, dry, fbSig, pitchWobble, degraded;
     
     // Read standard params
