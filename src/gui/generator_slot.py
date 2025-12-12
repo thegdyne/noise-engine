@@ -331,7 +331,7 @@ class GeneratorSlot(QWidget):
         self.env_source_changed.emit(self.slot_id, self.env_source)
         
         # REAPPLY clock rate
-        current_rate = self.rate_btn.current_value()
+        current_rate = self.rate_btn.get_value()
         from src.config import CLOCK_RATE_INDEX
         self.clock_rate_changed.emit(self.slot_id, current_rate)
         
@@ -343,7 +343,7 @@ class GeneratorSlot(QWidget):
         self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
         
         # REAPPLY filter type (also sticky per slot)
-        current_filter = self.filter_btn.current_value()
+        current_filter = self.filter_btn.get_value()
         self.filter_type_changed.emit(self.slot_id, current_filter)
         
         # Reset standard sliders to defaults and send values
