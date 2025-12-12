@@ -89,15 +89,14 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 
 ## Skins
 
-- Winamp
-- ReBirth
-- Windows 3.1
-- Blade Runner
-- Tron (Flynn's Arcade)
-- Doom
-- Terminator 1
-- Terminator 2
-- Golden Axe
+- 90s Media Player (green LCD aesthetic)
+- Acid TB (orange 303 style)
+- Classic GUI (grey system dialogs)
+- Dystopia (dark sci-fi red glow)
+- Neon Grid (cyan wireframe)
+- FPS HUD (game interface)
+- Cyborg (chrome and red LEDs)
+- Pixel Warrior (16-bit aesthetic)
 
 ---
 
