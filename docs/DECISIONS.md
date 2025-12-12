@@ -712,3 +712,75 @@ Gen 1: FM, ENV=CLK, rate=/4, filter=HP  ← settings preserved
 
 **Files affected:**
 - `src/gui/generator_slot.py` (set_generator_type preserves settings)
+
+---
+
+### [2025-12-12] OSC Port Configuration - Use SC langPort (57122)
+**Decision:** Python sends OSC to SuperCollider's langPort (57122), NOT the server port (57110) or arbitrary port (57120)
+
+**Critical:** SuperCollider has multiple ports:
+- **57110** = scsynth server port (audio engine) - DO NOT send OSC here
+- **57122** = sclang port (language/interpreter) - SEND OSC HERE
+- The langPort can vary! Always verify with `NetAddr.langPort.postln;` in SC
+
+**Debugging OSC issues:**
+1. In SuperCollider: `OSCFunc.trace(true);` then select generator in Python
+2. If NO `/noise/start_generator` message appears → wrong port
+3. Check SC langPort: `NetAddr.langPort.postln;`
+4. Update `OSC_SEND_PORT` in `src/config/__init__.py` to match
+
+**DO NOT:**
+- Hardcode port 57120 without verifying SC langPort
+- Send to server port 57110 (that's for scsynth, not sclang)
+- Assume langPort is always the same (it can change between SC installations)
+
+**Files affected:**
+- `src/config/__init__.py` (OSC_SEND_PORT = 57122)
+
+---
+
+### [2025-12-12] Shared Helper Functions for Generators (~envVCA, ~multiFilter, ~stereoSpread)
+**Decision:** All generators use shared helper functions for common signal processing
+
+**Helpers defined in `supercollider/core/helpers.scd`:**
+```supercollider
+~multiFilter.(sig, filterType, filterFreq, rq)  // LP/HP/BP filter
+~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex)  // Envelope + VCA
+~stereoSpread.(sig, rate, width)  // Subtle stereo movement
+```
+
+**Standard generator structure:**
+```supercollider
+SynthDef(\genName, { |out, freqBus, cutoffBus, ...|
+    var sig, freq, ...;
+    
+    // Read params from buses
+    freq = In.kr(freqBus);
+    // ...
+    
+    // === SOUND SOURCE === (unique per generator)
+    sig = ...;
+    
+    // === PROCESSING CHAIN === (standardized)
+    sig = ~stereoSpread.(sig, 0.2, 0.3);  // optional
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
+    
+    Out.ar(out, sig);
+}).add;
+```
+
+**Benefits:**
+- Single source of truth for envelope logic (bug fix = 1 file, not 22)
+- 50% code reduction (2853 → 1440 lines across generators)
+- Consistent behavior across all generators
+- Easier to add new generators
+
+**DO NOT:**
+- Duplicate envelope/filter code inline in generators
+- Use `~clockRates.size` inside helpers (hardcode 13 for clock rates, 8 for MIDI channels)
+- Forget to pass all required arguments to helpers
+
+**Files affected:**
+- `supercollider/core/helpers.scd` (helper definitions)
+- `supercollider/generators/*.scd` (all 22 generators use helpers)
