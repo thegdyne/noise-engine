@@ -197,8 +197,10 @@ class MainFrame(QMainWindow):
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
         if not self.osc_connected:
-            # Connect gate signal before connecting
+            # Connect signals before connecting
             self.osc.gate_triggered.connect(self.on_gate_trigger)
+            self.osc.connection_lost.connect(self.on_connection_lost)
+            self.osc.connection_restored.connect(self.on_connection_restored)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -222,6 +224,8 @@ class MainFrame(QMainWindow):
         else:
             try:
                 self.osc.gate_triggered.disconnect(self.on_gate_trigger)
+                self.osc.connection_lost.disconnect(self.on_connection_lost)
+                self.osc.connection_restored.disconnect(self.on_connection_restored)
             except:
                 pass
             self.osc.disconnect()
@@ -230,6 +234,27 @@ class MainFrame(QMainWindow):
             self.status_label.setText("● Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
             self.mixer_panel.set_io_status(audio=False)
+    
+    def on_connection_lost(self):
+        """Handle connection lost - show prominent warning."""
+        self.osc_connected = False
+        self.connect_btn.setText("⚠ RECONNECT")
+        self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
+        self.status_label.setText("● CONNECTION LOST")
+        self.status_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: bold;")
+        self.mixer_panel.set_io_status(audio=False)
+    
+    def on_connection_restored(self):
+        """Handle connection restored after reconnect."""
+        self.osc_connected = True
+        self.connect_btn.setText("Disconnect")
+        self.connect_btn.setStyleSheet("")  # Reset to default style
+        self.status_label.setText("● Connected")
+        self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
+        self.mixer_panel.set_io_status(audio=True)
+        
+        # Resend current state
+        self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
     
     def on_gate_trigger(self, slot_id):
         """Handle gate trigger from SC - flash LED."""

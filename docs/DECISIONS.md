@@ -715,35 +715,38 @@ Gen 1: FM, ENV=CLK, rate=/4, filter=HP  ← settings preserved
 
 ---
 
-### [2025-12-12] OSC Port Configuration - Check SC langPort Before Each Session
-**Decision:** Python sends OSC to SuperCollider's langPort. This port **varies between SC sessions** (typically 57120 or 57122).
+### [2025-12-12] OSC Port Configuration - Fixed Port with Verification
+**Decision:** SC forces port 57120 on startup. Python verifies connection with ping/pong and monitors with heartbeat.
 
-**Critical:** SuperCollider's langPort is NOT fixed!
-- **57110** = scsynth server port (audio engine) - NEVER send OSC here
-- **57120 or 57122** = sclang port - CHECK EACH SESSION
+**Architecture:**
+```
+SC init.scd:
+  thisProcess.openUDPPort(57120);  // Force fixed port
 
-**Before starting Python GUI:**
-```supercollider
-NetAddr.langPort.postln;  // Check this value!
+Python connect():
+  1. Send /noise/ping
+  2. Wait for /noise/pong (1 second timeout)
+  3. If no response → connection failed
+  4. If response → start heartbeat monitoring
+
+Heartbeat (every 2 seconds):
+  1. Python sends /noise/heartbeat
+  2. SC responds with /noise/heartbeat_ack
+  3. If 3 missed responses → CONNECTION LOST signal
+  4. UI shows prominent warning, one-click reconnect
 ```
 
-**If port doesn't match `OSC_SEND_PORT` in config:**
-1. Update `src/config/__init__.py`: `OSC_SEND_PORT = <value from SC>`
-2. Restart Python GUI
-
-**Debugging OSC issues:**
-1. In SuperCollider: `NetAddr.langPort.postln;` - note the port
-2. Check Python config matches: `grep OSC_SEND_PORT src/config/__init__.py`
-3. If different, update config and restart Python
-4. Verify with `OSCFunc.trace(true);` then select generator
-
-**DO NOT:**
-- Assume langPort is always 57120 or always 57122
-- Send to server port 57110
-- Skip checking langPort when debugging OSC issues
+**Connection states:**
+- **Connected** - Green "● Connected", heartbeat active
+- **Connection Failed** - Red warning on initial connect attempt
+- **CONNECTION LOST** - Prominent red warning, "⚠ RECONNECT" button
+- **Disconnected** - Gray, manual disconnect by user
 
 **Files affected:**
-- `src/config/__init__.py` (OSC_SEND_PORT - may need updating per session)
+- `supercollider/init.scd` - Forces port 57120
+- `supercollider/core/osc_handlers.scd` - Ping/pong and heartbeat handlers
+- `src/audio/osc_bridge.py` - Connection verification and heartbeat
+- `src/gui/main_frame.py` - Connection lost/restored UI handling
 
 ---
 

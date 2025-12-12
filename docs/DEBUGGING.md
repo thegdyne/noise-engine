@@ -26,25 +26,23 @@ This restores files from backups or cleans debug markers.
 
 **Debug steps:**
 
-1. **Check OSC port mismatch (MOST COMMON ISSUE):**
+1. **Check connection status in Python GUI:**
+   - Green "● Connected" = good
+   - Red "● Connection Failed" = SC not responding
+   - Red "● CONNECTION LOST" = connection dropped mid-session
+
+2. **If "Connection Failed" on startup:**
+   - Is SuperCollider running?
+   - Did you run init.scd? (Cmd+A, Cmd+Return)
+   - Check SC post window for errors
+
+3. **Verify SC is listening on correct port:**
    ```supercollider
-   // In SuperCollider - DO THIS FIRST
-   NetAddr.langPort.postln;  // Note this value (57120 or 57122)
-   ```
-   
-   ```bash
-   # Check Python config
-   grep OSC_SEND_PORT ~/repos/noise-engine/src/config/__init__.py
-   ```
-   
-   **If they don't match:** Update `src/config/__init__.py` and restart Python:
-   ```python
-   OSC_SEND_PORT = 57120  # Use value from SC langPort
+   NetAddr.langPort.postln;  // Should be 57120 (forced by init.scd)
    ```
 
-2. **Verify OSC messages are received:**
+4. **Verify OSC messages are received:**
    ```supercollider
-   // In SuperCollider
    OSCFunc.trace(true);
    // Select generator in Python
    // Look for: /noise/start_generator [1, testSynth]

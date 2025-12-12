@@ -10,6 +10,15 @@ s.options.numControlBusChannels = 4096;
 s.options.memSize = 65536;  // More memory for buffers
 );
 
+// === FORCE FIXED OSC PORT ===
+// This ensures SC always listens on 57120, regardless of session
+// Critical for reliable Python <-> SC communication
+(
+~oscPort = 57120;
+thisProcess.openUDPPort(~oscPort);
+("✓ OSC port forced to " ++ ~oscPort).postln;
+);
+
 s.waitForBoot({
     
     "".postln;
@@ -63,7 +72,7 @@ s.waitForBoot({
     "✓ Noise Engine ready!".postln;
     "✓ Core modules loaded".postln;
     ("✓ " ++ ~generatorFiles.size ++ " generators available").postln;
+    ("✓ OSC listening on port " ++ ~oscPort).postln;
     "========================================".postln;
     "".postln;
-    "Listening for OSC on port 57120".postln;
 });

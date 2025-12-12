@@ -19,16 +19,17 @@ git push
 
 Download must be named `noise-engine-updated.zip`.
 
-## Critical: OSC Port
+## Critical: OSC Connection
 
-Python sends to SC **langPort** which **varies between sessions** (57120 or 57122).
+Port 57120 is **forced** in SC init.scd - no manual checking needed.
 
-**Before each session:**
-```supercollider
-NetAddr.langPort.postln;  // Check this!
-```
+Connection features:
+- **Ping/pong** verification on connect (1 second timeout)
+- **Heartbeat** monitoring every 2 seconds during performance
+- **CONNECTION LOST** warning after 3 missed heartbeats
+- **One-click reconnect** button
 
-If it doesn't match `OSC_SEND_PORT` in `src/config/__init__.py`, update the config and restart Python.
+If connection fails on startup, SC isn't running or init.scd wasn't loaded.
 
 ## Key Patterns
 
