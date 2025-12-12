@@ -29,6 +29,10 @@ echo "SSOT Compliance: ${PERCENT}%"
 if [ -f "$INDEX_FILE" ]; then
     # Update the SSOT badge percentage
     sed -i '' "s/SSOT <span class=\"pct\">[0-9]*%<\/span>/SSOT <span class=\"pct\">${PERCENT}%<\/span>/" "$INDEX_FILE"
+    
+    # Update the architecture section percentage
+    sed -i '' "s/Single Source of Truth ([0-9]*%)/Single Source of Truth (${PERCENT}%)/" "$INDEX_FILE"
+    
     echo "✅ Updated $INDEX_FILE with SSOT ${PERCENT}%"
 else
     echo "❌ index.html not found at $INDEX_FILE"
