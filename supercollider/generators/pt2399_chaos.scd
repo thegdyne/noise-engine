@@ -32,7 +32,8 @@ See also: PT2399 for the musical/tame version
 */
 
 SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                          filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                          filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
+                       midiTrigBus=0, slotIndex=0,
                           customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, grain, env, filterFreq, rq, filterType, attack, decay, amp;
     var panPos, envEnabled, clockRate, allTrigs, clockTrig;
@@ -50,7 +51,7 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     attack = In.kr(attackBus);
     decay = In.kr(decayBus);
     filterType = In.kr(filterTypeBus);
-    envEnabled = In.kr(envEnabledBus);
+    envSource = In.kr(envSourceBus);  // 0=OFF, 1=CLK, 2=MIDI
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\amplitude]);
     
@@ -187,11 +188,26 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
     // === ENVELOPE AS FINAL VCA ===
+    // Clock trigger
     allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     clockTrig = Select.ar(clockRate, allTrigs);
     
-    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
-    sig = Select.ar(envEnabled, [sig, sig * env]);
+    // MIDI trigger - read all 8 channels and select by slotIndex
+    allMidiTrigs = In.ar(midiTrigBus, 8);
+    midiTrig = Select.ar(slotIndex, allMidiTrigs);
+    
+    // Select trigger based on envSource: 0=none, 1=clock, 2=midi
+    trig = Select.ar(envSource, [
+        DC.ar(0),      // 0: OFF - no triggers
+        clockTrig,     // 1: CLK - clock triggers only  
+        midiTrig       // 2: MIDI - midi triggers only
+    ]);
+    
+    // Envelope
+    env = EnvGen.ar(Env.perc(attack, decay), trig);
+    
+    // Apply envelope only when envSource > 0, otherwise drone
+    sig = sig * Select.kr(envSource > 0, [1.0, env]);
     
     // Safety limiting
     sig = LeakDC.ar(sig);

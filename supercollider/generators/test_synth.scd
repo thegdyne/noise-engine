@@ -21,10 +21,11 @@ Selects trigger from master clock's 8 rate channels:
 */
 
 SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus, 
-                       filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
+                       midiTrigBus=0, slotIndex=0,
                        customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var env, envEnabled, clockRate, allTrigs, trig;
+    var env, envSource, clockRate, allTrigs, allMidiTrigs, clockTrig, midiTrig, trig;
     
     // Read params - now receiving real values directly
     freq = In.kr(freqBus);           // Already in Hz (0.5-80)
@@ -33,21 +34,27 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     attack = In.kr(attackBus);       // Already 0.001-0.5 s
     decay = In.kr(decayBus);         // Already 0.01-2.0 s
     filterType = In.kr(filterTypeBus);
-    envEnabled = In.kr(envEnabledBus);
+    envSource = In.kr(envSourceBus);  // 0=OFF, 1=CLK, 2=MIDI
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\amplitude]);
     
-    // Read all clock trigger channels
+    // Clock trigger
     allTrigs = In.ar(clockTrigBus, ~clockRates.size);
+    clockTrig = Select.ar(clockRate, allTrigs);
     
-    // Select the trigger for our rate
-    trig = Select.ar(clockRate, allTrigs);
+    // MIDI trigger - read all 8 channels and select by slotIndex
+    allMidiTrigs = In.ar(midiTrigBus, 8);
+    midiTrig = Select.ar(slotIndex, allMidiTrigs);
+    
+    // Select trigger based on envSource: 0=none, 1=clock, 2=midi
+    trig = Select.ar(envSource, [
+        DC.ar(0),      // 0: OFF - no triggers
+        clockTrig,     // 1: CLK - clock triggers only  
+        midiTrig       // 2: MIDI - midi triggers only
+    ]);
     
     // Envelope
-    env = Select.ar(envEnabled, [
-        DC.ar(1.0),  // ENV OFF: drone
-        EnvGen.ar(Env.perc(attack, decay), trig)  // ENV ON: triggered
-    ]);
+    env = EnvGen.ar(Env.perc(attack, decay), trig);
     
     // Sound source
     sig = Pulse.ar(freq, 0.5, 0.3) + PinkNoise.ar(0.2);
@@ -55,7 +62,8 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Filter
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     
-    sig = sig * env * amp * 0.15;
+    // Apply envelope only when envSource > 0, otherwise drone
+    sig = sig * Select.kr(envSource > 0, [1.0, env]) * amp * 0.15;
     
     Out.ar(out, sig ! 2);
 }).add;

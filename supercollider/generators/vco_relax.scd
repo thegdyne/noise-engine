@@ -23,10 +23,11 @@ ENV ON = clock-synced envelope gates final output
 */
 
 SynthDef(\vcoRelax, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                       filterTypeBus, envEnabledBus, clockRateBus, clockTrigBus,
+                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
+                       midiTrigBus=0, slotIndex=0,
                        customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var envEnabled, clockRate, allTrigs, clockTrig;
+    var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
     var timingCurrent, timingCap, vcoControl, waveform, symmetry;
     var baseFreq, tri, saw, pulse;
     
@@ -37,7 +38,7 @@ SynthDef(\vcoRelax, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     attack = In.kr(attackBus);
     decay = In.kr(decayBus);
     filterType = In.kr(filterTypeBus);
-    envEnabled = In.kr(envEnabledBus);
+    envSource = In.kr(envSourceBus);  // 0=OFF, 1=CLK, 2=MIDI
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\amplitude]);
     
@@ -78,11 +79,22 @@ SynthDef(\vcoRelax, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     allTrigs = In.ar(clockTrigBus, ~clockRates.size);
     clockTrig = Select.ar(clockRate, allTrigs);
     
-    // ENV OFF = pass through (drone), ENV ON = envelope gates output
-    env = EnvGen.ar(Env.perc(attack, decay), clockTrig);
-    sig = Select.ar(envEnabled, [sig, sig * env]);
+    // MIDI trigger - read all 8 channels and select by slotIndex
+    allMidiTrigs = In.ar(midiTrigBus, 8);
+    midiTrig = Select.ar(slotIndex, allMidiTrigs);
     
-    sig = sig * amp;
+    // Select trigger based on envSource: 0=none, 1=clock, 2=midi
+    trig = Select.ar(envSource, [
+        DC.ar(0),      // 0: OFF - no triggers
+        clockTrig,     // 1: CLK - clock triggers only  
+        midiTrig       // 2: MIDI - midi triggers only
+    ]);
+    
+    // Envelope
+    env = EnvGen.ar(Env.perc(attack, decay), trig);
+    
+    // Apply envelope only when envSource > 0, otherwise drone
+    sig = sig * Select.kr(envSource > 0, [1.0, env]) * amp;
     
     Out.ar(out, sig);
 }).add;

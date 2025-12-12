@@ -361,6 +361,23 @@ generators:
 5. **Git workflow:** Commit often, meaningful messages
 6. **Use `cat > EOF`:** For all code snippets in documentation
 
+### Claude Workflow
+
+When Claude provides code fixes, the download should be named `noise-engine-updated.zip`. Save it to `~/Downloads/` then run:
+
+```bash
+cd ~/repos/noise-engine
+~/repos/noise-engine/tools/update_from_claude.sh
+git add -A
+git commit -m "Brief description of what was fixed"
+git push
+```
+
+**Commit message style:**
+- Start with component name if specific: `Additive: fix envelope triggering`
+- Or describe the fix: `All generators: add MIDI trigger support`
+- Keep it brief but descriptive
+
 ### File Structure
 ```
 noise-engine/
