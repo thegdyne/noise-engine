@@ -133,6 +133,8 @@ class DragSlider(QSlider):
         
     def mousePressEvent(self, event):
         """Start drag from current value."""
+        if not self.isEnabled():
+            return
         if event.button() == Qt.LeftButton:
             self.dragging = True
             self.drag_start_y = event.globalPos().y()
@@ -141,6 +143,8 @@ class DragSlider(QSlider):
             
     def mouseMoveEvent(self, event):
         """Drag up = increase, drag down = decrease. Shift = fine control."""
+        if not self.isEnabled():
+            return
         if self.dragging:
             modifiers = QApplication.keyboardModifiers()
             if modifiers & Qt.ShiftModifier:
