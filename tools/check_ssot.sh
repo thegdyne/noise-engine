@@ -186,7 +186,9 @@ fi
 # 12. Check for duplicated envelope code (should use helper)
 echo ""
 echo "📋 Checking for duplicated envelope code..."
-DUP_ENV_HITS=$(grep -rn "Select.ar(envSource" "$SC_DIR/generators" --include="*.scd" 2>/dev/null)
+# Look for Select.ar(envSource, ...) pattern - the actual envelope selection
+# NOT Select.ar(envSource > ...) which is exciter trigger mode switching
+DUP_ENV_HITS=$(grep -rn "Select.ar(envSource," "$SC_DIR/generators" --include="*.scd" 2>/dev/null)
 if [ -n "$DUP_ENV_HITS" ]; then
     echo "❌ Inline envelope logic found (should use ~envVCA):"
     echo "$DUP_ENV_HITS" | sed 's/^/   /' | head -5
