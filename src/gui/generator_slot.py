@@ -312,7 +312,13 @@ class GeneratorSlot(QWidget):
             self.rate_btn.setStyleSheet(button_style('inactive'))
         
     def set_generator_type(self, gen_type):
-        """Change generator type."""
+        """Change generator type.
+        
+        IMPORTANT: Slot settings (ENV source, clock rate, MIDI channel) are PRESERVED
+        when changing generator type. The slot is like a Eurorack slot - swapping the
+        module doesn't change the trigger/clock patching. Settings are reapplied to
+        ensure the new generator receives them.
+        """
         self.generator_type = gen_type
         self.type_btn.blockSignals(True)
         self.type_btn.set_value(gen_type)
@@ -321,30 +327,24 @@ class GeneratorSlot(QWidget):
         enabled = gen_type != "Empty"
         pitch_target = get_generator_pitch_target(gen_type)
         
-        # Reset ENV to off (drone mode by default)
-        self.env_source = 0
-        self.env_btn.blockSignals(True)
-        self.env_btn.set_index(0)
-        self.env_btn.blockSignals(False)
-        self.env_source_changed.emit(self.slot_id, 0)
+        # REAPPLY (not reset) ENV source - slot remembers its setting
+        self.env_source_changed.emit(self.slot_id, self.env_source)
         
-        # Reset MIDI channel to OFF
-        self.midi_channel = 0
-        self.midi_btn.blockSignals(True)
-        self.midi_btn.set_index(0)  # OFF
-        self.midi_btn.blockSignals(False)
-        self.midi_btn.setStyleSheet(midi_channel_style(False))
-        self.midi_channel_changed.emit(self.slot_id, 0)
+        # REAPPLY clock rate
+        current_rate = self.rate_btn.current_value()
+        from src.config import CLOCK_RATE_INDEX
+        self.clock_rate_changed.emit(self.slot_id, current_rate)
+        
+        # REAPPLY MIDI channel
+        self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
         
         # Legacy - keep clock_enabled in sync
-        self.clock_enabled = False
-        self.clock_enabled_changed.emit(self.slot_id, False)
+        self.clock_enabled = self.env_source > 0
+        self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
         
-        # Reset filter to LP
-        self.filter_btn.blockSignals(True)
-        self.filter_btn.set_index(0)  # LP is index 0
-        self.filter_btn.blockSignals(False)
-        self.filter_type_changed.emit(self.slot_id, "LP")
+        # REAPPLY filter type (also sticky per slot)
+        current_filter = self.filter_btn.current_value()
+        self.filter_type_changed.emit(self.slot_id, current_filter)
         
         # Reset standard sliders to defaults and send values
         for key, slider in self.sliders.items():

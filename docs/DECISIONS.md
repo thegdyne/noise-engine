@@ -677,3 +677,38 @@ sig = sig * Select.kr(envSource > 0, [1.0, env]) * amp;
 - `supercollider/core/buses.scd` (envSource bus, midiTrigBus)
 - `supercollider/core/helpers.scd` (passes envSourceBus, midiTrigBus, slotIndex)
 - `supercollider/core/midi_handler.scd` (triggers midiTrigBus)
+
+---
+
+### [2025-12-12] Sticky Slot Settings (ENV, Clock Rate, MIDI Channel, Filter)
+**Decision:** Slot configuration (ENV source, clock rate, MIDI channel, filter type) persists when changing generator type. Settings are reapplied to the new generator, not reset.
+
+**Rationale:** 
+- Slot = Eurorack slot with its own trigger/clock patching
+- Swapping the module doesn't change the patching
+- User expectation: "I set this slot to MIDI channel 3, it stays on channel 3"
+- Reduces friction when auditioning different generators
+
+**Behavior:**
+```
+Gen 1: Additive, ENV=CLK, rate=/4, filter=HP
+  ↓ change to FM
+Gen 1: FM, ENV=CLK, rate=/4, filter=HP  ← settings preserved
+```
+
+**What IS sticky (per-slot):**
+- ENV source (OFF/CLK/MIDI)
+- Clock rate (/32 to x32)
+- MIDI channel (OFF/1-16)
+- Filter type (LP/HP/BP)
+
+**What IS NOT sticky (per-generator):**
+- Parameter values (FRQ, CUT, RES, ATK, DEC) - reset to generator defaults
+- Custom parameters - reset to generator defaults
+
+**DO NOT:**
+- Reset ENV/clock/MIDI/filter when changing generator type
+- Forget to reapply (emit signals) when generator changes
+
+**Files affected:**
+- `src/gui/generator_slot.py` (set_generator_type preserves settings)

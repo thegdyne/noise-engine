@@ -49,3 +49,4 @@ sig = ~multiFilter.(sig, filterType, filterFreq, rq);
 - Create menu diving / hidden UI
 - Skip reading docs before making changes
 - Forget the git workflow at the end
+- Reset slot settings (ENV, clock rate, MIDI channel, filter) when changing generator type - these are STICKY per slot
