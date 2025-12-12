@@ -4,7 +4,7 @@
 
 REPO_DIR=~/repos/noise-engine
 INDEX_FILE="$REPO_DIR/docs/index.html"
-CHECK_SCRIPT="$REPO_DIR/tools/check_ssot.sh"
+CHECK_SCRIPT="$REPO_DIR/tools/_check_ssot.sh"
 
 # Run SSOT check and extract percentage
 OUTPUT=$("$CHECK_SCRIPT" --json 2>/dev/null)
