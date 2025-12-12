@@ -7,7 +7,7 @@ Default values are real values (not normalized):
   - cutoff: 16000 Hz (fully up = filter open)
   - resonance: 1.0 (fully down = no resonance, rq=1)
   - attack: 0.0001 s (snappiest = 0.1ms)
-  - decay: 0.04 s (~40ms)
+  - decay: 1.0 s
 */
 
 // === CLOCK RATES (SSOT) ===
@@ -42,7 +42,7 @@ Default values are real values (not normalized):
         ~genParams[slot][\cutoff] = Bus.control(s, 1).set(16000);          // Hz (fully up)
         ~genParams[slot][\resonance] = Bus.control(s, 1).set(1.0);         // rq (no resonance)
         ~genParams[slot][\attack] = Bus.control(s, 1).set(0.0001);         // s (snappiest)
-        ~genParams[slot][\decay] = Bus.control(s, 1).set(0.04);            // s (~40ms)
+        ~genParams[slot][\decay] = Bus.control(s, 1).set(1.0);              // s (1s)
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
         ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);          // Legacy, kept for compat
         ~genParams[slot][\envSource] = Bus.control(s, 1).set(0);           // 0=OFF, 1=CLK, 2=MIDI
