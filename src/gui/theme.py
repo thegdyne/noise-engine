@@ -259,3 +259,43 @@ def midi_channel_style(active=True):
                 border-radius: 3px;
             }}
         """
+
+
+def wip_panel_style():
+    """Style for Work-In-Progress panels - dimmed with reduced opacity."""
+    return f"""
+        QWidget {{
+            background-color: {COLORS['background']};
+        }}
+        QLabel {{
+            color: {COLORS['text_dim']};
+        }}
+        QPushButton {{
+            background-color: {COLORS['inactive']};
+            color: {COLORS['inactive_text']};
+        }}
+        QPushButton:hover {{
+            background-color: {COLORS['inactive']};
+            color: {COLORS['inactive_text']};
+        }}
+        QSlider::groove:vertical {{
+            background: {COLORS['inactive']};
+        }}
+        QSlider::handle:vertical {{
+            background: {COLORS['text_dim']};
+        }}
+    """
+
+
+def wip_badge_style():
+    """Style for the 'Coming Soon' badge."""
+    return f"""
+        QLabel {{
+            background-color: #332211;
+            color: #aa7744;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }}
+    """

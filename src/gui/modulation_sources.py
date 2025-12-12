@@ -1,13 +1,15 @@
 """
 Modulation Sources Component
 LFOs and other modulation sources - vertical layout for left panel
+
+STATUS: Work In Progress - UI visible but not yet connected
 """
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, wip_panel_style, wip_badge_style
 from .widgets import DragSlider, CycleButton
 from src.config import SIZES, BPM_DEFAULT, LFO_WAVEFORMS, CLOCK_RATES, CLOCK_DEFAULT_INDEX
 
@@ -150,15 +152,27 @@ class ModulationSources(QWidget):
         layout.setContentsMargins(5, 10, 5, 10)
         layout.setSpacing(10)
         
+        # Header with title and WIP badge
+        header = QHBoxLayout()
+        
         title = QLabel("MOD SOURCES")
         title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"color: {COLORS['text_bright']};")
-        layout.addWidget(title)
+        title.setStyleSheet(f"color: {COLORS['text_dim']};")
+        header.addWidget(title)
+        
+        header.addStretch()
+        
+        wip_badge = QLabel("COMING SOON")
+        wip_badge.setStyleSheet(wip_badge_style())
+        header.addWidget(wip_badge)
+        
+        layout.addLayout(header)
         
         # Stack LFOs vertically
         for i in range(1, 4):
             lfo = LFOWidget(i)
+            lfo.setEnabled(False)  # Disable interaction
+            lfo.setStyleSheet(wip_panel_style())
             layout.addWidget(lfo)
             self.lfos[i] = lfo
             

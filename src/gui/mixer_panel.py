@@ -1,13 +1,15 @@
 """
 Mixer Panel Component
 Volume faders and master output
+
+STATUS: Work In Progress - Master fader works, per-channel M/S not yet connected
 """
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, wip_badge_style
 from .widgets import DragSlider
 from src.config import SIZES
 
@@ -111,11 +113,21 @@ class MixerPanel(QWidget):
         layout.setContentsMargins(5, 10, 5, 10)
         layout.setSpacing(5)
         
+        # Header with title and WIP badge
+        header = QHBoxLayout()
+        
         title = QLabel("MIXER")
         title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"color: {COLORS['text_bright']};")
-        layout.addWidget(title)
+        title.setStyleSheet(f"color: {COLORS['text_dim']};")
+        header.addWidget(title)
+        
+        header.addStretch()
+        
+        wip_badge = QLabel("WIP")
+        wip_badge.setStyleSheet(wip_badge_style())
+        header.addWidget(wip_badge)
+        
+        layout.addLayout(header)
         
         # Channel strips
         channels_frame = QFrame()
@@ -135,6 +147,7 @@ class MixerPanel(QWidget):
             channel.volume_changed.connect(self.on_channel_volume)
             channel.mute_toggled.connect(self.on_channel_mute)
             channel.solo_toggled.connect(self.on_channel_solo)
+            channel.setEnabled(False)  # WIP - not yet connected
             channels_layout.addWidget(channel)
             self.channels[i] = channel
             
