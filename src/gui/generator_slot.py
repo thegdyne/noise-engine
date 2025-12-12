@@ -282,18 +282,35 @@ class GeneratorSlot(QWidget):
         if self.generator_type == "Empty":
             border_color = COLORS['border']
             bg_color = COLORS['background']
+            type_color = COLORS['text']
         elif self.active:
             border_color = COLORS['border_active']
             bg_color = COLORS['active_bg']
+            type_color = COLORS['enabled_text']  # Green when active
         else:
             border_color = COLORS['border_light']
             bg_color = COLORS['background_light']
+            type_color = COLORS['text']
             
         self.setStyleSheet(f"""
             GeneratorSlot {{
                 border: 2px solid {border_color};
                 border-radius: 6px;
                 background-color: {bg_color};
+            }}
+        """)
+        
+        # Update generator name color
+        self.type_btn.setStyleSheet(f"""
+            QPushButton {{
+                color: {type_color};
+                background: transparent;
+                border: none;
+                text-align: right;
+                padding: 2px 4px;
+            }}
+            QPushButton:hover {{
+                color: {COLORS['enabled_text']};
             }}
         """)
         
