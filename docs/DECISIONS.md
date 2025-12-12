@@ -715,27 +715,35 @@ Gen 1: FM, ENV=CLK, rate=/4, filter=HP  ← settings preserved
 
 ---
 
-### [2025-12-12] OSC Port Configuration - Use SC langPort (57122)
-**Decision:** Python sends OSC to SuperCollider's langPort (57122), NOT the server port (57110) or arbitrary port (57120)
+### [2025-12-12] OSC Port Configuration - Check SC langPort Before Each Session
+**Decision:** Python sends OSC to SuperCollider's langPort. This port **varies between SC sessions** (typically 57120 or 57122).
 
-**Critical:** SuperCollider has multiple ports:
-- **57110** = scsynth server port (audio engine) - DO NOT send OSC here
-- **57122** = sclang port (language/interpreter) - SEND OSC HERE
-- The langPort can vary! Always verify with `NetAddr.langPort.postln;` in SC
+**Critical:** SuperCollider's langPort is NOT fixed!
+- **57110** = scsynth server port (audio engine) - NEVER send OSC here
+- **57120 or 57122** = sclang port - CHECK EACH SESSION
+
+**Before starting Python GUI:**
+```supercollider
+NetAddr.langPort.postln;  // Check this value!
+```
+
+**If port doesn't match `OSC_SEND_PORT` in config:**
+1. Update `src/config/__init__.py`: `OSC_SEND_PORT = <value from SC>`
+2. Restart Python GUI
 
 **Debugging OSC issues:**
-1. In SuperCollider: `OSCFunc.trace(true);` then select generator in Python
-2. If NO `/noise/start_generator` message appears → wrong port
-3. Check SC langPort: `NetAddr.langPort.postln;`
-4. Update `OSC_SEND_PORT` in `src/config/__init__.py` to match
+1. In SuperCollider: `NetAddr.langPort.postln;` - note the port
+2. Check Python config matches: `grep OSC_SEND_PORT src/config/__init__.py`
+3. If different, update config and restart Python
+4. Verify with `OSCFunc.trace(true);` then select generator
 
 **DO NOT:**
-- Hardcode port 57120 without verifying SC langPort
-- Send to server port 57110 (that's for scsynth, not sclang)
-- Assume langPort is always the same (it can change between SC installations)
+- Assume langPort is always 57120 or always 57122
+- Send to server port 57110
+- Skip checking langPort when debugging OSC issues
 
 **Files affected:**
-- `src/config/__init__.py` (OSC_SEND_PORT = 57122)
+- `src/config/__init__.py` (OSC_SEND_PORT - may need updating per session)
 
 ---
 

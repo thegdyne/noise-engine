@@ -26,15 +26,20 @@ This restores files from backups or cleans debug markers.
 
 **Debug steps:**
 
-1. **Check OSC port mismatch:**
+1. **Check OSC port mismatch (MOST COMMON ISSUE):**
    ```supercollider
-   // In SuperCollider
-   NetAddr.langPort.postln;  // Should match OSC_SEND_PORT in Python config
+   // In SuperCollider - DO THIS FIRST
+   NetAddr.langPort.postln;  // Note this value (57120 or 57122)
    ```
    
-   If different, update `src/config/__init__.py`:
+   ```bash
+   # Check Python config
+   grep OSC_SEND_PORT ~/repos/noise-engine/src/config/__init__.py
+   ```
+   
+   **If they don't match:** Update `src/config/__init__.py` and restart Python:
    ```python
-   OSC_SEND_PORT = 57122  # Must match SC langPort
+   OSC_SEND_PORT = 57120  # Use value from SC langPort
    ```
 
 2. **Verify OSC messages are received:**

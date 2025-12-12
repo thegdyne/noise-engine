@@ -21,10 +21,14 @@ Download must be named `noise-engine-updated.zip`.
 
 ## Critical: OSC Port
 
-Python sends to SC **langPort (57122)**, NOT server port (57110).
-- If generators don't start: check `NetAddr.langPort.postln;` in SC
-- Update `OSC_SEND_PORT` in `src/config/__init__.py` if different
-- Debug: `OSCFunc.trace(true);` in SC, then select generator in Python
+Python sends to SC **langPort** which **varies between sessions** (57120 or 57122).
+
+**Before each session:**
+```supercollider
+NetAddr.langPort.postln;  // Check this!
+```
+
+If it doesn't match `OSC_SEND_PORT` in `src/config/__init__.py`, update the config and restart Python.
 
 ## Key Patterns
 
