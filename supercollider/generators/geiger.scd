@@ -29,7 +29,7 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     var sig, click, noise, env, freq, filterFreq, rq, filterType, attack, decay, amp;
     var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
     var countRate, deadTime, clickBrightness, clickDecay, backgroundNoise;
-    var trig, effectiveRate;
+    var clickTrig, effectiveRate;
     
     // Read standard params
     freq = In.kr(freqBus);
@@ -54,12 +54,12 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Poisson-distributed triggers (Dust is already Poisson)
     // Dead time reduces effective rate at high counts (tube recovery)
     effectiveRate = countRate / (1 + (deadTime * countRate * 0.1));
-    trig = Dust.ar(effectiveRate);
+    clickTrig = Dust.ar(effectiveRate);
     
     // Click transient (GM tube discharge)
     click = EnvGen.ar(
         Env.perc(0.0001, clickDecay.linexp(0.01, 1, 0.005, 0.05)),
-        trig
+        clickTrig
     ) * WhiteNoise.ar;
     
     // Pitched click - resonant bandpass at FRQ
@@ -75,7 +75,7 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = click + noise;
     
     // Stereo spread - clicks randomly panned
-    sig = Pan2.ar(sig, TRand.ar(-0.5, 0.5, trig));
+    sig = Pan2.ar(sig, TRand.ar(-0.5, 0.5, clickTrig));
     
     // === FILTER ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);

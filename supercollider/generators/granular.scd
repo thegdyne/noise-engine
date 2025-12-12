@@ -28,7 +28,7 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
     var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
     var pitchShift, grainSize, density, jitter, spread;
-    var trig, grainFreq, grainDur, pan;
+    var grainTrig, grainFreq, grainDur, pan;
     
     // Read standard params
     freq = In.kr(freqBus);
@@ -51,24 +51,24 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // === SOUND SOURCE (runs continuously) ===
     
     // Grain trigger with variable density
-    trig = Impulse.ar(density);
+    grainTrig = Impulse.ar(density);
     
     // Grain frequency with pitch shift and jitter
     grainFreq = freq * (2 ** (pitchShift / 12));
-    grainFreq = grainFreq * (1 + (TRand.ar(-1, 1, trig) * jitter * 0.2));
+    grainFreq = grainFreq * (1 + (TRand.ar(-1, 1, grainTrig) * jitter * 0.2));
     grainFreq = grainFreq.clip(20, 20000);
     
     // Grain duration with jitter
-    grainDur = grainSize * (1 + (TRand.ar(-0.5, 0.5, trig) * jitter));
+    grainDur = grainSize * (1 + (TRand.ar(-0.5, 0.5, grainTrig) * jitter));
     grainDur = grainDur.clip(0.005, 0.5);
     
     // Stereo pan per grain
-    pan = TRand.ar(-1, 1, trig) * spread;
+    pan = TRand.ar(-1, 1, grainTrig) * spread;
     
     // Main grain synthesis using GrainSin
     sig = GrainSin.ar(
         numChannels: 2,
-        trigger: trig,
+        trigger: grainTrig,
         dur: grainDur,
         freq: grainFreq,
         pan: pan,
@@ -80,7 +80,7 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         numChannels: 2,
         trigger: Dust.ar(density * 0.3),
         dur: grainDur * 0.5,
-        freq: grainFreq * TRand.ar(0.99, 1.01, trig),
+        freq: grainFreq * TRand.ar(0.99, 1.01, grainTrig),
         pan: TRand.ar(-1, 1, Dust.ar(density * 0.3)) * spread,
         mul: 0.1
     );
