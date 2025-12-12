@@ -1,125 +1,65 @@
 /*
-4-Quad Ring Generator
-Four-quadrant multiplier ring modulator (MC1496/AD633 style)
-Based on Elektor Formant mk II add-on modules (1977-1978) - C. Chapman
+Four-Quadrant Ring Generator
+Balanced four-quadrant multiplier ring modulator
 
-Signal flow: P1-P5 → Carrier × Modulator → Filter → ENVELOPE → Output
-
-Models active 4-quadrant analog multiplier:
-- True mathematical multiplication (X × Y)
-- Works in all four quadrants (both polarities)
-- Better carrier suppression than diode ring
-- Offset null allows fine-tuning
-- More linear than passive designs
-
-Standard params:
-  - frequency: carrier pitch (20-8000 Hz)
-  - cutoff: 1-16000 Hz
-  - resonance: 0.001-1.0
-  - attack/decay: final VCA envelope
+Signal flow: Carrier × Modulator (balanced) → Filter → ENV VCA → Output
 
 Custom params:
-  - custom[0] carrier_freq: 20-2000 Hz (X input frequency)
-  - custom[1] modulator_freq: 0.1-1000 Hz (Y input frequency)
-  - custom[2] gain: 0-1 (multiplication gain factor)
-  - custom[3] linearity: 0-1 (bias/linearity trim, affects distortion)
-  - custom[4] offset_null: 0-1 (carrier null adjustment, purity)
-
-ENV OFF = continuous ring modulation
-ENV ON = clock-synced envelope gates final output
+  - P1 mod_ratio: 0.1-10 (modulator frequency ratio)
+  - P2 balance: 0-1 (carrier bleed amount)
+  - P3 symmetry: 0-1 (quadrant balance)
+  - P4 carrier_wave: 0-1 (sine <-> triangle)
+  - P5 mod_wave: 0-1 (sine <-> triangle)
 */
 
 SynthDef(\fourQuadRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                            filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
+                           midiTrigBus=0, slotIndex=0,
                            customBus0, customBus1, customBus2, customBus3, customBus4|
-    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
-    var carrierFreq, modFreq, gain, linearity, offsetNull;
-    var carrier, modulator, product, dcOffset;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var modRatio, balance, symmetry, carrierWave, modWave;
+    var carrier, modulator, modFreq, ring;
     
-    // Read standard params
+    // Standard params
     freq = In.kr(freqBus);
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
     decay = In.kr(decayBus);
     filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);  // 0=OFF, 1=CLK, 2=MIDI
+    envSource = In.kr(envSourceBus);
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\amplitude]);
     
-    // Read custom params
-    carrierFreq = In.kr(customBus0);   // 20-2000 Hz
-    modFreq = In.kr(customBus1);       // 0.1-1000 Hz
-    gain = In.kr(customBus2);          // 0-1
-    linearity = In.kr(customBus3);     // 0-1
-    offsetNull = In.kr(customBus4);    // 0-1
+    // Custom params
+    modRatio = In.kr(customBus0);
+    balance = In.kr(customBus1);
+    symmetry = In.kr(customBus2);
+    carrierWave = In.kr(customBus3);
+    modWave = In.kr(customBus4);
     
-    // === SOUND SOURCE (runs continuously) ===
+    // === SOUND SOURCE ===
+    modFreq = freq * modRatio;
     
-    // Use frequency param to offset carrier
-    carrierFreq = carrierFreq * freq.linlin(20, 8000, 0.5, 2);
-    carrierFreq = carrierFreq.clip(20, 20000);
-    
-    // X input: Carrier (can be various waveforms for different timbres)
-    carrier = SinOsc.ar(carrierFreq);
-    
-    // Y input: Modulator
-    modulator = SinOsc.ar(modFreq);
-    
-    // === 4-QUADRANT MULTIPLICATION ===
-    
-    // True multiplication (the ideal behavior)
-    product = carrier * modulator;
-    
-    // Apply gain (K factor in multiplier)
-    product = product * gain.linlin(0, 1, 0.3, 1.5);
-    
-    // Linearity affects how clean the multiplication is
-    // Low linearity = more harmonic distortion (bias errors)
-    product = product + (product.cubed * (1 - linearity) * 0.2);
-    product = product + (product.squared.sign * product.squared * (1 - linearity) * 0.1);
-    
-    // DC offset from imperfect null adjustment
-    // Creates carrier feedthrough
-    dcOffset = (1 - offsetNull) * 0.1;
-    product = product + (carrier * dcOffset * 0.3);
-    product = product + (modulator * dcOffset * 0.15);
-    
-    // Op-amp bandwidth limiting (slight HF rolloff)
-    sig = LPF.ar(product, linearity.linexp(0, 1, 8000, 16000));
-    
-    // Add second harmonic interaction for richness
-    sig = sig + (SinOsc.ar(carrierFreq + modFreq) * SinOsc.ar(carrierFreq - modFreq) * 0.1 * (1 - linearity));
-    
-    // Stereo spread based on modulation
-    sig = Pan2.ar(sig, SinOsc.kr(modFreq * 0.02).range(-0.4, 0.4));
-    
-    // === FILTER ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    
-    // === ENVELOPE AS FINAL VCA ===
-    // Clock trigger
-    allTrigs = In.ar(clockTrigBus, ~clockRates.size);
-    clockTrig = Select.ar(clockRate, allTrigs);
-    
-    // MIDI trigger - read all 8 channels and select by slotIndex
-    allMidiTrigs = In.ar(midiTrigBus, 8);
-    midiTrig = Select.ar(slotIndex, allMidiTrigs);
-    
-    // Select trigger based on envSource: 0=none, 1=clock, 2=midi
-    trig = Select.ar(envSource, [
-        DC.ar(0),      // 0: OFF - no triggers
-        clockTrig,     // 1: CLK - clock triggers only  
-        midiTrig       // 2: MIDI - midi triggers only
+    carrier = SelectX.ar(carrierWave, [
+        SinOsc.ar(freq),
+        LFTri.ar(freq)
     ]);
     
-    // Envelope
-    env = EnvGen.ar(Env.perc(attack, decay), trig);
+    modulator = SelectX.ar(modWave, [
+        SinOsc.ar(modFreq),
+        LFTri.ar(modFreq)
+    ]);
     
-    // Apply envelope only when envSource > 0, otherwise drone
-    sig = sig * Select.kr(envSource > 0, [1.0, env]) * amp;
+    ring = carrier * modulator;
+    ring = ring + (carrier * balance * 0.5);
+    
+    sig = (ring * symmetry.linlin(0, 1, 0.5, 1.5)).softclip;
+    
+    // === PROCESSING CHAIN ===
+    sig = Pan2.ar(sig, LFNoise1.kr(0.2).range(-0.25, 0.25));
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     
     Out.ar(out, sig);
 }).add;

@@ -1,136 +1,61 @@
 /*
 4060 Siren Generator
-CD4060 counter/oscillator with analog mux siren
-Based on Elektor Magazine December 2006 i-TRIXX "When the siren sounds..."
+CD4060 counter/divider siren circuit
 
-Signal flow: P1-P5 → Counter → Mux → Tone Oscillator → Filter → ENVELOPE → Output
-
-Models the CD4060 siren circuit:
-- Internal RC oscillator sets base rate
-- 14-stage binary counter divides clock
-- Counter outputs select resistors via analog mux
-- Selected resistance sets tone oscillator pitch
-- Result: stepped pitch patterns for siren effect
-
-Standard params:
-  - frequency: base tone pitch (20-8000 Hz)
-  - cutoff: 1-16000 Hz
-  - resonance: 0.001-1.0
-  - attack/decay: final VCA envelope
+Signal flow: Counter outputs → Mix → Filter → ENV VCA → Output
 
 Custom params:
-  - custom[0] osc_resistance: 0-1 (tone VCO base frequency)
-  - custom[1] resistor_pattern: 0-7 discrete (pitch step sequence)
-  - custom[2] tone_cap: 0-1 (sweep speed/rate)
-  - custom[3] counter_bits: 2-8 discrete (pattern complexity)
-  - custom[4] drive_level: 0-1 (output saturation)
-
-ENV OFF = continuous siren wail
-ENV ON = clock-synced envelope gates final output
+  - P1 clock_rate: 0-1 (master clock speed)
+  - P2 division_mix: 0-1 (which counter outputs)
+  - P3 sweep_rate: 0-1 (pitch sweep speed)
+  - P4 sweep_depth: 0-1 (pitch sweep amount)
+  - P5 reset_chaos: 0-1 (counter reset randomness)
 */
 
 SynthDef(\siren4060, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                         filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
+                        midiTrigBus=0, slotIndex=0,
                         customBus0, customBus1, customBus2, customBus3, customBus4|
-    var sig, env, freq, filterFreq, rq, filterType, attack, decay, amp;
-    var envSource, clockRate, allTrigs, clockTrig, allMidiTrigs, midiTrig, trig;
-    var oscRes, pattern, toneCap, counterBits, drive;
-    var counterRate, counter, muxOut, toneFreq;
-    var patternRatios, selectedRatio;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var clockR, divMix, sweepRate, sweepDepth, resetChaos;
+    var masterClock, divisions, sweep;
     
-    // Read standard params
+    // Standard params
     freq = In.kr(freqBus);
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
     decay = In.kr(decayBus);
     filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);  // 0=OFF, 1=CLK, 2=MIDI
+    envSource = In.kr(envSourceBus);
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\amplitude]);
     
-    // Read custom params
-    oscRes = In.kr(customBus0);        // 0-1
-    pattern = In.kr(customBus1);       // 0-7 discrete
-    toneCap = In.kr(customBus2);       // 0-1
-    counterBits = In.kr(customBus3);   // 2-8
-    drive = In.kr(customBus4);         // 0-1
+    // Custom params
+    clockR = In.kr(customBus0);
+    divMix = In.kr(customBus1);
+    sweepRate = In.kr(customBus2);
+    sweepDepth = In.kr(customBus3);
+    resetChaos = In.kr(customBus4);
     
-    // === SOUND SOURCE (runs continuously) ===
+    // === SOUND SOURCE ===
+    sweep = SinOsc.kr(sweepRate.linexp(0, 1, 0.1, 10)) * sweepDepth;
+    masterClock = freq * clockR.linexp(0, 1, 0.5, 4) * (1 + sweep);
     
-    // Counter clock rate (internal RC oscillator)
-    counterRate = toneCap.linexp(0, 1, 0.5, 20);  // Steps per second
+    divisions = Mix([
+        Pulse.ar(masterClock / 2, 0.5) * (1 - divMix),
+        Pulse.ar(masterClock / 4, 0.5) * divMix.sqrt,
+        Pulse.ar(masterClock / 8, 0.5) * divMix,
+        Pulse.ar(masterClock / 16, 0.5) * (divMix ** 2)
+    ]) * 0.25;
     
-    // Counter (0 to 2^bits - 1, cycling)
-    counter = LFSaw.kr(counterRate / counterBits.max(2), 0, 0.5, 0.5);
-    counter = (counter * 16).floor / 16;  // Quantize to 16 steps
+    sig = divisions;
+    sig = sig + (Dust.ar(resetChaos.linexp(0, 1, 1, 100)) * resetChaos * 0.2);
     
-    // Pattern-dependent frequency ratios (resistor ladder values)
-    // Different patterns give different siren characters
-    patternRatios = Select.kr(pattern.round, [
-        // 0: Rising siren (police style)
-        counter.linlin(0, 1, 0.5, 2),
-        // 1: Falling siren
-        counter.linlin(0, 1, 2, 0.5),
-        // 2: Two-tone (European style)
-        (LFPulse.kr(counterRate * 2) * 0.5) + 0.75,
-        // 3: Wail (up-down-up-down)
-        (LFTri.kr(counterRate) * 0.4) + 1.0,
-        // 4: Yelp (rapid alternating)
-        (LFPulse.kr(counterRate * 4) * 0.3) + 0.85,
-        // 5: Stepped scale
-        (counter.pow(0.5) * 1.5) + 0.5,
-        // 6: Random-ish
-        (LFNoise0.kr(counterRate * 2) * 0.3) + 1.0,
-        // 7: Phaser (slow sweep with steps)
-        (counter * SinOsc.kr(0.3).range(0.8, 1.2))
-    ]);
-    
-    // Tone oscillator frequency
-    toneFreq = freq * oscRes.linexp(0, 1, 0.5, 2) * patternRatios;
-    toneFreq = toneFreq.clip(20, 20000);
-    
-    // Square wave tone (like 555/4060 output)
-    sig = Pulse.ar(toneFreq, 0.5);
-    
-    // Add some harmonic richness
-    sig = sig + (Pulse.ar(toneFreq * 2.01, 0.5) * 0.3);
-    sig = sig + (Pulse.ar(toneFreq * 0.5, 0.5) * 0.2);
-    
-    // Drive/saturation (loudspeaker overdrive character)
-    sig = (sig * (1 + (drive * 4))).tanh;
-    
-    // Slight detuning wobble (component tolerances)
-    sig = sig * (1 + (LFNoise1.kr(5) * 0.01));
-    
-    // Stereo spread
-    sig = Pan2.ar(sig, SinOsc.kr(counterRate * 0.1).range(-0.4, 0.4));
-    
-    // === FILTER ===
+    // === PROCESSING CHAIN ===
+    sig = Pan2.ar(sig, SinOsc.kr(sweepRate.linexp(0, 1, 0.05, 2)).range(-0.5, 0.5));
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    
-    // === ENVELOPE AS FINAL VCA ===
-    // Clock trigger
-    allTrigs = In.ar(clockTrigBus, ~clockRates.size);
-    clockTrig = Select.ar(clockRate, allTrigs);
-    
-    // MIDI trigger - read all 8 channels and select by slotIndex
-    allMidiTrigs = In.ar(midiTrigBus, 8);
-    midiTrig = Select.ar(slotIndex, allMidiTrigs);
-    
-    // Select trigger based on envSource: 0=none, 1=clock, 2=midi
-    trig = Select.ar(envSource, [
-        DC.ar(0),      // 0: OFF - no triggers
-        clockTrig,     // 1: CLK - clock triggers only  
-        midiTrig       // 2: MIDI - midi triggers only
-    ]);
-    
-    // Envelope
-    env = EnvGen.ar(Env.perc(attack, decay), trig);
-    
-    // Apply envelope only when envSource > 0, otherwise drone
-    sig = sig * Select.kr(envSource > 0, [1.0, env]) * amp;
+    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     
     Out.ar(out, sig);
 }).add;
