@@ -100,7 +100,39 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 
 ---
 
-## Open Questions
+## In-App Console (Logging)
+
+**Purpose:** Replace 31 print statements with proper Python logging, viewable in-app.
+
+### Architecture
+- Central logger in `src/utils/logger.py`
+- Custom `logging.Handler` that emits to Qt signal (thread-safe)
+- Log levels: DEBUG (grey), INFO (green), WARNING (yellow), ERROR (red)
+- Config option: `LOG_LEVEL = "INFO"` (change to DEBUG for troubleshooting)
+
+### UI Design
+- **Slide-out panel from right side**
+- Hidden by default (zero width)
+- Toggle: button in header `[>_]` or keyboard `Cmd+`` 
+- Animates open/close (~200ms)
+- Width: 250-300px
+- Overlay style (covers mixer, solid background, no transparency)
+
+### Features
+- QPlainTextEdit with monospace font
+- Color-coded by log level
+- Auto-scroll to latest (pause option)
+- Max 500 lines (prevent memory bloat)
+- Clear button
+- Copy to clipboard button
+- Filter by level dropdown
+
+### Scope
+- Python GUI logging only
+- SuperCollider keeps its own postln (separate Post window)
+- File logging optional: `~/.noise-engine/noise-engine.log` for bug reports
+
+---
 
 ### Modulation routing UI
 Three options:
