@@ -96,6 +96,13 @@ COLORS = {
     'slider_groove': '#333',
     'slider_handle': '#888',
     'slider_handle_hover': '#aaa',
+    
+    # WIP (Work In Progress) panels
+    'wip_bg': '#151515',
+    'wip_bg_light': '#1a1a1a',
+    'wip_border': '#252525',
+    'wip_text': '#383838',
+    'wip_text_dim': '#444',
 }
 
 # Override specific component colors if needed
@@ -265,34 +272,34 @@ def wip_panel_style():
     """Style for Work-In-Progress panels - heavily dimmed, no color."""
     return f"""
         QWidget {{
-            background-color: #151515;
+            background-color: {COLORS['wip_bg']};
         }}
         QLabel {{
-            color: #444;
+            color: {COLORS['wip_text_dim']};
         }}
         QPushButton {{
-            background-color: #1a1a1a;
-            color: #383838;
-            border: 1px solid #252525;
+            background-color: {COLORS['wip_bg_light']};
+            color: {COLORS['wip_text']};
+            border: 1px solid {COLORS['wip_border']};
         }}
         QPushButton:hover {{
-            background-color: #1a1a1a;
-            color: #383838;
+            background-color: {COLORS['wip_bg_light']};
+            color: {COLORS['wip_text']};
         }}
         QSlider::groove:vertical {{
-            background: #1a1a1a;
-            border: 1px solid #252525;
+            background: {COLORS['wip_bg_light']};
+            border: 1px solid {COLORS['wip_border']};
         }}
         QSlider::handle:vertical {{
-            background: #333;
-            border: 1px solid #252525;
+            background: {COLORS['disabled']};
+            border: 1px solid {COLORS['wip_border']};
         }}
         QSlider::handle:vertical:hover {{
-            background: #333;
+            background: {COLORS['disabled']};
         }}
         QFrame {{
-            background-color: #151515;
-            border: 1px solid #252525;
+            background-color: {COLORS['wip_bg']};
+            border: 1px solid {COLORS['wip_border']};
         }}
     """
 

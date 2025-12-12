@@ -224,7 +224,8 @@ def _load_generator_configs():
                         _GENERATOR_CONFIGS[name] = {
                             "synthdef": config.get('synthdef'),
                             "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
-                            "pitch_target": config.get('pitch_target')  # None if not specified
+                            "pitch_target": config.get('pitch_target'),  # None if not specified
+                            "midi_retrig": config.get('midi_retrig', False)  # For struck/plucked generators
                         }
             except (json.JSONDecodeError, IOError) as e:
                 print(f"Warning: Failed to load {filepath}: {e}")

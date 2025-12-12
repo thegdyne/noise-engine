@@ -103,24 +103,24 @@ class LFOWidget(QWidget):
     def set_wip_mode(self, enabled=True):
         """Apply WIP styling - grey out all controls."""
         if enabled:
-            wip_btn = """
-                QPushButton {
-                    background-color: #1a1a1a;
-                    color: #383838;
-                    border: 1px solid #252525;
-                }
+            wip_btn = f"""
+                QPushButton {{
+                    background-color: {COLORS['wip_bg_light']};
+                    color: {COLORS['wip_text']};
+                    border: 1px solid {COLORS['wip_border']};
+                }}
             """
             self.wave_btn.setStyleSheet(wip_btn)
             self.sync_btn.setStyleSheet(wip_btn)
             self.clk_btn.setStyleSheet(wip_btn)
-            self.rate_label.setStyleSheet("color: #383838;")
-            self.findChild(QLabel, "").setStyleSheet("color: #444;") if self.findChild(QLabel) else None
-            self.setStyleSheet("""
-                LFOWidget {
-                    border: 1px solid #252525;
+            self.rate_label.setStyleSheet(f"color: {COLORS['wip_text']};")
+            self.findChild(QLabel, "").setStyleSheet(f"color: {COLORS['wip_text_dim']};") if self.findChild(QLabel) else None
+            self.setStyleSheet(f"""
+                LFOWidget {{
+                    border: 1px solid {COLORS['wip_border']};
                     border-radius: 4px;
-                    background-color: #151515;
-                }
+                    background-color: {COLORS['wip_bg']};
+                }}
             """)
         
     def toggle_sync(self):

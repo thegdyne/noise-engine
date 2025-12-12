@@ -76,16 +76,16 @@ class ChannelStrip(QWidget):
     def set_wip_mode(self, enabled=True):
         """Apply WIP styling - grey out all controls."""
         if enabled:
-            wip_btn = """
-                QPushButton {
-                    background-color: #1a1a1a;
-                    color: #383838;
-                    border: 1px solid #252525;
-                }
+            wip_btn = f"""
+                QPushButton {{
+                    background-color: {COLORS['wip_bg_light']};
+                    color: {COLORS['wip_text']};
+                    border: 1px solid {COLORS['wip_border']};
+                }}
             """
             self.mute_btn.setStyleSheet(wip_btn)
             self.solo_btn.setStyleSheet(wip_btn)
-            self._label.setStyleSheet("color: #383838;")
+            self._label.setStyleSheet(f"color: {COLORS['wip_text']};")
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
