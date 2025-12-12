@@ -126,21 +126,26 @@ generators:
 - SuperCollider audio engine with OSC bridge
 - Modular frame layout (left/center/right/bottom)
 - Git repository: https://github.com/thegdyne/noise-engine
+- Robust OSC connection with ping/pong verification and heartbeat monitoring
 
-**Generator System (20 generators):**
+**Generator System (22 generators):**
 - 8-slot generator grid with per-generator parameters
 - Standard params: FRQ, CUT, RES, ATK, DEC + filter type (LP/HP/BP)
 - Custom params: up to 5 per generator via JSON config
-- pitch_target system: per-generator MIDI note routing
-- Clock sync with 8 rate divisions
+- Envelope source: OFF (drone), CLK (clock sync), MIDI (note trigger)
+- Clock sync with 13 rate divisions (/32 to x32)
+- MIDI channel per slot (1-16)
+- Sticky slot settings (ENV, rate, MIDI channel, filter persist when changing generator)
+- Shared helper functions (~envVCA, ~multiFilter, ~stereoSpread)
 - Auto-loading SynthDefs from generators/ directory
 
 **Generator Types:**
 - Synthesis: Subtractive, Additive, Granular, FM, Wavetable, Karplus-Strong, Modal
 - Relaxation: VCO Relax, CapSense, UJT Relax, Neon
-- Sirens: 4060 Siren, FBI Siren
+- Sirens: 4060 Siren, FBI Siren, FBI Doppler
 - Ring Mods: Diode Ring, 4-Quad Ring, VCA Ring
-- Other: PT2399 Grainy, Geiger, Giant B0N0, Test Synth
+- Chaos: PT2399 Grainy, PT2399 Chaos, Geiger, Giant B0N0
+- Test: Test Synth
 
 **Effects:**
 - Master bus architecture (generators → bus → effects → output)
@@ -152,19 +157,24 @@ generators:
 - Mute/solo buttons
 - Master fader
 
+**MIDI:**
+- MIDI input device selection
+- Per-slot MIDI channel assignment
+- MIDI note triggering (envSource: MIDI)
+- Gate LED flash on note
+
 ### 🔨 In Progress
 
-- Testing and refining generator SynthDefs
-- MIDI input preparation (pitch_target routing ready)
+- Testing robust connection in live scenarios
+- Refining generator sounds
 
 ### ⏳ Future Phases
 
-**Phase 3:** MIDI input (Akai MIDIMix CC mapping)
-**Phase 4:** MIDI note → generator pitch routing
-**Phase 5:** MIDI output (CV.OCD → Eurorack)
-**Phase 6:** More effects (reverb, delay, etc.)
-**Phase 7:** Sequencer
-**Phase 8:** Visual layer (particles, physics-based graphics)
+**Phase 3:** MIDI CC mapping (Akai MIDIMix)
+**Phase 4:** MIDI output (CV.OCD → Eurorack)
+**Phase 5:** More effects (reverb, delay, etc.)
+**Phase 6:** Sequencer
+**Phase 7:** Visual layer (particles, physics-based graphics)
 
 ---
 

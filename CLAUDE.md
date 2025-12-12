@@ -75,7 +75,7 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 - Reset slot settings (ENV, clock rate, MIDI channel, filter) when changing generator type - these are STICKY per slot
 - Duplicate envelope/filter code in generators - USE HELPERS
 - Use `~clockRates.size` in helpers - hardcode 13 (clock rates) and 8 (MIDI channels)
-- Change OSC_SEND_PORT without verifying SC langPort first
+- Hardcode OSC paths - use OSC_PATHS from config
 - Commit debug output to main branch
 
 ## Debugging
@@ -88,3 +88,13 @@ When investigating issues:
 ```
 
 See `docs/DEBUGGING.md` for common issues and solutions.
+
+## SSOT Compliance
+
+After making changes, verify SSOT compliance:
+```bash
+./tools/check_ssot.sh        # Run compliance check
+./tools/update_ssot_badge.sh  # Update badge in index.html
+```
+
+100% = 👑 crown appears on the badge!

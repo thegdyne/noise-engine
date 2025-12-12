@@ -69,7 +69,25 @@ This restores files from backups or cleans debug markers.
 
 ---
 
-### 2. OSC Connection Issues
+### 2. Connection Lost Mid-Session
+
+**Symptoms:**
+- Red "● CONNECTION LOST" in Python GUI
+- "⚠ RECONNECT" button appears
+- Audio stops
+
+**What happened:**
+- SC crashed, was quit, or the server rebooted
+- 3 consecutive heartbeats missed (6 seconds)
+
+**Recovery:**
+1. **If SC is still running:** Click "⚠ RECONNECT" button
+2. **If SC crashed:** Restart SC, run init.scd, then click "⚠ RECONNECT"
+3. **Check SC post window** for error messages
+
+---
+
+### 3. OSC Connection Issues
 
 **Symptoms:**
 - Python shows "Connected" but no messages received in SC
@@ -90,9 +108,9 @@ This restores files from backups or cleans debug markers.
    ```
 
 3. **Verify ports:**
-   - SC langPort: `NetAddr.langPort.postln;` (typically 57122)
+   - SC langPort: `NetAddr.langPort.postln;` (should be 57120, forced by init.scd)
    - SC server port: 57110 (DO NOT send OSC here)
-   - Python sends to: `OSC_SEND_PORT` in config (must match langPort)
+   - Python sends to: `OSC_SEND_PORT` in config (57120)
 
 ---
 

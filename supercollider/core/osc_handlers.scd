@@ -9,15 +9,17 @@ All OSC message routing
     // === CONNECTION MANAGEMENT ===
     // Ping/pong for connection verification
     // Python sends /noise/ping, SC responds with /noise/pong
+    // Send to fixed port 57121 where Python listens
+    ~pythonAddr = NetAddr("127.0.0.1", 57121);
+    
     OSCdef(\ping, { |msg, time, addr|
-        // Respond to the sender with pong
-        addr.sendMsg('/noise/pong', 1);
+        ~pythonAddr.sendMsg('/noise/pong', 1);
     }, '/noise/ping');
     
     // Heartbeat - Python sends periodically, SC responds
     // If Python misses responses, it knows connection is dead
     OSCdef(\heartbeat, { |msg, time, addr|
-        addr.sendMsg('/noise/heartbeat_ack', 1);
+        ~pythonAddr.sendMsg('/noise/heartbeat_ack', 1);
     }, '/noise/heartbeat');
     
     // Master clock BPM
