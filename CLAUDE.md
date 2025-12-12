@@ -71,3 +71,15 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 - Duplicate envelope/filter code in generators - USE HELPERS
 - Use `~clockRates.size` in helpers - hardcode 13 (clock rates) and 8 (MIDI channels)
 - Change OSC_SEND_PORT without verifying SC langPort first
+- Commit debug output to main branch
+
+## Debugging
+
+When investigating issues:
+```bash
+./tools/debug_add.sh   # Add debug output (creates backups)
+# ... investigate ...
+./tools/debug_remove.sh  # Remove debug output (restores backups)
+```
+
+See `docs/DEBUGGING.md` for common issues and solutions.
