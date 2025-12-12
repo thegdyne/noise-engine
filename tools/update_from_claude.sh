@@ -5,11 +5,20 @@
 REPO_DIR=~/repos/noise-engine
 DOWNLOAD=~/Downloads/noise-engine-updated.zip
 TEMP_DIR=~/repos/noise-engine-claude-temp
+TARGET_BRANCH=dev
 
 # Check zip exists
 if [ ! -f "$DOWNLOAD" ]; then
     echo "❌ No file at $DOWNLOAD"
     exit 1
+fi
+
+# Ensure we're on the dev branch
+cd "$REPO_DIR"
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]; then
+    echo "🔀 Switching from $CURRENT_BRANCH to $TARGET_BRANCH..."
+    git checkout "$TARGET_BRANCH" || { echo "❌ Failed to checkout $TARGET_BRANCH"; exit 1; }
 fi
 
 echo "📦 Extracting to temp directory..."
