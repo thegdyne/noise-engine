@@ -70,6 +70,23 @@ class ChannelStrip(QWidget):
         
         layout.addLayout(btn_layout)
         
+        # Store label ref for WIP mode
+        self._label = label
+        
+    def set_wip_mode(self, enabled=True):
+        """Apply WIP styling - grey out all controls."""
+        if enabled:
+            wip_btn = """
+                QPushButton {
+                    background-color: #1a1a1a;
+                    color: #383838;
+                    border: 1px solid #252525;
+                }
+            """
+            self.mute_btn.setStyleSheet(wip_btn)
+            self.solo_btn.setStyleSheet(wip_btn)
+            self._label.setStyleSheet("color: #383838;")
+        
     def on_fader_changed(self, value):
         """Handle fader movement."""
         self.volume_changed.emit(self.channel_id, value / 1000.0)
@@ -148,6 +165,7 @@ class MixerPanel(QWidget):
             channel.mute_toggled.connect(self.on_channel_mute)
             channel.solo_toggled.connect(self.on_channel_solo)
             channel.setEnabled(False)  # WIP - not yet connected
+            channel.set_wip_mode(True)  # Grey out visuals
             channels_layout.addWidget(channel)
             self.channels[i] = channel
             

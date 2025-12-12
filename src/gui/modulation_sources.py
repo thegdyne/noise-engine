@@ -100,6 +100,29 @@ class LFOWidget(QWidget):
             }}
         """)
         
+    def set_wip_mode(self, enabled=True):
+        """Apply WIP styling - grey out all controls."""
+        if enabled:
+            wip_btn = """
+                QPushButton {
+                    background-color: #1a1a1a;
+                    color: #383838;
+                    border: 1px solid #252525;
+                }
+            """
+            self.wave_btn.setStyleSheet(wip_btn)
+            self.sync_btn.setStyleSheet(wip_btn)
+            self.clk_btn.setStyleSheet(wip_btn)
+            self.rate_label.setStyleSheet("color: #383838;")
+            self.findChild(QLabel, "").setStyleSheet("color: #444;") if self.findChild(QLabel) else None
+            self.setStyleSheet("""
+                LFOWidget {
+                    border: 1px solid #252525;
+                    border-radius: 4px;
+                    background-color: #151515;
+                }
+            """)
+        
     def toggle_sync(self):
         """Toggle sync on/off."""
         self.sync_enabled = not self.sync_enabled
@@ -172,7 +195,7 @@ class ModulationSources(QWidget):
         for i in range(1, 4):
             lfo = LFOWidget(i)
             lfo.setEnabled(False)  # Disable interaction
-            lfo.setStyleSheet(wip_panel_style())
+            lfo.set_wip_mode(True)  # Grey out visuals
             layout.addWidget(lfo)
             self.lfos[i] = lfo
             

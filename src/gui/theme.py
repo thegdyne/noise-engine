@@ -262,40 +262,50 @@ def midi_channel_style(active=True):
 
 
 def wip_panel_style():
-    """Style for Work-In-Progress panels - dimmed with reduced opacity."""
+    """Style for Work-In-Progress panels - heavily dimmed, no color."""
     return f"""
         QWidget {{
-            background-color: {COLORS['background']};
+            background-color: #151515;
         }}
         QLabel {{
-            color: {COLORS['text_dim']};
+            color: #444;
         }}
         QPushButton {{
-            background-color: {COLORS['inactive']};
-            color: {COLORS['inactive_text']};
+            background-color: #1a1a1a;
+            color: #383838;
+            border: 1px solid #252525;
         }}
         QPushButton:hover {{
-            background-color: {COLORS['inactive']};
-            color: {COLORS['inactive_text']};
+            background-color: #1a1a1a;
+            color: #383838;
         }}
         QSlider::groove:vertical {{
-            background: {COLORS['inactive']};
+            background: #1a1a1a;
+            border: 1px solid #252525;
         }}
         QSlider::handle:vertical {{
-            background: {COLORS['text_dim']};
+            background: #333;
+            border: 1px solid #252525;
+        }}
+        QSlider::handle:vertical:hover {{
+            background: #333;
+        }}
+        QFrame {{
+            background-color: #151515;
+            border: 1px solid #252525;
         }}
     """
 
 
 def wip_badge_style():
-    """Style for the 'Coming Soon' badge."""
+    """Style for the 'Coming Soon' badge - more prominent."""
     return f"""
         QLabel {{
-            background-color: #332211;
-            color: #aa7744;
-            border-radius: 3px;
-            padding: 2px 6px;
-            font-size: 9px;
+            background-color: #442200;
+            color: #aa6600;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 10px;
             font-weight: bold;
         }}
     """
