@@ -361,6 +361,112 @@
             100% { transform: translateY(-50%) scaleX(-1) rotate(10deg); }
         }
         
+        /* 🤖 CI/CD BANNER 🤖 */
+        .cicd-banner {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border: 3px solid #00ff88;
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin: 20px 0 30px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.3), 0 0 60px rgba(0, 200, 255, 0.2);
+            animation: cicdPulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes cicdPulse {
+            0%, 100% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.3), 0 0 60px rgba(0, 200, 255, 0.2); }
+            50% { box-shadow: 0 0 60px rgba(0, 255, 136, 0.5), 0 0 80px rgba(0, 200, 255, 0.4); }
+        }
+        
+        .cicd-banner h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            color: #00ff88;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+            letter-spacing: 2px;
+        }
+        
+        .cicd-banner p {
+            color: #88ddff;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .cicd-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc88 100%);
+            color: #0a0a0f;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .cicd-btn:hover {
+            background: linear-gradient(135deg, #44ffaa 0%, #00ff88 100%);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.7);
+        }
+        
+        /* Dancing Robots */
+        .robot {
+            font-size: 50px;
+            position: absolute;
+            top: 50%;
+            animation: robotDance 0.6s ease-in-out infinite;
+        }
+        
+        .robot.left {
+            left: 20px;
+            transform: translateY(-50%);
+        }
+        
+        .robot.right {
+            right: 20px;
+            transform: translateY(-50%) scaleX(-1);
+            animation: robotDanceRight 0.6s ease-in-out infinite;
+        }
+        
+        @keyframes robotDance {
+            0%, 100% { transform: translateY(-50%) rotate(-5deg); }
+            25% { transform: translateY(-60%) rotate(5deg); }
+            50% { transform: translateY(-50%) rotate(-5deg); }
+            75% { transform: translateY(-40%) rotate(5deg); }
+        }
+        
+        @keyframes robotDanceRight {
+            0%, 100% { transform: translateY(-50%) scaleX(-1) rotate(5deg); }
+            25% { transform: translateY(-60%) scaleX(-1) rotate(-5deg); }
+            50% { transform: translateY(-50%) scaleX(-1) rotate(5deg); }
+            75% { transform: translateY(-40%) scaleX(-1) rotate(-5deg); }
+        }
+        
+        /* Spinning Gears */
+        .gear {
+            position: absolute;
+            font-size: 24px;
+            opacity: 0.6;
+            animation: gearSpin 4s linear infinite;
+        }
+        
+        .gear1 { left: 70px; top: 15px; animation-duration: 3s; }
+        .gear2 { right: 70px; top: 15px; animation-duration: 4s; animation-direction: reverse; }
+        .gear3 { right: 50%; bottom: 10px; transform: translateX(50%); animation-duration: 5s; font-size: 18px; }
+        
+        @keyframes gearSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         .hero {
             padding: 60px 0;
             display: grid;
@@ -711,6 +817,21 @@
             <h3>🎛️ JOIN THE NOISE! 🎛️</h3>
             <p>We have a Discord server! Chat about synths, share patches, get help.</p>
             <a href="https://discord.gg/zcQpQmbpJF" target="_blank" class="discord-btn">Join Discord Server</a>
+        </div>
+        
+        <!-- 🤖 CI/CD ANNOUNCEMENT 🤖 -->
+        <div class="cicd-banner">
+            <span class="robot left">🤖</span>
+            <span class="robot right">🤖</span>
+            <span class="gear gear1">⚙️</span>
+            <span class="gear gear2">⚙️</span>
+            <span class="gear gear3">⚙️</span>
+            <h3>🚀 CI/CD PIPELINE ACTIVE 🚀</h3>
+            <p>93 automated tests run on every commit. SSOT &amp; tech debt checks enforced.</p>
+            <a href="https://github.com/thegdyne/noise-engine/actions" target="_blank" class="cicd-btn">
+                <img src="https://github.com/thegdyne/noise-engine/actions/workflows/ci.yml/badge.svg" alt="CI Status" style="vertical-align: middle;">
+                View Pipeline
+            </a>
         </div>
         
         <section class="hero">
