@@ -31,7 +31,8 @@ Rate indices match CLOCK_RATES in Python config:
 ~startClock = {
     ~clockGroup = Group.head(s);
     ~genGroup = Group.after(~clockGroup);
-    ~fxGroup = Group.after(~genGroup);
+    ~stripGroup = Group.after(~genGroup);  // Channel strips after generators
+    ~fxGroup = Group.after(~stripGroup);   // Master FX after strips
     
     ~clockSynth = Synth(\masterClock, [
         \bpmBus, ~clockBus.index,
@@ -39,5 +40,5 @@ Rate indices match CLOCK_RATES in Python config:
     ], ~clockGroup);
     
     "  ✓ Clock running".postln;
-    "  ✓ Groups: clock -> gen -> fx".postln;
+    "  ✓ Groups: clock -> gen -> strips -> fx".postln;
 };

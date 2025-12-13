@@ -440,6 +440,9 @@ class MainFrame(QMainWindow):
             if slot:
                 slot.set_audio_status(True)
             self.active_generators[slot_id] = synth_name
+            
+            # Update mixer channel active state
+            self.mixer_panel.set_channel_active(slot_id, True)
         else:
             if self.osc_connected:
                 self.osc.client.send_message(OSC_PATHS['stop_generator'], [slot_id])
@@ -452,6 +455,9 @@ class MainFrame(QMainWindow):
                 slot.set_audio_status(False)
             if slot_id in self.active_generators:
                 del self.active_generators[slot_id]
+            
+            # Update mixer channel active state
+            self.mixer_panel.set_channel_active(slot_id, False)
                 
     def on_effect_selected(self, slot_id):
         """Handle effect slot selection."""
@@ -481,16 +487,22 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [amount])
         
     def on_generator_volume_changed(self, gen_id, volume):
-        """Handle generator volume change."""
-        pass
+        """Handle generator volume change from mixer."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_volume'], [gen_id, volume])
+        logger.debug(f"Gen {gen_id} volume: {volume:.2f}", component="OSC")
         
     def on_generator_muted(self, gen_id, muted):
-        """Handle generator mute."""
-        pass
+        """Handle generator mute from mixer."""
+        if self.osc_connected:
+	    self.osc.client.send_message(OSC_PATHS['gen_mute'], [gen_id, 1 if muted else 0])
+        logger.debug(f"Gen {gen_id} mute: {muted}", component="OSC")
         
     def on_generator_solo(self, gen_id, solo):
-        """Handle generator solo."""
-        pass
+        """Handle generator solo from mixer."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_strip_solo'], [gen_id, 1 if solo else 0])
+        logger.debug(f"Gen {gen_id} solo: {solo}", component="OSC")
         
     def on_master_volume_from_master(self, volume):
         """Handle master volume change from master section."""

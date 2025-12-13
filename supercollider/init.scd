@@ -39,6 +39,10 @@ s.waitForBoot({
     (~basePath +/+ "core/helpers.scd").load;
     ~setupHelpers.();
     
+    // Load channel strips (must be before helpers use them)
+    (~basePath +/+ "core/channel_strips.scd").load;
+    ~setupChannelStrips.();
+    
     // Load effects
     (~basePath +/+ "effects/master_passthrough.scd").load;
     ~setupMasterPassthrough.();

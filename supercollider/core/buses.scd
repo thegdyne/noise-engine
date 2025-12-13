@@ -55,15 +55,25 @@ Default values are real values (not normalized):
     // Audio buses
     ~masterBus = Bus.audio(s, 2);
     
+    // Per-generator output buses (8 stereo buses, one per slot)
+    ~genBus = Array.fill(8, { Bus.audio(s, 2) });
+    
+    // Solo system
+    ~soloActive = Bus.control(s, 1).set(0);  // 1 if any channel soloed
+    ~soloCount = 0;  // Track number of active solos
+    ~stripSoloState = Array.fill(8, { 0 });  // Per-strip solo state
+    
     // Instance tracking
     ~generators = Dictionary.new;
+    ~channelStrips = Array.fill(8, { nil });  // Per-slot channel strips
     ~masterEffects = nil;
     ~clockSynth = nil;
     
-    // Groups
+    // Groups (order matters: clock -> generators -> strips -> fx)
     ~clockGroup = nil;
     ~genGroup = nil;
+    ~stripGroup = nil;
     ~fxGroup = nil;
     
-    "  ✓ Buses ready (% clock rates)".format(~clockRates.size).postln;
+    "  ✓ Buses ready (% clock rates, % gen buses)".format(~clockRates.size, ~genBus.size).postln;
 };

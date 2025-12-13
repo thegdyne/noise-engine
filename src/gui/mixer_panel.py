@@ -1,15 +1,15 @@
 """
 Mixer Panel Component
-Volume faders and master output
+Per-generator channel strips with volume, mute, solo
 
-STATUS: Work In Progress - Master fader works, per-channel M/S not yet connected
+Signal flow: Generator → Channel Strip → Master Bus
 """
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, wip_badge_style
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import DragSlider
 from src.config import SIZES
 
@@ -36,11 +36,11 @@ class ChannelStrip(QWidget):
         layout.setSpacing(3)
         
         # Channel label
-        label = QLabel(self.label_text or str(self.channel_id))
-        label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet(f"color: {COLORS['text']};")
-        layout.addWidget(label)
+        self._label = QLabel(self.label_text or str(self.channel_id))
+        self._label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self._label.setAlignment(Qt.AlignCenter)
+        self._label.setStyleSheet(f"color: {COLORS['text_dim']};")  # Start dimmed
+        layout.addWidget(self._label)
         
         # Fader
         self.fader = DragSlider()
@@ -70,22 +70,24 @@ class ChannelStrip(QWidget):
         
         layout.addLayout(btn_layout)
         
-        # Store label ref for WIP mode
-        self._label = label
-        
-    def set_wip_mode(self, enabled=True):
-        """Apply WIP styling - grey out all controls."""
-        if enabled:
-            wip_btn = f"""
+    def set_active(self, active):
+        """Update visual state based on whether generator is active."""
+        if active:
+            self._label.setStyleSheet(f"color: {COLORS['text']};")
+            self.mute_btn.setStyleSheet(button_style('disabled'))
+            self.solo_btn.setStyleSheet(button_style('disabled'))
+        else:
+            self._label.setStyleSheet(f"color: {COLORS['text_dim']};")
+            # Dim the buttons when inactive
+            dim_btn = f"""
                 QPushButton {{
-                    background-color: {COLORS['wip_bg_light']};
-                    color: {COLORS['wip_text']};
-                    border: 1px solid {COLORS['wip_border']};
+                    background-color: {COLORS['background']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
                 }}
             """
-            self.mute_btn.setStyleSheet(wip_btn)
-            self.solo_btn.setStyleSheet(wip_btn)
-            self._label.setStyleSheet(f"color: {COLORS['wip_text']};")
+            self.mute_btn.setStyleSheet(dim_btn)
+            self.solo_btn.setStyleSheet(dim_btn)
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
@@ -129,7 +131,7 @@ class MixerPanel(QWidget):
         layout.setContentsMargins(5, 10, 5, 10)
         layout.setSpacing(5)
         
-        # Header with title and WIP badge
+        # Header
         header = QHBoxLayout()
         
         title = QLabel("MIXER")
@@ -138,10 +140,6 @@ class MixerPanel(QWidget):
         header.addWidget(title)
         
         header.addStretch()
-        
-        wip_badge = QLabel("WIP")
-        wip_badge.setStyleSheet(wip_badge_style())
-        header.addWidget(wip_badge)
         
         layout.addLayout(header)
         
@@ -163,8 +161,7 @@ class MixerPanel(QWidget):
             channel.volume_changed.connect(self.on_channel_volume)
             channel.mute_toggled.connect(self.on_channel_mute)
             channel.solo_toggled.connect(self.on_channel_solo)
-            channel.setEnabled(False)  # WIP - not yet connected
-            channel.set_wip_mode(True)  # Grey out visuals
+            channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
             
@@ -221,3 +218,8 @@ class MixerPanel(QWidget):
         else:
             self.midi_status.setText("🎹 MIDI")
             self.midi_status.setStyleSheet(f"color: {COLORS['midi_off']}; border: none;")
+    
+    def set_channel_active(self, channel_id, active):
+        """Set active state for a channel (called when generator starts/stops)."""
+        if channel_id in self.channels:
+            self.channels[channel_id].set_active(active)

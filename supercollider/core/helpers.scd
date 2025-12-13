@@ -64,6 +64,7 @@ Reusable functions for generator management
     ~startGenerator = { |slotID, genType|
         var params = ~genParams[slotID];
         var customBuses = params[\custom];
+        var idx = slotID - 1;  // 0-indexed for arrays
         
         if(~generators[slotID].notNil, {
             ~generators[slotID].free;
@@ -71,8 +72,12 @@ Reusable functions for generator management
         });
         
         if(~genGroup.notNil, {
+            // Start channel strip FIRST (must exist before generator writes to bus)
+            ~startChannelStrip.(slotID);
+            
+            // Start generator - routes to per-slot bus (not master)
             ~generators[slotID] = Synth(genType, [
-                \out, ~masterBus,
+                \out, ~genBus[idx],  // Per-slot bus
                 \freqBus, params[\frequency].index,
                 \cutoffBus, params[\cutoff].index,
                 \resBus, params[\resonance].index,
@@ -84,7 +89,7 @@ Reusable functions for generator management
                 \clockRateBus, params[\clockRate].index,
                 \clockTrigBus, ~clockTrigBus.index,
                 \midiTrigBus, if(~midiTrigBus.notNil, { ~midiTrigBus.index }, { 0 }),
-                \slotIndex, slotID - 1,  // 0-indexed for MIDI trigger bus channel
+                \slotIndex, idx,  // 0-indexed for MIDI trigger bus channel
                 // Custom params (5 per generator)
                 \customBus0, customBuses[0].index,
                 \customBus1, customBuses[1].index,
@@ -105,6 +110,9 @@ Reusable functions for generator management
             ~generators[slotID] = nil;
             "Stopped generator in slot %".format(slotID).postln;
         });
+        
+        // Stop channel strip when generator stops
+        ~stopChannelStrip.(slotID);
     };
     
     "  ✓ Helpers ready".postln;

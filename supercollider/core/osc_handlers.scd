@@ -98,5 +98,52 @@ All OSC message routing
         ~stopGenerator.(msg[1].asInteger);
     }, '/noise/stop_generator');
     
+    // === CHANNEL STRIP CONTROLS ===
+    // Per-generator volume
+    OSCdef(\genVolume, { |msg|
+        var slot = msg[1].asInteger;
+        var vol = msg[2].asFloat.clip(0, 1);
+        var idx = slot - 1;
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\vol, vol);
+        });
+    }, '/noise/gen/volume');
+    
+    // Per-generator mute
+    OSCdef(\genMute, { |msg|
+        var slot = msg[1].asInteger;
+        var muted = msg[2].asInteger;
+        var idx = slot - 1;
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\mute, muted);
+        });
+    }, '/noise/gen/mute');
+    
+    // Per-generator solo (with global solo tracking)
+    OSCdef(\genSolo, { |msg|
+        var slot = msg[1].asInteger;
+        var soloed = msg[2].asInteger;
+        var idx = slot - 1;
+        var oldSolo;
+        
+        if(~channelStrips[idx].notNil, {
+            // Track solo count for solo-in-place logic
+            oldSolo = ~stripSoloState[idx] ? 0;
+            ~stripSoloState[idx] = soloed;
+            
+            // Update global solo count
+            if(soloed == 1 && oldSolo == 0, { ~soloCount = ~soloCount + 1 });
+            if(soloed == 0 && oldSolo == 1, { ~soloCount = ~soloCount - 1 });
+            
+            // Update global soloActive bus (1 if any solo, 0 if none)
+            ~soloActive.set(if(~soloCount > 0, 1, 0));
+            
+            // Update this strip's solo state
+            ~channelStrips[idx].set(\solo, soloed);
+            
+            ("Slot " ++ slot ++ " solo: " ++ soloed ++ " (total solos: " ++ ~soloCount ++ ")").postln;
+        });
+    }, '/noise/gen/solo');
+    
     "  ✓ OSC handlers ready".postln;
 };

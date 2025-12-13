@@ -4,15 +4,21 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-DOWNLOAD=~/Downloads/noise-engine-updated.zip
 TEMP_DIR="${REPO_DIR}-claude-temp"
 TARGET_BRANCH=dev
 
-# Check zip exists
-if [ ! -f "$DOWNLOAD" ]; then
-    echo "❌ No file at $DOWNLOAD"
+# Find the download - check multiple possible names
+if [ -f ~/Downloads/files.zip ]; then
+    DOWNLOAD=~/Downloads/files.zip
+elif [ -f ~/Downloads/noise-engine-updated.zip ]; then
+    DOWNLOAD=~/Downloads/noise-engine-updated.zip
+else
+    echo "❌ No Claude zip found in ~/Downloads/"
+    echo "   Expected: files.zip or noise-engine-updated.zip"
     exit 1
 fi
+
+echo "📂 Found: $DOWNLOAD"
 
 # Ensure we're on the dev branch
 cd "$REPO_DIR"
