@@ -6,15 +6,7 @@ Issues to address, roughly prioritised.
 
 ## Critical
 
-### Bare Excepts
-```python
-except:  # Swallows all errors silently
-```
-Found in:
-- `src/gui/main_frame.py`
-- `src/audio/osc_bridge.py`
-
-**Fix:** Catch specific exceptions (e.g., `except OSError:`, `except ValueError:`).
+*No critical issues.*
 
 ---
 
@@ -90,7 +82,7 @@ Re-running init.scd without server reboot leaks buses until crash.
 
 | Issue | Status | Fixed In |
 |-------|--------|----------|
-| Bare excepts | Partial | main_frame.py, osc_bridge.py |
+| Bare excepts | ✓ Fixed | All use `except Exception as e:` or specific types |
 | No tests | Open | |
 | Print debugging | ✓ Fixed | src/utils/logger.py |
 | Hardcoded paths | Open | |

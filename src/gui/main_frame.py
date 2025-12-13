@@ -558,8 +558,8 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             try:
                 self.osc.disconnect()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"OSC disconnect failed during restart: {e}", component="APP")
         
         # Get the command to restart
         python = sys.executable
