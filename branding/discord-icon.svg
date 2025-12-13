@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1a2a1a"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </radialGradient>
+    
+    <!-- Glow effect for waveform -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Stronger glow for accents -->
+    <filter id="glowStrong" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Noise texture -->
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feBlend in="SourceGraphic" in2="noise" mode="multiply" result="blend"/>
+      <feComposite in="blend" in2="SourceGraphic" operator="in"/>
+    </filter>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle grid lines (modular synth aesthetic) -->
+  <g stroke="#1a1a1a" stroke-width="1" opacity="0.5">
+    <line x1="128" y1="0" x2="128" y2="512"/>
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+    <line x1="0" y1="128" x2="512" y2="128"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+  </g>
+  
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#333" stroke-width="2"/>
+  
+  <!-- Inner decorative ring -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#222" stroke-width="1"/>
+  
+  <!-- Main waveform - chaotic/noise aesthetic -->
+  <g filter="url(#glow)">
+    <path d="M 60 256 
+             Q 80 180, 100 256 
+             Q 115 320, 130 256 
+             Q 140 200, 155 256 
+             Q 165 290, 180 256 
+             Q 195 150, 210 256 
+             Q 220 340, 235 256 
+             Q 250 180, 265 256 
+             Q 275 310, 290 256 
+             Q 310 140, 330 256 
+             Q 345 350, 360 256 
+             Q 375 190, 390 256 
+             Q 405 300, 420 256 
+             Q 435 210, 452 256" 
+          fill="none" 
+          stroke="#88ff88" 
+          stroke-width="4" 
+          stroke-linecap="round"/>
+  </g>
+  
+  <!-- Secondary waveform (offset, dimmer) -->
+  <g opacity="0.4">
+    <path d="M 70 270 
+             Q 90 220, 110 270 
+             Q 125 310, 140 270 
+             Q 155 230, 170 270 
+             Q 185 290, 200 270 
+             Q 220 200, 240 270 
+             Q 255 320, 275 270 
+             Q 290 240, 310 270 
+             Q 330 180, 350 270 
+             Q 365 340, 385 270 
+             Q 400 230, 420 270 
+             Q 435 290, 445 270" 
+          fill="none" 
+          stroke="#44aa44" 
+          stroke-width="2" 
+          stroke-linecap="round"/>
+  </g>
+  
+  <!-- Accent dots (patch points aesthetic) -->
+  <g fill="#ff8833" filter="url(#glow)">
+    <circle cx="100" cy="150" r="6"/>
+    <circle cx="412" cy="362" r="6"/>
+  </g>
+  
+  <g fill="#88ff88" opacity="0.6">
+    <circle cx="150" cy="380" r="4"/>
+    <circle cx="362" cy="132" r="4"/>
+    <circle cx="400" cy="180" r="3"/>
+    <circle cx="112" cy="332" r="3"/>
+  </g>
+  
+  <!-- Small indicator lights -->
+  <g fill="#335533">
+    <circle cx="290" cy="420" r="5"/>
+    <circle cx="310" cy="420" r="5"/>
+    <circle cx="330" cy="420" r="5"/>
+  </g>
+  <!-- One "active" light -->
+  <circle cx="310" cy="420" r="5" fill="#88ff88" filter="url(#glow)"/>
+  
+  <!-- Subtle noise overlay -->
+  <circle cx="256" cy="256" r="256" fill="#ffffff" opacity="0.02" filter="url(#noise)"/>
+</svg>

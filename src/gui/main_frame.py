@@ -8,9 +8,9 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QFrame)
+                             QPushButton, QLabel, QFrame, QShortcut, QStackedLayout)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QKeySequence
 
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
@@ -18,12 +18,14 @@ from src.gui.effects_chain import EffectsChain
 from src.gui.modulation_sources import ModulationSources
 from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
+from src.gui.console_panel import ConsolePanel
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
     CLOCK_RATE_INDEX, FILTER_TYPE_INDEX, GENERATORS, GENERATOR_CYCLE,
     BPM_DEFAULT, OSC_PATHS
 )
+from src.utils.logger import logger
 
 
 class MainFrame(QMainWindow):
@@ -60,7 +62,15 @@ class MainFrame(QMainWindow):
         top_bar = self.create_top_bar()
         main_layout.addWidget(top_bar)
         
-        content_layout = QHBoxLayout()
+        # Content area with console overlay
+        content_container = QWidget()
+        content_outer = QHBoxLayout(content_container)
+        content_outer.setContentsMargins(0, 0, 0, 0)
+        content_outer.setSpacing(0)
+        
+        # Main content (left side)
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
         content_layout.setContentsMargins(5, 5, 5, 5)
         content_layout.setSpacing(10)
         
@@ -91,11 +101,24 @@ class MainFrame(QMainWindow):
         self.mixer_panel.master_volume_changed.connect(self.on_master_volume_changed)
         content_layout.addWidget(self.mixer_panel, stretch=1)
         
-        main_layout.addLayout(content_layout, stretch=1)
+        content_outer.addWidget(content_widget, stretch=1)
+        
+        # Console panel (right edge overlay)
+        self.console_panel = ConsolePanel()
+        content_outer.addWidget(self.console_panel)
+        
+        main_layout.addWidget(content_container, stretch=1)
         
         # Bottom - EFFECTS only
         bottom_section = self.create_bottom_section()
         main_layout.addWidget(bottom_section)
+        
+        # Keyboard shortcut for console (Cmd+` or Ctrl+`)
+        console_shortcut = QShortcut(QKeySequence("Ctrl+`"), self)
+        console_shortcut.activated.connect(self.toggle_console)
+        
+        # Log startup
+        logger.info("Noise Engine started", component="APP")
         
     def create_top_bar(self):
         """Create top bar."""
@@ -167,6 +190,56 @@ class MainFrame(QMainWindow):
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
         
+        layout.addSpacing(10)
+        
+        # Console toggle button
+        self.console_btn = QPushButton(">_")
+        self.console_btn.setToolTip("Toggle Console (Ctrl+`)")
+        self.console_btn.setFixedSize(30, 30)
+        self.console_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 3px;
+                font-family: {FONT_FAMILY};
+                font-size: {FONT_SIZES['small']}px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['background_highlight']};
+                color: {COLORS['text_bright']};
+            }}
+            QPushButton:checked {{
+                background-color: {COLORS['enabled']};
+                color: {COLORS['enabled_text']};
+                border-color: {COLORS['enabled']};
+            }}
+        """)
+        self.console_btn.setCheckable(True)
+        self.console_btn.clicked.connect(self.toggle_console)
+        layout.addWidget(self.console_btn)
+        
+        # Restart button
+        self.restart_btn = QPushButton("↻")
+        self.restart_btn.setToolTip("Restart Noise Engine")
+        self.restart_btn.setFixedSize(30, 30)
+        self.restart_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 3px;
+                font-size: {FONT_SIZES['section']}px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['submenu']};
+                color: {COLORS['submenu_text']};
+                border-color: {COLORS['submenu']};
+            }}
+        """)
+        self.restart_btn.clicked.connect(self.restart_app)
+        layout.addWidget(self.restart_btn)
+        
         return bar
         
     def create_bottom_section(self):
@@ -226,8 +299,8 @@ class MainFrame(QMainWindow):
                 self.osc.gate_triggered.disconnect(self.on_gate_trigger)
                 self.osc.connection_lost.disconnect(self.on_connection_lost)
                 self.osc.connection_restored.disconnect(self.on_connection_restored)
-            except:
-                pass
+            except TypeError:
+                pass  # Signals weren't connected
             self.osc.disconnect()
             self.osc_connected = False
             self.connect_btn.setText("Connect SuperCollider")
@@ -269,10 +342,10 @@ class MainFrame(QMainWindow):
                 port_index = self.midi_selector.get_port_index(device_name)
                 if port_index >= 0:
                     self.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
-                    print(f"MIDI device: {device_name} (port {port_index})")
+                    logger.info(f"MIDI device: {device_name} (port {port_index})", component="MIDI")
             else:
                 self.osc.client.send_message(OSC_PATHS['midi_device'], [-1])  # -1 = disconnect
-                print("MIDI device: None")
+                logger.info("MIDI device: None", component="MIDI")
         
     def on_generator_param_changed(self, slot_id, param_name, value):
         """Handle per-generator parameter change."""
@@ -302,26 +375,26 @@ class MainFrame(QMainWindow):
         """Handle generator ENV source change (0=OFF, 1=CLK, 2=MIDI)."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_env_source'], [slot_id, source])
-        print(f"Gen {slot_id} env source: {['OFF', 'CLK', 'MIDI'][source]}")
+        logger.gen(slot_id, f"env source: {['OFF', 'CLK', 'MIDI'][source]}")
         
     def on_generator_clock_rate(self, slot_id, rate):
         """Handle generator clock rate change - send index."""
         rate_index = CLOCK_RATE_INDEX.get(rate, 3)  # Default to CLK
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
-        print(f"Gen {slot_id} rate: {rate} (index {rate_index})")
+        logger.gen(slot_id, f"rate: {rate} (index {rate_index})")
     
     def on_generator_mute(self, slot_id, muted):
         """Handle generator mute from slot button."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1 if muted else 0])
-        print(f"Gen {slot_id} mute: {muted}")
+        logger.gen(slot_id, f"mute: {muted}")
     
     def on_generator_midi_channel(self, slot_id, channel):
         """Handle generator MIDI channel change."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_midi_channel'], [slot_id, channel])
-        print(f"Gen {slot_id} MIDI channel: {channel}")
+        logger.gen(slot_id, f"MIDI channel: {channel}")
         
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection (legacy click handler)."""
@@ -405,3 +478,92 @@ class MainFrame(QMainWindow):
     def on_master_volume_changed(self, volume):
         """Handle master volume change."""
         pass
+    
+    def toggle_console(self):
+        """Toggle console panel visibility."""
+        self.console_panel.toggle_panel()
+        self.console_btn.setChecked(self.console_panel.is_open)
+    
+    def restart_app(self):
+        """Restart the application with confirmation."""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+        from PyQt5.QtCore import Qt
+        import sys
+        import os
+        
+        # Custom styled dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Restart")
+        dialog.setFixedSize(280, 120)
+        dialog.setStyleSheet(f"""
+            QDialog {{
+                background-color: {COLORS['background']};
+                border: 2px solid {COLORS['border_light']};
+            }}
+            QLabel {{
+                color: {COLORS['text_bright']};
+                font-size: {FONT_SIZES['section']}px;
+            }}
+            QPushButton {{
+                background-color: {COLORS['background_highlight']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+                padding: 8px 20px;
+                font-size: {FONT_SIZES['small']}px;
+                min-width: 70px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['border']};
+                color: {COLORS['text_bright']};
+            }}
+            QPushButton#confirm {{
+                background-color: {COLORS['submenu']};
+                color: {COLORS['submenu_text']};
+                border-color: {COLORS['submenu']};
+            }}
+            QPushButton#confirm:hover {{
+                background-color: {COLORS['warning_text']};
+            }}
+        """)
+        
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 15)
+        layout.setSpacing(20)
+        
+        label = QLabel("Restart Noise Engine?")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+        
+        no_btn = QPushButton("Cancel")
+        no_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(no_btn)
+        
+        yes_btn = QPushButton("Restart")
+        yes_btn.setObjectName("confirm")
+        yes_btn.clicked.connect(dialog.accept)
+        btn_layout.addWidget(yes_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        
+        logger.info("Restarting Noise Engine...", component="APP")
+        
+        # Disconnect OSC cleanly
+        if self.osc_connected:
+            try:
+                self.osc.disconnect()
+            except Exception as e:
+                logger.warning(f"OSC disconnect failed during restart: {e}", component="APP")
+        
+        # Get the command to restart
+        python = sys.executable
+        script = os.path.abspath(sys.argv[0])
+        
+        # Restart the process
+        os.execv(python, [python, script])

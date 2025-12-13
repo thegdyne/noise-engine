@@ -20,6 +20,8 @@ import threading
 import time
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 
+from src.utils.logger import logger
+
 
 class OSCBridge(QObject):
     """Manages OSC communication with SuperCollider."""
@@ -71,8 +73,8 @@ class OSCBridge(QObject):
             # Verify connection with ping
             if not self._verify_connection():
                 self._cleanup()
-                print(f"✗ SuperCollider not responding on port {self._port}")
-                print(f"  Check: NetAddr.langPort.postln; in SC")
+                logger.error(f"SuperCollider not responding on port {self._port}", component="OSC")
+                logger.info("Check: NetAddr.langPort.postln; in SC", component="OSC")
                 return False
             
             self.connected = True
@@ -81,13 +83,13 @@ class OSCBridge(QObject):
             # Start heartbeat monitoring
             self._heartbeat_timer.start(self.HEARTBEAT_INTERVAL_MS)
             
-            print(f"✓ Connected to SuperCollider at {self._host}:{self._port}")
-            print(f"✓ Listening for SC messages on port 57121")
-            print(f"✓ Heartbeat monitoring active")
+            logger.info(f"Connected to SuperCollider at {self._host}:{self._port}", component="OSC")
+            logger.debug(f"Listening for SC messages on port 57121", component="OSC")
+            logger.debug("Heartbeat monitoring active", component="OSC")
             return True
             
         except Exception as e:
-            print(f"✗ Failed to connect: {e}")
+            logger.error(f"Failed to connect: {e}", component="OSC")
             self._cleanup()
             return False
     
@@ -122,7 +124,7 @@ class OSCBridge(QObject):
         if not self._heartbeat_received:
             self._missed_heartbeats += 1
             if self._missed_heartbeats >= self.HEARTBEAT_MISS_LIMIT:
-                print(f"✗ CONNECTION LOST - {self.HEARTBEAT_MISS_LIMIT} missed heartbeats")
+                logger.error(f"CONNECTION LOST - {self.HEARTBEAT_MISS_LIMIT} missed heartbeats", component="OSC")
                 self.connected = False
                 self._heartbeat_timer.stop()
                 self.connection_lost.emit()
@@ -130,7 +132,7 @@ class OSCBridge(QObject):
         else:
             # Got response, reset counter
             if self._missed_heartbeats > 0:
-                print("✓ Connection restored")
+                logger.info("Connection restored", component="OSC")
                 self._missed_heartbeats = 0
         
         # Send next heartbeat
@@ -138,12 +140,12 @@ class OSCBridge(QObject):
         try:
             self.client.send_message(OSC_PATHS['heartbeat'], [1])
         except Exception as e:
-            print(f"✗ Heartbeat send failed: {e}")
+            logger.warning(f"Heartbeat send failed: {e}", component="OSC")
             self._missed_heartbeats += 1
     
     def reconnect(self):
         """Attempt to reconnect using stored parameters."""
-        print("Attempting reconnect...")
+        logger.info("Attempting reconnect...", component="OSC")
         self._cleanup()
         time.sleep(0.1)  # Brief pause
         
@@ -177,7 +179,7 @@ class OSCBridge(QObject):
             self.server_thread.daemon = True
             self.server_thread.start()
         except Exception as e:
-            print(f"Warning: Could not start OSC receive server: {e}")
+            logger.warning(f"Could not start OSC receive server: {e}", component="OSC")
     
     def _handle_pong(self, address, *args):
         """Handle pong response from SC."""
@@ -196,7 +198,7 @@ class OSCBridge(QObject):
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""
         # Uncomment for debugging:
-        # print(f"OSC received: {address} {args}")
+        # logger.osc(f"Received: {address} {args}")
         pass
             
     def send_parameter(self, param_name, value):
@@ -211,7 +213,7 @@ class OSCBridge(QObject):
         if self.server:
             try:
                 self.server.shutdown()
-            except:
+            except OSError:
                 pass
             self.server = None
         self.client = None
@@ -220,7 +222,7 @@ class OSCBridge(QObject):
     def disconnect(self):
         """Disconnect and clean up."""
         self._cleanup()
-        print("✓ Disconnected from SuperCollider")
+        logger.info("Disconnected from SuperCollider", component="OSC")
     
     def is_healthy(self):
         """Check if connection is healthy (no missed heartbeats)."""

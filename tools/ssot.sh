@@ -5,8 +5,16 @@
 REPO_DIR=~/repos/noise-engine
 cd "$REPO_DIR" || exit 1
 
-"$REPO_DIR/tools/_check_ssot.sh"
-"$REPO_DIR/tools/_update_ssot_badge.sh"
+# Run Python SSOT checker
+python3 "$REPO_DIR/tools/check_ssot.py"
+RESULT=$?
+
+# Update badge based on result
+if [ $RESULT -eq 0 ]; then
+    "$REPO_DIR/tools/_update_ssot_badge.sh" 100
+else
+    "$REPO_DIR/tools/_update_ssot_badge.sh" 0
+fi
 
 # Check if index.html changed
 if git diff --quiet docs/index.html; then
@@ -19,3 +27,5 @@ else
     git push
     echo "✅ Badge committed and pushed to dev"
 fi
+
+exit $RESULT

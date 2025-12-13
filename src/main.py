@@ -13,14 +13,17 @@ from PyQt5.QtCore import Qt
 
 
 def main():
-    print("=" * 50)
-    print("Noise Engine")
-    print("=" * 50)
-    print("1. Start SuperCollider and run init.scd")
-    print("2. Click 'Connect SuperCollider' in the app")
-    print("3. Click generator slots to start sounds")
-    print("4. Click effect slots to add effects")
-    print("=" * 50)
+    # Initialize logger first
+    from src.utils.logger import logger
+    
+    logger.info("=" * 40, component="APP")
+    logger.info("Noise Engine starting", component="APP")
+    logger.info("=" * 40, component="APP")
+    logger.info("1. Start SuperCollider and run init.scd", component="APP")
+    logger.info("2. Click 'Connect SuperCollider' in the app", component="APP")
+    logger.info("3. Click generator slots to start sounds", component="APP")
+    logger.info("4. Click effect slots to add effects", component="APP")
+    logger.info("=" * 40, component="APP")
     
     app = QApplication(sys.argv)
     

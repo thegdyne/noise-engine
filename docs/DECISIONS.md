@@ -841,3 +841,58 @@ Generator SynthDef:
 - `src/config/__init__.py` - add get_generator_midi_retrig(), OSC path
 - `src/gui/generator_slot.py` - grey out RTG in MIDI mode
 - `src/gui/main_frame.py` - send midi_retrig flag on generator change
+
+---
+
+### [2025-12-13] Central Logging System with In-App Console
+**Decision:** Replace all print statements with centralized logging via `src/utils/logger.py`, viewable in slide-out console panel.
+
+**Architecture:**
+```
+src/utils/logger.py:
+  - NoiseEngineLogger class wrapping Python logging
+  - QtSignalHandler emits to PyQt signal (thread-safe)
+  - Component tagging for filtering (OSC, MIDI, GEN, APP, UI, CONFIG)
+  - Console + GUI handlers with separate log levels
+
+src/gui/console_panel.py:
+  - Slide-out panel from right edge
+  - Toggle: button (>_) or Ctrl+`
+  - Color-coded levels, auto-scroll, max 500 lines
+  - Filter dropdown, clear/copy buttons
+```
+
+**Usage:**
+```python
+from src.utils.logger import logger
+
+logger.info("Message", component="OSC")
+logger.debug("Detail", component="GEN", details="extra info")
+logger.warning("Caution", component="MIDI")
+logger.error("Failed", component="APP")
+
+# Convenience
+logger.osc("OSC specific")
+logger.gen(slot_id, "Generator action")
+```
+
+**Benefits:**
+- Thread-safe GUI updates via Qt signals
+- Centralized control of log levels
+- Visible history for debugging
+- No more lost print output
+
+**DO NOT:**
+- Use print() anywhere in production code
+- Log sensitive information
+- Emit signals from non-GUI threads directly (use logger)
+
+**Files affected:**
+- `src/utils/logger.py` (new)
+- `src/utils/__init__.py` (new)
+- `src/gui/console_panel.py` (new)
+- `src/gui/main_frame.py` (console integration)
+- `src/audio/osc_bridge.py` (converted to logger)
+- `src/config/__init__.py` (converted to logger)
+- `src/gui/midi_selector.py` (converted to logger)
+- `src/main.py` (converted to logger)

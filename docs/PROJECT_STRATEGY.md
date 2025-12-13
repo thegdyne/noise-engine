@@ -1,6 +1,6 @@
 # Noise Engine - Project Strategy
 
-**Last Updated:** December 12, 2025
+**Last Updated:** December 13, 2025
 
 ---
 
@@ -30,10 +30,12 @@
 3. **When tested and working, merge to main:**
    ```bash
    git checkout main
-   git merge dev
+   git merge dev -m "Merge dev: brief description"
    git push
    git checkout dev  # Back to dev for next changes
    ```
+   
+   Note: Use `-m` flag to avoid vi editor opening.
 
 ### Tools
 
@@ -41,7 +43,8 @@
 |--------|---------|
 | `tools/update_from_claude.sh` | Extract Claude's zip, apply changes, auto-checkout dev |
 | `tools/ssot.sh` | Run SSOT check + update badge + auto-commit |
-| `tools/_check_ssot.sh` | Internal: SSOT compliance check |
+| `tools/check_ssot.py` | Smart SSOT checker (auto-discovers constants from theme.py and config) |
+| `tools/_check_ssot.sh` | Legacy: bash SSOT compliance check |
 | `tools/_update_ssot_badge.sh` | Internal: Update badge in index.html |
 
 ### SSOT (Single Source of Truth)
@@ -593,6 +596,14 @@ Generators → Master Bus (internal) → [Effects Chain] → Output (speakers)
 - LP/HP/BP filter support via shared ~multiFilter helper
 - Auto-loader for SynthDefs from generators/ directory
 - MIT License added, source attributions documented
+
+### Phase 2.6: Console & Tooling - COMPLETE ✓ (2025-12-13)
+- In-app debug console (slide-out panel, Ctrl+`)
+- Color-coded log levels (DEBUG/INFO/WARN/ERROR)
+- Filter dropdown, auto-scroll toggle, clear/copy buttons
+- Restart button with confirmation dialog
+- Smart SSOT checker (Python, auto-discovers constants)
+- Branding assets (Discord icon, GitHub avatar)
 
 ---
 

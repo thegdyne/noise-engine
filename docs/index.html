@@ -203,6 +203,46 @@
             100% { transform: translateX(-50%) rotateY(360deg); }
         }
         
+        /* 🏗️ TECH DEBT BADGE 🏗️ */
+        .badge.techdebt {
+            border-color: var(--accent-orange);
+            color: var(--accent-orange);
+            background: rgba(255, 136, 68, 0.1);
+            position: relative;
+        }
+        .badge.techdebt .pct { font-weight: 700; }
+        .badge.techdebt .backhoe {
+            display: none;
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            z-index: 10;
+        }
+        .badge.techdebt.perfect .backhoe { display: block; }
+        .badge.techdebt.perfect {
+            border-color: gold;
+            color: gold;
+            background: rgba(255, 215, 0, 0.15);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            animation: techdebtPulse 2s ease-in-out infinite;
+        }
+        .badge.techdebt.perfect .backhoe {
+            animation: backhoeBounce 1s ease-in-out infinite;
+            filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
+        }
+        
+        @keyframes techdebtPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3); }
+        }
+        
+        @keyframes backhoeBounce {
+            0%, 100% { top: -18px; transform: translateX(-50%) rotate(-5deg); }
+            50% { top: -24px; transform: translateX(-50%) rotate(5deg); }
+        }
+        
         /* 🎉 FIRST USER CELEBRATION 🎉 */
         .celebration-banner {
             background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%);
@@ -559,6 +599,7 @@
                 <span class="badge supercollider">SuperCollider</span>
                 <span class="badge pyqt">PyQt5</span>
                 <span class="badge ssot perfect"><span class="crown">👑</span>SSOT <span class="pct">100%</span></span>
+                <span class="badge techdebt perfect"><span class="backhoe">🚜</span>DEBT <span class="pct">100%</span></span>
                 <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">22 Generators</span>
                 <span class="badge" style="border-color: var(--accent-magenta); color: var(--accent-magenta);">MIDI In</span>
             </div>

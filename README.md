@@ -116,12 +116,42 @@ python src/main.py
 
 ### Shell Alias (Optional)
 
-Add to `~/.zshrc` for quick activation:
+Add to `~/.zshrc` or `~/.bashrc` for quick launch:
 ```bash
-alias noise="cd ~/repos/noise-engine && source venv/bin/activate"
+# Adjust path to match your clone location
+alias noise-env="cd ~/repos/noise-engine && source venv/bin/activate"
+alias noise="cd ~/repos/noise-engine && source venv/bin/activate && python src/main.py"
 ```
 
-Then just type `noise` to activate project environment.
+Then:
+- `noise-env` - activates venv for development
+- `noise` - launches the app directly
+
+## Using the Interface
+
+### Generator Slots
+- **Click** a slot to cycle through generator types
+- **Drag vertically** on the generator name for fine control
+- **Shift+drag** for extra fine control
+- Generator settings (ENV, rate, MIDI channel, filter) are **sticky** - they persist when you change generator type
+
+### Console (Debug Log)
+The console shows real-time logs from the app - useful for troubleshooting.
+
+**To open:**
+- Click the **`>_`** button in the top-right corner, OR
+- Press **`Ctrl+``** (backtick key, above Tab)
+
+**Features:**
+- Color-coded messages: grey (debug), green (info), orange (warning), red (error)
+- Filter dropdown to show only certain levels
+- Auto-scroll toggle
+- Clear and Copy buttons
+
+### Keyboard Shortcuts
+| Key | Action |
+|-----|--------|
+| `Ctrl+`` | Toggle console panel |
 
 ## Current Status
 

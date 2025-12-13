@@ -1,5 +1,7 @@
 # Claude Instructions for Noise Engine
 
+**Current year: 2025** (use this for all dates, timestamps, milestones)
+
 **READ FIRST:** Before making any changes, read the docs:
 - `docs/PROJECT_STRATEGY.md` - Architecture, principles, current status
 - `docs/DECISIONS.md` - All design decisions (DO NOT violate these)
@@ -7,29 +9,73 @@
 - `docs/TECH_DEBT.md` - Known issues to fix
 - `docs/FUTURE_IDEAS.md` - Planned features
 
+## Important Rules
+
+### DO NOT include docs/index.html in zips
+The landing page badge is updated by `bash tools/ssot.sh` on the user's machine. Including index.html in Claude's zip will overwrite the badge with stale data.
+
 ## Workflow
 
-### Code Changes
-Every response with code changes MUST end with:
+### Giving Files to Claude
 
+Always zip from the **dev branch** using the helper tool:
+```bash
+./tools/zip_for_claude.sh
+# Creates ~/Downloads/noise-engine-dev.zip
+# Upload this file to Claude
+```
+
+⚠️ **Never zip from main** - dev has the latest work. The filename includes the branch name so you can verify.
+
+### Receiving Changes from Claude
+
+Claude outputs **individual changed files only**, not full project zips.
+This prevents accidentally overwriting newer files with older versions.
+
+After downloading individual files, copy them to your repo manually or drag into your editor.
+
+### After Applying Changes
 ```bash
 cd ~/repos/noise-engine
-~/repos/noise-engine/tools/update_from_claude.sh
 git add -A
 git commit -m "Component: brief description of change"
 git push
 ```
 
-Download must be named `noise-engine-updated.zip`.
-
-### Merging to Main
-Only merge to main when **explicitly agreed** with the user:
+### If Something Goes Wrong
 ```bash
+./tools/rollback.sh  # Undoes the last commit (asks for confirmation)
+```
+
+### Merge dev to main
+When ready to release to main:
+
+```bash
+cd ~/repos/noise-engine
+bash tools/ssot.sh              # Always run first - updates badge
 git checkout main
-git merge dev
+git merge dev -m "Merge dev: brief description"
 git push
 git checkout dev
 ```
+
+The `-m` flag avoids opening vi for a merge commit message.
+Always run `ssot.sh` before merging - it updates the badge in index.html.
+
+### Publish Landing Page Update
+To push index.html changes to the live site (GitHub Pages on main branch):
+
+```bash
+cd ~/repos/noise-engine
+git checkout main
+git checkout dev -- docs/index.html
+git add docs/index.html
+git commit -m "Update landing page"
+git push
+git checkout dev
+```
+
+Site: https://thegdyne.github.io/noise-engine/
 
 ## Critical: OSC Connection
 
@@ -93,7 +139,10 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 ## Do NOT
 
 - Use horizontal sliders (except sequencer)
-- Hardcode colors/fonts outside theme.py
+- Hardcode colors/fonts outside theme.py:
+  - Colors: use `COLORS['key']` from theme.py
+  - Font sizes: use `FONT_SIZES['key']` from theme.py (NOT `14px`, `12px`, etc.)
+  - Font family: use `FONT_FAMILY` or `MONO_FONT` from theme.py
 - Create menu diving / hidden UI
 - Skip reading docs before making changes
 - Forget the git workflow at the end
@@ -128,6 +177,8 @@ bash tools/ssot.sh  # Runs check, updates badge, commits if changed
 
 | Script | Purpose |
 |--------|---------|
+| `tools/zip_for_claude.sh` | Create zip of current branch for uploading to Claude |
+| `tools/rollback.sh` | Undo the last commit (with confirmation) |
 | `tools/update_from_claude.sh` | Extract Claude's zip, apply changes, auto-checkout dev |
 | `tools/ssot.sh` | Run SSOT check + update badge + auto-commit |
 | `tools/_check_ssot.sh` | Internal: SSOT compliance check |

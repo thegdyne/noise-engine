@@ -17,6 +17,7 @@ from src.config import (
     get_generator_midi_retrig, get_generator_retrig_param_index,
     ENV_SOURCES, ENV_SOURCE_INDEX
 )
+from src.utils.logger import logger
 
 # MIDI channels - OFF plus 1-16
 MIDI_CHANNELS = ["OFF"] + [str(i) for i in range(1, 17)]
@@ -485,11 +486,13 @@ class GeneratorSlot(QWidget):
             
     def on_filter_changed(self, filter_type):
         """Handle filter button change."""
+        logger.gen(self.slot_id, f"filter: {filter_type}")
         self.filter_type_changed.emit(self.slot_id, filter_type)
     
     def on_generator_type_changed(self, gen_type):
         """Handle generator type change from CycleButton."""
         self.generator_type = gen_type
+        logger.gen(self.slot_id, f"type: {gen_type}")
         self.generator_changed.emit(self.slot_id, gen_type)
         
     def on_env_source_changed(self, source_str):
