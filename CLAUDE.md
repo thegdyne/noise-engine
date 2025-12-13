@@ -52,7 +52,7 @@ When ready to release to main:
 
 ```bash
 cd ~/repos/noise-engine
-bash tools/ssot.sh              # Always run first - updates badge
+bash tools/check_all.sh          # Run all checks, update badges
 git checkout main
 git merge dev -m "Merge dev: brief description"
 git push
@@ -60,7 +60,7 @@ git checkout dev
 ```
 
 The `-m` flag avoids opening vi for a merge commit message.
-Always run `ssot.sh` before merging - it updates the badge in index.html.
+Always run `check_all.sh` before merging - it runs SSOT + tech debt checks and updates both badges.
 
 ### Publish Landing Page Update
 To push index.html changes to the live site (GitHub Pages on main branch):
@@ -180,9 +180,12 @@ bash tools/ssot.sh  # Runs check, updates badge, commits if changed
 | `tools/zip_for_claude.sh` | Create zip of current branch for uploading to Claude |
 | `tools/rollback.sh` | Undo the last commit (with confirmation) |
 | `tools/update_from_claude.sh` | Extract Claude's zip, apply changes, auto-checkout dev |
+| `tools/check_all.sh` | Run SSOT + tech debt checks, update both badges |
 | `tools/ssot.sh` | Run SSOT check + update badge + auto-commit |
-| `tools/_check_ssot.sh` | Internal: SSOT compliance check |
-| `tools/_update_ssot_badge.sh` | Internal: Update badge in index.html |
+| `tools/check_ssot.py` | Smart SSOT checker (auto-discovers constants) |
+| `tools/check_tech_debt.py` | Check for exception handling issues |
+| `tools/_update_ssot_badge.sh` | Internal: Update SSOT badge in index.html |
+| `tools/_update_techdebt_badge.sh` | Internal: Update tech debt badge in index.html |
 | `tools/debug_add.sh` | Add debug output to SC files |
 | `tools/debug_remove.sh` | Remove debug output from SC files |
 | `tools/add_milestone.sh` | Add milestone to index.html |
