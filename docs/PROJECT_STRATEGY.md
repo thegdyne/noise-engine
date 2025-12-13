@@ -210,7 +210,12 @@ generators:
 **Mixer:**
 - Per-generator volume faders
 - Mute/solo buttons
-- Master fader
+
+**Master Section:**
+- Master volume fader with dB display
+- Stereo level meters (RMS + peak hold)
+- Clip detection indicators
+- Real-time metering via OSC (24fps)
 
 **MIDI:**
 - MIDI input device selection

@@ -929,3 +929,39 @@ class GeneratorSlot(QWidget):
 **Files affected:**
 - `src/gui/generator_slot.py` (refactored)
 - `src/gui/generator_slot_builder.py` (new)
+
+---
+
+### [2025-12-13] Master Section with Integrated Metering
+**Decision:** Master section is a separate component with fader and level meters. Metering is integrated into the masterPassthrough synth, not a separate synth.
+
+**Architecture:**
+```
+masterPassthrough synth:
+  - Reads from ~masterBus
+  - Applies fidelity effect
+  - Applies master volume
+  - Sends level data via SendReply at 24fps
+  - Outputs to hardware
+
+Python:
+  - MasterSection widget in right panel (below mixer)
+  - LevelMeter with peak hold and clip detection
+  - OSC levels_received signal for thread-safe updates
+```
+
+**Rationale:**
+- Integrated metering avoids DC offset issues from reading hardware output
+- Single synth is simpler than separate meter synth
+- 24fps metering is responsive without excessive CPU
+
+**DO NOT:**
+- Create separate metering synth that reads from hardware output (causes DC)
+- Put master fader in mixer panel (it's now in master_section)
+
+**Files affected:**
+- `src/gui/master_section.py` (new)
+- `src/gui/mixer_panel.py` (master fader removed)
+- `supercollider/effects/master_passthrough.scd` (metering added)
+- `supercollider/core/master.scd` (volume OSC handler)
+- `src/audio/osc_bridge.py` (levels_received signal)
