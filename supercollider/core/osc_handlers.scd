@@ -114,6 +114,8 @@ All OSC message routing
         var slot = msg[1].asInteger;
         var muted = msg[2].asInteger;
         var idx = slot - 1;
+        // Track mute state (persists across generator changes)
+        ~stripMuteState[idx] = muted;
         if(~channelStrips[idx].notNil, {
             ~channelStrips[idx].set(\mute, muted);
         });

@@ -6,13 +6,18 @@ Signal flow: ~genBus[n] → channelStrip → ~masterBus
 
 Each generator slot gets its own channel strip synth that runs
 after the generator but before master effects.
+
+Solo logic:
+- soloActive = 1 if ANY channel is soloed
+- When soloActive=1, only channels with solo=1 pass audio
+- Mute is applied first, then solo check
 */
 
 ~setupChannelStrips = {
     "Setting up channel strips...".postln;
     
     SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, soloActiveBus|
-        var sig, soloActive;
+        var sig, soloActive, soloGate;
         
         // Read from per-generator bus
         sig = In.ar(inBus, 2);
@@ -20,19 +25,23 @@ after the generator but before master effects.
         // Read global solo state
         soloActive = In.kr(soloActiveBus);
         
-        // Mute: silence this channel
+        // Mute: silence this channel (applied first)
         sig = sig * (1 - mute);
         
-        // Solo-in-place: when any channel is soloed, only soloed channels pass
-        // If soloActive=0: pass all (multiply by 1)
-        // If soloActive=1: pass only if solo=1 (multiply by solo)
-        sig = sig * Select.kr(soloActive, [1, solo]);
+        // Solo-in-place logic:
+        // If no solos active (soloActive=0): all unmuted channels pass
+        // If any solo active (soloActive=1): only soloed channels pass
+        soloGate = Select.kr(soloActive, [1, solo]);
+        sig = sig * soloGate;
         
-        // Volume
+        // Volume (applied last)
         sig = sig * vol;
         
         Out.ar(outBus, sig);
     }).add;
+    
+    // Mute state tracking (parallel to solo tracking)
+    ~stripMuteState = Array.fill(8, { 0 });
     
     "  ✓ Channel strip SynthDef ready".postln;
 };
@@ -40,19 +49,29 @@ after the generator but before master effects.
 // Start a channel strip for a slot (called when generator starts)
 ~startChannelStrip = { |slotID|
     var idx = slotID - 1;  // 0-indexed
+    var currentMute, currentSolo;
     
-    if(~channelStrips[idx].isNil, {
-        ~channelStrips[idx] = Synth(\channelStrip, [
-            \inBus, ~genBus[idx],
-            \outBus, ~masterBus,
-            \vol, 0.8,
-            \mute, 0,
-            \solo, 0,
-            \soloActiveBus, ~soloActive.index
-        ], ~stripGroup, \addToTail);
-        
-        "  Started channel strip for slot %".format(slotID).postln;
+    // Store current state before freeing (if strip exists)
+    currentMute = ~stripMuteState[idx] ? 0;
+    currentSolo = ~stripSoloState[idx] ? 0;
+    
+    // Free existing strip if any
+    if(~channelStrips[idx].notNil, {
+        ~channelStrips[idx].free;
+        ~channelStrips[idx] = nil;
     });
+    
+    // Create new strip with preserved state
+    ~channelStrips[idx] = Synth(\channelStrip, [
+        \inBus, ~genBus[idx],
+        \outBus, ~masterBus,
+        \vol, 0.8,
+        \mute, currentMute,
+        \solo, currentSolo,
+        \soloActiveBus, ~soloActive.index
+    ], ~stripGroup, \addToTail);
+    
+    "  Started channel strip for slot % (mute:%, solo:%)".format(slotID, currentMute, currentSolo).postln;
 };
 
 // Stop a channel strip for a slot (called when generator stops)
@@ -65,6 +84,7 @@ after the generator but before master effects.
             ~soloCount = ~soloCount - 1;
             ~stripSoloState[idx] = 0;
             ~soloActive.set(if(~soloCount > 0, 1, 0));
+            ("  Cleared solo for slot % (soloCount now %)".format(slotID, ~soloCount)).postln;
         });
         
         ~channelStrips[idx].free;
@@ -72,4 +92,16 @@ after the generator but before master effects.
         
         "  Stopped channel strip for slot %".format(slotID).postln;
     });
+};
+
+// Debug helper - call from SC to check state
+~debugSoloState = {
+    "=== Solo State ===".postln;
+    ("soloCount: " ++ ~soloCount).postln;
+    ("soloActive bus: " ++ ~soloActive.getSynchronous).postln;
+    8.do { |i|
+        var state = ~stripSoloState[i];
+        var strip = ~channelStrips[i];
+        ("  Slot %: solo=%, strip=%".format(i+1, state, if(strip.notNil, "active", "nil"))).postln;
+    };
 };

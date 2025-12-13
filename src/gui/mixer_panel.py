@@ -74,11 +74,19 @@ class ChannelStrip(QWidget):
         """Update visual state based on whether generator is active."""
         if active:
             self._label.setStyleSheet(f"color: {COLORS['text']};")
-            self.mute_btn.setStyleSheet(button_style('disabled'))
-            self.solo_btn.setStyleSheet(button_style('disabled'))
+            # Keep mute/solo state - just update label brightness
+            # Re-apply button styles based on current state
+            if self.muted:
+                self.mute_btn.setStyleSheet(button_style('warning'))
+            else:
+                self.mute_btn.setStyleSheet(button_style('disabled'))
+            if self.soloed:
+                self.solo_btn.setStyleSheet(button_style('submenu'))
+            else:
+                self.solo_btn.setStyleSheet(button_style('disabled'))
         else:
             self._label.setStyleSheet(f"color: {COLORS['text_dim']};")
-            # Dim the buttons when inactive
+            # Dim the buttons when inactive but keep state
             dim_btn = f"""
                 QPushButton {{
                     background-color: {COLORS['background']};
@@ -88,6 +96,13 @@ class ChannelStrip(QWidget):
             """
             self.mute_btn.setStyleSheet(dim_btn)
             self.solo_btn.setStyleSheet(dim_btn)
+    
+    def reset_state(self):
+        """Reset mute/solo to default (off) state."""
+        self.muted = False
+        self.soloed = False
+        self.mute_btn.setStyleSheet(button_style('disabled'))
+        self.solo_btn.setStyleSheet(button_style('disabled'))
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
