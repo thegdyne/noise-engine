@@ -116,12 +116,16 @@ python src/main.py
 
 ### Shell Alias (Optional)
 
-Add to `~/.zshrc` for quick activation:
+Add to `~/.zshrc` or `~/.bashrc` for quick launch:
 ```bash
-alias noise="cd ~/repos/noise-engine && source venv/bin/activate"
+# Adjust path to match your clone location
+alias noise-env="cd ~/repos/noise-engine && source venv/bin/activate"
+alias noise="cd ~/repos/noise-engine && source venv/bin/activate && python src/main.py"
 ```
 
-Then just type `noise` to activate project environment.
+Then:
+- `noise-env` - activates venv for development
+- `noise` - launches the app directly
 
 ## Using the Interface
 
