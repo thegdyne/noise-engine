@@ -327,11 +327,20 @@ class SSOTChecker:
             # Check for OSC paths that should match Python
             osc_matches = re.findall(r'["\'](/noise/[^"\']+)["\']', line)
             for path in osc_matches:
-                # Check if this path exists in Python OSC_PATHS
+                # Check if this path exists in Python OSC_PATHS (exact or prefix match)
+                path_found = False
                 if path in self.value_to_const:
-                    # It's defined - good
-                    pass
+                    path_found = True
                 else:
+                    # Check if path starts with any defined OSC path (for dynamic paths)
+                    # e.g., /noise/gen/custom/1/0 starts with /noise/gen/custom
+                    for defined_path in self.value_to_const:
+                        if isinstance(defined_path, str) and defined_path.startswith('/noise/'):
+                            if path.startswith(defined_path + '/') or path.startswith(defined_path + ' '):
+                                path_found = True
+                                break
+                
+                if not path_found:
                     # Path used in SC but not in Python config
                     self.add_warning(
                         file_path=str(rel_path),

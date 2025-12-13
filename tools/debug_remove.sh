@@ -2,7 +2,8 @@
 # Remove debug output added by debug_add.sh
 # Usage: ./tools/debug_remove.sh
 
-REPO_DIR=~/repos/noise-engine
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_DIR="$REPO_DIR/.debug_backup"
 
 echo "🧹 Removing debug output..."

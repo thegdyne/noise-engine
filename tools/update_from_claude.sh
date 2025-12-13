@@ -2,9 +2,10 @@
 # Update noise-engine from Claude's zip export
 # Usage: ./tools/update_from_claude.sh
 
-REPO_DIR=~/repos/noise-engine
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 DOWNLOAD=~/Downloads/noise-engine-updated.zip
-TEMP_DIR=~/repos/noise-engine-claude-temp
+TEMP_DIR="${REPO_DIR}-claude-temp"
 TARGET_BRANCH=dev
 
 # Check zip exists

@@ -2,7 +2,8 @@
 # Single Source of Truth checker
 # Dynamically finds violations of centralized config/theme
 
-REPO_DIR=~/repos/noise-engine
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 SRC_DIR="$REPO_DIR/src"
 SC_DIR="$REPO_DIR/supercollider"
 CONFIG_FILE="$SRC_DIR/config/__init__.py"

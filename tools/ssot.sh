@@ -2,7 +2,8 @@
 # Run SSOT check, update badge, commit and push
 # Always run from repo root
 
-REPO_DIR=~/repos/noise-engine
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$REPO_DIR" || exit 1
 
 # Run Python SSOT checker
