@@ -92,23 +92,45 @@ class ConsolePanel(QFrame):
         
         # Level filter
         self.level_filter = QComboBox()
-        self.level_filter.addItems(["ALL", "INFO", "WARN", "ERROR"])
-        self.level_filter.setFixedWidth(60)
+        self.level_filter.addItems(["DEBUG", "INFO", "WARN", "ERROR"])
+        self.level_filter.setFixedWidth(70)
         self.level_filter.setStyleSheet(f"""
             QComboBox {{
                 background-color: {COLORS['background']};
                 color: {COLORS['text']};
                 border: 1px solid {COLORS['border']};
-                padding: 2px 5px;
+                border-radius: 3px;
+                padding: 2px 8px;
                 font-size: {FONT_SIZES['tiny']}px;
+            }}
+            QComboBox:hover {{
+                border-color: {COLORS['border_light']};
             }}
             QComboBox::drop-down {{
                 border: none;
+                width: 16px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid {COLORS['text']};
+                margin-right: 4px;
             }}
             QComboBox QAbstractItemView {{
                 background-color: {COLORS['background']};
                 color: {COLORS['text']};
-                selection-background-color: {COLORS['selected']};
+                border: 1px solid {COLORS['border_light']};
+                selection-background-color: {COLORS['enabled']};
+                selection-color: {COLORS['enabled_text']};
+                outline: none;
+            }}
+            QComboBox QAbstractItemView::item {{
+                padding: 4px 8px;
+                min-height: 20px;
+            }}
+            QComboBox QAbstractItemView::item:hover {{
+                background-color: {COLORS['background_highlight']};
             }}
         """)
         self.level_filter.currentTextChanged.connect(self.on_filter_changed)
@@ -247,7 +269,7 @@ class ConsolePanel(QFrame):
     def on_filter_changed(self, text: str):
         """Handle filter level change."""
         level_map = {
-            "ALL": logging.DEBUG,
+            "DEBUG": logging.DEBUG,
             "INFO": logging.INFO,
             "WARN": logging.WARNING,
             "ERROR": logging.ERROR,
