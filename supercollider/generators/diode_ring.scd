@@ -57,7 +57,7 @@ SynthDef(\diodeRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = (sig * 2).tanh * 0.7;
     
     // === PROCESSING CHAIN ===
-    sig = Pan2.ar(sig, LFNoise1.kr(0.3).range(-0.3, 0.3));
+    sig = sig ! 2;  // Dual mono for channel strip panning
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     

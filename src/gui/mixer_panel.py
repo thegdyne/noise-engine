@@ -96,6 +96,7 @@ class ChannelStrip(QWidget):
     mute_toggled = pyqtSignal(int, bool)
     solo_toggled = pyqtSignal(int, bool)
     gain_changed = pyqtSignal(int, int)  # channel_id, gain_db (0, 6, or 12)
+    pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
     
     # Gain stages: dB value, display text, color style
     GAIN_STAGES = [
@@ -111,6 +112,7 @@ class ChannelStrip(QWidget):
         self.muted = False
         self.soloed = False
         self.gain_index = 0  # Index into GAIN_STAGES
+        self.pan_value = 0.0  # -1 (L) to 1 (R), 0 = center
         self.setup_ui()
         
     def setup_ui(self):
@@ -143,6 +145,40 @@ class ChannelStrip(QWidget):
         fader_meter_layout.addWidget(self.meter, alignment=Qt.AlignCenter)
         
         layout.addLayout(fader_meter_layout)
+        
+        # Pan slider (horizontal, compact) - double-click to center
+        from PyQt5.QtWidgets import QSlider
+
+        class PanSlider(QSlider):
+            """Pan slider with double-click to center."""
+            def mouseDoubleClickEvent(self, event):
+                self.setValue(0)  # Center on double-click
+
+        self.pan_slider = PanSlider(Qt.Horizontal)
+        self.pan_slider.setRange(-100, 100)  # -100 = L, 0 = C, 100 = R
+        self.pan_slider.setValue(0)
+        self.pan_slider.setFixedWidth(40)
+        self.pan_slider.setFixedHeight(16)
+        self.pan_slider.setToolTip("Pan: L ← C → R (double-click to center)")
+        self.pan_slider.valueChanged.connect(self.on_pan_changed)
+        self.pan_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                height: 4px;
+                background: {COLORS['background_dark']};
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal {{
+                width: 8px;
+                height: 12px;
+                margin: -4px 0;
+                background: {COLORS['text_dim']};
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal:hover {{
+                background: {COLORS['text']};
+            }}
+        """)
+        layout.addWidget(self.pan_slider, alignment=Qt.AlignCenter)
         
         # Mute/Solo/Gain buttons
         btn_layout = QVBoxLayout()
@@ -211,18 +247,25 @@ class ChannelStrip(QWidget):
             self.meter.set_levels(0, 0)
     
     def reset_state(self):
-        """Reset mute/solo/gain to default (off) state."""
+        """Reset mute/solo/gain/pan to default (off) state."""
         self.muted = False
         self.soloed = False
         self.gain_index = 0
+        self.pan_value = 0.0
         self.mute_btn.setStyleSheet(button_style('disabled'))
         self.solo_btn.setStyleSheet(button_style('disabled'))
         self.gain_btn.setText("0")
         self.gain_btn.setStyleSheet(button_style('disabled'))
+        self.pan_slider.setValue(0)
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
         self.volume_changed.emit(self.channel_id, value / 1000.0)
+    
+    def on_pan_changed(self, value):
+        """Handle pan slider movement."""
+        self.pan_value = value / 100.0  # Convert to -1 to 1 range
+        self.pan_changed.emit(self.channel_id, self.pan_value)
         
     def toggle_mute(self):
         """Toggle mute state."""
@@ -258,6 +301,7 @@ class MixerPanel(QWidget):
     generator_muted = pyqtSignal(int, bool)
     generator_solo = pyqtSignal(int, bool)
     generator_gain_changed = pyqtSignal(int, int)  # channel_id, gain_db
+    generator_pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
     
     def __init__(self, num_generators=8, parent=None):
         super().__init__(parent)
@@ -302,6 +346,7 @@ class MixerPanel(QWidget):
             channel.mute_toggled.connect(self.on_channel_mute)
             channel.solo_toggled.connect(self.on_channel_solo)
             channel.gain_changed.connect(self.on_channel_gain)
+            channel.pan_changed.connect(self.on_channel_pan)
             channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
@@ -347,6 +392,10 @@ class MixerPanel(QWidget):
     def on_channel_gain(self, channel_id, gain_db):
         """Handle channel gain change."""
         self.generator_gain_changed.emit(channel_id, gain_db)
+    
+    def on_channel_pan(self, channel_id, pan):
+        """Handle channel pan change."""
+        self.generator_pan_changed.emit(channel_id, pan)
         
     def set_io_status(self, audio=False, midi=False):
         """Update I/O status indicators."""

@@ -106,6 +106,7 @@ class MainFrame(QMainWindow):
         self.mixer_panel.generator_muted.connect(self.on_generator_muted)
         self.mixer_panel.generator_solo.connect(self.on_generator_solo)
         self.mixer_panel.generator_gain_changed.connect(self.on_generator_gain_changed)
+        self.mixer_panel.generator_pan_changed.connect(self.on_generator_pan_changed)
         right_layout.addWidget(self.mixer_panel, stretch=2)
         
         # Master section (lower portion)
@@ -511,6 +512,12 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_gain'], [gen_id, gain_db])
         logger.debug(f"Gen {gen_id} gain: +{gain_db}dB", component="OSC")
+    
+    def on_generator_pan_changed(self, gen_id, pan):
+        """Handle generator pan change from mixer."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_pan'], [gen_id, pan])
+        logger.debug(f"Gen {gen_id} pan: {pan:.2f}", component="OSC")
         
     def on_master_volume_from_master(self, volume):
         """Handle master volume change from master section."""

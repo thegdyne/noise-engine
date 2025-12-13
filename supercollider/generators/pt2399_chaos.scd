@@ -47,8 +47,7 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     grain = WhiteNoise.ar * burstEnv;
     grain = grain + (Dust.ar(madness.linexp(0, 1, 1, 500)) * madness * 0.5);
     
-    panPos = LFNoise1.kr(0.5).range(-0.5, 0.5);
-    dry = Pan2.ar(grain, panPos);
+    dry = grain ! 2;  // Dual mono for channel strip panning
     
     fbSig = LocalIn.ar(2);
     fbDistort = (fbSig * (1 + (madness * 8))).tanh;

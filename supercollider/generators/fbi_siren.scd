@@ -55,7 +55,7 @@ SynthDef(\fbiSiren, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     ]) * 0.5;
     
     // === PROCESSING CHAIN ===
-    sig = Pan2.ar(sig, 0);
+    sig = sig ! 2;  // Dual mono for channel strip panning
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     

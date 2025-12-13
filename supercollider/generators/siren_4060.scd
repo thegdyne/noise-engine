@@ -53,7 +53,7 @@ SynthDef(\siren4060, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = sig + (Dust.ar(resetChaos.linexp(0, 1, 1, 100)) * resetChaos * 0.2);
     
     // === PROCESSING CHAIN ===
-    sig = Pan2.ar(sig, SinOsc.kr(sweepRate.linexp(0, 1, 0.05, 2)).range(-0.5, 0.5));
+    sig = sig ! 2;  // Dual mono for channel strip panning
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     

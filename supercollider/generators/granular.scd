@@ -70,7 +70,7 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // === PROCESSING CHAIN ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    
+    sig = sig ! 2;  // Dual mono for channel strip panning
     Out.ar(out, sig);
 }).add;
 

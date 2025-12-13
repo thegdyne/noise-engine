@@ -42,8 +42,7 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     source = WhiteNoise.ar(0.8);
     source = BPF.ar(source, freq.clip(20, 16000), bandwidth.linexp(0.01, 1, 0.01, 0.5)) * 4;
     
-    panPos = LFNoise1.kr(0.3).range(-0.4, 0.4);
-    dry = Pan2.ar(source, panPos);
+    dry = source ! 2;  // Dual mono for channel strip panning
     
     fbSig = LocalIn.ar(2);
     pitchWobble = LFNoise1.kr(2).range(0.998, 1.002);

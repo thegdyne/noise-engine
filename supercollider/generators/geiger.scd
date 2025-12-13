@@ -54,7 +54,7 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     noise = noise + (Dust.ar(countRate * 10) * 0.1 * backgroundNoise);
     
     sig = click + noise;
-    sig = Pan2.ar(sig, TRand.ar(-0.5, 0.5, clickTrig));
+    sig = sig ! 2;  // Dual mono for channel strip panning
     
     // === PROCESSING CHAIN ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);

@@ -84,6 +84,7 @@ s.waitForBoot({
     OSCdef(\genMute).free;
     OSCdef(\genSolo).free;
     OSCdef(\genGain).free;
+    OSCdef(\genPan).free;
     OSCdef(\genVolume, { |msg|
         var slot = msg[1].asInteger;
         var vol = msg[2].asFloat.clip(0, 1);
@@ -123,6 +124,15 @@ s.waitForBoot({
             ~channelStrips[idx].set(\gain, gainLinear);
         });
     }, '/noise/gen/gain');
+    OSCdef(\genPan, { |msg|
+        var slot = msg[1].asInteger;
+        var pan = msg[2].asFloat.clip(-1, 1);
+        var idx = slot - 1;
+        ~stripPanState[idx] = pan;
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\pan, pan);
+        });
+    }, '/noise/gen/pan');
     
     "".postln;
     "========================================".postln;

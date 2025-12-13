@@ -66,6 +66,23 @@
         }
         .badge.ssot .pct { font-weight: 700; }
         
+        /* 🎚️ STEREO PANNING BADGE */
+        .badge.panning {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(68, 221, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .badge.panning .pan-icon {
+            display: inline-block;
+            animation: panSweep 1.5s ease-in-out infinite;
+        }
+        @keyframes panSweep {
+            0%, 100% { transform: translateX(-4px); }
+            50% { transform: translateX(4px); }
+        }
+        
         /* 🐧 DISCORD ANNOUNCEMENT 🐧 */
         .discord-banner {
             background: linear-gradient(135deg, #5865F2 0%, #3b43a8 100%);
@@ -842,6 +859,7 @@
                 <span class="badge tests perfect"><span class="robot">🤖</span>TESTS <span class="pct">93</span></span>
                 <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">22 Generators</span>
                 <span class="badge" style="border-color: var(--accent-magenta); color: var(--accent-magenta);">MIDI In</span>
+                <span class="badge panning"><span class="pan-icon">◀</span> STEREO PAN <span class="pan-icon">▶</span></span>
             </div>
         </header>
         
@@ -1399,6 +1417,8 @@
         <section class="milestones">
             <h2 class="section-title">Milestones</h2>
             <ul class="milestones-list">
+                <li><span class="milestone-date">2025-12-13</span> 🎚️ STEREO PANNING! Per-channel Balance2 with double-click center</li>
+                <li><span class="milestone-date">2025-12-13</span> All 22 generators standardized to dual mono (stereo sampler ready)</li>
                 <li><span class="milestone-date">2025-12-13</span> 🎚️ Channel strips complete (vol/mute/solo per generator)</li>
                 <li><span class="milestone-date">2025-12-13</span> Per-generator routing through ~genBus[8] → channelStrip → ~masterBus</li>
                 <li><span class="milestone-date">2025-12-13</span> Solo-in-place logic with global soloActive bus</li>

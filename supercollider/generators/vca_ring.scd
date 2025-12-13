@@ -56,7 +56,7 @@ SynthDef(\vcaRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = carrier * vcaControl * 0.7;
     
     // === PROCESSING CHAIN ===
-    sig = Pan2.ar(sig, LFNoise1.kr(0.15).range(-0.2, 0.2));
+    sig = sig ! 2;  // Dual mono for channel strip panning
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     
