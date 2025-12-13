@@ -16,7 +16,7 @@
             "key": "scan_rate",
             "label": "SCN",
             "tooltip": "Table Scan Rate",
-            "default": 0.0,
+            "default": 0.001,
             "min": 0.001,
             "max": 10.0,
             "curve": "exp",

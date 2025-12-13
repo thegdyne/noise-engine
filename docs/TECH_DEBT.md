@@ -12,15 +12,16 @@ Issues to address, roughly prioritised.
 
 ## High Priority
 
-### No Automated Tests
-The `test_*.py` files are manual visual tests, not pytest. Zero automated coverage.
+### Automated Tests ✓ RESOLVED
+~~The `test_*.py` files are manual visual tests, not pytest. Zero automated coverage.~~
 
-**Risk:** Regressions creep in unnoticed.
+**Fix:** Added `tests/` directory with 93 pytest tests covering:
+- Config loading and constants validation
+- Generator JSON parsing and structure
+- Value mapping edge cases (linear, exponential, inversion)
+- OSC path consistency between Python and SuperCollider
 
-**Fix:** Add pytest tests for at minimum:
-- Config loading
-- Generator JSON parsing
-- OSC message formatting
+Run with: `pytest` or `python -m pytest tests/`
 
 ### Print Debugging (31 statements) ✓ RESOLVED
 ~~Production code has `print()` scattered throughout.~~
@@ -83,7 +84,7 @@ Re-running init.scd without server reboot leaks buses until crash.
 | Issue | Status | Fixed In |
 |-------|--------|----------|
 | Bare excepts | ✓ Fixed | All use `except Exception as e:` or specific types |
-| No tests | Open | |
+| No tests | ✓ Fixed | tests/ directory with 93 pytest tests |
 | Print debugging | ✓ Fixed | src/utils/logger.py |
 | Hardcoded paths | Open | |
 | generator_slot.py size | Open | |
