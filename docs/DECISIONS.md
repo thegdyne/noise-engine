@@ -896,3 +896,36 @@ logger.gen(slot_id, "Generator action")
 - `src/config/__init__.py` (converted to logger)
 - `src/gui/midi_selector.py` (converted to logger)
 - `src/main.py` (converted to logger)
+
+---
+
+### [2025-12-13] Generator Slot UI/Logic Split
+**Decision:** Split `generator_slot.py` (562 lines) into two files for separation of concerns.
+
+**Files:**
+- `generator_slot.py` (332 lines) - Class definition, signals, state management, event handlers
+- `generator_slot_builder.py` (273 lines) - UI construction functions
+
+**Architecture:**
+```python
+# generator_slot.py
+from .generator_slot_builder import build_slot_ui
+
+class GeneratorSlot(QWidget):
+    def __init__(self, ...):
+        build_slot_ui(self)  # Delegate UI construction
+```
+
+**Rationale:**
+- Follows BLUEPRINT.md: widgets emit signals, components do layout
+- Builder is pure layout construction
+- Main file is state/signals/handlers
+- Public interface unchanged
+
+**DO NOT:**
+- Mix UI construction back into the main class
+- Add state management to the builder
+
+**Files affected:**
+- `src/gui/generator_slot.py` (refactored)
+- `src/gui/generator_slot_builder.py` (new)
