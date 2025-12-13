@@ -3,7 +3,8 @@
 # Usage: ./tools/_update_ssot_badge.sh <percentage>
 # Example: ./tools/_update_ssot_badge.sh 100
 
-REPO_DIR=~/repos/noise-engine
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 INDEX_FILE="$REPO_DIR/docs/index.html"
 
 # Get percentage from argument
@@ -17,22 +18,31 @@ fi
 
 echo "SSOT Compliance: ${PERCENT}%"
 
+# Cross-platform sed in-place edit
+sedi() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
 # Update index.html
 if [ -f "$INDEX_FILE" ]; then
     # Update the SSOT badge percentage
-    sed -i '' "s/SSOT <span class=\"pct\">[0-9]*%<\/span>/SSOT <span class=\"pct\">${PERCENT}%<\/span>/" "$INDEX_FILE"
+    sedi "s/SSOT <span class=\"pct\">[0-9]*%<\/span>/SSOT <span class=\"pct\">${PERCENT}%<\/span>/" "$INDEX_FILE"
     
     # Update the architecture section percentage
-    sed -i '' "s/Single Source of Truth ([0-9]*%)/Single Source of Truth (${PERCENT}%)/" "$INDEX_FILE"
+    sedi "s/Single Source of Truth ([0-9]*%)/Single Source of Truth (${PERCENT}%)/" "$INDEX_FILE"
     
     # Add or remove 'perfect' class based on 100%
     if [ "$PERCENT" -eq 100 ]; then
         # Add 'perfect' class if not already there
-        sed -i '' 's/class="badge ssot"/class="badge ssot perfect"/' "$INDEX_FILE"
+        sedi 's/class="badge ssot"/class="badge ssot perfect"/' "$INDEX_FILE"
         echo "👑 PERFECT SCORE! Crown activated!"
     else
         # Remove 'perfect' class if present
-        sed -i '' 's/class="badge ssot perfect"/class="badge ssot"/' "$INDEX_FILE"
+        sedi 's/class="badge ssot perfect"/class="badge ssot"/' "$INDEX_FILE"
     fi
     
     echo "✅ Updated $INDEX_FILE with SSOT ${PERCENT}%"
