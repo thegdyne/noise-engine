@@ -23,12 +23,12 @@ from src.utils.logger import logger, LogLevel
 import logging
 
 
-# Log level colors
+# Log level colors - reference theme colors
 LOG_COLORS = {
-    logging.DEBUG: "#666666",     # Grey
-    logging.INFO: "#88ff88",      # Green  
-    logging.WARNING: "#ffaa44",   # Orange
-    logging.ERROR: "#ff6666",     # Red
+    logging.DEBUG: COLORS['text_dim'],        # Grey
+    logging.INFO: COLORS['enabled_text'],     # Green  
+    logging.WARNING: COLORS['submenu_text'],  # Orange
+    logging.ERROR: COLORS['warning_text'],    # Red
 }
 
 LOG_LEVEL_NAMES = {
