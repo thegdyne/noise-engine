@@ -590,7 +590,7 @@ Generators → Master Bus (internal) → [Effects Chain] → Output (speakers)
 - Effect slots modulate the passthrough parameters
 
 ### Phase 2.5: Generator System - COMPLETE ✓ (2025-12-11)
-- 20 generators with JSON configs and SynthDefs
+- 22 generators with JSON configs and SynthDefs
 - Per-generator custom parameters (up to 5 per generator)
 - pitch_target system for MIDI note routing
 - LP/HP/BP filter support via shared ~multiFilter helper
@@ -604,6 +604,11 @@ Generators → Master Bus (internal) → [Effects Chain] → Output (speakers)
 - Restart button with confirmation dialog
 - Smart SSOT checker (Python, auto-discovers constants)
 - Branding assets (Discord icon, GitHub avatar)
+
+### Phase 2.7: Code Quality - COMPLETE ✓ (2025-12-13)
+- Split generator_slot.py (562 lines) into component + builder (332 + 273 lines)
+- Tech debt score: 100%
+- SSOT compliance: 100%
 
 ---
 
