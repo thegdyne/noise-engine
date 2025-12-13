@@ -9,6 +9,11 @@
 - `docs/TECH_DEBT.md` - Known issues to fix
 - `docs/FUTURE_IDEAS.md` - Planned features
 
+## Important Rules
+
+### DO NOT include docs/index.html in zips
+The landing page badge is updated by `bash tools/ssot.sh` on the user's machine. Including index.html in Claude's zip will overwrite the badge with stale data.
+
 ## Workflow
 
 ### Merge dev to main
