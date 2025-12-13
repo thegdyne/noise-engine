@@ -11,6 +11,19 @@
 
 ## Workflow
 
+### Merge dev to main
+When ready to release to main:
+
+```bash
+cd ~/repos/noise-engine
+git checkout main
+git merge dev -m "Merge dev: brief description"
+git push
+git checkout dev
+```
+
+The `-m` flag avoids opening vi for a merge commit message.
+
 ### Publish Landing Page Update
 To push index.html changes to the live site (GitHub Pages on main branch):
 
