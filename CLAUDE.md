@@ -16,6 +16,37 @@ The landing page badge is updated by `bash tools/ssot.sh` on the user's machine.
 
 ## Workflow
 
+### Giving Files to Claude
+
+Always zip from the **dev branch** using the helper tool:
+```bash
+./tools/zip_for_claude.sh
+# Creates ~/Downloads/noise-engine-dev.zip
+# Upload this file to Claude
+```
+
+⚠️ **Never zip from main** - dev has the latest work. The filename includes the branch name so you can verify.
+
+### Receiving Changes from Claude
+
+Claude outputs **individual changed files only**, not full project zips.
+This prevents accidentally overwriting newer files with older versions.
+
+After downloading individual files, copy them to your repo manually or drag into your editor.
+
+### After Applying Changes
+```bash
+cd ~/repos/noise-engine
+git add -A
+git commit -m "Component: brief description of change"
+git push
+```
+
+### If Something Goes Wrong
+```bash
+./tools/rollback.sh  # Undoes the last commit (asks for confirmation)
+```
+
 ### Merge dev to main
 When ready to release to main:
 
@@ -45,33 +76,6 @@ git checkout dev
 ```
 
 Site: https://thegdyne.github.io/noise-engine/
-
-### Code Changes
-Every response with code changes MUST end with:
-
-1. **The download** named `noise-engine-updated.zip`
-2. **Install instructions** (MANDATORY - always include these):
-
-```
-After downloading, run:
-```bash
-cd ~/repos/noise-engine
-~/repos/noise-engine/tools/update_from_claude.sh
-git add -A
-git commit -m "Component: brief description of change"
-git push
-```
-
-Download must be named `noise-engine-updated.zip`.
-
-### Merging to Main
-Only merge to main when **explicitly agreed** with the user:
-```bash
-git checkout main
-git merge dev
-git push
-git checkout dev
-```
 
 ## Critical: OSC Connection
 
@@ -173,6 +177,8 @@ bash tools/ssot.sh  # Runs check, updates badge, commits if changed
 
 | Script | Purpose |
 |--------|---------|
+| `tools/zip_for_claude.sh` | Create zip of current branch for uploading to Claude |
+| `tools/rollback.sh` | Undo the last commit (with confirmation) |
 | `tools/update_from_claude.sh` | Extract Claude's zip, apply changes, auto-checkout dev |
 | `tools/ssot.sh` | Run SSOT check + update badge + auto-commit |
 | `tools/_check_ssot.sh` | Internal: SSOT compliance check |
