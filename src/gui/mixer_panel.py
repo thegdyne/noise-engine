@@ -116,7 +116,6 @@ class MixerPanel(QWidget):
     generator_volume_changed = pyqtSignal(int, float)
     generator_muted = pyqtSignal(int, bool)
     generator_solo = pyqtSignal(int, bool)
-    master_volume_changed = pyqtSignal(float)
     
     def __init__(self, num_generators=8, parent=None):
         super().__init__(parent)
@@ -171,33 +170,6 @@ class MixerPanel(QWidget):
             
         layout.addWidget(channels_frame)
         
-        # Master section
-        master_frame = QFrame()
-        master_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['background']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 4px;
-            }}
-        """)
-        master_layout = QVBoxLayout(master_frame)
-        master_layout.setContentsMargins(10, 5, 10, 5)
-        
-        master_label = QLabel("MASTER")
-        master_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
-        master_label.setAlignment(Qt.AlignCenter)
-        master_label.setStyleSheet(f"color: {COLORS['text_bright']}; border: none;")
-        master_layout.addWidget(master_label)
-        
-        self.master_fader = DragSlider()
-        self.master_fader.setFixedWidth(SIZES['slider_width'])
-        self.master_fader.setValue(800)
-        self.master_fader.setMinimumHeight(SIZES['slider_height_medium'])
-        self.master_fader.valueChanged.connect(self.on_master_volume)
-        master_layout.addWidget(self.master_fader, alignment=Qt.AlignCenter)
-        
-        layout.addWidget(master_frame)
-        
         # I/O Status
         io_frame = QFrame()
         io_frame.setStyleSheet(f"""
@@ -233,10 +205,6 @@ class MixerPanel(QWidget):
     def on_channel_solo(self, channel_id, soloed):
         """Handle channel solo."""
         self.generator_solo.emit(channel_id, soloed)
-        
-    def on_master_volume(self, value):
-        """Handle master volume change."""
-        self.master_volume_changed.emit(value / 1000.0)
         
     def set_io_status(self, audio=False, midi=False):
         """Update I/O status indicators."""

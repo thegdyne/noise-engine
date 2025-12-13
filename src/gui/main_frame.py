@@ -14,6 +14,7 @@ from PyQt5.QtGui import QFont, QKeySequence
 
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
+from src.gui.master_section import MasterSection
 from src.gui.effects_chain import EffectsChain
 from src.gui.modulation_sources import ModulationSources
 from src.gui.bpm_display import BPMDisplay
@@ -93,13 +94,25 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_midi_channel_changed.connect(self.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
-        # Right - MIXER
+        # Right - MIXER + MASTER (stacked vertically)
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(5)
+        
+        # Mixer (upper portion)
         self.mixer_panel = MixerPanel(num_generators=8)
         self.mixer_panel.generator_volume_changed.connect(self.on_generator_volume_changed)
         self.mixer_panel.generator_muted.connect(self.on_generator_muted)
         self.mixer_panel.generator_solo.connect(self.on_generator_solo)
-        self.mixer_panel.master_volume_changed.connect(self.on_master_volume_changed)
-        content_layout.addWidget(self.mixer_panel, stretch=1)
+        right_layout.addWidget(self.mixer_panel, stretch=2)
+        
+        # Master section (lower portion)
+        self.master_section = MasterSection()
+        self.master_section.master_volume_changed.connect(self.on_master_volume_from_master)
+        right_layout.addWidget(self.master_section, stretch=1)
+        
+        content_layout.addWidget(right_panel, stretch=1)
         
         content_outer.addWidget(content_widget, stretch=1)
         
@@ -272,6 +285,7 @@ class MainFrame(QMainWindow):
         if not self.osc_connected:
             # Connect signals before connecting
             self.osc.gate_triggered.connect(self.on_gate_trigger)
+            self.osc.levels_received.connect(self.on_levels_received)
             self.osc.connection_lost.connect(self.on_connection_lost)
             self.osc.connection_restored.connect(self.on_connection_restored)
             
@@ -284,6 +298,9 @@ class MainFrame(QMainWindow):
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
                 self.modulation_sources.set_master_bpm(self.master_bpm)
+                
+                # Send initial master volume
+                self.osc.client.send_message(OSC_PATHS['master_volume'], [self.master_section.get_volume()])
                 
                 # Send current MIDI device if one is selected
                 current_midi = self.midi_selector.get_current_device()
@@ -475,9 +492,15 @@ class MainFrame(QMainWindow):
         """Handle generator solo."""
         pass
         
-    def on_master_volume_changed(self, volume):
-        """Handle master volume change."""
-        pass
+    def on_master_volume_from_master(self, volume):
+        """Handle master volume change from master section."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_volume'], [volume])
+        logger.info(f"Master volume: {volume:.2f}", component="OSC")
+        
+    def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
+        """Handle level meter data from SuperCollider."""
+        self.master_section.set_levels(amp_l, amp_r, peak_l, peak_r)
     
     def toggle_console(self):
         """Toggle console panel visibility."""

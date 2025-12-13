@@ -28,6 +28,7 @@ class OSCBridge(QObject):
     
     # Signals for thread-safe notifications
     gate_triggered = pyqtSignal(int)  # slot_id
+    levels_received = pyqtSignal(float, float, float, float)  # ampL, ampR, peakL, peakR
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
     
@@ -167,6 +168,9 @@ class OSCBridge(QObject):
         # Handle gate triggers from SC
         dispatcher.map(OSC_PATHS['midi_gate'], self._handle_gate)
         
+        # Handle level meter data from SC
+        dispatcher.map(OSC_PATHS['master_levels'], self._handle_levels)
+        
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
         
@@ -194,6 +198,18 @@ class OSCBridge(QObject):
         if len(args) > 0:
             slot_id = int(args[0])
             self.gate_triggered.emit(slot_id)
+    
+    def _handle_levels(self, address, *args):
+        """Handle level meter data from SC."""
+        # SendReply sends: [node_id, reply_id, ...values]
+        # We need to skip the first two arguments
+        if len(args) >= 6:
+            # args[0] = node_id, args[1] = reply_id, args[2:] = actual values
+            amp_l = float(args[2])
+            amp_r = float(args[3])
+            peak_l = float(args[4])
+            peak_r = float(args[5])
+            self.levels_received.emit(amp_l, amp_r, peak_l, peak_r)
     
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""

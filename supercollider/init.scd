@@ -43,6 +43,10 @@ s.waitForBoot({
     (~basePath +/+ "effects/master_passthrough.scd").load;
     ~setupMasterPassthrough.();
     
+    // Load master section (metering, volume)
+    (~basePath +/+ "core/master.scd").load;
+    ~setupMaster.();
+    
     // Load generators (auto-load all .scd files)
     "Loading generators...".postln;
     ~generatorPath = ~basePath +/+ "generators/";
@@ -66,6 +70,7 @@ s.waitForBoot({
     // Start audio
     ~startClock.();
     ~startMasterPassthrough.();
+    ~setupMasterOSC.();
     
     "".postln;
     "========================================".postln;

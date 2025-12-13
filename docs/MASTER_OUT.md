@@ -1,6 +1,6 @@
 # Master Out - Design Document
 
-**Status:** Planning  
+**Status:** Phase 1 In Progress  
 **Created:** 2025-12-13
 
 ---
@@ -25,9 +25,19 @@ Generators → Mixer → Master Bus → Compression → EQ → Limiter → Outpu
 
 ## Implementation Phases
 
-### Phase 1: Fader + Meter
+### Phase 1: Fader + Meter ⏳ IN PROGRESS
 **Effort:** Low  
 **Dependencies:** None
+
+**Implemented:**
+- `src/gui/master_section.py` - MasterSection widget with fader and LevelMeter
+- `supercollider/core/master.scd` - Metering synth (24fps) and master volume OSC
+- Master volume control via OSC `/noise/master/volume`
+- Level data from SC via `/noise/master/levels`
+- Stereo level bars with green/yellow/red gradient
+- Peak hold indicators (1.5s hold, decay after)
+- Clip detection (red indicator, 2s latch)
+- dB display for fader position and peak level
 
 **Features:**
 - Master fader (already exists in SC, needs proper UI)
@@ -38,17 +48,21 @@ Generators → Mixer → Master Bus → Compression → EQ → Limiter → Outpu
 **SC Requirements:**
 ```supercollider
 // Send levels to Python ~20-30fps
-SendReply.kr(Impulse.kr(24), '/master/levels', [ampL, ampR, peakL, peakR]);
+SendReply.kr(Impulse.kr(24), '/noise/master/levels', [ampL, ampR, peakL, peakR]);
 ```
 
 **Python Requirements:**
-- OSC listener for `/master/levels`
+- OSC listener for `/noise/master/levels`
 - Meter widget with peak hold
 - Clip indicator with auto-reset
 
 **Files:**
-- `src/gui/master_section.py` (new)
-- `supercollider/core/master.scd` (new or extend init.scd)
+- `src/gui/master_section.py` (new) ✓
+- `supercollider/core/master.scd` (new) ✓
+- `supercollider/effects/master_passthrough.scd` (modified - added masterVol param) ✓
+- `src/gui/main_frame.py` (modified - integrates master section) ✓
+- `src/audio/osc_bridge.py` (modified - levels_received signal) ✓
+- `src/config/__init__.py` (modified - new OSC paths) ✓
 
 ---
 

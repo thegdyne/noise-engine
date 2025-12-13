@@ -341,6 +341,10 @@ OSC_PATHS = {
     'pong': '/noise/pong',
     'heartbeat': '/noise/heartbeat',
     'heartbeat_ack': '/noise/heartbeat_ack',
+    # Master section
+    'master_volume': '/noise/master/volume',
+    'master_levels': '/noise/master/levels',
+    'master_meter_toggle': '/noise/master/meter/toggle',
 }
 
 # === WIDGET SIZES ===
