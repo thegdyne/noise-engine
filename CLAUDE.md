@@ -9,6 +9,21 @@
 
 ## Workflow
 
+### Publish Landing Page Update
+To push index.html changes to the live site (GitHub Pages on main branch):
+
+```bash
+cd ~/repos/noise-engine
+git checkout main
+git checkout dev -- docs/index.html
+git add docs/index.html
+git commit -m "Update landing page"
+git push
+git checkout dev
+```
+
+Site: https://thegdyne.github.io/noise-engine/
+
 ### Code Changes
 Every response with code changes MUST end with:
 
