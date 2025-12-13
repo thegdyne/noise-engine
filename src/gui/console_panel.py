@@ -92,7 +92,7 @@ class ConsolePanel(QFrame):
         
         # Level filter
         self.level_filter = QComboBox()
-        self.level_filter.addItems(["DEBUG", "INFO", "WARN", "ERROR"])
+        self.level_filter.addItems(["ALL", "DEBUG", "INFO", "WARN", "ERROR"])
         self.level_filter.setFixedWidth(70)
         self.level_filter.setStyleSheet(f"""
             QComboBox {{
@@ -269,6 +269,7 @@ class ConsolePanel(QFrame):
     def on_filter_changed(self, text: str):
         """Handle filter level change."""
         level_map = {
+            "ALL": logging.DEBUG,
             "DEBUG": logging.DEBUG,
             "INFO": logging.INFO,
             "WARN": logging.WARNING,
