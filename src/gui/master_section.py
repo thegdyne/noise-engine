@@ -71,25 +71,24 @@ class LevelMeter(QWidget):
             peak_left: Optional peak level from SC
             peak_right: Optional peak level from SC
         """
-        self.level_l = max(0.0, min(1.0, left))
-        self.level_r = max(0.0, min(1.0, right))
+        # Convert linear amplitude to dB-scaled display
+        # This gives better visual response across the range
+        self.level_l = self._amp_to_meter(left)
+        self.level_r = self._amp_to_meter(right)
         
         # Update peaks
-        if peak_left is not None and peak_left > self.peak_l:
-            self.peak_l = min(1.0, peak_left)
-            self.peak_l_time = self._tick
-        elif left > self.peak_l:
-            self.peak_l = min(1.0, left)
+        peak_l_meter = self._amp_to_meter(peak_left) if peak_left else self.level_l
+        peak_r_meter = self._amp_to_meter(peak_right) if peak_right else self.level_r
+        
+        if peak_l_meter > self.peak_l:
+            self.peak_l = peak_l_meter
             self.peak_l_time = self._tick
             
-        if peak_right is not None and peak_right > self.peak_r:
-            self.peak_r = min(1.0, peak_right)
-            self.peak_r_time = self._tick
-        elif right > self.peak_r:
-            self.peak_r = min(1.0, right)
+        if peak_r_meter > self.peak_r:
+            self.peak_r = peak_r_meter
             self.peak_r_time = self._tick
         
-        # Clip detection (level > 0.99)
+        # Clip detection (level > 0.99 in linear)
         if left > 0.99:
             self.clip_l = True
             self.clip_timer_l.start(self.CLIP_HOLD_MS)
@@ -98,6 +97,21 @@ class LevelMeter(QWidget):
             self.clip_timer_r.start(self.CLIP_HOLD_MS)
         
         self.update()
+    
+    def _amp_to_meter(self, amp):
+        """Convert linear amplitude to meter display value (0-1).
+        
+        Uses dB scaling: -60dB = 0, 0dB = 1
+        This gives much better visual feedback than linear.
+        """
+        import math
+        if amp < 0.001:  # Below -60dB
+            return 0.0
+        # Convert to dB (0dB = amplitude 1.0)
+        db = 20 * math.log10(amp)
+        # Scale: -60dB -> 0, 0dB -> 1
+        meter = (db + 60) / 60
+        return max(0.0, min(1.0, meter))
         
     def _decay_peaks(self):
         """Called periodically to decay peak hold."""

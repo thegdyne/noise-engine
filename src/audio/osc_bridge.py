@@ -201,14 +201,12 @@ class OSCBridge(QObject):
     
     def _handle_levels(self, address, *args):
         """Handle level meter data from SC."""
-        # SendReply sends: [node_id, reply_id, ...values]
-        # We need to skip the first two arguments
-        if len(args) >= 6:
-            # args[0] = node_id, args[1] = reply_id, args[2:] = actual values
-            amp_l = float(args[2])
-            amp_r = float(args[3])
-            peak_l = float(args[4])
-            peak_r = float(args[5])
+        # Now receiving direct values: [ampL, ampR, peakL, peakR]
+        if len(args) >= 4:
+            amp_l = float(args[0])
+            amp_r = float(args[1])
+            peak_l = float(args[2])
+            peak_r = float(args[3])
             self.levels_received.emit(amp_l, amp_r, peak_l, peak_r)
     
     def _default_handler(self, address, *args):

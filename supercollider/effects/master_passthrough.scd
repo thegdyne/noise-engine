@@ -4,7 +4,7 @@ Final output with fidelity control, master volume, and metering
 
 Signal flow: masterBus -> fidelity -> volume -> output
                                         |
-                                    metering -> OSC
+                                    metering -> OSC to Python
 */
 
 ~setupMasterPassthrough = {
@@ -26,10 +26,10 @@ Signal flow: masterBus -> fidelity -> volume -> output
         peakL = Amplitude.kr(sig[0], attackTime: 0.001, releaseTime: 0.3);
         peakR = Amplitude.kr(sig[1], attackTime: 0.001, releaseTime: 0.3);
         
-        // Send levels to Python
+        // Send levels to Python via SendReply (will be forwarded by OSC responder)
         SendReply.kr(
             Impulse.kr(meterRate),
-            '/noise/master/levels',
+            '/masterLevelsInternal',
             [ampL, ampR, peakL, peakR]
         );
         
@@ -40,6 +40,15 @@ Signal flow: masterBus -> fidelity -> volume -> output
 };
 
 ~startMasterPassthrough = {
+    // Python address for sending meter data
+    ~pythonAddr = NetAddr("127.0.0.1", 57121);
+    
+    // Forward internal meter replies to Python
+    OSCdef(\meterForward, { |msg|
+        // msg format: ['/masterLevelsInternal', node_id, reply_id, ampL, ampR, peakL, peakR]
+        ~pythonAddr.sendMsg('/noise/master/levels', msg[3], msg[4], msg[5], msg[6]);
+    }, '/masterLevelsInternal');
+    
     // Add to fxGroup (runs AFTER generators)
     ~masterEffects = Synth(\masterPassthrough, [
         \inBus, ~masterBus,
