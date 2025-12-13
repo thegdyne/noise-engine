@@ -201,6 +201,12 @@ def _load_generator_configs():
     """Load generator configs from JSON files in supercollider/generators/"""
     global _GENERATOR_CONFIGS
     
+    # Late import to avoid circular dependency at module load time
+    try:
+        from src.utils.logger import logger
+    except ImportError:
+        logger = None
+    
     # Find generators directory relative to this file
     config_dir = os.path.dirname(os.path.abspath(__file__))
     src_dir = os.path.dirname(config_dir)
@@ -210,7 +216,8 @@ def _load_generator_configs():
     _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": [], "pitch_target": None}}
     
     if not os.path.exists(generators_dir):
-        print(f"Warning: Generators directory not found: {generators_dir}")
+        if logger:
+            logger.warning(f"Generators directory not found: {generators_dir}", component="CONFIG")
         return
     
     for filename in os.listdir(generators_dir):
@@ -228,12 +235,14 @@ def _load_generator_configs():
                             "midi_retrig": config.get('midi_retrig', False)  # For struck/plucked generators
                         }
             except (json.JSONDecodeError, IOError) as e:
-                print(f"Warning: Failed to load {filepath}: {e}")
+                if logger:
+                    logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
     
     # Validate GENERATOR_CYCLE
     for name in GENERATOR_CYCLE:
         if name != "Empty" and name not in _GENERATOR_CONFIGS:
-            print(f"Warning: '{name}' in GENERATOR_CYCLE but no JSON found")
+            if logger:
+                logger.warning(f"'{name}' in GENERATOR_CYCLE but no JSON found", component="CONFIG")
 
 # Load on import
 _load_generator_configs()

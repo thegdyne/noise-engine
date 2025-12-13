@@ -30,10 +30,10 @@ The `test_*.py` files are manual visual tests, not pytest. Zero automated covera
 - Generator JSON parsing
 - OSC message formatting
 
-### Print Debugging (31 statements)
-Production code has `print()` scattered throughout.
+### Print Debugging (31 statements) ✓ RESOLVED
+~~Production code has `print()` scattered throughout.~~
 
-**Fix:** Replace with Python `logging` module. See FUTURE_IDEAS.md for In-App Console spec.
+**Fix:** Replaced with Python `logging` module via `src/utils/logger.py`. In-App Console implemented in `src/gui/console_panel.py`.
 
 ### Hardcoded Paths in Scripts
 `~/repos/noise-engine` hardcoded in:
@@ -90,9 +90,9 @@ Re-running init.scd without server reboot leaks buses until crash.
 
 | Issue | Status | Fixed In |
 |-------|--------|----------|
-| Bare excepts | Open | |
+| Bare excepts | Partial | main_frame.py, osc_bridge.py |
 | No tests | Open | |
-| Print debugging | Open | |
+| Print debugging | ✓ Fixed | src/utils/logger.py |
 | Hardcoded paths | Open | |
 | generator_slot.py size | Open | |
 | WIP features visible | Open | |

@@ -15,7 +15,14 @@ try:
     RTMIDI_AVAILABLE = True
 except ImportError:
     RTMIDI_AVAILABLE = False
-    print("Warning: python-rtmidi not available, MIDI device selection disabled")
+    # Late import to avoid circular dependency
+    def _log_rtmidi_warning():
+        try:
+            from src.utils.logger import logger
+            logger.warning("python-rtmidi not available, MIDI device selection disabled", component="MIDI")
+        except ImportError:
+            pass
+    _log_rtmidi_warning()
 
 
 class MIDISelector(QWidget):

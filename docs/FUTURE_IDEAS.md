@@ -100,37 +100,32 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 
 ---
 
-## In-App Console (Logging)
+## In-App Console (Logging) ✓ DONE
 
-**Purpose:** Replace 31 print statements with proper Python logging, viewable in-app.
+**Implemented:** `src/utils/logger.py` + `src/gui/console_panel.py`
 
-### Architecture
-- Central logger in `src/utils/logger.py`
-- Custom `logging.Handler` that emits to Qt signal (thread-safe)
-- Log levels: DEBUG (grey), INFO (green), WARNING (yellow), ERROR (red)
-- Config option: `LOG_LEVEL = "INFO"` (change to DEBUG for troubleshooting)
+- Central logger with Qt signal handler for thread-safe GUI updates
+- Slide-out panel from right side (toggle: button or Ctrl+`)
+- Color-coded log levels: DEBUG (grey), INFO (green), WARNING (orange), ERROR (red)
+- Auto-scroll with pause option
+- Max 500 lines (memory limit)
+- Clear and copy buttons
+- Level filter dropdown
 
-### UI Design
-- **Slide-out panel from right side**
-- Hidden by default (zero width)
-- Toggle: button in header `[>_]` or keyboard `Cmd+`` 
-- Animates open/close (~200ms)
-- Width: 250-300px
-- Overlay style (covers mixer, solid background, no transparency)
+**Usage:**
+```python
+from src.utils.logger import logger
 
-### Features
-- QPlainTextEdit with monospace font
-- Color-coded by log level
-- Auto-scroll to latest (pause option)
-- Max 500 lines (prevent memory bloat)
-- Clear button
-- Copy to clipboard button
-- Filter by level dropdown
+logger.debug("Detailed info", component="OSC")
+logger.info("Normal operation", component="APP")
+logger.warning("Something unexpected", component="MIDI")
+logger.error("Something failed", component="GEN", details=str(e))
 
-### Scope
-- Python GUI logging only
-- SuperCollider keeps its own postln (separate Post window)
-- File logging optional: `~/.noise-engine/noise-engine.log` for bug reports
+# Convenience methods
+logger.osc("OSC message")
+logger.midi("MIDI event")
+logger.gen(slot_id, "Generator action")
+```
 
 ---
 
