@@ -243,6 +243,48 @@
             50% { top: -24px; transform: translateX(-50%) rotate(5deg); }
         }
         
+        /* 🤖 TESTS BADGE 🤖 */
+        .badge.tests {
+            border-color: #44ddff;
+            color: #44ddff;
+            background: rgba(68, 221, 255, 0.1);
+            position: relative;
+        }
+        .badge.tests .pct { font-weight: 700; }
+        .badge.tests .robot {
+            display: none;
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            z-index: 10;
+        }
+        .badge.tests.perfect .robot { display: block; }
+        .badge.tests.perfect {
+            border-color: gold;
+            color: gold;
+            background: rgba(255, 215, 0, 0.15);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            animation: testsPulse 2s ease-in-out infinite;
+        }
+        .badge.tests.perfect .robot {
+            animation: robotDance 0.4s ease-in-out infinite;
+            filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
+        }
+        
+        @keyframes testsPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3); }
+        }
+        
+        @keyframes robotDance {
+            0%, 100% { top: -22px; transform: translateX(-50%) rotate(-15deg) scale(1); }
+            25% { top: -28px; transform: translateX(-45%) rotate(15deg) scale(1.1); }
+            50% { top: -22px; transform: translateX(-50%) rotate(-15deg) scale(1); }
+            75% { top: -28px; transform: translateX(-55%) rotate(15deg) scale(1.1); }
+        }
+        
         /* 🎉 FIRST USER CELEBRATION 🎉 */
         .celebration-banner {
             background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%);
@@ -600,6 +642,7 @@
                 <span class="badge pyqt">PyQt5</span>
                 <span class="badge ssot perfect"><span class="crown">👑</span>SSOT <span class="pct">100%</span></span>
                 <span class="badge techdebt perfect"><span class="backhoe">🚜</span>DEBT <span class="pct">100%</span></span>
+                <span class="badge tests perfect"><span class="robot">🤖</span>TESTS <span class="pct">93</span></span>
                 <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">22 Generators</span>
                 <span class="badge" style="border-color: var(--accent-magenta); color: var(--accent-magenta);">MIDI In</span>
             </div>
@@ -608,6 +651,12 @@
         <section class="trophies" style="padding-top: 30px; border-top: none;">
             <h2 class="section-title">🏆 Achievements</h2>
             <div class="trophy-grid">
+                <div class="trophy">
+                    <div class="trophy-icon"><span style="animation: robotDance 0.4s ease-in-out infinite; display: inline-block;">🤖</span></div>
+                    <div class="trophy-title">AUTOMATION</div>
+                    <div class="trophy-desc">93 pytest tests covering config, generators, value mapping, and OSC consistency</div>
+                    <div class="trophy-date">2025-12-13</div>
+                </div>
                 <div class="trophy">
                     <div class="trophy-icon">🎹</div>
                     <div class="trophy-title">MIDI MASTER</div>

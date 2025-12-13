@@ -610,6 +610,12 @@ Generators → Master Bus (internal) → [Effects Chain] → Output (speakers)
 - Tech debt score: 100%
 - SSOT compliance: 100%
 
+### Phase 2.8: Automated Testing - COMPLETE ✓ (2025-12-13)
+- 93 pytest tests covering config, generators, value mapping, OSC paths
+- Tests validate JSON configs, SynthDef files, constant consistency
+- Caught real bug: wavetable.json scan_rate default outside valid range
+- Run with: `pytest` or `python -m pytest tests/`
+
 ---
 
 ## Code Principles
