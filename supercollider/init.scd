@@ -3,6 +3,12 @@ Noise Engine - SuperCollider Initialization
 Modular loader - each component in its own file
 */
 
+// Base path for loading files (needed before boot)
+~basePath = PathName(thisProcess.nowExecutingPath).parentPath;
+
+// Load central config
+(~basePath +/+ "config.scd").load;
+
 // Configure server options BEFORE booting
 (
 s.options.numAudioBusChannels = 256;  // Plenty of audio buses
@@ -11,12 +17,10 @@ s.options.memSize = 65536;  // More memory for buffers
 );
 
 // === FORCE FIXED OSC PORT ===
-// This ensures SC always listens on 57120, regardless of session
-// Critical for reliable Python <-> SC communication
+// This ensures SC always listens on configured port
 (
-~oscPort = 57120;
-thisProcess.openUDPPort(~oscPort);
-("✓ OSC port forced to " ++ ~oscPort).postln;
+thisProcess.openUDPPort(~scListenPort);
+("✓ OSC port forced to " ++ ~scListenPort).postln;
 );
 
 s.waitForBoot({
@@ -25,9 +29,6 @@ s.waitForBoot({
     "=== Noise Engine - SuperCollider ===".postln;
     "Initializing...".postln;
     "".postln;
-    
-    // Base path for loading files
-    ~basePath = PathName(thisProcess.nowExecutingPath).parentPath;
     
     // Load core systems (order matters!)
     (~basePath +/+ "core/buses.scd").load;
@@ -75,6 +76,7 @@ s.waitForBoot({
     ~startClock.();
     ~startMasterPassthrough.();
     ~setupMasterOSC.();
+    ~setupChannelMeterForward.();  // Forward channel levels to Python
     
     // Second sync + re-register channel strip handlers to fix timing issue
     s.sync;

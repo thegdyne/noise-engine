@@ -49,8 +49,7 @@ OSC messages to Python:
     ~midiNoteOffFunc = nil;
     ~midiCCFunc = nil;
     
-    // Python address for sending gate notifications
-    ~pythonAddr = NetAddr("127.0.0.1", 57121);
+    // ~pythonAddr is set in config.scd
     
     // Defer MIDI client init to avoid blocking
     {

@@ -1,5 +1,61 @@
 # Debugging Guide
 
+## ⚠️ CRITICAL: OSC Message Forwarding Bug (READ THIS FIRST!)
+
+**This bug has bitten us TWICE. Don't let it happen again!**
+
+### The Problem
+
+When SuperCollider forwards OSC messages to Python, it **strips the nodeID and replyID** from SendReply messages. This means:
+
+| Source | Raw SendReply Format | Forwarded Format |
+|--------|---------------------|------------------|
+| SC synth | `[nodeID, replyID, slotID, ampL, ampR]` | `[slotID, ampL, ampR]` |
+| Python expects | ❌ 5 args (wrong!) | ✅ 3 args (correct!) |
+
+### Symptoms
+
+- OSC trace shows messages being sent from SC
+- Python handler silently fails (no error, just doesn't fire)
+- GUI doesn't update even though data is flowing
+- `if len(args) >= 5` check fails because only 3 args arrive
+
+### The Fix
+
+**SC forwarder sends ONLY the useful data:**
+```supercollider
+// In channel_strips.scd or master_passthrough.scd
+OSCdef(\forwarder, { |msg|
+    // msg = ['/path', nodeID, replyID, data1, data2, ...]
+    // Forward ONLY the data we need:
+    ~pythonAddr.sendMsg('/path', msg[3], msg[4], msg[5]);
+}, '/internal/path');
+```
+
+**Python handler expects ONLY the forwarded data:**
+```python
+def _handle_levels(self, address, *args):
+    # Forwarded format: [data1, data2, data3]
+    if len(args) >= 3:  # NOT >= 5!
+        data1 = args[0]  # NOT args[2]!
+        data2 = args[1]  # NOT args[3]!
+        data3 = args[2]  # NOT args[4]!
+```
+
+### Where This Applies
+
+1. **Master levels** (`/noise/levels`) - Fixed in master_passthrough.scd
+2. **Channel levels** (`/noise/gen/levels`) - Fixed in channel_strips.scd
+
+### How To Avoid This Bug
+
+When adding ANY new OSC forwarding:
+1. Document the FORWARDED format, not the raw SendReply format
+2. Test with debug prints showing `len(args)` and actual arg values
+3. Remember: SC forwarder = data extractor, Python = data receiver
+
+---
+
 ## In-App Console
 
 The app has a built-in console that shows real-time logs. This is the first place to look when troubleshooting.

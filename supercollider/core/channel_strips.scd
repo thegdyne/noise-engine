@@ -16,8 +16,8 @@ Solo logic:
 ~setupChannelStrips = {
     "Setting up channel strips...".postln;
     
-    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, soloActiveBus|
-        var sig, soloActive, soloGate;
+    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, soloActiveBus, slotID=1|
+        var sig, soloActive, soloGate, ampL, ampR;
         
         // Read from per-generator bus
         sig = In.ar(inBus, 2);
@@ -40,6 +40,11 @@ Solo logic:
         // Volume (applied last)
         sig = sig * vol;
         
+        // Per-channel metering (post-fader, 24fps)
+        ampL = Amplitude.kr(sig[0], 0.01, 0.1);
+        ampR = Amplitude.kr(sig[1], 0.01, 0.1);
+        SendReply.kr(Impulse.kr(24), '/noise/gen/levels', [slotID, ampL, ampR]);
+        
         Out.ar(outBus, sig);
     }).add;
     
@@ -49,7 +54,7 @@ Solo logic:
     // Gain state tracking (linear multiplier: 1.0, 2.0, or 4.0)
     ~stripGainState = Array.fill(8, { 1.0 });
     
-    "  ✓ Channel strip SynthDef ready".postln;
+    "  ✓ Channel strip SynthDef ready (with metering)".postln;
 };
 
 // Start a channel strip for a slot (called when generator starts)
@@ -76,7 +81,8 @@ Solo logic:
         \mute, currentMute,
         \solo, currentSolo,
         \gain, currentGain,
-        \soloActiveBus, ~soloActive.index
+        \soloActiveBus, ~soloActive.index,
+        \slotID, slotID  // Pass slot ID for metering
     ], ~stripGroup, \addToTail);
     
     "  Started channel strip for slot % (mute:%, solo:%, gain:%)".format(slotID, currentMute, currentSolo, currentGain).postln;
@@ -112,4 +118,13 @@ Solo logic:
         var strip = ~channelStrips[i];
         ("  Slot %: solo=%, strip=%".format(i+1, state, if(strip.notNil, "active", "nil"))).postln;
     };
+};
+
+// Forward channel meter replies to Python (must be called after ~pythonAddr is set)
+~setupChannelMeterForward = {
+    OSCdef(\channelMeterForward, { |msg|
+        // msg format: ['/noise/gen/levels', node_id, reply_id, slotID, ampL, ampR]
+        ~pythonAddr.sendMsg('/noise/gen/levels', msg[3].asInteger, msg[4], msg[5]);
+    }, '/noise/gen/levels');
+    "  ✓ Channel meter forwarding ready".postln;
 };

@@ -287,6 +287,7 @@ class MainFrame(QMainWindow):
             # Connect signals before connecting
             self.osc.gate_triggered.connect(self.on_gate_trigger)
             self.osc.levels_received.connect(self.on_levels_received)
+            self.osc.channel_levels_received.connect(self.on_channel_levels_received)
             self.osc.connection_lost.connect(self.on_connection_lost)
             self.osc.connection_restored.connect(self.on_connection_restored)
             
@@ -520,6 +521,10 @@ class MainFrame(QMainWindow):
     def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
         """Handle level meter data from SuperCollider."""
         self.master_section.set_levels(amp_l, amp_r, peak_l, peak_r)
+    
+    def on_channel_levels_received(self, slot_id, amp_l, amp_r):
+        """Handle per-channel level meter data from SuperCollider."""
+        self.mixer_panel.set_channel_levels(slot_id, amp_l, amp_r)
     
     def toggle_console(self):
         """Toggle console panel visibility."""

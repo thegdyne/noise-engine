@@ -1,21 +1,96 @@
 """
 Mixer Panel Component
-Per-generator channel strips with volume, mute, solo
+Per-generator channel strips with volume, mute, solo, and level metering
 
 Signal flow: Generator → Channel Strip → Master Bus
 """
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
 from .widgets import DragSlider
 from src.config import SIZES
 
 
+class MiniMeter(QWidget):
+    """Compact stereo level meter for channel strips."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.level_l = 0.0
+        self.level_r = 0.0
+        self.setFixedSize(20, 40)  # Compact size
+        
+    def set_levels(self, left, right):
+        """Update meter levels (0.0 to 1.0)."""
+        # Convert to dB-scaled display
+        self.level_l = self._amp_to_meter(left)
+        self.level_r = self._amp_to_meter(right)
+        self.update()
+    
+    def _amp_to_meter(self, amp):
+        """Convert linear amplitude to meter display value."""
+        import math
+        if amp < 0.001:
+            return 0.0
+        db = 20 * math.log10(amp)
+        meter = (db + 60) / 60  # -60dB = 0, 0dB = 1
+        return max(0.0, min(1.0, meter))
+        
+    def paintEvent(self, event):
+        """Draw the mini meter."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        w = self.width()
+        h = self.height()
+        
+        bar_width = 7
+        gap = 2
+        margin = 2
+        
+        left_x = margin
+        right_x = margin + bar_width + gap
+        
+        # Background
+        bg_color = QColor(COLORS['background_dark'])
+        painter.fillRect(left_x, margin, bar_width, h - margin * 2, bg_color)
+        painter.fillRect(right_x, margin, bar_width, h - margin * 2, bg_color)
+        
+        # Level bars
+        meter_h = h - margin * 2
+        self._draw_bar(painter, left_x, margin, bar_width, meter_h, self.level_l)
+        self._draw_bar(painter, right_x, margin, bar_width, meter_h, self.level_r)
+        
+        # Borders
+        border_color = QColor(COLORS['border'])
+        painter.setPen(border_color)
+        painter.drawRect(left_x, margin, bar_width - 1, meter_h - 1)
+        painter.drawRect(right_x, margin, bar_width - 1, meter_h - 1)
+        
+    def _draw_bar(self, painter, x, y, width, height, level):
+        """Draw a single meter bar with gradient."""
+        if level < 0.001:
+            return
+            
+        bar_h = int(level * height)
+        bar_y = y + height - bar_h
+        
+        # Green -> Yellow -> Red gradient
+        gradient = QLinearGradient(x, y + height, x, y)
+        gradient.setColorAt(0.0, QColor('#22aa22'))
+        gradient.setColorAt(0.6, QColor('#22aa22'))
+        gradient.setColorAt(0.75, QColor('#aaaa22'))
+        gradient.setColorAt(0.9, QColor('#aa2222'))
+        gradient.setColorAt(1.0, QColor('#ff2222'))
+        
+        painter.fillRect(x, bar_y, width, bar_h, gradient)
+
+
 class ChannelStrip(QWidget):
-    """Individual channel strip with fader."""
+    """Individual channel strip with fader and meter."""
     
     volume_changed = pyqtSignal(int, float)
     mute_toggled = pyqtSignal(int, bool)
@@ -51,15 +126,25 @@ class ChannelStrip(QWidget):
         self._label.setStyleSheet(f"color: {COLORS['text_dim']};")  # Start dimmed
         layout.addWidget(self._label)
         
+        # Fader + Meter side by side
+        fader_meter_layout = QHBoxLayout()
+        fader_meter_layout.setSpacing(2)
+        
         # Fader
         self.fader = DragSlider()
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
         self.fader.setMinimumHeight(SIZES['slider_height_large'])
         self.fader.valueChanged.connect(self.on_fader_changed)
-        layout.addWidget(self.fader, alignment=Qt.AlignCenter)
+        fader_meter_layout.addWidget(self.fader, alignment=Qt.AlignCenter)
         
-        # Mute/Solo buttons
+        # Mini meter
+        self.meter = MiniMeter()
+        fader_meter_layout.addWidget(self.meter, alignment=Qt.AlignCenter)
+        
+        layout.addLayout(fader_meter_layout)
+        
+        # Mute/Solo/Gain buttons
         btn_layout = QVBoxLayout()
         btn_layout.setSpacing(2)
         
@@ -87,6 +172,10 @@ class ChannelStrip(QWidget):
         btn_layout.addWidget(self.gain_btn, alignment=Qt.AlignCenter)
         
         layout.addLayout(btn_layout)
+    
+    def set_levels(self, left, right):
+        """Update the channel meter levels."""
+        self.meter.set_levels(left, right)
         
     def set_active(self, active):
         """Update visual state based on whether generator is active."""
@@ -118,6 +207,8 @@ class ChannelStrip(QWidget):
             self.mute_btn.setStyleSheet(dim_btn)
             self.solo_btn.setStyleSheet(dim_btn)
             self.gain_btn.setStyleSheet(dim_btn)
+            # Clear meter when inactive
+            self.meter.set_levels(0, 0)
     
     def reset_state(self):
         """Reset mute/solo/gain to default (off) state."""
@@ -131,6 +222,7 @@ class ChannelStrip(QWidget):
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
+        print(f"FADER {self.channel_id}: {value}")  # DEBUG
         self.volume_changed.emit(self.channel_id, value / 1000.0)
         
     def toggle_mute(self):
@@ -243,6 +335,7 @@ class MixerPanel(QWidget):
         
     def on_channel_volume(self, channel_id, volume):
         """Handle channel volume change."""
+        print(f"MIXER on_channel_volume: ch={channel_id} vol={volume}")  # DEBUG
         self.generator_volume_changed.emit(channel_id, volume)
         
     def on_channel_mute(self, channel_id, muted):
@@ -277,3 +370,8 @@ class MixerPanel(QWidget):
         """Set active state for a channel (called when generator starts/stops)."""
         if channel_id in self.channels:
             self.channels[channel_id].set_active(active)
+    
+    def set_channel_levels(self, channel_id, left, right):
+        """Update level meter for a channel."""
+        if channel_id in self.channels:
+            self.channels[channel_id].set_levels(left, right)

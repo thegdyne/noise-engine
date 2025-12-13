@@ -40,8 +40,7 @@ Signal flow: masterBus -> metering (PRE-fader) -> fidelity -> volume -> output
 };
 
 ~startMasterPassthrough = {
-    // Python address for sending meter data
-    ~pythonAddr = NetAddr("127.0.0.1", 57121);
+    // ~pythonAddr is set in config.scd
     
     // Forward internal meter replies to Python
     OSCdef(\meterForward, { |msg|

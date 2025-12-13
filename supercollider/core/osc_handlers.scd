@@ -9,8 +9,7 @@ All OSC message routing
     // === CONNECTION MANAGEMENT ===
     // Ping/pong for connection verification
     // Python sends /noise/ping, SC responds with /noise/pong
-    // Send to fixed port 57121 where Python listens
-    ~pythonAddr = NetAddr("127.0.0.1", 57121);
+    // ~pythonAddr is set in config.scd
     
     OSCdef(\ping, { |msg, time, addr|
         ~pythonAddr.sendMsg('/noise/pong', 1);

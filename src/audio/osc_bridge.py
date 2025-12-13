@@ -29,6 +29,7 @@ class OSCBridge(QObject):
     # Signals for thread-safe notifications
     gate_triggered = pyqtSignal(int)  # slot_id
     levels_received = pyqtSignal(float, float, float, float)  # ampL, ampR, peakL, peakR
+    channel_levels_received = pyqtSignal(int, float, float)  # slot_id, ampL, ampR
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
     
@@ -171,6 +172,9 @@ class OSCBridge(QObject):
         # Handle level meter data from SC
         dispatcher.map(OSC_PATHS['master_levels'], self._handle_levels)
         
+        # Handle per-channel level meter data from SC
+        dispatcher.map(OSC_PATHS['gen_levels'], self._handle_channel_levels)
+        
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
         
@@ -209,12 +213,26 @@ class OSCBridge(QObject):
             peak_r = float(args[3])
             self.levels_received.emit(amp_l, amp_r, peak_l, peak_r)
     
+    def _handle_channel_levels(self, address, *args):
+        """Handle per-channel level meter data from SC.
+        
+        Forwarded format from SC: [slotID, ampL, ampR]
+        """
+        # Forwarded message has slotID at args[0], ampL at args[1], ampR at args[2]
+        if len(args) >= 3:
+            slot_id = int(args[0])
+            amp_l = float(args[1])
+            amp_r = float(args[2])
+            # Debug - uncomment to verify data flow
+            # print(f"CH {slot_id}: L={amp_l:.3f} R={amp_r:.3f}")
+            self.channel_levels_received.emit(slot_id, amp_l, amp_r)
+    
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""
         # Uncomment for debugging:
-        # logger.osc(f"Received: {address} {args}")
-        pass
-            
+        # print(f"DEFAULT: {address} {args}")
+        pass 
+
     def send_parameter(self, param_name, value):
         """Send parameter change to SuperCollider."""
         if self.client:
