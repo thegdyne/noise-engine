@@ -3,8 +3,22 @@ name: CI
 on:
   push:
     branches: [main, dev]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'supercollider/**'
+      - 'tools/**'
+      - 'requirements.txt'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'supercollider/**'
+      - 'tools/**'
+      - 'requirements.txt'
+      - '.github/workflows/ci.yml'
 
 jobs:
   test:
