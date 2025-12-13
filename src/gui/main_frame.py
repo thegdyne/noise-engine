@@ -486,20 +486,70 @@ class MainFrame(QMainWindow):
     
     def restart_app(self):
         """Restart the application with confirmation."""
-        from PyQt5.QtWidgets import QMessageBox
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+        from PyQt5.QtCore import Qt
         import sys
         import os
         
-        # Confirmation dialog
-        reply = QMessageBox.question(
-            self,
-            "Restart Noise Engine",
-            "Restart the application?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
+        # Custom styled dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Restart")
+        dialog.setFixedSize(280, 120)
+        dialog.setStyleSheet(f"""
+            QDialog {{
+                background-color: {COLORS['background']};
+                border: 2px solid {COLORS['border_light']};
+            }}
+            QLabel {{
+                color: {COLORS['text_bright']};
+                font-size: {FONT_SIZES['section']}px;
+            }}
+            QPushButton {{
+                background-color: {COLORS['background_highlight']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+                padding: 8px 20px;
+                font-size: {FONT_SIZES['small']}px;
+                min-width: 70px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['border']};
+                color: {COLORS['text_bright']};
+            }}
+            QPushButton#confirm {{
+                background-color: {COLORS['submenu']};
+                color: {COLORS['submenu_text']};
+                border-color: {COLORS['submenu']};
+            }}
+            QPushButton#confirm:hover {{
+                background-color: {COLORS['warning_text']};
+            }}
+        """)
         
-        if reply != QMessageBox.Yes:
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 15)
+        layout.setSpacing(20)
+        
+        label = QLabel("Restart Noise Engine?")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+        
+        no_btn = QPushButton("Cancel")
+        no_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(no_btn)
+        
+        yes_btn = QPushButton("Restart")
+        yes_btn.setObjectName("confirm")
+        yes_btn.clicked.connect(dialog.accept)
+        btn_layout.addWidget(yes_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        if dialog.exec_() != QDialog.Accepted:
             return
         
         logger.info("Restarting Noise Engine...", component="APP")
