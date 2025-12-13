@@ -1,5 +1,7 @@
 # Claude Instructions for Noise Engine
 
+**Current year: 2025** (use this for all dates, timestamps, milestones)
+
 **READ FIRST:** Before making any changes, read the docs:
 - `docs/PROJECT_STRATEGY.md` - Architecture, principles, current status
 - `docs/DECISIONS.md` - All design decisions (DO NOT violate these)
