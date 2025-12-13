@@ -52,7 +52,7 @@ else
     echo "✅ No hardcoded colors"
 fi
 
-# 3. Hardcoded font sizes
+# 3. Hardcoded font sizes in QFont()
 echo ""
 echo "🔢 Checking for hardcoded font sizes..."
 SIZE_HITS=$(grep -rn "QFont(" "$SRC_DIR/gui" --include="*.py" 2>/dev/null | grep -v "theme.py" | grep -E ", [0-9]+[,)]" | grep -v "FONT_SIZES")
@@ -62,6 +62,18 @@ if [ -n "$SIZE_HITS" ]; then
     ISSUES=$((ISSUES + $(count_lines "$SIZE_HITS")))
 else
     echo "✅ No hardcoded font sizes"
+fi
+
+# 3b. Hardcoded font-size in CSS/stylesheets
+echo ""
+echo "🔢 Checking for hardcoded CSS font-size..."
+CSS_SIZE_HITS=$(grep -rn "font-size:" "$SRC_DIR/gui" --include="*.py" 2>/dev/null | grep -v "theme.py" | grep -v "FONT_SIZES")
+if [ -n "$CSS_SIZE_HITS" ]; then
+    echo "❌ Hardcoded CSS font-size found (use FONT_SIZES):"
+    echo "$CSS_SIZE_HITS" | sed 's/^/   /'
+    ISSUES=$((ISSUES + $(count_lines "$CSS_SIZE_HITS")))
+else
+    echo "✅ No hardcoded CSS font-size"
 fi
 
 # 4. Inline slider stylesheets

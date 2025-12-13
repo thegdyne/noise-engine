@@ -219,6 +219,27 @@ class MainFrame(QMainWindow):
         self.console_btn.clicked.connect(self.toggle_console)
         layout.addWidget(self.console_btn)
         
+        # Restart button
+        self.restart_btn = QPushButton("↻")
+        self.restart_btn.setToolTip("Restart Noise Engine")
+        self.restart_btn.setFixedSize(30, 30)
+        self.restart_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 3px;
+                font-size: {FONT_SIZES['section']}px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['submenu']};
+                color: {COLORS['submenu_text']};
+                border-color: {COLORS['submenu']};
+            }}
+        """)
+        self.restart_btn.clicked.connect(self.restart_app)
+        layout.addWidget(self.restart_btn)
+        
         return bar
         
     def create_bottom_section(self):
@@ -462,3 +483,24 @@ class MainFrame(QMainWindow):
         """Toggle console panel visibility."""
         self.console_panel.toggle_panel()
         self.console_btn.setChecked(self.console_panel.is_open)
+    
+    def restart_app(self):
+        """Restart the application."""
+        import sys
+        import os
+        
+        logger.info("Restarting Noise Engine...", component="APP")
+        
+        # Disconnect OSC cleanly
+        if self.osc_connected:
+            try:
+                self.osc.disconnect()
+            except Exception:
+                pass
+        
+        # Get the command to restart
+        python = sys.executable
+        script = os.path.abspath(sys.argv[0])
+        
+        # Restart the process
+        os.execv(python, [python, script])

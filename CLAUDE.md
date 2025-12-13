@@ -98,7 +98,10 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 ## Do NOT
 
 - Use horizontal sliders (except sequencer)
-- Hardcode colors/fonts outside theme.py
+- Hardcode colors/fonts outside theme.py:
+  - Colors: use `COLORS['key']` from theme.py
+  - Font sizes: use `FONT_SIZES['key']` from theme.py (NOT `14px`, `12px`, etc.)
+  - Font family: use `FONT_FAMILY` or `MONO_FONT` from theme.py
 - Create menu diving / hidden UI
 - Skip reading docs before making changes
 - Forget the git workflow at the end
