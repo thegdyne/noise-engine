@@ -16,7 +16,7 @@ Solo logic:
 ~setupChannelStrips = {
     "Setting up channel strips...".postln;
     
-    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, soloActiveBus|
+    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, soloActiveBus|
         var sig, soloActive, soloGate;
         
         // Read from per-generator bus
@@ -34,6 +34,9 @@ Solo logic:
         soloGate = Select.kr(soloActive, [1, solo]);
         sig = sig * soloGate;
         
+        // Gain stage (0dB=1.0, +6dB=2.0, +12dB=4.0)
+        sig = sig * gain;
+        
         // Volume (applied last)
         sig = sig * vol;
         
@@ -43,17 +46,21 @@ Solo logic:
     // Mute state tracking (parallel to solo tracking)
     ~stripMuteState = Array.fill(8, { 0 });
     
+    // Gain state tracking (linear multiplier: 1.0, 2.0, or 4.0)
+    ~stripGainState = Array.fill(8, { 1.0 });
+    
     "  ✓ Channel strip SynthDef ready".postln;
 };
 
 // Start a channel strip for a slot (called when generator starts)
 ~startChannelStrip = { |slotID|
     var idx = slotID - 1;  // 0-indexed
-    var currentMute, currentSolo;
+    var currentMute, currentSolo, currentGain;
     
     // Store current state before freeing (if strip exists)
     currentMute = ~stripMuteState[idx] ? 0;
     currentSolo = ~stripSoloState[idx] ? 0;
+    currentGain = ~stripGainState[idx] ? 1.0;
     
     // Free existing strip if any
     if(~channelStrips[idx].notNil, {
@@ -68,10 +75,11 @@ Solo logic:
         \vol, 0.8,
         \mute, currentMute,
         \solo, currentSolo,
+        \gain, currentGain,
         \soloActiveBus, ~soloActive.index
     ], ~stripGroup, \addToTail);
     
-    "  Started channel strip for slot % (mute:%, solo:%)".format(slotID, currentMute, currentSolo).postln;
+    "  Started channel strip for slot % (mute:%, solo:%, gain:%)".format(slotID, currentMute, currentSolo, currentGain).postln;
 };
 
 // Stop a channel strip for a slot (called when generator stops)

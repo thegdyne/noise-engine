@@ -39,10 +39,6 @@ s.waitForBoot({
     (~basePath +/+ "core/helpers.scd").load;
     ~setupHelpers.();
     
-    // Load channel strips (must be before helpers use them)
-    (~basePath +/+ "core/channel_strips.scd").load;
-    ~setupChannelStrips.();
-    
     // Load effects
     (~basePath +/+ "effects/master_passthrough.scd").load;
     ~setupMasterPassthrough.();
@@ -60,59 +56,21 @@ s.waitForBoot({
         ("  ✓ " ++ file.fileNameWithoutExtension).postln;
     });
     
-    // Load OSC handlers (will be called after s.sync)
+    // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
+    ~setupOSC.();
     
     // Load MIDI handler
     (~basePath +/+ "core/midi_handler.scd").load;
     ~setupMIDI.();
+    ~setupMIDIOSC.();
     
     s.sync;
     
     // Start audio
     ~startClock.();
     ~startMasterPassthrough.();
-    
-    // Setup OSC handlers AFTER sync (ensures all buses/groups exist)
-    ~setupOSC.();
-    ~setupMIDIOSC.();
     ~setupMasterOSC.();
-    
-    // Second sync + re-register channel strip handlers to fix timing issue
-    s.sync;
-    OSCdef(\genVolume).free;
-    OSCdef(\genMute).free;
-    OSCdef(\genSolo).free;
-    OSCdef(\genVolume, { |msg|
-        var slot = msg[1].asInteger;
-        var vol = msg[2].asFloat.clip(0, 1);
-        if(~channelStrips[slot - 1].notNil, {
-            ~channelStrips[slot - 1].set(\vol, vol);
-        });
-    }, '/noise/gen/volume');
-    OSCdef(\genMute, { |msg|
-        var slot = msg[1].asInteger;
-        var muted = msg[2].asInteger;
-        var idx = slot - 1;
-        // Track mute state (persists across generator changes)
-        ~stripMuteState[idx] = muted;
-        if(~channelStrips[idx].notNil, {
-            ~channelStrips[idx].set(\mute, muted);
-        });
-    }, '/noise/gen/mute');
-    OSCdef(\genSolo, { |msg|
-        var slot = msg[1].asInteger;
-        var soloed = msg[2].asInteger;
-        var idx = slot - 1;
-        var oldSolo = ~stripSoloState[idx] ? 0;
-        if(~channelStrips[idx].notNil, {
-            ~stripSoloState[idx] = soloed;
-            if(soloed == 1 && oldSolo == 0, { ~soloCount = ~soloCount + 1 });
-            if(soloed == 0 && oldSolo == 1, { ~soloCount = ~soloCount - 1 });
-            ~soloActive.set(if(~soloCount > 0, 1, 0));
-            ~channelStrips[idx].set(\solo, soloed);
-        });
-    }, '/noise/gen/solo');
     
     "".postln;
     "========================================".postln;

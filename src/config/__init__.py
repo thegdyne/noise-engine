@@ -336,6 +336,7 @@ OSC_PATHS = {
     'gen_volume': '/noise/gen/volume',
     # Remove this line - gen_mute already exists with same path
     'gen_strip_solo': '/noise/gen/solo',
+    'gen_gain': '/noise/gen/gain',  # Per-channel gain stage (0dB, +6dB, +12dB)
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash

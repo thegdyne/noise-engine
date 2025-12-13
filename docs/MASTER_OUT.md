@@ -1,8 +1,7 @@
 # Master Out - Design Document
 
-**Status:** Phase 1 Complete, Channel Strips Complete  
-**Created:** 2025-12-13  
-**Updated:** 2025-12-13
+**Status:** Phase 1 In Progress  
+**Created:** 2025-12-13
 
 ---
 
@@ -15,51 +14,18 @@ The master output section handles final signal processing, metering, output rout
 ## Signal Flow
 
 ```
-Generators → Channel Strips (vol/mute/solo) → Master Bus → Compression → EQ → Limiter → Output → Hardware
-                                                  ↓
-                                              Recording
-                                                  ↓
-                                               Metering
+Generators → Mixer → Master Bus → Compression → EQ → Limiter → Output Assignment → Hardware
+                                      ↓
+                                  Recording
+                                      ↓
+                                   Metering
 ```
-
----
-
-## Channel Strips ✓ COMPLETE
-
-Per-generator channel strips with volume, mute, and solo-in-place.
-
-**Signal Routing:**
-```
-Generator 1 → ~genBus[0] → channelStrip ─┐
-Generator 2 → ~genBus[1] → channelStrip ─┤
-...                                       ├→ ~masterBus
-Generator 8 → ~genBus[7] → channelStrip ─┘
-```
-
-**Features:**
-- ✓ Per-channel volume fader (default 0.8)
-- ✓ Per-channel mute (M button)
-- ✓ Solo-in-place (S button) - multiple solos form a solo group
-- ✓ State persists across generator changes
-- ✓ Visual active/inactive state per channel
-
-**Node Order:**
-```
-~clockGroup → ~genGroup → ~stripGroup → ~fxGroup
-```
-
-**Files:**
-- `supercollider/core/channel_strips.scd` ✓
-- `supercollider/core/buses.scd` (modified) ✓
-- `supercollider/core/helpers.scd` (modified) ✓
-- `supercollider/core/osc_handlers.scd` (modified) ✓
-- `src/gui/mixer_panel.py` (enabled) ✓
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Fader + Meter ✓ COMPLETE
+### Phase 1: Fader + Meter ⏳ IN PROGRESS
 **Effort:** Low  
 **Dependencies:** None
 

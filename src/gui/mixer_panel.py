@@ -20,6 +20,14 @@ class ChannelStrip(QWidget):
     volume_changed = pyqtSignal(int, float)
     mute_toggled = pyqtSignal(int, bool)
     solo_toggled = pyqtSignal(int, bool)
+    gain_changed = pyqtSignal(int, int)  # channel_id, gain_db (0, 6, or 12)
+    
+    # Gain stages: dB value, display text, color style
+    GAIN_STAGES = [
+        (0, "0", 'disabled'),      # Unity - grey
+        (6, "+6", 'warning'),      # +6dB - amber
+        (12, "+12", 'destructive') # +12dB - red
+    ]
     
     def __init__(self, channel_id, label="", parent=None):
         super().__init__(parent)
@@ -27,6 +35,7 @@ class ChannelStrip(QWidget):
         self.label_text = label
         self.muted = False
         self.soloed = False
+        self.gain_index = 0  # Index into GAIN_STAGES
         self.setup_ui()
         
     def setup_ui(self):
@@ -68,13 +77,22 @@ class ChannelStrip(QWidget):
         self.solo_btn.clicked.connect(self.toggle_solo)
         btn_layout.addWidget(self.solo_btn, alignment=Qt.AlignCenter)
         
+        # Gain stage button (cycles 0dB -> +6dB -> +12dB)
+        self.gain_btn = QPushButton("0")
+        self.gain_btn.setFixedSize(*SIZES['button_small'])
+        self.gain_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro'], QFont.Bold))
+        self.gain_btn.setStyleSheet(button_style('disabled'))
+        self.gain_btn.clicked.connect(self.cycle_gain)
+        self.gain_btn.setToolTip("Gain stage: click to cycle 0dB → +6dB → +12dB")
+        btn_layout.addWidget(self.gain_btn, alignment=Qt.AlignCenter)
+        
         layout.addLayout(btn_layout)
         
     def set_active(self, active):
         """Update visual state based on whether generator is active."""
         if active:
             self._label.setStyleSheet(f"color: {COLORS['text']};")
-            # Keep mute/solo state - just update label brightness
+            # Keep mute/solo/gain state - just update label brightness
             # Re-apply button styles based on current state
             if self.muted:
                 self.mute_btn.setStyleSheet(button_style('warning'))
@@ -84,6 +102,9 @@ class ChannelStrip(QWidget):
                 self.solo_btn.setStyleSheet(button_style('submenu'))
             else:
                 self.solo_btn.setStyleSheet(button_style('disabled'))
+            # Re-apply gain button style
+            _, _, style = self.GAIN_STAGES[self.gain_index]
+            self.gain_btn.setStyleSheet(button_style(style))
         else:
             self._label.setStyleSheet(f"color: {COLORS['text_dim']};")
             # Dim the buttons when inactive but keep state
@@ -96,13 +117,17 @@ class ChannelStrip(QWidget):
             """
             self.mute_btn.setStyleSheet(dim_btn)
             self.solo_btn.setStyleSheet(dim_btn)
+            self.gain_btn.setStyleSheet(dim_btn)
     
     def reset_state(self):
-        """Reset mute/solo to default (off) state."""
+        """Reset mute/solo/gain to default (off) state."""
         self.muted = False
         self.soloed = False
+        self.gain_index = 0
         self.mute_btn.setStyleSheet(button_style('disabled'))
         self.solo_btn.setStyleSheet(button_style('disabled'))
+        self.gain_btn.setText("0")
+        self.gain_btn.setStyleSheet(button_style('disabled'))
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
@@ -125,6 +150,14 @@ class ChannelStrip(QWidget):
         else:
             self.solo_btn.setStyleSheet(button_style('disabled'))
         self.solo_toggled.emit(self.channel_id, self.soloed)
+    
+    def cycle_gain(self):
+        """Cycle through gain stages: 0dB -> +6dB -> +12dB -> 0dB."""
+        self.gain_index = (self.gain_index + 1) % len(self.GAIN_STAGES)
+        db, text, style = self.GAIN_STAGES[self.gain_index]
+        self.gain_btn.setText(text)
+        self.gain_btn.setStyleSheet(button_style(style))
+        self.gain_changed.emit(self.channel_id, db)
 
 
 class MixerPanel(QWidget):
@@ -133,6 +166,7 @@ class MixerPanel(QWidget):
     generator_volume_changed = pyqtSignal(int, float)
     generator_muted = pyqtSignal(int, bool)
     generator_solo = pyqtSignal(int, bool)
+    generator_gain_changed = pyqtSignal(int, int)  # channel_id, gain_db
     
     def __init__(self, num_generators=8, parent=None):
         super().__init__(parent)
@@ -176,6 +210,7 @@ class MixerPanel(QWidget):
             channel.volume_changed.connect(self.on_channel_volume)
             channel.mute_toggled.connect(self.on_channel_mute)
             channel.solo_toggled.connect(self.on_channel_solo)
+            channel.gain_changed.connect(self.on_channel_gain)
             channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
@@ -217,6 +252,10 @@ class MixerPanel(QWidget):
     def on_channel_solo(self, channel_id, soloed):
         """Handle channel solo."""
         self.generator_solo.emit(channel_id, soloed)
+    
+    def on_channel_gain(self, channel_id, gain_db):
+        """Handle channel gain change."""
+        self.generator_gain_changed.emit(channel_id, gain_db)
         
     def set_io_status(self, audio=False, midi=False):
         """Update I/O status indicators."""

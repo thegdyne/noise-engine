@@ -147,5 +147,23 @@ All OSC message routing
         });
     }, '/noise/gen/solo');
     
+    // Gain stage control
+    OSCdef(\genGain, { |msg|
+        var slot = msg[1].asInteger;
+        var gainDb = msg[2].asInteger;  // 0, 6, or 12
+        var gainLinear = (10 ** (gainDb / 20));  // Convert dB to linear
+        var idx = slot - 1;
+        
+        // Store gain state
+        ~stripGainState[idx] = gainLinear;
+        
+        // Apply to strip if exists
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\gain, gainLinear);
+        });
+        
+        ("Slot " ++ slot ++ " gain: +" ++ gainDb ++ "dB (x" ++ gainLinear.round(0.01) ++ ")").postln;
+    }, '/noise/gen/gain');
+    
     "  ✓ OSC handlers ready".postln;
 };
