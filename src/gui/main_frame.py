@@ -485,9 +485,22 @@ class MainFrame(QMainWindow):
         self.console_btn.setChecked(self.console_panel.is_open)
     
     def restart_app(self):
-        """Restart the application."""
+        """Restart the application with confirmation."""
+        from PyQt5.QtWidgets import QMessageBox
         import sys
         import os
+        
+        # Confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            "Restart Noise Engine",
+            "Restart the application?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply != QMessageBox.Yes:
+            return
         
         logger.info("Restarting Noise Engine...", component="APP")
         
