@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
 from .theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES, slider_style
+from src.utils.logger import logger
 
 
 class EffectSlot(QWidget):
@@ -88,9 +89,11 @@ class EffectSlot(QWidget):
         if effect_type == "Empty":
             self.amount_slider.setEnabled(False)
             self.active = False
+            logger.debug(f"FX {self.slot_id + 1}: disabled", component="FX")
         else:
             self.amount_slider.setEnabled(True)
             self.active = True
+            logger.debug(f"FX {self.slot_id + 1}: {effect_type}", component="FX")
             
         self.update_style()
         
