@@ -495,7 +495,7 @@ class MainFrame(QMainWindow):
     def on_generator_muted(self, gen_id, muted):
         """Handle generator mute from mixer."""
         if self.osc_connected:
-	    self.osc.client.send_message(OSC_PATHS['gen_mute'], [gen_id, 1 if muted else 0])
+            self.osc.client.send_message(OSC_PATHS['gen_mute'], [gen_id, 1 if muted else 0])
         logger.debug(f"Gen {gen_id} mute: {muted}", component="OSC")
         
     def on_generator_solo(self, gen_id, solo):
