@@ -965,3 +965,66 @@ Python:
 - `supercollider/effects/master_passthrough.scd` (metering added)
 - `supercollider/core/master.scd` (volume OSC handler)
 - `src/audio/osc_bridge.py` (levels_received signal)
+
+---
+
+### [2025-12-13] Channel Strips - Per-Generator Routing
+
+**Decision:** Each generator routes through its own channel strip before the master bus
+
+**Architecture:**
+```
+Generator 1 → ~genBus[0] → channelStrip (vol/mute/solo) ─┐
+Generator 2 → ~genBus[1] → channelStrip (vol/mute/solo) ─┤
+...                                                       ├→ ~masterBus → masterPassthrough → Output
+Generator 8 → ~genBus[7] → channelStrip (vol/mute/solo) ─┘
+```
+
+**Signal Flow:**
+- 8 stereo `~genBus` buses (one per generator slot)
+- `~stripGroup` runs after `~genGroup`, before `~fxGroup`
+- Node order: `~clockGroup → ~genGroup → ~stripGroup → ~fxGroup`
+
+**Channel Strip Features:**
+- Volume (default 0.8)
+- Mute (applied first)
+- Solo-in-place (only soloed channels pass when any solo active)
+- State persists across generator changes
+
+**Solo Logic:**
+- `~soloCount` tracks number of active solos
+- `~soloActive` control bus (1 if any solo, 0 if none)
+- When `soloActive=1`, only channels with `solo=1` pass audio
+- Mute is applied before solo check
+
+**State Persistence:**
+- `~stripMuteState[8]` and `~stripSoloState[8]` track per-slot state
+- When generator changes, new channel strip inherits stored state
+- Python mixer buttons keep visual state across generator changes
+
+**OSC Paths:**
+- `/noise/gen/volume [slot, 0-1]`
+- `/noise/gen/mute [slot, 0/1]`
+- `/noise/gen/solo [slot, 0/1]`
+
+**Known Issue - OSCdef Timing:**
+Channel strip OSCdefs must be re-registered after `s.sync` in init.scd.
+The inline re-registration at the end of init.scd is a workaround for a
+SuperCollider timing issue where OSCdefs registered during file load
+don't respond until manually reloaded.
+
+**DO NOT:**
+- Route generators directly to `~masterBus` (breaks channel strip routing)
+- Reset mute/solo state on generator change (state should persist)
+- Remove the inline OSCdef re-registration in init.scd (breaks mute/solo)
+
+**Files affected:**
+- `supercollider/core/buses.scd` (~genBus, ~soloActive, ~stripGroup, etc.)
+- `supercollider/core/channel_strips.scd` (new - SynthDef and helpers)
+- `supercollider/core/clock.scd` (~stripGroup creation)
+- `supercollider/core/helpers.scd` (routes to ~genBus, manages strips)
+- `supercollider/core/osc_handlers.scd` (volume/mute/solo handlers)
+- `supercollider/init.scd` (loads channel_strips, inline OSCdef fix)
+- `src/config/__init__.py` (OSC paths)
+- `src/gui/mixer_panel.py` (enabled, state persistence)
+- `src/gui/main_frame.py` (wired signals, channel active state)
