@@ -222,7 +222,6 @@ class ChannelStrip(QWidget):
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
-        print(f"FADER {self.channel_id}: {value}")  # DEBUG
         self.volume_changed.emit(self.channel_id, value / 1000.0)
         
     def toggle_mute(self):
@@ -335,7 +334,6 @@ class MixerPanel(QWidget):
         
     def on_channel_volume(self, channel_id, volume):
         """Handle channel volume change."""
-        print(f"MIXER on_channel_volume: ch={channel_id} vol={volume}")  # DEBUG
         self.generator_volume_changed.emit(channel_id, volume)
         
     def on_channel_mute(self, channel_id, muted):
