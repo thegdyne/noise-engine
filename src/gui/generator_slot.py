@@ -3,29 +3,26 @@ Generator Slot Component
 Individual generator with base parameters
 """
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
+from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont
 
-from .theme import (COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES,
+from .theme import (COLORS, button_style, FONT_FAMILY, FONT_SIZES,
                     mute_button_style, gate_indicator_style, midi_channel_style)
-from .widgets import MiniSlider, CycleButton
+from .generator_slot_builder import build_slot_ui
 from src.config import (
-    FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
-    GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE, map_value, 
+    GENERATOR_PARAMS, map_value,
     get_generator_custom_params, get_generator_pitch_target,
     get_generator_midi_retrig, get_generator_retrig_param_index,
-    ENV_SOURCES, ENV_SOURCE_INDEX
+    ENV_SOURCE_INDEX
 )
 from src.utils.logger import logger
-
-# MIDI channels - OFF plus 1-16
-MIDI_CHANNELS = ["OFF"] + [str(i) for i in range(1, 17)]
 
 
 class GeneratorSlot(QWidget):
     """A single generator slot with base parameters."""
     
+    # Signals
     clicked = pyqtSignal(int)  # Legacy - kept for compatibility
     generator_changed = pyqtSignal(int, str)  # slot_id, generator_type
     parameter_changed = pyqtSignal(int, str, float)  # slot_id, param_key, real_value
@@ -53,231 +50,13 @@ class GeneratorSlot(QWidget):
         self.gate_timer.setSingleShot(True)
         
         self.setMinimumSize(200, 220)
-        self.setup_ui()
+        build_slot_ui(self)  # UI construction delegated to builder
         self.update_style()
-        
-    def setup_ui(self):
-        """Create slot interface."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(5)
-        
-        header = QHBoxLayout()
-        
-        self.id_label = QLabel(f"GEN {self.slot_id}")
-        self.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-        self.id_label.setStyleSheet(f"color: {COLORS['text']};")
-        header.addWidget(self.id_label)
-        
-        header.addStretch()
-        
-        # Generator type selector - drag or click to change
-        initial_index = GENERATOR_CYCLE.index(self.generator_type) if self.generator_type in GENERATOR_CYCLE else 0
-        self.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
-        self.type_btn.wrap = True  # Wrap around list both directions
-        self.type_btn.sensitivity_key = 'generator'  # Faster drag for long list
-        self.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
-        self.type_btn.setStyleSheet(f"""
-            QPushButton {{
-                color: {COLORS['text']};
-                background: transparent;
-                border: none;
-                text-align: right;
-                padding: 2px 4px;
-            }}
-            QPushButton:hover {{
-                color: {COLORS['enabled_text']};
-            }}
-        """)
-        self.type_btn.value_changed.connect(self.on_generator_type_changed)
-        header.addWidget(self.type_btn)
-        
-        layout.addLayout(header)
-        
-        params_frame = QFrame()
-        params_frame.setStyleSheet(f"background-color: {COLORS['background']}; border-radius: 4px;")
-        params_frame.setObjectName("paramsFrame")
-        params_outer = QVBoxLayout(params_frame)
-        params_outer.setContentsMargins(8, 8, 8, 8)
-        params_outer.setSpacing(8)
-        
-        # === CUSTOM PARAMS ROW (per-generator) ===
-        custom_row = QHBoxLayout()
-        custom_row.setSpacing(5)
-        
-        self.custom_sliders = []
-        self.custom_labels = []
-        
-        for i in range(MAX_CUSTOM_PARAMS):
-            param_widget = QWidget()
-            param_layout = QVBoxLayout(param_widget)
-            param_layout.setContentsMargins(0, 0, 0, 0)
-            param_layout.setSpacing(2)
-            
-            lbl = QLabel(f"P{i+1}")
-            lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-            lbl.setAlignment(Qt.AlignCenter)
-            lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
-            param_layout.addWidget(lbl)
-            self.custom_labels.append(lbl)
-            
-            slider = MiniSlider()
-            slider.setFixedHeight(60)  # Fixed height for consistency
-            slider.setEnabled(False)
-            slider.normalizedValueChanged.connect(
-                lambda norm, idx=i: self.on_custom_param_changed(idx, norm)
-            )
-            param_layout.addWidget(slider, alignment=Qt.AlignCenter)
-            self.custom_sliders.append(slider)
-            
-            custom_row.addWidget(param_widget)
-        
-        # Spacer to match buttons column
-        custom_spacer = QWidget()
-        custom_spacer.setFixedWidth(SIZES['buttons_column_width'] + 5)
-        custom_row.addWidget(custom_spacer)
-        
-        params_outer.addLayout(custom_row)
-        
-        # === STANDARD PARAMS ROW ===
-        params_layout = QHBoxLayout()
-        params_layout.setSpacing(5)
-        
-        # Build sliders from config
-        self.sliders = {}
-        self.slider_labels = {}
-        
-        for param in GENERATOR_PARAMS:
-            param_widget = QWidget()
-            param_layout = QVBoxLayout(param_widget)
-            param_layout.setContentsMargins(0, 0, 0, 0)
-            param_layout.setSpacing(0)
-            
-            # Push content to bottom so label stays directly above slider
-            param_layout.addStretch()
-            
-            lbl = QLabel(param['label'])
-            lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-            lbl.setAlignment(Qt.AlignCenter)
-            lbl.setStyleSheet(f"color: {COLORS['text']};")
-            lbl.setFixedHeight(14)  # Fixed label height
-            param_layout.addWidget(lbl, alignment=Qt.AlignHCenter)
-            
-            slider = MiniSlider(param_config=param)
-            slider.setFixedHeight(60)  # Fixed height for consistency
-            slider.setToolTip(param['tooltip'])
-            slider.normalizedValueChanged.connect(
-                lambda norm, p=param: self.on_param_changed(p['key'], norm, p)
-            )
-            slider.setEnabled(False)
-            param_layout.addWidget(slider, alignment=Qt.AlignHCenter)
-            
-            self.sliders[param['key']] = slider
-            self.slider_labels[param['key']] = lbl
-            params_layout.addWidget(param_widget)
-        
-        params_layout.addSpacing(5)
-        
-        # Buttons column
-        buttons_widget = QWidget()
-        buttons_widget.setFixedWidth(SIZES['buttons_column_width'])
-        buttons_layout = QVBoxLayout(buttons_widget)
-        buttons_layout.setContentsMargins(0, 0, 0, 0)
-        buttons_layout.setSpacing(3)
-        
-        # Filter type - CycleButton
-        self.filter_btn = CycleButton(FILTER_TYPES, initial_index=0)
-        self.filter_btn.setFixedSize(*SIZES['button_medium'])
-        self.filter_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
-        self.filter_btn.setStyleSheet(button_style('enabled'))
-        self.filter_btn.wrap = True
-        self.filter_btn.value_changed.connect(self.on_filter_changed)
-        self.filter_btn.setEnabled(False)
-        self.filter_btn.setToolTip("Filter Type: LP / HP / BP")
-        buttons_layout.addWidget(self.filter_btn)
-        
-        # ENV source - CycleButton (OFF/CLK/MIDI)
-        self.env_btn = CycleButton(ENV_SOURCES, initial_index=0)
-        self.env_btn.setFixedSize(*SIZES['button_medium'])
-        self.env_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-        self.env_btn.setStyleSheet(button_style('disabled'))
-        self.env_btn.wrap = True
-        self.env_btn.value_changed.connect(self.on_env_source_changed)
-        self.env_btn.setEnabled(False)
-        self.env_btn.setToolTip("Envelope source: OFF (drone), CLK (clock), MIDI")
-        buttons_layout.addWidget(self.env_btn)
-        
-        # CLK rate - CycleButton
-        self.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
-        self.rate_btn.setFixedSize(*SIZES['button_medium'])
-        self.rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
-        self.rate_btn.setStyleSheet(button_style('inactive'))
-        self.rate_btn.wrap = False
-        self.rate_btn.value_changed.connect(self.on_rate_changed)
-        self.rate_btn.setEnabled(False)
-        self.rate_btn.setToolTip("Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16")
-        buttons_layout.addWidget(self.rate_btn)
-        
-        # Separator/spacer
-        buttons_layout.addSpacing(6)
-        
-        # MIDI channel selector
-        self.midi_btn = CycleButton(MIDI_CHANNELS, initial_index=0)
-        self.midi_btn.setFixedSize(*SIZES['button_medium'])
-        self.midi_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-        self.midi_btn.setStyleSheet(midi_channel_style(False))
-        self.midi_btn.wrap = True
-        self.midi_btn.value_changed.connect(self.on_midi_channel_changed)
-        self.midi_btn.setToolTip("MIDI Input Channel (OFF or 1-16)")
-        buttons_layout.addWidget(self.midi_btn)
-        
-        # Mute/Gate row - small buttons side by side
-        mute_gate_row = QHBoxLayout()
-        mute_gate_row.setSpacing(2)
-        mute_gate_row.setContentsMargins(0, 0, 0, 0)
-        
-        # Mute button
-        self.mute_btn = QPushButton("M")
-        self.mute_btn.setFixedSize(18, 18)
-        self.mute_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro'], QFont.Bold))
-        self.mute_btn.setStyleSheet(mute_button_style(False))
-        self.mute_btn.clicked.connect(self.toggle_mute)
-        self.mute_btn.setToolTip("Mute Generator")
-        mute_gate_row.addWidget(self.mute_btn)
-        
-        # Gate indicator LED
-        self.gate_led = QLabel()
-        self.gate_led.setFixedSize(18, 18)
-        self.gate_led.setStyleSheet(gate_indicator_style(False))
-        self.gate_led.setToolTip("Gate Activity")
-        mute_gate_row.addWidget(self.gate_led)
-        
-        buttons_layout.addLayout(mute_gate_row)
-        
-        buttons_layout.addStretch()
-        params_layout.addWidget(buttons_widget)
-        
-        params_outer.addLayout(params_layout)
-        
-        layout.addWidget(params_frame)
-        
-        # Status
-        status_layout = QHBoxLayout()
-        status_layout.setSpacing(15)
-        
-        self.audio_indicator = QLabel("🔇 Audio")
-        self.audio_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-        self.audio_indicator.setStyleSheet(f"color: {COLORS['audio_off']};")
-        status_layout.addWidget(self.audio_indicator)
-        
-        self.midi_indicator = QLabel("🎹 MIDI")
-        self.midi_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-        self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
-        status_layout.addWidget(self.midi_indicator)
-        
-        status_layout.addStretch()
-        layout.addLayout(status_layout)
-        
+    
+    # -------------------------------------------------------------------------
+    # Style Updates
+    # -------------------------------------------------------------------------
+    
     def update_style(self):
         """Update appearance based on state."""
         if self.generator_type == "Empty":
@@ -287,7 +66,7 @@ class GeneratorSlot(QWidget):
         elif self.active:
             border_color = COLORS['border_active']
             bg_color = COLORS['active_bg']
-            type_color = COLORS['enabled_text']  # Green when active
+            type_color = COLORS['enabled_text']
         else:
             border_color = COLORS['border_light']
             bg_color = COLORS['background_light']
@@ -301,7 +80,6 @@ class GeneratorSlot(QWidget):
             }}
         """)
         
-        # Update generator name color
         self.type_btn.setStyleSheet(f"""
             QPushButton {{
                 color: {type_color};
@@ -327,16 +105,19 @@ class GeneratorSlot(QWidget):
             self.rate_btn.setStyleSheet(button_style('submenu'))
         else:  # MIDI
             self.env_btn.setStyleSheet(button_style('enabled'))
-            self.rate_btn.setEnabled(False)  # Rate doesn't matter for MIDI
+            self.rate_btn.setEnabled(False)
             self.rate_btn.setStyleSheet(button_style('inactive'))
-        
+    
+    # -------------------------------------------------------------------------
+    # State Management
+    # -------------------------------------------------------------------------
+    
     def set_generator_type(self, gen_type):
         """Change generator type.
         
         IMPORTANT: Slot settings (ENV source, clock rate, MIDI channel) are PRESERVED
         when changing generator type. The slot is like a Eurorack slot - swapping the
-        module doesn't change the trigger/clock patching. Settings are reapplied to
-        ensure the new generator receives them.
+        module doesn't change the trigger/clock patching.
         """
         self.generator_type = gen_type
         self.type_btn.blockSignals(True)
@@ -346,22 +127,18 @@ class GeneratorSlot(QWidget):
         enabled = gen_type != "Empty"
         pitch_target = get_generator_pitch_target(gen_type)
         
-        # REAPPLY (not reset) ENV source - slot remembers its setting
+        # REAPPLY (not reset) slot settings
         self.env_source_changed.emit(self.slot_id, self.env_source)
         
-        # REAPPLY clock rate
         current_rate = self.rate_btn.get_value()
-        from src.config import CLOCK_RATE_INDEX
         self.clock_rate_changed.emit(self.slot_id, current_rate)
         
-        # REAPPLY MIDI channel
         self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
         
-        # Legacy - keep clock_enabled in sync
+        # Legacy
         self.clock_enabled = self.env_source > 0
         self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
         
-        # REAPPLY filter type (also sticky per slot)
         current_filter = self.filter_btn.get_value()
         self.filter_type_changed.emit(self.slot_id, current_filter)
         
@@ -370,21 +147,18 @@ class GeneratorSlot(QWidget):
             param = next((p for p in GENERATOR_PARAMS if p['key'] == key), None)
             if param:
                 default_val = int(param['default'] * 1000)
-                # Force send even if value is same (bus might have old value)
                 slider.blockSignals(True)
                 slider.setValue(default_val)
                 slider.blockSignals(False)
-                # Always emit to update SuperCollider
                 real_value = map_value(param['default'], param)
                 self.parameter_changed.emit(self.slot_id, key, real_value)
             
             if key == 'frequency' and pitch_target is not None:
-                # FRQ disabled when pitch_target points to custom param
                 slider.setEnabled(False)
             else:
                 slider.setEnabled(enabled)
         
-        # Update FRQ label to show it's overridden
+        # Update FRQ label style
         if 'frequency' in self.slider_labels:
             if pitch_target is not None:
                 self.slider_labels['frequency'].setStyleSheet(f"color: {COLORS['text_dim']};")
@@ -396,7 +170,6 @@ class GeneratorSlot(QWidget):
         self.update_env_style()
         self.update_style()
         
-        # Update custom params for this generator (also resets to defaults)
         self.update_custom_params(gen_type)
     
     def update_custom_params(self, gen_type):
@@ -406,12 +179,13 @@ class GeneratorSlot(QWidget):
         midi_retrig = get_generator_midi_retrig(gen_type)
         retrig_param_index = get_generator_retrig_param_index(gen_type)
         
+        from src.config import MAX_CUSTOM_PARAMS, format_value
+        
         for i in range(MAX_CUSTOM_PARAMS):
             if i < len(custom_params):
                 param = custom_params[i]
                 label_text = param['label']
                 
-                # Add pitch indicator if this is the pitch target
                 if pitch_target == i:
                     label_text = f"♪{label_text}"
                     self.custom_labels[i].setStyleSheet(f"color: {COLORS['enabled_text']};")
@@ -419,21 +193,17 @@ class GeneratorSlot(QWidget):
                     self.custom_labels[i].setStyleSheet(f"color: {COLORS['text']};")
                 
                 self.custom_labels[i].setText(label_text)
-                from src.config import format_value
-                # Block signals while setting up
                 self.custom_sliders[i].blockSignals(True)
                 self.custom_sliders[i].set_param_config(param, format_value)
                 self.custom_sliders[i].blockSignals(False)
                 self.custom_sliders[i].setToolTip(param.get('tooltip', ''))
                 
-                # Grey out RTG param in MIDI mode for midi_retrig generators
                 if midi_retrig and i == retrig_param_index and self.env_source == 2:
                     self.custom_sliders[i].setEnabled(False)
                     self.custom_labels[i].setStyleSheet(f"color: {COLORS['text_dim']};")
                 else:
                     self.custom_sliders[i].setEnabled(True)
                 
-                # Force send default value to SuperCollider
                 default = param.get('default', 0.5)
                 real_value = map_value(default, param)
                 self.custom_parameter_changed.emit(self.slot_id, i, real_value)
@@ -442,7 +212,7 @@ class GeneratorSlot(QWidget):
                 self.custom_labels[i].setStyleSheet(f"color: {COLORS['text_dim']};")
                 self.custom_sliders[i].blockSignals(True)
                 self.custom_sliders[i].set_param_config(None)
-                self.custom_sliders[i].setValue(500)  # Reset to midpoint
+                self.custom_sliders[i].setValue(500)
                 self.custom_sliders[i].blockSignals(False)
                 self.custom_sliders[i].setToolTip("")
                 self.custom_sliders[i].setEnabled(False)
@@ -453,14 +223,13 @@ class GeneratorSlot(QWidget):
         retrig_param_index = get_generator_retrig_param_index(self.generator_type)
         
         if midi_retrig and retrig_param_index is not None:
-            # Grey out RTG in MIDI mode, enable otherwise
             if self.env_source == 2:  # MIDI
                 self.custom_sliders[retrig_param_index].setEnabled(False)
                 self.custom_labels[retrig_param_index].setStyleSheet(f"color: {COLORS['text_dim']};")
             else:
                 self.custom_sliders[retrig_param_index].setEnabled(True)
                 self.custom_labels[retrig_param_index].setStyleSheet(f"color: {COLORS['text']};")
-        
+    
     def set_active(self, active):
         """Set active state."""
         self.active = active
@@ -483,7 +252,11 @@ class GeneratorSlot(QWidget):
         else:
             self.midi_indicator.setText("🎹 MIDI")
             self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
-            
+    
+    # -------------------------------------------------------------------------
+    # Event Handlers
+    # -------------------------------------------------------------------------
+    
     def on_filter_changed(self, filter_type):
         """Handle filter button change."""
         logger.gen(self.slot_id, f"filter: {filter_type}")
@@ -503,18 +276,16 @@ class GeneratorSlot(QWidget):
         
         # Auto-set MIDI channel when switching to MIDI mode
         if self.env_source == 2:  # MIDI
-            # Set MIDI channel to match generator slot (1-8)
             self.midi_channel = self.slot_id
             self.midi_btn.blockSignals(True)
-            self.midi_btn.set_index(self.slot_id)  # Index 0=OFF, 1-16=channels
+            self.midi_btn.set_index(self.slot_id)
             self.midi_btn.blockSignals(False)
             self.midi_btn.setStyleSheet(midi_channel_style(True))
             self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
         
-        # Update RTG param enable state for midi_retrig generators
         self._update_retrig_param_state()
         
-        # Legacy - keep clock_enabled in sync (ON if CLK or MIDI)
+        # Legacy
         self.clock_enabled = self.env_source > 0
         self.clock_enabled_changed.emit(self.slot_id, self.clock_enabled)
         
@@ -554,7 +325,7 @@ class GeneratorSlot(QWidget):
     def flash_gate(self):
         """Flash the gate LED (call when gate trigger received)."""
         self.gate_led.setStyleSheet(gate_indicator_style(True))
-        self.gate_timer.start(80)  # LED on for 80ms
+        self.gate_timer.start(80)
     
     def _gate_off(self):
         """Turn off gate LED after flash."""
