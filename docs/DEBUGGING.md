@@ -1,5 +1,27 @@
 # Debugging Guide
 
+## In-App Console
+
+The app has a built-in console that shows real-time logs. This is the first place to look when troubleshooting.
+
+### Opening the Console
+- Click the **`>_`** button in the top-right corner, OR
+- Press **`Ctrl+``** (backtick key, above Tab)
+
+### What You'll See
+- **Grey** - DEBUG: Detailed info (parameter changes, OSC messages)
+- **Green** - INFO: Normal operation (connected, generator started)
+- **Orange** - WARNING: Something unexpected but recoverable
+- **Red** - ERROR: Something failed (connection lost, file not found)
+
+### Console Controls
+- **Filter dropdown** - Show only INFO/WARN/ERROR levels
+- **Auto ↓** - Toggle auto-scroll (click to pause and inspect)
+- **Clear** - Wipe the log
+- **Copy** - Copy entire log to clipboard (useful for bug reports)
+
+---
+
 ## Quick Debug Scripts
 
 ### Add Debug Output

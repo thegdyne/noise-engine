@@ -12,6 +12,11 @@
 ### Code Changes
 Every response with code changes MUST end with:
 
+1. **The download** named `noise-engine-updated.zip`
+2. **Install instructions** (MANDATORY - always include these):
+
+```
+After downloading, run:
 ```bash
 cd ~/repos/noise-engine
 ~/repos/noise-engine/tools/update_from_claude.sh
