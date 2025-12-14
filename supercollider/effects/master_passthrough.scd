@@ -1,16 +1,19 @@
 /*
 Master Passthrough Effect
-Final output with fidelity control, master volume, and metering
+Final output with master volume and PRE/POST metering
 
-Signal flow: masterBus -> PRE meter -> fidelity -> volume -> POST meter -> output
-                            |                                    |
-                        (meterMode=0)                       (meterMode=1)
+Signal flow: masterBus -> PRE meter -> Master Vol -> POST meter -> output
+                            |                            |
+                        (meterMode=0)               (meterMode=1)
                                       ↓
                               OSC to Python
+
+Future: Insert chain (Limiter → Comp → EQ) goes between PRE meter and Master Vol
+        See docs/MASTER_OUT.md for phases
 */
 
 ~setupMasterPassthrough = {
-    SynthDef(\masterPassthrough, { |inBus, outBus=0, fidelityAmount=1.0, masterVol=0.8, meterRate=24, meterMode=0|
+    SynthDef(\masterPassthrough, { |inBus, outBus=0, masterVol=0.8, meterRate=24, meterMode=0|
         var sig, sigPost;
         var preAmpL, preAmpR, prePeakL, prePeakR;
         var postAmpL, postAmpR, postPeakL, postPeakR;
@@ -24,10 +27,7 @@ Signal flow: masterBus -> PRE meter -> fidelity -> volume -> POST meter -> outpu
         prePeakL = Amplitude.kr(sig[0], attackTime: 0.001, releaseTime: 0.3);
         prePeakR = Amplitude.kr(sig[1], attackTime: 0.001, releaseTime: 0.3);
         
-        // Fidelity processing (bit crushing, sample rate, bandwidth)
-        sig = sig.round(2.pow(fidelityAmount.linexp(0, 1, 4, 16)).reciprocal * 2) - 1;
-        sig = Latch.ar(sig, Impulse.ar(fidelityAmount.linexp(0, 1, 4000, 44100)));
-        sig = LPF.ar(sig, fidelityAmount.linexp(0, 1, 2000, 18000));
+        // Future: Insert chain goes here (Limiter → Comp → EQ)
         
         // Master volume
         sigPost = sig * masterVol;
@@ -83,7 +83,6 @@ Signal flow: masterBus -> PRE meter -> fidelity -> volume -> POST meter -> outpu
     ~masterEffects = Synth(\masterPassthrough, [
         \inBus, ~masterBus,
         \outBus, 0,
-        \fidelityAmount, 1.0,
         \masterVol, ~masterVolume ? 0.8,
         \meterRate, 24,
         \meterMode, ~masterMeterMode

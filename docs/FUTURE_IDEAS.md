@@ -51,13 +51,23 @@ Captured ideas for potential future development.
 
 ## Effects
 
+### Master Insert Chain (see `docs/MASTER_OUT.md`)
+- Limiter (Phase 4)
+- Compression (Phase 5)
+- 3-Band EQ (Phase 6)
+
+### FX Send Buses (see `docs/FXBUS.md`)
+Architecture designed - 2 send/return buses with per-channel sends:
+- Reverb (Room/Hall/Plate)
+- Delay (clock synced, ping-pong)
+- Chorus
+- Phaser
+
+### Additional Effects (future)
 - Tape Delay (clock synced)
 - Spring Reverb
-- Digital Reverb
-- Stereo 90s Chorus/Flanger
 - Saturation
 - Global Filter
-- Compressor/Limiter
 
 ---
 
