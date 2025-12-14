@@ -32,15 +32,25 @@ Always zip from the **dev branch** using the helper tool:
 Claude outputs **individual changed files only**, not full project zips.
 This prevents accidentally overwriting newer files with older versions.
 
-After downloading individual files, copy them to your repo manually or drag into your editor.
-
-### After Applying Changes
+Claude provides a ready-to-run command block like this:
 ```bash
+dlclear
+
 cd ~/repos/noise-engine
+
+cp ~/Downloads/file1.py src/gui/
+cp ~/Downloads/file2.scd supercollider/effects/
+
 git add -A
 git commit -m "Component: brief description of change"
 git push
 ```
+
+Just copy and paste the entire block into Terminal.
+
+- `dlclear` clears ~/Downloads/ first (prevents stale file conflicts)
+- Individual `cp` commands put each file in its correct location
+- Git commands commit and push the changes
 
 ### If Something Goes Wrong
 ```bash
