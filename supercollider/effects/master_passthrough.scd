@@ -18,6 +18,8 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         var postAmpL, postAmpR, postPeakL, postPeakR;
         var ampL, ampR, peakL, peakR;
         var sigEQ, sigLimited;
+        var sigLo, sigMid, sigHi;
+        var loGainLin, midGainLin, hiGainLin;
         
         sig = In.ar(inBus, 2);
         
@@ -30,8 +32,6 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         // === DJ-Style 3-Band Isolator EQ ===
         // Splits signal into 3 bands, applies gain to each, then sums
         // Crossover frequencies: 250Hz (lo/mid) and 2500Hz (mid/hi)
-        var sigLo, sigMid, sigHi;
-        var loGainLin, midGainLin, hiGainLin;
         
         // Convert dB to linear gain (with -inf at -12dB for full kill)
         // Map: -12dB = 0 (kill), 0dB = 1, +12dB = 4
