@@ -228,6 +228,14 @@ class MasterSection(QWidget):
     eq_hi_kill_changed = pyqtSignal(int)
     eq_locut_changed = pyqtSignal(int)  # 0=off, 1=on
     eq_bypass_changed = pyqtSignal(int)  # 0=on, 1=bypassed
+    # Compressor signals
+    comp_threshold_changed = pyqtSignal(float)  # dB
+    comp_ratio_changed = pyqtSignal(int)  # index
+    comp_attack_changed = pyqtSignal(int)  # index
+    comp_release_changed = pyqtSignal(int)  # index
+    comp_makeup_changed = pyqtSignal(float)  # dB
+    comp_sc_hpf_changed = pyqtSignal(int)  # index
+    comp_bypass_changed = pyqtSignal(int)  # 0=on, 1=bypassed
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -240,6 +248,12 @@ class MasterSection(QWidget):
         self.eq_lo_kill = 0  # 0=off, 1=killed
         self.eq_mid_kill = 0
         self.eq_hi_kill = 0
+        # Compressor state
+        self.comp_bypass = 0
+        self.comp_ratio_idx = 1  # 4:1
+        self.comp_attack_idx = 4  # 10ms
+        self.comp_release_idx = 4  # Auto
+        self.comp_sc_idx = 0  # Off
         self.setup_ui()
         
     def setup_ui(self):
@@ -474,6 +488,177 @@ class MasterSection(QWidget):
         content_layout.addWidget(limiter_widget)
         
         layout.addWidget(content_frame)
+        
+        # === COMPRESSOR SECTION (separate row below) ===
+        comp_frame = QFrame()
+        comp_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {COLORS['background']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+            }}
+        """)
+        comp_layout = QHBoxLayout(comp_frame)
+        comp_layout.setContentsMargins(8, 4, 8, 4)
+        comp_layout.setSpacing(8)
+        
+        # COMP label + bypass
+        comp_header = QVBoxLayout()
+        comp_header.setSpacing(2)
+        comp_label = QLabel("COMP")
+        comp_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        comp_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
+        comp_header.addWidget(comp_label)
+        
+        self.comp_bypass_btn = QPushButton("ON")
+        self.comp_bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.comp_bypass_btn.setFixedSize(28, 16)
+        self.comp_bypass_btn.clicked.connect(self._on_comp_bypass_clicked)
+        self._update_comp_bypass_style()
+        comp_header.addWidget(self.comp_bypass_btn)
+        comp_layout.addLayout(comp_header)
+        
+        # Threshold slider
+        thr_container = QVBoxLayout()
+        thr_container.setSpacing(1)
+        self.comp_threshold = DragSlider()
+        self.comp_threshold.setFixedWidth(SIZES['slider_width_narrow'])
+        self.comp_threshold.setRange(0, 400)  # 0=-20dB, 200=0dB, 400=+20dB
+        self.comp_threshold.setValue(100)  # -10dB default (sensible bus compression)
+        self.comp_threshold.setMinimumHeight(50)
+        self.comp_threshold.valueChanged.connect(self._on_comp_threshold_changed)
+        thr_container.addWidget(self.comp_threshold, alignment=Qt.AlignCenter)
+        thr_label = QLabel("THR")
+        thr_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        thr_label.setAlignment(Qt.AlignCenter)
+        thr_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        thr_container.addWidget(thr_label)
+        comp_layout.addLayout(thr_container)
+        
+        # Ratio buttons (2:1, 4:1, 10:1)
+        ratio_container = QVBoxLayout()
+        ratio_container.setSpacing(1)
+        self.comp_ratio_btns = []
+        for i, ratio in enumerate(["2:1", "4:1", "10:1"]):
+            btn = QPushButton(ratio)
+            btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+            btn.setFixedSize(28, 14)
+            btn.clicked.connect(lambda checked, idx=i: self._on_comp_ratio_clicked(idx))
+            self.comp_ratio_btns.append(btn)
+            ratio_container.addWidget(btn)
+        self.comp_ratio_idx = 1  # Default 4:1
+        self._update_comp_ratio_style()
+        comp_layout.addLayout(ratio_container)
+        
+        # Attack dropdown (simplified as label for now)
+        atk_container = QVBoxLayout()
+        atk_container.setSpacing(1)
+        self.comp_attack_btns = []
+        atk_values = ["0.1", "0.3", "1", "3", "10", "30"]
+        for i, val in enumerate(atk_values):
+            btn = QPushButton(val)
+            btn.setFont(QFont(FONT_FAMILY, 6))
+            btn.setFixedSize(22, 11)
+            btn.clicked.connect(lambda checked, idx=i: self._on_comp_attack_clicked(idx))
+            self.comp_attack_btns.append(btn)
+            atk_container.addWidget(btn)
+        atk_label = QLabel("ATK")
+        atk_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        atk_label.setAlignment(Qt.AlignCenter)
+        atk_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        atk_container.addWidget(atk_label)
+        self.comp_attack_idx = 4  # Default 10ms
+        self._update_comp_attack_style()
+        comp_layout.addLayout(atk_container)
+        
+        # Release dropdown
+        rel_container = QVBoxLayout()
+        rel_container.setSpacing(1)
+        self.comp_release_btns = []
+        rel_values = ["0.1", "0.3", "0.6", "1.2", "Auto"]
+        for i, val in enumerate(rel_values):
+            btn = QPushButton(val)
+            btn.setFont(QFont(FONT_FAMILY, 6))
+            btn.setFixedSize(26, 12)
+            btn.clicked.connect(lambda checked, idx=i: self._on_comp_release_clicked(idx))
+            self.comp_release_btns.append(btn)
+            rel_container.addWidget(btn)
+        rel_label = QLabel("REL")
+        rel_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        rel_label.setAlignment(Qt.AlignCenter)
+        rel_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        rel_container.addWidget(rel_label)
+        self.comp_release_idx = 4  # Default Auto
+        self._update_comp_release_style()
+        comp_layout.addLayout(rel_container)
+        
+        # Makeup slider
+        mkp_container = QVBoxLayout()
+        mkp_container.setSpacing(1)
+        self.comp_makeup = DragSlider()
+        self.comp_makeup.setFixedWidth(SIZES['slider_width_narrow'])
+        self.comp_makeup.setRange(0, 200)  # 0-20dB
+        self.comp_makeup.setValue(0)  # 0dB default
+        self.comp_makeup.setMinimumHeight(50)
+        self.comp_makeup.valueChanged.connect(self._on_comp_makeup_changed)
+        mkp_container.addWidget(self.comp_makeup, alignment=Qt.AlignCenter)
+        mkp_label = QLabel("MKP")
+        mkp_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        mkp_label.setAlignment(Qt.AlignCenter)
+        mkp_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        mkp_container.addWidget(mkp_label)
+        comp_layout.addLayout(mkp_container)
+        
+        # SC HPF dropdown
+        sc_container = QVBoxLayout()
+        sc_container.setSpacing(1)
+        self.comp_sc_btns = []
+        sc_values = ["Off", "30", "60", "90", "120", "185"]
+        for i, val in enumerate(sc_values):
+            btn = QPushButton(val)
+            btn.setFont(QFont(FONT_FAMILY, 6))
+            btn.setFixedSize(24, 11)
+            btn.clicked.connect(lambda checked, idx=i: self._on_comp_sc_clicked(idx))
+            self.comp_sc_btns.append(btn)
+            sc_container.addWidget(btn)
+        sc_label = QLabel("SC")
+        sc_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        sc_label.setAlignment(Qt.AlignCenter)
+        sc_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        sc_container.addWidget(sc_label)
+        self.comp_sc_idx = 0  # Default Off
+        self._update_comp_sc_style()
+        comp_layout.addLayout(sc_container)
+        
+        # GR Meter
+        gr_container = QVBoxLayout()
+        gr_container.setSpacing(1)
+        self.comp_gr_meter = QProgressBar()
+        self.comp_gr_meter.setOrientation(Qt.Vertical)
+        self.comp_gr_meter.setRange(0, 200)  # 0-20dB scaled by 10
+        self.comp_gr_meter.setValue(0)
+        self.comp_gr_meter.setFixedWidth(12)
+        self.comp_gr_meter.setMinimumHeight(50)
+        self.comp_gr_meter.setTextVisible(False)
+        self.comp_gr_meter.setStyleSheet(f"""
+            QProgressBar {{
+                background-color: {COLORS['background_dark']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 2px;
+            }}
+            QProgressBar::chunk {{
+                background-color: {COLORS['warning']};
+            }}
+        """)
+        gr_container.addWidget(self.comp_gr_meter, alignment=Qt.AlignCenter)
+        gr_label = QLabel("GR")
+        gr_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        gr_label.setAlignment(Qt.AlignCenter)
+        gr_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        gr_container.addWidget(gr_label)
+        comp_layout.addLayout(gr_container)
+        
+        layout.addWidget(comp_frame)
         
     def _on_fader_changed(self, value):
         """Handle fader movement."""
@@ -826,3 +1011,161 @@ class MasterSection(QWidget):
     def get_volume(self):
         """Get current master volume (0.0 to 1.0)."""
         return self.master_fader.value() / 1000.0
+    
+    # === Compressor Handlers ===
+    
+    def _on_comp_bypass_clicked(self):
+        """Toggle compressor bypass."""
+        self.comp_bypass = 1 - self.comp_bypass
+        self._update_comp_bypass_style()
+        self.comp_bypass_changed.emit(self.comp_bypass)
+    
+    def _update_comp_bypass_style(self):
+        """Update comp bypass button appearance."""
+        if self.comp_bypass == 0:
+            self.comp_bypass_btn.setText("ON")
+            self.comp_bypass_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['enabled']};
+                    color: {COLORS['enabled_text']};
+                    border: 1px solid {COLORS['border_active']};
+                    border-radius: 2px;
+                }}
+            """)
+        else:
+            self.comp_bypass_btn.setText("BYP")
+            self.comp_bypass_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                }}
+            """)
+    
+    def _on_comp_threshold_changed(self, value):
+        """Handle threshold slider change."""
+        db = (value / 10.0) - 20.0  # 0-400 -> -20 to +20
+        self.comp_threshold_changed.emit(db)
+    
+    def _on_comp_ratio_clicked(self, idx):
+        """Handle ratio button click."""
+        self.comp_ratio_idx = idx
+        self._update_comp_ratio_style()
+        self.comp_ratio_changed.emit(idx)
+    
+    def _update_comp_ratio_style(self):
+        """Update ratio button styles."""
+        for i, btn in enumerate(self.comp_ratio_btns):
+            if i == self.comp_ratio_idx:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['enabled']};
+                        color: {COLORS['enabled_text']};
+                        border: 1px solid {COLORS['border_active']};
+                        border-radius: 2px;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['background_dark']};
+                        color: {COLORS['text_dim']};
+                        border: 1px solid {COLORS['border']};
+                        border-radius: 2px;
+                    }}
+                """)
+    
+    def _on_comp_attack_clicked(self, idx):
+        """Handle attack button click."""
+        self.comp_attack_idx = idx
+        self._update_comp_attack_style()
+        self.comp_attack_changed.emit(idx)
+    
+    def _update_comp_attack_style(self):
+        """Update attack button styles."""
+        for i, btn in enumerate(self.comp_attack_btns):
+            if i == self.comp_attack_idx:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['enabled']};
+                        color: {COLORS['enabled_text']};
+                        border: 1px solid {COLORS['border_active']};
+                        border-radius: 1px;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['background_dark']};
+                        color: {COLORS['text_dim']};
+                        border: 1px solid {COLORS['border']};
+                        border-radius: 1px;
+                    }}
+                """)
+    
+    def _on_comp_release_clicked(self, idx):
+        """Handle release button click."""
+        self.comp_release_idx = idx
+        self._update_comp_release_style()
+        self.comp_release_changed.emit(idx)
+    
+    def _update_comp_release_style(self):
+        """Update release button styles."""
+        for i, btn in enumerate(self.comp_release_btns):
+            if i == self.comp_release_idx:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['enabled']};
+                        color: {COLORS['enabled_text']};
+                        border: 1px solid {COLORS['border_active']};
+                        border-radius: 1px;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['background_dark']};
+                        color: {COLORS['text_dim']};
+                        border: 1px solid {COLORS['border']};
+                        border-radius: 1px;
+                    }}
+                """)
+    
+    def _on_comp_makeup_changed(self, value):
+        """Handle makeup slider change."""
+        db = value / 10.0  # 0-200 -> 0 to 20
+        self.comp_makeup_changed.emit(db)
+    
+    def _on_comp_sc_clicked(self, idx):
+        """Handle SC HPF button click."""
+        self.comp_sc_idx = idx
+        self._update_comp_sc_style()
+        self.comp_sc_hpf_changed.emit(idx)
+    
+    def _update_comp_sc_style(self):
+        """Update SC HPF button styles."""
+        for i, btn in enumerate(self.comp_sc_btns):
+            if i == self.comp_sc_idx:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['enabled']};
+                        color: {COLORS['enabled_text']};
+                        border: 1px solid {COLORS['border_active']};
+                        border-radius: 1px;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {COLORS['background_dark']};
+                        color: {COLORS['text_dim']};
+                        border: 1px solid {COLORS['border']};
+                        border-radius: 1px;
+                    }}
+                """)
+    
+    def set_comp_gr(self, gr_db):
+        """Update compressor GR meter."""
+        # Scale 0-20dB to 0-200 for progress bar
+        self.comp_gr_meter.setValue(int(gr_db * 10))
