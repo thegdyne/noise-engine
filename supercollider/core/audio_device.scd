@@ -58,11 +58,10 @@ Handles device listing, selection, and switching
                     ~setupOSC.();
                     ~setupMIDI.();
                     ~setupMIDIOSC.();
-                    ~startClock.();
-                    ~startGroups.();
+                    ~startClock.();  // This creates groups too
                     ~startMasterPassthrough.();
-                    ~startMasterOSC.();
-                    ~startChannelMeterForwarding.();
+                    ~setupMasterOSC.();
+                    ~setupChannelMeterForward.();  // Note: was misspelled as ~startChannelMeterForwarding
                     
                     "".postln;
                     ("✓ Audio device now: " ++ deviceName).postln;
