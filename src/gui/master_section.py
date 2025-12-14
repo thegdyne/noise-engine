@@ -281,7 +281,40 @@ class MasterSection(QWidget):
         
         content_layout.addWidget(fader_widget)
         
-        # Limiter section
+        # Meter section (next to fader for visual feedback while mixing)
+        meter_widget = QWidget()
+        meter_layout = QVBoxLayout(meter_widget)
+        meter_layout.setContentsMargins(0, 0, 0, 0)
+        meter_layout.setSpacing(3)
+        
+        # PRE/POST toggle button
+        self.meter_mode_btn = QPushButton("PRE")
+        self.meter_mode_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.meter_mode_btn.setFixedSize(32, 18)
+        self.meter_mode_btn.setToolTip("Toggle PRE/POST fader metering")
+        self.meter_mode_btn.clicked.connect(self._on_meter_mode_clicked)
+        self._update_meter_mode_style()
+        meter_layout.addWidget(self.meter_mode_btn, alignment=Qt.AlignCenter)
+        
+        self.level_meter = LevelMeter()
+        meter_layout.addWidget(self.level_meter, alignment=Qt.AlignCenter)
+        
+        # Peak dB display
+        self.peak_label = QLabel("---")
+        self.peak_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.peak_label.setAlignment(Qt.AlignCenter)
+        self.peak_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        meter_layout.addWidget(self.peak_label)
+        
+        content_layout.addWidget(meter_widget)
+        
+        # Divider line
+        divider = QFrame()
+        divider.setFrameShape(QFrame.VLine)
+        divider.setStyleSheet(f"color: {COLORS['border']};")
+        content_layout.addWidget(divider)
+        
+        # Limiter section (separate - safety/protection)
         limiter_widget = QWidget()
         limiter_layout = QVBoxLayout(limiter_widget)
         limiter_layout.setContentsMargins(0, 0, 0, 0)
@@ -319,33 +352,6 @@ class MasterSection(QWidget):
         limiter_layout.addWidget(self.ceiling_label)
         
         content_layout.addWidget(limiter_widget)
-        
-        # Meter section
-        meter_widget = QWidget()
-        meter_layout = QVBoxLayout(meter_widget)
-        meter_layout.setContentsMargins(0, 0, 0, 0)
-        meter_layout.setSpacing(3)
-        
-        # PRE/POST toggle button (replaces static "L  R" label)
-        self.meter_mode_btn = QPushButton("PRE")
-        self.meter_mode_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.meter_mode_btn.setFixedSize(32, 18)
-        self.meter_mode_btn.setToolTip("Toggle PRE/POST fader metering")
-        self.meter_mode_btn.clicked.connect(self._on_meter_mode_clicked)
-        self._update_meter_mode_style()
-        meter_layout.addWidget(self.meter_mode_btn, alignment=Qt.AlignCenter)
-        
-        self.level_meter = LevelMeter()
-        meter_layout.addWidget(self.level_meter, alignment=Qt.AlignCenter)
-        
-        # Peak dB display
-        self.peak_label = QLabel("---")
-        self.peak_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.peak_label.setAlignment(Qt.AlignCenter)
-        self.peak_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        meter_layout.addWidget(self.peak_label)
-        
-        content_layout.addWidget(meter_widget)
         
         layout.addWidget(content_frame)
         
