@@ -68,6 +68,9 @@ class OSCBridge(QObject):
         self._host = None
         self._port = None
         
+        # Flag to prevent signal emission after deletion
+        self._deleted = False
+        
     def connect(self, host=None, port=None):
         """Connect to SuperCollider with verification."""
         from src.config import OSC_HOST, OSC_SEND_PORT
@@ -220,12 +223,16 @@ class OSCBridge(QObject):
     
     def _handle_gate(self, address, *args):
         """Handle gate trigger from SC - emit signal for thread safety."""
+        if self._deleted:
+            return
         if len(args) > 0:
             slot_id = int(args[0])
             self.gate_triggered.emit(slot_id)
     
     def _handle_levels(self, address, *args):
         """Handle level meter data from SC."""
+        if self._deleted:
+            return
         # Now receiving direct values: [ampL, ampR, peakL, peakR]
         if len(args) >= 4:
             amp_l = float(args[0])
@@ -239,6 +246,8 @@ class OSCBridge(QObject):
         
         Forwarded format from SC: [slotID, ampL, ampR]
         """
+        if self._deleted:
+            return
         # Forwarded message has slotID at args[0], ampL at args[1], ampR at args[2]
         if len(args) >= 3:
             slot_id = int(args[0])
@@ -250,6 +259,8 @@ class OSCBridge(QObject):
     
     def _handle_comp_gr(self, address, *args):
         """Handle compressor gain reduction from SC."""
+        if self._deleted:
+            return
         if len(args) >= 1:
             gr_db = float(args[0])
             self.comp_gr_received.emit(gr_db)
@@ -269,22 +280,30 @@ class OSCBridge(QObject):
     
     def _handle_audio_devices_done(self, address, *args):
         """Handle end of audio device list from SC."""
+        if self._deleted:
+            return
         self.audio_devices_received.emit(self._audio_devices, self._audio_device_current)
     
     def _handle_audio_device_changing(self, address, *args):
         """Handle notification that SC is changing audio device."""
+        if self._deleted:
+            return
         if len(args) >= 1:
             device_name = str(args[0])
             self.audio_device_changing.emit(device_name)
     
     def _handle_audio_device_ready(self, address, *args):
         """Handle notification that SC has finished changing device."""
+        if self._deleted:
+            return
         if len(args) >= 1:
             device_name = str(args[0])
             self.audio_device_ready.emit(device_name)
     
     def _handle_audio_device_error(self, address, *args):
         """Handle audio device error from SC."""
+        if self._deleted:
+            return
         if len(args) >= 1:
             error_msg = str(args[0])
             self.audio_device_error.emit(error_msg)
@@ -327,6 +346,7 @@ class OSCBridge(QObject):
     
     def disconnect(self):
         """Disconnect and clean up."""
+        self._deleted = True  # Prevent signal emissions from OSC thread
         self._cleanup()
         logger.info("Disconnected from SuperCollider", component="OSC")
     
