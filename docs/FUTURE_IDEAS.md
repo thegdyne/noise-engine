@@ -142,3 +142,28 @@ Tab system? Or separate "mixer type" in config?
 One global JSON or per-preset?
 
 ---
+## Computer Keyboard Mode (CMD+K)
+
+**Concept:** Toggle QWERTY keyboard into a musical keyboard for playing generators.
+
+**Activation:**
+- CMD+K toggles mode on/off (ESC also exits)
+- Last clicked generator slot receives input
+- Auto-switches slot to MIDI trigger mode if needed (restores on exit)
+
+**Key mapping:**
+```
+ W E   T Y U   O P      (black keys)
+A S D F G H J K L ;     (white keys - C to C)
+```
+- Z/X = octave down/up
+
+**Visual feedback:**
+- Status bar shows `⌨ 3` (targeted slot number)
+- Subtle glow + keyboard icon on targeted slot
+
+**Integration:**
+- Sends same OSC messages as external MIDI (`/noise/slot/X/pitch`, `/noise/slot/X/gate`)
+- Can play alongside running sequencer (last message wins)
+
+**Design doc:** `docs/KEYBOARD_MODE.md`
