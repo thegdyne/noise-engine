@@ -18,7 +18,7 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         var postAmpL, postAmpR, postPeakL, postPeakR;
         var ampL, ampR, peakL, peakR;
         var sigEQ, sigLimited;
-        var sigLo, sigMid, sigHi;
+        var sigLo, sigMid, sigHi, sigRest;
         var loGainLin, midGainLin, hiGainLin;
         
         sig = In.ar(inBus, 2);
@@ -30,27 +30,41 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         prePeakR = Amplitude.kr(sig[1], attackTime: 0.001, releaseTime: 0.3);
         
         // === DJ-Style 3-Band Isolator EQ ===
-        // Splits signal into 3 bands, applies gain to each, then sums
-        // Crossover frequencies: 250Hz (lo/mid) and 2500Hz (mid/hi)
+        // Clean LR4-style split: split at 250Hz first, then split "rest" at 2500Hz
+        // This guarantees LO + MID + HI = original (no phase cancellation artifacts)
         
-        // Convert dB to linear gain (with -inf at -12dB for full kill)
-        // Map: -12dB = 0 (kill), 0dB = 1, +12dB = 4
-        loGainLin = (eqLoGain.lag(0.1) + 12).max(0) / 12;  // 0 to 2
-        loGainLin = loGainLin * loGainLin;  // Square for more musical response
-        midGainLin = (eqMidGain.lag(0.1) + 12).max(0) / 12;
-        midGainLin = midGainLin * midGainLin;
-        hiGainLin = (eqHiGain.lag(0.1) + 12).max(0) / 12;
-        hiGainLin = hiGainLin * hiGainLin;
+        // First split: LO + REST
+        sigLo = LPF.ar(LPF.ar(sig, 250), 250);
+        sigRest = HPF.ar(HPF.ar(sig, 250), 250);
         
-        // Split into 3 bands using Linkwitz-Riley style crossovers
-        sigLo = LPF.ar(LPF.ar(sig, 250), 250);  // Double LPF for steeper slope
-        sigHi = HPF.ar(HPF.ar(sig, 2500), 2500);  // Double HPF for steeper slope
-        sigMid = HPF.ar(HPF.ar(sig, 250), 250) - HPF.ar(HPF.ar(sig, 2500), 2500);  // Band between
+        // Second split: MID + HI from REST
+        sigMid = LPF.ar(LPF.ar(sigRest, 2500), 2500);
+        sigHi = HPF.ar(HPF.ar(sigRest, 2500), 2500);
+        
+        // Gain mapping: true kill at min, unity at center, +12dB at max
+        // Lower half: -80dB to 0dB (practical kill to unity)
+        // Upper half: 0dB to +12dB (unity to boost)
+        // Slider 0-240 maps to eqLoGain -12 to +12, so remap:
+        // eqLoGain -12 = kill, 0 = unity, +12 = boost
+        loGainLin = Select.kr(eqLoGain <= 0, [
+            eqLoGain.linlin(0, 12, 0, 12).dbamp,           // 0 to +12dB
+            eqLoGain.linlin(-12, 0, -80, 0).dbamp          // kill to unity
+        ]).lag(0.02);
+        
+        midGainLin = Select.kr(eqMidGain <= 0, [
+            eqMidGain.linlin(0, 12, 0, 12).dbamp,
+            eqMidGain.linlin(-12, 0, -80, 0).dbamp
+        ]).lag(0.02);
+        
+        hiGainLin = Select.kr(eqHiGain <= 0, [
+            eqHiGain.linlin(0, 12, 0, 12).dbamp,
+            eqHiGain.linlin(-12, 0, -80, 0).dbamp
+        ]).lag(0.02);
         
         // Apply gains and sum
         sigEQ = (sigLo * loGainLin) + (sigMid * midGainLin) + (sigHi * hiGainLin);
         
-        // LO CUT - HPF @ 75Hz (additional, post-EQ)
+        // LO CUT - HPF @ 75Hz (additional rumble filter, post-EQ)
         sigEQ = Select.ar(eqLoCut, [sigEQ, HPF.ar(sigEQ, 75)]);
         
         // EQ bypass
