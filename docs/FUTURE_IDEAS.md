@@ -187,3 +187,18 @@ A S D F G H J K L ;     (white keys - C to C)
 **Storage:** Central config (SSOT) - not per-generator
 
 **Design doc:** `docs/GENERATOR_POWER.md`
+## Server Control Panel
+
+**Concept:** Lockable panel near Connect button with "dangerous" SC controls.
+
+**Controls:**
+- 🔓/🔒 toggle to reveal/hide panel
+- `s.freeAll` - panic button, stops all synths
+- `s.reboot` - full server restart
+
+**Improved connection detection:**
+- Check port 57120 availability
+- Scan for running `sclang`/`scsynth` processes
+- Clear error messages: "SuperCollider IDE is running on port 57120. Close it and try again."
+
+**Design doc:** `docs/SERVER_CONTROLS.md`
