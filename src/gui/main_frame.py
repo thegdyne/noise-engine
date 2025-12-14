@@ -113,6 +113,8 @@ class MainFrame(QMainWindow):
         self.master_section = MasterSection()
         self.master_section.master_volume_changed.connect(self.on_master_volume_from_master)
         self.master_section.meter_mode_changed.connect(self.on_meter_mode_changed)
+        self.master_section.limiter_ceiling_changed.connect(self.on_limiter_ceiling_changed)
+        self.master_section.limiter_bypass_changed.connect(self.on_limiter_bypass_changed)
         right_layout.addWidget(self.master_section, stretch=1)
         
         content_layout.addWidget(right_panel, stretch=1)
@@ -532,6 +534,19 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(OSC_PATHS['master_meter_toggle'], [mode])
         mode_name = "POST" if mode == 1 else "PRE"
         logger.info(f"Master meter: {mode_name}", component="OSC")
+    
+    def on_limiter_ceiling_changed(self, db):
+        """Handle limiter ceiling change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_limiter_ceiling'], [db])
+        logger.debug(f"Limiter ceiling: {db:.1f}dB", component="OSC")
+    
+    def on_limiter_bypass_changed(self, bypass):
+        """Handle limiter bypass toggle (0=on, 1=bypassed)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_limiter_bypass'], [bypass])
+        state = "BYPASSED" if bypass == 1 else "ON"
+        logger.info(f"Limiter: {state}", component="OSC")
         
     def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
         """Handle level meter data from SuperCollider."""

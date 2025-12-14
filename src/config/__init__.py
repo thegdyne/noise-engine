@@ -352,6 +352,8 @@ OSC_PATHS = {
     'master_volume': '/noise/master/volume',
     'master_levels': '/noise/master/levels',
     'master_meter_toggle': '/noise/master/meter/toggle',
+    'master_limiter_ceiling': '/noise/master/limiter/ceiling',
+    'master_limiter_bypass': '/noise/master/limiter/bypass',
 }
 
 # === WIDGET SIZES ===

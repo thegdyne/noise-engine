@@ -208,14 +208,23 @@ class MasterSection(QWidget):
     
     Phase 1.5: PRE/POST meter toggle
     - Toggle button to switch between PRE and POST fader metering
+    
+    Phase 4: Limiter
+    - Brickwall limiter (on by default)
+    - Ceiling control (-6 to 0 dB)
+    - Bypass button
     """
     
     master_volume_changed = pyqtSignal(float)
     meter_mode_changed = pyqtSignal(int)  # 0=PRE, 1=POST
+    limiter_ceiling_changed = pyqtSignal(float)  # dB value (-6 to 0)
+    limiter_bypass_changed = pyqtSignal(int)  # 0=on, 1=bypassed
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self.meter_mode = 0  # 0=PRE, 1=POST
+        self.limiter_bypass = 0  # 0=on, 1=bypassed
+        self.limiter_ceiling_db = -0.1  # Default ceiling
         self.setup_ui()
         
     def setup_ui(self):
@@ -271,6 +280,45 @@ class MasterSection(QWidget):
         fader_layout.addWidget(self.db_label)
         
         content_layout.addWidget(fader_widget)
+        
+        # Limiter section
+        limiter_widget = QWidget()
+        limiter_layout = QVBoxLayout(limiter_widget)
+        limiter_layout.setContentsMargins(0, 0, 0, 0)
+        limiter_layout.setSpacing(3)
+        
+        limiter_label = QLabel("LIM")
+        limiter_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        limiter_label.setAlignment(Qt.AlignCenter)
+        limiter_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
+        limiter_layout.addWidget(limiter_label)
+        
+        # Bypass button
+        self.limiter_bypass_btn = QPushButton("ON")
+        self.limiter_bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.limiter_bypass_btn.setFixedSize(28, 18)
+        self.limiter_bypass_btn.setToolTip("Limiter bypass")
+        self.limiter_bypass_btn.clicked.connect(self._on_limiter_bypass_clicked)
+        self._update_limiter_bypass_style()
+        limiter_layout.addWidget(self.limiter_bypass_btn, alignment=Qt.AlignCenter)
+        
+        # Ceiling control (small fader)
+        self.ceiling_fader = DragSlider()
+        self.ceiling_fader.setFixedWidth(SIZES['slider_width_narrow'])
+        self.ceiling_fader.setRange(0, 600)  # 0 = -6dB, 600 = 0dB
+        self.ceiling_fader.setValue(590)  # -0.1dB default
+        self.ceiling_fader.setMinimumHeight(SIZES['slider_height_small'])
+        self.ceiling_fader.valueChanged.connect(self._on_ceiling_changed)
+        limiter_layout.addWidget(self.ceiling_fader, alignment=Qt.AlignCenter)
+        
+        # Ceiling dB display
+        self.ceiling_label = QLabel("-0.1")
+        self.ceiling_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.ceiling_label.setAlignment(Qt.AlignCenter)
+        self.ceiling_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        limiter_layout.addWidget(self.ceiling_label)
+        
+        content_layout.addWidget(limiter_widget)
         
         # Meter section
         meter_widget = QWidget()
@@ -369,6 +417,64 @@ class MasterSection(QWidget):
                     background-color: {COLORS['enabled_hover']};
                 }}
             """)
+    
+    def _on_limiter_bypass_clicked(self):
+        """Toggle limiter bypass."""
+        self.limiter_bypass = 1 - self.limiter_bypass  # Toggle 0<->1
+        self._update_limiter_bypass_style()
+        
+        from src.utils.logger import logger
+        state = "BYPASSED" if self.limiter_bypass == 1 else "ON"
+        logger.info(f"Limiter: {state}", component="UI")
+        
+        self.limiter_bypass_changed.emit(self.limiter_bypass)
+    
+    def _update_limiter_bypass_style(self):
+        """Update bypass button appearance."""
+        if self.limiter_bypass == 0:
+            # Limiter ON - green/active
+            self.limiter_bypass_btn.setText("ON")
+            self.limiter_bypass_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['enabled']};
+                    color: {COLORS['enabled_text']};
+                    border: 1px solid {COLORS['border_active']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['enabled_hover']};
+                }}
+            """)
+        else:
+            # Limiter BYPASSED - dim/warning
+            self.limiter_bypass_btn.setText("BYP")
+            self.limiter_bypass_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['warning_hover']};
+                }}
+            """)
+    
+    def _on_ceiling_changed(self, value):
+        """Handle ceiling fader change."""
+        # Convert 0-600 to -6 to 0 dB
+        db = (value / 100.0) - 6.0
+        self.limiter_ceiling_db = db
+        
+        # Update display
+        self.ceiling_label.setText(f"{db:.1f}")
+        
+        from src.utils.logger import logger
+        logger.debug(f"Limiter ceiling: {db:.1f}dB", component="UI")
+        
+        self.limiter_ceiling_changed.emit(db)
         
     def set_levels(self, left, right, peak_left=None, peak_right=None):
         """Update level meters from OSC data.

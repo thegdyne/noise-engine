@@ -1,23 +1,24 @@
 /*
 Master Passthrough Effect
-Final output with master volume and PRE/POST metering
+Final output with master volume, limiter, and PRE/POST metering
 
-Signal flow: masterBus -> PRE meter -> Master Vol -> POST meter -> output
-                            |                            |
-                        (meterMode=0)               (meterMode=1)
-                                      ↓
-                              OSC to Python
+Signal flow: masterBus -> PRE meter -> Limiter -> Master Vol -> POST meter -> output
+                            |                                        |
+                        (meterMode=0)                           (meterMode=1)
+                                            ↓
+                                    OSC to Python
 
-Future: Insert chain (Limiter → Comp → EQ) goes between PRE meter and Master Vol
-        See docs/MASTER_OUT.md for phases
+Future: Full insert chain (Limiter → Comp → EQ) - see docs/MASTER_OUT.md
 */
 
 ~setupMasterPassthrough = {
-    SynthDef(\masterPassthrough, { |inBus, outBus=0, masterVol=0.8, meterRate=24, meterMode=0|
+    SynthDef(\masterPassthrough, { |inBus, outBus=0, masterVol=0.8, meterRate=24, meterMode=0,
+                                    limiterCeiling=0.99, limiterBypass=0|
         var sig, sigPost;
         var preAmpL, preAmpR, prePeakL, prePeakR;
         var postAmpL, postAmpR, postPeakL, postPeakR;
         var ampL, ampR, peakL, peakR;
+        var sigLimited;
         
         sig = In.ar(inBus, 2);
         
@@ -27,7 +28,9 @@ Future: Insert chain (Limiter → Comp → EQ) goes between PRE meter and Master
         prePeakL = Amplitude.kr(sig[0], attackTime: 0.001, releaseTime: 0.3);
         prePeakR = Amplitude.kr(sig[1], attackTime: 0.001, releaseTime: 0.3);
         
-        // Future: Insert chain goes here (Limiter → Comp → EQ)
+        // Limiter (brickwall, pre-fader)
+        sigLimited = Limiter.ar(sig, limiterCeiling, 0.01);
+        sig = Select.ar(limiterBypass, [sigLimited, sig]);
         
         // Master volume
         sigPost = sig * masterVol;
@@ -54,7 +57,7 @@ Future: Insert chain (Limiter → Comp → EQ) goes between PRE meter and Master
         Out.ar(outBus, sigPost);
     }).add;
     
-    "  ✓ Master passthrough SynthDef ready (PRE/POST metering)".postln;
+    "  ✓ Master passthrough SynthDef ready (PRE/POST metering, limiter)".postln;
 };
 
 ~startMasterPassthrough = {
@@ -62,6 +65,10 @@ Future: Insert chain (Limiter → Comp → EQ) goes between PRE meter and Master
     
     // Track meter mode (0=PRE, 1=POST)
     ~masterMeterMode = 0;
+    
+    // Limiter defaults
+    ~limiterCeiling = 0.99;  // -0.1dB
+    ~limiterBypass = 0;      // On by default
     
     // Forward internal meter replies to Python
     OSCdef(\meterForward, { |msg|
@@ -79,14 +86,37 @@ Future: Insert chain (Limiter → Comp → EQ) goes between PRE meter and Master
         ("  Meter mode: " ++ if(mode == 0, "PRE", "POST")).postln;
     }, '/noise/master/meter/toggle');
     
+    // Handle limiter ceiling from Python (receives dB, converts to linear)
+    OSCdef(\limiterCeiling, { |msg|
+        var db = msg[1].clip(-6, 0);
+        var linear = db.dbamp;  // Convert dB to linear
+        ~limiterCeiling = linear;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\limiterCeiling, linear);
+        };
+        ("  Limiter ceiling: " ++ db ++ "dB (" ++ linear.round(0.001) ++ ")").postln;
+    }, '/noise/master/limiter/ceiling');
+    
+    // Handle limiter bypass from Python
+    OSCdef(\limiterBypass, { |msg|
+        var bypass = msg[1].asInteger.clip(0, 1);
+        ~limiterBypass = bypass;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\limiterBypass, bypass);
+        };
+        ("  Limiter: " ++ if(bypass == 0, "ON", "BYPASSED")).postln;
+    }, '/noise/master/limiter/bypass');
+    
     // Add to fxGroup (runs AFTER generators)
     ~masterEffects = Synth(\masterPassthrough, [
         \inBus, ~masterBus,
         \outBus, 0,
         \masterVol, ~masterVolume ? 0.8,
         \meterRate, 24,
-        \meterMode, ~masterMeterMode
+        \meterMode, ~masterMeterMode,
+        \limiterCeiling, ~limiterCeiling,
+        \limiterBypass, ~limiterBypass
     ], ~fxGroup);
     
-    "  ✓ Master passthrough running".postln;
+    "  ✓ Master passthrough running (limiter ON, ceiling -0.1dB)".postln;
 };
