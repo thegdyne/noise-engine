@@ -167,3 +167,23 @@ A S D F G H J K L ;     (white keys - C to C)
 - Can play alongside running sequencer (last message wins)
 
 **Design doc:** `docs/KEYBOARD_MODE.md`
+## Generator Lock & Power Off
+
+**Concept:** Two controls per slot for protecting generator selection and quick power cycling.
+
+**🔒 Lock:**
+- Disables generator dropdown only
+- Params, channel strip, trigger mode all still editable
+- Prevents accidental generator changes while tweaking
+
+**⏻ Power Off:**
+- Stops audio, dims slot, stores full state
+- Auto-locks generator dropdown
+- Press again to restore exactly as it was
+- Stores: generator, params, trigger mode, channel strip, previous lock state
+
+**UI:** Both icons top right of slot, next to generator dropdown
+
+**Storage:** Central config (SSOT) - not per-generator
+
+**Design doc:** `docs/GENERATOR_POWER.md`
