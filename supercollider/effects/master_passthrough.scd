@@ -27,20 +27,31 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         prePeakL = Amplitude.kr(sig[0], attackTime: 0.001, releaseTime: 0.3);
         prePeakR = Amplitude.kr(sig[1], attackTime: 0.001, releaseTime: 0.3);
         
-        // === 3-Band EQ ===
-        sigEQ = sig;
+        // === DJ-Style 3-Band Isolator EQ ===
+        // Splits signal into 3 bands, applies gain to each, then sums
+        // Crossover frequencies: 250Hz (lo/mid) and 2500Hz (mid/hi)
+        var sigLo, sigMid, sigHi;
+        var loGainLin, midGainLin, hiGainLin;
         
-        // LO CUT - HPF @ 75Hz
+        // Convert dB to linear gain (with -inf at -12dB for full kill)
+        // Map: -12dB = 0 (kill), 0dB = 1, +12dB = 4
+        loGainLin = (eqLoGain.lag(0.1) + 12).max(0) / 12;  // 0 to 2
+        loGainLin = loGainLin * loGainLin;  // Square for more musical response
+        midGainLin = (eqMidGain.lag(0.1) + 12).max(0) / 12;
+        midGainLin = midGainLin * midGainLin;
+        hiGainLin = (eqHiGain.lag(0.1) + 12).max(0) / 12;
+        hiGainLin = hiGainLin * hiGainLin;
+        
+        // Split into 3 bands using Linkwitz-Riley style crossovers
+        sigLo = LPF.ar(LPF.ar(sig, 250), 250);  // Double LPF for steeper slope
+        sigHi = HPF.ar(HPF.ar(sig, 2500), 2500);  // Double HPF for steeper slope
+        sigMid = HPF.ar(HPF.ar(sig, 250), 250) - HPF.ar(HPF.ar(sig, 2500), 2500);  // Band between
+        
+        // Apply gains and sum
+        sigEQ = (sigLo * loGainLin) + (sigMid * midGainLin) + (sigHi * hiGainLin);
+        
+        // LO CUT - HPF @ 75Hz (additional, post-EQ)
         sigEQ = Select.ar(eqLoCut, [sigEQ, HPF.ar(sigEQ, 75)]);
-        
-        // LO - Wide bell @ 100Hz (Q=0.5 for shelf-like behavior)
-        sigEQ = BPeakEQ.ar(sigEQ, 100, 0.5, eqLoGain.lag(0.1));
-        
-        // MID - Bell @ 1kHz (Q=1)
-        sigEQ = BPeakEQ.ar(sigEQ, 1000, 1, eqMidGain.lag(0.1));
-        
-        // HI - Wide bell @ 8kHz (Q=0.5 for shelf-like behavior)
-        sigEQ = BPeakEQ.ar(sigEQ, 8000, 0.5, eqHiGain.lag(0.1));
         
         // EQ bypass
         sig = Select.ar(eqBypass, [sigEQ, sig]);
