@@ -70,6 +70,10 @@ s.waitForBoot({
     ~setupMIDI.();
     ~setupMIDIOSC.();
     
+    // Load audio device handler
+    (~basePath +/+ "core/audio_device.scd").load;
+    ~setupAudioDevice.();
+    
     s.sync;
     
     // Start audio

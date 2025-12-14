@@ -965,3 +965,120 @@ Python:
 - `supercollider/effects/master_passthrough.scd` (metering added)
 - `supercollider/core/master.scd` (volume OSC handler)
 - `src/audio/osc_bridge.py` (levels_received signal)
+
+---
+
+### [2025-12-14] Master Limiter - Brickwall Protection
+**Decision:** Simple brickwall limiter using SC's Limiter.ar with ceiling control and bypass
+
+**Rationale:**
+- Safety/protection is primary purpose, not creative gain maximization
+- Position after compressor catches makeup gain peaks
+- Position before master volume ensures consistent protection
+- -0.1dB default prevents intersample clipping
+
+**Parameters:**
+- Ceiling: -6dB to 0dB (default -0.1dB)
+- Lookahead: 10ms (fixed)
+- Bypass: On/Off
+
+**DO NOT:** Add GR meter (encourages "riding the limiter")
+**DO NOT:** Position after master volume (defeats protection intent)
+
+**Files affected:** `supercollider/effects/master_passthrough.scd`, `src/gui/master_section.py`
+
+---
+
+### [2025-12-14] Master EQ - DJ-Style Isolator (Not Parametric)
+**Decision:** 3-band DJ isolator instead of Mackie-style 4-band parametric EQ
+
+**Rationale:**
+- Performance-oriented workflow with instant kills
+- Simpler controls (3 sliders + 3 buttons vs 12+ knobs)
+- Full band isolation capability for dramatic effect
+- Phase-coherent when bands sum at unity
+
+**Architecture:**
+- Serial LR4 split topology (not subtraction)
+- Crossovers: 250Hz (LO/MID), 2500Hz (MID/HI)
+- Gain: -80dB (kill) to +12dB (boost)
+- Kill buttons override slider position
+
+**Why Serial Split (Not Subtraction):**
+```supercollider
+// BAD - phase artifacts:
+sigMid = HPF(sig, 250) - HPF(sig, 2500);
+
+// GOOD - phase coherent:
+sigRest = HPF(sig, 250);
+sigMid = LPF(sigRest, 2500);
+sigHi = HPF(sigRest, 2500);
+```
+
+**DO NOT:** Use subtraction for MID extraction (phase cancellation)
+**DO NOT:** Use -12dB for kill (still audible at 0.25 linear)
+
+**Files affected:** `supercollider/effects/master_passthrough.scd`, `src/gui/master_section.py`
+**See also:** `docs/MASTER_EQ.md`
+
+---
+
+### [2025-12-14] Master Compressor - SSL G-Series Style
+**Decision:** SSL G-Series style bus compressor with stepped controls and dominant stereo detection
+
+**Rationale:**
+- Industry standard for mix bus "glue"
+- Stepped controls match classic SSL workflow
+- Dominant stereo prevents stereo image shift
+- Auto-release adapts to material
+
+**Architecture:**
+- Custom detector (not Compander.ar) for SSL behavior
+- Peak detection with dominant channel selection: `max(L, R)`
+- Sidechain HPF on detection only (not audio path)
+- dB-domain gain computation
+
+**Parameters:**
+- Threshold: -20 to +20dB (default -10dB)
+- Ratio: 2:1, 4:1, 10:1 (stepped)
+- Attack: 0.1, 0.3, 1, 3, 10, 30ms (stepped)
+- Release: 0.1, 0.3, 0.6, 1.2s, Auto (stepped)
+- Makeup: 0 to +20dB
+- SC HPF: Off, 30, 60, 90, 120, 185Hz
+
+**Why -10dB Default Threshold:**
+At 0dB threshold, typical -6dB peaks don't trigger compression. -10dB ensures compression is audible out of the box.
+
+**Why Dominant Stereo:**
+```supercollider
+detector = max(detectorL, detectorR);  // Both channels controlled by louder
+```
+Prevents stereo image shift and unbalanced GR.
+
+**DO NOT:** Use Compander.ar (wrong detection model for SSL style)
+**DO NOT:** Default threshold to 0dB (never triggers)
+
+**Files affected:** `supercollider/effects/master_passthrough.scd`, `src/gui/master_section.py`, `src/audio/osc_bridge.py`
+**See also:** `docs/MASTER_COMPRESSOR.md`
+
+---
+
+### [2025-12-14] ValuePopup on All Sliders
+**Decision:** All DragSliders across the project show floating value popup during drag
+
+**Implementation:**
+- Call `set_param_config(config, format_func)` on each slider
+- Popup appears on drag start, follows handle, hides on release
+- Format function provides unit-aware display (dB, Hz, %, etc.)
+
+**Sliders updated:**
+- Master fader: `-2.0dB` or `-∞`
+- EQ LO/MID/HI: `+6dB`, `-3dB`
+- Limiter ceiling: `-0.1dB`
+- Compressor threshold: `-10dB`
+- Compressor makeup: `+5dB`
+- Mixer channel faders: `-2.0dB` or `-∞`
+- Effects amount: `50%`
+- LFO rate: `5.0Hz`
+
+**Files affected:** `src/gui/master_section.py`, `src/gui/mixer_panel.py`, `src/gui/effects_chain.py`, `src/gui/modulation_sources.py`

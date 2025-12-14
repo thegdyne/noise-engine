@@ -112,6 +112,25 @@ class MainFrame(QMainWindow):
         # Master section (lower portion)
         self.master_section = MasterSection()
         self.master_section.master_volume_changed.connect(self.on_master_volume_from_master)
+        self.master_section.meter_mode_changed.connect(self.on_meter_mode_changed)
+        self.master_section.limiter_ceiling_changed.connect(self.on_limiter_ceiling_changed)
+        self.master_section.limiter_bypass_changed.connect(self.on_limiter_bypass_changed)
+        self.master_section.eq_lo_changed.connect(self.on_eq_lo_changed)
+        self.master_section.eq_mid_changed.connect(self.on_eq_mid_changed)
+        self.master_section.eq_hi_changed.connect(self.on_eq_hi_changed)
+        self.master_section.eq_lo_kill_changed.connect(self.on_eq_lo_kill_changed)
+        self.master_section.eq_mid_kill_changed.connect(self.on_eq_mid_kill_changed)
+        self.master_section.eq_hi_kill_changed.connect(self.on_eq_hi_kill_changed)
+        self.master_section.eq_locut_changed.connect(self.on_eq_locut_changed)
+        self.master_section.eq_bypass_changed.connect(self.on_eq_bypass_changed)
+        # Compressor signals
+        self.master_section.comp_threshold_changed.connect(self.on_comp_threshold_changed)
+        self.master_section.comp_ratio_changed.connect(self.on_comp_ratio_changed)
+        self.master_section.comp_attack_changed.connect(self.on_comp_attack_changed)
+        self.master_section.comp_release_changed.connect(self.on_comp_release_changed)
+        self.master_section.comp_makeup_changed.connect(self.on_comp_makeup_changed)
+        self.master_section.comp_sc_hpf_changed.connect(self.on_comp_sc_hpf_changed)
+        self.master_section.comp_bypass_changed.connect(self.on_comp_bypass_changed)
         right_layout.addWidget(self.master_section, stretch=1)
         
         content_layout.addWidget(right_panel, stretch=1)
@@ -157,6 +176,14 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.bpm_display)
         
         layout.addSpacing(20)
+        
+        # Audio device selector
+        from src.gui.audio_device_selector import AudioDeviceSelector
+        self.audio_selector = AudioDeviceSelector()
+        self.audio_selector.device_changed.connect(self.on_audio_device_changed)
+        layout.addWidget(self.audio_selector)
+        
+        layout.addSpacing(10)
         
         # MIDI device selector
         self.midi_selector = MIDISelector()
@@ -291,6 +318,10 @@ class MainFrame(QMainWindow):
             self.osc.channel_levels_received.connect(self.on_channel_levels_received)
             self.osc.connection_lost.connect(self.on_connection_lost)
             self.osc.connection_restored.connect(self.on_connection_restored)
+            self.osc.audio_devices_received.connect(self.on_audio_devices_received)
+            self.osc.audio_device_changing.connect(self.on_audio_device_changing)
+            self.osc.audio_device_ready.connect(self.on_audio_device_ready)
+            self.osc.comp_gr_received.connect(self.on_comp_gr_received)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -304,6 +335,9 @@ class MainFrame(QMainWindow):
                 
                 # Send initial master volume
                 self.osc.client.send_message(OSC_PATHS['master_volume'], [self.master_section.get_volume()])
+                
+                # Query audio devices
+                self.osc.query_audio_devices()
                 
                 # Send current MIDI device if one is selected
                 current_midi = self.midi_selector.get_current_device()
@@ -524,6 +558,147 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_volume'], [volume])
         logger.info(f"Master volume: {volume:.2f}", component="OSC")
+    
+    def on_meter_mode_changed(self, mode):
+        """Handle meter mode toggle (PRE=0, POST=1)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_meter_toggle'], [mode])
+        mode_name = "POST" if mode == 1 else "PRE"
+        logger.info(f"Master meter: {mode_name}", component="OSC")
+    
+    def on_limiter_ceiling_changed(self, db):
+        """Handle limiter ceiling change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_limiter_ceiling'], [db])
+        logger.debug(f"Limiter ceiling: {db:.1f}dB", component="OSC")
+    
+    def on_limiter_bypass_changed(self, bypass):
+        """Handle limiter bypass toggle (0=on, 1=bypassed)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_limiter_bypass'], [bypass])
+        state = "BYPASSED" if bypass == 1 else "ON"
+        logger.info(f"Limiter: {state}", component="OSC")
+    
+    # === EQ Handlers ===
+    
+    def on_eq_lo_changed(self, db):
+        """Handle EQ LO change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_lo'], [db])
+    
+    def on_eq_mid_changed(self, db):
+        """Handle EQ MID change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_mid'], [db])
+    
+    def on_eq_hi_changed(self, db):
+        """Handle EQ HI change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_hi'], [db])
+    
+    def on_eq_lo_kill_changed(self, kill):
+        """Handle EQ LO kill toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_lo_kill'], [kill])
+        state = "KILLED" if kill == 1 else "OFF"
+        logger.info(f"EQ LO Kill: {state}", component="OSC")
+    
+    def on_eq_mid_kill_changed(self, kill):
+        """Handle EQ MID kill toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_mid_kill'], [kill])
+        state = "KILLED" if kill == 1 else "OFF"
+        logger.info(f"EQ MID Kill: {state}", component="OSC")
+    
+    def on_eq_hi_kill_changed(self, kill):
+        """Handle EQ HI kill toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_hi_kill'], [kill])
+        state = "KILLED" if kill == 1 else "OFF"
+        logger.info(f"EQ HI Kill: {state}", component="OSC")
+    
+    def on_eq_locut_changed(self, enabled):
+        """Handle EQ lo cut toggle (0=off, 1=on)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_locut'], [enabled])
+        state = "ON" if enabled == 1 else "OFF"
+        logger.info(f"EQ Lo Cut: {state}", component="OSC")
+    
+    def on_eq_bypass_changed(self, bypass):
+        """Handle EQ bypass toggle (0=on, 1=bypassed)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_bypass'], [bypass])
+        state = "BYPASSED" if bypass == 1 else "ON"
+        logger.info(f"EQ: {state}", component="OSC")
+    
+    # === Compressor Handlers ===
+    
+    def on_comp_threshold_changed(self, db):
+        """Handle compressor threshold change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_threshold'], [db])
+    
+    def on_comp_ratio_changed(self, idx):
+        """Handle compressor ratio change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_ratio'], [idx])
+    
+    def on_comp_attack_changed(self, idx):
+        """Handle compressor attack change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_attack'], [idx])
+    
+    def on_comp_release_changed(self, idx):
+        """Handle compressor release change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_release'], [idx])
+    
+    def on_comp_makeup_changed(self, db):
+        """Handle compressor makeup change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_makeup'], [db])
+    
+    def on_comp_sc_hpf_changed(self, idx):
+        """Handle compressor SC HPF change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_sc_hpf'], [idx])
+    
+    def on_comp_bypass_changed(self, bypass):
+        """Handle compressor bypass toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_bypass'], [bypass])
+        state = "BYPASSED" if bypass == 1 else "ON"
+        logger.info(f"Compressor: {state}", component="OSC")
+    
+    def on_comp_gr_received(self, gr_db):
+        """Handle compressor GR meter update."""
+        self.master_section.set_comp_gr(gr_db)
+    
+    def on_audio_device_changed(self, device_name):
+        """Handle audio device selection from dropdown - disabled for now."""
+        # Device switching disabled - SC reboot is too fragile
+        # Dropdown is display-only to show available devices
+        pass
+    
+    def on_audio_devices_received(self, devices, current):
+        """Handle audio device list from SC."""
+        logger.info(f"Audio devices: {len(devices)} available, current: {current}", component="OSC")
+        self.audio_selector.set_devices(devices, current)
+    
+    def on_audio_device_changing(self, device_name):
+        """Handle notification that SC is changing audio device."""
+        logger.info(f"Audio device changing to: {device_name}...", component="OSC")
+        self.status_label.setText("● Switching...")
+        self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
+    
+    def on_audio_device_ready(self, device_name):
+        """Handle notification that SC finished changing device."""
+        logger.info(f"Audio device ready: {device_name}", component="OSC")
+        self.status_label.setText("● Connected")
+        self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
+        self.audio_selector.set_enabled(True)
+        # Re-query to confirm
+        self.osc.query_audio_devices()
         
     def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
         """Handle level meter data from SuperCollider."""

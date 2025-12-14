@@ -352,6 +352,35 @@ OSC_PATHS = {
     'master_volume': '/noise/master/volume',
     'master_levels': '/noise/master/levels',
     'master_meter_toggle': '/noise/master/meter/toggle',
+    'master_limiter_ceiling': '/noise/master/limiter/ceiling',
+    'master_limiter_bypass': '/noise/master/limiter/bypass',
+    # Master EQ
+    'master_eq_lo': '/noise/master/eq/lo',
+    'master_eq_mid': '/noise/master/eq/mid',
+    'master_eq_hi': '/noise/master/eq/hi',
+    'master_eq_lo_kill': '/noise/master/eq/lo/kill',
+    'master_eq_mid_kill': '/noise/master/eq/mid/kill',
+    'master_eq_hi_kill': '/noise/master/eq/hi/kill',
+    'master_eq_locut': '/noise/master/eq/locut',
+    'master_eq_bypass': '/noise/master/eq/bypass',
+    # Master Compressor
+    'master_comp_threshold': '/noise/master/comp/threshold',
+    'master_comp_ratio': '/noise/master/comp/ratio',
+    'master_comp_attack': '/noise/master/comp/attack',
+    'master_comp_release': '/noise/master/comp/release',
+    'master_comp_makeup': '/noise/master/comp/makeup',
+    'master_comp_sc_hpf': '/noise/master/comp/sc_hpf',
+    'master_comp_bypass': '/noise/master/comp/bypass',
+    'master_comp_gr': '/noise/master/comp/gr',
+    # Audio device
+    'audio_devices_query': '/noise/audio/devices/query',
+    'audio_devices_count': '/noise/audio/devices/count',
+    'audio_devices_item': '/noise/audio/devices/item',
+    'audio_devices_done': '/noise/audio/devices/done',
+    'audio_device_set': '/noise/audio/device/set',
+    'audio_device_changing': '/noise/audio/device/changing',
+    'audio_device_ready': '/noise/audio/device/ready',
+    'audio_device_error': '/noise/audio/device/error',
 }
 
 # === WIDGET SIZES ===
