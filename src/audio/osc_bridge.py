@@ -32,6 +32,11 @@ class OSCBridge(QObject):
     channel_levels_received = pyqtSignal(int, float, float)  # slot_id, ampL, ampR
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
+    # Audio device signals
+    audio_devices_received = pyqtSignal(list, str)  # devices list, current device
+    audio_device_changing = pyqtSignal(str)  # device name
+    audio_device_ready = pyqtSignal(str)  # device name
+    audio_device_error = pyqtSignal(str)  # error message
     
     # Connection constants
     PING_TIMEOUT_MS = 1000  # Wait 1 second for ping response
@@ -43,6 +48,10 @@ class OSCBridge(QObject):
         self.client = None
         self.server = None
         self.server_thread = None
+        # Audio device query state
+        self._audio_devices = []
+        self._audio_device_current = ""
+        self._audio_device_count = 0
         self.connected = False
         
         # Connection verification
@@ -175,6 +184,14 @@ class OSCBridge(QObject):
         # Handle per-channel level meter data from SC
         dispatcher.map(OSC_PATHS['gen_levels'], self._handle_channel_levels)
         
+        # Handle audio device messages from SC
+        dispatcher.map(OSC_PATHS['audio_devices_count'], self._handle_audio_devices_count)
+        dispatcher.map(OSC_PATHS['audio_devices_item'], self._handle_audio_devices_item)
+        dispatcher.map(OSC_PATHS['audio_devices_done'], self._handle_audio_devices_done)
+        dispatcher.map(OSC_PATHS['audio_device_changing'], self._handle_audio_device_changing)
+        dispatcher.map(OSC_PATHS['audio_device_ready'], self._handle_audio_device_ready)
+        dispatcher.map(OSC_PATHS['audio_device_error'], self._handle_audio_device_error)
+        
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
         
@@ -226,6 +243,53 @@ class OSCBridge(QObject):
             # Debug - uncomment to verify data flow
             # print(f"CH {slot_id}: L={amp_l:.3f} R={amp_r:.3f}")
             self.channel_levels_received.emit(slot_id, amp_l, amp_r)
+    
+    def _handle_audio_devices_count(self, address, *args):
+        """Handle audio device count from SC - start of device list."""
+        if len(args) >= 2:
+            self._audio_device_count = int(args[0])
+            self._audio_device_current = str(args[1])
+            self._audio_devices = []
+    
+    def _handle_audio_devices_item(self, address, *args):
+        """Handle individual audio device from SC."""
+        if len(args) >= 2:
+            device_name = str(args[1])
+            self._audio_devices.append(device_name)
+    
+    def _handle_audio_devices_done(self, address, *args):
+        """Handle end of audio device list from SC."""
+        self.audio_devices_received.emit(self._audio_devices, self._audio_device_current)
+    
+    def _handle_audio_device_changing(self, address, *args):
+        """Handle notification that SC is changing audio device."""
+        if len(args) >= 1:
+            device_name = str(args[0])
+            self.audio_device_changing.emit(device_name)
+    
+    def _handle_audio_device_ready(self, address, *args):
+        """Handle notification that SC has finished changing device."""
+        if len(args) >= 1:
+            device_name = str(args[0])
+            self.audio_device_ready.emit(device_name)
+    
+    def _handle_audio_device_error(self, address, *args):
+        """Handle audio device error from SC."""
+        if len(args) >= 1:
+            error_msg = str(args[0])
+            self.audio_device_error.emit(error_msg)
+    
+    def query_audio_devices(self):
+        """Request list of audio devices from SC."""
+        from src.config import OSC_PATHS
+        if self.client:
+            self.client.send_message(OSC_PATHS['audio_devices_query'], [1])
+    
+    def set_audio_device(self, device_name):
+        """Set audio device in SC (triggers reboot)."""
+        from src.config import OSC_PATHS
+        if self.client:
+            self.client.send_message(OSC_PATHS['audio_device_set'], [device_name])
     
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""

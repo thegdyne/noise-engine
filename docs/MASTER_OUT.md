@@ -200,42 +200,53 @@ sig = sig * makeupGain;
 
 ---
 
-### Phase 6: 3-Band EQ
+
+### Phase 6: Master EQ (Mackie 8-Bus Style)
+
 **Effort:** Medium  
-**Dependencies:** Phase 5
+**Dependencies:** Phase 1, Phase 4
 
 **Features:**
-- Low shelf (~200Hz)
-- Mid bell (~1kHz)
-- High shelf (~4kHz)
-- Gain per band (-12 to +12 dB)
-- Bypass option
+- 4-band EQ based on Mackie 32.8 "8-Bus" console
+- LO CUT (HPF) for rumble removal
+- EQ bypass
 
-**SC Requirements:**
-```supercollider
-// 3-band EQ
-sig = BLowShelf.ar(sig, lowFreq, 1, lowGain);
-sig = MidEQ.ar(sig, midFreq, 1, midGain);
-sig = BHiShelf.ar(sig, highFreq, 1, highGain);
+**Signal Flow:**
+```
+Master Bus → PRE meter → EQ → Limiter → Master Vol → POST meter → Output
 ```
 
 **Parameters:**
-| Param | Default | Range | Unit |
-|-------|---------|-------|------|
-| lowFreq | 200 | 60 to 400 | Hz |
-| lowGain | 0 | -12 to +12 | dB |
-| midFreq | 1000 | 400 to 4000 | Hz |
-| midGain | 0 | -12 to +12 | dB |
-| highFreq | 4000 | 2000 to 12000 | Hz |
-| highGain | 0 | -12 to +12 | dB |
-| enabled | false | bool | - |
 
-**UI Options:**
-1. Simple: 3 vertical gain sliders, fixed frequencies
-2. Advanced: Gain + frequency per band (6 controls)
+| Band | Type | Frequency | Range |
+|------|------|-----------|-------|
+| HI | Shelf | 12kHz fixed | ±15dB |
+| HI-MID | Semi-para | 500Hz-18kHz sweep | ±15dB |
+| LO-MID | Semi-para | 45Hz-3kHz sweep | ±15dB |
+| LO | Shelf | 80Hz fixed | ±15dB |
+| LO CUT | HPF | 75Hz | on/off (18dB/oct) |
 
-Recommend starting simple.
+**UI:**
+```
+┌─────────────────────────────────────────────────┐
+│ MASTER EQ                          [CUT] [BYP] │
+│  LO     LO-M    HI-M    HI                     │
+│   ●       ●       ●      ●     ← gain (±15dB)  │
+│          ○●○     ○●○           ← freq sweep    │
+└─────────────────────────────────────────────────┘
+```
 
+**OSC Paths:**
+```
+/noise/master/eq/hi        [gainDB]      // -15 to +15
+/noise/master/eq/himid     [gainDB]      // -15 to +15
+/noise/master/eq/himidfreq [hz]          // 500-18000
+/noise/master/eq/lomid     [gainDB]      // -15 to +15
+/noise/master/eq/lomidfreq [hz]          // 45-3000
+/noise/master/eq/lo        [gainDB]      // -15 to +15
+/noise/master/eq/locut     [0/1]         // HPF on/off
+/noise/master/eq/bypass    [0/1]         // EQ bypass
+```
 ---
 
 ### Phase 7: Recording

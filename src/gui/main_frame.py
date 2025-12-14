@@ -161,6 +161,14 @@ class MainFrame(QMainWindow):
         
         layout.addSpacing(20)
         
+        # Audio device selector
+        from src.gui.audio_device_selector import AudioDeviceSelector
+        self.audio_selector = AudioDeviceSelector()
+        self.audio_selector.device_changed.connect(self.on_audio_device_changed)
+        layout.addWidget(self.audio_selector)
+        
+        layout.addSpacing(10)
+        
         # MIDI device selector
         self.midi_selector = MIDISelector()
         self.midi_selector.device_changed.connect(self.on_midi_device_changed)
@@ -294,6 +302,9 @@ class MainFrame(QMainWindow):
             self.osc.channel_levels_received.connect(self.on_channel_levels_received)
             self.osc.connection_lost.connect(self.on_connection_lost)
             self.osc.connection_restored.connect(self.on_connection_restored)
+            self.osc.audio_devices_received.connect(self.on_audio_devices_received)
+            self.osc.audio_device_changing.connect(self.on_audio_device_changing)
+            self.osc.audio_device_ready.connect(self.on_audio_device_ready)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -307,6 +318,9 @@ class MainFrame(QMainWindow):
                 
                 # Send initial master volume
                 self.osc.client.send_message(OSC_PATHS['master_volume'], [self.master_section.get_volume()])
+                
+                # Query audio devices
+                self.osc.query_audio_devices()
                 
                 # Send current MIDI device if one is selected
                 current_midi = self.midi_selector.get_current_device()
@@ -547,6 +561,33 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(OSC_PATHS['master_limiter_bypass'], [bypass])
         state = "BYPASSED" if bypass == 1 else "ON"
         logger.info(f"Limiter: {state}", component="OSC")
+    
+    def on_audio_device_changed(self, device_name):
+        """Handle audio device selection from dropdown."""
+        if self.osc_connected and device_name:
+            logger.info(f"Switching audio device to: {device_name}", component="OSC")
+            self.audio_selector.set_enabled(False)  # Disable during switch
+            self.osc.set_audio_device(device_name)
+    
+    def on_audio_devices_received(self, devices, current):
+        """Handle audio device list from SC."""
+        logger.info(f"Audio devices: {len(devices)} available, current: {current}", component="OSC")
+        self.audio_selector.set_devices(devices, current)
+    
+    def on_audio_device_changing(self, device_name):
+        """Handle notification that SC is changing audio device."""
+        logger.info(f"Audio device changing to: {device_name}...", component="OSC")
+        self.status_label.setText("● Switching...")
+        self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
+    
+    def on_audio_device_ready(self, device_name):
+        """Handle notification that SC finished changing device."""
+        logger.info(f"Audio device ready: {device_name}", component="OSC")
+        self.status_label.setText("● Connected")
+        self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
+        self.audio_selector.set_enabled(True)
+        # Re-query to confirm
+        self.osc.query_audio_devices()
         
     def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
         """Handle level meter data from SuperCollider."""

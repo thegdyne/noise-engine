@@ -354,6 +354,15 @@ OSC_PATHS = {
     'master_meter_toggle': '/noise/master/meter/toggle',
     'master_limiter_ceiling': '/noise/master/limiter/ceiling',
     'master_limiter_bypass': '/noise/master/limiter/bypass',
+    # Audio device
+    'audio_devices_query': '/noise/audio/devices/query',
+    'audio_devices_count': '/noise/audio/devices/count',
+    'audio_devices_item': '/noise/audio/devices/item',
+    'audio_devices_done': '/noise/audio/devices/done',
+    'audio_device_set': '/noise/audio/device/set',
+    'audio_device_changing': '/noise/audio/device/changing',
+    'audio_device_ready': '/noise/audio/device/ready',
+    'audio_device_error': '/noise/audio/device/error',
 }
 
 # === WIDGET SIZES ===
