@@ -33,16 +33,14 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         // LO CUT - HPF @ 75Hz
         sigEQ = Select.ar(eqLoCut, [sigEQ, HPF.ar(sigEQ, 75)]);
         
-        // LO - Low shelf using LPF crossover method
-        // Extract low frequencies, apply gain, mix back
-        sigEQ = sigEQ + (LPF.ar(sigEQ, 80) * (eqLoGain.lag(0.1).dbamp - 1));
+        // LO - Wide bell @ 100Hz (Q=0.5 for shelf-like behavior)
+        sigEQ = BPeakEQ.ar(sigEQ, 100, 0.5, eqLoGain.lag(0.1));
         
-        // MID - Bell @ 1kHz
-        sigEQ = MidEQ.ar(sigEQ, 1000, 1, eqMidGain.lag(0.1));
+        // MID - Bell @ 1kHz (Q=1)
+        sigEQ = BPeakEQ.ar(sigEQ, 1000, 1, eqMidGain.lag(0.1));
         
-        // HI - High shelf using HPF crossover method
-        // Extract high frequencies, apply gain, mix back
-        sigEQ = sigEQ + (HPF.ar(sigEQ, 12000) * (eqHiGain.lag(0.1).dbamp - 1));
+        // HI - Wide bell @ 8kHz (Q=0.5 for shelf-like behavior)
+        sigEQ = BPeakEQ.ar(sigEQ, 8000, 0.5, eqHiGain.lag(0.1));
         
         // EQ bypass
         sig = Select.ar(eqBypass, [sigEQ, sig]);
