@@ -223,6 +223,9 @@ class MasterSection(QWidget):
     eq_lo_changed = pyqtSignal(float)  # dB value (-12 to +12)
     eq_mid_changed = pyqtSignal(float)
     eq_hi_changed = pyqtSignal(float)
+    eq_lo_kill_changed = pyqtSignal(int)  # 0=off, 1=killed
+    eq_mid_kill_changed = pyqtSignal(int)
+    eq_hi_kill_changed = pyqtSignal(int)
     eq_locut_changed = pyqtSignal(int)  # 0=off, 1=on
     eq_bypass_changed = pyqtSignal(int)  # 0=on, 1=bypassed
     
@@ -234,6 +237,9 @@ class MasterSection(QWidget):
         # EQ state
         self.eq_bypass = 0  # 0=on, 1=bypassed
         self.eq_locut = 0  # 0=off, 1=on
+        self.eq_lo_kill = 0  # 0=off, 1=killed
+        self.eq_mid_kill = 0
+        self.eq_hi_kill = 0
         self.setup_ui()
         
     def setup_ui(self):
@@ -352,7 +358,7 @@ class MasterSection(QWidget):
         eq_knobs = QHBoxLayout()
         eq_knobs.setSpacing(4)
         
-        # LO knob
+        # LO knob + kill
         lo_container = QVBoxLayout()
         lo_container.setSpacing(1)
         self.eq_lo_slider = DragSlider()
@@ -362,14 +368,16 @@ class MasterSection(QWidget):
         self.eq_lo_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_lo_slider.valueChanged.connect(self._on_eq_lo_changed)
         lo_container.addWidget(self.eq_lo_slider, alignment=Qt.AlignCenter)
-        lo_label = QLabel("LO")
-        lo_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        lo_label.setAlignment(Qt.AlignCenter)
-        lo_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        lo_container.addWidget(lo_label)
+        self.eq_lo_kill_btn = QPushButton("LO")
+        self.eq_lo_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.eq_lo_kill_btn.setFixedSize(24, 16)
+        self.eq_lo_kill_btn.setToolTip("Kill LO band")
+        self.eq_lo_kill_btn.clicked.connect(self._on_eq_lo_kill_clicked)
+        self._update_eq_lo_kill_style()
+        lo_container.addWidget(self.eq_lo_kill_btn, alignment=Qt.AlignCenter)
         eq_knobs.addLayout(lo_container)
         
-        # MID knob
+        # MID knob + kill
         mid_container = QVBoxLayout()
         mid_container.setSpacing(1)
         self.eq_mid_slider = DragSlider()
@@ -379,14 +387,16 @@ class MasterSection(QWidget):
         self.eq_mid_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_mid_slider.valueChanged.connect(self._on_eq_mid_changed)
         mid_container.addWidget(self.eq_mid_slider, alignment=Qt.AlignCenter)
-        mid_label = QLabel("MID")
-        mid_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        mid_label.setAlignment(Qt.AlignCenter)
-        mid_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        mid_container.addWidget(mid_label)
+        self.eq_mid_kill_btn = QPushButton("MID")
+        self.eq_mid_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.eq_mid_kill_btn.setFixedSize(28, 16)
+        self.eq_mid_kill_btn.setToolTip("Kill MID band")
+        self.eq_mid_kill_btn.clicked.connect(self._on_eq_mid_kill_clicked)
+        self._update_eq_mid_kill_style()
+        mid_container.addWidget(self.eq_mid_kill_btn, alignment=Qt.AlignCenter)
         eq_knobs.addLayout(mid_container)
         
-        # HI knob
+        # HI knob + kill
         hi_container = QVBoxLayout()
         hi_container.setSpacing(1)
         self.eq_hi_slider = DragSlider()
@@ -396,11 +406,13 @@ class MasterSection(QWidget):
         self.eq_hi_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_hi_slider.valueChanged.connect(self._on_eq_hi_changed)
         hi_container.addWidget(self.eq_hi_slider, alignment=Qt.AlignCenter)
-        hi_label = QLabel("HI")
-        hi_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        hi_label.setAlignment(Qt.AlignCenter)
-        hi_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        hi_container.addWidget(hi_label)
+        self.eq_hi_kill_btn = QPushButton("HI")
+        self.eq_hi_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.eq_hi_kill_btn.setFixedSize(24, 16)
+        self.eq_hi_kill_btn.setToolTip("Kill HI band")
+        self.eq_hi_kill_btn.clicked.connect(self._on_eq_hi_kill_clicked)
+        self._update_eq_hi_kill_style()
+        hi_container.addWidget(self.eq_hi_kill_btn, alignment=Qt.AlignCenter)
         eq_knobs.addLayout(hi_container)
         
         eq_layout.addLayout(eq_knobs)
@@ -607,6 +619,103 @@ class MasterSection(QWidget):
         """Handle EQ HI slider change."""
         db = (value / 10.0) - 12.0
         self.eq_hi_changed.emit(db)
+    
+    # Kill button handlers
+    def _on_eq_lo_kill_clicked(self):
+        """Toggle EQ LO kill."""
+        self.eq_lo_kill = 1 - self.eq_lo_kill
+        self._update_eq_lo_kill_style()
+        self.eq_lo_kill_changed.emit(self.eq_lo_kill)
+    
+    def _update_eq_lo_kill_style(self):
+        """Update LO kill button appearance."""
+        if self.eq_lo_kill == 0:
+            self.eq_lo_kill_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['background_dark']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['background_light']};
+                }}
+            """)
+        else:
+            self.eq_lo_kill_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['warning']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+            """)
+    
+    def _on_eq_mid_kill_clicked(self):
+        """Toggle EQ MID kill."""
+        self.eq_mid_kill = 1 - self.eq_mid_kill
+        self._update_eq_mid_kill_style()
+        self.eq_mid_kill_changed.emit(self.eq_mid_kill)
+    
+    def _update_eq_mid_kill_style(self):
+        """Update MID kill button appearance."""
+        if self.eq_mid_kill == 0:
+            self.eq_mid_kill_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['background_dark']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['background_light']};
+                }}
+            """)
+        else:
+            self.eq_mid_kill_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['warning']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+            """)
+    
+    def _on_eq_hi_kill_clicked(self):
+        """Toggle EQ HI kill."""
+        self.eq_hi_kill = 1 - self.eq_hi_kill
+        self._update_eq_hi_kill_style()
+        self.eq_hi_kill_changed.emit(self.eq_hi_kill)
+    
+    def _update_eq_hi_kill_style(self):
+        """Update HI kill button appearance."""
+        if self.eq_hi_kill == 0:
+            self.eq_hi_kill_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['background_dark']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['background_light']};
+                }}
+            """)
+        else:
+            self.eq_hi_kill_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['warning']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+            """)
     
     def _on_eq_locut_clicked(self):
         """Toggle EQ low cut filter."""

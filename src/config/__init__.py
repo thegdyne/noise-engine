@@ -358,6 +358,9 @@ OSC_PATHS = {
     'master_eq_lo': '/noise/master/eq/lo',
     'master_eq_mid': '/noise/master/eq/mid',
     'master_eq_hi': '/noise/master/eq/hi',
+    'master_eq_lo_kill': '/noise/master/eq/lo/kill',
+    'master_eq_mid_kill': '/noise/master/eq/mid/kill',
+    'master_eq_hi_kill': '/noise/master/eq/hi/kill',
     'master_eq_locut': '/noise/master/eq/locut',
     'master_eq_bypass': '/noise/master/eq/bypass',
     # Audio device

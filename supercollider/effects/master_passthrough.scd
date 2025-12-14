@@ -12,7 +12,9 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
 ~setupMasterPassthrough = {
     SynthDef(\masterPassthrough, { |inBus, outBus=0, masterVol=0.8, meterRate=24, meterMode=0,
                                     limiterCeiling=0.99, limiterBypass=0,
-                                    eqLoGain=0, eqMidGain=0, eqHiGain=0, eqLoCut=0, eqBypass=0|
+                                    eqLoGain=0, eqMidGain=0, eqHiGain=0, 
+                                    eqLoKill=0, eqMidKill=0, eqHiKill=0,
+                                    eqLoCut=0, eqBypass=0|
         var sig, sigPost;
         var preAmpL, preAmpR, prePeakL, prePeakR;
         var postAmpL, postAmpR, postPeakL, postPeakR;
@@ -44,7 +46,6 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         // Gain mapping: true kill at min, unity at center, +12dB at max
         // Lower half: -80dB to 0dB (practical kill to unity)
         // Upper half: 0dB to +12dB (unity to boost)
-        // Slider 0-240 maps to eqLoGain -12 to +12, so remap:
         // eqLoGain -12 = kill, 0 = unity, +12 = boost
         loGainLin = Select.kr(eqLoGain <= 0, [
             eqLoGain.linlin(0, 12, 0, 12).dbamp,           // 0 to +12dB
@@ -60,6 +61,11 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
             eqHiGain.linlin(0, 12, 0, 12).dbamp,
             eqHiGain.linlin(-12, 0, -80, 0).dbamp
         ]).lag(0.02);
+        
+        // Apply kill buttons (override slider gains)
+        loGainLin = Select.kr(eqLoKill, [loGainLin, DC.kr(0)]);
+        midGainLin = Select.kr(eqMidKill, [midGainLin, DC.kr(0)]);
+        hiGainLin = Select.kr(eqHiKill, [hiGainLin, DC.kr(0)]);
         
         // Apply gains and sum
         sigEQ = (sigLo * loGainLin) + (sigMid * midGainLin) + (sigHi * hiGainLin);
@@ -185,6 +191,34 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         };
     }, '/noise/master/eq/hi');
     
+    // EQ Kill buttons
+    OSCdef(\eqLoKill, { |msg|
+        var kill = msg[1].asInteger.clip(0, 1);
+        ~eqLoKill = kill;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqLoKill, kill);
+        };
+        ("  EQ Lo Kill: " ++ if(kill == 1, "KILLED", "OFF")).postln;
+    }, '/noise/master/eq/lo/kill');
+    
+    OSCdef(\eqMidKill, { |msg|
+        var kill = msg[1].asInteger.clip(0, 1);
+        ~eqMidKill = kill;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqMidKill, kill);
+        };
+        ("  EQ Mid Kill: " ++ if(kill == 1, "KILLED", "OFF")).postln;
+    }, '/noise/master/eq/mid/kill');
+    
+    OSCdef(\eqHiKill, { |msg|
+        var kill = msg[1].asInteger.clip(0, 1);
+        ~eqHiKill = kill;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqHiKill, kill);
+        };
+        ("  EQ Hi Kill: " ++ if(kill == 1, "KILLED", "OFF")).postln;
+    }, '/noise/master/eq/hi/kill');
+    
     // EQ Lo Cut on/off
     OSCdef(\eqLoCut, { |msg|
         var enabled = msg[1].asInteger.clip(0, 1);
@@ -217,6 +251,9 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         \eqLoGain, ~eqLoGain,
         \eqMidGain, ~eqMidGain,
         \eqHiGain, ~eqHiGain,
+        \eqLoKill, ~eqLoKill ? 0,
+        \eqMidKill, ~eqMidKill ? 0,
+        \eqHiKill, ~eqHiKill ? 0,
         \eqLoCut, ~eqLoCut,
         \eqBypass, ~eqBypass
     ], ~fxGroup);

@@ -118,6 +118,9 @@ class MainFrame(QMainWindow):
         self.master_section.eq_lo_changed.connect(self.on_eq_lo_changed)
         self.master_section.eq_mid_changed.connect(self.on_eq_mid_changed)
         self.master_section.eq_hi_changed.connect(self.on_eq_hi_changed)
+        self.master_section.eq_lo_kill_changed.connect(self.on_eq_lo_kill_changed)
+        self.master_section.eq_mid_kill_changed.connect(self.on_eq_mid_kill_changed)
+        self.master_section.eq_hi_kill_changed.connect(self.on_eq_hi_kill_changed)
         self.master_section.eq_locut_changed.connect(self.on_eq_locut_changed)
         self.master_section.eq_bypass_changed.connect(self.on_eq_bypass_changed)
         right_layout.addWidget(self.master_section, stretch=1)
@@ -583,6 +586,27 @@ class MainFrame(QMainWindow):
         """Handle EQ HI change (dB value)."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_eq_hi'], [db])
+    
+    def on_eq_lo_kill_changed(self, kill):
+        """Handle EQ LO kill toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_lo_kill'], [kill])
+        state = "KILLED" if kill == 1 else "OFF"
+        logger.info(f"EQ LO Kill: {state}", component="OSC")
+    
+    def on_eq_mid_kill_changed(self, kill):
+        """Handle EQ MID kill toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_mid_kill'], [kill])
+        state = "KILLED" if kill == 1 else "OFF"
+        logger.info(f"EQ MID Kill: {state}", component="OSC")
+    
+    def on_eq_hi_kill_changed(self, kill):
+        """Handle EQ HI kill toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_hi_kill'], [kill])
+        state = "KILLED" if kill == 1 else "OFF"
+        logger.info(f"EQ HI Kill: {state}", component="OSC")
     
     def on_eq_locut_changed(self, enabled):
         """Handle EQ lo cut toggle (0=off, 1=on)."""
