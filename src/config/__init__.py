@@ -363,6 +363,15 @@ OSC_PATHS = {
     'master_eq_hi_kill': '/noise/master/eq/hi/kill',
     'master_eq_locut': '/noise/master/eq/locut',
     'master_eq_bypass': '/noise/master/eq/bypass',
+    # Master Compressor
+    'master_comp_threshold': '/noise/master/comp/threshold',
+    'master_comp_ratio': '/noise/master/comp/ratio',
+    'master_comp_attack': '/noise/master/comp/attack',
+    'master_comp_release': '/noise/master/comp/release',
+    'master_comp_makeup': '/noise/master/comp/makeup',
+    'master_comp_sc_hpf': '/noise/master/comp/sc_hpf',
+    'master_comp_bypass': '/noise/master/comp/bypass',
+    'master_comp_gr': '/noise/master/comp/gr',
     # Audio device
     'audio_devices_query': '/noise/audio/devices/query',
     'audio_devices_count': '/noise/audio/devices/count',

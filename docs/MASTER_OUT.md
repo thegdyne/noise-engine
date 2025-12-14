@@ -1,7 +1,8 @@
 # Master Out - Design Document
 
-**Status:** Phase 1 In Progress  
-**Created:** 2025-12-13
+**Status:** Phase 5 & 6 Complete, Phase 2 & 7 Remaining  
+**Created:** 2025-12-13  
+**Updated:** 2025-12-14
 
 ---
 
@@ -14,61 +15,59 @@ The master output section handles final signal processing, metering, output rout
 ## Signal Flow
 
 ```
-Generators → Mixer → Master Bus → Compression → EQ → Limiter → Output Assignment → Hardware
-                                      ↓
-                                  Recording
-                                      ↓
-                                   Metering
+Generators → Mixer → Master Bus → PRE Meter → EQ → Compressor → Limiter → Master Vol → POST Meter → Output
+                                                        ↓
+                                                   GR Meter
 ```
 
 ---
 
-## Implementation Phases
+## Phase Summary
 
-### Phase 1: Fader + Meter ⏳ IN PROGRESS
-**Effort:** Low  
-**Dependencies:** None
+| Phase | Name | Status | Description |
+|-------|------|--------|-------------|
+| 1 | Fader + Meter | ✅ Complete | Master fader, stereo level meter, peak hold, clip detection |
+| 1.5 | PRE/POST Toggle | ✅ Complete | Meter mode switch (pre-fader vs post-fader) |
+| 2 | Output Assignment | ⬜ Not started | Route to different output pairs (1-2, 3-4, etc) |
+| 3 | Device Display | ✅ Complete | Shows current audio device (display-only, no switching) |
+| 4 | Limiter | ✅ Complete | Brickwall limiter with ceiling control and bypass |
+| 5 | Compressor | ✅ Complete | SSL G-style bus compressor with GR meter |
+| 6 | Master EQ | ✅ Complete | DJ-style 3-band isolator with kill buttons |
+| 7 | Recording | ⬜ Not started | Record to disk with file management |
 
-**Implemented:**
-- `src/gui/master_section.py` - MasterSection widget with fader and LevelMeter
-- `supercollider/core/master.scd` - Metering synth (24fps) and master volume OSC
-- Master volume control via OSC `/noise/master/volume`
-- Level data from SC via `/noise/master/levels`
-- Stereo level bars with green/yellow/red gradient
-- Peak hold indicators (1.5s hold, decay after)
-- Clip detection (red indicator, 2s latch)
-- dB display for fader position and peak level
+---
+
+## Phase Details
+
+### Phase 1: Fader + Meter ✅ COMPLETE
 
 **Features:**
-- Master fader (already exists in SC, needs proper UI)
-- Level meter (L/R bars)
-- Peak hold indicators
-- Clip detection (red indicator, latches 1-2 sec)
-
-**SC Requirements:**
-```supercollider
-// Send levels to Python ~20-30fps
-SendReply.kr(Impulse.kr(24), '/noise/master/levels', [ampL, ampR, peakL, peakR]);
-```
-
-**Python Requirements:**
-- OSC listener for `/noise/master/levels`
-- Meter widget with peak hold
-- Clip indicator with auto-reset
+- Master fader with dB display
+- Stereo level meter (L/R bars)
+- Peak hold indicators (1.5s hold, decay after)
+- Clip detection (red indicator, 2s latch)
+- ValuePopup on drag showing dB value
 
 **Files:**
-- `src/gui/master_section.py` (new) ✓
-- `supercollider/core/master.scd` (new) ✓
-- `supercollider/effects/master_passthrough.scd` (modified - added masterVol param) ✓
-- `src/gui/main_frame.py` (modified - integrates master section) ✓
-- `src/audio/osc_bridge.py` (modified - levels_received signal) ✓
-- `src/config/__init__.py` (modified - new OSC paths) ✓
+- `src/gui/master_section.py`
+- `supercollider/core/master.scd`
+- `supercollider/effects/master_passthrough.scd`
 
 ---
 
-### Phase 2: Output Assignment
-**Effort:** Medium  
-**Dependencies:** Phase 1
+### Phase 1.5: PRE/POST Toggle ✅ COMPLETE
+
+**Features:**
+- Toggle button switches meter between PRE and POST fader
+- PRE shows sum from channel strips before processing
+- POST shows actual output level after all processing
+
+**OSC:**
+- `/noise/master/meter/toggle` - 0=PRE, 1=POST
+
+---
+
+### Phase 2: Output Assignment ⬜ NOT STARTED
 
 **Features:**
 - Output pair selector: 1-2, 3-4, 5-6 (depends on device)
@@ -79,179 +78,59 @@ SendReply.kr(Impulse.kr(24), '/noise/master/levels', [ampL, ampR, peakL, peakR])
 - Dropdown or toggle buttons for output pairs
 - Checkboxes for multi-output mode
 
-**SC Requirements:**
-```supercollider
-// Dynamic output assignment
-Out.ar(~outputBusL, sigL);
-Out.ar(~outputBusR, sigR);
-```
-
-**Config:**
-```yaml
-master:
-  outputs:
-    - pair: [0, 1]  # 1-2
-      enabled: true
-    - pair: [2, 3]  # 3-4
-      enabled: false
-```
-
 ---
 
-### Phase 3: Device Selection
-**Effort:** Medium  
-**Dependencies:** Phase 2
+### Phase 3: Device Display ✅ COMPLETE
 
 **Features:**
-- Dropdown showing available audio devices
-- Aggregated devices supported (BlackHole + M6)
-- Remember last selection
-- Graceful handling of disconnected devices
+- Label showing current audio device name
+- Display-only (no switching - SC reboot too fragile)
+- Queries device list on connect for future use
 
-**SC Requirements:**
-```supercollider
-ServerOptions.devices;  // List available
-s.options.device = "MOTU M6";
-s.reboot;  // Required after device change
-```
-
-**Python Requirements:**
-- Query devices from SC on startup
-- Store selection in config
-- Handle device change (warn about SC restart)
-
-**Config:**
-```yaml
-audio:
-  device: "MOTU M6"
-  sample_rate: 48000
-  buffer_size: 256
-```
-
-**Known Devices (your setup):**
-- MOTU M6
-- BlackHole (virtual)
-- Aggregate Device (M6 + BlackHole)
-- MacBook Pro Speakers (built-in)
+**Decision:** Device switching disabled because SC reboot causes audio dropouts and sync issues. Showing current device is informational only.
 
 ---
 
-### Phase 4: Limiter
-**Effort:** Low  
-**Dependencies:** Phase 1
+### Phase 4: Limiter ✅ COMPLETE
 
 **Features:**
-- Brickwall limiter (always on, safety)
-- Ceiling control (-0.1dB default)
-- Bypass option
-- Gain reduction meter (optional)
+- Brickwall limiter (safety/protection)
+- Ceiling control: -6dB to 0dB (default -0.1dB)
+- Bypass toggle
+- 10ms lookahead
 
-**SC Requirements:**
-```supercollider
-// Simple limiter
-sig = Limiter.ar(sig, ceiling, lookahead);
-```
-
-**Parameters:**
-| Param | Default | Range | Unit |
-|-------|---------|-------|------|
-| ceiling | -0.1 | -6 to 0 | dB |
-| lookahead | 0.01 | 0.001 to 0.1 | sec |
-| enabled | true | bool | - |
+**See:** `docs/MASTER_LIMITER.md` for full specification
 
 ---
 
-### Phase 5: Compression
-**Effort:** Medium  
-**Dependencies:** Phase 4
+### Phase 5: Compressor ✅ COMPLETE
 
 **Features:**
-- Stereo bus compressor
-- Standard controls: threshold, ratio, attack, release, makeup
-- Bypass option
-- Gain reduction meter
+- SSL G-Series style bus compressor
+- Stepped controls: ratio, attack, release
+- Sidechain HPF with true bypass
+- Dominant stereo detection
+- Auto-release mode
+- Real-time GR meter
 
-**SC Requirements:**
-```supercollider
-// Stereo compression
-sig = Compander.ar(sig, sig, 
-    thresh: thresh,
-    slopeBelow: 1,
-    slopeAbove: 1/ratio,
-    clampTime: attack,
-    relaxTime: release
-);
-sig = sig * makeupGain;
-```
-
-**Parameters:**
-| Param | Default | Range | Unit |
-|-------|---------|-------|------|
-| threshold | -12 | -40 to 0 | dB |
-| ratio | 4 | 1 to 20 | :1 |
-| attack | 10 | 0.1 to 100 | ms |
-| release | 100 | 10 to 1000 | ms |
-| makeup | 0 | 0 to 24 | dB |
-| enabled | false | bool | - |
-
-**UI:**
-- Vertical sliders matching generator slot style
-- GR meter (could be horizontal bar)
+**See:** `docs/MASTER_COMPRESSOR.md` for full specification
 
 ---
 
-
-### Phase 6: Master EQ (Mackie 8-Bus Style)
-
-**Effort:** Medium  
-**Dependencies:** Phase 1, Phase 4
+### Phase 6: Master EQ ✅ COMPLETE
 
 **Features:**
-- 4-band EQ based on Mackie 32.8 "8-Bus" console
-- LO CUT (HPF) for rumble removal
-- EQ bypass
+- DJ-style 3-band isolator (not traditional EQ)
+- Full kill capability per band
+- Kill buttons for instant mute
+- LO CUT rumble filter
+- Phase-coherent LR4 crossovers
 
-**Signal Flow:**
-```
-Master Bus → PRE meter → EQ → Limiter → Master Vol → POST meter → Output
-```
+**See:** `docs/MASTER_EQ.md` for full specification
 
-**Parameters:**
-
-| Band | Type | Frequency | Range |
-|------|------|-----------|-------|
-| HI | Shelf | 12kHz fixed | ±15dB |
-| HI-MID | Semi-para | 500Hz-18kHz sweep | ±15dB |
-| LO-MID | Semi-para | 45Hz-3kHz sweep | ±15dB |
-| LO | Shelf | 80Hz fixed | ±15dB |
-| LO CUT | HPF | 75Hz | on/off (18dB/oct) |
-
-**UI:**
-```
-┌─────────────────────────────────────────────────┐
-│ MASTER EQ                          [CUT] [BYP] │
-│  LO     LO-M    HI-M    HI                     │
-│   ●       ●       ●      ●     ← gain (±15dB)  │
-│          ○●○     ○●○           ← freq sweep    │
-└─────────────────────────────────────────────────┘
-```
-
-**OSC Paths:**
-```
-/noise/master/eq/hi        [gainDB]      // -15 to +15
-/noise/master/eq/himid     [gainDB]      // -15 to +15
-/noise/master/eq/himidfreq [hz]          // 500-18000
-/noise/master/eq/lomid     [gainDB]      // -15 to +15
-/noise/master/eq/lomidfreq [hz]          // 45-3000
-/noise/master/eq/lo        [gainDB]      // -15 to +15
-/noise/master/eq/locut     [0/1]         // HPF on/off
-/noise/master/eq/bypass    [0/1]         // EQ bypass
-```
 ---
 
-### Phase 7: Recording
-**Effort:** Medium-High  
-**Dependencies:** Phase 1
+### Phase 7: Recording ⬜ NOT STARTED
 
 **Features:**
 - Record button (arm/disarm)
@@ -262,58 +141,15 @@ Master Bus → PRE meter → EQ → Limiter → Master Vol → POST meter → Ou
 
 **SC Requirements:**
 ```supercollider
-// Recording to disk
 ~recorder = DiskOut.ar(~recBuffer, sig);
-
-// Start recording
 ~recBuffer = Buffer.alloc(s, 65536, 2);
 ~recBuffer.write(path, "wav", "int24", 0, 0, true);
-
-// Stop recording
-~recBuffer.close;
-~recBuffer.free;
-```
-
-**Python Requirements:**
-- Recording state management
-- File path handling (`~/noise-engine-recordings/` default)
-- Timer display
-- OSC commands: `/master/record/start`, `/master/record/stop`
-
-**Config:**
-```yaml
-recording:
-  directory: "~/noise-engine-recordings"
-  format: "wav"
-  bit_depth: 24
-  auto_increment: true
 ```
 
 **File Naming:**
 ```
-noise-engine_2025-12-13_143052.wav
-noise-engine_2025-12-13_143052_02.wav  (if exists)
-```
-
----
-
-## Future: Quadraphonic
-
-**Not in scope now, but keep in mind:**
-
-- Output assignment already supports 4 outputs
-- Would need: front L/R, rear L/R
-- Mixer pan becomes 2D (or separate front/back control)
-- Master processing needs 4-channel variants
-- Recording would be 4-channel file
-
-**Placeholder in config:**
-```yaml
-master:
-  mode: "stereo"  # or "quad"
-  outputs:
-    front: [0, 1]
-    rear: [2, 3]  # only used in quad mode
+noise-engine_2025-12-14_143052.wav
+noise-engine_2025-12-14_143052_02.wav  (if exists)
 ```
 
 ---
@@ -321,76 +157,53 @@ master:
 ## UI Layout
 
 ```
-┌─────────────────────────────────────────────────┐
-│ MASTER OUT                                      │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  ┌─────┐  ┌─────┐  ┌─────┐  ┌─────┐  ┌──────┐  │
-│  │ EQ  │  │COMP │  │ LIM │  │ OUT │  │METER │  │
-│  │     │  │     │  │     │  │     │  │ L  R │  │
-│  │ L   │  │ THR │  │ CEL │  │ 1-2 │  │ █  █ │  │
-│  │ M   │  │ RAT │  │     │  │ 3-4 │  │ █  █ │  │
-│  │ H   │  │ ATK │  │     │  │     │  │ █  █ │  │
-│  │     │  │ REL │  │     │  │     │  │ █  █ │  │
-│  │[byp]│  │[byp]│  │[byp]│  │     │  │      │  │
-│  └─────┘  └─────┘  └─────┘  └─────┘  └──────┘  │
-│                                                 │
-│  ┌─────────────────────┐  ┌─────────────────┐  │
-│  │ 🔴 REC  00:00:00    │  │ DEVICE ▼ MOTU   │  │
-│  └─────────────────────┘  └─────────────────┘  │
-│                                                 │
-│  ┌─────────────────────────────────────────┐   │
-│  │               MASTER FADER              │   │
-│  └─────────────────────────────────────────┘   │
-│                                                 │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ MASTER OUT                                                      │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────┐  ┌───────────────────┐  ┌─────┐  ┌──────┐  ┌────────┐ │
+│  │ VOL │  │        EQ         │  │ LIM │  │METER │  │  PEAK  │ │
+│  │  █  │  │  LO   MID   HI    │  │ ON  │  │ L  R │  │  -2.1  │ │
+│  │  █  │  │   █     █     █   │  │     │  │ █  █ │  │        │ │
+│  │  █  │  │  [LO] [MID] [HI]  │  │  █  │  │ █  █ │  │ [PRE]  │ │
+│  │  █  │  │  [CUT]     [BYP]  │  │     │  │ █  █ │  │        │ │
+│  │-2dB │  └───────────────────┘  │-0.1 │  │ █  █ │  │ [CLIP] │ │
+│  └─────┘                         └─────┘  └──────┘  └────────┘ │
+├─────────────────────────────────────────────────────────────────┤
+│ COMP  [ON]                                         GR ████░░░░ │
+│ THR   RAT    ATK    REL    MKP    SC                           │
+│  █   [4:1]  [10]  [Auto]   █    [OFF]                          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Dependencies & Order
+## Files
 
-```
-Phase 1 (Fader + Meter)
-    ↓
-Phase 2 (Output Assignment) ←── Phase 3 (Device Selection)
-    ↓
-Phase 4 (Limiter)
-    ↓
-Phase 5 (Compression)
-    ↓
-Phase 6 (3-Band EQ)
+**Python:**
+- `src/gui/master_section.py` - Master section UI component
+- `src/gui/main_frame.py` - Signal connections
+- `src/audio/osc_bridge.py` - OSC handling
+- `src/config/__init__.py` - OSC paths
 
-Phase 7 (Recording) ←── can start after Phase 1
-```
+**SuperCollider:**
+- `supercollider/effects/master_passthrough.scd` - All processing (EQ, comp, limiter)
+- `supercollider/core/master.scd` - Volume OSC handler
 
 ---
 
-## Files to Create/Modify
+## Future: Quadraphonic
 
-**New Files:**
-- `src/gui/master_section.py` - Master out UI component
-- `src/gui/meter_widget.py` - Reusable level meter
-- `supercollider/core/master.scd` - Master bus processing
-
-**Modify:**
-- `src/gui/main_frame.py` - Add master section to layout
-- `src/config/__init__.py` - Add master out config/OSC paths
-- `supercollider/init.scd` - Load master.scd
+**Not in scope now, but architecture supports:**
+- Output assignment already designed for 4+ outputs
+- Would need: front L/R, rear L/R
+- Mixer pan becomes 2D
+- Master processing needs 4-channel variants
 
 ---
 
-## Open Questions
+## Related Documents
 
-1. **Master section placement** - Right panel below mixer? Or dedicated bottom-right area?
-2. **EQ visualization** - Simple gain readout or frequency curve display?
-3. **Compression style** - Transparent (SSL-style) or colored (distressor-style)?
-4. **Recording format** - Just WAV or also FLAC/AIFF options?
-
----
-
-## References
-
-- SC Limiter: https://doc.sccode.org/Classes/Limiter.html
-- SC Compander: https://doc.sccode.org/Classes/Compander.html
-- SC DiskOut: https://doc.sccode.org/Classes/DiskOut.html
+- `docs/MASTER_EQ.md` - DJ isolator specification
+- `docs/MASTER_COMPRESSOR.md` - SSL compressor specification  
+- `docs/MASTER_LIMITER.md` - Limiter specification
+- `docs/DECISIONS.md` - Design decisions log

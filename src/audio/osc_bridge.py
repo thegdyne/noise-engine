@@ -30,6 +30,7 @@ class OSCBridge(QObject):
     gate_triggered = pyqtSignal(int)  # slot_id
     levels_received = pyqtSignal(float, float, float, float)  # ampL, ampR, peakL, peakR
     channel_levels_received = pyqtSignal(int, float, float)  # slot_id, ampL, ampR
+    comp_gr_received = pyqtSignal(float)  # compressor gain reduction in dB
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
     # Audio device signals
@@ -184,6 +185,9 @@ class OSCBridge(QObject):
         # Handle per-channel level meter data from SC
         dispatcher.map(OSC_PATHS['gen_levels'], self._handle_channel_levels)
         
+        # Handle compressor GR from SC
+        dispatcher.map(OSC_PATHS['master_comp_gr'], self._handle_comp_gr)
+        
         # Handle audio device messages from SC
         dispatcher.map(OSC_PATHS['audio_devices_count'], self._handle_audio_devices_count)
         dispatcher.map(OSC_PATHS['audio_devices_item'], self._handle_audio_devices_item)
@@ -243,6 +247,12 @@ class OSCBridge(QObject):
             # Debug - uncomment to verify data flow
             # print(f"CH {slot_id}: L={amp_l:.3f} R={amp_r:.3f}")
             self.channel_levels_received.emit(slot_id, amp_l, amp_r)
+    
+    def _handle_comp_gr(self, address, *args):
+        """Handle compressor gain reduction from SC."""
+        if len(args) >= 1:
+            gr_db = float(args[0])
+            self.comp_gr_received.emit(gr_db)
     
     def _handle_audio_devices_count(self, address, *args):
         """Handle audio device count from SC - start of device list."""

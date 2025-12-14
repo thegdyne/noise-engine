@@ -123,6 +123,14 @@ class MainFrame(QMainWindow):
         self.master_section.eq_hi_kill_changed.connect(self.on_eq_hi_kill_changed)
         self.master_section.eq_locut_changed.connect(self.on_eq_locut_changed)
         self.master_section.eq_bypass_changed.connect(self.on_eq_bypass_changed)
+        # Compressor signals
+        self.master_section.comp_threshold_changed.connect(self.on_comp_threshold_changed)
+        self.master_section.comp_ratio_changed.connect(self.on_comp_ratio_changed)
+        self.master_section.comp_attack_changed.connect(self.on_comp_attack_changed)
+        self.master_section.comp_release_changed.connect(self.on_comp_release_changed)
+        self.master_section.comp_makeup_changed.connect(self.on_comp_makeup_changed)
+        self.master_section.comp_sc_hpf_changed.connect(self.on_comp_sc_hpf_changed)
+        self.master_section.comp_bypass_changed.connect(self.on_comp_bypass_changed)
         right_layout.addWidget(self.master_section, stretch=1)
         
         content_layout.addWidget(right_panel, stretch=1)
@@ -313,6 +321,7 @@ class MainFrame(QMainWindow):
             self.osc.audio_devices_received.connect(self.on_audio_devices_received)
             self.osc.audio_device_changing.connect(self.on_audio_device_changing)
             self.osc.audio_device_ready.connect(self.on_audio_device_ready)
+            self.osc.comp_gr_received.connect(self.on_comp_gr_received)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -621,6 +630,49 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(OSC_PATHS['master_eq_bypass'], [bypass])
         state = "BYPASSED" if bypass == 1 else "ON"
         logger.info(f"EQ: {state}", component="OSC")
+    
+    # === Compressor Handlers ===
+    
+    def on_comp_threshold_changed(self, db):
+        """Handle compressor threshold change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_threshold'], [db])
+    
+    def on_comp_ratio_changed(self, idx):
+        """Handle compressor ratio change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_ratio'], [idx])
+    
+    def on_comp_attack_changed(self, idx):
+        """Handle compressor attack change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_attack'], [idx])
+    
+    def on_comp_release_changed(self, idx):
+        """Handle compressor release change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_release'], [idx])
+    
+    def on_comp_makeup_changed(self, db):
+        """Handle compressor makeup change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_makeup'], [db])
+    
+    def on_comp_sc_hpf_changed(self, idx):
+        """Handle compressor SC HPF change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_sc_hpf'], [idx])
+    
+    def on_comp_bypass_changed(self, bypass):
+        """Handle compressor bypass toggle."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_comp_bypass'], [bypass])
+        state = "BYPASSED" if bypass == 1 else "ON"
+        logger.info(f"Compressor: {state}", component="OSC")
+    
+    def on_comp_gr_received(self, gr_db):
+        """Handle compressor GR meter update."""
+        self.master_section.set_comp_gr(gr_db)
     
     def on_audio_device_changed(self, device_name):
         """Handle audio device selection from dropdown - disabled for now."""

@@ -6,7 +6,7 @@ Phase 1 of master out system - see docs/MASTER_OUT.md
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QFrame, QPushButton)
+                             QFrame, QPushButton, QProgressBar)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
