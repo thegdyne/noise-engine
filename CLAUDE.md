@@ -121,6 +121,7 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~stereoSpread.(sig, 0.2, 0.3);  // optional
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
+    sig = ~ensure2ch.(sig);  // REQUIRED: ensure stereo output for channel strip
     
     Out.ar(out, sig);
 }).add;
@@ -131,6 +132,7 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 ~multiFilter.(sig, filterType, filterFreq, rq)  // LP/HP/BP
 ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex)
 ~stereoSpread.(sig, rate, width)  // optional stereo movement
+~ensure2ch.(sig)  // REQUIRED: mono→dual-mono, stereo→pass, >2ch→mixdown
 ```
 
 ### Generator JSON Config
@@ -138,6 +140,7 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 {
     "name": "MyGenerator",
     "synthdef": "myGenerator",
+    "output_trim_db": -6.0,
     "midi_retrig": false,
     "pitch_target": null,
     "custom_params": [
@@ -145,6 +148,8 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     ]
 }
 ```
+
+**Note:** `output_trim_db` is optional (defaults to 0.0). Use for hot generators that need attenuation.
 
 ## Do NOT
 
