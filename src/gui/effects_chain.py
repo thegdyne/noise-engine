@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .theme import COLORS, MONO_FONT, FONT_FAMILY, FONT_SIZES
+from .theme import COLORS, MONO_FONT, FONT_FAMILY, FONT_SIZES, wip_badge_style
 from .widgets import DragSlider
 
 
@@ -124,15 +124,21 @@ class EffectsChain(QWidget):
         title = QLabel("FX")
         title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"color: {COLORS['text_bright']};")
+        title.setStyleSheet(f"color: {COLORS['text_dim']};")
         title.setFixedWidth(25)
         layout.addWidget(title)
         
-        # Effect slots with arrows
+        # Coming soon badge
+        wip_badge = QLabel("COMING SOON")
+        wip_badge.setStyleSheet(wip_badge_style())
+        layout.addWidget(wip_badge)
+        
+        # Effect slots with arrows (disabled for now)
         for i in range(1, self.num_slots + 1):
             slot = EffectSlot(i, "Empty")
             slot.clicked.connect(self.on_slot_clicked)
             slot.amount_changed.connect(self.on_amount_changed)
+            slot.setEnabled(False)  # Disable until implemented
             layout.addWidget(slot)
             self.slots[i] = slot
             
