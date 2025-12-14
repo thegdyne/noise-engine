@@ -1,6 +1,7 @@
 {
     "name": "VCO Relax",
     "synthdef": "vcoRelax",
+    "output_trim_db": -6.0,
     "custom_params": [
         {
             "key": "timing_current",

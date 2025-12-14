@@ -164,5 +164,25 @@ All OSC message routing
         ("Slot " ++ slot ++ " gain: +" ++ gainDb ++ "dB (x" ++ gainLinear.round(0.01) ++ ")").postln;
     }, '/noise/gen/gain');
     
+    // Per-generator trim (loudness normalization from JSON config)
+    // Sent by Python when generator type changes
+    OSCdef(\genTrim, { |msg|
+        var slot = msg[1].asInteger;
+        var trimDb = msg[2].asFloat;  // dB value (0 = unity, -6 = half amplitude)
+        var idx = slot - 1;
+        
+        // Store trim state (persists across strip rebuilds)
+        ~stripTrimState[idx] = trimDb;
+        
+        // Apply to strip if exists
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\genTrim, trimDb);
+        });
+        
+        if(trimDb != 0, {
+            ("Slot " ++ slot ++ " trim: " ++ trimDb ++ "dB").postln;
+        });
+    }, '/noise/gen/trim');
+    
     "  ✓ OSC handlers ready".postln;
 };

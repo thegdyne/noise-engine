@@ -16,11 +16,16 @@ Solo logic:
 ~setupChannelStrips = {
     "Setting up channel strips...".postln;
     
-    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan=0, soloActiveBus, slotID=1|
+    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan=0, genTrim=0, soloActiveBus, slotID=1|
         var sig, soloActive, soloGate, ampL, ampR;
         
         // Read stereo from per-generator bus (dual mono or true stereo)
         sig = In.ar(inBus, 2);
+        
+        // Generator trim (loudness normalization from JSON config)
+        // Applied first, before any other processing
+        // genTrim is in dB (0 = unity, -6 = half amplitude)
+        sig = sig * genTrim.dbamp;
         
         // Read global solo state
         soloActive = In.kr(soloActiveBus);
@@ -62,19 +67,23 @@ Solo logic:
     // Pan state tracking (-1 to 1, 0=center)
     ~stripPanState = Array.fill(8, { 0 });
     
-    "  ✓ Channel strip SynthDef ready (with metering)".postln;
+    // Trim state tracking (dB, from generator JSON config)
+    ~stripTrimState = Array.fill(8, { 0.0 });
+    
+    "  ✓ Channel strip SynthDef ready (with metering + trim)".postln;
 };
 
 // Start a channel strip for a slot (called when generator starts)
 ~startChannelStrip = { |slotID|
     var idx = slotID - 1;  // 0-indexed
-    var currentMute, currentSolo, currentGain, currentPan;
+    var currentMute, currentSolo, currentGain, currentPan, currentTrim;
     
     // Store current state before freeing (if strip exists)
     currentMute = ~stripMuteState[idx] ? 0;
     currentSolo = ~stripSoloState[idx] ? 0;
     currentGain = ~stripGainState[idx] ? 1.0;
     currentPan = ~stripPanState[idx] ? 0;
+    currentTrim = ~stripTrimState[idx] ? 0.0;
     
     // Free existing strip if any
     if(~channelStrips[idx].notNil, {
@@ -91,11 +100,12 @@ Solo logic:
         \solo, currentSolo,
         \gain, currentGain,
         \pan, currentPan,
+        \genTrim, currentTrim,
         \soloActiveBus, ~soloActive.index,
         \slotID, slotID  // Pass slot ID for metering
     ], ~stripGroup, \addToTail);
     
-    "  Started channel strip for slot % (mute:%, solo:%, gain:%, pan:%)".format(slotID, currentMute, currentSolo, currentGain, currentPan).postln;
+    "  Started channel strip for slot % (mute:%, solo:%, gain:%, pan:%, trim:%dB)".format(slotID, currentMute, currentSolo, currentGain, currentPan, currentTrim).postln;
 };
 
 // Stop a channel strip for a slot (called when generator stops)

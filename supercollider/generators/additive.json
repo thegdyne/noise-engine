@@ -1,6 +1,7 @@
 {
     "name": "Additive",
     "synthdef": "additive",
+    "output_trim_db": -6.0,
     "custom_params": [
         {
             "key": "partial_ratio",

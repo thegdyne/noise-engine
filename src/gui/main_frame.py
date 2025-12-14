@@ -458,7 +458,7 @@ class MainFrame(QMainWindow):
     
     def on_generator_changed(self, slot_id, new_type):
         """Handle generator type change from CycleButton."""
-        from src.config import get_generator_midi_retrig
+        from src.config import get_generator_midi_retrig, get_generator_output_trim_db
         
         synth_name = GENERATORS.get(new_type)
         
@@ -471,6 +471,9 @@ class MainFrame(QMainWindow):
                 # Tell SC if this generator needs MIDI retriggering
                 midi_retrig = 1 if get_generator_midi_retrig(new_type) else 0
                 self.osc.client.send_message(OSC_PATHS['midi_retrig'], [slot_id, midi_retrig])
+                # Send output trim for loudness normalization (from generator JSON config)
+                trim_db = get_generator_output_trim_db(new_type)
+                self.osc.client.send_message(OSC_PATHS['gen_trim'], [slot_id, trim_db])
             
             self.generator_grid.set_generator_active(slot_id, True)
             slot = self.generator_grid.get_slot(slot_id)
