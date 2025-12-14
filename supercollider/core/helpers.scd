@@ -56,6 +56,23 @@ Reusable functions for generator management
     ~stereoSpread = { |sig, rate=0.2, width=0.3|
         Pan2.ar(sig, LFNoise1.kr(rate).range(width.neg, width))
     };
+
+
+    // Ensure generator output is exactly 2 channels (SSOT for per-slot buses)
+    // - mono -> dual-mono
+    // - 2ch  -> passthrough
+    // - >2ch -> mixdown to mono then dual-mono (safety to prevent bus spill into adjacent slots)
+    ~ensure2ch = { |sig|
+        var a = sig.asArray;
+        if(a.size <= 1) {
+            a = a[0] ! 2;
+        } {
+            if(a.size > 2) {
+                a = Mix(a) ! 2;
+            };
+        };
+        a
+    };
     
     // =========================================================
     // GENERATOR MANAGEMENT (called from OSC handlers)

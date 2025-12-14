@@ -65,7 +65,7 @@ SynthDef(\giantBono, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     
     // === PROCESSING CHAIN ===
     filterFreq = filterFreq * (1 + (rungler * filterFM * 2));
-    sig = sig ! 2;  // Dual mono for channel strip panning
+    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
     sig = ~multiFilter.(sig, filterType, filterFreq.clip(20, 18000), rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     
