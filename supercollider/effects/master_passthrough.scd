@@ -33,14 +33,14 @@ Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter
         // LO CUT - HPF @ 75Hz (18dB/oct)
         sigEQ = Select.ar(eqLoCut, [sigEQ, HPF.ar(sigEQ, 75)]);
         
-        // LO - Shelf @ 80Hz
-        sigEQ = BLowShelf.ar(sigEQ, 80, 1, eqLoGain);
+        // LO - Shelf @ 80Hz using BLowShelf with .lag for smooth changes
+        sigEQ = BLowShelf.ar(sigEQ, 80, 1, eqLoGain.lag(0.1));
         
         // MID - Bell @ 1kHz (Q=1 for musical width)
-        sigEQ = MidEQ.ar(sigEQ, 1000, 1, eqMidGain);
+        sigEQ = MidEQ.ar(sigEQ, 1000, 1, eqMidGain.lag(0.1));
         
-        // HI - Shelf @ 12kHz
-        sigEQ = BHiShelf.ar(sigEQ, 12000, 1, eqHiGain);
+        // HI - Shelf @ 12kHz using BHiShelf with .lag for smooth changes
+        sigEQ = BHiShelf.ar(sigEQ, 12000, 1, eqHiGain.lag(0.1));
         
         // EQ bypass
         sig = Select.ar(eqBypass, [sigEQ, sig]);
