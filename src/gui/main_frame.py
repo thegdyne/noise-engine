@@ -563,11 +563,10 @@ class MainFrame(QMainWindow):
         logger.info(f"Limiter: {state}", component="OSC")
     
     def on_audio_device_changed(self, device_name):
-        """Handle audio device selection from dropdown."""
-        if self.osc_connected and device_name:
-            logger.info(f"Switching audio device to: {device_name}", component="OSC")
-            self.audio_selector.set_enabled(False)  # Disable during switch
-            self.osc.set_audio_device(device_name)
+        """Handle audio device selection from dropdown - disabled for now."""
+        # Device switching disabled - SC reboot is too fragile
+        # Dropdown is display-only to show available devices
+        pass
     
     def on_audio_devices_received(self, devices, current):
         """Handle audio device list from SC."""
