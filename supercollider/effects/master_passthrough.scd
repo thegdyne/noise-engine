@@ -1,34 +1,51 @@
 /*
 Master Passthrough Effect
-Final output with master volume, limiter, and PRE/POST metering
+Final output with EQ, limiter, master volume, and PRE/POST metering
 
-Signal flow: masterBus -> PRE meter -> Limiter -> Master Vol -> POST meter -> output
-                            |                                        |
-                        (meterMode=0)                           (meterMode=1)
-                                            ↓
-                                    OSC to Python
-
-Future: Full insert chain (Limiter → Comp → EQ) - see docs/MASTER_OUT.md
+Signal flow: masterBus -> PRE meter -> EQ -> Limiter -> Master Vol -> POST meter -> output
+                            |                                              |
+                        (meterMode=0)                                 (meterMode=1)
+                                              ↓
+                                      OSC to Python
 */
 
 ~setupMasterPassthrough = {
     SynthDef(\masterPassthrough, { |inBus, outBus=0, masterVol=0.8, meterRate=24, meterMode=0,
-                                    limiterCeiling=0.99, limiterBypass=0|
+                                    limiterCeiling=0.99, limiterBypass=0,
+                                    eqLoGain=0, eqMidGain=0, eqHiGain=0, eqLoCut=0, eqBypass=0|
         var sig, sigPost;
         var preAmpL, preAmpR, prePeakL, prePeakR;
         var postAmpL, postAmpR, postPeakL, postPeakR;
         var ampL, ampR, peakL, peakR;
-        var sigLimited;
+        var sigEQ, sigLimited;
         
         sig = In.ar(inBus, 2);
         
-        // PRE-fader metering (shows sum from channel strips, independent of master volume)
+        // PRE-fader metering (shows sum from channel strips, before any processing)
         preAmpL = Amplitude.kr(sig[0], attackTime: 0.01, releaseTime: 0.1);
         preAmpR = Amplitude.kr(sig[1], attackTime: 0.01, releaseTime: 0.1);
         prePeakL = Amplitude.kr(sig[0], attackTime: 0.001, releaseTime: 0.3);
         prePeakR = Amplitude.kr(sig[1], attackTime: 0.001, releaseTime: 0.3);
         
-        // Limiter (brickwall, pre-fader)
+        // === 3-Band EQ ===
+        sigEQ = sig;
+        
+        // LO CUT - HPF @ 75Hz (18dB/oct)
+        sigEQ = Select.ar(eqLoCut, [sigEQ, HPF.ar(sigEQ, 75)]);
+        
+        // LO - Shelf @ 80Hz
+        sigEQ = BLowShelf.ar(sigEQ, 80, 1, eqLoGain);
+        
+        // MID - Bell @ 1kHz (Q=1 for musical width)
+        sigEQ = MidEQ.ar(sigEQ, 1000, 1, eqMidGain);
+        
+        // HI - Shelf @ 12kHz
+        sigEQ = BHiShelf.ar(sigEQ, 12000, 1, eqHiGain);
+        
+        // EQ bypass
+        sig = Select.ar(eqBypass, [sigEQ, sig]);
+        
+        // Limiter (brickwall, post-EQ)
         sigLimited = Limiter.ar(sig, limiterCeiling, 0.01);
         sig = Select.ar(limiterBypass, [sigLimited, sig]);
         
@@ -57,7 +74,7 @@ Future: Full insert chain (Limiter → Comp → EQ) - see docs/MASTER_OUT.md
         Out.ar(outBus, sigPost);
     }).add;
     
-    "  ✓ Master passthrough SynthDef ready (PRE/POST metering, limiter)".postln;
+    "  ✓ Master passthrough SynthDef ready (EQ, limiter, PRE/POST metering)".postln;
 };
 
 ~startMasterPassthrough = {
@@ -69,6 +86,13 @@ Future: Full insert chain (Limiter → Comp → EQ) - see docs/MASTER_OUT.md
     // Limiter defaults
     ~limiterCeiling = 0.99;  // -0.1dB
     ~limiterBypass = 0;      // On by default
+    
+    // EQ defaults (all in dB)
+    ~eqLoGain = 0;
+    ~eqMidGain = 0;
+    ~eqHiGain = 0;
+    ~eqLoCut = 0;    // Off by default
+    ~eqBypass = 0;   // EQ active by default
     
     // Forward internal meter replies to Python
     OSCdef(\meterForward, { |msg|
@@ -107,6 +131,55 @@ Future: Full insert chain (Limiter → Comp → EQ) - see docs/MASTER_OUT.md
         ("  Limiter: " ++ if(bypass == 0, "ON", "BYPASSED")).postln;
     }, '/noise/master/limiter/bypass');
     
+    // === EQ OSC Handlers ===
+    
+    // EQ Lo gain (dB)
+    OSCdef(\eqLoGain, { |msg|
+        var db = msg[1].clip(-12, 12);
+        ~eqLoGain = db;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqLoGain, db);
+        };
+    }, '/noise/master/eq/lo');
+    
+    // EQ Mid gain (dB)
+    OSCdef(\eqMidGain, { |msg|
+        var db = msg[1].clip(-12, 12);
+        ~eqMidGain = db;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqMidGain, db);
+        };
+    }, '/noise/master/eq/mid');
+    
+    // EQ Hi gain (dB)
+    OSCdef(\eqHiGain, { |msg|
+        var db = msg[1].clip(-12, 12);
+        ~eqHiGain = db;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqHiGain, db);
+        };
+    }, '/noise/master/eq/hi');
+    
+    // EQ Lo Cut on/off
+    OSCdef(\eqLoCut, { |msg|
+        var enabled = msg[1].asInteger.clip(0, 1);
+        ~eqLoCut = enabled;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqLoCut, enabled);
+        };
+        ("  EQ Lo Cut: " ++ if(enabled == 1, "ON", "OFF")).postln;
+    }, '/noise/master/eq/locut');
+    
+    // EQ bypass
+    OSCdef(\eqBypass, { |msg|
+        var bypass = msg[1].asInteger.clip(0, 1);
+        ~eqBypass = bypass;
+        if (~masterEffects.notNil) {
+            ~masterEffects.set(\eqBypass, bypass);
+        };
+        ("  EQ: " ++ if(bypass == 0, "ON", "BYPASSED")).postln;
+    }, '/noise/master/eq/bypass');
+    
     // Add to fxGroup (runs AFTER generators)
     ~masterEffects = Synth(\masterPassthrough, [
         \inBus, ~masterBus,
@@ -115,8 +188,13 @@ Future: Full insert chain (Limiter → Comp → EQ) - see docs/MASTER_OUT.md
         \meterRate, 24,
         \meterMode, ~masterMeterMode,
         \limiterCeiling, ~limiterCeiling,
-        \limiterBypass, ~limiterBypass
+        \limiterBypass, ~limiterBypass,
+        \eqLoGain, ~eqLoGain,
+        \eqMidGain, ~eqMidGain,
+        \eqHiGain, ~eqHiGain,
+        \eqLoCut, ~eqLoCut,
+        \eqBypass, ~eqBypass
     ], ~fxGroup);
     
-    "  ✓ Master passthrough running (limiter ON, ceiling -0.1dB)".postln;
+    "  ✓ Master passthrough running (EQ ON, limiter ON)".postln;
 };

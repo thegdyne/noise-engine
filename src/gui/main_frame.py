@@ -115,6 +115,11 @@ class MainFrame(QMainWindow):
         self.master_section.meter_mode_changed.connect(self.on_meter_mode_changed)
         self.master_section.limiter_ceiling_changed.connect(self.on_limiter_ceiling_changed)
         self.master_section.limiter_bypass_changed.connect(self.on_limiter_bypass_changed)
+        self.master_section.eq_lo_changed.connect(self.on_eq_lo_changed)
+        self.master_section.eq_mid_changed.connect(self.on_eq_mid_changed)
+        self.master_section.eq_hi_changed.connect(self.on_eq_hi_changed)
+        self.master_section.eq_locut_changed.connect(self.on_eq_locut_changed)
+        self.master_section.eq_bypass_changed.connect(self.on_eq_bypass_changed)
         right_layout.addWidget(self.master_section, stretch=1)
         
         content_layout.addWidget(right_panel, stretch=1)
@@ -561,6 +566,37 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(OSC_PATHS['master_limiter_bypass'], [bypass])
         state = "BYPASSED" if bypass == 1 else "ON"
         logger.info(f"Limiter: {state}", component="OSC")
+    
+    # === EQ Handlers ===
+    
+    def on_eq_lo_changed(self, db):
+        """Handle EQ LO change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_lo'], [db])
+    
+    def on_eq_mid_changed(self, db):
+        """Handle EQ MID change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_mid'], [db])
+    
+    def on_eq_hi_changed(self, db):
+        """Handle EQ HI change (dB value)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_hi'], [db])
+    
+    def on_eq_locut_changed(self, enabled):
+        """Handle EQ lo cut toggle (0=off, 1=on)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_locut'], [enabled])
+        state = "ON" if enabled == 1 else "OFF"
+        logger.info(f"EQ Lo Cut: {state}", component="OSC")
+    
+    def on_eq_bypass_changed(self, bypass):
+        """Handle EQ bypass toggle (0=on, 1=bypassed)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_eq_bypass'], [bypass])
+        state = "BYPASSED" if bypass == 1 else "ON"
+        logger.info(f"EQ: {state}", component="OSC")
     
     def on_audio_device_changed(self, device_name):
         """Handle audio device selection from dropdown - disabled for now."""

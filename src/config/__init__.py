@@ -354,6 +354,12 @@ OSC_PATHS = {
     'master_meter_toggle': '/noise/master/meter/toggle',
     'master_limiter_ceiling': '/noise/master/limiter/ceiling',
     'master_limiter_bypass': '/noise/master/limiter/bypass',
+    # Master EQ
+    'master_eq_lo': '/noise/master/eq/lo',
+    'master_eq_mid': '/noise/master/eq/mid',
+    'master_eq_hi': '/noise/master/eq/hi',
+    'master_eq_locut': '/noise/master/eq/locut',
+    'master_eq_bypass': '/noise/master/eq/bypass',
     # Audio device
     'audio_devices_query': '/noise/audio/devices/query',
     'audio_devices_count': '/noise/audio/devices/count',
