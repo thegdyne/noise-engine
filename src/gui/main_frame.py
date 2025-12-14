@@ -112,6 +112,7 @@ class MainFrame(QMainWindow):
         # Master section (lower portion)
         self.master_section = MasterSection()
         self.master_section.master_volume_changed.connect(self.on_master_volume_from_master)
+        self.master_section.meter_mode_changed.connect(self.on_meter_mode_changed)
         right_layout.addWidget(self.master_section, stretch=1)
         
         content_layout.addWidget(right_panel, stretch=1)
@@ -524,6 +525,13 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_volume'], [volume])
         logger.info(f"Master volume: {volume:.2f}", component="OSC")
+    
+    def on_meter_mode_changed(self, mode):
+        """Handle meter mode toggle (PRE=0, POST=1)."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['master_meter_toggle'], [mode])
+        mode_name = "POST" if mode == 1 else "PRE"
+        logger.info(f"Master meter: {mode_name}", component="OSC")
         
     def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
         """Handle level meter data from SuperCollider."""

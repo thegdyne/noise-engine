@@ -205,12 +205,17 @@ class MasterSection(QWidget):
     - Master volume fader
     - Stereo level meters with peak hold
     - Clip indicators
+    
+    Phase 1.5: PRE/POST meter toggle
+    - Toggle button to switch between PRE and POST fader metering
     """
     
     master_volume_changed = pyqtSignal(float)
+    meter_mode_changed = pyqtSignal(int)  # 0=PRE, 1=POST
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.meter_mode = 0  # 0=PRE, 1=POST
         self.setup_ui()
         
     def setup_ui(self):
@@ -273,11 +278,14 @@ class MasterSection(QWidget):
         meter_layout.setContentsMargins(0, 0, 0, 0)
         meter_layout.setSpacing(3)
         
-        meter_label = QLabel("L  R")
-        meter_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        meter_label.setAlignment(Qt.AlignCenter)
-        meter_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
-        meter_layout.addWidget(meter_label)
+        # PRE/POST toggle button (replaces static "L  R" label)
+        self.meter_mode_btn = QPushButton("PRE")
+        self.meter_mode_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.meter_mode_btn.setFixedSize(32, 18)
+        self.meter_mode_btn.setToolTip("Toggle PRE/POST fader metering")
+        self.meter_mode_btn.clicked.connect(self._on_meter_mode_clicked)
+        self._update_meter_mode_style()
+        meter_layout.addWidget(self.meter_mode_btn, alignment=Qt.AlignCenter)
         
         self.level_meter = LevelMeter()
         meter_layout.addWidget(self.level_meter, alignment=Qt.AlignCenter)
@@ -313,6 +321,54 @@ class MasterSection(QWidget):
         self.db_label.setText(db_text)
         
         self.master_volume_changed.emit(normalized)
+    
+    def _on_meter_mode_clicked(self):
+        """Toggle between PRE and POST metering."""
+        self.meter_mode = 1 - self.meter_mode  # Toggle 0<->1
+        self._update_meter_mode_style()
+        
+        from src.utils.logger import logger
+        mode_name = "POST" if self.meter_mode == 1 else "PRE"
+        logger.info(f"Master meter mode: {mode_name}", component="UI")
+        
+        # Reset peaks when switching modes for clearer comparison
+        self.level_meter.peak_l = 0.0
+        self.level_meter.peak_r = 0.0
+        
+        self.meter_mode_changed.emit(self.meter_mode)
+    
+    def _update_meter_mode_style(self):
+        """Update button appearance based on current mode."""
+        if self.meter_mode == 0:
+            # PRE mode - default styling
+            self.meter_mode_btn.setText("PRE")
+            self.meter_mode_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['background_dark']};
+                    color: {COLORS['text']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['background_light']};
+                }}
+            """)
+        else:
+            # POST mode - highlighted styling (green to match active state)
+            self.meter_mode_btn.setText("POST")
+            self.meter_mode_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['enabled']};
+                    color: {COLORS['enabled_text']};
+                    border: 1px solid {COLORS['border_active']};
+                    border-radius: 2px;
+                    padding: 1px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['enabled_hover']};
+                }}
+            """)
         
     def set_levels(self, left, right, peak_left=None, peak_right=None):
         """Update level meters from OSC data.
