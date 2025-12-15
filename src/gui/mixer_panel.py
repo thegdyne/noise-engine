@@ -246,7 +246,16 @@ class ChannelStrip(QWidget):
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
-        self.volume_changed.emit(self.channel_id, value / 1000.0)
+        normalized = value / 1000.0
+        # Calculate dB for popup
+        if normalized < 0.001:
+            db_text = "-∞"
+        else:
+            import math
+            db = 20 * math.log10(normalized)
+            db_text = f"{db:.1f}dB"
+        self.fader.show_drag_value(db_text)
+        self.volume_changed.emit(self.channel_id, normalized)
     
     def on_pan_changed(self, value):
         """Handle pan slider movement."""
