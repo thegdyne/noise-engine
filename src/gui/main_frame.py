@@ -16,7 +16,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
 from src.gui.effects_chain import EffectsChain
-from src.gui.modulation_sources import ModulationSources
+from src.gui.mod_source_panel import ModSourcePanel
 from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
@@ -76,9 +76,14 @@ class MainFrame(QMainWindow):
         content_layout.setSpacing(10)
         
         # Left - MOD SOURCES
-        self.modulation_sources = ModulationSources()
-        self.modulation_sources.setFixedWidth(220)
-        content_layout.addWidget(self.modulation_sources)
+        self.mod_source_panel = ModSourcePanel()
+        self.mod_source_panel.setFixedWidth(180)
+        self.mod_source_panel.generator_changed.connect(self.on_mod_generator_changed)
+        self.mod_source_panel.parameter_changed.connect(self.on_mod_param_changed)
+        self.mod_source_panel.output_wave_changed.connect(self.on_mod_output_wave)
+        self.mod_source_panel.output_phase_changed.connect(self.on_mod_output_phase)
+        self.mod_source_panel.output_polarity_changed.connect(self.on_mod_output_polarity)
+        content_layout.addWidget(self.mod_source_panel)
         
         # Center - GENERATORS
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
@@ -306,7 +311,6 @@ class MainFrame(QMainWindow):
     def on_bpm_changed(self, bpm):
         """Handle BPM change."""
         self.master_bpm = bpm
-        self.modulation_sources.set_master_bpm(bpm)
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
         
@@ -331,7 +335,6 @@ class MainFrame(QMainWindow):
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
-                self.modulation_sources.set_master_bpm(self.master_bpm)
                 
                 # Send initial master volume
                 self.osc.client.send_message(OSC_PATHS['master_volume'], [self.master_section.get_volume()])
@@ -522,6 +525,40 @@ class MainFrame(QMainWindow):
         """Handle effect amount change."""
         if self.osc_connected and slot_id in self.active_effects:
             self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [amount])
+    
+    # -------------------------------------------------------------------------
+    # Mod Source Handlers
+    # -------------------------------------------------------------------------
+    
+    def on_mod_generator_changed(self, slot_id, gen_name):
+        """Handle mod source generator change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
+        logger.debug(f"Mod {slot_id} generator: {gen_name}", component="OSC")
+        
+    def on_mod_param_changed(self, slot_id, key, value):
+        """Handle mod source parameter change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, value])
+        logger.debug(f"Mod {slot_id} {key}: {value:.3f}", component="OSC")
+        
+    def on_mod_output_wave(self, slot_id, output_idx, wave_index):
+        """Handle mod output waveform change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_output_wave'], [slot_id, output_idx, wave_index])
+        logger.debug(f"Mod {slot_id} out {output_idx} wave: {wave_index}", component="OSC")
+        
+    def on_mod_output_phase(self, slot_id, output_idx, phase_index):
+        """Handle mod output phase change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, output_idx, phase_index])
+        logger.debug(f"Mod {slot_id} out {output_idx} phase: {phase_index}", component="OSC")
+        
+    def on_mod_output_polarity(self, slot_id, output_idx, polarity):
+        """Handle mod output polarity change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, output_idx, polarity])
+        logger.debug(f"Mod {slot_id} out {output_idx} polarity: {polarity}", component="OSC")
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change from mixer."""

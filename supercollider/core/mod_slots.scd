@@ -109,7 +109,9 @@ Empty generator = no synth, buses zeroed.
     // Update output waveform (LFO only)
     ~setModOutputWave = { |slot, output, waveIndex|
         var idx = slot - 1;
-        var paramName = [\waveA, \waveB, \waveC][output];
+        var paramName;
+        if(~modGenNames[idx] != "LFO") { ^nil };
+        paramName = [\waveA, \waveB, \waveC][output];
         ~modOutputState[idx][output][\wave] = waveIndex;
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(paramName, waveIndex);
@@ -119,7 +121,9 @@ Empty generator = no synth, buses zeroed.
     // Update output phase (LFO only)
     ~setModOutputPhase = { |slot, output, phaseIndex|
         var idx = slot - 1;
-        var paramName = [\phaseA, \phaseB, \phaseC][output];
+        var paramName;
+        if(~modGenNames[idx] != "LFO") { ^nil };
+        paramName = [\phaseA, \phaseB, \phaseC][output];
         ~modOutputState[idx][output][\phase] = phaseIndex;
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(paramName, phaseIndex);

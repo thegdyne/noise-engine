@@ -321,26 +321,26 @@
 ### Phase 5: Basic Slot UI
 | Item | Status |
 |------|--------|
-| `src/gui/mod_source_slot.py` | ⬜ |
-| Generator CycleButton | ⬜ |
-| 3 output rows (dynamic labels) | ⬜ |
-| Per-output waveform button (LFO) | ⬜ |
-| Per-output phase button (LFO) | ⬜ |
-| Per-output polarity toggle | ⬜ |
-| Parameter sliders from JSON | ⬜ |
-| Scope placeholder | ⬜ |
-| Dynamic UI based on output_config | ⬜ |
-| OSC signal wiring | ⬜ |
+| `src/gui/mod_source_slot.py` | ✅ |
+| Generator CycleButton | ✅ |
+| 3 output rows (dynamic labels) | ✅ |
+| Per-output waveform button (LFO) | ✅ |
+| Per-output phase button (LFO) | ✅ |
+| Per-output polarity toggle | ✅ |
+| Parameter sliders from JSON | ✅ |
+| Scope placeholder | ✅ |
+| Dynamic UI based on output_config | ✅ |
+| OSC signal wiring | ✅ |
 
 ### Phase 6: Mod Source Panel
 | Item | Status |
 |------|--------|
-| `src/gui/mod_source_panel.py` | ⬜ |
-| Vertical stack of 4 slots | ⬜ |
-| Replace WIP modulation_sources.py | ⬜ |
-| Integrate into main_frame.py | ⬜ |
-| Connect OSC bridge | ⬜ |
-| Theme/styling | ⬜ |
+| `src/gui/mod_source_panel.py` | ✅ |
+| Vertical stack of 4 slots | ✅ |
+| Replace WIP modulation_sources.py | ✅ |
+| Integrate into main_frame.py | ✅ |
+| Connect OSC bridge | ✅ |
+| Theme/styling | ✅ |
 
 ### Phase 7: Scope Display
 | Item | Status |

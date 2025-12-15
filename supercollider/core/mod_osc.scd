@@ -80,6 +80,14 @@ Paths:
         
         if(slot >= 1 && slot <= 4) {
             ~modScopeEnabled[slot - 1] = enabled;
+            // Auto-start/stop streaming
+            if(enabled) {
+                ~startModScope.();
+            } {
+                if(~modScopeEnabled.any({ |x| x }).not) {
+                    ~stopModScope.();
+                };
+            };
         };
     }, '/noise/mod/scope/enable');
     
