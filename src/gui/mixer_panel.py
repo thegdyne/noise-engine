@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, pan_slider_style
-from .widgets import DragSlider
+from .widgets import FaderSlider
 from src.config import SIZES
 
 
@@ -22,7 +22,8 @@ class MiniMeter(QWidget):
         self.level_l = 0.0
         self.level_r = 0.0
         self.setFixedWidth(20)
-        self.setMinimumHeight(40)  # Minimum, but can grow
+        self.setMinimumHeight(SIZES['fader_height_min'])
+        self.setMaximumHeight(SIZES['fader_height_max'])
         
     def set_levels(self, left, right):
         """Update meter levels (0.0 to 1.0)."""
@@ -135,15 +136,16 @@ class ChannelStrip(QWidget):
         fader_meter_layout.setContentsMargins(0, 0, 0, 0)
         fader_meter_layout.setSpacing(2)
         
-        # Fader - no alignment constraint so it can expand
-        self.fader = DragSlider()
+        # Fader - uses height-ratio sensitivity for consistent feel
+        self.fader = FaderSlider()
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
-        self.fader.setMinimumHeight(SIZES['slider_height_large'])
+        self.fader.setMinimumHeight(SIZES['fader_height_min'])
+        self.fader.setMaximumHeight(SIZES['fader_height_max'])
         self.fader.valueChanged.connect(self.on_fader_changed)
         fader_meter_layout.addWidget(self.fader)
         
-        # Mini meter - no alignment constraint so it can expand
+        # Mini meter
         self.meter = MiniMeter()
         fader_meter_layout.addWidget(self.meter)
         

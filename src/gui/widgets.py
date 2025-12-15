@@ -81,6 +81,17 @@ class DragSlider(QSlider):
         # Double-click reset (optional)
         self._double_click_value = None
         
+        # Sensitivity mode: 'fixed' uses pixel values, 'height' uses fader height ratio
+        self._sensitivity_mode = 'fixed'
+        
+    def set_sensitivity_mode(self, mode):
+        """
+        Set sensitivity mode:
+        - 'fixed': Use fixed pixel values (slider_normal/slider_fine)
+        - 'height': Use height ratio (fader_height_ratio) - mouse tracks handle 1:1
+        """
+        self._sensitivity_mode = mode
+        
     def set_param_config(self, param_config, format_func=None):
         """
         Set parameter config for value mapping and popup display.
@@ -133,6 +144,23 @@ class DragSlider(QSlider):
         
         local_pos = QPoint(self.width(), int(handle_y))
         return self.mapToGlobal(local_pos)
+    
+    def _get_travel(self, fine=False):
+        """Get drag travel distance based on sensitivity mode."""
+        if self._sensitivity_mode == 'height':
+            # Height-ratio mode: travel is based on fader height
+            # This makes mouse movement match handle movement visually
+            if fine:
+                ratio = DRAG_SENSITIVITY.get('fader_height_ratio_fine', 3.0)
+            else:
+                ratio = DRAG_SENSITIVITY.get('fader_height_ratio', 1.0)
+            return self.height() * ratio
+        else:
+            # Fixed pixel mode (original behavior)
+            if fine:
+                return DRAG_SENSITIVITY['slider_fine']
+            else:
+                return DRAG_SENSITIVITY['slider_normal']
         
     def mousePressEvent(self, event):
         """Start drag from current value."""
@@ -150,10 +178,8 @@ class DragSlider(QSlider):
             return
         if self.dragging:
             modifiers = QApplication.keyboardModifiers()
-            if modifiers & Qt.ShiftModifier:
-                travel = DRAG_SENSITIVITY['slider_fine']
-            else:
-                travel = DRAG_SENSITIVITY['slider_normal']
+            fine = bool(modifiers & Qt.ShiftModifier)
+            travel = self._get_travel(fine)
             
             delta_y = self.drag_start_y - event.globalPos().y()
             value_range = self.maximum() - self.minimum()
@@ -201,6 +227,18 @@ class MiniSlider(DragSlider):
         if param_config:
             from src.config import format_value
             self.set_param_config(param_config, format_value)
+
+
+class FaderSlider(DragSlider):
+    """
+    Mixer fader with height-ratio sensitivity.
+    Mouse movement matches handle movement 1:1 regardless of fader size.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Use height-ratio mode for consistent feel at any size
+        self.set_sensitivity_mode('height')
 
 
 class DragValue(QLabel):

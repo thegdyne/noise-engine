@@ -411,6 +411,10 @@ SIZES = {
     'slider_height_small': 40,
     'slider_height_medium': 50,
     'slider_height_large': 80,
+
+    # Fader constraints (for scaling displays)
+    'fader_height_min': 80,   # Minimum usable fader height
+    'fader_height_max': 200,  # Maximum sensible fader height,
     
     # Containers
     'effect_slot_width': 70,

@@ -23,6 +23,7 @@ FONT_SIZES = {
 
 # Drag/scroll sensitivity settings
 DRAG_SENSITIVITY = {
+    # Fixed pixel-based sensitivity (for non-scaling controls)
     'slider_normal': 100,
     'slider_fine': 400,
     'cycle_normal': 15,
@@ -31,6 +32,13 @@ DRAG_SENSITIVITY = {
     'generator_fine': 12,
     'bpm_value_normal': 3,
     'bpm_value_fine': 35,
+    
+    # Height-ratio based sensitivity (for scaling faders)
+    # Ratio of fader height that equals full 0-100% travel
+    # 1.0 = drag the full fader height for full range (1:1 visual tracking)
+    # 0.8 = drag 80% of fader height for full range (slightly faster)
+    'fader_height_ratio': 1.0,       # Normal: 1:1 mouse to handle
+    'fader_height_ratio_fine': 3.0,  # Fine: 3x fader height for full range
 }
 
 # Base colors
