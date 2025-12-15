@@ -592,19 +592,16 @@ class MainFrame(QMainWindow):
         """Handle EQ LO change (dB value)."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_eq_lo'], [db])
-            logger.debug(f"EQ LO sent: {db:.1f}dB", component="OSC")
     
     def on_eq_mid_changed(self, db):
         """Handle EQ MID change (dB value)."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_eq_mid'], [db])
-            logger.debug(f"EQ MID sent: {db:.1f}dB", component="OSC")
     
     def on_eq_hi_changed(self, db):
         """Handle EQ HI change (dB value)."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_eq_hi'], [db])
-            logger.debug(f"EQ HI sent: {db:.1f}dB", component="OSC")
     
     def on_eq_lo_kill_changed(self, kill):
         """Handle EQ LO kill toggle."""

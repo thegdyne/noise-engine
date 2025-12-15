@@ -266,8 +266,6 @@ Compressor sidechain:
         if (~masterEffects.notNil) {
             ~masterEffects.set(\eqLoGain, db);
         };
-        // Debug output
-        ("  EQ LO: " ++ db.round(0.1) ++ "dB").postln;
     }, '/noise/master/eq/lo');
     
     OSCdef(\eqMidGain, { |msg|
@@ -276,8 +274,6 @@ Compressor sidechain:
         if (~masterEffects.notNil) {
             ~masterEffects.set(\eqMidGain, db);
         };
-        // Debug output
-        ("  EQ MID: " ++ db.round(0.1) ++ "dB").postln;
     }, '/noise/master/eq/mid');
     
     OSCdef(\eqHiGain, { |msg|
@@ -286,8 +282,6 @@ Compressor sidechain:
         if (~masterEffects.notNil) {
             ~masterEffects.set(\eqHiGain, db);
         };
-        // Debug output
-        ("  EQ HI: " ++ db.round(0.1) ++ "dB").postln;
     }, '/noise/master/eq/hi');
     
     OSCdef(\eqLoKill, { |msg|
@@ -296,7 +290,6 @@ Compressor sidechain:
         if (~masterEffects.notNil) {
             ~masterEffects.set(\eqLoKill, kill);
         };
-        ("  EQ LO Kill: " ++ if(kill == 1, "ON", "OFF")).postln;
     }, '/noise/master/eq/lo/kill');
     
     OSCdef(\eqMidKill, { |msg|
@@ -305,7 +298,6 @@ Compressor sidechain:
         if (~masterEffects.notNil) {
             ~masterEffects.set(\eqMidKill, kill);
         };
-        ("  EQ MID Kill: " ++ if(kill == 1, "ON", "OFF")).postln;
     }, '/noise/master/eq/mid/kill');
     
     OSCdef(\eqHiKill, { |msg|
@@ -314,7 +306,6 @@ Compressor sidechain:
         if (~masterEffects.notNil) {
             ~masterEffects.set(\eqHiKill, kill);
         };
-        ("  EQ HI Kill: " ++ if(kill == 1, "ON", "OFF")).postln;
     }, '/noise/master/eq/hi/kill');
     
     OSCdef(\eqLoCut, { |msg|
@@ -323,7 +314,6 @@ Compressor sidechain:
         if (~masterEffects.notNil) {
             ~masterEffects.set(\eqLoCut, enabled);
         };
-        ("  EQ Lo Cut: " ++ if(enabled == 1, "ON", "OFF")).postln;
     }, '/noise/master/eq/locut');
     
     OSCdef(\eqBypass, { |msg|
