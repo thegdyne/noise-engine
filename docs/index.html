@@ -307,91 +307,6 @@
             to { transform: rotate(360deg); }
         }
         
-        /* 🎚️ CHANNEL STRIPS CELEBRATION (Magic Blender) 🎚️ */
-        .blender-banner {
-            background: linear-gradient(135deg, #2d0a4e 0%, #1a0633 50%, #0f0422 100%);
-            border: 3px solid var(--accent-magenta);
-            border-radius: 16px;
-            padding: 25px 30px;
-            margin: 30px 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 40px rgba(255, 68, 170, 0.4), 0 0 80px rgba(255, 68, 170, 0.2);
-            animation: blenderPulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes blenderPulse {
-            0%, 100% { box-shadow: 0 0 40px rgba(255, 68, 170, 0.4), 0 0 80px rgba(255, 68, 170, 0.2); }
-            50% { box-shadow: 0 0 60px rgba(255, 68, 170, 0.6), 0 0 100px rgba(255, 68, 170, 0.4); }
-        }
-        
-        .blender-banner h3 {
-            font-family: 'Space Mono', monospace;
-            font-size: 28px;
-            color: var(--accent-magenta);
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px var(--accent-magenta);
-        }
-        
-        .blender-banner p {
-            color: #e0d0ff;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-        
-        .blender-icon {
-            font-size: 50px;
-            animation: blenderSpin 1s linear infinite;
-            display: inline-block;
-        }
-        
-        @keyframes blenderSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .fader-parade {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin: 15px 0;
-        }
-        
-        .fader-icon {
-            font-size: 28px;
-            animation: faderBounce 0.6s ease-in-out infinite;
-        }
-        
-        .fader-icon:nth-child(1) { animation-delay: 0s; }
-        .fader-icon:nth-child(2) { animation-delay: 0.1s; }
-        .fader-icon:nth-child(3) { animation-delay: 0.2s; }
-        .fader-icon:nth-child(4) { animation-delay: 0.3s; }
-        .fader-icon:nth-child(5) { animation-delay: 0.4s; }
-        .fader-icon:nth-child(6) { animation-delay: 0.5s; }
-        .fader-icon:nth-child(7) { animation-delay: 0.6s; }
-        .fader-icon:nth-child(8) { animation-delay: 0.7s; }
-        
-        @keyframes faderBounce {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-10px) scale(1.2); }
-        }
-        
-        .magic-sparkle {
-            position: absolute;
-            font-size: 20px;
-            animation: magicFloat 3s ease-in-out infinite;
-        }
-        
-        .magic-sparkle:nth-child(1) { left: 5%; top: 20%; animation-delay: 0s; }
-        .magic-sparkle:nth-child(2) { left: 15%; top: 70%; animation-delay: 0.5s; }
-        .magic-sparkle:nth-child(3) { right: 5%; top: 30%; animation-delay: 1s; }
-        .magic-sparkle:nth-child(4) { right: 15%; top: 60%; animation-delay: 1.5s; }
-        
-        @keyframes magicFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
-            50% { transform: translateY(-15px) rotate(180deg); opacity: 1; }
-        }
         
         /* 🎉 FIRST USER CELEBRATION 🎉 */
         .celebration-banner {
@@ -786,37 +701,194 @@
         }
         
         .trophies { padding: 60px 0; border-top: 1px solid var(--border); }
-        .trophy-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 20px; 
-            margin-top: 30px; 
+        
+        /* 🏆 TROPHY CASE - Consolidated Achievement Display */
+        .trophy-case {
+            background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 30px;
+            position: relative;
+            overflow: hidden;
         }
-        .trophy {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+        .trophy-case::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                var(--accent-green), 
+                var(--accent-cyan), 
+                var(--accent-magenta), 
+                var(--accent-orange),
+                var(--accent-green));
+            background-size: 200% 100%;
+            animation: rainbowSlide 3s linear infinite;
+        }
+        @keyframes rainbowSlide {
+            0% { background-position: 0% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .trophy-case-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .trophy-case-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            color: var(--text-bright);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+        .trophy-case-icon {
+            font-size: 32px;
+            animation: trophyGlow 2s ease-in-out infinite;
+        }
+        @keyframes trophyGlow {
+            0%, 100% { filter: drop-shadow(0 0 5px gold); }
+            50% { filter: drop-shadow(0 0 20px gold) drop-shadow(0 0 30px orange); }
+        }
+        
+        .trophy-sections {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .trophy-sections { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 500px) {
+            .trophy-sections { grid-template-columns: 1fr; }
+        }
+        
+        .trophy-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
             padding: 20px;
-            text-align: center;
+            border: 1px solid var(--border);
             transition: all 0.3s ease;
         }
-        .trophy:hover {
-            border-color: var(--accent-green);
-            box-shadow: 0 0 20px rgba(68, 255, 136, 0.2);
+        .trophy-section:hover {
+            border-color: var(--section-color, var(--accent-green));
+            box-shadow: 0 0 25px rgba(var(--section-rgb, 68, 255, 136), 0.3);
+            transform: translateY(-3px);
         }
-        .trophy-icon { font-size: 48px; margin-bottom: 10px; }
-        .trophy-title { 
-            font-family: 'Space Mono', monospace; 
-            font-size: 14px; 
-            color: var(--text-bright); 
-            margin-bottom: 8px;
+        .trophy-section.master { --section-color: #44ff88; --section-rgb: 68, 255, 136; }
+        .trophy-section.mixer { --section-color: #ff44aa; --section-rgb: 255, 68, 170; }
+        .trophy-section.generators { --section-color: #44ddff; --section-rgb: 68, 221, 255; }
+        .trophy-section.system { --section-color: #ff8844; --section-rgb: 255, 136, 68; }
+        
+        .trophy-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
         }
-        .trophy-desc { font-size: 12px; color: var(--text); }
-        .trophy-date { 
-            font-family: 'Space Mono', monospace; 
-            font-size: 10px; 
-            color: var(--accent-green); 
-            margin-top: 10px; 
+        .trophy-section-icon {
+            font-size: 24px;
+        }
+        .trophy-section-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--section-color, var(--text-bright));
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .trophy-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .trophy-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            transition: all 0.2s ease;
+        }
+        .trophy-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-bright);
+        }
+        .trophy-item-icon {
+            font-size: 16px;
+            width: 24px;
+            text-align: center;
+        }
+        .trophy-item-text {
+            flex: 1;
+        }
+        .trophy-item-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: var(--section-color, var(--accent-green));
+            color: var(--bg-dark);
+            font-weight: 700;
+        }
+        
+        /* Special animated items */
+        .trophy-item.featured {
+            background: linear-gradient(90deg, rgba(68, 255, 136, 0.1), transparent);
+            border-left: 2px solid var(--accent-green);
+        }
+        .trophy-item.new::after {
+            content: 'NEW';
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: var(--accent-orange);
+            color: var(--bg-dark);
+            font-weight: 700;
+            margin-left: auto;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* Stats bar at bottom */
+        .trophy-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        .trophy-stat {
+            text-align: center;
+        }
+        .trophy-stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-green);
+            text-shadow: 0 0 10px rgba(68, 255, 136, 0.5);
+        }
+        .trophy-stat-label {
+            font-size: 11px;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
         }
         
         footer { padding: 40px 0; border-top: 1px solid var(--border); text-align: center; font-size: 13px; }
@@ -865,50 +937,169 @@
         
         <section class="trophies" style="padding-top: 30px; border-top: none;">
             <h2 class="section-title">🏆 Achievements</h2>
-            <div class="trophy-grid">
-                <div class="trophy" style="border-color: #44ff88; box-shadow: 0 0 30px rgba(68, 255, 136, 0.5), 0 0 60px rgba(255, 136, 68, 0.3);">
-                    <div class="trophy-icon" style="font-size: 56px;">
-                        <span style="animation: spin 3s linear infinite; display: inline-block;">🎛️</span>
+            
+            <div class="trophy-case">
+                <div class="trophy-case-header">
+                    <span class="trophy-case-icon">🏆</span>
+                    <span class="trophy-case-title">Trophy Case</span>
+                    <span class="trophy-case-icon">🏆</span>
+                </div>
+                
+                <div class="trophy-sections">
+                    <!-- MASTER SECTION -->
+                    <div class="trophy-section master">
+                        <div class="trophy-section-header">
+                            <span class="trophy-section-icon">🎛️</span>
+                            <span class="trophy-section-title">Master Section</span>
+                        </div>
+                        <div class="trophy-items">
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">🎚️</span>
+                                <span class="trophy-item-text">SSL G-Series Compressor</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">📊</span>
+                                <span class="trophy-item-text">GR Meter</span>
+                            </div>
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-text">DJ Isolator EQ</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">💀</span>
+                                <span class="trophy-item-text">Per-Band Kill</span>
+                            </div>
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">🧱</span>
+                                <span class="trophy-item-text">Brickwall Limiter</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">📈</span>
+                                <span class="trophy-item-text">PRE/POST Metering</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="trophy-title" style="color: #44ff88; font-size: 16px;">MASTER SECTION</div>
-                    <div class="trophy-desc">SSL G-Comp • DJ Isolator EQ • Brickwall Limiter • PRE/POST Metering</div>
-                    <div class="trophy-date" style="font-size: 12px;">2025-12-14</div>
+                    
+                    <!-- MIXER -->
+                    <div class="trophy-section mixer">
+                        <div class="trophy-section-header">
+                            <span class="trophy-section-icon">🎚️</span>
+                            <span class="trophy-section-title">Mixer</span>
+                        </div>
+                        <div class="trophy-items">
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">🎚️</span>
+                                <span class="trophy-item-text">8 Channel Strips</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🔇</span>
+                                <span class="trophy-item-text">Mute per Channel</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🎯</span>
+                                <span class="trophy-item-text">Solo-in-Place</span>
+                            </div>
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">↔️</span>
+                                <span class="trophy-item-text">Stereo Panning</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">📊</span>
+                                <span class="trophy-item-text">Per-Channel Meters</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🔊</span>
+                                <span class="trophy-item-text">Gain Staging</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- GENERATORS -->
+                    <div class="trophy-section generators">
+                        <div class="trophy-section-header">
+                            <span class="trophy-section-icon">🔊</span>
+                            <span class="trophy-section-title">Generators</span>
+                        </div>
+                        <div class="trophy-items">
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-text">22 Generator Types</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🎹</span>
+                                <span class="trophy-item-text">MIDI Pitch & Gate</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🔄</span>
+                                <span class="trophy-item-text">MIDI Retrigger</span>
+                            </div>
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">⏱️</span>
+                                <span class="trophy-item-text">13 Clock Rates</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-text">Custom Params P1-P5</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🔧</span>
+                                <span class="trophy-item-text">JSON Config System</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- SYSTEM -->
+                    <div class="trophy-section system">
+                        <div class="trophy-section-header">
+                            <span class="trophy-section-icon">⚙️</span>
+                            <span class="trophy-section-title">System</span>
+                        </div>
+                        <div class="trophy-items">
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">🤖</span>
+                                <span class="trophy-item-text">93 Automated Tests</span>
+                            </div>
+                            <div class="trophy-item featured">
+                                <span class="trophy-item-icon">👑</span>
+                                <span class="trophy-item-text">100% SSOT Compliance</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">📋</span>
+                                <span class="trophy-item-text">In-App Console</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">💓</span>
+                                <span class="trophy-item-text">SC Heartbeat Monitor</span>
+                            </div>
+                            <div class="trophy-item">
+                                <span class="trophy-item-icon">🔌</span>
+                                <span class="trophy-item-text">Audio Device Switching</span>
+                            </div>
+                            <div class="trophy-item new">
+                                <span class="trophy-item-icon">👤</span>
+                                <span class="trophy-item-text">First External User!</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="trophy" style="border-color: var(--accent-magenta); box-shadow: 0 0 20px rgba(255, 68, 170, 0.3);">
-                    <div class="trophy-icon"><span style="animation: spin 3s linear infinite; display: inline-block;">🎚️</span></div>
-                    <div class="trophy-title" style="color: var(--accent-magenta);">CHANNEL STRIPS</div>
-                    <div class="trophy-desc">Per-generator volume, mute, and solo-in-place routing</div>
-                    <div class="trophy-date">2025-12-13</div>
-                </div>
-                <div class="trophy">
-                    <div class="trophy-icon"><span style="animation: robotDance 0.4s ease-in-out infinite; display: inline-block;">🤖</span></div>
-                    <div class="trophy-title">AUTOMATION</div>
-                    <div class="trophy-desc">93 pytest tests covering config, generators, value mapping, and OSC consistency</div>
-                    <div class="trophy-date">2025-12-13</div>
-                </div>
-                <div class="trophy">
-                    <div class="trophy-icon">🎹</div>
-                    <div class="trophy-title">MIDI MASTER</div>
-                    <div class="trophy-desc">MIDI input with per-generator channel routing, note-to-frequency, and envelope triggering</div>
-                    <div class="trophy-date">2025-12-11</div>
-                </div>
-                <div class="trophy">
-                    <div class="trophy-icon">🎛️</div>
-                    <div class="trophy-title">GENERATOR ARMY</div>
-                    <div class="trophy-desc">22 unique generator types with custom parameters</div>
-                    <div class="trophy-date">2025-12-11</div>
-                </div>
-                <div class="trophy">
-                    <div class="trophy-icon">⏱️</div>
-                    <div class="trophy-title">CLOCK SYNC</div>
-                    <div class="trophy-desc">13 clock rates from /32 to x32 with master BPM</div>
-                    <div class="trophy-date">2025-12-11</div>
-                </div>
-                <div class="trophy">
-                    <div class="trophy-icon">🔊</div>
-                    <div class="trophy-title">FIRST SOUND</div>
-                    <div class="trophy-desc">SuperCollider OSC integration working</div>
-                    <div class="trophy-date">2025-12-10</div>
+                
+                <div class="trophy-stats">
+                    <div class="trophy-stat">
+                        <div class="trophy-stat-value">22</div>
+                        <div class="trophy-stat-label">Generators</div>
+                    </div>
+                    <div class="trophy-stat">
+                        <div class="trophy-stat-value">93</div>
+                        <div class="trophy-stat-label">Tests</div>
+                    </div>
+                    <div class="trophy-stat">
+                        <div class="trophy-stat-value">100%</div>
+                        <div class="trophy-stat-label">SSOT</div>
+                    </div>
+                    <div class="trophy-stat">
+                        <div class="trophy-stat-value">6</div>
+                        <div class="trophy-stat-label">Days Dev</div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -957,454 +1148,6 @@
             </a>
         </div>
         
-        <!-- 🎚️ CHANNEL STRIPS ROLLOUT (Magic Blender) 🎚️ -->
-        <div class="blender-banner">
-            <span class="magic-sparkle">✨</span>
-            <span class="magic-sparkle">🌟</span>
-            <span class="magic-sparkle">✨</span>
-            <span class="magic-sparkle">🌟</span>
-            <h3>🎚️ CHANNEL STRIPS ARE LIVE! 🎚️</h3>
-            <div class="fader-parade">
-                <span class="fader-icon">🎚️</span>
-                <span class="fader-icon">🎚️</span>
-                <span class="fader-icon">🎚️</span>
-                <span class="fader-icon">🎚️</span>
-                <span class="fader-icon">🎚️</span>
-                <span class="fader-icon">🎚️</span>
-                <span class="fader-icon">🎚️</span>
-                <span class="fader-icon">🎚️</span>
-            </div>
-            <p>8 independent channel strips with <strong>Volume</strong>, <strong>Mute</strong>, and <strong>Solo-in-Place</strong></p>
-            <p style="font-size: 14px; color: #b0a0d0;">Per-generator routing • State persists across generator changes • Magic blender mixing! 🪄</p>
-        </div>
-        
-        <!-- 🎛️ MASTER SECTION COMPLETE - MEGA CELEBRATION 🎛️ -->
-        <style>
-            .master-banner {
-                background: linear-gradient(135deg, #1a0a2e 0%, #0a1a2e 50%, #0a2a1a 100%);
-                border: 3px solid #44ff88;
-                border-radius: 20px;
-                padding: 40px 30px;
-                margin: 30px 0;
-                text-align: center;
-                position: relative;
-                overflow: hidden;
-                box-shadow: 
-                    0 0 60px rgba(68, 255, 136, 0.4),
-                    0 0 100px rgba(255, 136, 68, 0.2),
-                    inset 0 0 60px rgba(68, 136, 255, 0.1);
-                animation: masterPulse 3s ease-in-out infinite;
-            }
-            
-            @keyframes masterPulse {
-                0%, 100% { 
-                    box-shadow: 
-                        0 0 60px rgba(68, 255, 136, 0.4),
-                        0 0 100px rgba(255, 136, 68, 0.2),
-                        inset 0 0 60px rgba(68, 136, 255, 0.1);
-                }
-                50% { 
-                    box-shadow: 
-                        0 0 80px rgba(68, 255, 136, 0.6),
-                        0 0 120px rgba(255, 136, 68, 0.4),
-                        inset 0 0 80px rgba(68, 136, 255, 0.2);
-                }
-            }
-            
-            .master-banner h3 {
-                font-family: 'Space Mono', monospace;
-                font-size: 32px;
-                color: #ffffff;
-                margin-bottom: 15px;
-                text-shadow: 0 0 30px rgba(68, 255, 136, 0.8);
-            }
-            
-            .master-banner .subtitle {
-                font-size: 18px;
-                color: #88ffaa;
-                margin-bottom: 30px;
-            }
-            
-            /* Master Section Visual */
-            .master-visual {
-                display: flex;
-                justify-content: center;
-                align-items: flex-end;
-                gap: 30px;
-                margin: 30px 0;
-                flex-wrap: wrap;
-            }
-            
-            .master-module {
-                background: rgba(0, 0, 0, 0.5);
-                border: 2px solid;
-                border-radius: 12px;
-                padding: 15px 20px;
-                min-width: 140px;
-                position: relative;
-            }
-            
-            .master-module h4 {
-                font-family: 'Space Mono', monospace;
-                font-size: 14px;
-                margin-bottom: 15px;
-                text-align: center;
-            }
-            
-            /* EQ Module */
-            .eq-module {
-                border-color: #44ddff;
-                box-shadow: 0 0 30px rgba(68, 221, 255, 0.3);
-            }
-            .eq-module h4 { color: #44ddff; }
-            
-            .eq-bars {
-                display: flex;
-                justify-content: center;
-                gap: 8px;
-                height: 80px;
-                align-items: flex-end;
-            }
-            
-            .eq-bar {
-                width: 20px;
-                background: linear-gradient(to top, #44ddff, #44ffdd);
-                border-radius: 3px 3px 0 0;
-                animation: eqPump 0.8s ease-in-out infinite;
-                box-shadow: 0 0 10px rgba(68, 221, 255, 0.5);
-            }
-            
-            .eq-bar.lo { animation-delay: 0s; }
-            .eq-bar.mid { animation-delay: 0.15s; }
-            .eq-bar.hi { animation-delay: 0.3s; }
-            
-            @keyframes eqPump {
-                0%, 100% { height: 40px; }
-                50% { height: 70px; }
-            }
-            
-            .eq-labels {
-                display: flex;
-                justify-content: center;
-                gap: 8px;
-                margin-top: 8px;
-                font-size: 10px;
-                color: #44ddff;
-                font-family: 'Space Mono', monospace;
-            }
-            
-            .eq-labels span { width: 20px; text-align: center; }
-            
-            .kill-btn {
-                display: inline-block;
-                background: #ff4444;
-                color: white;
-                font-size: 8px;
-                padding: 2px 4px;
-                border-radius: 2px;
-                margin-top: 5px;
-                animation: killFlash 1s ease-in-out infinite;
-            }
-            
-            @keyframes killFlash {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-            }
-            
-            /* Compressor Module */
-            .comp-module {
-                border-color: #ff8844;
-                box-shadow: 0 0 30px rgba(255, 136, 68, 0.3);
-            }
-            .comp-module h4 { color: #ff8844; }
-            
-            .comp-display {
-                text-align: center;
-            }
-            
-            .gr-meter {
-                width: 100px;
-                height: 20px;
-                background: #1a1a2a;
-                border-radius: 4px;
-                margin: 10px auto;
-                overflow: hidden;
-                position: relative;
-            }
-            
-            .gr-bar {
-                height: 100%;
-                background: linear-gradient(to right, #44ff88, #ffaa44, #ff4444);
-                animation: grPump 0.6s ease-in-out infinite;
-                border-radius: 4px;
-            }
-            
-            @keyframes grPump {
-                0%, 100% { width: 30%; }
-                30% { width: 80%; }
-                60% { width: 50%; }
-            }
-            
-            .comp-params {
-                display: flex;
-                justify-content: center;
-                gap: 12px;
-                font-size: 9px;
-                color: #ff8844;
-                font-family: 'Space Mono', monospace;
-            }
-            
-            .comp-param {
-                text-align: center;
-            }
-            
-            .comp-param .value {
-                font-size: 11px;
-                color: #ffaa66;
-                font-weight: bold;
-            }
-            
-            .ssl-badge {
-                font-size: 10px;
-                background: rgba(255, 136, 68, 0.2);
-                color: #ff8844;
-                padding: 3px 8px;
-                border-radius: 10px;
-                margin-top: 10px;
-                display: inline-block;
-            }
-            
-            /* Limiter Module */
-            .lim-module {
-                border-color: #ff4488;
-                box-shadow: 0 0 30px rgba(255, 68, 136, 0.3);
-            }
-            .lim-module h4 { color: #ff4488; }
-            
-            .limiter-visual {
-                text-align: center;
-            }
-            
-            .brick-wall {
-                font-size: 40px;
-                animation: brickPulse 1s ease-in-out infinite;
-            }
-            
-            @keyframes brickPulse {
-                0%, 100% { transform: scale(1); text-shadow: 0 0 20px rgba(255, 68, 136, 0.5); }
-                50% { transform: scale(1.1); text-shadow: 0 0 40px rgba(255, 68, 136, 0.8); }
-            }
-            
-            .ceiling-display {
-                font-family: 'Space Mono', monospace;
-                font-size: 16px;
-                color: #ff4488;
-                margin-top: 10px;
-            }
-            
-            .ceiling-display .db {
-                font-size: 24px;
-                color: #ff88aa;
-                text-shadow: 0 0 10px rgba(255, 68, 136, 0.5);
-            }
-            
-            /* Master Fader */
-            .fader-module {
-                border-color: #44ff88;
-                box-shadow: 0 0 30px rgba(68, 255, 136, 0.3);
-            }
-            .fader-module h4 { color: #44ff88; }
-            
-            .master-fader-visual {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .fader-track {
-                width: 30px;
-                height: 80px;
-                background: linear-gradient(to top, #0a0a0a, #1a1a2a);
-                border-radius: 4px;
-                position: relative;
-                border: 1px solid #333;
-            }
-            
-            .fader-handle {
-                width: 40px;
-                height: 12px;
-                background: linear-gradient(to bottom, #666, #333);
-                border-radius: 3px;
-                position: absolute;
-                left: -5px;
-                animation: faderMove 2s ease-in-out infinite;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            }
-            
-            @keyframes faderMove {
-                0%, 100% { bottom: 60%; }
-                50% { bottom: 70%; }
-            }
-            
-            .meter-bars {
-                display: flex;
-                gap: 3px;
-                margin-top: 10px;
-            }
-            
-            .meter-bar {
-                width: 8px;
-                background: linear-gradient(to top, #44ff88 0%, #44ff88 60%, #ffff44 80%, #ff4444 100%);
-                border-radius: 2px;
-                animation: meterBounce 0.5s ease-in-out infinite;
-            }
-            
-            .meter-bar.left { animation-delay: 0s; }
-            .meter-bar.right { animation-delay: 0.1s; }
-            
-            @keyframes meterBounce {
-                0%, 100% { height: 50px; }
-                25% { height: 65px; }
-                50% { height: 45px; }
-                75% { height: 60px; }
-            }
-            
-            .db-display {
-                font-family: 'Space Mono', monospace;
-                font-size: 12px;
-                color: #44ff88;
-                margin-top: 8px;
-            }
-            
-            /* Feature bullets */
-            .master-features {
-                display: flex;
-                justify-content: center;
-                gap: 30px;
-                flex-wrap: wrap;
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid rgba(68, 255, 136, 0.2);
-            }
-            
-            .master-feature {
-                font-size: 13px;
-                color: #aaffcc;
-            }
-            
-            .master-feature .icon {
-                font-size: 18px;
-                margin-right: 5px;
-            }
-            
-            /* Floating particles */
-            .particle {
-                position: absolute;
-                font-size: 20px;
-                animation: floatParticle 4s ease-in-out infinite;
-                opacity: 0.6;
-            }
-            
-            @keyframes floatParticle {
-                0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
-                50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
-            }
-            
-            .particle:nth-child(1) { left: 5%; top: 20%; animation-delay: 0s; }
-            .particle:nth-child(2) { left: 15%; top: 70%; animation-delay: 0.5s; }
-            .particle:nth-child(3) { right: 5%; top: 30%; animation-delay: 1s; }
-            .particle:nth-child(4) { right: 15%; top: 60%; animation-delay: 1.5s; }
-            .particle:nth-child(5) { left: 50%; top: 10%; animation-delay: 2s; }
-        </style>
-        
-        <div class="master-banner">
-            <span class="particle">🎚️</span>
-            <span class="particle">🎛️</span>
-            <span class="particle">📊</span>
-            <span class="particle">🔊</span>
-            <span class="particle">⚡</span>
-            
-            <h3>🎛️ MASTER SECTION COMPLETE! 🎛️</h3>
-            <p class="subtitle">Professional mix bus processing • EQ • Compression • Limiting</p>
-            
-            <div class="master-visual">
-                <!-- EQ Module -->
-                <div class="master-module eq-module">
-                    <h4>DJ ISOLATOR EQ</h4>
-                    <div class="eq-bars">
-                        <div class="eq-bar lo"></div>
-                        <div class="eq-bar mid"></div>
-                        <div class="eq-bar hi"></div>
-                    </div>
-                    <div class="eq-labels">
-                        <span>LO</span>
-                        <span>MID</span>
-                        <span>HI</span>
-                    </div>
-                    <div class="kill-btn">KILL</div>
-                </div>
-                
-                <!-- Compressor Module -->
-                <div class="master-module comp-module">
-                    <h4>SSL G-COMP</h4>
-                    <div class="comp-display">
-                        <div class="gr-meter">
-                            <div class="gr-bar"></div>
-                        </div>
-                        <div class="comp-params">
-                            <div class="comp-param">
-                                <div>THR</div>
-                                <div class="value">-10</div>
-                            </div>
-                            <div class="comp-param">
-                                <div>RAT</div>
-                                <div class="value">4:1</div>
-                            </div>
-                            <div class="comp-param">
-                                <div>REL</div>
-                                <div class="value">Auto</div>
-                            </div>
-                        </div>
-                        <div class="ssl-badge">SSL G-SERIES STYLE</div>
-                    </div>
-                </div>
-                
-                <!-- Limiter Module -->
-                <div class="master-module lim-module">
-                    <h4>BRICKWALL</h4>
-                    <div class="limiter-visual">
-                        <div class="brick-wall">🧱</div>
-                        <div class="ceiling-display">
-                            CEILING<br>
-                            <span class="db">-0.1dB</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Master Fader -->
-                <div class="master-module fader-module">
-                    <h4>MASTER</h4>
-                    <div class="master-fader-visual">
-                        <div class="fader-track">
-                            <div class="fader-handle"></div>
-                        </div>
-                        <div class="meter-bars">
-                            <div class="meter-bar left"></div>
-                            <div class="meter-bar right"></div>
-                        </div>
-                        <div class="db-display">-2.0 dB</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="master-features">
-                <span class="master-feature"><span class="icon">🎚️</span> 3-Band Isolator with Kill</span>
-                <span class="master-feature"><span class="icon">📊</span> Dominant Stereo Detection</span>
-                <span class="master-feature"><span class="icon">⚡</span> Sidechain HPF</span>
-                <span class="master-feature"><span class="icon">🔊</span> PRE/POST Metering</span>
-                <span class="master-feature"><span class="icon">💎</span> ValuePopup on All Sliders</span>
-            </div>
-        </div>
         
         <section class="hero">
             <div class="hero-text">
