@@ -68,6 +68,7 @@ class TestOSCPathsInSuperCollider:
             'gen_filter_type',
             'gen_env_source',
             'gen_clock_rate',
+            'gen_trim',
             'clock_bpm',
             'ping',
             'heartbeat',

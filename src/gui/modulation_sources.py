@@ -175,14 +175,11 @@ class ModulationSources(QWidget):
         layout.setContentsMargins(5, 10, 5, 10)
         layout.setSpacing(10)
         
-        # Header with title and WIP badge
+        # Set tooltip on the whole widget
+        self.setToolTip("MODULATION SOURCES - LFOs & Envelopes")
+        
+        # Header with WIP badge only (no title label)
         header = QHBoxLayout()
-        
-        title = QLabel("MOD SOURCES")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        title.setStyleSheet(f"color: {COLORS['text_dim']};")
-        header.addWidget(title)
-        
         header.addStretch()
         
         wip_badge = QLabel("COMING SOON")

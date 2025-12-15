@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
-from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, pan_slider_style
 from .widgets import DragSlider
 from src.config import SIZES
 
@@ -21,7 +21,8 @@ class MiniMeter(QWidget):
         super().__init__(parent)
         self.level_l = 0.0
         self.level_r = 0.0
-        self.setFixedSize(20, 40)  # Compact size
+        self.setFixedWidth(20)  # Fixed width
+        self.setMinimumHeight(40)  # Can grow taller
         
     def set_levels(self, left, right):
         """Update meter levels (0.0 to 1.0)."""
@@ -131,20 +132,21 @@ class ChannelStrip(QWidget):
         # Fader + Meter side by side
         fader_meter_layout = QHBoxLayout()
         fader_meter_layout.setSpacing(2)
+        fader_meter_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Fader
+        # Fader - no alignment constraint so it fills vertical space
         self.fader = DragSlider()
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
         self.fader.setMinimumHeight(SIZES['slider_height_large'])
         self.fader.valueChanged.connect(self.on_fader_changed)
-        fader_meter_layout.addWidget(self.fader, alignment=Qt.AlignCenter)
+        fader_meter_layout.addWidget(self.fader)  # No alignment - let it stretch
         
-        # Mini meter
+        # Mini meter - also stretches with fader
         self.meter = MiniMeter()
-        fader_meter_layout.addWidget(self.meter, alignment=Qt.AlignCenter)
+        fader_meter_layout.addWidget(self.meter)  # No alignment - let it stretch
         
-        layout.addLayout(fader_meter_layout)
+        layout.addLayout(fader_meter_layout, stretch=1)  # Let faders grow
         
         # Pan slider (horizontal, compact) - double-click to center
         from PyQt5.QtWidgets import QSlider
@@ -161,23 +163,7 @@ class ChannelStrip(QWidget):
         self.pan_slider.setFixedHeight(16)
         self.pan_slider.setToolTip("Pan: L ← C → R (double-click to center)")
         self.pan_slider.valueChanged.connect(self.on_pan_changed)
-        self.pan_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                height: 4px;
-                background: {COLORS['background_dark']};
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal {{
-                width: 8px;
-                height: 12px;
-                margin: -4px 0;
-                background: {COLORS['text_dim']};
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {COLORS['text']};
-            }}
-        """)
+        self.pan_slider.setStyleSheet(pan_slider_style())
         layout.addWidget(self.pan_slider, alignment=Qt.AlignCenter)
         
         # Mute/Solo/Gain buttons
@@ -312,23 +298,12 @@ class MixerPanel(QWidget):
     def setup_ui(self):
         """Create mixer panel."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 10, 5, 10)
-        layout.setSpacing(5)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(0)
         
-        # Header
-        header = QHBoxLayout()
-        
-        title = QLabel("MIXER")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        title.setStyleSheet(f"color: {COLORS['text_dim']};")
-        header.addWidget(title)
-        
-        header.addStretch()
-        
-        layout.addLayout(header)
-        
-        # Channel strips
+        # Channel strips frame with tooltip
         channels_frame = QFrame()
+        channels_frame.setToolTip("MIXER - 8 Channel Strips")
         channels_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['background']};
@@ -351,31 +326,7 @@ class MixerPanel(QWidget):
             channels_layout.addWidget(channel)
             self.channels[i] = channel
             
-        layout.addWidget(channels_frame)
-        
-        # I/O Status
-        io_frame = QFrame()
-        io_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['background']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 4px;
-            }}
-        """)
-        io_layout = QHBoxLayout(io_frame)
-        io_layout.setContentsMargins(10, 5, 10, 5)
-        
-        self.audio_status = QLabel("🔇 Audio")
-        self.audio_status.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-        self.audio_status.setStyleSheet(f"color: {COLORS['audio_off']}; border: none;")
-        io_layout.addWidget(self.audio_status)
-        
-        self.midi_status = QLabel("🎹 MIDI")
-        self.midi_status.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-        self.midi_status.setStyleSheet(f"color: {COLORS['midi_off']}; border: none;")
-        io_layout.addWidget(self.midi_status)
-        
-        layout.addWidget(io_frame)
+        layout.addWidget(channels_frame, stretch=1)  # Let it fill available space
         
     def on_channel_volume(self, channel_id, volume):
         """Handle channel volume change."""
@@ -397,22 +348,6 @@ class MixerPanel(QWidget):
         """Handle channel pan change."""
         self.generator_pan_changed.emit(channel_id, pan)
         
-    def set_io_status(self, audio=False, midi=False):
-        """Update I/O status indicators."""
-        if audio:
-            self.audio_status.setText("🔊 Audio")
-            self.audio_status.setStyleSheet(f"color: {COLORS['audio_on']}; border: none;")
-        else:
-            self.audio_status.setText("🔇 Audio")
-            self.audio_status.setStyleSheet(f"color: {COLORS['audio_off']}; border: none;")
-            
-        if midi:
-            self.midi_status.setText("🎹 MIDI")
-            self.midi_status.setStyleSheet(f"color: {COLORS['midi_on']}; border: none;")
-        else:
-            self.midi_status.setText("🎹 MIDI")
-            self.midi_status.setStyleSheet(f"color: {COLORS['midi_off']}; border: none;")
-    
     def set_channel_active(self, channel_id, active):
         """Set active state for a channel (called when generator starts/stops)."""
         if channel_id in self.channels:

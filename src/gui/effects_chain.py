@@ -120,13 +120,8 @@ class EffectsChain(QWidget):
         layout.setContentsMargins(10, 5, 10, 5)
         layout.setSpacing(8)
         
-        # Title
-        title = QLabel("FX")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"color: {COLORS['text_dim']};")
-        title.setFixedWidth(25)
-        layout.addWidget(title)
+        # Set tooltip on the whole widget
+        self.setToolTip("FX CHAIN - 4 Effect Slots")
         
         # Coming soon badge
         wip_badge = QLabel("COMING SOON")

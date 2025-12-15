@@ -13,6 +13,7 @@ from src.config import (
     get_generator_custom_params,
     get_generator_pitch_target,
     get_generator_midi_retrig,
+    get_generator_output_trim_db,
 )
 
 
@@ -178,6 +179,20 @@ class TestGeneratorConfigFunctions:
             retrig = get_generator_midi_retrig(name)
             assert isinstance(retrig, bool), \
                 f"{name} midi_retrig is {type(retrig)}, expected bool"
+    
+    def test_get_generator_output_trim_db_types(self):
+        """output_trim_db returns float."""
+        for name in GENERATOR_CYCLE:
+            trim = get_generator_output_trim_db(name)
+            assert isinstance(trim, (int, float)), \
+                f"{name} output_trim_db is {type(trim)}, expected float"
+
+    def test_get_generator_output_trim_db_range(self):
+        """output_trim_db is in reasonable range (-24 to +6 dB)."""
+        for name in GENERATOR_CYCLE:
+            trim = get_generator_output_trim_db(name)
+            assert -24.0 <= trim <= 6.0, \
+                f"{name} output_trim_db {trim} outside reasonable range [-24, +6]"
 
 
 class TestGeneratorSCDFiles:
@@ -230,3 +245,13 @@ class TestGeneratorSCDFiles:
                 
                 for arg in standard_args:
                     assert arg in content, f"{filename} missing standard arg '{arg}'"
+    
+    def test_scd_files_use_ensure2ch(self, generators_dir):
+        """Generators use ~ensure2ch helper for stereo output."""
+        for filename in os.listdir(generators_dir):
+            if filename.endswith('.scd'):
+                filepath = os.path.join(generators_dir, filename)
+                with open(filepath, 'r') as f:
+                    content = f.read()
+                assert '~ensure2ch' in content, \
+                    f"{filename} should use ~ensure2ch helper for stereo output"

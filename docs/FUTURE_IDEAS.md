@@ -110,6 +110,91 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 
 ---
 
+## Per-Generator Theming
+
+**Concept:** Each generator type can define its own visual theme (accent colors, label colors, etc.) in its JSON config, overriding the default `GENERATOR_THEME`.
+
+**Current state (Dec 2025):**
+- `GENERATOR_THEME` dict in `theme.py` centralises all generator slot styling
+- `build_param_column()` in `generator_slot_builder.py` references theme only (no inline styles)
+- Ready for per-generator overrides
+
+**Implementation approach:**
+```python
+# In generator JSON config (e.g. fm.json)
+{
+    "name": "FM",
+    "synthdef": "fm_noise",
+    "theme": {
+        "param_label_color": "#ff8844",      # Orange accent
+        "param_label_color_active": "#ffaa66",
+        "slot_border_active": "#ff6622"
+    }
+}
+
+# In config/__init__.py
+def get_generator_theme(name):
+    """Get theme for generator, falling back to default."""
+    from src.gui.theme import GENERATOR_THEME
+    custom = _GENERATOR_CONFIGS.get(name, {}).get('theme', {})
+    return {**GENERATOR_THEME, **custom}
+
+# In generator_slot_builder.py
+gt = get_generator_theme(slot.generator_type)
+```
+
+**Use cases:**
+- Acid/303-style generators → orange/yellow accent
+- FM generators → blue/cyan accent
+- Noise/chaos generators → red accent
+- Physical modeling → green accent
+
+**Files involved:**
+- `src/gui/theme.py` - GENERATOR_THEME base dict
+- `src/config/__init__.py` - get_generator_theme() loader
+- `src/gui/generator_slot_builder.py` - applies theme to UI
+- `supercollider/generators/*.json` - per-generator theme overrides
+
+---
+
+## Modulation System (Dec 2025)
+
+**Concept:** Comprehensive modulation routing with visual feedback.
+
+### Part 1: Pin Matrix Window
+Second screen with large connection matrix. Rows = mod sources (LFOs, ENVs, MIDI CCs), columns = destinations (all generator params). Click intersections to connect. Each connection has its own depth (-100% to +100%) set at the target - same LFO can modulate cutoff at +80% and resonance at -20%.
+
+### Part 2: Modulation Visualisation  
+Korg wavestate-style indicators on modulated controls. Shows:
+- Static bracket for min/max modulation range
+- Moving line for current modulated value in real-time
+
+**Design doc:** `docs/MODULATION_SYSTEM.md`
+
+---
+
+## UI Scaling Improvements (Dec 2025)
+
+**Current state:**
+Fader scaling system implemented with per-context min/max constraints and height-ratio sensitivity. Core architecture is solid but needs refinement.
+
+**Outstanding issues:**
+
+1. **Mixer/Master vertical split** - MASTER section is squashed, compressor row barely readable. Need better vertical space distribution between MIXER and MASTER sections.
+
+2. **Generator slider row heights** - P1-P5 vs FRQ-DEC rows still slightly uneven at some window sizes. May need layout tweaks in `generator_slot_builder.py`.
+
+3. **Fine-tune min/max constraints** - Current values in `config/__init__.py` SIZES dict may need adjustment based on real usage across different screen sizes.
+
+**Files involved:**
+- `src/gui/mixer_panel.py` - Mixer section layout
+- `src/gui/master_section.py` - Master section layout  
+- `src/gui/main_frame.py` - Overall panel proportions
+- `src/gui/generator_slot_builder.py` - Generator slot layout
+- `src/config/__init__.py` - SIZES constraints
+
+---
+
 ## In-App Console (Logging) ✓ DONE
 
 **Implemented:** `src/utils/logger.py` + `src/gui/console_panel.py`

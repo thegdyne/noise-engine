@@ -8,7 +8,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
 from .theme import (COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES,
-                    mute_button_style, gate_indicator_style, midi_channel_style)
+                    mute_button_style, gate_indicator_style, midi_channel_style,
+                    GENERATOR_THEME)
 from .widgets import MiniSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
@@ -55,6 +56,47 @@ def build_header(slot):
     return header
 
 
+def build_param_column(label_text, slider, label_style='dim'):
+    """
+    Build a single parameter column with label above slider.
+    Unified layout for both custom (P1-P5) and standard (FRQ, CUT, etc.) params.
+    
+    Args:
+        label_text: Text for the label
+        slider: MiniSlider instance
+        label_style: 'dim' for inactive/custom params, 'normal' for standard params
+    
+    Returns:
+        (QWidget, QLabel) - the column widget and label for later updates
+    """
+    widget = QWidget()
+    widget.setFixedWidth(35)  # Constrain column width
+    layout = QVBoxLayout(widget)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(2)
+    
+    # Label styling from generator theme
+    gt = GENERATOR_THEME
+    font_weight = QFont.Bold if gt['param_label_bold'] else QFont.Normal
+    
+    lbl = QLabel(label_text)
+    lbl.setFont(QFont(gt['param_label_font'], gt['param_label_size'], font_weight))
+    lbl.setAlignment(Qt.AlignCenter)
+    lbl.setFixedHeight(gt['param_label_height'])
+    
+    if label_style == 'dim':
+        lbl.setStyleSheet(f"color: {gt['param_label_color_dim']};")
+    else:
+        lbl.setStyleSheet(f"color: {gt['param_label_color']};")
+    
+    layout.addWidget(lbl)
+    
+    # Slider fills remaining space
+    layout.addWidget(slider, stretch=1, alignment=Qt.AlignCenter)
+    
+    return widget, lbl
+
+
 def build_custom_params_row(slot):
     """Build the custom parameters row (P1-P5)."""
     custom_row = QHBoxLayout()
@@ -64,28 +106,17 @@ def build_custom_params_row(slot):
     slot.custom_labels = []
     
     for i in range(MAX_CUSTOM_PARAMS):
-        param_widget = QWidget()
-        param_layout = QVBoxLayout(param_widget)
-        param_layout.setContentsMargins(0, 0, 0, 0)
-        param_layout.setSpacing(2)
-        
-        lbl = QLabel(f"P{i+1}")
-        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
-        param_layout.addWidget(lbl)
-        slot.custom_labels.append(lbl)
-        
         slider = MiniSlider()
-        slider.setFixedHeight(60)
+        slider.setMinimumHeight(50)  # Min height, can grow with window
         slider.setEnabled(False)
         slider.normalizedValueChanged.connect(
             lambda norm, idx=i: slot.on_custom_param_changed(idx, norm)
         )
-        param_layout.addWidget(slider, alignment=Qt.AlignCenter)
         slot.custom_sliders.append(slider)
         
-        custom_row.addWidget(param_widget)
+        widget, lbl = build_param_column(f"P{i+1}", slider, label_style='dim')
+        slot.custom_labels.append(lbl)
+        custom_row.addWidget(widget)
     
     # Spacer to match buttons column
     custom_spacer = QWidget()
@@ -104,33 +135,19 @@ def build_standard_params_row(slot):
     slot.slider_labels = {}
     
     for param in GENERATOR_PARAMS:
-        param_widget = QWidget()
-        param_layout = QVBoxLayout(param_widget)
-        param_layout.setContentsMargins(0, 0, 0, 0)
-        param_layout.setSpacing(0)
-        
-        # Push content to bottom so label stays directly above slider
-        param_layout.addStretch()
-        
-        lbl = QLabel(param['label'])
-        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setStyleSheet(f"color: {COLORS['text']};")
-        lbl.setFixedHeight(14)
-        param_layout.addWidget(lbl, alignment=Qt.AlignHCenter)
-        
         slider = MiniSlider(param_config=param)
-        slider.setFixedHeight(60)
+        slider.setMinimumHeight(50)  # Min height, can grow with window
         slider.setToolTip(param['tooltip'])
         slider.normalizedValueChanged.connect(
             lambda norm, p=param: slot.on_param_changed(p['key'], norm, p)
         )
         slider.setEnabled(False)
-        param_layout.addWidget(slider, alignment=Qt.AlignHCenter)
+        
+        widget, lbl = build_param_column(param['label'], slider, label_style='normal')
         
         slot.sliders[param['key']] = slider
         slot.slider_labels[param['key']] = lbl
-        params_layout.addWidget(param_widget)
+        params_layout.addWidget(widget)
     
     params_layout.addSpacing(5)
     
@@ -219,27 +236,6 @@ def build_buttons_column(slot):
     
     return buttons_widget
 
-
-def build_status_row(slot):
-    """Build the status indicators row (audio, MIDI)."""
-    status_layout = QHBoxLayout()
-    status_layout.setSpacing(15)
-    
-    slot.audio_indicator = QLabel("🔇 Audio")
-    slot.audio_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-    slot.audio_indicator.setStyleSheet(f"color: {COLORS['audio_off']};")
-    status_layout.addWidget(slot.audio_indicator)
-    
-    slot.midi_indicator = QLabel("🎹 MIDI")
-    slot.midi_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-    slot.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
-    status_layout.addWidget(slot.midi_indicator)
-    
-    status_layout.addStretch()
-    
-    return status_layout
-
-
 def build_slot_ui(slot):
     """Build the complete generator slot UI."""
     layout = QVBoxLayout(slot)
@@ -266,8 +262,4 @@ def build_slot_ui(slot):
     params_row = build_standard_params_row(slot)
     params_outer.addLayout(params_row)
     
-    layout.addWidget(params_frame)
-    
-    # Status row
-    status_row = build_status_row(slot)
-    layout.addLayout(status_row)
+    layout.addWidget(params_frame, stretch=1)  # Let params frame grow

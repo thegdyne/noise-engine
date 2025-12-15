@@ -236,22 +236,12 @@ class GeneratorSlot(QWidget):
         self.update_style()
         
     def set_audio_status(self, active):
-        """Update audio indicator."""
-        if active:
-            self.audio_indicator.setText("🔊 Audio")
-            self.audio_indicator.setStyleSheet(f"color: {COLORS['audio_on']};")
-        else:
-            self.audio_indicator.setText("🔇 Audio")
-            self.audio_indicator.setStyleSheet(f"color: {COLORS['audio_off']};")
+        """Update audio indicator (removed - stub for compatibility)."""
+        pass
             
     def set_midi_status(self, active):
-        """Update MIDI indicator."""
-        if active:
-            self.midi_indicator.setText("🎹 MIDI")
-            self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_on']};")
-        else:
-            self.midi_indicator.setText("🎹 MIDI")
-            self.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
+        """Update MIDI indicator (removed - stub for compatibility)."""
+        pass
     
     # -------------------------------------------------------------------------
     # Event Handlers

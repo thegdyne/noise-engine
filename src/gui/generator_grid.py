@@ -36,14 +36,11 @@ class GeneratorGrid(QWidget):
     def setup_ui(self):
         """Create the grid."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(10, 5, 10, 10)
         main_layout.setSpacing(5)
         
-        title = QLabel("GENERATORS")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"color: {COLORS['text_bright']};")
-        main_layout.addWidget(title)
+        # Set tooltip on the whole widget
+        self.setToolTip("GENERATORS - 8 Synth Slots")
         
         grid = QGridLayout()
         grid.setSpacing(10)

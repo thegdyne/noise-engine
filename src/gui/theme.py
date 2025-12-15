@@ -197,6 +197,72 @@ def slider_style():
     """
 
 
+def slider_style_center_notch():
+    """
+    Vertical slider with center notch mark.
+    Use for sliders with a meaningful center position (e.g. EQ at 0dB).
+    Shows a visual tick at the midpoint to indicate double-click reset target.
+    """
+    return f"""
+        QSlider::groove:vertical {{
+            border: 1px solid {COLORS['border_light']};
+            width: 8px;
+            background: qlineargradient(
+                x1:0, y1:0, x2:0, y2:1,
+                stop:0 {COLORS['slider_groove']},
+                stop:0.48 {COLORS['slider_groove']},
+                stop:0.49 {COLORS['border_light']},
+                stop:0.51 {COLORS['border_light']},
+                stop:0.52 {COLORS['slider_groove']},
+                stop:1 {COLORS['slider_groove']}
+            );
+            border-radius: 4px;
+        }}
+        QSlider::handle:vertical {{
+            background: {COLORS['slider_handle']};
+            border: 1px solid {COLORS['border_light']};
+            height: 12px;
+            margin: 0 -3px;
+            border-radius: 6px;
+        }}
+        QSlider::handle:vertical:hover {{
+            background: {COLORS['slider_handle_hover']};
+        }}
+    """
+
+
+def pan_slider_style():
+    """
+    Horizontal pan slider with center notch mark.
+    Compact style for channel strips.
+    """
+    return f"""
+        QSlider::groove:horizontal {{
+            height: 4px;
+            background: qlineargradient(
+                x1:0, y1:0, x2:1, y2:0,
+                stop:0 {COLORS['background_dark']},
+                stop:0.48 {COLORS['background_dark']},
+                stop:0.49 {COLORS['border_light']},
+                stop:0.51 {COLORS['border_light']},
+                stop:0.52 {COLORS['background_dark']},
+                stop:1 {COLORS['background_dark']}
+            );
+            border-radius: 2px;
+        }}
+        QSlider::handle:horizontal {{
+            width: 8px;
+            height: 12px;
+            margin: -4px 0;
+            background: {COLORS['text_dim']};
+            border-radius: 2px;
+        }}
+        QSlider::handle:horizontal:hover {{
+            background: {COLORS['text']};
+        }}
+    """
+
+
 # === SKINNABLE GENERATOR CONTROL STYLES ===
 # These are separated for future skin system
 
@@ -316,3 +382,124 @@ def wip_badge_style():
             font-weight: bold;
         }}
     """
+
+
+# === PANEL STYLES ===
+# Use for main sections - no visible labels, tooltips on hover
+
+def panel_style():
+    """Standard panel/pane style with border. Use setToolTip() for hover labels."""
+    return f"""
+        QFrame, QWidget {{
+            background-color: {COLORS['background']};
+            border: 1px solid {COLORS['border']};
+            border-radius: 4px;
+        }}
+        QLabel {{
+            border: none;
+            background: transparent;
+        }}
+        QPushButton {{
+            border: 1px solid {COLORS['border']};
+        }}
+    """
+
+
+def panel_style_dark():
+    """Darker panel variant for nested sections."""
+    return f"""
+        QFrame, QWidget {{
+            background-color: {COLORS['background_dark']};
+            border: 1px solid {COLORS['border']};
+            border-radius: 4px;
+        }}
+        QLabel {{
+            border: none;
+            background: transparent;
+        }}
+    """
+
+
+def panel_style_highlight():
+    """Highlighted panel for active/important sections."""
+    return f"""
+        QFrame, QWidget {{
+            background-color: {COLORS['background_highlight']};
+            border: 1px solid {COLORS['border_light']};
+            border-radius: 4px;
+        }}
+        QLabel {{
+            border: none;
+            background: transparent;
+        }}
+    """
+
+
+# Panel tooltips - consistent naming across the app
+PANEL_TOOLTIPS = {
+    # Main sections
+    'master': 'MASTER OUTPUT',
+    'mixer': 'MIXER - 8 Channel Strips',
+    'generators': 'GENERATORS - 8 Synth Slots',
+    'mod_sources': 'MODULATION SOURCES - LFOs & Envelopes',
+    'fx_chain': 'FX CHAIN - 4 Effect Slots',
+    
+    # Master subsections
+    'eq': 'DJ Isolator EQ - 3-band with kill switches',
+    'comp': 'SSL G-Series Style Bus Compressor',
+    'limiter': 'Brickwall Limiter - Output protection',
+    'output': 'Master Output - Volume & Metering',
+    
+    # Generator subsections
+    'gen_params': 'Generator Parameters',
+    'gen_filter': 'Multimode Filter (LP/BP/HP)',
+    'gen_env': 'Clock-synced Envelope',
+    
+    # Effect types
+    'fx_delay': 'Delay Effect',
+    'fx_reverb': 'Reverb Effect',
+    'fx_chorus': 'Chorus Effect',
+    'fx_filter': 'Filter Effect',
+}
+
+
+def get_panel_tooltip(key):
+    """Get tooltip text for a panel by key."""
+    return PANEL_TOOLTIPS.get(key, '')
+
+
+# === GENERATOR THEME ===
+# Default generator styling - can be overridden per-generator in future
+GENERATOR_THEME = {
+    # Param label styling
+    'param_label_font': MONO_FONT,
+    'param_label_size': FONT_SIZES['tiny'],
+    'param_label_bold': True,
+    'param_label_height': 14,
+    
+    # Colors for param labels
+    'param_label_color': '#888',        # Active/standard params (FRQ, CUT, etc.)
+    'param_label_color_dim': '#555',    # Inactive/custom params (P1-P5 when unused)
+    'param_label_color_active': '#8f8', # Custom param when generator uses it
+    
+    # Slot styling
+    'slot_background': '#1a1a1a',
+    'slot_border': '#333',
+    'slot_border_active': '#44aa44',
+    
+    # Future: accent colors per generator type
+    # 'accent': '#44aa44',
+    # 'accent_dim': '#224422',
+}
+
+
+def get_generator_theme(generator_name=None):
+    """Get theme dict for a generator, with defaults.
+    
+    Future: load per-generator overrides from JSON configs.
+    """
+    theme = GENERATOR_THEME.copy()
+    # Future: merge per-generator overrides here
+    # if generator_name and generator_name in GENERATOR_OVERRIDES:
+    #     theme.update(GENERATOR_OVERRIDES[generator_name])
+    return theme

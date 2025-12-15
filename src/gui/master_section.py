@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
-from .theme import COLORS, FONT_FAMILY, FONT_SIZES
+from .theme import COLORS, FONT_FAMILY, FONT_SIZES, slider_style_center_notch
 from .widgets import DragSlider
 from src.config import SIZES
 
@@ -198,6 +198,48 @@ class LevelMeter(QWidget):
         painter.fillRect(x, bar_y, width, bar_height, gradient)
 
 
+class GRMeter(QWidget):
+    """Gain reduction meter for compressor."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.gr_value = 0  # 0-200 (0-20dB in tenths)
+        self.setFixedWidth(20)
+        self.setMinimumHeight(60)
+        
+    def setValue(self, value):
+        """Set GR value (0-200 representing 0-20dB)."""
+        self.gr_value = max(0, min(200, value))
+        self.update()
+        
+    def paintEvent(self, event):
+        """Draw the GR meter."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        width = self.width()
+        height = self.height()
+        
+        # Background
+        painter.fillRect(0, 0, width, height, QColor(COLORS['background']))
+        
+        # Border
+        painter.setPen(QColor(COLORS['border']))
+        painter.drawRect(0, 0, width - 1, height - 1)
+        
+        # GR bar (fills from top down - more GR = more bar)
+        if self.gr_value > 0:
+            bar_height = int((self.gr_value / 200.0) * (height - 4))
+            bar_y = 2  # Start from top
+            
+            # Orange/amber color for GR
+            gradient = QLinearGradient(2, bar_y, 2, bar_y + bar_height)
+            gradient.setColorAt(0.0, QColor('#ff8844'))
+            gradient.setColorAt(1.0, QColor('#ff6622'))
+            
+            painter.fillRect(2, bar_y, width - 4, bar_height, gradient)
+
+
 class MasterSection(QWidget):
     """Master output section with fader and meters.
     
@@ -258,19 +300,13 @@ class MasterSection(QWidget):
         
     def setup_ui(self):
         """Create master section UI."""
-        layout = QVBoxLayout(self)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+        layout.setSpacing(10)
         
-        # Header
-        header = QLabel("MASTER")
-        header.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        header.setAlignment(Qt.AlignCenter)
-        header.setStyleSheet(f"color: {COLORS['text_dim']};")
-        layout.addWidget(header)
-        
-        # Main content frame
+        # Main content frame (no separate MASTER label - uses tooltip on hover)
         content_frame = QFrame()
+        content_frame.setToolTip("MASTER OUTPUT")
         content_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['background']};
@@ -280,71 +316,13 @@ class MasterSection(QWidget):
         """)
         content_layout = QHBoxLayout(content_frame)
         content_layout.setContentsMargins(8, 8, 8, 8)
-        content_layout.setSpacing(8)
+        content_layout.setSpacing(12)
         
-        # Fader section
-        fader_widget = QWidget()
-        fader_layout = QVBoxLayout(fader_widget)
-        fader_layout.setContentsMargins(0, 0, 0, 0)
-        fader_layout.setSpacing(3)
+        # === SIGNAL FLOW ORDER: EQ → COMP → LIMITER → VOL+METER ===
         
-        fader_label = QLabel("VOL")
-        fader_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        fader_label.setAlignment(Qt.AlignCenter)
-        fader_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
-        fader_layout.addWidget(fader_label)
-        
-        self.master_fader = DragSlider()
-        self.master_fader.setFixedWidth(SIZES['slider_width'])
-        self.master_fader.setValue(800)  # 80% default
-        self.master_fader.setMinimumHeight(SIZES['slider_height_medium'])
-        self.master_fader.valueChanged.connect(self._on_fader_changed)
-        fader_layout.addWidget(self.master_fader, alignment=Qt.AlignCenter)
-        
-        # dB display
-        self.db_label = QLabel("-2.0")
-        self.db_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.db_label.setAlignment(Qt.AlignCenter)
-        self.db_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        fader_layout.addWidget(self.db_label)
-        
-        content_layout.addWidget(fader_widget)
-        
-        # Meter section (next to fader for visual feedback while mixing)
-        meter_widget = QWidget()
-        meter_layout = QVBoxLayout(meter_widget)
-        meter_layout.setContentsMargins(0, 0, 0, 0)
-        meter_layout.setSpacing(3)
-        
-        # PRE/POST toggle button
-        self.meter_mode_btn = QPushButton("PRE")
-        self.meter_mode_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.meter_mode_btn.setFixedSize(32, 18)
-        self.meter_mode_btn.setToolTip("Toggle PRE/POST fader metering")
-        self.meter_mode_btn.clicked.connect(self._on_meter_mode_clicked)
-        self._update_meter_mode_style()
-        meter_layout.addWidget(self.meter_mode_btn, alignment=Qt.AlignCenter)
-        
-        self.level_meter = LevelMeter()
-        meter_layout.addWidget(self.level_meter, alignment=Qt.AlignCenter)
-        
-        # Peak dB display
-        self.peak_label = QLabel("---")
-        self.peak_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.peak_label.setAlignment(Qt.AlignCenter)
-        self.peak_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        meter_layout.addWidget(self.peak_label)
-        
-        content_layout.addWidget(meter_widget)
-        
-        # Divider line
-        divider1 = QFrame()
-        divider1.setFrameShape(QFrame.VLine)
-        divider1.setStyleSheet(f"color: {COLORS['border']};")
-        content_layout.addWidget(divider1)
-        
-        # EQ section (3-band + lo cut)
+        # 1. EQ section (3-band + lo cut)
         eq_widget = QWidget()
+        eq_widget.setToolTip("DJ Isolator EQ - 3-band with kill switches")
         eq_layout = QVBoxLayout(eq_widget)
         eq_layout.setContentsMargins(0, 0, 0, 0)
         eq_layout.setSpacing(2)
@@ -380,15 +358,16 @@ class MasterSection(QWidget):
         self.eq_lo_slider.setRange(0, 240)  # 0=-12dB, 120=0dB, 240=+12dB
         self.eq_lo_slider.setValue(120)  # 0dB default
         self.eq_lo_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_lo_slider.setStyleSheet(slider_style_center_notch())
         self.eq_lo_slider.valueChanged.connect(self._on_eq_lo_changed)
         lo_container.addWidget(self.eq_lo_slider, alignment=Qt.AlignCenter)
-        self.eq_lo_kill_btn = QPushButton("LO")
-        self.eq_lo_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.eq_lo_kill_btn.setFixedSize(24, 16)
-        self.eq_lo_kill_btn.setToolTip("Kill LO band")
-        self.eq_lo_kill_btn.clicked.connect(self._on_eq_lo_kill_clicked)
-        self._update_eq_lo_kill_style()
-        lo_container.addWidget(self.eq_lo_kill_btn, alignment=Qt.AlignCenter)
+        
+        lo_label = QLabel("LO")
+        lo_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        lo_label.setAlignment(Qt.AlignCenter)
+        lo_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        lo_container.addWidget(lo_label)
+        
         eq_knobs.addLayout(lo_container)
         
         # MID knob + kill
@@ -399,15 +378,16 @@ class MasterSection(QWidget):
         self.eq_mid_slider.setRange(0, 240)
         self.eq_mid_slider.setValue(120)
         self.eq_mid_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_mid_slider.setStyleSheet(slider_style_center_notch())
         self.eq_mid_slider.valueChanged.connect(self._on_eq_mid_changed)
         mid_container.addWidget(self.eq_mid_slider, alignment=Qt.AlignCenter)
-        self.eq_mid_kill_btn = QPushButton("MID")
-        self.eq_mid_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.eq_mid_kill_btn.setFixedSize(28, 16)
-        self.eq_mid_kill_btn.setToolTip("Kill MID band")
-        self.eq_mid_kill_btn.clicked.connect(self._on_eq_mid_kill_clicked)
-        self._update_eq_mid_kill_style()
-        mid_container.addWidget(self.eq_mid_kill_btn, alignment=Qt.AlignCenter)
+        
+        mid_label = QLabel("MID")
+        mid_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        mid_label.setAlignment(Qt.AlignCenter)
+        mid_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        mid_container.addWidget(mid_label)
+        
         eq_knobs.addLayout(mid_container)
         
         # HI knob + kill
@@ -418,23 +398,54 @@ class MasterSection(QWidget):
         self.eq_hi_slider.setRange(0, 240)
         self.eq_hi_slider.setValue(120)
         self.eq_hi_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_hi_slider.setStyleSheet(slider_style_center_notch())
         self.eq_hi_slider.valueChanged.connect(self._on_eq_hi_changed)
         hi_container.addWidget(self.eq_hi_slider, alignment=Qt.AlignCenter)
-        self.eq_hi_kill_btn = QPushButton("HI")
-        self.eq_hi_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.eq_hi_kill_btn.setFixedSize(24, 16)
-        self.eq_hi_kill_btn.setToolTip("Kill HI band")
-        self.eq_hi_kill_btn.clicked.connect(self._on_eq_hi_kill_clicked)
-        self._update_eq_hi_kill_style()
-        hi_container.addWidget(self.eq_hi_kill_btn, alignment=Qt.AlignCenter)
+        
+        hi_label = QLabel("HI")
+        hi_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        hi_label.setAlignment(Qt.AlignCenter)
+        hi_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        hi_container.addWidget(hi_label)
+        
         eq_knobs.addLayout(hi_container)
         
         eq_layout.addLayout(eq_knobs)
         
-        # Lo Cut button
-        self.eq_locut_btn = QPushButton("CUT")
-        self.eq_locut_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.eq_locut_btn.setFixedSize(32, 16)
+        # Kill buttons row
+        kill_row = QHBoxLayout()
+        kill_row.setSpacing(4)
+        
+        self.eq_lo_kill_btn = QPushButton("CUT")
+        self.eq_lo_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        self.eq_lo_kill_btn.setFixedSize(28, 14)
+        self.eq_lo_kill_btn.setToolTip("Kill LO band")
+        self.eq_lo_kill_btn.clicked.connect(self._on_eq_lo_kill_clicked)
+        self._update_eq_lo_kill_style()
+        kill_row.addWidget(self.eq_lo_kill_btn)
+        
+        self.eq_mid_kill_btn = QPushButton("CUT")
+        self.eq_mid_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        self.eq_mid_kill_btn.setFixedSize(28, 14)
+        self.eq_mid_kill_btn.setToolTip("Kill MID band")
+        self.eq_mid_kill_btn.clicked.connect(self._on_eq_mid_kill_clicked)
+        self._update_eq_mid_kill_style()
+        kill_row.addWidget(self.eq_mid_kill_btn)
+        
+        self.eq_hi_kill_btn = QPushButton("CUT")
+        self.eq_hi_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        self.eq_hi_kill_btn.setFixedSize(28, 14)
+        self.eq_hi_kill_btn.setToolTip("Kill HI band")
+        self.eq_hi_kill_btn.clicked.connect(self._on_eq_hi_kill_clicked)
+        self._update_eq_hi_kill_style()
+        kill_row.addWidget(self.eq_hi_kill_btn)
+        
+        eq_layout.addLayout(kill_row)
+        
+        # Lo cut button
+        self.eq_locut_btn = QPushButton("75Hz")
+        self.eq_locut_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        self.eq_locut_btn.setFixedHeight(14)
         self.eq_locut_btn.setToolTip("Low cut filter (75Hz)")
         self.eq_locut_btn.clicked.connect(self._on_eq_locut_clicked)
         self._update_eq_locut_style()
@@ -442,34 +453,236 @@ class MasterSection(QWidget):
         
         content_layout.addWidget(eq_widget)
         
-        # Divider line
-        divider2 = QFrame()
-        divider2.setFrameShape(QFrame.VLine)
-        divider2.setStyleSheet(f"color: {COLORS['border']};")
-        content_layout.addWidget(divider2)
+        # 2. COMPRESSOR section - SSL G-Series style layout
+        comp_widget = QWidget()
+        comp_widget.setToolTip("SSL G-Series Style Bus Compressor")
+        comp_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {COLORS['background']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+            }}
+        """)
+        comp_main = QVBoxLayout(comp_widget)
+        comp_main.setContentsMargins(10, 8, 10, 8)
+        comp_main.setSpacing(8)
         
-        # Limiter section (separate - safety/protection)
+        # Header row: COMP label + ON button
+        comp_header = QHBoxLayout()
+        comp_header.setSpacing(8)
+        comp_label = QLabel("COMP")
+        comp_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
+        comp_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
+        comp_header.addWidget(comp_label)
+        
+        self.comp_bypass_btn = QPushButton("ON")
+        self.comp_bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.comp_bypass_btn.setFixedSize(32, 20)
+        self.comp_bypass_btn.setToolTip("Compressor bypass")
+        self.comp_bypass_btn.clicked.connect(self._on_comp_bypass_clicked)
+        self._update_comp_bypass_style()
+        comp_header.addWidget(self.comp_bypass_btn)
+        comp_header.addStretch()
+        comp_main.addLayout(comp_header)
+        
+        # Main controls row - groups stay compact, space between them stretches
+        comp_controls = QHBoxLayout()
+        comp_controls.setSpacing(8)
+        
+        # THR + MKP sliders (input/output gain)
+        sliders_group = QHBoxLayout()
+        sliders_group.setSpacing(10)
+        
+        # Threshold
+        thr_container = QVBoxLayout()
+        thr_container.setSpacing(2)
+        thr_label = QLabel("THR")
+        thr_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        thr_label.setAlignment(Qt.AlignCenter)
+        thr_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        thr_container.addWidget(thr_label)
+        self.comp_threshold = DragSlider()
+        self.comp_threshold.setFixedWidth(SIZES['slider_width'])
+        self.comp_threshold.setRange(0, 400)  # 0=-20dB, 200=0dB, 400=+20dB
+        self.comp_threshold.setValue(100)  # -10dB default
+        self.comp_threshold.setMinimumHeight(SIZES['slider_height_small'])
+        self.comp_threshold.valueChanged.connect(self._on_comp_threshold_changed)
+        thr_container.addWidget(self.comp_threshold, alignment=Qt.AlignCenter)
+        sliders_group.addLayout(thr_container)
+        
+        # Makeup
+        mkp_container = QVBoxLayout()
+        mkp_container.setSpacing(2)
+        mkp_label = QLabel("MKP")
+        mkp_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        mkp_label.setAlignment(Qt.AlignCenter)
+        mkp_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        mkp_container.addWidget(mkp_label)
+        self.comp_makeup = DragSlider()
+        self.comp_makeup.setFixedWidth(SIZES['slider_width'])
+        self.comp_makeup.setRange(0, 200)  # 0 to +20dB
+        self.comp_makeup.setValue(0)  # 0dB default
+        self.comp_makeup.setMinimumHeight(SIZES['slider_height_small'])
+        self.comp_makeup.valueChanged.connect(self._on_comp_makeup_changed)
+        mkp_container.addWidget(self.comp_makeup, alignment=Qt.AlignCenter)
+        sliders_group.addLayout(mkp_container)
+        
+        comp_controls.addLayout(sliders_group)
+        comp_controls.addStretch(1)  # Flexible space
+        
+        # RATIO - horizontal button group (3 buttons)
+        ratio_group = QVBoxLayout()
+        ratio_group.setSpacing(4)
+        ratio_label = QLabel("RATIO")
+        ratio_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        ratio_label.setAlignment(Qt.AlignCenter)
+        ratio_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        ratio_label.setFixedHeight(14)
+        ratio_group.addWidget(ratio_label)
+        
+        ratio_btns = QHBoxLayout()
+        ratio_btns.setSpacing(3)
+        self.comp_ratio_btns = []
+        for i, ratio in enumerate(["2:1", "4:1", "10:1"]):
+            btn = QPushButton(ratio)
+            btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+            btn.setFixedSize(36, 22)
+            btn.clicked.connect(lambda checked, idx=i: self._on_comp_ratio_clicked(idx))
+            ratio_btns.addWidget(btn)
+            self.comp_ratio_btns.append(btn)
+        self._update_comp_ratio_style()
+        ratio_group.addLayout(ratio_btns)
+        ratio_group.addStretch()  # Push content to top
+        comp_controls.addLayout(ratio_group)
+        comp_controls.addStretch(1)  # Flexible space
+        
+        # ATTACK - 2 rows of 3 buttons
+        atk_group = QVBoxLayout()
+        atk_group.setSpacing(4)
+        atk_label = QLabel("ATTACK")
+        atk_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        atk_label.setAlignment(Qt.AlignCenter)
+        atk_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        atk_label.setFixedHeight(14)
+        atk_group.addWidget(atk_label)
+        
+        self.comp_attack_btns = []
+        atk_values = ["0.1", "0.3", "1", "3", "10", "30"]
+        for row in range(2):
+            row_layout = QHBoxLayout()
+            row_layout.setSpacing(2)
+            for col in range(3):
+                idx = row * 3 + col
+                btn = QPushButton(atk_values[idx])
+                btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+                btn.setFixedSize(30, 18)
+                btn.clicked.connect(lambda checked, i=idx: self._on_comp_attack_clicked(i))
+                row_layout.addWidget(btn)
+                self.comp_attack_btns.append(btn)
+            atk_group.addLayout(row_layout)
+        self._update_comp_attack_style()
+        atk_group.addStretch()  # Push content to top
+        comp_controls.addLayout(atk_group)
+        comp_controls.addStretch(1)  # Flexible space
+        
+        # RELEASE - single row (5 buttons)
+        rel_group = QVBoxLayout()
+        rel_group.setSpacing(4)
+        rel_label = QLabel("RELEASE")
+        rel_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        rel_label.setAlignment(Qt.AlignCenter)
+        rel_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        rel_label.setFixedHeight(14)
+        rel_group.addWidget(rel_label)
+        
+        self.comp_release_btns = []
+        rel_values = ["0.1", "0.3", "0.6", "1.2", "Auto"]
+        rel_row = QHBoxLayout()
+        rel_row.setSpacing(2)
+        for i, val in enumerate(rel_values):
+            btn = QPushButton(val)
+            btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+            btn.setFixedSize(32, 20)
+            btn.clicked.connect(lambda checked, idx=i: self._on_comp_release_clicked(idx))
+            rel_row.addWidget(btn)
+            self.comp_release_btns.append(btn)
+        rel_group.addLayout(rel_row)
+        self._update_comp_release_style()
+        rel_group.addStretch()  # Push content to top
+        comp_controls.addLayout(rel_group)
+        comp_controls.addStretch(1)  # Flexible space
+        
+        # SC HPF - 2 rows of 3
+        sc_group = QVBoxLayout()
+        sc_group.setSpacing(4)
+        sc_label = QLabel("SC HPF")
+        sc_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        sc_label.setAlignment(Qt.AlignCenter)
+        sc_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        sc_label.setFixedHeight(14)
+        sc_group.addWidget(sc_label)
+        
+        self.comp_sc_btns = []
+        sc_values = ["Off", "30", "60", "90", "120", "185"]
+        for row in range(2):
+            row_layout = QHBoxLayout()
+            row_layout.setSpacing(2)
+            for col in range(3):
+                idx = row * 3 + col
+                btn = QPushButton(sc_values[idx])
+                btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+                btn.setFixedSize(30, 18)
+                btn.clicked.connect(lambda checked, i=idx: self._on_comp_sc_clicked(i))
+                row_layout.addWidget(btn)
+                self.comp_sc_btns.append(btn)
+            sc_group.addLayout(row_layout)
+        self._update_comp_sc_style()
+        sc_group.addStretch()  # Push content to top
+        comp_controls.addLayout(sc_group)
+        comp_controls.addStretch(1)  # Flexible space
+        
+        # GR meter
+        gr_container = QVBoxLayout()
+        gr_container.setSpacing(2)
+        gr_label = QLabel("GR")
+        gr_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        gr_label.setAlignment(Qt.AlignCenter)
+        gr_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        gr_label.setFixedHeight(14)
+        gr_container.addWidget(gr_label)
+        self.comp_gr_meter = GRMeter()
+        self.comp_gr_meter.setMinimumHeight(50)
+        gr_container.addWidget(self.comp_gr_meter, alignment=Qt.AlignCenter)
+        gr_container.addStretch()  # Push content to top
+        comp_controls.addLayout(gr_container)
+        
+        comp_main.addLayout(comp_controls)
+        content_layout.addWidget(comp_widget)
+        
+        # 3. LIMITER section
         limiter_widget = QWidget()
+        limiter_widget.setToolTip("Brickwall Limiter - Output protection")
         limiter_layout = QVBoxLayout(limiter_widget)
         limiter_layout.setContentsMargins(0, 0, 0, 0)
         limiter_layout.setSpacing(3)
         
+        limiter_header = QHBoxLayout()
+        limiter_header.setSpacing(3)
         limiter_label = QLabel("LIM")
         limiter_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        limiter_label.setAlignment(Qt.AlignCenter)
         limiter_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
-        limiter_layout.addWidget(limiter_label)
+        limiter_header.addWidget(limiter_label)
         
-        # Bypass button
         self.limiter_bypass_btn = QPushButton("ON")
         self.limiter_bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.limiter_bypass_btn.setFixedSize(28, 18)
+        self.limiter_bypass_btn.setFixedSize(24, 16)
         self.limiter_bypass_btn.setToolTip("Limiter bypass")
         self.limiter_bypass_btn.clicked.connect(self._on_limiter_bypass_clicked)
         self._update_limiter_bypass_style()
-        limiter_layout.addWidget(self.limiter_bypass_btn, alignment=Qt.AlignCenter)
+        limiter_header.addWidget(self.limiter_bypass_btn)
+        limiter_layout.addLayout(limiter_header)
         
-        # Ceiling control (small fader)
+        # Ceiling control
         self.ceiling_fader = DragSlider()
         self.ceiling_fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.ceiling_fader.setRange(0, 600)  # 0 = -6dB, 600 = 0dB
@@ -487,178 +700,64 @@ class MasterSection(QWidget):
         
         content_layout.addWidget(limiter_widget)
         
-        layout.addWidget(content_frame)
+        # 4. VOL + METER section (output)
+        output_widget = QWidget()
+        output_widget.setToolTip("Master Output - Volume & Metering")
+        output_layout = QHBoxLayout(output_widget)
+        output_layout.setContentsMargins(0, 0, 0, 0)
+        output_layout.setSpacing(8)
         
-        # === COMPRESSOR SECTION (separate row below) ===
-        comp_frame = QFrame()
-        comp_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['background']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 4px;
-            }}
-        """)
-        comp_layout = QHBoxLayout(comp_frame)
-        comp_layout.setContentsMargins(8, 4, 8, 4)
-        comp_layout.setSpacing(8)
+        # Fader
+        fader_container = QVBoxLayout()
+        fader_container.setSpacing(3)
         
-        # COMP label + bypass
-        comp_header = QVBoxLayout()
-        comp_header.setSpacing(2)
-        comp_label = QLabel("COMP")
-        comp_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        comp_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
-        comp_header.addWidget(comp_label)
+        fader_label = QLabel("VOL")
+        fader_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        fader_label.setAlignment(Qt.AlignCenter)
+        fader_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
+        fader_container.addWidget(fader_label)
         
-        self.comp_bypass_btn = QPushButton("ON")
-        self.comp_bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        self.comp_bypass_btn.setFixedSize(28, 16)
-        self.comp_bypass_btn.clicked.connect(self._on_comp_bypass_clicked)
-        self._update_comp_bypass_style()
-        comp_header.addWidget(self.comp_bypass_btn)
-        comp_layout.addLayout(comp_header)
+        self.master_fader = DragSlider()
+        self.master_fader.setFixedWidth(SIZES['slider_width'])
+        self.master_fader.setValue(800)  # 80% default
+        self.master_fader.setMinimumHeight(SIZES['slider_height_small'])
+        self.master_fader.valueChanged.connect(self._on_fader_changed)
+        fader_container.addWidget(self.master_fader, alignment=Qt.AlignCenter)
         
-        # Threshold slider
-        thr_container = QVBoxLayout()
-        thr_container.setSpacing(1)
-        self.comp_threshold = DragSlider()
-        self.comp_threshold.setFixedWidth(SIZES['slider_width_narrow'])
-        self.comp_threshold.setRange(0, 400)  # 0=-20dB, 200=0dB, 400=+20dB
-        self.comp_threshold.setValue(100)  # -10dB default (sensible bus compression)
-        self.comp_threshold.setMinimumHeight(50)
-        self.comp_threshold.valueChanged.connect(self._on_comp_threshold_changed)
-        thr_container.addWidget(self.comp_threshold, alignment=Qt.AlignCenter)
-        thr_label = QLabel("THR")
-        thr_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        thr_label.setAlignment(Qt.AlignCenter)
-        thr_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        thr_container.addWidget(thr_label)
-        comp_layout.addLayout(thr_container)
+        self.db_label = QLabel("-2.0")
+        self.db_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.db_label.setAlignment(Qt.AlignCenter)
+        self.db_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        fader_container.addWidget(self.db_label)
         
-        # Ratio buttons (2:1, 4:1, 10:1)
-        ratio_container = QVBoxLayout()
-        ratio_container.setSpacing(1)
-        self.comp_ratio_btns = []
-        for i, ratio in enumerate(["2:1", "4:1", "10:1"]):
-            btn = QPushButton(ratio)
-            btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-            btn.setFixedSize(28, 14)
-            btn.clicked.connect(lambda checked, idx=i: self._on_comp_ratio_clicked(idx))
-            self.comp_ratio_btns.append(btn)
-            ratio_container.addWidget(btn)
-        self.comp_ratio_idx = 1  # Default 4:1
-        self._update_comp_ratio_style()
-        comp_layout.addLayout(ratio_container)
+        output_layout.addLayout(fader_container)
         
-        # Attack dropdown (simplified as label for now)
-        atk_container = QVBoxLayout()
-        atk_container.setSpacing(1)
-        self.comp_attack_btns = []
-        atk_values = ["0.1", "0.3", "1", "3", "10", "30"]
-        for i, val in enumerate(atk_values):
-            btn = QPushButton(val)
-            btn.setFont(QFont(FONT_FAMILY, 6))
-            btn.setFixedSize(22, 11)
-            btn.clicked.connect(lambda checked, idx=i: self._on_comp_attack_clicked(idx))
-            self.comp_attack_btns.append(btn)
-            atk_container.addWidget(btn)
-        atk_label = QLabel("ATK")
-        atk_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        atk_label.setAlignment(Qt.AlignCenter)
-        atk_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        atk_container.addWidget(atk_label)
-        self.comp_attack_idx = 4  # Default 10ms
-        self._update_comp_attack_style()
-        comp_layout.addLayout(atk_container)
+        # Meter
+        meter_container = QVBoxLayout()
+        meter_container.setSpacing(3)
         
-        # Release dropdown
-        rel_container = QVBoxLayout()
-        rel_container.setSpacing(1)
-        self.comp_release_btns = []
-        rel_values = ["0.1", "0.3", "0.6", "1.2", "Auto"]
-        for i, val in enumerate(rel_values):
-            btn = QPushButton(val)
-            btn.setFont(QFont(FONT_FAMILY, 6))
-            btn.setFixedSize(26, 12)
-            btn.clicked.connect(lambda checked, idx=i: self._on_comp_release_clicked(idx))
-            self.comp_release_btns.append(btn)
-            rel_container.addWidget(btn)
-        rel_label = QLabel("REL")
-        rel_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        rel_label.setAlignment(Qt.AlignCenter)
-        rel_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        rel_container.addWidget(rel_label)
-        self.comp_release_idx = 4  # Default Auto
-        self._update_comp_release_style()
-        comp_layout.addLayout(rel_container)
+        self.meter_mode_btn = QPushButton("PRE")
+        self.meter_mode_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.meter_mode_btn.setFixedSize(32, 18)
+        self.meter_mode_btn.setToolTip("Toggle PRE/POST fader metering")
+        self.meter_mode_btn.clicked.connect(self._on_meter_mode_clicked)
+        self._update_meter_mode_style()
+        meter_container.addWidget(self.meter_mode_btn, alignment=Qt.AlignCenter)
         
-        # Makeup slider
-        mkp_container = QVBoxLayout()
-        mkp_container.setSpacing(1)
-        self.comp_makeup = DragSlider()
-        self.comp_makeup.setFixedWidth(SIZES['slider_width_narrow'])
-        self.comp_makeup.setRange(0, 200)  # 0-20dB
-        self.comp_makeup.setValue(0)  # 0dB default
-        self.comp_makeup.setMinimumHeight(50)
-        self.comp_makeup.valueChanged.connect(self._on_comp_makeup_changed)
-        mkp_container.addWidget(self.comp_makeup, alignment=Qt.AlignCenter)
-        mkp_label = QLabel("MKP")
-        mkp_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        mkp_label.setAlignment(Qt.AlignCenter)
-        mkp_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        mkp_container.addWidget(mkp_label)
-        comp_layout.addLayout(mkp_container)
+        self.level_meter = LevelMeter()
+        meter_container.addWidget(self.level_meter, alignment=Qt.AlignCenter)
         
-        # SC HPF dropdown
-        sc_container = QVBoxLayout()
-        sc_container.setSpacing(1)
-        self.comp_sc_btns = []
-        sc_values = ["Off", "30", "60", "90", "120", "185"]
-        for i, val in enumerate(sc_values):
-            btn = QPushButton(val)
-            btn.setFont(QFont(FONT_FAMILY, 6))
-            btn.setFixedSize(24, 11)
-            btn.clicked.connect(lambda checked, idx=i: self._on_comp_sc_clicked(idx))
-            self.comp_sc_btns.append(btn)
-            sc_container.addWidget(btn)
-        sc_label = QLabel("SC")
-        sc_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        sc_label.setAlignment(Qt.AlignCenter)
-        sc_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        sc_container.addWidget(sc_label)
-        self.comp_sc_idx = 0  # Default Off
-        self._update_comp_sc_style()
-        comp_layout.addLayout(sc_container)
+        self.peak_label = QLabel("---")
+        self.peak_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.peak_label.setAlignment(Qt.AlignCenter)
+        self.peak_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
+        meter_container.addWidget(self.peak_label)
         
-        # GR Meter
-        gr_container = QVBoxLayout()
-        gr_container.setSpacing(1)
-        self.comp_gr_meter = QProgressBar()
-        self.comp_gr_meter.setOrientation(Qt.Vertical)
-        self.comp_gr_meter.setRange(0, 200)  # 0-20dB scaled by 10
-        self.comp_gr_meter.setValue(0)
-        self.comp_gr_meter.setFixedWidth(12)
-        self.comp_gr_meter.setMinimumHeight(50)
-        self.comp_gr_meter.setTextVisible(False)
-        self.comp_gr_meter.setStyleSheet(f"""
-            QProgressBar {{
-                background-color: {COLORS['background_dark']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 2px;
-            }}
-            QProgressBar::chunk {{
-                background-color: {COLORS['warning']};
-            }}
-        """)
-        gr_container.addWidget(self.comp_gr_meter, alignment=Qt.AlignCenter)
-        gr_label = QLabel("GR")
-        gr_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
-        gr_label.setAlignment(Qt.AlignCenter)
-        gr_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
-        gr_container.addWidget(gr_label)
-        comp_layout.addLayout(gr_container)
+        output_layout.addLayout(meter_container)
         
-        layout.addWidget(comp_frame)
+        content_layout.addWidget(output_widget)
+        
+        layout.addWidget(content_frame, stretch=1)
         
     def _on_fader_changed(self, value):
         """Handle fader movement."""
@@ -1167,5 +1266,9 @@ class MasterSection(QWidget):
     
     def set_comp_gr(self, gr_db):
         """Update compressor GR meter."""
-        # Scale 0-20dB to 0-200 for progress bar
-        self.comp_gr_meter.setValue(int(gr_db * 10))
+        # Show zero GR when compressor is bypassed
+        if self.comp_bypass == 1:
+            self.comp_gr_meter.setValue(0)
+        else:
+            # Scale 0-20dB to 0-200 for meter
+            self.comp_gr_meter.setValue(int(gr_db * 10))

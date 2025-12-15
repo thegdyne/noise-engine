@@ -1132,3 +1132,141 @@ Prevents stereo image shift and unbalanced GR.
 **DO NOT:** Emit signals from OSC handlers without checking `_deleted`
 
 **Files affected:** `src/audio/osc_bridge.py`
+
+---
+
+### [2025-12-15] Scalable Faders with Height-Ratio Sensitivity
+**Decision:** All faders scale within min/max constraints, with mouse sensitivity based on fader height
+
+**Rationale:**
+- Fixed-height faders don't work well across different screen sizes (14" laptop vs 4K monitor)
+- Fixed-pixel sensitivity (100px = full range) feels wrong when faders scale
+- Height-ratio sensitivity (1:1 mouse-to-handle tracking) feels natural at any size
+
+**Implementation:**
+- `SIZES` in `config/__init__.py` defines per-context constraints:
+  - `fader_mixer_min/max`: 80-200px (channel faders)
+  - `fader_master_min/max`: 80-200px (master volume)
+  - `fader_eq_min/max`: 50-120px (EQ sliders)
+  - `fader_comp_min/max`: 50-100px (compressor)
+  - `fader_limiter_min/max`: 50-100px (limiter)
+  - `fader_generator_min/max`: 60-120px (generator params)
+- `DRAG_SENSITIVITY` in `theme.py` defines height ratios:
+  - `fader_height_ratio`: 1.0 (normal: 1:1 tracking)
+  - `fader_height_ratio_fine`: 3.0 (shift-held: 3x height for full range)
+- `FaderSlider` class uses height-ratio mode
+- `MiniSlider` extends `FaderSlider` with generator constraints
+
+**DO NOT:** Use fixed `setFixedHeight()` on scalable faders
+**DO NOT:** Use fixed pixel sensitivity for height-ratio faders
+
+**Files affected:**
+- `src/config/__init__.py` (SIZES constraints)
+- `src/gui/theme.py` (DRAG_SENSITIVITY ratios)
+- `src/gui/widgets.py` (FaderSlider, MiniSlider classes)
+- `src/gui/mixer_panel.py`, `master_section.py`, `generator_slot_builder.py`
+
+---
+
+### [2025-12-15] Centralised Generator Theming
+**Decision:** All generator slot styling comes from `GENERATOR_THEME` dict in theme.py
+
+**Rationale:**
+- Future per-generator theming (each .scd can have its own accent colors)
+- Single source of truth for generator UI styling
+- No inline styles scattered through builder code
+
+**Implementation:**
+- `GENERATOR_THEME` dict in `theme.py` with:
+  - `param_label_font`, `param_label_size`, `param_label_bold`, `param_label_height`
+  - `param_label_color`, `param_label_color_dim`, `param_label_color_active`
+  - `slot_background`, `slot_border`, `slot_border_active`
+- `build_param_column()` in `generator_slot_builder.py` references theme only
+- Future: per-generator overrides via JSON config (see FUTURE_IDEAS.md)
+
+**DO NOT:** Add inline font/color definitions in generator_slot_builder.py
+**DO NOT:** Define generator-specific colors outside GENERATOR_THEME
+
+**Files affected:**
+- `src/gui/theme.py` (GENERATOR_THEME dict)
+- `src/gui/generator_slot_builder.py` (build_param_column)
+
+---
+
+### [2025-12-15] Hover Tooltips Replace Visible Section Labels
+**Decision:** Remove visible section labels (MASTER, MIXER, GENERATORS, etc.) and use hover tooltips instead
+
+**Rationale:**
+- Labels consume valuable screen real estate
+- Experienced users don't need constant label reminders
+- Tooltips provide context on demand without visual clutter
+- Cleaner, more professional appearance
+
+**Implementation:**
+- `PANEL_TOOLTIPS` dict in `theme.py` defines tooltip text for each panel
+- `get_panel_tooltip(panel_name)` helper function
+- Each panel frame has `setToolTip()` applied
+- Sub-sections (EQ, COMP, LIM) retain inline labels as they're functional identifiers
+
+**Tooltips defined:**
+- MASTER OUTPUT
+- MIXER - 8 Channel Strips  
+- GENERATORS - 8 Synth Slots
+- MODULATION SOURCES - LFOs & Envelopes
+- FX CHAIN - 4 Effect Slots
+- DJ Isolator EQ - 3-band with kill switches
+- SSL G-Series Style Bus Compressor
+- Brickwall Limiter - Output protection
+
+**DO NOT:** Add visible "SECTION NAME" labels to panels
+**DO NOT:** Remove tooltips from panel frames
+
+**Files affected:**
+- `src/gui/theme.py` (PANEL_TOOLTIPS, get_panel_tooltip)
+- `src/gui/master_section.py`, `mixer_panel.py`, `generator_grid.py`
+- `src/gui/modulation_sources.py`, `effects_chain.py`
+
+---
+
+### [2025-12-15] Compressor Layout - Aligned Labels and Stretchy Gaps
+**Decision:** Compressor control groups have aligned top labels and flexible spacing between groups
+
+**Rationale:**
+- Labels at same height look organised and professional
+- Button groups should stay compact when window resizes
+- Gaps between groups should absorb extra space, not gaps between buttons
+- Removed divider lines - stretchy gaps provide visual separation
+
+**Implementation:**
+- All labels (RATIO, ATTACK, RELEASE, SC HPF, GR) have `setFixedHeight(14)`
+- Each group has `addStretch()` at bottom to push content to top
+- `comp_controls.addStretch(1)` between each group for flexible spacing
+- RELEASE is single row (5 buttons), ATTACK and SC HPF are 2x3 blocks
+
+**DO NOT:** Let button spacing stretch within groups
+**DO NOT:** Add fixed pixel spacing between control groups
+**DO NOT:** Put labels at different heights
+
+**Files affected:**
+- `src/gui/master_section.py` (compressor section layout)
+
+---
+
+### [2025-12-15] Removed Audio/MIDI Status Indicators from Generator Slots
+**Decision:** Remove the "🔇 Audio" and "🎹 MIDI" status indicators from generator slots
+
+**Rationale:**
+- Consumed vertical space without providing useful real-time feedback
+- Status information is redundant (active generators have visual highlighting)
+- Freed up space for larger faders
+
+**Implementation:**
+- Removed `build_status_row()` function from `generator_slot_builder.py`
+- Stubbed out `set_audio_status()` and `set_midi_status()` methods in `generator_slot.py`
+- Added `stretch=1` to params_frame so it fills available space
+
+**DO NOT:** Re-add audio/midi indicators without clear UX benefit
+
+**Files affected:**
+- `src/gui/generator_slot_builder.py` (removed build_status_row)
+- `src/gui/generator_slot.py` (stubbed status methods)
