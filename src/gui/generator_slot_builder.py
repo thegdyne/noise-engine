@@ -67,9 +67,10 @@ def build_param_column(label_text, slider, label_style='dim'):
         label_style: 'dim' for inactive/custom params, 'normal' for standard params
     
     Returns:
-        QWidget containing the label + slider column
+        (QWidget, QLabel) - the column widget and label for later updates
     """
     widget = QWidget()
+    widget.setFixedWidth(35)  # Constrain column width
     layout = QVBoxLayout(widget)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(2)
@@ -106,14 +107,14 @@ def build_custom_params_row(slot):
     
     for i in range(MAX_CUSTOM_PARAMS):
         slider = MiniSlider()
+        slider.setMinimumHeight(50)  # Min height, can grow with window
         slider.setEnabled(False)
         slider.normalizedValueChanged.connect(
             lambda norm, idx=i: slot.on_custom_param_changed(idx, norm)
         )
+        slot.custom_sliders.append(slider)
         
         widget, lbl = build_param_column(f"P{i+1}", slider, label_style='dim')
-        
-        slot.custom_sliders.append(slider)
         slot.custom_labels.append(lbl)
         custom_row.addWidget(widget)
     
@@ -135,6 +136,7 @@ def build_standard_params_row(slot):
     
     for param in GENERATOR_PARAMS:
         slider = MiniSlider(param_config=param)
+        slider.setMinimumHeight(50)  # Min height, can grow with window
         slider.setToolTip(param['tooltip'])
         slider.normalizedValueChanged.connect(
             lambda norm, p=param: slot.on_param_changed(p['key'], norm, p)
@@ -234,27 +236,6 @@ def build_buttons_column(slot):
     
     return buttons_widget
 
-
-def build_status_row(slot):
-    """Build the status indicators row (audio, MIDI)."""
-    status_layout = QHBoxLayout()
-    status_layout.setSpacing(15)
-    
-    slot.audio_indicator = QLabel("🔇 Audio")
-    slot.audio_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-    slot.audio_indicator.setStyleSheet(f"color: {COLORS['audio_off']};")
-    status_layout.addWidget(slot.audio_indicator)
-    
-    slot.midi_indicator = QLabel("🎹 MIDI")
-    slot.midi_indicator.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-    slot.midi_indicator.setStyleSheet(f"color: {COLORS['midi_off']};")
-    status_layout.addWidget(slot.midi_indicator)
-    
-    status_layout.addStretch()
-    
-    return status_layout
-
-
 def build_slot_ui(slot):
     """Build the complete generator slot UI."""
     layout = QVBoxLayout(slot)
@@ -275,14 +256,10 @@ def build_slot_ui(slot):
     
     # Custom params row
     custom_row = build_custom_params_row(slot)
-    params_outer.addLayout(custom_row, stretch=1)
+    params_outer.addLayout(custom_row)
     
     # Standard params row
     params_row = build_standard_params_row(slot)
-    params_outer.addLayout(params_row, stretch=1)
+    params_outer.addLayout(params_row)
     
-    layout.addWidget(params_frame, stretch=1)
-    
-    # Status row
-    status_row = build_status_row(slot)
-    layout.addLayout(status_row)
+    layout.addWidget(params_frame, stretch=1)  # Let params frame grow

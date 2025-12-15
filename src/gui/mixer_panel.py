@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, pan_slider_style
-from .widgets import FaderSlider
+from .widgets import DragSlider
 from src.config import SIZES
 
 
@@ -21,9 +21,8 @@ class MiniMeter(QWidget):
         super().__init__(parent)
         self.level_l = 0.0
         self.level_r = 0.0
-        self.setFixedWidth(20)
-        self.setMinimumHeight(SIZES['fader_mixer_min'])
-        self.setMaximumHeight(SIZES['fader_mixer_max'])
+        self.setFixedWidth(20)  # Fixed width
+        self.setMinimumHeight(40)  # Can grow taller
         
     def set_levels(self, left, right):
         """Update meter levels (0.0 to 1.0)."""
@@ -130,26 +129,24 @@ class ChannelStrip(QWidget):
         self._label.setStyleSheet(f"color: {COLORS['text_dim']};")  # Start dimmed
         layout.addWidget(self._label)
         
-        # Fader + Meter side by side - use a widget container for proper stretch
-        fader_meter_widget = QWidget()
-        fader_meter_layout = QHBoxLayout(fader_meter_widget)
-        fader_meter_layout.setContentsMargins(0, 0, 0, 0)
+        # Fader + Meter side by side
+        fader_meter_layout = QHBoxLayout()
         fader_meter_layout.setSpacing(2)
+        fader_meter_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Fader - uses height-ratio sensitivity for consistent feel
-        self.fader = FaderSlider()
+        # Fader - no alignment constraint so it fills vertical space
+        self.fader = DragSlider()
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
-        self.fader.set_height_constraints(SIZES['fader_mixer_min'], SIZES['fader_mixer_max'])
+        self.fader.setMinimumHeight(SIZES['slider_height_large'])
         self.fader.valueChanged.connect(self.on_fader_changed)
-        fader_meter_layout.addWidget(self.fader)
+        fader_meter_layout.addWidget(self.fader)  # No alignment - let it stretch
         
-        # Mini meter
+        # Mini meter - also stretches with fader
         self.meter = MiniMeter()
-        fader_meter_layout.addWidget(self.meter)
+        fader_meter_layout.addWidget(self.meter)  # No alignment - let it stretch
         
-        # Add fader_meter_widget with stretch=1 so it fills vertical space
-        layout.addWidget(fader_meter_widget, stretch=1)
+        layout.addLayout(fader_meter_layout, stretch=1)  # Let faders grow
         
         # Pan slider (horizontal, compact) - double-click to center
         from PyQt5.QtWidgets import QSlider
@@ -301,17 +298,12 @@ class MixerPanel(QWidget):
     def setup_ui(self):
         """Create mixer panel."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 2, 5, 5)
-        layout.setSpacing(2)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(0)
         
-        # Header
-        title = QLabel("MIXER")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
-        title.setStyleSheet(f"color: {COLORS['text_dim']};")
-        layout.addWidget(title)
-        
-        # Channel strips frame - stretch=1 to fill vertical space
+        # Channel strips frame with tooltip
         channels_frame = QFrame()
+        channels_frame.setToolTip("MIXER - 8 Channel Strips")
         channels_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['background']};
@@ -333,9 +325,8 @@ class MixerPanel(QWidget):
             channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
-        
-        # Add with stretch=1 so frame expands to fill available vertical space
-        layout.addWidget(channels_frame, stretch=1)
+            
+        layout.addWidget(channels_frame, stretch=1)  # Let it fill available space
         
     def on_channel_volume(self, channel_id, volume):
         """Handle channel volume change."""

@@ -21,33 +21,8 @@ FONT_SIZES = {
     'micro': 7,       # Smallest text (mute/solo buttons)
 }
 
-# === GENERATOR THEME ===
-# Default generator styling - can be overridden per-generator in future
-GENERATOR_THEME = {
-    # Param label styling
-    'param_label_font': MONO_FONT,
-    'param_label_size': FONT_SIZES['tiny'],
-    'param_label_bold': True,
-    'param_label_height': 14,
-    
-    # Colors for param labels
-    'param_label_color': '#888',        # Active/standard params (FRQ, CUT, etc.)
-    'param_label_color_dim': '#555',    # Inactive/custom params (P1-P5 when unused)
-    'param_label_color_active': '#8f8', # Custom param when generator uses it
-    
-    # Slot styling
-    'slot_background': '#1a1a1a',
-    'slot_border': '#333',
-    'slot_border_active': '#44aa44',
-    
-    # Future: accent colors per generator type
-    # 'accent': '#44aa44',
-    # 'accent_dim': '#224422',
-}
-
 # Drag/scroll sensitivity settings
 DRAG_SENSITIVITY = {
-    # Fixed pixel-based sensitivity (for non-scaling controls)
     'slider_normal': 100,
     'slider_fine': 400,
     'cycle_normal': 15,
@@ -56,13 +31,6 @@ DRAG_SENSITIVITY = {
     'generator_fine': 12,
     'bpm_value_normal': 3,
     'bpm_value_fine': 35,
-    
-    # Height-ratio based sensitivity (for scaling faders)
-    # Ratio of fader height that equals full 0-100% travel
-    # 1.0 = drag the full fader height for full range (1:1 visual tracking)
-    # 0.8 = drag 80% of fader height for full range (slightly faster)
-    'fader_height_ratio': 1.0,       # Normal: 1:1 mouse to handle
-    'fader_height_ratio_fine': 3.0,  # Fine: 3x fader height for full range
 }
 
 # Base colors
@@ -414,3 +382,124 @@ def wip_badge_style():
             font-weight: bold;
         }}
     """
+
+
+# === PANEL STYLES ===
+# Use for main sections - no visible labels, tooltips on hover
+
+def panel_style():
+    """Standard panel/pane style with border. Use setToolTip() for hover labels."""
+    return f"""
+        QFrame, QWidget {{
+            background-color: {COLORS['background']};
+            border: 1px solid {COLORS['border']};
+            border-radius: 4px;
+        }}
+        QLabel {{
+            border: none;
+            background: transparent;
+        }}
+        QPushButton {{
+            border: 1px solid {COLORS['border']};
+        }}
+    """
+
+
+def panel_style_dark():
+    """Darker panel variant for nested sections."""
+    return f"""
+        QFrame, QWidget {{
+            background-color: {COLORS['background_dark']};
+            border: 1px solid {COLORS['border']};
+            border-radius: 4px;
+        }}
+        QLabel {{
+            border: none;
+            background: transparent;
+        }}
+    """
+
+
+def panel_style_highlight():
+    """Highlighted panel for active/important sections."""
+    return f"""
+        QFrame, QWidget {{
+            background-color: {COLORS['background_highlight']};
+            border: 1px solid {COLORS['border_light']};
+            border-radius: 4px;
+        }}
+        QLabel {{
+            border: none;
+            background: transparent;
+        }}
+    """
+
+
+# Panel tooltips - consistent naming across the app
+PANEL_TOOLTIPS = {
+    # Main sections
+    'master': 'MASTER OUTPUT',
+    'mixer': 'MIXER - 8 Channel Strips',
+    'generators': 'GENERATORS - 8 Synth Slots',
+    'mod_sources': 'MODULATION SOURCES - LFOs & Envelopes',
+    'fx_chain': 'FX CHAIN - 4 Effect Slots',
+    
+    # Master subsections
+    'eq': 'DJ Isolator EQ - 3-band with kill switches',
+    'comp': 'SSL G-Series Style Bus Compressor',
+    'limiter': 'Brickwall Limiter - Output protection',
+    'output': 'Master Output - Volume & Metering',
+    
+    # Generator subsections
+    'gen_params': 'Generator Parameters',
+    'gen_filter': 'Multimode Filter (LP/BP/HP)',
+    'gen_env': 'Clock-synced Envelope',
+    
+    # Effect types
+    'fx_delay': 'Delay Effect',
+    'fx_reverb': 'Reverb Effect',
+    'fx_chorus': 'Chorus Effect',
+    'fx_filter': 'Filter Effect',
+}
+
+
+def get_panel_tooltip(key):
+    """Get tooltip text for a panel by key."""
+    return PANEL_TOOLTIPS.get(key, '')
+
+
+# === GENERATOR THEME ===
+# Default generator styling - can be overridden per-generator in future
+GENERATOR_THEME = {
+    # Param label styling
+    'param_label_font': MONO_FONT,
+    'param_label_size': FONT_SIZES['tiny'],
+    'param_label_bold': True,
+    'param_label_height': 14,
+    
+    # Colors for param labels
+    'param_label_color': '#888',        # Active/standard params (FRQ, CUT, etc.)
+    'param_label_color_dim': '#555',    # Inactive/custom params (P1-P5 when unused)
+    'param_label_color_active': '#8f8', # Custom param when generator uses it
+    
+    # Slot styling
+    'slot_background': '#1a1a1a',
+    'slot_border': '#333',
+    'slot_border_active': '#44aa44',
+    
+    # Future: accent colors per generator type
+    # 'accent': '#44aa44',
+    # 'accent_dim': '#224422',
+}
+
+
+def get_generator_theme(generator_name=None):
+    """Get theme dict for a generator, with defaults.
+    
+    Future: load per-generator overrides from JSON configs.
+    """
+    theme = GENERATOR_THEME.copy()
+    # Future: merge per-generator overrides here
+    # if generator_name and generator_name in GENERATOR_OVERRIDES:
+    #     theme.update(GENERATOR_OVERRIDES[generator_name])
+    return theme

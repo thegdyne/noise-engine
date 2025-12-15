@@ -94,22 +94,34 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_midi_channel_changed.connect(self.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
-        # Right - MIXER + MASTER (stacked vertically)
-        right_panel = QWidget()
-        right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(5)
-        
-        # Mixer (upper portion)
+        # Right - MIXER only (full height now)
         self.mixer_panel = MixerPanel(num_generators=8)
         self.mixer_panel.generator_volume_changed.connect(self.on_generator_volume_changed)
         self.mixer_panel.generator_muted.connect(self.on_generator_muted)
         self.mixer_panel.generator_solo.connect(self.on_generator_solo)
         self.mixer_panel.generator_gain_changed.connect(self.on_generator_gain_changed)
         self.mixer_panel.generator_pan_changed.connect(self.on_generator_pan_changed)
-        right_layout.addWidget(self.mixer_panel, stretch=2)
+        content_layout.addWidget(self.mixer_panel, stretch=1)
         
-        # Master section (lower portion)
+        content_outer.addWidget(content_widget, stretch=1)
+        
+        # Console panel (right edge overlay)
+        self.console_panel = ConsolePanel()
+        content_outer.addWidget(self.console_panel)
+        
+        main_layout.addWidget(content_container, stretch=1)
+        
+        # Bottom section - FX Chain + Master side by side
+        bottom_container = QWidget()
+        bottom_layout = QHBoxLayout(bottom_container)
+        bottom_layout.setContentsMargins(5, 5, 5, 5)
+        bottom_layout.setSpacing(10)
+        
+        # FX Chain (left side)
+        bottom_section = self.create_bottom_section()
+        bottom_layout.addWidget(bottom_section, stretch=1)
+        
+        # Master section (right side)
         self.master_section = MasterSection()
         self.master_section.master_volume_changed.connect(self.on_master_volume_from_master)
         self.master_section.meter_mode_changed.connect(self.on_meter_mode_changed)
@@ -131,21 +143,9 @@ class MainFrame(QMainWindow):
         self.master_section.comp_makeup_changed.connect(self.on_comp_makeup_changed)
         self.master_section.comp_sc_hpf_changed.connect(self.on_comp_sc_hpf_changed)
         self.master_section.comp_bypass_changed.connect(self.on_comp_bypass_changed)
-        right_layout.addWidget(self.master_section, stretch=1)
+        bottom_layout.addWidget(self.master_section, stretch=2)
         
-        content_layout.addWidget(right_panel, stretch=1)
-        
-        content_outer.addWidget(content_widget, stretch=1)
-        
-        # Console panel (right edge overlay)
-        self.console_panel = ConsolePanel()
-        content_outer.addWidget(self.console_panel)
-        
-        main_layout.addWidget(content_container, stretch=1)
-        
-        # Bottom - EFFECTS only
-        bottom_section = self.create_bottom_section()
-        main_layout.addWidget(bottom_section)
+        main_layout.addWidget(bottom_container)
         
         # Keyboard shortcut for console (Cmd+` or Ctrl+`)
         console_shortcut = QShortcut(QKeySequence("Ctrl+`"), self)
