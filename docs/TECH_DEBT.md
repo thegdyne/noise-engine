@@ -43,12 +43,12 @@ Run with: `pytest` or `python -m pytest tests/`
 
 ## Medium Priority
 
-### generator_slot.py is 558 lines
-Does too much. Mixed UI and logic.
+### generator_slot.py Split ✓ RESOLVED
+~~Does too much. Mixed UI and logic.~~
 
 **Fix:** Split into:
-- `generator_slot_ui.py` (layout/widgets)
-- `generator_slot_logic.py` (state management)
+- `generator_slot.py` (322 lines - state management, event handlers)
+- `generator_slot_builder.py` (265 lines - UI layout/widgets)
 
 ### WIP Features Visible
 Mod Sources and Mixer are visible but greyed out. Looks broken.
@@ -86,8 +86,8 @@ Re-running init.scd without server reboot leaks buses until crash.
 | Bare excepts | ✓ Fixed | All use `except Exception as e:` or specific types |
 | No tests | ✓ Fixed | tests/ directory with 93 pytest tests |
 | Print debugging | ✓ Fixed | src/utils/logger.py |
+| generator_slot.py size | ✓ Fixed | Split into generator_slot.py + generator_slot_builder.py |
 | Hardcoded paths | Open | |
-| generator_slot.py size | Open | |
 | WIP features visible | Open | |
 | No presets | Open | |
 | OSC error recovery | Open | |

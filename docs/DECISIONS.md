@@ -1190,3 +1190,83 @@ Prevents stereo image shift and unbalanced GR.
 **Files affected:**
 - `src/gui/theme.py` (GENERATOR_THEME dict)
 - `src/gui/generator_slot_builder.py` (build_param_column)
+
+---
+
+### [2025-12-15] Hover Tooltips Replace Visible Section Labels
+**Decision:** Remove visible section labels (MASTER, MIXER, GENERATORS, etc.) and use hover tooltips instead
+
+**Rationale:**
+- Labels consume valuable screen real estate
+- Experienced users don't need constant label reminders
+- Tooltips provide context on demand without visual clutter
+- Cleaner, more professional appearance
+
+**Implementation:**
+- `PANEL_TOOLTIPS` dict in `theme.py` defines tooltip text for each panel
+- `get_panel_tooltip(panel_name)` helper function
+- Each panel frame has `setToolTip()` applied
+- Sub-sections (EQ, COMP, LIM) retain inline labels as they're functional identifiers
+
+**Tooltips defined:**
+- MASTER OUTPUT
+- MIXER - 8 Channel Strips  
+- GENERATORS - 8 Synth Slots
+- MODULATION SOURCES - LFOs & Envelopes
+- FX CHAIN - 4 Effect Slots
+- DJ Isolator EQ - 3-band with kill switches
+- SSL G-Series Style Bus Compressor
+- Brickwall Limiter - Output protection
+
+**DO NOT:** Add visible "SECTION NAME" labels to panels
+**DO NOT:** Remove tooltips from panel frames
+
+**Files affected:**
+- `src/gui/theme.py` (PANEL_TOOLTIPS, get_panel_tooltip)
+- `src/gui/master_section.py`, `mixer_panel.py`, `generator_grid.py`
+- `src/gui/modulation_sources.py`, `effects_chain.py`
+
+---
+
+### [2025-12-15] Compressor Layout - Aligned Labels and Stretchy Gaps
+**Decision:** Compressor control groups have aligned top labels and flexible spacing between groups
+
+**Rationale:**
+- Labels at same height look organised and professional
+- Button groups should stay compact when window resizes
+- Gaps between groups should absorb extra space, not gaps between buttons
+- Removed divider lines - stretchy gaps provide visual separation
+
+**Implementation:**
+- All labels (RATIO, ATTACK, RELEASE, SC HPF, GR) have `setFixedHeight(14)`
+- Each group has `addStretch()` at bottom to push content to top
+- `comp_controls.addStretch(1)` between each group for flexible spacing
+- RELEASE is single row (5 buttons), ATTACK and SC HPF are 2x3 blocks
+
+**DO NOT:** Let button spacing stretch within groups
+**DO NOT:** Add fixed pixel spacing between control groups
+**DO NOT:** Put labels at different heights
+
+**Files affected:**
+- `src/gui/master_section.py` (compressor section layout)
+
+---
+
+### [2025-12-15] Removed Audio/MIDI Status Indicators from Generator Slots
+**Decision:** Remove the "🔇 Audio" and "🎹 MIDI" status indicators from generator slots
+
+**Rationale:**
+- Consumed vertical space without providing useful real-time feedback
+- Status information is redundant (active generators have visual highlighting)
+- Freed up space for larger faders
+
+**Implementation:**
+- Removed `build_status_row()` function from `generator_slot_builder.py`
+- Stubbed out `set_audio_status()` and `set_midi_status()` methods in `generator_slot.py`
+- Added `stretch=1` to params_frame so it fills available space
+
+**DO NOT:** Re-add audio/midi indicators without clear UX benefit
+
+**Files affected:**
+- `src/gui/generator_slot_builder.py` (removed build_status_row)
+- `src/gui/generator_slot.py` (stubbed status methods)
