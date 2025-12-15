@@ -98,20 +98,13 @@ All OSC message routing
     }, '/noise/stop_generator');
     
     // === CHANNEL STRIP CONTROLS ===
-    // All handlers use ~withValidSlot for bounds checking
-    // All handlers track state (persists even if strip doesn't exist yet)
-    
     // Per-generator volume
     OSCdef(\genVolume, { |msg|
         var slot = msg[1].asInteger;
         var vol = msg[2].asFloat.clip(0, 1);
-        
-        ~withValidSlot.(slot, { |idx|
-            // Track state (persists across generator changes)
-            ~stripVolState[idx] = vol;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\vol, vol);
-            });
+        var idx = slot - 1;
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\vol, vol);
         });
     }, '/noise/gen/volume');
     
@@ -119,12 +112,11 @@ All OSC message routing
     OSCdef(\genMute, { |msg|
         var slot = msg[1].asInteger;
         var muted = msg[2].asInteger;
-        
-        ~withValidSlot.(slot, { |idx|
-            ~stripMuteState[idx] = muted;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\mute, muted);
-            });
+        var idx = slot - 1;
+        // Track mute state (persists across generator changes)
+        ~stripMuteState[idx] = muted;
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\mute, muted);
         });
     }, '/noise/gen/mute');
     
@@ -132,24 +124,25 @@ All OSC message routing
     OSCdef(\genSolo, { |msg|
         var slot = msg[1].asInteger;
         var soloed = msg[2].asInteger;
+        var idx = slot - 1;
+        var oldSolo;
         
-        ~withValidSlot.(slot, { |idx|
-            var oldSolo = ~stripSoloState[idx] ? 0;
-            
-            // Always update state (even if strip doesn't exist yet)
+        if(~channelStrips[idx].notNil, {
+            // Track solo count for solo-in-place logic
+            oldSolo = ~stripSoloState[idx] ? 0;
             ~stripSoloState[idx] = soloed;
             
             // Update global solo count
             if(soloed == 1 && oldSolo == 0, { ~soloCount = ~soloCount + 1 });
             if(soloed == 0 && oldSolo == 1, { ~soloCount = ~soloCount - 1 });
             
-            // Update global soloActive bus
+            // Update global soloActive bus (1 if any solo, 0 if none)
             ~soloActive.set(if(~soloCount > 0, 1, 0));
             
-            // Only set on synth if it exists
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\solo, soloed);
-            });
+            // Update this strip's solo state
+            ~channelStrips[idx].set(\solo, soloed);
+            
+            ("Slot " ++ slot ++ " solo: " ++ soloed ++ " (total solos: " ++ ~soloCount ++ ")").postln;
         });
     }, '/noise/gen/solo');
     
@@ -157,95 +150,39 @@ All OSC message routing
     OSCdef(\genGain, { |msg|
         var slot = msg[1].asInteger;
         var gainDb = msg[2].asInteger;  // 0, 6, or 12
-        var gainLinear = (10 ** (gainDb / 20));
+        var gainLinear = (10 ** (gainDb / 20));  // Convert dB to linear
+        var idx = slot - 1;
         
-        ~withValidSlot.(slot, { |idx|
-            ~stripGainState[idx] = gainLinear;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\gain, gainLinear);
-            });
+        // Store gain state
+        ~stripGainState[idx] = gainLinear;
+        
+        // Apply to strip if exists
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\gain, gainLinear);
         });
+        
+        ("Slot " ++ slot ++ " gain: +" ++ gainDb ++ "dB (x" ++ gainLinear.round(0.01) ++ ")").postln;
     }, '/noise/gen/gain');
     
-    // Per-generator pan
-    OSCdef(\genPan, { |msg|
-        var slot = msg[1].asInteger;
-        var pan = msg[2].asFloat.clip(-1, 1);
-        
-        ~withValidSlot.(slot, { |idx|
-            ~stripPanState[idx] = pan;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\pan, pan);
-            });
-        });
-    }, '/noise/gen/pan');
-    
     // Per-generator trim (loudness normalization from JSON config)
+    // Sent by Python when generator type changes
     OSCdef(\genTrim, { |msg|
         var slot = msg[1].asInteger;
-        var trimDb = msg[2].asFloat;
+        var trimDb = msg[2].asFloat;  // dB value (0 = unity, -6 = half amplitude)
+        var idx = slot - 1;
         
-        ~withValidSlot.(slot, { |idx|
-            ~stripTrimState[idx] = trimDb;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\genTrim, trimDb);
-            });
+        // Store trim state (persists across strip rebuilds)
+        ~stripTrimState[idx] = trimDb;
+        
+        // Apply to strip if exists
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\genTrim, trimDb);
+        });
+        
+        if(trimDb != 0, {
+            ("Slot " ++ slot ++ " trim: " ++ trimDb ++ "dB").postln;
         });
     }, '/noise/gen/trim');
-    
-    // === CHANNEL EQ CONTROLS ===
-    // Per-channel EQ - LO band
-    OSCdef(\stripEqLo, { |msg|
-        var slot = msg[1].asInteger;
-        var value = msg[2].asFloat.clip(0, 2);  // 0=kill, 1=unity, 2=+6dB
-        
-        ~withValidSlot.(slot, { |idx|
-            ~stripEqLoState[idx] = value;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\eqLo, value);
-            });
-        });
-    }, '/noise/strip/eq/lo');
-    
-    // Per-channel EQ - MID band
-    OSCdef(\stripEqMid, { |msg|
-        var slot = msg[1].asInteger;
-        var value = msg[2].asFloat.clip(0, 2);
-        
-        ~withValidSlot.(slot, { |idx|
-            ~stripEqMidState[idx] = value;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\eqMid, value);
-            });
-        });
-    }, '/noise/strip/eq/mid');
-    
-    // Per-channel EQ - HI band
-    OSCdef(\stripEqHi, { |msg|
-        var slot = msg[1].asInteger;
-        var value = msg[2].asFloat.clip(0, 2);
-        
-        ~withValidSlot.(slot, { |idx|
-            ~stripEqHiState[idx] = value;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\eqHi, value);
-            });
-        });
-    }, '/noise/strip/eq/hi');
-    
-    // Reset all EQ bands to unity for a slot
-    OSCdef(\stripEqReset, { |msg|
-        var slot = msg[1].asInteger;
-        
-        ~withValidSlot.(slot, { |idx|
-            ~stripEqLoState[idx] = 1.0;
-            ~stripEqMidState[idx] = 1.0;
-            ~stripEqHiState[idx] = 1.0;
-            if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\eqLo, 1.0, \eqMid, 1.0, \eqHi, 1.0);
-            });
-        });
-    }, '/noise/strip/eq/reset');
     
     "  ✓ OSC handlers ready".postln;
 };

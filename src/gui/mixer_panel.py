@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, pan_slider_style
-from .widgets import DragSlider
+from .widgets import DragSlider, MiniKnob
 from src.config import SIZES
 
 
@@ -91,13 +91,14 @@ class MiniMeter(QWidget):
 
 
 class ChannelStrip(QWidget):
-    """Individual channel strip with fader and meter."""
+    """Individual channel strip with fader, meter, and EQ."""
     
     volume_changed = pyqtSignal(int, float)
     mute_toggled = pyqtSignal(int, bool)
     solo_toggled = pyqtSignal(int, bool)
     gain_changed = pyqtSignal(int, int)  # channel_id, gain_db (0, 6, or 12)
     pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
+    eq_changed = pyqtSignal(int, str, float)  # channel_id, band ('lo'/'mid'/'hi'), value (0-2 linear)
     
     # Gain stages: dB value, display text, color style
     GAIN_STAGES = [
@@ -128,6 +129,31 @@ class ChannelStrip(QWidget):
         self._label.setAlignment(Qt.AlignCenter)
         self._label.setStyleSheet(f"color: {COLORS['text_dim']};")  # Start dimmed
         layout.addWidget(self._label)
+        
+        # === EQ Section (3 mini knobs: H, M, L) ===
+        eq_layout = QVBoxLayout()
+        eq_layout.setSpacing(1)
+        eq_layout.setContentsMargins(0, 0, 0, 2)
+        
+        # HI knob
+        self.eq_hi = MiniKnob()
+        self.eq_hi.setToolTip("HI EQ: >2.5kHz (double-click reset)")
+        self.eq_hi.valueChanged.connect(lambda v: self._on_eq_changed('hi', v))
+        eq_layout.addWidget(self.eq_hi, alignment=Qt.AlignCenter)
+        
+        # MID knob
+        self.eq_mid = MiniKnob()
+        self.eq_mid.setToolTip("MID EQ: 250Hz-2.5kHz (double-click reset)")
+        self.eq_mid.valueChanged.connect(lambda v: self._on_eq_changed('mid', v))
+        eq_layout.addWidget(self.eq_mid, alignment=Qt.AlignCenter)
+        
+        # LO knob
+        self.eq_lo = MiniKnob()
+        self.eq_lo.setToolTip("LO EQ: <250Hz (double-click reset)")
+        self.eq_lo.valueChanged.connect(lambda v: self._on_eq_changed('lo', v))
+        eq_layout.addWidget(self.eq_lo, alignment=Qt.AlignCenter)
+        
+        layout.addLayout(eq_layout)
         
         # Fader + Meter side by side
         fader_meter_layout = QHBoxLayout()
@@ -195,6 +221,11 @@ class ChannelStrip(QWidget):
         
         layout.addLayout(btn_layout)
     
+    def _on_eq_changed(self, band, value):
+        """Handle EQ knob change. Convert 0-200 to 0-2 linear."""
+        linear = value / 100.0
+        self.eq_changed.emit(self.channel_id, band, linear)
+    
     def set_levels(self, left, right):
         """Update the channel meter levels."""
         self.meter.set_levels(left, right)
@@ -233,7 +264,7 @@ class ChannelStrip(QWidget):
             self.meter.set_levels(0, 0)
     
     def reset_state(self):
-        """Reset mute/solo/gain/pan to default (off) state."""
+        """Reset mute/solo/gain/pan/EQ to default state."""
         self.muted = False
         self.soloed = False
         self.gain_index = 0
@@ -243,6 +274,10 @@ class ChannelStrip(QWidget):
         self.gain_btn.setText("0")
         self.gain_btn.setStyleSheet(button_style('disabled'))
         self.pan_slider.setValue(0)
+        # Reset EQ to unity
+        self.eq_hi.setValue(100)
+        self.eq_mid.setValue(100)
+        self.eq_lo.setValue(100)
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
@@ -297,6 +332,7 @@ class MixerPanel(QWidget):
     generator_solo = pyqtSignal(int, bool)
     generator_gain_changed = pyqtSignal(int, int)  # channel_id, gain_db
     generator_pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
+    generator_eq_changed = pyqtSignal(int, str, float)  # channel_id, band, value (0-2)
     
     def __init__(self, num_generators=8, parent=None):
         super().__init__(parent)
@@ -331,6 +367,7 @@ class MixerPanel(QWidget):
             channel.solo_toggled.connect(self.on_channel_solo)
             channel.gain_changed.connect(self.on_channel_gain)
             channel.pan_changed.connect(self.on_channel_pan)
+            channel.eq_changed.connect(self.on_channel_eq)
             channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
@@ -356,6 +393,10 @@ class MixerPanel(QWidget):
     def on_channel_pan(self, channel_id, pan):
         """Handle channel pan change."""
         self.generator_pan_changed.emit(channel_id, pan)
+    
+    def on_channel_eq(self, channel_id, band, value):
+        """Handle channel EQ change."""
+        self.generator_eq_changed.emit(channel_id, band, value)
         
     def set_channel_active(self, channel_id, active):
         """Set active state for a channel (called when generator starts/stops)."""

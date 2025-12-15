@@ -58,9 +58,12 @@ Compressor sidechain:
         sigHi = HPF.ar(HPF.ar(sigRest, 2500), 2500);
         
         // Gain mapping: true kill at min, unity at center, +12dB at max
+        // Select.kr(condition, [whenFalse, whenTrue])
+        // When gain <= 0: condition TRUE (1) -> use cut/kill mapping
+        // When gain > 0: condition FALSE (0) -> use boost mapping
         loGainLin = Select.kr(eqLoGain <= 0, [
-            eqLoGain.linlin(0, 12, 0, 12).dbamp,
-            eqLoGain.linlin(-12, 0, -80, 0).dbamp
+            eqLoGain.linlin(0, 12, 0, 12).dbamp,       // gain > 0: boost range (0 to +12dB)
+            eqLoGain.linlin(-12, 0, -80, 0).dbamp      // gain <= 0: cut/kill range (-80dB to 0dB)
         ]).lag(0.02);
         
         midGainLin = Select.kr(eqMidGain <= 0, [
