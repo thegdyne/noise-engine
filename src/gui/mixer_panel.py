@@ -115,6 +115,11 @@ class ChannelStrip(QWidget):
         self.soloed = False
         self.gain_index = 0  # Index into GAIN_STAGES
         self.pan_value = 0.0  # -1 (L) to 1 (R), 0 = center
+        # Cut button state
+        self.lo_cut_active = False
+        self.hi_cut_active = False
+        self.lo_cut_saved = 100  # Saved knob value when cut is engaged
+        self.hi_cut_saved = 100
         self.setup_ui()
         
     def setup_ui(self):
@@ -152,6 +157,29 @@ class ChannelStrip(QWidget):
         self.eq_lo.setToolTip("LO EQ: <250Hz (double-click reset)")
         self.eq_lo.valueChanged.connect(lambda v: self._on_eq_changed('lo', v))
         eq_layout.addWidget(self.eq_lo, alignment=Qt.AlignCenter)
+        
+        # Lo Cut / Hi Cut buttons row
+        cut_layout = QHBoxLayout()
+        cut_layout.setSpacing(2)
+        cut_layout.setContentsMargins(0, 2, 0, 0)
+        
+        self.lo_cut_btn = QPushButton("LC")
+        self.lo_cut_btn.setFixedSize(20, 14)
+        self.lo_cut_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        self.lo_cut_btn.setToolTip("Lo Cut: kill frequencies below 250Hz")
+        self.lo_cut_btn.clicked.connect(self.toggle_lo_cut)
+        self._update_lo_cut_style()
+        cut_layout.addWidget(self.lo_cut_btn)
+        
+        self.hi_cut_btn = QPushButton("HC")
+        self.hi_cut_btn.setFixedSize(20, 14)
+        self.hi_cut_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        self.hi_cut_btn.setToolTip("Hi Cut: kill frequencies above 2.5kHz")
+        self.hi_cut_btn.clicked.connect(self.toggle_hi_cut)
+        self._update_hi_cut_style()
+        cut_layout.addWidget(self.hi_cut_btn)
+        
+        eq_layout.addLayout(cut_layout)
         
         layout.addLayout(eq_layout)
         
@@ -247,6 +275,9 @@ class ChannelStrip(QWidget):
             # Re-apply gain button style
             _, _, style = self.GAIN_STAGES[self.gain_index]
             self.gain_btn.setStyleSheet(button_style(style))
+            # Re-apply cut button styles
+            self._update_lo_cut_style()
+            self._update_hi_cut_style()
         else:
             self._label.setStyleSheet(f"color: {COLORS['text_dim']};")
             # Dim the buttons when inactive but keep state
@@ -260,6 +291,8 @@ class ChannelStrip(QWidget):
             self.mute_btn.setStyleSheet(dim_btn)
             self.solo_btn.setStyleSheet(dim_btn)
             self.gain_btn.setStyleSheet(dim_btn)
+            self.lo_cut_btn.setStyleSheet(dim_btn)
+            self.hi_cut_btn.setStyleSheet(dim_btn)
             # Clear meter when inactive
             self.meter.set_levels(0, 0)
     
@@ -269,6 +302,10 @@ class ChannelStrip(QWidget):
         self.soloed = False
         self.gain_index = 0
         self.pan_value = 0.0
+        self.lo_cut_active = False
+        self.hi_cut_active = False
+        self.lo_cut_saved = 100
+        self.hi_cut_saved = 100
         self.mute_btn.setStyleSheet(button_style('disabled'))
         self.solo_btn.setStyleSheet(button_style('disabled'))
         self.gain_btn.setText("0")
@@ -278,6 +315,74 @@ class ChannelStrip(QWidget):
         self.eq_hi.setValue(100)
         self.eq_mid.setValue(100)
         self.eq_lo.setValue(100)
+        self._update_lo_cut_style()
+        self._update_hi_cut_style()
+        
+    def toggle_lo_cut(self):
+        """Toggle lo cut - kills LO band, restores on second click."""
+        if self.lo_cut_active:
+            # Restore previous value
+            self.eq_lo.setValue(self.lo_cut_saved)
+        else:
+            # Save current and kill
+            self.lo_cut_saved = self.eq_lo.value()
+            self.eq_lo.setValue(0)
+        self.lo_cut_active = not self.lo_cut_active
+        self._update_lo_cut_style()
+    
+    def toggle_hi_cut(self):
+        """Toggle hi cut - kills HI band, restores on second click."""
+        if self.hi_cut_active:
+            # Restore previous value
+            self.eq_hi.setValue(self.hi_cut_saved)
+        else:
+            # Save current and kill
+            self.hi_cut_saved = self.eq_hi.value()
+            self.eq_hi.setValue(0)
+        self.hi_cut_active = not self.hi_cut_active
+        self._update_hi_cut_style()
+    
+    def _update_lo_cut_style(self):
+        """Update Lo Cut button appearance."""
+        if self.lo_cut_active:
+            self.lo_cut_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['warning']};
+                    border-radius: 2px;
+                }}
+            """)
+        else:
+            self.lo_cut_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['background_dark']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                }}
+            """)
+    
+    def _update_hi_cut_style(self):
+        """Update Hi Cut button appearance."""
+        if self.hi_cut_active:
+            self.hi_cut_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['warning']};
+                    border-radius: 2px;
+                }}
+            """)
+        else:
+            self.hi_cut_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['background_dark']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                }}
+            """)
         
     def on_fader_changed(self, value):
         """Handle fader movement."""
