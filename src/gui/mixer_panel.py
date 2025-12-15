@@ -22,8 +22,8 @@ class MiniMeter(QWidget):
         self.level_l = 0.0
         self.level_r = 0.0
         self.setFixedWidth(20)
-        self.setMinimumHeight(SIZES['fader_height_min'])
-        self.setMaximumHeight(SIZES['fader_height_max'])
+        self.setMinimumHeight(SIZES['fader_mixer_min'])
+        self.setMaximumHeight(SIZES['fader_mixer_max'])
         
     def set_levels(self, left, right):
         """Update meter levels (0.0 to 1.0)."""
@@ -140,8 +140,7 @@ class ChannelStrip(QWidget):
         self.fader = FaderSlider()
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
-        self.fader.setMinimumHeight(SIZES['fader_height_min'])
-        self.fader.setMaximumHeight(SIZES['fader_height_max'])
+        self.fader.set_height_constraints(SIZES['fader_mixer_min'], SIZES['fader_mixer_max'])
         self.fader.valueChanged.connect(self.on_fader_changed)
         fader_meter_layout.addWidget(self.fader)
         

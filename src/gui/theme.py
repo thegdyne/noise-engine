@@ -21,6 +21,30 @@ FONT_SIZES = {
     'micro': 7,       # Smallest text (mute/solo buttons)
 }
 
+# === GENERATOR THEME ===
+# Default generator styling - can be overridden per-generator in future
+GENERATOR_THEME = {
+    # Param label styling
+    'param_label_font': MONO_FONT,
+    'param_label_size': FONT_SIZES['tiny'],
+    'param_label_bold': True,
+    'param_label_height': 14,
+    
+    # Colors for param labels
+    'param_label_color': '#888',        # Active/standard params (FRQ, CUT, etc.)
+    'param_label_color_dim': '#555',    # Inactive/custom params (P1-P5 when unused)
+    'param_label_color_active': '#8f8', # Custom param when generator uses it
+    
+    # Slot styling
+    'slot_background': '#1a1a1a',
+    'slot_border': '#333',
+    'slot_border_active': '#44aa44',
+    
+    # Future: accent colors per generator type
+    # 'accent': '#44aa44',
+    # 'accent_dim': '#224422',
+}
+
 # Drag/scroll sensitivity settings
 DRAG_SENSITIVITY = {
     # Fixed pixel-based sensitivity (for non-scaling controls)

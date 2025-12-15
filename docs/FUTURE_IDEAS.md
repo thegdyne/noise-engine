@@ -110,6 +110,53 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 
 ---
 
+## Per-Generator Theming
+
+**Concept:** Each generator type can define its own visual theme (accent colors, label colors, etc.) in its JSON config, overriding the default `GENERATOR_THEME`.
+
+**Current state (Dec 2024):**
+- `GENERATOR_THEME` dict in `theme.py` centralises all generator slot styling
+- `build_param_column()` in `generator_slot_builder.py` references theme only (no inline styles)
+- Ready for per-generator overrides
+
+**Implementation approach:**
+```python
+# In generator JSON config (e.g. fm.json)
+{
+    "name": "FM",
+    "synthdef": "fm_noise",
+    "theme": {
+        "param_label_color": "#ff8844",      # Orange accent
+        "param_label_color_active": "#ffaa66",
+        "slot_border_active": "#ff6622"
+    }
+}
+
+# In config/__init__.py
+def get_generator_theme(name):
+    """Get theme for generator, falling back to default."""
+    from src.gui.theme import GENERATOR_THEME
+    custom = _GENERATOR_CONFIGS.get(name, {}).get('theme', {})
+    return {**GENERATOR_THEME, **custom}
+
+# In generator_slot_builder.py
+gt = get_generator_theme(slot.generator_type)
+```
+
+**Use cases:**
+- Acid/303-style generators → orange/yellow accent
+- FM generators → blue/cyan accent
+- Noise/chaos generators → red accent
+- Physical modeling → green accent
+
+**Files involved:**
+- `src/gui/theme.py` - GENERATOR_THEME base dict
+- `src/config/__init__.py` - get_generator_theme() loader
+- `src/gui/generator_slot_builder.py` - applies theme to UI
+- `supercollider/generators/*.json` - per-generator theme overrides
+
+---
+
 ## In-App Console (Logging) ✓ DONE
 
 **Implemented:** `src/utils/logger.py` + `src/gui/console_panel.py`

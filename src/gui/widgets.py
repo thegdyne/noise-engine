@@ -55,7 +55,7 @@ class DragSlider(QSlider):
     
     Supports optional ValuePopup for displaying mapped values during drag.
     
-    Base class - use MiniSlider for generator params, or customize size.
+    Base class - use MiniSlider for generator params, FaderSlider for mixers.
     """
     
     # Signal emits normalized 0-1 value
@@ -216,29 +216,42 @@ class DragSlider(QSlider):
         super().mouseDoubleClickEvent(event)
 
 
-class MiniSlider(DragSlider):
-    """Compact vertical slider for generator params with value popup support."""
-    
-    def __init__(self, param_config=None, parent=None):
-        super().__init__(parent)
-        self.setFixedWidth(25)
-        self.setMinimumHeight(50)
-        
-        if param_config:
-            from src.config import format_value
-            self.set_param_config(param_config, format_value)
-
-
 class FaderSlider(DragSlider):
     """
     Mixer fader with height-ratio sensitivity.
     Mouse movement matches handle movement 1:1 regardless of fader size.
+    
+    Use set_height_constraints(min, max) to configure scaling behaviour.
     """
     
     def __init__(self, parent=None):
         super().__init__(parent)
         # Use height-ratio mode for consistent feel at any size
         self.set_sensitivity_mode('height')
+    
+    def set_height_constraints(self, min_height, max_height):
+        """Set min/max height for scaling behaviour."""
+        self.setMinimumHeight(min_height)
+        self.setMaximumHeight(max_height)
+
+
+class MiniSlider(FaderSlider):
+    """Compact vertical slider for generator params with value popup support.
+    
+    Uses height-ratio sensitivity and scales with generator constraints.
+    """
+    
+    def __init__(self, param_config=None, parent=None):
+        super().__init__(parent)
+        self.setFixedWidth(25)
+        
+        # Use generator constraints from config
+        from src.config import SIZES
+        self.set_height_constraints(SIZES['fader_generator_min'], SIZES['fader_generator_max'])
+        
+        if param_config:
+            from src.config import format_value
+            self.set_param_config(param_config, format_value)
 
 
 class DragValue(QLabel):

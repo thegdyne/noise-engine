@@ -405,16 +405,37 @@ SIZES = {
     'button_large': (40, 20),      # LFO waveform
     'button_bpm': (28, 36),        # BPM arrows
     
-    # Sliders
+    # Sliders (legacy fixed heights)
     'slider_width': 25,
     'slider_width_narrow': 20,
     'slider_height_small': 40,
     'slider_height_medium': 50,
     'slider_height_large': 80,
-
-    # Fader constraints (for scaling displays)
-    'fader_height_min': 80,   # Minimum usable fader height
-    'fader_height_max': 200,  # Maximum sensible fader height,
+    
+    # Fader constraints by context (min, max) - for scaling displays
+    # Mixer channel faders - main mixing controls
+    'fader_mixer_min': 80,
+    'fader_mixer_max': 200,
+    
+    # Master volume fader - matches mixer
+    'fader_master_min': 80,
+    'fader_master_max': 200,
+    
+    # EQ sliders - shorter, compact section
+    'fader_eq_min': 50,
+    'fader_eq_max': 120,
+    
+    # Compressor sliders (threshold, makeup) - compact
+    'fader_comp_min': 50,
+    'fader_comp_max': 100,
+    
+    # Limiter ceiling - compact
+    'fader_limiter_min': 50,
+    'fader_limiter_max': 100,
+    
+    # Generator param sliders - compact but scalable
+    'fader_generator_min': 60,
+    'fader_generator_max': 120,
     
     # Containers
     'effect_slot_width': 70,

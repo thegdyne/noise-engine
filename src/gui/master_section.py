@@ -11,7 +11,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, slider_style_center_notch
-from .widgets import DragSlider
+from .widgets import FaderSlider
 from src.config import SIZES
 
 
@@ -60,7 +60,8 @@ class LevelMeter(QWidget):
         # Fixed size
         total_width = (self.METER_WIDTH * 2) + self.METER_GAP + 4  # +4 for margins
         self.setFixedWidth(total_width)
-        self.setMinimumHeight(80)
+        self.setMinimumHeight(SIZES['fader_master_min'])
+        self.setMaximumHeight(SIZES['fader_master_max'])
         
     def set_levels(self, left, right, peak_left=None, peak_right=None):
         """Update meter levels.
@@ -294,10 +295,10 @@ class MasterSection(QWidget):
         fader_label.setStyleSheet(f"color: {COLORS['text']}; border: none;")
         fader_layout.addWidget(fader_label)
         
-        self.master_fader = DragSlider()
+        self.master_fader = FaderSlider()
         self.master_fader.setFixedWidth(SIZES['slider_width'])
         self.master_fader.setValue(800)  # 80% default
-        self.master_fader.setMinimumHeight(SIZES['slider_height_medium'])
+        self.master_fader.set_height_constraints(SIZES['fader_master_min'], SIZES['fader_master_max'])
         self.master_fader.valueChanged.connect(self._on_fader_changed)
         fader_layout.addWidget(self.master_fader, alignment=Qt.AlignCenter)
         
@@ -375,13 +376,13 @@ class MasterSection(QWidget):
         # LO knob + kill
         lo_container = QVBoxLayout()
         lo_container.setSpacing(1)
-        self.eq_lo_slider = DragSlider()
+        self.eq_lo_slider = FaderSlider()
         self.eq_lo_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_lo_slider.setRange(0, 240)  # 0=-12dB, 120=0dB, 240=+12dB
         self.eq_lo_slider.setValue(120)  # 0dB default
         self.eq_lo_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_lo_slider.setStyleSheet(slider_style_center_notch())
-        self.eq_lo_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_lo_slider.set_height_constraints(SIZES['fader_eq_min'], SIZES['fader_eq_max'])
         self.eq_lo_slider.setToolTip("LO gain: -12 to +12 dB (double-click to reset)")
         self.eq_lo_slider.valueChanged.connect(self._on_eq_lo_changed)
         lo_container.addWidget(self.eq_lo_slider, alignment=Qt.AlignCenter)
@@ -397,13 +398,13 @@ class MasterSection(QWidget):
         # MID knob + kill
         mid_container = QVBoxLayout()
         mid_container.setSpacing(1)
-        self.eq_mid_slider = DragSlider()
+        self.eq_mid_slider = FaderSlider()
         self.eq_mid_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_mid_slider.setRange(0, 240)
         self.eq_mid_slider.setValue(120)
         self.eq_mid_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_mid_slider.setStyleSheet(slider_style_center_notch())
-        self.eq_mid_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_mid_slider.set_height_constraints(SIZES['fader_eq_min'], SIZES['fader_eq_max'])
         self.eq_mid_slider.setToolTip("MID gain: -12 to +12 dB (double-click to reset)")
         self.eq_mid_slider.valueChanged.connect(self._on_eq_mid_changed)
         mid_container.addWidget(self.eq_mid_slider, alignment=Qt.AlignCenter)
@@ -419,13 +420,13 @@ class MasterSection(QWidget):
         # HI knob + kill
         hi_container = QVBoxLayout()
         hi_container.setSpacing(1)
-        self.eq_hi_slider = DragSlider()
+        self.eq_hi_slider = FaderSlider()
         self.eq_hi_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_hi_slider.setRange(0, 240)
         self.eq_hi_slider.setValue(120)
         self.eq_hi_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_hi_slider.setStyleSheet(slider_style_center_notch())
-        self.eq_hi_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_hi_slider.set_height_constraints(SIZES['fader_eq_min'], SIZES['fader_eq_max'])
         self.eq_hi_slider.setToolTip("HI gain: -12 to +12 dB (double-click to reset)")
         self.eq_hi_slider.valueChanged.connect(self._on_eq_hi_changed)
         hi_container.addWidget(self.eq_hi_slider, alignment=Qt.AlignCenter)
@@ -479,11 +480,11 @@ class MasterSection(QWidget):
         limiter_layout.addWidget(self.limiter_bypass_btn, alignment=Qt.AlignCenter)
         
         # Ceiling control (small fader)
-        self.ceiling_fader = DragSlider()
+        self.ceiling_fader = FaderSlider()
         self.ceiling_fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.ceiling_fader.setRange(0, 600)  # 0 = -6dB, 600 = 0dB
         self.ceiling_fader.setValue(590)  # -0.1dB default
-        self.ceiling_fader.setMinimumHeight(SIZES['slider_height_small'])
+        self.ceiling_fader.set_height_constraints(SIZES['fader_limiter_min'], SIZES['fader_limiter_max'])
         self.ceiling_fader.valueChanged.connect(self._on_ceiling_changed)
         limiter_layout.addWidget(self.ceiling_fader, alignment=Qt.AlignCenter)
         
@@ -530,11 +531,11 @@ class MasterSection(QWidget):
         # Threshold slider
         thr_container = QVBoxLayout()
         thr_container.setSpacing(1)
-        self.comp_threshold = DragSlider()
+        self.comp_threshold = FaderSlider()
         self.comp_threshold.setFixedWidth(SIZES['slider_width_narrow'])
         self.comp_threshold.setRange(0, 400)  # 0=-20dB, 200=0dB, 400=+20dB
         self.comp_threshold.setValue(100)  # -10dB default (sensible bus compression)
-        self.comp_threshold.setMinimumHeight(50)
+        self.comp_threshold.set_height_constraints(SIZES['fader_comp_min'], SIZES['fader_comp_max'])
         self.comp_threshold.valueChanged.connect(self._on_comp_threshold_changed)
         thr_container.addWidget(self.comp_threshold, alignment=Qt.AlignCenter)
         thr_label = QLabel("THR")
@@ -604,11 +605,11 @@ class MasterSection(QWidget):
         # Makeup slider
         mkp_container = QVBoxLayout()
         mkp_container.setSpacing(1)
-        self.comp_makeup = DragSlider()
+        self.comp_makeup = FaderSlider()
         self.comp_makeup.setFixedWidth(SIZES['slider_width_narrow'])
         self.comp_makeup.setRange(0, 200)  # 0-20dB
         self.comp_makeup.setValue(0)  # 0dB default
-        self.comp_makeup.setMinimumHeight(50)
+        self.comp_makeup.set_height_constraints(SIZES['fader_comp_min'], SIZES['fader_comp_max'])
         self.comp_makeup.valueChanged.connect(self._on_comp_makeup_changed)
         mkp_container.addWidget(self.comp_makeup, alignment=Qt.AlignCenter)
         mkp_label = QLabel("MKP")
@@ -647,7 +648,8 @@ class MasterSection(QWidget):
         self.comp_gr_meter.setRange(0, 200)  # 0-20dB scaled by 10
         self.comp_gr_meter.setValue(0)
         self.comp_gr_meter.setFixedWidth(12)
-        self.comp_gr_meter.setMinimumHeight(50)
+        self.comp_gr_meter.setMinimumHeight(SIZES['fader_comp_min'])
+        self.comp_gr_meter.setMaximumHeight(SIZES['fader_comp_max'])
         self.comp_gr_meter.setTextVisible(False)
         self.comp_gr_meter.setStyleSheet(f"""
             QProgressBar {{

@@ -1132,3 +1132,61 @@ Prevents stereo image shift and unbalanced GR.
 **DO NOT:** Emit signals from OSC handlers without checking `_deleted`
 
 **Files affected:** `src/audio/osc_bridge.py`
+
+---
+
+### [2025-12-15] Scalable Faders with Height-Ratio Sensitivity
+**Decision:** All faders scale within min/max constraints, with mouse sensitivity based on fader height
+
+**Rationale:**
+- Fixed-height faders don't work well across different screen sizes (14" laptop vs 4K monitor)
+- Fixed-pixel sensitivity (100px = full range) feels wrong when faders scale
+- Height-ratio sensitivity (1:1 mouse-to-handle tracking) feels natural at any size
+
+**Implementation:**
+- `SIZES` in `config/__init__.py` defines per-context constraints:
+  - `fader_mixer_min/max`: 80-200px (channel faders)
+  - `fader_master_min/max`: 80-200px (master volume)
+  - `fader_eq_min/max`: 50-120px (EQ sliders)
+  - `fader_comp_min/max`: 50-100px (compressor)
+  - `fader_limiter_min/max`: 50-100px (limiter)
+  - `fader_generator_min/max`: 60-120px (generator params)
+- `DRAG_SENSITIVITY` in `theme.py` defines height ratios:
+  - `fader_height_ratio`: 1.0 (normal: 1:1 tracking)
+  - `fader_height_ratio_fine`: 3.0 (shift-held: 3x height for full range)
+- `FaderSlider` class uses height-ratio mode
+- `MiniSlider` extends `FaderSlider` with generator constraints
+
+**DO NOT:** Use fixed `setFixedHeight()` on scalable faders
+**DO NOT:** Use fixed pixel sensitivity for height-ratio faders
+
+**Files affected:**
+- `src/config/__init__.py` (SIZES constraints)
+- `src/gui/theme.py` (DRAG_SENSITIVITY ratios)
+- `src/gui/widgets.py` (FaderSlider, MiniSlider classes)
+- `src/gui/mixer_panel.py`, `master_section.py`, `generator_slot_builder.py`
+
+---
+
+### [2025-12-15] Centralised Generator Theming
+**Decision:** All generator slot styling comes from `GENERATOR_THEME` dict in theme.py
+
+**Rationale:**
+- Future per-generator theming (each .scd can have its own accent colors)
+- Single source of truth for generator UI styling
+- No inline styles scattered through builder code
+
+**Implementation:**
+- `GENERATOR_THEME` dict in `theme.py` with:
+  - `param_label_font`, `param_label_size`, `param_label_bold`, `param_label_height`
+  - `param_label_color`, `param_label_color_dim`, `param_label_color_active`
+  - `slot_background`, `slot_border`, `slot_border_active`
+- `build_param_column()` in `generator_slot_builder.py` references theme only
+- Future: per-generator overrides via JSON config (see FUTURE_IDEAS.md)
+
+**DO NOT:** Add inline font/color definitions in generator_slot_builder.py
+**DO NOT:** Define generator-specific colors outside GENERATOR_THEME
+
+**Files affected:**
+- `src/gui/theme.py` (GENERATOR_THEME dict)
+- `src/gui/generator_slot_builder.py` (build_param_column)
