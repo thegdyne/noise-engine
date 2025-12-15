@@ -357,6 +357,7 @@ class MasterSection(QWidget):
         self.eq_lo_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_lo_slider.setRange(0, 240)  # 0=-12dB, 120=0dB, 240=+12dB
         self.eq_lo_slider.setValue(120)  # 0dB default
+        self.eq_lo_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_lo_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_lo_slider.setStyleSheet(slider_style_center_notch())
         self.eq_lo_slider.valueChanged.connect(self._on_eq_lo_changed)
@@ -377,6 +378,7 @@ class MasterSection(QWidget):
         self.eq_mid_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_mid_slider.setRange(0, 240)
         self.eq_mid_slider.setValue(120)
+        self.eq_mid_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_mid_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_mid_slider.setStyleSheet(slider_style_center_notch())
         self.eq_mid_slider.valueChanged.connect(self._on_eq_mid_changed)
@@ -397,6 +399,7 @@ class MasterSection(QWidget):
         self.eq_hi_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_hi_slider.setRange(0, 240)
         self.eq_hi_slider.setValue(120)
+        self.eq_hi_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_hi_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_hi_slider.setStyleSheet(slider_style_center_notch())
         self.eq_hi_slider.valueChanged.connect(self._on_eq_hi_changed)
@@ -764,19 +767,17 @@ class MasterSection(QWidget):
         # Convert 0-1000 to 0.0-1.0
         normalized = value / 1000.0
         
-        # Debug - this should appear in console
-        from src.utils.logger import logger
-        logger.debug(f"Master fader: {value} -> {normalized:.3f}", component="UI")
-        
-        # Update dB display
+        # Calculate dB for display
         if normalized < 0.001:
             db_text = "-∞"
         else:
-            # Simple dB conversion: 0dB at 1.0, -∞ at 0
             import math
             db = 20 * math.log10(normalized)
-            db_text = f"{db:.1f}"
-        self.db_label.setText(db_text)
+            db_text = f"{db:.1f}dB"
+        
+        # Update label and popup
+        self.db_label.setText(db_text.replace("dB", ""))
+        self.master_fader.show_drag_value(db_text)
         
         self.master_volume_changed.emit(normalized)
     
@@ -878,11 +879,10 @@ class MasterSection(QWidget):
         db = (value / 100.0) - 6.0
         self.limiter_ceiling_db = db
         
-        # Update display
+        # Update display and popup
+        db_text = f"{db:.1f}dB"
         self.ceiling_label.setText(f"{db:.1f}")
-        
-        from src.utils.logger import logger
-        logger.debug(f"Limiter ceiling: {db:.1f}dB", component="UI")
+        self.ceiling_fader.show_drag_value(db_text)
         
         self.limiter_ceiling_changed.emit(db)
     
@@ -892,16 +892,19 @@ class MasterSection(QWidget):
         """Handle EQ LO slider change."""
         # Convert 0-240 to -12 to +12 dB
         db = (value / 10.0) - 12.0
+        self.eq_lo_slider.show_drag_value(f"{db:+.1f}dB")
         self.eq_lo_changed.emit(db)
     
     def _on_eq_mid_changed(self, value):
         """Handle EQ MID slider change."""
         db = (value / 10.0) - 12.0
+        self.eq_mid_slider.show_drag_value(f"{db:+.1f}dB")
         self.eq_mid_changed.emit(db)
     
     def _on_eq_hi_changed(self, value):
         """Handle EQ HI slider change."""
         db = (value / 10.0) - 12.0
+        self.eq_hi_slider.show_drag_value(f"{db:+.1f}dB")
         self.eq_hi_changed.emit(db)
     
     # Kill button handlers
@@ -1145,6 +1148,7 @@ class MasterSection(QWidget):
     def _on_comp_threshold_changed(self, value):
         """Handle threshold slider change."""
         db = (value / 10.0) - 20.0  # 0-400 -> -20 to +20
+        self.comp_threshold.show_drag_value(f"{db:+.1f}dB")
         self.comp_threshold_changed.emit(db)
     
     def _on_comp_ratio_clicked(self, idx):
@@ -1234,6 +1238,7 @@ class MasterSection(QWidget):
     def _on_comp_makeup_changed(self, value):
         """Handle makeup slider change."""
         db = value / 10.0  # 0-200 -> 0 to 20
+        self.comp_makeup.show_drag_value(f"+{db:.1f}dB")
         self.comp_makeup_changed.emit(db)
     
     def _on_comp_sc_clicked(self, idx):

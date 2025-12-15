@@ -133,6 +133,20 @@ class DragSlider(QSlider):
         
         local_pos = QPoint(self.width(), int(handle_y))
         return self.mapToGlobal(local_pos)
+    
+    def show_drag_value(self, text):
+        """Display a value in popup during drag. Called by handler.
+        
+        This allows any fader to show a popup without needing param_config.
+        The handler calculates the display value and passes it here.
+        """
+        if not self.dragging:
+            return
+        # Create popup lazily if needed
+        if self._popup is None:
+            self._popup = ValuePopup()
+        handle_pos = self._get_handle_global_pos()
+        self._popup.show_value(text, handle_pos)
         
     def mousePressEvent(self, event):
         """Start drag from current value."""
