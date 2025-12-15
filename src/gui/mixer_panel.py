@@ -21,7 +21,8 @@ class MiniMeter(QWidget):
         super().__init__(parent)
         self.level_l = 0.0
         self.level_r = 0.0
-        self.setFixedSize(20, 40)  # Compact size
+        self.setFixedWidth(20)
+        self.setMinimumHeight(40)  # Minimum, but can grow
         
     def set_levels(self, left, right):
         """Update meter levels (0.0 to 1.0)."""
@@ -128,23 +129,26 @@ class ChannelStrip(QWidget):
         self._label.setStyleSheet(f"color: {COLORS['text_dim']};")  # Start dimmed
         layout.addWidget(self._label)
         
-        # Fader + Meter side by side
-        fader_meter_layout = QHBoxLayout()
+        # Fader + Meter side by side - use a widget container for proper stretch
+        fader_meter_widget = QWidget()
+        fader_meter_layout = QHBoxLayout(fader_meter_widget)
+        fader_meter_layout.setContentsMargins(0, 0, 0, 0)
         fader_meter_layout.setSpacing(2)
         
-        # Fader
+        # Fader - no alignment constraint so it can expand
         self.fader = DragSlider()
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
         self.fader.setMinimumHeight(SIZES['slider_height_large'])
         self.fader.valueChanged.connect(self.on_fader_changed)
-        fader_meter_layout.addWidget(self.fader, alignment=Qt.AlignCenter)
+        fader_meter_layout.addWidget(self.fader)
         
-        # Mini meter
+        # Mini meter - no alignment constraint so it can expand
         self.meter = MiniMeter()
-        fader_meter_layout.addWidget(self.meter, alignment=Qt.AlignCenter)
+        fader_meter_layout.addWidget(self.meter)
         
-        layout.addLayout(fader_meter_layout)
+        # Add fader_meter_widget with stretch=1 so it fills vertical space
+        layout.addWidget(fader_meter_widget, stretch=1)
         
         # Pan slider (horizontal, compact) - double-click to center
         from PyQt5.QtWidgets import QSlider
@@ -305,7 +309,7 @@ class MixerPanel(QWidget):
         title.setStyleSheet(f"color: {COLORS['text_dim']};")
         layout.addWidget(title)
         
-        # Channel strips
+        # Channel strips frame - stretch=1 to fill vertical space
         channels_frame = QFrame()
         channels_frame.setStyleSheet(f"""
             QFrame {{
@@ -328,8 +332,9 @@ class MixerPanel(QWidget):
             channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
-            
-        layout.addWidget(channels_frame)
+        
+        # Add with stretch=1 so frame expands to fill available vertical space
+        layout.addWidget(channels_frame, stretch=1)
         
     def on_channel_volume(self, channel_id, volume):
         """Handle channel volume change."""
