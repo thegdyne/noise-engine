@@ -296,20 +296,14 @@ class MixerPanel(QWidget):
     def setup_ui(self):
         """Create mixer panel."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 10, 5, 10)
-        layout.setSpacing(5)
+        layout.setContentsMargins(5, 2, 5, 5)
+        layout.setSpacing(2)
         
         # Header
-        header = QHBoxLayout()
-        
         title = QLabel("MIXER")
         title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
         title.setStyleSheet(f"color: {COLORS['text_dim']};")
-        header.addWidget(title)
-        
-        header.addStretch()
-        
-        layout.addLayout(header)
+        layout.addWidget(title)
         
         # Channel strips
         channels_frame = QFrame()
