@@ -197,6 +197,40 @@ def slider_style():
     """
 
 
+def slider_style_center_notch():
+    """
+    Vertical slider with center notch mark.
+    Use for sliders with a meaningful center position (e.g. EQ at 0dB).
+    Shows a visual tick at the midpoint to indicate double-click reset target.
+    """
+    return f"""
+        QSlider::groove:vertical {{
+            border: 1px solid {COLORS['border_light']};
+            width: 8px;
+            background: qlineargradient(
+                x1:0, y1:0, x2:0, y2:1,
+                stop:0 {COLORS['slider_groove']},
+                stop:0.48 {COLORS['slider_groove']},
+                stop:0.49 {COLORS['border_light']},
+                stop:0.51 {COLORS['border_light']},
+                stop:0.52 {COLORS['slider_groove']},
+                stop:1 {COLORS['slider_groove']}
+            );
+            border-radius: 4px;
+        }}
+        QSlider::handle:vertical {{
+            background: {COLORS['slider_handle']};
+            border: 1px solid {COLORS['border_light']};
+            height: 12px;
+            margin: 0 -3px;
+            border-radius: 6px;
+        }}
+        QSlider::handle:vertical:hover {{
+            background: {COLORS['slider_handle_hover']};
+        }}
+    """
+
+
 # === SKINNABLE GENERATOR CONTROL STYLES ===
 # These are separated for future skin system
 

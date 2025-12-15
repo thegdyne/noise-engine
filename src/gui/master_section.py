@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
-from .theme import COLORS, FONT_FAMILY, FONT_SIZES
+from .theme import COLORS, FONT_FAMILY, FONT_SIZES, slider_style_center_notch
 from .widgets import DragSlider
 from src.config import SIZES
 
@@ -380,6 +380,7 @@ class MasterSection(QWidget):
         self.eq_lo_slider.setRange(0, 240)  # 0=-12dB, 120=0dB, 240=+12dB
         self.eq_lo_slider.setValue(120)  # 0dB default
         self.eq_lo_slider.setDoubleClickValue(120)  # Reset to 0dB
+        self.eq_lo_slider.setStyleSheet(slider_style_center_notch())
         self.eq_lo_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_lo_slider.setToolTip("LO gain: -12 to +12 dB (double-click to reset)")
         self.eq_lo_slider.valueChanged.connect(self._on_eq_lo_changed)
@@ -401,6 +402,7 @@ class MasterSection(QWidget):
         self.eq_mid_slider.setRange(0, 240)
         self.eq_mid_slider.setValue(120)
         self.eq_mid_slider.setDoubleClickValue(120)  # Reset to 0dB
+        self.eq_mid_slider.setStyleSheet(slider_style_center_notch())
         self.eq_mid_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_mid_slider.setToolTip("MID gain: -12 to +12 dB (double-click to reset)")
         self.eq_mid_slider.valueChanged.connect(self._on_eq_mid_changed)
@@ -422,6 +424,7 @@ class MasterSection(QWidget):
         self.eq_hi_slider.setRange(0, 240)
         self.eq_hi_slider.setValue(120)
         self.eq_hi_slider.setDoubleClickValue(120)  # Reset to 0dB
+        self.eq_hi_slider.setStyleSheet(slider_style_center_notch())
         self.eq_hi_slider.setMinimumHeight(SIZES['slider_height_small'])
         self.eq_hi_slider.setToolTip("HI gain: -12 to +12 dB (double-click to reset)")
         self.eq_hi_slider.valueChanged.connect(self._on_eq_hi_changed)
