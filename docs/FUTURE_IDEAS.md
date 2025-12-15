@@ -114,7 +114,7 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 
 **Concept:** Each generator type can define its own visual theme (accent colors, label colors, etc.) in its JSON config, overriding the default `GENERATOR_THEME`.
 
-**Current state (Dec 2024):**
+**Current state (Dec 2025):**
 - `GENERATOR_THEME` dict in `theme.py` centralises all generator slot styling
 - `build_param_column()` in `generator_slot_builder.py` references theme only (no inline styles)
 - Ready for per-generator overrides
@@ -154,6 +154,28 @@ gt = get_generator_theme(slot.generator_type)
 - `src/config/__init__.py` - get_generator_theme() loader
 - `src/gui/generator_slot_builder.py` - applies theme to UI
 - `supercollider/generators/*.json` - per-generator theme overrides
+
+---
+
+## UI Scaling Improvements (Dec 2025)
+
+**Current state:**
+Fader scaling system implemented with per-context min/max constraints and height-ratio sensitivity. Core architecture is solid but needs refinement.
+
+**Outstanding issues:**
+
+1. **Mixer/Master vertical split** - MASTER section is squashed, compressor row barely readable. Need better vertical space distribution between MIXER and MASTER sections.
+
+2. **Generator slider row heights** - P1-P5 vs FRQ-DEC rows still slightly uneven at some window sizes. May need layout tweaks in `generator_slot_builder.py`.
+
+3. **Fine-tune min/max constraints** - Current values in `config/__init__.py` SIZES dict may need adjustment based on real usage across different screen sizes.
+
+**Files involved:**
+- `src/gui/mixer_panel.py` - Mixer section layout
+- `src/gui/master_section.py` - Master section layout  
+- `src/gui/main_frame.py` - Overall panel proportions
+- `src/gui/generator_slot_builder.py` - Generator slot layout
+- `src/config/__init__.py` - SIZES constraints
 
 ---
 

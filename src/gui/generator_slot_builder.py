@@ -273,21 +273,13 @@ def build_slot_ui(slot):
     params_outer.setContentsMargins(8, 8, 8, 8)
     params_outer.setSpacing(8)
     
-    # Custom params row - wrap in widget for stretch
-    custom_widget = QWidget()
-    custom_layout = QVBoxLayout(custom_widget)
-    custom_layout.setContentsMargins(0, 0, 0, 0)
+    # Custom params row
     custom_row = build_custom_params_row(slot)
-    custom_layout.addLayout(custom_row)
-    params_outer.addWidget(custom_widget, stretch=1)
+    params_outer.addLayout(custom_row, stretch=1)
     
-    # Standard params row - wrap in widget for stretch
-    standard_widget = QWidget()
-    standard_layout = QVBoxLayout(standard_widget)
-    standard_layout.setContentsMargins(0, 0, 0, 0)
+    # Standard params row
     params_row = build_standard_params_row(slot)
-    standard_layout.addLayout(params_row)
-    params_outer.addWidget(standard_widget, stretch=1)
+    params_outer.addLayout(params_row, stretch=1)
     
     layout.addWidget(params_frame, stretch=1)
     
