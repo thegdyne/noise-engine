@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
-from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
+from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, pan_slider_style
 from .widgets import DragSlider
 from src.config import SIZES
 
@@ -161,23 +161,7 @@ class ChannelStrip(QWidget):
         self.pan_slider.setFixedHeight(16)
         self.pan_slider.setToolTip("Pan: L ← C → R (double-click to center)")
         self.pan_slider.valueChanged.connect(self.on_pan_changed)
-        self.pan_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                height: 4px;
-                background: {COLORS['background_dark']};
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal {{
-                width: 8px;
-                height: 12px;
-                margin: -4px 0;
-                background: {COLORS['text_dim']};
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal:hover {{
-                background: {COLORS['text']};
-            }}
-        """)
+        self.pan_slider.setStyleSheet(pan_slider_style())
         layout.addWidget(self.pan_slider, alignment=Qt.AlignCenter)
         
         # Mute/Solo/Gain buttons

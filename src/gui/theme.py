@@ -231,6 +231,38 @@ def slider_style_center_notch():
     """
 
 
+def pan_slider_style():
+    """
+    Horizontal pan slider with center notch mark.
+    Compact style for channel strips.
+    """
+    return f"""
+        QSlider::groove:horizontal {{
+            height: 4px;
+            background: qlineargradient(
+                x1:0, y1:0, x2:1, y2:0,
+                stop:0 {COLORS['background_dark']},
+                stop:0.48 {COLORS['background_dark']},
+                stop:0.49 {COLORS['border_light']},
+                stop:0.51 {COLORS['border_light']},
+                stop:0.52 {COLORS['background_dark']},
+                stop:1 {COLORS['background_dark']}
+            );
+            border-radius: 2px;
+        }}
+        QSlider::handle:horizontal {{
+            width: 8px;
+            height: 12px;
+            margin: -4px 0;
+            background: {COLORS['text_dim']};
+            border-radius: 2px;
+        }}
+        QSlider::handle:horizontal:hover {{
+            background: {COLORS['text']};
+        }}
+    """
+
+
 # === SKINNABLE GENERATOR CONTROL STYLES ===
 # These are separated for future skin system
 
