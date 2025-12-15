@@ -415,3 +415,154 @@ class CycleButton(QPushButton):
                 self.cycle_forward()
             self.dragging = False
             self.moved_during_press = False
+
+
+class MiniKnob(QWidget):
+    """
+    Tiny circular knob for channel strip EQ.
+    Drag up/down to change value. Double-click to reset.
+    
+    Value range: 0-200 (maps to 0-2 linear gain: 0=kill, 100=unity, 200=+6dB)
+    """
+    
+    valueChanged = pyqtSignal(int)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._value = 100  # Unity default
+        self._min = 0
+        self._max = 200
+        self._default = 100
+        self._dragging = False
+        self._drag_start_y = 0
+        self._drag_start_value = 0
+        self._popup = None
+        
+        # Fixed size for compact channel strips
+        self.setFixedSize(18, 18)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setToolTip("EQ: drag to adjust, double-click to reset")
+        
+    def value(self):
+        return self._value
+        
+    def setValue(self, val):
+        val = max(self._min, min(self._max, val))
+        if val != self._value:
+            self._value = val
+            self.update()
+            self.valueChanged.emit(val)
+            
+    def setRange(self, min_val, max_val):
+        self._min = min_val
+        self._max = max_val
+        
+    def setDoubleClickValue(self, val):
+        self._default = val
+        
+    def setToolTip(self, tip):
+        super().setToolTip(tip)
+        
+    def paintEvent(self, event):
+        """Draw the knob as a filled arc."""
+        from PyQt5.QtGui import QPainter, QColor, QPen
+        from PyQt5.QtCore import QRectF
+        import math
+        
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Knob area (slightly inset)
+        rect = QRectF(2, 2, self.width() - 4, self.height() - 4)
+        
+        # Background circle
+        painter.setPen(QPen(QColor(COLORS['border']), 1))
+        painter.setBrush(QColor(COLORS['background_dark']))
+        painter.drawEllipse(rect)
+        
+        # Value indicator - arc from 7 o'clock to 5 o'clock (240 degrees)
+        # 0 = 7 o'clock (225°), max = 5 o'clock (-45° = 315°)
+        value_ratio = (self._value - self._min) / (self._max - self._min)
+        
+        # Draw arc showing current value
+        start_angle = 225 * 16  # Qt uses 1/16th degrees, 7 o'clock
+        span_angle = -int(270 * value_ratio) * 16  # Clockwise
+        
+        # Determine color based on value
+        if self._value < 10:
+            # Near kill - red
+            arc_color = QColor(COLORS['warning_text'])
+        elif self._value > 110:
+            # Boosting - amber
+            arc_color = QColor(COLORS['submenu_text'])
+        else:
+            # Normal range - green
+            arc_color = QColor(COLORS['enabled_text'])
+        
+        painter.setPen(QPen(arc_color, 2))
+        painter.drawArc(rect, start_angle, span_angle)
+        
+        # Center dot
+        center_rect = QRectF(rect.center().x() - 2, rect.center().y() - 2, 4, 4)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(COLORS['text_dim']))
+        painter.drawEllipse(center_rect)
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._dragging = True
+            self._drag_start_y = event.globalPos().y()
+            self._drag_start_value = self._value
+            self._show_popup()
+            
+    def mouseMoveEvent(self, event):
+        if self._dragging:
+            # Sensitivity: full range over ~100 pixels
+            delta_y = self._drag_start_y - event.globalPos().y()
+            
+            # Shift for fine control
+            modifiers = QApplication.keyboardModifiers()
+            if modifiers & Qt.ShiftModifier:
+                sensitivity = 0.5  # Fine
+            else:
+                sensitivity = 2.0  # Normal
+                
+            delta_value = int(delta_y * sensitivity)
+            new_value = self._drag_start_value + delta_value
+            new_value = max(self._min, min(self._max, new_value))
+            
+            if new_value != self._value:
+                self.setValue(new_value)
+                self._show_popup()
+                
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._dragging = False
+            self._hide_popup()
+            
+    def mouseDoubleClickEvent(self, event):
+        """Reset to default on double-click."""
+        self.setValue(self._default)
+        self.valueChanged.emit(self._value)
+        
+    def _show_popup(self):
+        """Show value popup during drag."""
+        if self._popup is None:
+            self._popup = ValuePopup()
+        
+        # Convert value to dB display
+        linear = self._value / 100.0  # 0-2 range
+        if linear < 0.01:
+            text = "-∞"
+        else:
+            import math
+            db = 20 * math.log10(linear)
+            text = f"{db:+.1f}dB"
+            
+        # Position popup to the right
+        global_pos = self.mapToGlobal(QPoint(self.width(), self.height() // 2))
+        self._popup.show_value(text, global_pos)
+        
+    def _hide_popup(self):
+        if self._popup:
+            self._popup.hide_value()

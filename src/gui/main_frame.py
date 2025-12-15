@@ -101,6 +101,7 @@ class MainFrame(QMainWindow):
         self.mixer_panel.generator_solo.connect(self.on_generator_solo)
         self.mixer_panel.generator_gain_changed.connect(self.on_generator_gain_changed)
         self.mixer_panel.generator_pan_changed.connect(self.on_generator_pan_changed)
+        self.mixer_panel.generator_eq_changed.connect(self.on_generator_eq_changed)
         content_layout.addWidget(self.mixer_panel, stretch=1)
         
         content_outer.addWidget(content_widget, stretch=1)
@@ -551,6 +552,13 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_pan'], [gen_id, pan])
         logger.debug(f"Gen {gen_id} pan: {pan:.2f}", component="OSC")
+    
+    def on_generator_eq_changed(self, gen_id, band, value):
+        """Handle generator EQ change from mixer. band: 'lo'/'mid'/'hi', value: 0-2 linear."""
+        if self.osc_connected:
+            osc_path = f'/noise/strip/eq/{band}'
+            self.osc.client.send_message(osc_path, [gen_id, value])
+        logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
         
     def on_master_volume_from_master(self, volume):
         """Handle master volume change from master section."""
