@@ -91,13 +91,21 @@ Collapsed:           Expanded:
 
 ## Frequencies
 
-Match master EQ crossover points for consistency:
+Crossover frequencies defined as SSOT constants in `channel_strips.scd`:
+- `~EQ_LO_XOVER = 250` Hz
+- `~EQ_HI_XOVER = 2500` Hz
 
-| Band | Center/Crossover | Q | Character |
-|------|------------------|---|-----------|
-| LO   | < 250 Hz | Wide | Sub/bass body |
-| MID  | 250 Hz - 2.5 kHz | Wide | Presence/body |
-| HI   | > 2.5 kHz | Wide | Air/brightness |
+| Band | Range | Character |
+|------|-------|-----------|
+| LO   | < 250 Hz | Sub/bass body |
+| MID  | 250 Hz - 2.5 kHz | Presence/body |
+| HI   | > 2.5 kHz | Air/brightness |
+
+**Filter Implementation:**
+- 2nd-order Butterworth cascaded = 24dB/oct slope
+- NOT true Linkwitz-Riley (phase alignment differs)
+- Doesn't matter because we use remainder-mid: `mid = sig - lo - hi`
+- Guarantees perfect reconstruction at unity regardless of phase
 
 ---
 
@@ -127,51 +135,62 @@ EQ before gain stage so boosts don't clip the channel, and so the fader controls
 
 ## SuperCollider Implementation
 
-Update `\channelStrip` SynthDef:
+### SSOT Constants (in channel_strips.scd)
+
+```supercollider
+// Shared crossover frequencies - change here, changes everywhere
+~EQ_LO_XOVER = 250;   // Hz
+~EQ_HI_XOVER = 2500;  // Hz
+```
+
+### SSOT Helper Function
+
+```supercollider
+// DJ Isolator - used by both channel strips and master EQ
+// Remainder-mid guarantees perfect reconstruction at unity
+~djIsolator = { |sig, loGain=1, midGain=1, hiGain=1, smoothTime=0.02|
+    var lo, hi, mid;
+    var loG, midG, hiG;
+    
+    // Smooth gains to prevent clicks/zipper noise
+    loG = Lag.kr(loGain, smoothTime);
+    midG = Lag.kr(midGain, smoothTime);
+    hiG = Lag.kr(hiGain, smoothTime);
+    
+    // Split bands (24dB/oct cascaded Butterworth)
+    lo = LPF.ar(LPF.ar(sig, ~EQ_LO_XOVER), ~EQ_LO_XOVER);
+    hi = HPF.ar(HPF.ar(sig, ~EQ_HI_XOVER), ~EQ_HI_XOVER);
+    mid = sig - lo - hi;  // Remainder = perfect mid
+    
+    // Apply gains and recombine
+    (lo * loG) + (mid * midG) + (hi * hiG)
+};
+```
+
+### Updated Channel Strip SynthDef
 
 ```supercollider
 SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan=0, 
                           genTrim=0, soloActiveBus, slotID=1,
-                          eqLo=1, eqMid=1, eqHi=1|  // NEW: EQ params (linear amp)
+                          eqLo=1, eqMid=1, eqHi=1|
     var sig, soloActive, soloGate, ampL, ampR;
-    var lo, mid, hi;
     
     sig = In.ar(inBus, 2);
     
-    // Generator trim
-    sig = sig * genTrim.dbamp;
+    // Generator trim with smoothing
+    sig = sig * Lag.kr(genTrim, 0.05).dbamp;
     
-    // === NEW: 3-Band EQ (DJ Isolator style) ===
-    // Split into bands using LPF/HPF pairs
-    lo = LPF.ar(LPF.ar(sig, 250), 250);  // LR4 @ 250Hz
-    hi = HPF.ar(HPF.ar(sig, 2500), 2500);  // LR4 @ 2.5kHz
-    mid = sig - lo - hi;  // Remainder = mid band
+    // 3-band EQ using shared isolator helper
+    sig = ~djIsolator.(sig, eqLo, eqMid, eqHi, 0.02);
     
-    // Apply gains (0 = kill, 1 = unity, 2 = +6dB)
-    lo = lo * eqLo;
-    mid = mid * eqMid;
-    hi = hi * eqHi;
-    
-    // Recombine
-    sig = lo + mid + hi;
-    // === End EQ ===
-    
-    // Mute
+    // Mute/Solo/Gain/Pan/Vol with smoothing...
     sig = sig * (1 - mute);
-    
-    // Solo logic
     soloActive = In.kr(soloActiveBus);
     soloGate = Select.kr(soloActive, [1, solo]);
     sig = sig * soloGate;
-    
-    // Gain stage
-    sig = sig * gain;
-    
-    // Pan
-    sig = Balance2.ar(sig[0], sig[1], pan);
-    
-    // Volume
-    sig = sig * vol;
+    sig = sig * Lag.kr(gain, 0.02);
+    sig = Balance2.ar(sig[0], sig[1], Lag.kr(pan, 0.02));
+    sig = sig * Lag.kr(vol, 0.02);
     
     // Metering
     ampL = Amplitude.kr(sig[0], 0.01, 0.1);
@@ -187,12 +206,38 @@ SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan
 ## OSC Messages
 
 ```
-/noise/strip/X/eq/lo   <float 0-2>   // 0=kill, 1=unity, 2=+6dB
-/noise/strip/X/eq/mid  <float 0-2>
-/noise/strip/X/eq/hi   <float 0-2>
+/noise/strip/eq/lo    <slot 1-8> <float 0-2>   // 0=kill, 1=unity, 2=+6dB
+/noise/strip/eq/mid   <slot 1-8> <float 0-2>
+/noise/strip/eq/hi    <slot 1-8> <float 0-2>
+/noise/strip/eq/reset <slot 1-8>               // Reset all bands to unity
 ```
 
 Python sends linear amplitude (0-2), not dB.
+
+**OSC Handler Pattern (with bounds checking):**
+
+```supercollider
+~withValidSlot = { |slot, action|
+    var idx = slot - 1;
+    if(idx >= 0 && idx < 8, {
+        action.(idx);
+    }, {
+        "WARNING: Invalid slot % in OSC message".format(slot).postln;
+    });
+};
+
+OSCdef(\stripEqLo, { |msg|
+    var slot = msg[1].asInteger;
+    var value = msg[2].asFloat.clip(0, 2);
+    
+    ~withValidSlot.(slot, { |idx|
+        ~stripEqLoState[idx] = value;
+        if(~channelStrips[idx].notNil, {
+            ~channelStrips[idx].set(\eqLo, value);
+        });
+    });
+}, '/noise/strip/eq/lo');
+```
 
 ---
 
@@ -311,3 +356,41 @@ Vertical space needed:
 - EQ bypass per channel
 - Copy EQ settings between channels
 - EQ presets (vocal cut, bass boost, etc.)
+
+---
+
+## Technical Notes
+
+### Why Remainder-Mid Works
+
+The key insight is `mid = sig - lo - hi`. At unity gains:
+```
+output = lo + mid + hi
+       = lo + (sig - lo - hi) + hi
+       = sig
+```
+
+This is mathematically exact regardless of filter phase shifts. The filters only affect band separation, not unity reconstruction.
+
+### Smoothing Values
+
+All controls use `Lag.kr` to prevent clicks:
+- EQ bands: 20ms (`Lag.kr(x, 0.02)`)
+- Trim (dB): 50ms (larger because dB→linear can jump)
+- Gain/Pan/Vol: 20ms
+
+### Headroom
+
++6dB per band means theoretical max of +18dB if all boosted. This is handled by:
+1. Master limiter catches any overs
+2. Channel strip is pre-master compression
+3. Users rarely boost all bands simultaneously
+
+**Note:** Master EQ uses wider range (-12 to +12 dB) for studio-style control, while channel EQ uses narrower range (kill to +6dB) for quick tone shaping. Both share the same crossover frequencies.
+
+### SSOT Compliance
+
+- Crossover freqs: `~eqLoXover`, `~eqHiXover` (defined in channel_strips.scd)
+- Smooth time: `~eqSmoothTime` (shared by strip + master)
+- Band split: remainder-mid (`mid = sig - lo - hi`) used by both
+- State arrays: `~stripEqLoState` etc (persists across rebuilds)
