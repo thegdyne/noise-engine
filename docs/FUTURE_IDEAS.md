@@ -173,7 +173,7 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 - Oscilloscope (switchable source)
 - Waveform display per generator
 - LFO visualisation
-- Level meters on mixer
+- ~~Level meters on mixer~~ ✓ Done (per-channel stereo meters)
 - Clock pulse indicator
 
 ---
