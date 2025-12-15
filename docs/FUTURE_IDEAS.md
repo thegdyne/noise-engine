@@ -6,9 +6,90 @@ Captured ideas for potential future development.
 
 ## Routing & Control
 
-- **External Audio Processing** - Eurorack send/return via audio interface
 - **LFO Modulation Routing** - turn on/off at target
 - **Modulation routing system** - how to wire source → destination?
+
+---
+
+## External Audio Input
+
+**Concept:** Route external audio (drum machines, synths, Eurorack) through the Noise Engine master section for processing and mixing.
+
+**Use cases:**
+- Drum machine through master compressor/EQ/limiter
+- Eurorack through master effects chain
+- Mix external gear with Noise Engine generators
+- Use Noise Engine as a submixer with processing
+
+**Implementation approach:**
+
+### Option A: Dedicated Input Channels
+Add 1-2 stereo input channel strips to the mixer:
+```
+┌─────────────────────────────────────────┐
+│  1  2  3  4  5  6  7  8  │ IN1  IN2    │
+│  ░  ░  ░  ░  ░  ░  ░  ░  │  ░    ░     │  ← Generators + External inputs
+│  M  M  M  M  M  M  M  M  │  M    M     │
+│  S  S  S  S  S  S  S  S  │  S    S     │
+└─────────────────────────────────────────┘
+```
+
+### Option B: Generator Slot as Input
+Special "External In" generator type selectable in any slot:
+- Select input pair (1-2, 3-4, etc.) from dropdown
+- Standard channel strip controls (vol, pan, mute, solo)
+- Can use multiple slots for multiple inputs
+- Appears in generator dropdown like any other generator
+
+### Option C: Sidechain-Only Input
+External audio only available as sidechain source for compressor:
+- Simpler implementation
+- Limited use case but solves "duck to kick drum" need
+
+**Recommended: Option B** - Most flexible, fits existing architecture.
+
+**UI for Option B:**
+```
+┌─────────────────────────────────────┐
+│ [External In ▼]           GEN 5    │
+│                                     │
+│  INPUT: [1-2 ▼]    GAIN: [====●==] │
+│                                     │
+│  🔊 Signal Present                  │
+└─────────────────────────────────────┘
+```
+
+**SuperCollider requirements:**
+```supercollider
+// External input generator
+SynthDef(\external_in, {
+    arg out=0, inBus=0, gain=1.0, gate=1;
+    var sig = SoundIn.ar([inBus, inBus+1]);
+    sig = sig * gain;
+    Out.ar(out, sig);
+}).add;
+```
+
+**Config (external_in.json):**
+```json
+{
+    "name": "External In",
+    "category": "input",
+    "synthdef": "external_in",
+    "custom_params": [
+        {"id": "input_pair", "label": "INPUT", "type": "dropdown", 
+         "options": ["1-2", "3-4", "5-6", "7-8"]},
+        {"id": "gain", "label": "GAIN", "min": 0, "max": 2, "default": 1}
+    ]
+}
+```
+
+**Considerations:**
+- Need to query available input channels from audio device
+- Latency monitoring (input → output roundtrip)
+- Input metering (show signal present indicator)
+- DC blocking on input
+- Phase invert option?
 
 ---
 
