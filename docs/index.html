@@ -440,6 +440,70 @@
             box-shadow: 0 0 30px rgba(0, 255, 136, 0.7);
         }
         
+        /* 📐 PROCESS BANNER 📐 */
+        .process-banner {
+            background: linear-gradient(135deg, #1a1025 0%, #151520 50%, #101520 100%);
+            border: 2px solid #ff8844;
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin: 30px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(255, 136, 68, 0.3), 0 0 60px rgba(255, 204, 68, 0.2);
+        }
+        
+        .process-banner h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 22px;
+            color: #ff8844;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 136, 68, 0.8);
+            letter-spacing: 2px;
+        }
+        
+        .process-banner p {
+            color: #ccaa88;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .process-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #ff8844 0%, #ff6622 100%);
+            color: #0a0a0f;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 136, 68, 0.4);
+        }
+        
+        .process-btn:hover {
+            background: linear-gradient(135deg, #ffaa66 0%, #ff8844 100%);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 136, 68, 0.7);
+        }
+        
+        .process-icon {
+            font-size: 24px;
+            position: absolute;
+            animation: processFloat 3s ease-in-out infinite;
+        }
+        
+        .process-icon.left { left: 20px; top: 50%; transform: translateY(-50%); }
+        .process-icon.right { right: 20px; top: 50%; transform: translateY(-50%); animation-delay: 1.5s; }
+        
+        @keyframes processFloat {
+            0%, 100% { transform: translateY(-50%) rotate(0deg); }
+            50% { transform: translateY(-60%) rotate(10deg); }
+        }
+        
         /* Dancing Robots */
         .robot {
             font-size: 50px;
@@ -1146,6 +1210,15 @@
                 <img src="https://github.com/thegdyne/noise-engine/actions/workflows/ci.yml/badge.svg" alt="CI Status" style="vertical-align: middle;">
                 View Pipeline
             </a>
+        </div>
+        
+        <!-- 📐 THE PROCESS 📐 -->
+        <div class="process-banner">
+            <span class="process-icon left">📐</span>
+            <span class="process-icon right">🎯</span>
+            <h3>📖 THE PROCESS</h3>
+            <p>How do you build an SSL G-Comp in 6 days? Research → Document → SSOT → Verify.</p>
+            <a href="process.html" class="process-btn">Read the Case Study →</a>
         </div>
         
         
