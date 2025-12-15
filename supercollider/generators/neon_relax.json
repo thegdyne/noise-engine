@@ -1,6 +1,7 @@
 {
     "name": "Neon",
     "synthdef": "neonRelax",
+    "output_trim_db": -6.0,
     "custom_params": [
         {
             "key": "rc_time",

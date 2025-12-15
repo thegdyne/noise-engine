@@ -1,6 +1,7 @@
 {
     "name": "CapSense",
     "synthdef": "capsense",
+    "output_trim_db": -6.0,
     "custom_params": [
         {
             "key": "sensor_cap",

@@ -1082,3 +1082,53 @@ Prevents stereo image shift and unbalanced GR.
 - LFO rate: `5.0Hz`
 
 **Files affected:** `src/gui/master_section.py`, `src/gui/mixer_panel.py`, `src/gui/effects_chain.py`, `src/gui/modulation_sources.py`
+
+---
+
+### [2025-12-14] Generator Output Trim - SSOT in JSON Configs
+**Decision:** Per-generator loudness normalization via `output_trim_db` field in generator JSON configs
+
+**Rationale:**
+- Some generators are inherently louder than others (additive, wavetable, relaxation oscillators)
+- Loudness normalization is a mixer concern, not a generator concern
+- SSOT: trim values live next to generator definitions in JSON
+- Single implementation point in channel strip
+
+**Architecture:**
+- `output_trim_db` field in generator JSON (0.0 = no trim, -6.0 = -6dB, etc.)
+- Python reads trim via `get_generator_output_trim_db()` when generator starts
+- Sends `/noise/gen/trim` OSC message to SC
+- Channel strip applies trim early (pre-mute/solo/gain/pan/vol)
+- `~stripTrimState` array tracks trim per slot
+
+**Hot generators (currently -6dB):**
+- Additive, Wavetable, VCO Relax, Neon, CapSense, 4-Quad Ring
+
+**DO NOT:** Hardcode trim values in SynthDefs (violates SSOT)
+**DO NOT:** Apply trim after volume fader (defeats purpose)
+
+**Files affected:**
+- `supercollider/generators/*.json` (SSOT for trim values)
+- `src/config/__init__.py` (`get_generator_output_trim_db()`, `gen_trim` OSC path)
+- `src/gui/main_frame.py` (sends trim on generator change)
+- `supercollider/core/channel_strips.scd` (`\genTrim` control)
+- `supercollider/core/osc_handlers.scd` (`/noise/gen/trim` handler)
+
+---
+
+### [2025-12-14] OSC Bridge Thread Safety
+**Decision:** Guard all signal emissions with `_deleted` flag to prevent crashes on shutdown
+
+**Rationale:**
+- OSC messages arrive on background thread
+- During app shutdown, Qt objects may be deleted while OSC thread still running
+- Emitting signals to deleted objects causes "wrapped C/C++ object has been deleted" crash
+
+**Implementation:**
+- `_deleted` flag initialized to `False` in `__init__`
+- Set to `True` in `disconnect()` before cleanup
+- All `_handle_*` methods check `if self._deleted: return` before emitting
+
+**DO NOT:** Emit signals from OSC handlers without checking `_deleted`
+
+**Files affected:** `src/audio/osc_bridge.py`

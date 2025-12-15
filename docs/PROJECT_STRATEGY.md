@@ -210,6 +210,10 @@ generators:
 **Mixer:**
 - Per-generator volume faders
 - Mute/solo buttons
+- Per-channel gain stage (0dB, +6dB, +12dB)
+- Per-channel pan
+- Per-channel level meters
+- Output trim (loudness normalization from generator JSON)
 
 **Master Section:**
 - Master volume fader with dB display

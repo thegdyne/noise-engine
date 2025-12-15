@@ -194,7 +194,7 @@ GENERATOR_CYCLE = [
 MAX_CUSTOM_PARAMS = 5
 
 # Generator configs loaded from JSON files
-# Maps display name -> {"synthdef": str, "custom_params": list, "pitch_target": int|None}
+# Maps display name -> {"synthdef": str, "custom_params": list, "pitch_target": int|None, "output_trim_db": float}
 _GENERATOR_CONFIGS = {}
 
 def _load_generator_configs():
@@ -213,7 +213,7 @@ def _load_generator_configs():
     project_dir = os.path.dirname(src_dir)
     generators_dir = os.path.join(project_dir, 'supercollider', 'generators')
     
-    _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": [], "pitch_target": None}}
+    _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": [], "pitch_target": None, "output_trim_db": 0.0}}
     
     if not os.path.exists(generators_dir):
         if logger:
@@ -232,7 +232,8 @@ def _load_generator_configs():
                             "synthdef": config.get('synthdef'),
                             "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
                             "pitch_target": config.get('pitch_target'),  # None if not specified
-                            "midi_retrig": config.get('midi_retrig', False)  # For struck/plucked generators
+                            "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
+                            "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
                         }
             except (json.JSONDecodeError, IOError) as e:
                 if logger:
@@ -292,6 +293,18 @@ def get_generator_retrig_param_index(name):
             return i
     return None
 
+def get_generator_output_trim_db(name):
+    """Get output trim in dB for a generator.
+    
+    Used for loudness normalization - hot generators get negative trim.
+    Applied in channel strip before other processing.
+    
+    Returns:
+        float: Trim in dB (0.0 = no trim, -6.0 = -6dB, etc.)
+    """
+    config = _GENERATOR_CONFIGS.get(name, {})
+    return config.get('output_trim_db', 0.0)
+
 # Legacy GENERATORS dict for compatibility (built from JSON)
 GENERATORS = {name: cfg['synthdef'] for name, cfg in _GENERATOR_CONFIGS.items()}
 
@@ -339,6 +352,7 @@ OSC_PATHS = {
     'gen_gain': '/noise/gen/gain',  # Per-channel gain stage (0dB, +6dB, +12dB)
     'gen_pan': '/noise/gen/pan',  # Per-channel pan (-1=L, 0=center, 1=R)
     'gen_levels': '/noise/gen/levels',  # Per-channel level metering
+    'gen_trim': '/noise/gen/trim',  # Per-channel loudness trim (from JSON config)
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash

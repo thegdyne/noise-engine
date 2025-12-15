@@ -56,7 +56,7 @@ SynthDef(\vcaRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = carrier * vcaControl * 0.7;
     
     // === PROCESSING CHAIN ===
-    sig = sig ! 2;  // Dual mono for channel strip panning
+    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     

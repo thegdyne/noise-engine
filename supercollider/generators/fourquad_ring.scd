@@ -57,7 +57,7 @@ SynthDef(\fourQuadRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = (ring * symmetry.linlin(0, 1, 0.5, 1.5)).softclip;
     
     // === PROCESSING CHAIN ===
-    sig = sig ! 2;  // Dual mono for channel strip panning
+    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     

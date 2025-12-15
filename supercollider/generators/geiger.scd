@@ -54,7 +54,7 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     noise = noise + (Dust.ar(countRate * 10) * 0.1 * backgroundNoise);
     
     sig = click + noise;
-    sig = sig ! 2;  // Dual mono for channel strip panning
+    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
     
     // === PROCESSING CHAIN ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);

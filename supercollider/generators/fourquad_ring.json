@@ -1,6 +1,7 @@
 {
     "name": "4-Quad Ring",
     "synthdef": "fourQuadRing",
+    "output_trim_db": -6.0,
     "custom_params": [
         {
             "key": "carrier_freq",

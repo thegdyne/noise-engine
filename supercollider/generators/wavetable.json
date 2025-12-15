@@ -1,6 +1,7 @@
 {
     "name": "Wavetable",
     "synthdef": "wavetable",
+    "output_trim_db": -6.0,
     "custom_params": [
         {
             "key": "table_index",
