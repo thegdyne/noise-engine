@@ -87,7 +87,7 @@ SynthDef(\modLFO, {
     clk = In.ar(clockTrigBus + clockIndex);
     
     // Convert audio impulse to control rate trigger
-    trig = A2K.kr(clk) > 0.5;
+    trig = Peak.kr(clk) > 0.5;
     trig = Trig1.kr(trig, 0.001);
     
     // RATE: 0-1 maps to 12 divisions: /64, /32, /16, /8, /4, /2, 1, x2, x4, x8, x16, x32
