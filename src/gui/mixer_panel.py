@@ -337,30 +337,6 @@ class MixerPanel(QWidget):
             
         layout.addWidget(channels_frame)
         
-        # I/O Status
-        io_frame = QFrame()
-        io_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['background']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 4px;
-            }}
-        """)
-        io_layout = QHBoxLayout(io_frame)
-        io_layout.setContentsMargins(10, 5, 10, 5)
-        
-        self.audio_status = QLabel("🔇 Audio")
-        self.audio_status.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-        self.audio_status.setStyleSheet(f"color: {COLORS['audio_off']}; border: none;")
-        io_layout.addWidget(self.audio_status)
-        
-        self.midi_status = QLabel("🎹 MIDI")
-        self.midi_status.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
-        self.midi_status.setStyleSheet(f"color: {COLORS['midi_off']}; border: none;")
-        io_layout.addWidget(self.midi_status)
-        
-        layout.addWidget(io_frame)
-        
     def on_channel_volume(self, channel_id, volume):
         """Handle channel volume change."""
         self.generator_volume_changed.emit(channel_id, volume)
@@ -381,22 +357,6 @@ class MixerPanel(QWidget):
         """Handle channel pan change."""
         self.generator_pan_changed.emit(channel_id, pan)
         
-    def set_io_status(self, audio=False, midi=False):
-        """Update I/O status indicators."""
-        if audio:
-            self.audio_status.setText("🔊 Audio")
-            self.audio_status.setStyleSheet(f"color: {COLORS['audio_on']}; border: none;")
-        else:
-            self.audio_status.setText("🔇 Audio")
-            self.audio_status.setStyleSheet(f"color: {COLORS['audio_off']}; border: none;")
-            
-        if midi:
-            self.midi_status.setText("🎹 MIDI")
-            self.midi_status.setStyleSheet(f"color: {COLORS['midi_on']}; border: none;")
-        else:
-            self.midi_status.setText("🎹 MIDI")
-            self.midi_status.setStyleSheet(f"color: {COLORS['midi_off']}; border: none;")
-    
     def set_channel_active(self, channel_id, active):
         """Set active state for a channel (called when generator starts/stops)."""
         if channel_id in self.channels:

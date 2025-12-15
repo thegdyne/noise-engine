@@ -328,7 +328,6 @@ class MainFrame(QMainWindow):
                 self.connect_btn.setText("Disconnect")
                 self.status_label.setText("● Connected")
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
-                self.mixer_panel.set_io_status(audio=True)
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
                 self.modulation_sources.set_master_bpm(self.master_bpm)
@@ -360,7 +359,6 @@ class MainFrame(QMainWindow):
             self.connect_btn.setText("Connect SuperCollider")
             self.status_label.setText("● Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
-            self.mixer_panel.set_io_status(audio=False)
     
     def on_connection_lost(self):
         """Handle connection lost - show prominent warning."""
@@ -369,7 +367,6 @@ class MainFrame(QMainWindow):
         self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
         self.status_label.setText("● CONNECTION LOST")
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: bold;")
-        self.mixer_panel.set_io_status(audio=False)
     
     def on_connection_restored(self):
         """Handle connection restored after reconnect."""
@@ -378,7 +375,6 @@ class MainFrame(QMainWindow):
         self.connect_btn.setStyleSheet("")  # Reset to default style
         self.status_label.setText("● Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
-        self.mixer_panel.set_io_status(audio=True)
         
         # Resend current state
         self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
