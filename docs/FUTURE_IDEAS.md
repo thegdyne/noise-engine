@@ -157,6 +157,22 @@ gt = get_generator_theme(slot.generator_type)
 
 ---
 
+## Modulation System (Dec 2025)
+
+**Concept:** Comprehensive modulation routing with visual feedback.
+
+### Part 1: Pin Matrix Window
+Second screen with large connection matrix. Rows = mod sources (LFOs, ENVs, MIDI CCs), columns = destinations (all generator params). Click intersections to connect. Each connection has its own depth (-100% to +100%) set at the target - same LFO can modulate cutoff at +80% and resonance at -20%.
+
+### Part 2: Modulation Visualisation  
+Korg wavestate-style indicators on modulated controls. Shows:
+- Static bracket for min/max modulation range
+- Moving line for current modulated value in real-time
+
+**Design doc:** `docs/MODULATION_SYSTEM.md`
+
+---
+
 ## UI Scaling Improvements (Dec 2025)
 
 **Current state:**
