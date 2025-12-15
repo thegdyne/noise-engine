@@ -317,6 +317,132 @@ LFO_WAVEFORM_INDEX = {
     "S&H": 3
 }
 
+# === MOD SOURCES ===
+# Slot and bus counts
+MOD_SLOT_COUNT = 4
+MOD_OUTPUTS_PER_SLOT = 3
+MOD_BUS_COUNT = MOD_SLOT_COUNT * MOD_OUTPUTS_PER_SLOT  # 12
+
+# Mod generator cycle (like GENERATOR_CYCLE)
+MOD_GENERATOR_CYCLE = [
+    "Empty",
+    "LFO",
+    "Sloth",
+]
+
+# LFO waveforms (TTLFO v2 inspired)
+MOD_LFO_WAVEFORMS = ["Saw", "Ramp", "Sqr", "Tri", "Sin", "Rect+", "Rect-", "S&H"]
+MOD_LFO_WAVEFORM_INDEX = {w: i for i, w in enumerate(MOD_LFO_WAVEFORMS)}
+
+# LFO phase steps (degrees)
+MOD_LFO_PHASES = [0, 45, 90, 135, 180, 225, 270, 315]
+MOD_LFO_PHASE_INDEX = {p: i for i, p in enumerate(MOD_LFO_PHASES)}
+
+# Sloth speed modes (NLC Triple Sloth inspired)
+MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
+MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
+
+# Clock rates for mod sources (subset of main CLOCK_RATES)
+MOD_CLOCK_RATES = ["/4", "/2", "1", "x2", "x3", "x4"]
+MOD_CLOCK_RATE_INDEX = {r: i for i, r in enumerate(MOD_CLOCK_RATES)}
+
+# Polarity options
+MOD_POLARITY = ["UNI", "BI"]
+MOD_POLARITY_INDEX = {"UNI": 0, "BI": 1}
+
+# Output labels by generator type
+MOD_OUTPUT_LABELS = {
+    "Empty": ["A", "B", "C"],
+    "LFO": ["A", "B", "C"],
+    "Sloth": ["X", "Y", "Z"],
+}
+
+# Mod generator configs loaded from JSON files
+_MOD_GENERATOR_CONFIGS = {}
+
+def _load_mod_generator_configs():
+    """Load mod generator configs from JSON files in supercollider/mod_generators/"""
+    global _MOD_GENERATOR_CONFIGS
+    
+    try:
+        from src.utils.logger import logger
+    except ImportError:
+        logger = None
+    
+    config_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(config_dir)
+    project_dir = os.path.dirname(src_dir)
+    mod_generators_dir = os.path.join(project_dir, 'supercollider', 'mod_generators')
+    
+    _MOD_GENERATOR_CONFIGS = {
+        "Empty": {
+            "synthdef": None,
+            "custom_params": [],
+            "output_config": "fixed",
+            "outputs": ["A", "B", "C"]
+        }
+    }
+    
+    if not os.path.exists(mod_generators_dir):
+        if logger:
+            logger.debug(f"Mod generators directory not found: {mod_generators_dir}", component="CONFIG")
+        return
+    
+    for filename in os.listdir(mod_generators_dir):
+        if filename.endswith('.json'):
+            filepath = os.path.join(mod_generators_dir, filename)
+            try:
+                with open(filepath, 'r') as f:
+                    config = json.load(f)
+                    name = config.get('name')
+                    if name:
+                        _MOD_GENERATOR_CONFIGS[name] = {
+                            "synthdef": config.get('synthdef'),
+                            "custom_params": config.get('custom_params', []),
+                            "output_config": config.get('output_config', 'fixed'),
+                            "outputs": config.get('outputs', ['A', 'B', 'C'])
+                        }
+            except (json.JSONDecodeError, IOError) as e:
+                if logger:
+                    logger.warning(f"Failed to load mod generator {filepath}: {e}", component="CONFIG")
+    
+    # Validate MOD_GENERATOR_CYCLE
+    for name in MOD_GENERATOR_CYCLE:
+        if name != "Empty" and name not in _MOD_GENERATOR_CONFIGS:
+            if logger:
+                logger.warning(f"'{name}' in MOD_GENERATOR_CYCLE but no JSON found", component="CONFIG")
+
+# Load on import
+_load_mod_generator_configs()
+
+def get_mod_generator_synthdef(name):
+    """Get SynthDef name for a mod generator."""
+    config = _MOD_GENERATOR_CONFIGS.get(name, {})
+    return config.get('synthdef')
+
+def get_mod_generator_custom_params(name):
+    """Get custom params list for a mod generator."""
+    config = _MOD_GENERATOR_CONFIGS.get(name, {})
+    return config.get('custom_params', [])
+
+def get_mod_generator_output_config(name):
+    """Get output config type for a mod generator.
+    
+    Returns:
+        'waveform_phase': Show waveform and phase selectors per output (LFO)
+        'fixed': Show fixed output labels only (Sloth, Empty)
+    """
+    config = _MOD_GENERATOR_CONFIGS.get(name, {})
+    return config.get('output_config', 'fixed')
+
+def get_mod_output_labels(name):
+    """Get output labels for a mod generator.
+    
+    Returns:
+        List of 3 strings, e.g. ['A', 'B', 'C'] or ['X', 'Y', 'Z']
+    """
+    return MOD_OUTPUT_LABELS.get(name, ["A", "B", "C"])
+
 # === OSC ===
 OSC_HOST = "127.0.0.1"
 OSC_SEND_PORT = 57120
@@ -395,6 +521,14 @@ OSC_PATHS = {
     'audio_device_changing': '/noise/audio/device/changing',
     'audio_device_ready': '/noise/audio/device/ready',
     'audio_device_error': '/noise/audio/device/error',
+    # Mod sources
+    'mod_generator': '/noise/mod/generator',        # /noise/mod/generator/{slot}
+    'mod_param': '/noise/mod/param',                # /noise/mod/param/{slot}/{key}
+    'mod_output_wave': '/noise/mod/out/wave',       # /noise/mod/out/wave/{slot}/{output}
+    'mod_output_phase': '/noise/mod/out/phase',     # /noise/mod/out/phase/{slot}/{output}
+    'mod_output_polarity': '/noise/mod/out/pol',    # /noise/mod/out/pol/{slot}/{output}
+    'mod_bus_value': '/noise/mod/bus/value',        # /noise/mod/bus/value/{bus} (SC → Python)
+    'mod_scope_enable': '/noise/mod/scope/enable',  # /noise/mod/scope/enable/{slot} (Python → SC)
 }
 
 # === WIDGET SIZES ===

@@ -34,6 +34,10 @@ s.waitForBoot({
     (~basePath +/+ "core/buses.scd").load;
     ~setupBuses.();
     
+    // Load mod buses (before mod slots)
+    (~basePath +/+ "core/mod_buses.scd").load;
+    ~setupModBuses.();
+    
     (~basePath +/+ "core/clock.scd").load;
     ~setupClock.();
     
@@ -61,9 +65,21 @@ s.waitForBoot({
         ("  ✓ " ++ file.fileNameWithoutExtension).postln;
     });
     
+    // Load mod slots (after clock exists for ~clockTrigBus reference)
+    (~basePath +/+ "core/mod_slots.scd").load;
+    ~setupModSlots.();
+    
+    // Load mod SynthDefs
+    (~basePath +/+ "core/mod_lfo.scd").load;
+    (~basePath +/+ "core/mod_sloth.scd").load;
+    
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
     ~setupOSC.();
+    
+    // Load mod OSC handlers
+    (~basePath +/+ "core/mod_osc.scd").load;
+    ~setupModOSC.();
     
     // Load MIDI handler
     (~basePath +/+ "core/midi_handler.scd").load;
@@ -143,6 +159,7 @@ s.waitForBoot({
     "✓ Noise Engine ready!".postln;
     "✓ Core modules loaded".postln;
     ("✓ " ++ ~generatorFiles.size ++ " generators available").postln;
+    "✓ 4 mod source slots ready".postln;
     ("✓ OSC listening on port " ++ ~oscPort).postln;
     "========================================".postln;
     "".postln;
