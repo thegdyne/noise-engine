@@ -8,11 +8,27 @@ Each output has:
 - Polarity (unipolar 0-1 or bipolar -1 to +1)
 
 Shared controls:
-- Rate (clock division)
+- Rate (clock division/multiplication)
 - Shape (waveform distortion / centre point shift)
 
-Clock sync: Phase locked to master clock via ~clockTrigBus
-Uses quarter note (index 6) as reference tick.
+Clock sync:
+- Uses x32 clock (index 12) = 32 triggers per quarter note
+- Phasor generates smooth ramp between ticks
+- PulseDivider resets phase on cycle boundary
+
+Rate table (ticks per cycle at x32):
+  /64 = 2048 (16 bars)
+  /32 = 1024 (8 bars)
+  /16 = 512  (4 bars)
+  /8  = 256  (2 bars)
+  /4  = 128  (1 bar)
+  /2  = 64   (2 beats)
+  1   = 32   (1 beat)
+  x2  = 16   (1/2 beat)
+  x4  = 8    (1/4 beat)
+  x8  = 4    (1/8 beat)
+  x16 = 2    (1/16 beat)
+  x32 = 1    (1/32 beat)
 
 Reference: Ginkosynthese TTLFO v2
 */
@@ -24,12 +40,14 @@ SynthDef(\modLFO, {
         waveA = 0, waveB = 0, waveC = 0,     // Waveform indices (0-7)
         phaseA = 0, phaseB = 0, phaseC = 0,  // Phase indices (0-7 = 0°-315°)
         polarityA = 1, polarityB = 1, polarityC = 1,  // 0=UNI, 1=BI
-        clockTrigBus = 0;            // Clock trigger bus (audio rate impulses)
+        clockTrigBus = 0,            // Clock trigger bus base
+        clockIndex = 10,             // Set from ~modClockSourceIndex in mod_slots.scd
+        bpmBus = 0;                  // BPM control bus
     
     var basePhase, pA, pB, pC;
     var sigA, sigB, sigC;
     var rateIndex, ticksPerCycle;
-    var clk, trig, inc, tickCount;
+    var clk, trig, tickHz, resetTrig, freq;
     var wrapTrig, sah;
     
     // Waveform generation function
@@ -64,31 +82,34 @@ SynthDef(\modLFO, {
         Select.kr(waveIndex.clip(0, 7), [saw, ramp, sqr, tri, sin, rectP, rectN, sahSig]);
     };
     
-    // ---- CLOCK-SYNCED PHASE ----
-    // Read quarter note clock (index 6 in clockTrigBus)
-    clk = In.ar(clockTrigBus + 6);
+    // ---- CLOCK-SYNCED PHASE (Smooth Phasor) ----
+    // Read high-res clock (x12 = index 10 = 12 ticks per quarter)
+    clk = In.ar(clockTrigBus + clockIndex);
     
     // Convert audio impulse to control rate trigger
     trig = A2K.kr(clk) > 0.5;
     trig = Trig1.kr(trig, 0.001);
     
-    // RATE: 0-1 maps to 6 divisions: /4, /2, 1, x2, x3, x4
-    // Ticks per cycle (tick = quarter note)
-    // /4 = 4 quarters per cycle, /2 = 2, 1 = 1, x2 = 0.5, x3 = 0.333, x4 = 0.25
-    rateIndex = (rate * 5).round.clip(0, 5);
-    ticksPerCycle = Select.kr(rateIndex, [4, 2, 1, 0.5, 0.333, 0.25]);
+    // RATE: 0-1 maps to 12 divisions: /64, /32, /16, /8, /4, /2, 1, x2, x4, x8, x16, x32
+    // Ticks per cycle at x32 resolution
+    // Must match MOD_CLOCK_RATES order in Python config
+    rateIndex = (rate * 11).round.clip(0, 11);
+    ticksPerCycle = Select.kr(rateIndex, [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]);
     
-    // Phase increments per tick (cycles per tick)
-    inc = 1 / ticksPerCycle;
-    tickCount = PulseCount.kr(trig);
+    // Reset trigger: fires once per LFO cycle
+    resetTrig = PulseDivider.kr(trig, ticksPerCycle);
     
-    // Base phase 0..1, hard-locked to clock ticks
-    basePhase = (tickCount * inc).frac;
+    // Calculate LFO frequency from BPM
+    // At 120 BPM: quarter = 2Hz, x32 tick = 64Hz
+    // LFO freq = (bpm/60 * 32) / ticksPerCycle
+    freq = In.kr(bpmBus) / 60 * 32 / ticksPerCycle;
     
-    // S&H: sample once per LFO cycle (on phase wrap)
-    wrapTrig = HPZ1.kr(basePhase) < 0;  // negative jump = wrap
-    wrapTrig = Trig1.kr(wrapTrig, 0.001);
-    sah = Latch.kr(WhiteNoise.kr, wrapTrig) * 0.5 + 0.5;
+    // Smooth phase ramp 0..1, resets on cycle boundary
+    // Phasor gives continuous movement between ticks
+    basePhase = Phasor.kr(resetTrig, freq * ControlDur.ir, 0, 1, 0);
+    
+    // S&H: sample once per LFO cycle (on reset trigger)
+    sah = Latch.kr(WhiteNoise.kr, resetTrig) * 0.5 + 0.5;
     
     // Phase offsets (index 0-7 = 0°-315° in 45° steps = 0-0.875)
     pA = (basePhase + (phaseA / 8)).wrap(0, 1);
@@ -111,4 +132,4 @@ SynthDef(\modLFO, {
     Out.kr(outC, sigC);
 }).add;
 
-"  ✓ modLFO SynthDef loaded (clock-synced)".postln;
+"  ✓ modLFO SynthDef loaded (clock-synced, Phasor-smooth)".postln;

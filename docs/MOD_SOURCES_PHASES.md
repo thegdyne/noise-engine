@@ -345,31 +345,32 @@
 ### Phase 7: Scope Display
 | Item | Status |
 |------|--------|
-| `src/gui/mod_scope.py` | ⬜ |
-| Circular buffer for history | ⬜ |
-| 3 traces, colour-coded | ⬜ |
-| Auto-ranging time scale | ⬜ |
-| SC → Python value stream | ⬜ |
-| OSC `/noise/mod/bus/value/{bus}` | ⬜ |
-| OSC `/noise/mod/scope/enable/{slot}` | ⬜ |
-| SC only streams enabled slots | ⬜ |
-| ~30fps update rate | ⬜ |
-| Integrate into ModSourceSlot | ⬜ |
-| LFO auto-range (based on rate) | ⬜ |
-| Sloth auto-range (based on mode) | ⬜ |
+| `src/gui/mod_scope.py` | ✅ |
+| Circular buffer for history | ✅ |
+| 3 traces, colour-coded | ✅ |
+| Auto-ranging time scale | ⬜ (future) |
+| SC → Python value stream | ✅ |
+| OSC `/noise/mod/bus/value` | ✅ |
+| OSC `/noise/mod/scope/enable` | ✅ |
+| SC only streams enabled slots | ✅ |
+| ~30fps update rate | ✅ |
+| UI throttle (not per-message) | ✅ |
+| Integrate into ModSourceSlot | ✅ |
+| Skin colours integration | ✅ |
 
 ### Phase 8: Empty State & Polish
 | Item | Status |
 |------|--------|
-| Empty generator - free synth node | ⬜ |
-| Empty generator - zero buses (not hold) | ⬜ |
-| Empty generator - minimal UI | ⬜ |
-| Scope disabled/flat for Empty | ⬜ |
+| Empty generator - free synth node | ✅ |
+| Empty generator - zero buses | ✅ |
+| Empty generator - minimal UI | ✅ |
+| Scope disabled/flat for Empty | ✅ |
+| CycleButton wrap=True default | ✅ |
+| Default generators (LFO/Sloth) | ✅ |
+| Default phases spread (~120°) | ✅ |
+| State sync on connect | ✅ |
 | Consistent spacing | ⬜ |
-| Proper disabled states | ⬜ |
 | Tooltips on all controls | ⬜ |
-| Rapid generator switching | ⬜ |
-| Extreme parameter values | ⬜ |
 | Window resize behaviour | ⬜ |
 | Remove "COMING SOON" badge | ⬜ |
 

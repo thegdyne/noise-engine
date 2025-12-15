@@ -49,6 +49,9 @@ class MainFrame(QMainWindow):
         
         self.master_bpm = BPM_DEFAULT
         
+        # Scope repaint throttling (~30fps instead of per-message)
+        self._mod_scope_dirty = set()
+        
         self.setup_ui()
         
     def setup_ui(self):
@@ -77,13 +80,19 @@ class MainFrame(QMainWindow):
         
         # Left - MOD SOURCES
         self.mod_source_panel = ModSourcePanel()
-        self.mod_source_panel.setFixedWidth(180)
+        self.mod_source_panel.setFixedWidth(320)  # 2 columns
         self.mod_source_panel.generator_changed.connect(self.on_mod_generator_changed)
         self.mod_source_panel.parameter_changed.connect(self.on_mod_param_changed)
         self.mod_source_panel.output_wave_changed.connect(self.on_mod_output_wave)
         self.mod_source_panel.output_phase_changed.connect(self.on_mod_output_phase)
         self.mod_source_panel.output_polarity_changed.connect(self.on_mod_output_polarity)
         content_layout.addWidget(self.mod_source_panel)
+        
+        # Scope repaint timer (~30fps)
+        from PyQt5.QtCore import QTimer
+        self._mod_scope_timer = QTimer(self)
+        self._mod_scope_timer.timeout.connect(self._flush_mod_scopes)
+        self._mod_scope_timer.start(33)  # ~30fps
         
         # Center - GENERATORS
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
@@ -327,6 +336,7 @@ class MainFrame(QMainWindow):
             self.osc.audio_device_changing.connect(self.on_audio_device_changing)
             self.osc.audio_device_ready.connect(self.on_audio_device_ready)
             self.osc.comp_gr_received.connect(self.on_comp_gr_received)
+            self.osc.mod_bus_value_received.connect(self.on_mod_bus_value)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -348,6 +358,9 @@ class MainFrame(QMainWindow):
                     port_index = self.midi_selector.get_port_index(current_midi)
                     if port_index >= 0:
                         self.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
+                
+                # Send initial mod source state
+                self._sync_mod_sources()
             else:
                 self.status_label.setText("● Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
@@ -530,10 +543,41 @@ class MainFrame(QMainWindow):
     # Mod Source Handlers
     # -------------------------------------------------------------------------
     
+    def _sync_mod_sources(self):
+        """Send current mod source state to SC on connect."""
+        from src.config import MOD_SLOT_COUNT, get_mod_generator_custom_params, map_value
+        
+        for slot_id in range(1, MOD_SLOT_COUNT + 1):
+            slot = self.mod_source_panel.get_slot(slot_id)
+            if slot:
+                gen_name = slot.generator_name
+                
+                # Send generator selection (this starts the synth)
+                self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
+                
+                # Send current parameter values
+                if gen_name != "Empty":
+                    params = get_mod_generator_custom_params(gen_name)
+                    for param in params:
+                        key = param['key']
+                        if key in slot.param_sliders:
+                            slider = slot.param_sliders[key]
+                            normalized = slider.value() / 1000.0
+                            real_value = map_value(normalized, param)
+                            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, real_value])
+                    
+                    # Enable scope
+                    self.osc.client.send_message(OSC_PATHS['mod_scope_enable'], [slot_id, 1])
+                    
+                logger.debug(f"Synced mod {slot_id}: {gen_name}", component="OSC")
+    
     def on_mod_generator_changed(self, slot_id, gen_name):
         """Handle mod source generator change."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
+            # Enable scope streaming for active generators, disable for Empty
+            enabled = 1 if gen_name != "Empty" else 0
+            self.osc.client.send_message(OSC_PATHS['mod_scope_enable'], [slot_id, enabled])
         logger.debug(f"Mod {slot_id} generator: {gen_name}", component="OSC")
         
     def on_mod_param_changed(self, slot_id, key, value):
@@ -559,6 +603,25 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, output_idx, polarity])
         logger.debug(f"Mod {slot_id} out {output_idx} polarity: {polarity}", component="OSC")
+        
+    def on_mod_bus_value(self, bus_idx, value):
+        """Handle mod bus value from SC - route to appropriate scope."""
+        # Calculate slot from bus index: bus 0-2 → slot 1, bus 3-5 → slot 2, etc.
+        slot_id = (bus_idx // 3) + 1
+        output_idx = bus_idx % 3
+        
+        slot = self.mod_source_panel.get_slot(slot_id)
+        if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
+            slot.scope.push_value(output_idx, value)
+            self._mod_scope_dirty.add(slot_id)  # Mark for repaint
+        
+    def _flush_mod_scopes(self):
+        """Repaint dirty scopes at throttled rate (~30fps)."""
+        for slot_id in list(self._mod_scope_dirty):
+            slot = self.mod_source_panel.get_slot(slot_id)
+            if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
+                slot.scope.update()
+        self._mod_scope_dirty.clear()
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change from mixer."""

@@ -41,9 +41,10 @@ class ModSourceSlot(QWidget):
     output_phase_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, phase_index
     output_polarity_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, polarity (0=UNI, 1=BI)
     
-    def __init__(self, slot_id, parent=None):
+    def __init__(self, slot_id, default_generator="Empty", parent=None):
         super().__init__(parent)
         self.slot_id = slot_id
+        self.default_generator = default_generator
         self.generator_name = "Empty"
         self.output_config = "fixed"
         
@@ -53,7 +54,7 @@ class ModSourceSlot(QWidget):
         self.output_rows = []  # List of output row widgets
         
         self.setup_ui()
-        self.update_for_generator("Empty")
+        self.update_for_generator(default_generator)
         
     def setup_ui(self):
         """Build the slot UI."""
@@ -74,7 +75,8 @@ class ModSourceSlot(QWidget):
         header.addStretch()
         
         # Generator selector button
-        self.gen_button = CycleButton(MOD_GENERATOR_CYCLE, initial_index=0)
+        initial_idx = MOD_GENERATOR_CYCLE.index(self.default_generator) if self.default_generator in MOD_GENERATOR_CYCLE else 0
+        self.gen_button = CycleButton(MOD_GENERATOR_CYCLE, initial_index=initial_idx)
         self.gen_button.setFixedSize(60, 22)
         self.gen_button.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         self.gen_button.setStyleSheet(button_style('submenu'))
@@ -104,17 +106,15 @@ class ModSourceSlot(QWidget):
         self.outputs_layout.setSpacing(4)
         layout.addWidget(self.outputs_container)
         
-        # Scope placeholder
-        self.scope_placeholder = QLabel("[ scope ]")
-        self.scope_placeholder.setAlignment(Qt.AlignCenter)
-        self.scope_placeholder.setFixedHeight(50)
-        self.scope_placeholder.setStyleSheet(f"""
-            background-color: {COLORS['background']};
+        # Scope display
+        from .mod_scope import ModScope
+        self.scope = ModScope(history_length=100)
+        self.scope.setFixedHeight(50)
+        self.scope.setStyleSheet(f"""
             border: 1px solid {COLORS['border']};
             border-radius: 3px;
-            color: {COLORS['text']};
         """)
-        layout.addWidget(self.scope_placeholder)
+        layout.addWidget(self.scope)
         
         layout.addStretch()
         
@@ -171,7 +171,9 @@ class ModSourceSlot(QWidget):
         empty_label.setStyleSheet(f"color: {COLORS['text']};")
         self.params_layout.addWidget(empty_label)
         
-        self.scope_placeholder.setText("[ no output ]")
+        # Clear and dim the scope
+        self.scope.clear()
+        self.scope.setEnabled(False)
         self.setStyleSheet(f"""
             ModSourceSlot {{
                 border: 2px solid {COLORS['border']};
@@ -241,8 +243,11 @@ class ModSourceSlot(QWidget):
             row.addWidget(wave_btn)
             row_widgets['wave'] = wave_btn
             
+            # Default phases: A=0° (idx 0), B=135° (idx 3), C=225° (idx 5)
+            # Gives roughly 120° spacing between outputs
+            default_phase_indices = [0, 3, 5]
             phase_labels = [f"{p}°" for p in MOD_LFO_PHASES]
-            phase_btn = CycleButton(phase_labels, initial_index=0)
+            phase_btn = CycleButton(phase_labels, initial_index=default_phase_indices[output_idx])
             phase_btn.setFixedSize(35, 20)
             phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
             phase_btn.setStyleSheet(button_style('submenu'))
@@ -283,9 +288,9 @@ class ModSourceSlot(QWidget):
     def _update_style_for_generator(self, gen_name):
         """Update slot styling based on generator type."""
         if gen_name == "LFO":
-            border_color = COLORS['enabled_text']  # Green for LFO
+            border_color = COLORS['accent_mod_lfo']
         elif gen_name == "Sloth":
-            border_color = COLORS['submenu_text']  # Orange for Sloth
+            border_color = COLORS['accent_mod_sloth']
         else:
             border_color = COLORS['border']
             
@@ -296,7 +301,9 @@ class ModSourceSlot(QWidget):
                 background-color: {COLORS['background_light']};
             }}
         """)
-        self.scope_placeholder.setText("[ scope ]")
+        # Enable and clear scope for active generator
+        self.scope.setEnabled(True)
+        self.scope.clear()
         
     def _clear_layout(self, layout):
         """Remove all items from a layout."""

@@ -313,7 +313,7 @@ class CycleButton(QPushButton):
         super().__init__(parent)
         self.values = values
         self.index = initial_index
-        self.wrap = False
+        self.wrap = True  # Default: cycle wraps around at ends
         self.wrap_at_start = False  # Only wrap when going up from index 0
         self.sensitivity_key = 'cycle'  # Key prefix for DRAG_SENSITIVITY lookup
         self._update_display()

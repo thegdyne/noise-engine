@@ -20,14 +20,14 @@ Empty generator = no synth, buses zeroed.
     ~modParams = Array.fill(4, { Dictionary.new });
     
     // Per-output state: waveform, phase, polarity
+    // Default phases: A=0° (0), B=120° (2.67→3), C=240° (5.33→5)
+    // Using indices: 0, 3, 5 gives roughly 120° spacing
     ~modOutputState = Array.fill(4, {
-        Array.fill(3, {
-            Dictionary.newFrom([
-                \wave, 0,      // waveform index
-                \phase, 0,     // phase index (0-7 for 0°-315°)
-                \polarity, 1   // 0=UNI, 1=BI
-            ])
-        })
+        [
+            Dictionary.newFrom([\wave, 0, \phase, 0, \polarity, 1]),  // A: 0°
+            Dictionary.newFrom([\wave, 0, \phase, 3, \polarity, 1]),  // B: 135° (close to 120°)
+            Dictionary.newFrom([\wave, 0, \phase, 5, \polarity, 1])   // C: 225° (close to 240°)
+        ]
     });
     
     // Free mod slot synth and zero buses
@@ -75,7 +75,9 @@ Empty generator = no synth, buses zeroed.
                 \polarityA, outState[0][\polarity] ? 1,
                 \polarityB, outState[1][\polarity] ? 1,
                 \polarityC, outState[2][\polarity] ? 1,
-                \clockTrigBus, ~clockTrigBus.index
+                \clockTrigBus, ~clockTrigBus.index,
+                \clockIndex, ~modClockSourceIndex,  // From config.scd
+                \bpmBus, ~clockBus.index
             ], ~modGroup);
             ("  Mod slot " ++ slot ++ " → LFO").postln;
         }
