@@ -379,7 +379,9 @@ class MasterSection(QWidget):
         self.eq_lo_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_lo_slider.setRange(0, 240)  # 0=-12dB, 120=0dB, 240=+12dB
         self.eq_lo_slider.setValue(120)  # 0dB default
+        self.eq_lo_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_lo_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_lo_slider.setToolTip("LO gain: -12 to +12 dB (double-click to reset)")
         self.eq_lo_slider.valueChanged.connect(self._on_eq_lo_changed)
         lo_container.addWidget(self.eq_lo_slider, alignment=Qt.AlignCenter)
         self.eq_lo_kill_btn = QPushButton("LO")
@@ -398,7 +400,9 @@ class MasterSection(QWidget):
         self.eq_mid_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_mid_slider.setRange(0, 240)
         self.eq_mid_slider.setValue(120)
+        self.eq_mid_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_mid_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_mid_slider.setToolTip("MID gain: -12 to +12 dB (double-click to reset)")
         self.eq_mid_slider.valueChanged.connect(self._on_eq_mid_changed)
         mid_container.addWidget(self.eq_mid_slider, alignment=Qt.AlignCenter)
         self.eq_mid_kill_btn = QPushButton("MID")
@@ -417,7 +421,9 @@ class MasterSection(QWidget):
         self.eq_hi_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_hi_slider.setRange(0, 240)
         self.eq_hi_slider.setValue(120)
+        self.eq_hi_slider.setDoubleClickValue(120)  # Reset to 0dB
         self.eq_hi_slider.setMinimumHeight(SIZES['slider_height_small'])
+        self.eq_hi_slider.setToolTip("HI gain: -12 to +12 dB (double-click to reset)")
         self.eq_hi_slider.valueChanged.connect(self._on_eq_hi_changed)
         hi_container.addWidget(self.eq_hi_slider, alignment=Qt.AlignCenter)
         self.eq_hi_kill_btn = QPushButton("HI")

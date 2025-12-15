@@ -78,6 +78,9 @@ class DragSlider(QSlider):
         self._param_config = None
         self._format_func = None
         
+        # Double-click reset (optional)
+        self._double_click_value = None
+        
     def set_param_config(self, param_config, format_func=None):
         """
         Set parameter config for value mapping and popup display.
@@ -170,6 +173,21 @@ class DragSlider(QSlider):
             self.dragging = False
             if self._popup:
                 self._popup.hide_value()
+    
+    def setDoubleClickValue(self, value):
+        """Enable double-click to reset slider to specified value."""
+        self._double_click_value = value
+    
+    def mouseDoubleClickEvent(self, event):
+        """Reset to configured value on double-click."""
+        if self._double_click_value is not None:
+            self.setValue(self._double_click_value)
+            # Emit signal for value change
+            if self.maximum() == 1000:
+                self.normalizedValueChanged.emit(self._double_click_value / 1000.0)
+            else:
+                self.valueChanged.emit(self._double_click_value)
+        super().mouseDoubleClickEvent(event)
 
 
 class MiniSlider(DragSlider):
