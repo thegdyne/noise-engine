@@ -518,6 +518,7 @@ def get_panel_tooltip(key):
 # =============================================================================
 
 GENERATOR_THEME = {
+    # Param labels
     'param_label_font': MONO_FONT,
     'param_label_size': FONT_SIZES['tiny'],
     'param_label_bold': True,
@@ -525,9 +526,59 @@ GENERATOR_THEME = {
     'param_label_color': get('text_mid'),
     'param_label_color_dim': get('text_dim'),
     'param_label_color_active': get('accent_generator'),
+    
+    # Slot frame
     'slot_background': get('bg_mid'),
     'slot_border': get('border_dark'),
     'slot_border_active': get('accent_generator_dim'),
+    
+    # Button strip - order defines visual stacking (top to bottom)
+    'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
+    
+    # Button strip - per-button config
+    'button_strip': {
+        'filter': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['small'],
+            'font_bold': True,
+            'style': 'enabled',
+            'tooltip': 'Filter Type: LP / HP / BP',
+        },
+        'env': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['tiny'],
+            'font_bold': True,
+            'style': 'disabled',
+            'tooltip': 'Envelope source: OFF (drone), CLK (clock), MIDI',
+        },
+        'rate': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['tiny'],
+            'font_bold': False,
+            'style': 'inactive',
+            'tooltip': 'Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16',
+        },
+        'midi': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['tiny'],
+            'font_bold': True,
+            'style': 'midi',  # Special style
+            'tooltip': 'MIDI Input Channel (OFF or 1-16)',
+        },
+        'mute': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['small'],
+            'font_bold': True,
+            'style': 'mute',  # Special style
+            'tooltip': 'Mute Generator',
+            'height': 20,  # Override height
+        },
+        'gate': {
+            'style': 'gate',  # Special style (LED indicator)
+            'tooltip': 'Gate Activity',
+            'height': 20,  # Override height
+        },
+    },
 }
 
 
