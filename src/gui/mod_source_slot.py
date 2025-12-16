@@ -23,6 +23,9 @@ from src.config import (
     MOD_LFO_WAVEFORMS,
     MOD_LFO_PHASES,
     MOD_LFO_MODES,
+    MOD_LFO_FREQ_MIN,
+    MOD_LFO_FREQ_MAX,
+    MOD_CLOCK_RATES,
     MOD_POLARITY,
     MOD_OUTPUTS_PER_SLOT,
     get_mod_generator_custom_params,
@@ -209,6 +212,7 @@ class ModSourceSlot(QWidget):
             btn.setFixedSize(40, 22)
             btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
             btn.setStyleSheet(button_style('submenu'))
+            btn.setToolTip("CLK: sync to clock divisions\nFREE: manual frequency (0.01-100Hz)")
             btn.index_changed.connect(
                 lambda idx, k=key: self._on_mode_changed(k, idx)
             )
@@ -238,7 +242,42 @@ class ModSourceSlot(QWidget):
         """Handle parameter slider change."""
         normalized = slider_value / 1000.0
         real_value = map_value(normalized, param)
+        
+        # Show drag popup with formatted value for rate slider
+        slider = self.param_sliders.get(key)
+        if slider and hasattr(slider, 'show_drag_value'):
+            display_text = self._format_param_value(key, normalized, real_value)
+            if display_text:
+                slider.show_drag_value(display_text)
+        
         self.parameter_changed.emit(self.slot_id, key, real_value)
+    
+    def _format_param_value(self, key, normalized, real_value):
+        """Format parameter value for drag popup display."""
+        if key == 'rate':
+            # Check current mode (CLK=0, FREE=1)
+            mode_btn = self.param_sliders.get('mode')
+            if mode_btn and hasattr(mode_btn, 'get_index'):
+                mode = mode_btn.get_index()
+            else:
+                mode = 0  # Default to CLK
+            
+            if mode == 0:
+                # CLK mode: show clock division
+                rate_idx = int(normalized * (len(MOD_CLOCK_RATES) - 1))
+                rate_idx = max(0, min(rate_idx, len(MOD_CLOCK_RATES) - 1))
+                return MOD_CLOCK_RATES[rate_idx]
+            else:
+                # FREE mode: show Hz (exponential mapping)
+                import math
+                freq = MOD_LFO_FREQ_MIN * math.pow(MOD_LFO_FREQ_MAX / MOD_LFO_FREQ_MIN, normalized)
+                if freq < 1:
+                    return f"{freq:.2f}Hz"
+                elif freq < 10:
+                    return f"{freq:.1f}Hz"
+                else:
+                    return f"{freq:.0f}Hz"
+        return None
         
     def _add_output_row(self, output_idx, label):
         """Add an output row with controls."""
@@ -250,6 +289,7 @@ class ModSourceSlot(QWidget):
         out_label.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
         out_label.setStyleSheet(f"color: {COLORS['text_bright']};")
         out_label.setFixedWidth(20)
+        out_label.setToolTip(f"Output {label}: route to mod matrix")
         row.addWidget(out_label)
         
         row_widgets = {'label': out_label}
@@ -260,6 +300,7 @@ class ModSourceSlot(QWidget):
             wave_btn.setFixedSize(40, 20)
             wave_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
             wave_btn.setStyleSheet(button_style('submenu'))
+            wave_btn.setToolTip("Waveform: Saw/Tri/Sqr/Sin/S&H")
             wave_btn.value_changed.connect(
                 lambda w, idx=output_idx, wforms=MOD_LFO_WAVEFORMS: self._on_wave_changed(idx, wforms.index(w))
             )
@@ -274,6 +315,7 @@ class ModSourceSlot(QWidget):
             phase_btn.setFixedSize(35, 20)
             phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
             phase_btn.setStyleSheet(button_style('submenu'))
+            phase_btn.setToolTip("Phase offset: 0°-315° in 45° steps")
             phase_btn.value_changed.connect(
                 lambda p, idx=output_idx, plabels=phase_labels: self._on_phase_changed(idx, plabels.index(p))
             )
@@ -285,6 +327,7 @@ class ModSourceSlot(QWidget):
         pol_btn.setFixedSize(28, 20)
         pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         pol_btn.setStyleSheet(button_style('submenu'))
+        pol_btn.setToolTip("Polarity: UNI (0→1) / BI (-1→+1)")
         pol_btn.value_changed.connect(
             lambda p, idx=output_idx, pols=MOD_POLARITY: self._on_polarity_changed(idx, pols.index(p))
         )
