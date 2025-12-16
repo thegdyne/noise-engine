@@ -13,9 +13,8 @@ Index domains:
     "Setting up mod buses...".postln;
     
     // 12 control buses for mod outputs (4 slots × 3 outputs)
-    ~modBuses = Array.fill(12, { Bus.control(s, 1) });
-    ~modBuses.do(_.set(0)); 
-
+    ~modBuses = Array.fill(12, { Bus.control(s, 1).set(0) });
+    
     // Helper to calculate bus index from slot and output
     // slot: 1-4, output: 0-2
     ~modBusIndex = { |slot, output|
