@@ -33,11 +33,13 @@ def build_header(slot):
     header.addStretch()
     
     # Generator type selector - drag or click to change
+    # Fixed width prevents scroll dead zone when name length changes
     initial_index = GENERATOR_CYCLE.index(slot.generator_type) if slot.generator_type in GENERATOR_CYCLE else 0
     slot.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
     slot.type_btn.wrap = True
     slot.type_btn.sensitivity_key = 'generator'
     slot.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
+    slot.type_btn.setFixedWidth(90)  # Fits longest name, consistent scroll target
     slot.type_btn.setStyleSheet(f"""
         QPushButton {{
             color: {COLORS['text']};
