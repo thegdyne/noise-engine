@@ -104,6 +104,8 @@
 - [ ] Consistent spacing refinement
 - [ ] Window resize behaviour testing
 - [ ] Remove "COMING SOON" badge (if still present)
+- [ ] Generator selector scroll dead zone: name length changes cause scroll to miss (need fixed-width hit area)
+- [ ] Generator buttons outside slot frame: visual containment issue
 
 ---
 
@@ -194,11 +196,11 @@
 | LFO | 17 | 3 |
 | Sloth | 10 | 3 |
 | Scope | 9 | 5 |
-| UI/Slot | 16 | 5 |
-| SuperCollider | 12 | 2 |
+| UI/Slot | 16 | 7 |
+| SuperCollider | 12 | 1 |
 | Config/SSOT | 17 | 0 |
 | Skin | 5 | 2 |
 | Routing | 0 | 5 |
-| **Total** | **86** | **25** |
+| **Total** | **86** | **26** |
 
 **~77% complete** (core functionality done, polish and advanced features remaining)
