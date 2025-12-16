@@ -397,18 +397,20 @@ class TestModSlotSync:
             "Sync code must use hasattr to detect CycleButton vs DragSlider"
     
     def test_mod_slot_mode_uses_cyclebutton(self, project_root):
-        """LFO mode param must use CycleButton, not DragSlider."""
+        """LFO/Sloth mode param must use CycleButton, not DragSlider."""
         filepath = os.path.join(project_root, 'src', 'gui', 'mod_source_slot.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
-        # Mode param should create CycleButton
+        # Mode param should create CycleButton for 2 or 3 steps
         assert "key == 'mode'" in content, \
             "Mode param must be detected by key"
+        assert 'steps_i in (2, 3)' in content, \
+            "Mode must handle both LFO (2 steps) and Sloth (3 steps)"
         assert 'MOD_LFO_MODES' in content, \
-            "Mode CycleButton must use MOD_LFO_MODES"
-        assert 'CycleButton(MOD_LFO_MODES' in content, \
-            "Mode must create CycleButton with MOD_LFO_MODES values"
+            "LFO mode CycleButton must use MOD_LFO_MODES"
+        assert 'MOD_SLOTH_MODES' in content, \
+            "Sloth mode CycleButton must use MOD_SLOTH_MODES"
 
 
 class TestStripStatePersistence:

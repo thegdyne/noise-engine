@@ -34,6 +34,9 @@ from src.config import (
     map_value,
 )
 
+# Sloth mode labels (must match steps: 3 in sloth.json)
+MOD_SLOTH_MODES = ["TOR", "APA", "INE"]  # Torpor, Apathy, Inertia
+
 
 class ModSourceSlot(QWidget):
     """A single mod source slot with 3 outputs."""
@@ -206,13 +209,22 @@ class ModSourceSlot(QWidget):
         label.setToolTip(param.get('tooltip', ''))
         container.addWidget(label)
         
-        # Use CycleButton for stepped params (like mode: CLK/FREE)
-        if key == 'mode' and steps_i == 2:
-            btn = CycleButton(MOD_LFO_MODES, initial_index=0)
+        # Use CycleButton for stepped params (mode: CLK/FREE for LFO, TOR/APA/INE for Sloth)
+        if key == 'mode' and steps_i in (2, 3):
+            if steps_i == 2:
+                # LFO mode: CLK/FREE
+                mode_labels = MOD_LFO_MODES
+                tooltip = "CLK: sync to clock divisions\nFREE: manual frequency (0.01-100Hz)"
+            else:
+                # Sloth mode: Torpor/Apathy/Inertia
+                mode_labels = MOD_SLOTH_MODES
+                tooltip = "Torpor: 15-30s\nApathy: 60-90s\nInertia: 30-40min"
+            
+            btn = CycleButton(mode_labels, initial_index=0)
             btn.setFixedSize(40, 22)
             btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
             btn.setStyleSheet(button_style('submenu'))
-            btn.setToolTip("CLK: sync to clock divisions\nFREE: manual frequency (0.01-100Hz)")
+            btn.setToolTip(tooltip)
             btn.index_changed.connect(
                 lambda idx, k=key: self._on_mode_changed(k, idx)
             )
@@ -277,7 +289,10 @@ class ModSourceSlot(QWidget):
                     return f"{freq:.1f}Hz"
                 else:
                     return f"{freq:.0f}Hz"
-        return None
+        
+        # Generic params: show as percentage
+        pct = int(normalized * 100)
+        return f"{pct}%"
         
     def _add_output_row(self, output_idx, label):
         """Add an output row with controls."""
