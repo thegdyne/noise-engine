@@ -213,7 +213,7 @@ class ChannelStrip(QWidget):
         self.pan_slider = PanSlider(Qt.Horizontal)
         self.pan_slider.setRange(-100, 100)  # -100 = L, 0 = C, 100 = R
         self.pan_slider.setValue(0)
-        self.pan_slider.setFixedWidth(52)
+        self.pan_slider.setFixedWidth(45)
         self.pan_slider.setFixedHeight(16)
         self.pan_slider.setToolTip("Pan: L ← C → R (double-click to center)")
         self.pan_slider.valueChanged.connect(self.on_pan_changed)
