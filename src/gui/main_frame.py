@@ -16,7 +16,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
 from src.gui.effects_chain import EffectsChain
-from src.gui.mod_source_panel import ModSourcePanel
+from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
@@ -78,15 +78,15 @@ class MainFrame(QMainWindow):
         content_layout.setContentsMargins(5, 5, 5, 5)
         content_layout.setSpacing(10)
         
-        # Left - MOD SOURCES
-        self.mod_source_panel = ModSourcePanel()
-        self.mod_source_panel.setFixedWidth(320)  # 2 columns
-        self.mod_source_panel.generator_changed.connect(self.on_mod_generator_changed)
-        self.mod_source_panel.parameter_changed.connect(self.on_mod_param_changed)
-        self.mod_source_panel.output_wave_changed.connect(self.on_mod_output_wave)
-        self.mod_source_panel.output_phase_changed.connect(self.on_mod_output_phase)
-        self.mod_source_panel.output_polarity_changed.connect(self.on_mod_output_polarity)
-        content_layout.addWidget(self.mod_source_panel)
+        # Left - MODULATOR GRID
+        self.modulator_grid = ModulatorGrid()
+        self.modulator_grid.setFixedWidth(320)  # 2 columns
+        self.modulator_grid.generator_changed.connect(self.on_mod_generator_changed)
+        self.modulator_grid.parameter_changed.connect(self.on_mod_param_changed)
+        self.modulator_grid.output_wave_changed.connect(self.on_mod_output_wave)
+        self.modulator_grid.output_phase_changed.connect(self.on_mod_output_phase)
+        self.modulator_grid.output_polarity_changed.connect(self.on_mod_output_polarity)
+        content_layout.addWidget(self.modulator_grid)
         
         # Scope repaint timer (~30fps)
         from PyQt5.QtCore import QTimer
@@ -551,7 +551,7 @@ class MainFrame(QMainWindow):
             return
         from src.config import get_mod_generator_custom_params, map_value
         
-        slot = self.mod_source_panel.get_slot(slot_id)
+        slot = self.modulator_grid.get_slot(slot_id)
         if not slot:
             return
         
@@ -597,7 +597,7 @@ class MainFrame(QMainWindow):
         
         for slot_id in range(1, MOD_SLOT_COUNT + 1):
             self._sync_mod_slot_state(slot_id, send_generator=True)
-            slot = self.mod_source_panel.get_slot(slot_id)
+            slot = self.modulator_grid.get_slot(slot_id)
             if slot:
                 logger.debug(f"Synced mod {slot_id}: {slot.generator_name}", component="OSC")
     
@@ -638,7 +638,7 @@ class MainFrame(QMainWindow):
         slot_id = (bus_idx // 3) + 1
         output_idx = bus_idx % 3
         
-        slot = self.mod_source_panel.get_slot(slot_id)
+        slot = self.modulator_grid.get_slot(slot_id)
         if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
             slot.scope.push_value(output_idx, value)
             self._mod_scope_dirty.add(slot_id)  # Mark for repaint
@@ -646,7 +646,7 @@ class MainFrame(QMainWindow):
     def _flush_mod_scopes(self):
         """Repaint dirty scopes at throttled rate (~30fps)."""
         for slot_id in list(self._mod_scope_dirty):
-            slot = self.mod_source_panel.get_slot(slot_id)
+            slot = self.modulator_grid.get_slot(slot_id)
             if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
                 slot.scope.update()
         self._mod_scope_dirty.clear()

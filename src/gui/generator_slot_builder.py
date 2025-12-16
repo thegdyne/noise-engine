@@ -21,7 +21,7 @@ from src.config import (
 MIDI_CHANNELS = ["OFF"] + [str(i) for i in range(1, 17)]
 
 
-def build_header(slot):
+def build_generator_header(slot):
     """Build the header row with slot ID and generator type selector."""
     header = QHBoxLayout()
     
@@ -149,7 +149,7 @@ def build_standard_params_row(slot):
     return params_layout
 
 
-def build_buttons_strip(slot):
+def build_generator_button_strip(slot):
     """Build the right-side buttons strip using theme config for order and styling."""
     gt = GENERATOR_THEME
     strip_config = gt['button_strip']
@@ -229,40 +229,42 @@ def build_buttons_strip(slot):
     return strip
 
 
-def build_slot_ui(slot):
+def build_generator_slot_ui(slot):
     """Build the complete generator slot UI."""
     layout = QVBoxLayout(slot)
-    layout.setContentsMargins(8, 8, 8, 8)
+    layout.setContentsMargins(4, 8, 4, 8)
     layout.setSpacing(5)
     
-    # Header
-    header = build_header(slot)
-    layout.addLayout(header)
+    # GeneratorHeader
+    generator_header = build_generator_header(slot)
+    layout.addLayout(generator_header)
     
-    # Main content: params frame + buttons strip
-    content_layout = QHBoxLayout()
-    content_layout.setSpacing(SIZES['spacing_normal'])
+    # GeneratorFrame (contains sliders + buttons strip)
+    generator_frame = QFrame()
+    generator_frame.setStyleSheet(f"background-color: {COLORS['background']}; border-radius: 4px;")
+    generator_frame.setObjectName("generatorFrame")
     
-    # Params frame (left side)
-    params_frame = QFrame()
-    params_frame.setStyleSheet(f"background-color: {COLORS['background']}; border-radius: 4px;")
-    params_frame.setObjectName("paramsFrame")
-    params_inner = QVBoxLayout(params_frame)
-    params_inner.setContentsMargins(8, 8, 8, 8)
-    params_inner.setSpacing(8)
+    # Horizontal layout: sliders on left, buttons on right
+    frame_layout = QHBoxLayout(generator_frame)
+    frame_layout.setContentsMargins(4, 8, 4, 8)
+    frame_layout.setSpacing(SIZES['spacing_normal'])
+    
+    # GeneratorSliderSection (left side)
+    generator_slider_section = QVBoxLayout()
+    generator_slider_section.setSpacing(8)
     
     # Custom params row
     custom_row = build_custom_params_row(slot)
-    params_inner.addLayout(custom_row)
+    generator_slider_section.addLayout(custom_row)
     
     # Standard params row
     params_row = build_standard_params_row(slot)
-    params_inner.addLayout(params_row)
+    generator_slider_section.addLayout(params_row)
     
-    content_layout.addWidget(params_frame, stretch=1)
+    frame_layout.addLayout(generator_slider_section, stretch=1)
     
-    # Buttons strip (right side)
-    buttons_strip = build_buttons_strip(slot)
-    content_layout.addWidget(buttons_strip)
+    # GeneratorButtonStrip (right side, inside frame)
+    generator_button_strip = build_generator_button_strip(slot)
+    frame_layout.addWidget(generator_button_strip)
     
-    layout.addLayout(content_layout, stretch=1)
+    layout.addWidget(generator_frame, stretch=1)

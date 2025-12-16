@@ -9,7 +9,7 @@ from PyQt5.QtGui import QFont
 
 from .theme import (COLORS, button_style, FONT_FAMILY, FONT_SIZES,
                     mute_button_style, gate_indicator_style, midi_channel_style)
-from .generator_slot_builder import build_slot_ui
+from .generator_slot_builder import build_generator_slot_ui
 from src.config import (
     GENERATOR_PARAMS, map_value,
     get_generator_custom_params, get_generator_pitch_target,
@@ -50,7 +50,7 @@ class GeneratorSlot(QWidget):
         self.gate_timer.setSingleShot(True)
         
         self.setMinimumSize(200, 220)
-        build_slot_ui(self)  # UI construction delegated to builder
+        build_generator_slot_ui(self)  # UI construction delegated to builder
         self.update_style()
     
     # -------------------------------------------------------------------------

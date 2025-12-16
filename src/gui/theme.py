@@ -586,3 +586,45 @@ def get_generator_theme(generator_name=None):
     """Get theme dict for a generator, with defaults."""
     theme = GENERATOR_THEME.copy()
     return theme
+
+
+# =============================================================================
+# MODULATOR THEME
+# =============================================================================
+
+MODULATOR_THEME = {
+    # Slot styling
+    'slot_border': get('border_dark'),
+    'slot_border_lfo': get('accent_mod_lfo'),
+    'slot_border_sloth': get('accent_mod_sloth'),
+    'slot_background': get('background_light'),
+    'slot_background_empty': get('background'),
+    
+    # Header
+    'header_font': FONT_FAMILY,
+    'header_size': FONT_SIZES['small'],
+    'header_bold': True,
+    'header_color': get('text_bright'),
+    
+    # Param labels
+    'param_label_font': MONO_FONT,
+    'param_label_size': FONT_SIZES['micro'],
+    'param_label_color': get('text'),
+    
+    # Output labels
+    'output_label_font': MONO_FONT,
+    'output_label_size': FONT_SIZES['small'],
+    'output_label_bold': True,
+    'output_label_color': get('text_bright'),
+    'output_label_width': 20,
+    
+    # Scope
+    'scope_height': 50,
+    'scope_border': get('border'),
+}
+
+
+def get_modulator_theme(generator_name=None):
+    """Get theme dict for a modulator, with defaults."""
+    theme = MODULATOR_THEME.copy()
+    return theme

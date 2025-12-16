@@ -398,7 +398,7 @@ class TestModSlotSync:
     
     def test_mod_slot_mode_uses_cyclebutton(self, project_root):
         """LFO/Sloth mode param must use CycleButton, not DragSlider."""
-        filepath = os.path.join(project_root, 'src', 'gui', 'mod_source_slot.py')
+        filepath = os.path.join(project_root, 'src', 'gui', 'modulator_slot_builder.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
