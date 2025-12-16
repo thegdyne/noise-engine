@@ -8,13 +8,19 @@ Each output has:
 - Polarity (unipolar 0-1 or bipolar -1 to +1)
 
 Shared controls:
-- Rate (clock division/multiplication)
+- Mode (0=CLK sync, 1=FREE running)
+- Rate (CLK: clock division, FREE: manual frequency 0.01-100Hz)
 - Shape (waveform distortion / centre point shift)
 
-Clock sync:
+Clock sync mode (mode=0):
 - Uses x32 clock (index 12) = 32 triggers per quarter note
 - Phasor generates smooth ramp between ticks
 - PulseDivider resets phase on cycle boundary
+
+Free mode (mode=1):
+- Manual frequency 0.01-100Hz
+- No clock reset, drifts freely
+- Good for organic modulation
 
 Rate table (ticks per cycle at x32):
   /64 = 2048 (16 bars)
@@ -35,7 +41,8 @@ Reference: Ginkosynthese TTLFO v2
 
 SynthDef(\modLFO, {
     arg outA, outB, outC,           // Output bus indices
-        rate = 0.5,                  // Clock division (0-1 maps to rate index)
+        mode = 0,                    // 0=CLK, 1=FREE
+        rate = 0.5,                  // CLK: division (0-1), FREE: freq (0-1 maps to 0.01-100Hz)
         shape = 0.5,                 // Waveform distortion (0.5 = no distortion)
         waveA = 0, waveB = 0, waveC = 0,     // Waveform indices (0-7)
         phaseA = 0, phaseB = 0, phaseC = 0,  // Phase indices (0-7 = 0°-315°)
@@ -49,6 +56,7 @@ SynthDef(\modLFO, {
     var rateIndex, ticksPerCycle;
     var clk, trig, atrig, tickHz, resetTrig, freq;
     var wrapTrig, sah;
+    var freeFreq, clkFreq;
     
     // Waveform generation function
     var makeWave = { |p, waveIndex, shapeVal, sahSig|
@@ -82,7 +90,10 @@ SynthDef(\modLFO, {
         Select.kr(waveIndex.clip(0, 7), [saw, ramp, sqr, tri, sin, rectP, rectN, sahSig]);
     };
     
-    // ---- CLOCK-SYNCED PHASE (Smooth Phasor) ----
+    // ---- MODE SELECTION ----
+    // mode: 0 = CLK (clock synced), 1 = FREE (manual frequency)
+    
+    // ---- CLOCK-SYNCED MODE (mode = 0) ----
     // Read high-res clock (x32 = index 12 = 32 ticks per quarter)
     clk = In.ar(clockTrigBus + clockIndex);
     
@@ -92,26 +103,41 @@ SynthDef(\modLFO, {
     atrig = Trig1.ar(clk > 0.5, 0.001);     // 1ms audio pulse
     trig  = Trig1.kr(A2K.kr(atrig), 0.001); // 1ms control pulse
     
-    // RATE: 0-1 maps to 12 divisions: /64, /32, /16, /8, /4, /2, 1, x2, x4, x8, x16, x32
+    // RATE (CLK mode): 0-1 maps to 12 divisions: /64, /32, /16, /8, /4, /2, 1, x2, x4, x8, x16, x32
     // Ticks per cycle at x32 resolution
     // Must match MOD_CLOCK_RATES order in Python config
     rateIndex = (rate * 11).round.clip(0, 11);
     ticksPerCycle = Select.kr(rateIndex, [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]);
     
-    // Reset trigger: fires once per LFO cycle
+    // Reset trigger: fires once per LFO cycle (CLK mode only)
     resetTrig = PulseDivider.kr(trig, ticksPerCycle);
     
-    // Calculate LFO frequency from BPM
+    // Calculate LFO frequency from BPM (CLK mode)
     // At 120 BPM: quarter = 2Hz, x32 tick = 64Hz
     // LFO freq = (bpm/60 * 32) / ticksPerCycle
-    freq = In.kr(bpmBus) / 60 * 32 / ticksPerCycle;
+    clkFreq = In.kr(bpmBus) / 60 * 32 / ticksPerCycle;
     
-    // Smooth phase ramp 0..1, resets on cycle boundary
-    // Phasor gives continuous movement between ticks
-    basePhase = Phasor.kr(resetTrig, freq * ControlDur.ir, 0, 1, 0);
+    // ---- FREE MODE (mode = 1) ----
+    // Rate 0-1 maps exponentially to 0.01-100Hz
+    freeFreq = rate.linexp(0, 1, 0.01, 100);
     
-    // S&H: sample once per LFO cycle (on reset trigger)
-    sah = Latch.kr(WhiteNoise.kr, resetTrig) * 0.5 + 0.5;
+    // ---- SELECT FREQUENCY BASED ON MODE ----
+    freq = Select.kr(mode.round, [clkFreq, freeFreq]);
+    
+    // ---- PHASE GENERATION ----
+    // CLK mode: reset on cycle boundary
+    // FREE mode: no reset (continuous)
+    basePhase = Select.kr(mode.round, [
+        Phasor.kr(resetTrig, freq * ControlDur.ir, 0, 1, 0),  // CLK: reset
+        Phasor.kr(0, freq * ControlDur.ir, 0, 1, 0)            // FREE: no reset
+    ]);
+    
+    // S&H: sample on reset (CLK) or wrap (FREE)
+    wrapTrig = Select.kr(mode.round, [
+        resetTrig,                           // CLK: use reset trigger
+        Trig1.kr(basePhase < 0.01, 0.01)     // FREE: trigger on wrap
+    ]);
+    sah = Latch.kr(WhiteNoise.kr, wrapTrig) * 0.5 + 0.5;
     
     // Phase offsets (index 0-7 = 0°-315° in 45° steps = 0-0.875)
     pA = (basePhase + (phaseA / 8)).wrap(0, 1);
@@ -134,4 +160,4 @@ SynthDef(\modLFO, {
     Out.kr(outC, sigC);
 }).add;
 
-"  ✓ modLFO SynthDef loaded (clock-synced, Phasor-smooth)".postln;
+"  ✓ modLFO SynthDef loaded (CLK sync + FREE mode, Phasor-smooth)".postln;

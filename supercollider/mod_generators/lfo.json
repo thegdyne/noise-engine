@@ -5,9 +5,20 @@
     "outputs": ["A", "B", "C"],
     "custom_params": [
         {
+            "key": "mode",
+            "label": "MODE",
+            "tooltip": "CLK = clock sync, FREE = manual Hz",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "steps": 2,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
             "key": "rate",
             "label": "RATE",
-            "tooltip": "Clock division",
+            "tooltip": "CLK: division, FREE: frequency (Hz)",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,

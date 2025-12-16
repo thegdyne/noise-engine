@@ -1,6 +1,6 @@
 # Modulation Sources - Implementation Checklist
 
-**Last Updated:** December 15, 2025
+**Last Updated:** December 16, 2025
 
 ---
 
@@ -21,11 +21,13 @@
 - [x] Smooth Phasor-based phase (no stepping)
 - [x] RATE slider with drag control
 - [x] SHAP slider with drag control
+- [x] FREE mode (non-clocked, manual frequency 0.01-100Hz)
+- [x] Mode toggle: CLK / FREE (via MODE param slider)
+- [x] MOD_LFO_MODES config constant
+- [x] MOD_LFO_FREQ_MIN/MAX config constants
 
 ### ⬜ TODO
 
-- [ ] FREE mode (non-clocked, manual frequency 0.01-100Hz)
-- [ ] Mode toggle: CLK / FREE
 - [ ] Waveform preview icons (visual indicator of shape)
 - [ ] Reset phase button (force all outputs to 0°)
 - [ ] Tooltips on all controls
@@ -120,10 +122,10 @@
 - [x] Clock source: x32 (index 12)
 - [x] Ticks per cycle array in config.scd
 - [x] BPM-derived frequency for LFO
+- [x] FREE mode frequency input for LFO (0.01-100Hz exponential mapping)
 
 ### ⬜ TODO
 
-- [ ] FREE mode frequency input for LFO
 - [ ] Scope streaming rate adjustment based on mod rate
 
 ---
@@ -147,11 +149,12 @@
 - [x] OSC paths in config
 - [x] JSON configs for LFO and Sloth
 - [x] SC config mirrors Python (`~modClockSourceIndex`, etc.)
+- [x] `MOD_LFO_MODES = ["CLK", "FREE"]`
+- [x] `MOD_LFO_FREQ_MIN = 0.01`, `MOD_LFO_FREQ_MAX = 100`
 
 ### ⬜ TODO
 
-- [ ] `MOD_LFO_MODES = ["CLK", "FREE"]` (when FREE mode added)
-- [ ] `MOD_LFO_FREQ_RANGE = [0.01, 100]` (when FREE mode added)
+(None - all config items complete)
 
 ---
 
@@ -188,14 +191,14 @@
 
 | Category | Done | TODO |
 |----------|------|------|
-| LFO | 14 | 5 |
+| LFO | 17 | 3 |
 | Sloth | 10 | 3 |
 | Scope | 9 | 5 |
 | UI/Slot | 16 | 5 |
 | SuperCollider | 12 | 2 |
-| Config/SSOT | 15 | 2 |
+| Config/SSOT | 17 | 0 |
 | Skin | 5 | 2 |
 | Routing | 0 | 5 |
-| **Total** | **81** | **29** |
+| **Total** | **86** | **25** |
 
-**~74% complete** (core functionality done, polish and advanced features remaining)
+**~77% complete** (core functionality done, polish and advanced features remaining)

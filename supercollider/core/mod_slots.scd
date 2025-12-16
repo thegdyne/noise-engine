@@ -64,6 +64,7 @@ Empty generator = no synth, buses zeroed.
                 \outA, busA,
                 \outB, busB,
                 \outC, busC,
+                \mode, params[\mode] ? 0,
                 \rate, params[\rate] ? 0.5,
                 \shape, params[\shape] ? 0.5,
                 \waveA, outState[0][\wave] ? 0,

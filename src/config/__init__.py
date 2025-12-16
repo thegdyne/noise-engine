@@ -347,6 +347,14 @@ MOD_LFO_WAVEFORM_INDEX = {w: i for i, w in enumerate(MOD_LFO_WAVEFORMS)}
 MOD_LFO_PHASES = [0, 45, 90, 135, 180, 225, 270, 315]
 MOD_LFO_PHASE_INDEX = {p: i for i, p in enumerate(MOD_LFO_PHASES)}
 
+# LFO sync modes
+MOD_LFO_MODES = ["CLK", "FREE"]  # CLK = clock synced, FREE = manual frequency
+MOD_LFO_MODE_INDEX = {m: i for i, m in enumerate(MOD_LFO_MODES)}
+
+# LFO free-running frequency range (Hz)
+MOD_LFO_FREQ_MIN = 0.01   # ~100 second cycle
+MOD_LFO_FREQ_MAX = 100.0  # Audio rate modulation
+
 # Sloth speed modes (NLC Triple Sloth inspired)
 MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
 MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
