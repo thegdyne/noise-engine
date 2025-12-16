@@ -47,6 +47,10 @@ jobs:
         run: |
           python tools/check_ssot.py
 
+      - name: Run SC syntax check (static analysis)
+        run: |
+          python tools/check_sc_syntax.py
+
       - name: Run tech debt check
         run: |
           python tools/check_tech_debt.py

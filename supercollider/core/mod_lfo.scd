@@ -47,7 +47,7 @@ SynthDef(\modLFO, {
     var basePhase, pA, pB, pC;
     var sigA, sigB, sigC;
     var rateIndex, ticksPerCycle;
-    var clk, trig, tickHz, resetTrig, freq;
+    var clk, trig, atrig, tickHz, resetTrig, freq;
     var wrapTrig, sah;
     
     // Waveform generation function
@@ -89,7 +89,6 @@ SynthDef(\modLFO, {
     // Convert audio impulse to control-rate trigger robustly:
     // 1) stretch at audio-rate so we can't miss 1-sample impulses
     // 2) convert to control-rate and re-trigger as a short kr pulse
-    var atrig;
     atrig = Trig1.ar(clk > 0.5, 0.001);     // 1ms audio pulse
     trig  = Trig1.kr(A2K.kr(atrig), 0.001); // 1ms control pulse
     
