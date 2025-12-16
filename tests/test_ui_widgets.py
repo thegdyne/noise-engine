@@ -373,3 +373,33 @@ class TestChannelStripOSC:
             "MixerPanel pan signal must be connected"
         assert 'generator_eq_changed.connect' in content, \
             "MixerPanel EQ signal must be connected"
+
+
+class TestModSlotSync:
+    """Verify mod slot sync handles different control types."""
+    
+    def test_sync_handles_cyclebutton_and_slider(self, project_root):
+        """Mod slot sync must handle both CycleButton (mode) and DragSlider (rate/shape)."""
+        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        with open(filepath, 'r') as f:
+            content = f.read()
+        
+        # Must check for get_index (CycleButton) before assuming .value() (DragSlider)
+        assert 'get_index' in content, \
+            "Sync code must check for get_index() method (CycleButton)"
+        assert 'hasattr' in content and 'get_index' in content, \
+            "Sync code must use hasattr to detect CycleButton vs DragSlider"
+    
+    def test_mod_slot_mode_uses_cyclebutton(self, project_root):
+        """LFO mode param must use CycleButton, not DragSlider."""
+        filepath = os.path.join(project_root, 'src', 'gui', 'mod_source_slot.py')
+        with open(filepath, 'r') as f:
+            content = f.read()
+        
+        # Mode param should create CycleButton
+        assert "key == 'mode'" in content, \
+            "Mode param must be detected by key"
+        assert 'MOD_LFO_MODES' in content, \
+            "Mode CycleButton must use MOD_LFO_MODES"
+        assert 'CycleButton(MOD_LFO_MODES' in content, \
+            "Mode must create CycleButton with MOD_LFO_MODES values"
