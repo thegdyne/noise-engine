@@ -400,6 +400,20 @@ class ChannelStrip(QWidget):
     def on_pan_changed(self, value):
         """Handle pan slider movement."""
         self.pan_value = value / 100.0  # Convert to -1 to 1 range
+        
+        # Show drag tooltip
+        if value < -5:
+            pan_text = f"L{abs(value)}"
+        elif value > 5:
+            pan_text = f"R{value}"
+        else:
+            pan_text = "C"
+        
+        from PyQt5.QtWidgets import QToolTip
+        from PyQt5.QtCore import QPoint
+        pos = self.pan_slider.mapToGlobal(QPoint(self.pan_slider.width() // 2, -20))
+        QToolTip.showText(pos, pan_text, self.pan_slider)
+        
         self.pan_changed.emit(self.channel_id, self.pan_value)
         
     def toggle_mute(self):
