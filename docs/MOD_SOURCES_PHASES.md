@@ -24,12 +24,12 @@
    - `MOD_OUTPUT_LABELS` dict
 
 2. **Add OSC paths** (`src/config/__init__.py`)
-   - `/noise/mod/{slot}/generator`
-   - `/noise/mod/{slot}/param/{key}`
-   - `/noise/mod/{slot}/out/{output}/wave`
-   - `/noise/mod/{slot}/out/{output}/phase`
-   - `/noise/mod/{slot}/out/{output}/polarity`
-   - `/noise/mod/bus/{bus}/value`
+   - `/noise/mod/generator` (args: slot, genName)
+   - `/noise/mod/param` (args: slot, key, value)
+   - `/noise/mod/out/wave` (args: slot, output, waveIndex)
+   - `/noise/mod/out/phase` (args: slot, output, phaseIndex)
+   - `/noise/mod/out/pol` (args: slot, output, polarity)
+   - `/noise/mod/bus/value` (args: bus, value)
 
 3. **Create mod generator loader**
    - `_MOD_GENERATOR_CONFIGS = {}`
@@ -148,11 +148,11 @@
    - `output_config: "fixed"` → show labels only
 
 3. **Wire signals to OSC bridge**
-   - Generator change → `/noise/mod/{slot}/generator`
-   - Param change → `/noise/mod/{slot}/param/{key}`
-   - Output wave → `/noise/mod/{slot}/out/{output}/wave`
-   - Output phase → `/noise/mod/{slot}/out/{output}/phase`
-   - Output polarity → `/noise/mod/{slot}/out/{output}/polarity`
+   - Generator change → `/noise/mod/generator` (slot, genName)
+   - Param change → `/noise/mod/param` (slot, key, value)
+   - Output wave → `/noise/mod/out/wave` (slot, output, index)
+   - Output phase → `/noise/mod/out/phase` (slot, output, index)
+   - Output polarity → `/noise/mod/out/pol` (slot, output, index)
 
 ### Validation
 - [ ] Slot displays correctly for LFO
@@ -200,7 +200,7 @@
    - Auto-ranging time scale
 
 2. **SC → Python value stream**
-   - SC sends periodic bus values: `/noise/mod/bus/{bus}/value`
+   - SC sends periodic bus values: `/noise/mod/bus/value` (args: bus, value)
    - Rate: ~30fps for scope update
    - Only send when slot is active
 
@@ -286,7 +286,7 @@
 | `~modNodes` array (4 synth refs) | ✅ |
 | `~freeModSlot` function | ✅ |
 | `~startModSlot` function | ✅ |
-| OSC handler `/noise/mod/generator/{slot}` | ✅ |
+| OSC handler `/noise/mod/generator` (args: slot, genName) | ✅ |
 | OSC handlers for mod params | ✅ |
 | Update `init.scd` to load mod_buses + mod_slots | ✅ |
 

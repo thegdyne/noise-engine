@@ -83,12 +83,15 @@ SynthDef(\modLFO, {
     };
     
     // ---- CLOCK-SYNCED PHASE (Smooth Phasor) ----
-    // Read high-res clock (x12 = index 10 = 12 ticks per quarter)
+    // Read high-res clock (x32 = index 12 = 32 ticks per quarter)
     clk = In.ar(clockTrigBus + clockIndex);
     
-    // Convert audio impulse to control rate trigger
-    trig = Peak.kr(clk) > 0.5;
-    trig = Trig1.kr(trig, 0.001);
+    // Convert audio impulse to control-rate trigger robustly:
+    // 1) stretch at audio-rate so we can't miss 1-sample impulses
+    // 2) convert to control-rate and re-trigger as a short kr pulse
+    var atrig;
+    atrig = Trig1.ar(clk > 0.5, 0.001);     // 1ms audio pulse
+    trig  = Trig1.kr(A2K.kr(atrig), 0.001); // 1ms control pulse
     
     // RATE: 0-1 maps to 12 divisions: /64, /32, /16, /8, /4, /2, 1, x2, x4, x8, x16, x32
     // Ticks per cycle at x32 resolution

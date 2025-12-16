@@ -543,41 +543,61 @@ class MainFrame(QMainWindow):
     # Mod Source Handlers
     # -------------------------------------------------------------------------
     
+    def _sync_mod_slot_state(self, slot_id, send_generator=True):
+        """Push full UI state for one mod slot to SC (SSOT)."""
+        if not self.osc_connected:
+            return
+        from src.config import get_mod_generator_custom_params, map_value
+        
+        slot = self.mod_source_panel.get_slot(slot_id)
+        if not slot:
+            return
+        
+        gen_name = slot.generator_name
+        
+        if send_generator:
+            self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
+        
+        # Enable/disable scope
+        enabled = 1 if gen_name != "Empty" else 0
+        self.osc.client.send_message(OSC_PATHS['mod_scope_enable'], [slot_id, enabled])
+        
+        if gen_name == "Empty":
+            return
+        
+        # Sync outputs (wave/phase/polarity) from UI
+        for out_idx, row in enumerate(slot.output_rows):
+            if 'wave' in row:
+                self.osc.client.send_message(OSC_PATHS['mod_output_wave'], [slot_id, out_idx, row['wave'].get_index()])
+            if 'phase' in row:
+                self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, out_idx, row['phase'].get_index()])
+            if 'polarity' in row:
+                self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, out_idx, row['polarity'].get_index()])
+        
+        # Sync custom params from UI sliders
+        for param in get_mod_generator_custom_params(gen_name):
+            key = param['key']
+            slider = slot.param_sliders.get(key)
+            if slider:
+                normalized = slider.value() / 1000.0
+                real_value = map_value(normalized, param)
+                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, real_value])
+    
     def _sync_mod_sources(self):
         """Send current mod source state to SC on connect."""
-        from src.config import MOD_SLOT_COUNT, get_mod_generator_custom_params, map_value
+        from src.config import MOD_SLOT_COUNT
         
         for slot_id in range(1, MOD_SLOT_COUNT + 1):
+            self._sync_mod_slot_state(slot_id, send_generator=True)
             slot = self.mod_source_panel.get_slot(slot_id)
             if slot:
-                gen_name = slot.generator_name
-                
-                # Send generator selection (this starts the synth)
-                self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
-                
-                # Send current parameter values
-                if gen_name != "Empty":
-                    params = get_mod_generator_custom_params(gen_name)
-                    for param in params:
-                        key = param['key']
-                        if key in slot.param_sliders:
-                            slider = slot.param_sliders[key]
-                            normalized = slider.value() / 1000.0
-                            real_value = map_value(normalized, param)
-                            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, real_value])
-                    
-                    # Enable scope
-                    self.osc.client.send_message(OSC_PATHS['mod_scope_enable'], [slot_id, 1])
-                    
-                logger.debug(f"Synced mod {slot_id}: {gen_name}", component="OSC")
+                logger.debug(f"Synced mod {slot_id}: {slot.generator_name}", component="OSC")
     
     def on_mod_generator_changed(self, slot_id, gen_name):
-        """Handle mod source generator change."""
+        """Handle mod source generator change - full sync to SC."""
         if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
-            # Enable scope streaming for active generators, disable for Empty
-            enabled = 1 if gen_name != "Empty" else 0
-            self.osc.client.send_message(OSC_PATHS['mod_scope_enable'], [slot_id, enabled])
+            # Full push to SC so UI is SSOT after rebuild
+            self._sync_mod_slot_state(slot_id, send_generator=True)
         logger.debug(f"Mod {slot_id} generator: {gen_name}", component="OSC")
         
     def on_mod_param_changed(self, slot_id, key, value):

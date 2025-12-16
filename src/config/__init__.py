@@ -72,13 +72,22 @@ GENERATOR_PARAMS = [
 def map_value(normalized, param):
     """
     Map normalized 0-1 slider value to real parameter value.
-    Handles linear/exponential curves and inversion.
+    Handles linear/exponential curves, inversion, and stepped params.
     """
     # Clamp normalized to valid range
     normalized = max(0.0, min(1.0, normalized))
     
     if param.get('invert', False):
         normalized = 1.0 - normalized
+    
+    # Quantize for stepped params (e.g. MODE 0/1/2)
+    steps = param.get('steps')
+    try:
+        steps = int(steps) if steps is not None else None
+    except (ValueError, TypeError):
+        steps = None
+    if steps and steps > 1:
+        normalized = round(normalized * (steps - 1)) / (steps - 1)
     
     min_val = param.get('min', 0.0)
     max_val = param.get('max', 1.0)

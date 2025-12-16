@@ -160,7 +160,7 @@ s.waitForBoot({
     "✓ Core modules loaded".postln;
     ("✓ " ++ ~generatorFiles.size ++ " generators available").postln;
     "✓ 4 mod source slots ready".postln;
-    ("✓ OSC listening on port " ++ ~oscPort).postln;
+    ("✓ OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
     "".postln;
 });

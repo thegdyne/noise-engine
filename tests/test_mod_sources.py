@@ -150,3 +150,33 @@ class TestModGeneratorLoaders:
     def test_output_labels_sloth(self):
         """Sloth output labels should be X/Y/Z."""
         assert get_mod_output_labels("Sloth") == ["X", "Y", "Z"]
+
+
+class TestStepsQuantization:
+    """Test stepped parameter quantization in map_value."""
+    
+    def test_steps_quantization_3_steps(self):
+        """3-step param (like Sloth mode) should quantize to 0, 1, or 2."""
+        from src.config import map_value
+        p = {"min": 0, "max": 2, "steps": 3, "curve": "lin", "default": 0}
+        
+        # 0.00-0.24 → 0
+        assert map_value(0.00, p) == 0
+        assert map_value(0.24, p) == 0
+        
+        # 0.25-0.74 → 1
+        assert map_value(0.26, p) == 1
+        assert map_value(0.50, p) == 1
+        assert map_value(0.74, p) == 1
+        
+        # 0.75-1.00 → 2
+        assert map_value(0.76, p) == 2
+        assert map_value(1.00, p) == 2
+    
+    def test_no_steps_continuous(self):
+        """Param without steps should remain continuous."""
+        from src.config import map_value
+        p = {"min": 0, "max": 1, "curve": "lin", "default": 0.5}
+        
+        assert map_value(0.33, p) == pytest.approx(0.33, rel=0.01)
+        assert map_value(0.77, p) == pytest.approx(0.77, rel=0.01)
