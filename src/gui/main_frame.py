@@ -574,13 +574,19 @@ class MainFrame(QMainWindow):
             if 'polarity' in row:
                 self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, out_idx, row['polarity'].get_index()])
         
-        # Sync custom params from UI sliders
+        # Sync custom params from UI sliders/buttons
         for param in get_mod_generator_custom_params(gen_name):
             key = param['key']
-            slider = slot.param_sliders.get(key)
-            if slider:
-                normalized = slider.value() / 1000.0
-                real_value = map_value(normalized, param)
+            control = slot.param_sliders.get(key)
+            if control:
+                # CycleButton (mode) vs DragSlider (rate, shape, etc)
+                if hasattr(control, 'get_index'):
+                    # CycleButton - index is the value (0=CLK, 1=FREE)
+                    real_value = float(control.get_index())
+                else:
+                    # DragSlider - normalize and map
+                    normalized = control.value() / 1000.0
+                    real_value = map_value(normalized, param)
                 self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, real_value])
     
     def _sync_mod_sources(self):

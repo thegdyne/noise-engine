@@ -22,6 +22,7 @@ from src.config import (
     MOD_GENERATOR_CYCLE,
     MOD_LFO_WAVEFORMS,
     MOD_LFO_PHASES,
+    MOD_LFO_MODES,
     MOD_POLARITY,
     MOD_OUTPUTS_PER_SLOT,
     get_mod_generator_custom_params,
@@ -183,33 +184,51 @@ class ModSourceSlot(QWidget):
         """)
         
     def _add_param_slider(self, param):
-        """Add a parameter slider."""
+        """Add a parameter control - CycleButton for mode, DragSlider for continuous."""
         container = QVBoxLayout()
         container.setSpacing(2)
         
+        key = param['key']
+        steps = param.get('steps')
+        
         # Label
-        label = QLabel(param.get('label', param['key'].upper()[:4]))
+        label = QLabel(param.get('label', key.upper()[:4]))
         label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         label.setAlignment(Qt.AlignCenter)
         label.setStyleSheet(f"color: {COLORS['text']};")
         label.setToolTip(param.get('tooltip', ''))
         container.addWidget(label)
         
-        # Slider
-        slider = DragSlider()
-        slider.setFixedWidth(25)
-        slider.setFixedHeight(60)
-        default = param.get('default', 0.5)
-        slider.setValue(int(default * 1000))
+        # Use CycleButton for stepped params (like mode: CLK/FREE)
+        if key == 'mode' and steps == 2:
+            btn = CycleButton(MOD_LFO_MODES, initial_index=0)
+            btn.setFixedSize(40, 22)
+            btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+            btn.setStyleSheet(button_style('submenu'))
+            btn.index_changed.connect(
+                lambda idx, k=key: self._on_mode_changed(k, idx)
+            )
+            container.addWidget(btn, alignment=Qt.AlignCenter)
+            self.param_sliders[key] = btn  # Store for state access
+        else:
+            # Standard slider for continuous params
+            slider = DragSlider()
+            slider.setFixedWidth(25)
+            slider.setFixedHeight(60)
+            default = param.get('default', 0.5)
+            slider.setValue(int(default * 1000))
+            
+            slider.valueChanged.connect(
+                lambda val, k=key, p=param: self._on_param_changed(k, val, p)
+            )
+            container.addWidget(slider, alignment=Qt.AlignCenter)
+            self.param_sliders[key] = slider
         
-        key = param['key']
-        slider.valueChanged.connect(
-            lambda val, k=key, p=param: self._on_param_changed(k, val, p)
-        )
-        container.addWidget(slider, alignment=Qt.AlignCenter)
-        
-        self.param_sliders[key] = slider
         self.params_layout.addLayout(container)
+    
+    def _on_mode_changed(self, key, index):
+        """Handle mode button change (0=CLK, 1=FREE)."""
+        self.parameter_changed.emit(self.slot_id, key, float(index))
         
     def _on_param_changed(self, key, slider_value, param):
         """Handle parameter slider change."""
