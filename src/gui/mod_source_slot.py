@@ -222,7 +222,11 @@ class ModSourceSlot(QWidget):
                 mode_labels = MOD_SLOTH_MODES
                 tooltip = "Torpor: 15-30s\nApathy: 60-90s\nInertia: 30-40min"
             
-            btn = CycleButton(mode_labels, initial_index=0)
+            # Respect JSON default
+            default_idx = int(round(float(param.get('default', 0.0))))
+            default_idx = max(0, min(default_idx, steps_i - 1))
+            
+            btn = CycleButton(mode_labels, initial_index=default_idx)
             btn.setFixedSize(40, 22)
             btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
             btn.setStyleSheet(button_style('submenu'))
