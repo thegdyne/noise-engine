@@ -147,12 +147,14 @@ def build_param_slider(slot, param):
         default_idx = max(0, min(default_idx, steps_i - 1))
         
         btn = CycleButton(mode_labels, initial_index=default_idx)
-        btn.setFixedSize(40, 22)
+        # MUST fit inside the fixed-width column
+        btn.setFixedHeight(22)
+        btn.setMaximumWidth(mt['slider_column_width'])
+        btn.setMinimumWidth(0)
         btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         btn.setStyleSheet(button_style('submenu'))
         btn.setToolTip(tooltip)
         btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-        btn.setMinimumWidth(0)
         btn.index_changed.connect(
             lambda idx, k=key: slot._on_mode_changed(k, idx)
         )

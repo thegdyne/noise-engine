@@ -316,6 +316,9 @@ class CycleButton(QPushButton):
         self.wrap = True  # Default: cycle wraps around at ends
         self.wrap_at_start = False  # Only wrap when going up from index 0
         self.sensitivity_key = 'cycle'  # Key prefix for DRAG_SENSITIVITY lookup
+        # Text alignment for custom paint (stylesheet text-align is ignored)
+        self.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+        self.text_padding_lr = 3  # default padding for custom draw
         self._update_display()
         
         # Drag tracking
@@ -415,6 +418,33 @@ class CycleButton(QPushButton):
                 self.cycle_forward()
             self.dragging = False
             self.moved_during_press = False
+    
+    def paintEvent(self, event):
+        """Custom paint with clipping and text elision to prevent overflow."""
+        from PyQt5.QtGui import QPainter, QFontMetrics
+        from PyQt5.QtWidgets import QStylePainter, QStyleOptionButton, QStyle
+        
+        p = QStylePainter(self)
+        p.setClipRect(self.rect())  # CRITICAL: stop spill outside widget
+        
+        # Draw button background/frame using style
+        opt = QStyleOptionButton()
+        self.initStyleOption(opt)
+        opt.text = ""  # We'll draw text ourselves
+        p.drawControl(QStyle.CE_PushButton, opt)
+        
+        # Draw elided text with per-instance padding
+        r = self.contentsRect()
+        fm = QFontMetrics(self.font())
+        text = self.text()
+        pad = self.text_padding_lr
+        elided = fm.elidedText(text, Qt.ElideRight, max(0, r.width() - pad * 2))
+        
+        p.drawText(r.adjusted(pad, 0, -pad, 0), self.text_alignment, elided)
+        
+        # Set tooltip to full text if elided
+        if elided != text:
+            self.setToolTip(text)
 
 
 class MiniKnob(QWidget):

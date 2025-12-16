@@ -539,28 +539,38 @@ GENERATOR_THEME = {
     'slot_background': get('bg_mid'),
     'slot_border': get('border_dark'),
     'slot_border_active': get('accent_generator_dim'),
-    'slot_margin': (4, 6, 4, 6),  # left, top, right, bottom
+    'slot_margin': (2, 4, 2, 4),  # tighter margins
+    
+    # Header layout
+    'header_inset_left': 14,       # left margin for GEN label
+    'header_inset_right': 6,      # right margin - gives breathing room
+    'header_selector_text_pad': 2, # internal text padding for selector
+    'header_overlay_height': 24,  # reserved space at top of content for header overlay
+    'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
+    'header_content_gap': 2,      # header-to-sliders distance inside the frame
     
     # Header
     'header_spacing': 4,
-    'header_type_width': 75,
-    'header_type_height': 22,
+    'header_type_width': 40,      # matches button_strip_width
+    'header_type_height': 20,     # shorter height
     
     # GeneratorFrame (inner container for sliders + buttons)
     'frame_background': get('bg_base'),
     'frame_border': get('border_mid'),
     'frame_border_width': 1,
     'frame_border_radius': 4,
-    'frame_padding': (4, 6, 4, 6),  # left, top, right, bottom
+    'frame_padding': (3, 3, 3, 3),  # tighter padding
     
     # Slider section
-    'slider_row_spacing': 2,      # horizontal gap between slider columns
-    'slider_column_width': 26,    # width of each label+slider column
-    'slider_section_spacing': 8,  # vertical gap between custom row + standard row
+    'slider_column_width': 22,    # width of each label+slider column
+    'slider_gap': 1,              # horizontal gap between columns
+    'slider_section_spacing': 6, # vertical gap between custom row + standard row
+    'slider_min_height': 38,      # minimum slider height (smaller = more compact)
+    'content_row_spacing': 2,     # gap between slider section and button strip
     
     # Button strip - order defines visual stacking (top to bottom)
     'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
-    'button_strip_width': 44,
+    'button_strip_width': 40,
     'button_strip_spacing': 2,
     
     # Button strip - per-button config
