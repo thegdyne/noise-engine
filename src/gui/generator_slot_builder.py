@@ -246,12 +246,14 @@ def build_generator_slot_ui(slot):
     
     # GeneratorFrame (contains sliders + buttons strip)
     generator_frame = QFrame()
-    generator_frame.setStyleSheet(f"""
-        background-color: {gt['frame_background']};
-        border: {gt['frame_border_width']}px solid {gt['frame_border']};
-        border-radius: {gt['frame_border_radius']}px;
-    """)
     generator_frame.setObjectName("generatorFrame")
+    generator_frame.setStyleSheet(f"""
+        QFrame#generatorFrame {{
+            background-color: {gt['frame_background']};
+            border: {gt['frame_border_width']}px solid {gt['frame_border']};
+            border-radius: {gt['frame_border_radius']}px;
+        }}
+    """)
     
     # Horizontal layout: sliders on left, buttons on right
     frame_layout = QHBoxLayout(generator_frame)

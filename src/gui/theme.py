@@ -229,6 +229,10 @@ def button_style(state='disabled'):
 def slider_style():
     """Get standard vertical slider stylesheet."""
     return f"""
+        QSlider {{
+            border: none;
+            background: transparent;
+        }}
         QSlider::groove:vertical {{
             border: 1px solid {get('slider_groove_border')};
             width: 8px;
@@ -254,6 +258,10 @@ def slider_style_center_notch():
     Use for sliders with a meaningful center position (e.g. EQ at 0dB).
     """
     return f"""
+        QSlider {{
+            border: none;
+            background: transparent;
+        }}
         QSlider::groove:vertical {{
             border: 1px solid {get('slider_groove_border')};
             width: 8px;
@@ -537,8 +545,8 @@ GENERATOR_THEME = {
     'header_spacing': 4,
     
     # GeneratorFrame (inner container for sliders + buttons)
-    'frame_background': get('background'),
-    'frame_border': get('border'),
+    'frame_background': get('bg_base'),
+    'frame_border': get('border_mid'),
     'frame_border_width': 1,
     'frame_border_radius': 4,
     'frame_padding': (4, 6, 4, 6),  # left, top, right, bottom

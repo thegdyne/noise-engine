@@ -306,9 +306,10 @@ class MasterSection(QWidget):
         
         # Main content frame (no separate MASTER label - uses tooltip on hover)
         content_frame = QFrame()
+        content_frame.setObjectName("masterContentFrame")
         content_frame.setToolTip("MASTER OUTPUT")
         content_frame.setStyleSheet(f"""
-            QFrame {{
+            QFrame#masterContentFrame {{
                 background-color: {COLORS['background']};
                 border: 1px solid {COLORS['border']};
                 border-radius: 4px;
@@ -458,9 +459,10 @@ class MasterSection(QWidget):
         
         # 2. COMPRESSOR section - SSL G-Series style layout
         comp_widget = QWidget()
+        comp_widget.setObjectName("compWidget")
         comp_widget.setToolTip("SSL G-Series Style Bus Compressor")
         comp_widget.setStyleSheet(f"""
-            QWidget {{
+            QWidget#compWidget {{
                 background-color: {COLORS['background']};
                 border: 1px solid {COLORS['border']};
                 border-radius: 4px;
