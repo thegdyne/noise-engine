@@ -11,7 +11,7 @@ from PyQt5.QtGui import QFont
 
 from .mod_source_slot import ModSourceSlot
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES
-from src.config import MOD_SLOT_COUNT
+from src.config import MOD_SLOT_COUNT, SIZES
 
 
 class ModSourcePanel(QWidget):
@@ -32,22 +32,15 @@ class ModSourcePanel(QWidget):
     def setup_ui(self):
         """Build the panel with 2x2 slot grid."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
-        
-        # Header
-        header = QHBoxLayout()
-        title = QLabel("MOD SOURCES")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
-        title.setStyleSheet(f"color: {COLORS['text_bright']};")
-        header.addWidget(title)
-        header.addStretch()
-        layout.addLayout(header)
+        layout.setContentsMargins(SIZES['margin_none'], SIZES['margin_none'], 
+                                   SIZES['margin_none'], SIZES['margin_none'])
+        layout.setSpacing(SIZES['margin_none'])
         
         # 2x2 grid for slots (aligns with 2 generator rows)
         grid = QGridLayout()
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setSpacing(8)
+        grid.setContentsMargins(SIZES['margin_none'], SIZES['margin_none'],
+                                 SIZES['margin_none'], SIZES['margin_none'])
+        grid.setSpacing(SIZES['spacing_normal'])
         
         # Create slots in 2x2 layout with default generators
         # Slot 1 (LFO) | Slot 2 (Sloth)  (top row)

@@ -236,9 +236,11 @@ class TestSizes:
         assert len(SIZES) > 0
     
     def test_sizes_are_positive(self):
-        """All sizes are positive."""
+        """All sizes are positive (except margin_none which can be zero)."""
         for key, value in SIZES.items():
-            if isinstance(value, tuple):
+            if key == 'margin_none':
+                assert value >= 0, f"SIZES['{key}'] must be non-negative"
+            elif isinstance(value, tuple):
                 assert all(v > 0 for v in value), f"SIZES['{key}'] has non-positive value"
             else:
                 assert value > 0, f"SIZES['{key}'] is not positive"

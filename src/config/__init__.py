@@ -604,4 +604,12 @@ SIZES = {
     'effect_slot_width': 70,
     'lfo_widget_width': 60,
     'buttons_column_width': 44,
+    
+    # Layout spacing (global)
+    'spacing_tight': 2,       # Within compact widgets
+    'spacing_normal': 4,      # Between related elements  
+    'spacing_section': 6,     # Between sections/panels
+    'margin_none': 0,         # Panels that butt together
+    'margin_tight': 4,        # Compact internal margins
+    'margin_normal': 8,       # Standard internal margins
 }

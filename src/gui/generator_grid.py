@@ -9,6 +9,7 @@ from PyQt5.QtGui import QFont
 
 from .generator_slot import GeneratorSlot
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES
+from src.config import SIZES
 
 
 class GeneratorGrid(QWidget):
@@ -36,14 +37,15 @@ class GeneratorGrid(QWidget):
     def setup_ui(self):
         """Create the grid."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 5, 10, 10)
-        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(SIZES['margin_none'], SIZES['margin_none'],
+                                        SIZES['margin_none'], SIZES['margin_none'])
+        main_layout.setSpacing(SIZES['margin_none'])
         
         # Set tooltip on the whole widget
         self.setToolTip("GENERATORS - 8 Synth Slots")
         
         grid = QGridLayout()
-        grid.setSpacing(10)
+        grid.setSpacing(SIZES['spacing_section'])
         
         slot_id = 1
         for row in range(self.rows):

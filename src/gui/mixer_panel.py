@@ -475,8 +475,9 @@ class MixerPanel(QWidget):
     def setup_ui(self):
         """Create mixer panel."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(0)
+        layout.setContentsMargins(SIZES['margin_none'], SIZES['margin_none'],
+                                   SIZES['margin_none'], SIZES['margin_none'])
+        layout.setSpacing(SIZES['margin_none'])
         
         # Channel strips frame with tooltip
         channels_frame = QFrame()
@@ -489,8 +490,9 @@ class MixerPanel(QWidget):
             }}
         """)
         channels_layout = QHBoxLayout(channels_frame)
-        channels_layout.setContentsMargins(5, 5, 5, 5)
-        channels_layout.setSpacing(2)
+        channels_layout.setContentsMargins(SIZES['margin_tight'], SIZES['margin_tight'],
+                                            SIZES['margin_tight'], SIZES['margin_tight'])
+        channels_layout.setSpacing(SIZES['spacing_tight'])
         
         for i in range(1, self.num_generators + 1):
             channel = ChannelStrip(i, str(i))

@@ -28,6 +28,7 @@ from src.config import (
     MOD_CLOCK_RATES,
     MOD_POLARITY,
     MOD_OUTPUTS_PER_SLOT,
+    SIZES,
     get_mod_generator_custom_params,
     get_mod_generator_output_config,
     get_mod_output_labels,
@@ -66,8 +67,9 @@ class ModSourceSlot(QWidget):
     def setup_ui(self):
         """Build the slot UI."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(SIZES['margin_tight'], SIZES['margin_tight'],
+                                   SIZES['margin_tight'], SIZES['margin_tight'])
+        layout.setSpacing(SIZES['spacing_normal'])
         
         # Header row: slot number + generator selector
         header = QHBoxLayout()
