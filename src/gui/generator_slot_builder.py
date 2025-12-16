@@ -274,7 +274,7 @@ def build_generator_slot_ui(slot):
     
     # Constrain slot to not expand beyond allocated space
     from PyQt5.QtWidgets import QSizePolicy
-    slot.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+    slot.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
     
     layout = QVBoxLayout(slot)
     margin = gt['slot_margin']
@@ -319,12 +319,15 @@ def build_generator_slot_ui(slot):
     params_row = build_standard_params_row(slot)
     generator_slider_section.addLayout(params_row)
     
-    content_row.addLayout(generator_slider_section, stretch=1)
+    content_row.addLayout(generator_slider_section)
     
     # GeneratorButtonStrip (right side, inside frame)
     generator_button_strip = build_generator_button_strip(slot)
     content_row.addWidget(generator_button_strip)
     
-    frame_v.addLayout(content_row, stretch=1)
+    frame_v.addLayout(content_row)
     
-    layout.addWidget(generator_frame, stretch=1)
+    # Frame should not expand horizontally
+    generator_frame.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+    
+    layout.addWidget(generator_frame)
