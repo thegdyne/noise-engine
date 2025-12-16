@@ -551,6 +551,10 @@ GENERATOR_THEME = {
     'frame_border_radius': 4,
     'frame_padding': (4, 6, 4, 6),  # left, top, right, bottom
     
+    # Slider section
+    'slider_row_spacing': 2,      # horizontal gap between slider columns
+    'slider_column_width': 35,    # width of each label+slider column
+    
     # Button strip - order defines visual stacking (top to bottom)
     'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
     'button_strip_width': 44,

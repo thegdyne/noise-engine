@@ -73,14 +73,15 @@ def build_param_column(label_text, slider, label_style='dim'):
     Returns:
         (QWidget, QLabel) - the column widget and label for later updates
     """
+    gt = GENERATOR_THEME
+    
     widget = QWidget()
-    widget.setFixedWidth(35)  # Constrain column width
+    widget.setFixedWidth(gt['slider_column_width'])
     layout = QVBoxLayout(widget)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(2)
     
     # Label styling from generator theme
-    gt = GENERATOR_THEME
     font_weight = QFont.Bold if gt['param_label_bold'] else QFont.Normal
     
     lbl = QLabel(label_text)
@@ -103,8 +104,10 @@ def build_param_column(label_text, slider, label_style='dim'):
 
 def build_custom_params_row(slot):
     """Build the custom parameters row (P1-P5)."""
+    gt = GENERATOR_THEME
+    
     custom_row = QHBoxLayout()
-    custom_row.setSpacing(5)
+    custom_row.setSpacing(gt['slider_row_spacing'])
     
     slot.custom_sliders = []
     slot.custom_labels = []
@@ -127,8 +130,10 @@ def build_custom_params_row(slot):
 
 def build_standard_params_row(slot):
     """Build the standard parameters row (FRQ, CUT, RES, ATK, DEC)."""
+    gt = GENERATOR_THEME
+    
     params_layout = QHBoxLayout()
-    params_layout.setSpacing(5)
+    params_layout.setSpacing(gt['slider_row_spacing'])
     
     slot.sliders = {}
     slot.slider_labels = {}
