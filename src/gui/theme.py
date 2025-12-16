@@ -543,6 +543,8 @@ GENERATOR_THEME = {
     
     # Header
     'header_spacing': 4,
+    'header_type_width': 75,
+    'header_type_height': 22,
     
     # GeneratorFrame (inner container for sliders + buttons)
     'frame_background': get('bg_base'),
@@ -553,7 +555,8 @@ GENERATOR_THEME = {
     
     # Slider section
     'slider_row_spacing': 2,      # horizontal gap between slider columns
-    'slider_column_width': 35,    # width of each label+slider column
+    'slider_column_width': 26,    # width of each label+slider column
+    'slider_section_spacing': 8,  # vertical gap between custom row + standard row
     
     # Button strip - order defines visual stacking (top to bottom)
     'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
@@ -640,11 +643,20 @@ MODULATOR_THEME = {
     'header_size': FONT_SIZES['small'],
     'header_bold': True,
     'header_color': get('text_bright'),
+    'header_spacing': 6,
+    'header_button_width': 60,
+    'header_button_height': 22,
     
     # Param labels
     'param_label_font': MONO_FONT,
     'param_label_size': FONT_SIZES['micro'],
     'param_label_color': get('text'),
+    'param_label_height': 14,
+    
+    # Param columns / spacing
+    'slider_column_width': 26,
+    'slider_row_spacing': 8,          # horizontal gap between columns
+    'slider_section_margins': (0, 4, 0, 4),
     
     # Output labels
     'output_label_font': MONO_FONT,

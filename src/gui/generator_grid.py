@@ -45,7 +45,7 @@ class GeneratorGrid(QWidget):
         self.setToolTip("GENERATORS - 8 Synth Slots")
         
         grid = QGridLayout()
-        grid.setSpacing(SIZES['spacing_section'])
+        grid.setSpacing(10)  # Gap between generator slots
         
         slot_id = 1
         for row in range(self.rows):

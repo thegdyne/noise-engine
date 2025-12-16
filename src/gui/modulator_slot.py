@@ -89,8 +89,8 @@ class ModulatorSlot(QWidget):
             
         # Build parameter sliders
         for param in custom_params:
-            container = build_param_slider(self, param)
-            self.params_layout.addLayout(container)
+            col = build_param_slider(self, param)
+            self.params_layout.addWidget(col)
         self.params_layout.addStretch()
         
         # Build output rows

@@ -10,7 +10,7 @@ Hierarchy:
 - ModulatorScope
 """
 
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QFrame, QWidget
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QFrame, QWidget, QSizePolicy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -32,8 +32,9 @@ MOD_SLOTH_MODES = ["TOR", "APA", "INE"]  # Torpor, Apathy, Inertia
 
 def build_modulator_header(slot):
     """Build the header row with slot ID and generator selector."""
+    mt = MODULATOR_THEME
     header = QHBoxLayout()
-    header.setSpacing(6)
+    header.setSpacing(mt['header_spacing'])
     
     # Slot number
     slot.id_label = QLabel(f"MOD {slot.slot_id}")
@@ -46,7 +47,10 @@ def build_modulator_header(slot):
     # Generator selector button
     initial_idx = MOD_GENERATOR_CYCLE.index(slot.default_generator) if slot.default_generator in MOD_GENERATOR_CYCLE else 0
     slot.gen_button = CycleButton(MOD_GENERATOR_CYCLE, initial_index=initial_idx)
-    slot.gen_button.setFixedSize(60, 22)
+    slot.gen_button.setFixedSize(mt['header_button_width'], mt['header_button_height'])
+    # CRITICAL: allow shrink below sizeHint, prevents overflow
+    slot.gen_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+    slot.gen_button.setMinimumWidth(0)
     slot.gen_button.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
     slot.gen_button.setStyleSheet(button_style('submenu'))
     slot.gen_button.value_changed.connect(slot._on_generator_changed)
@@ -66,10 +70,12 @@ def build_modulator_separator():
 
 def build_modulator_slider_section(slot):
     """Build the parameters container."""
+    mt = MODULATOR_THEME
     slot.params_container = QWidget()
     slot.params_layout = QHBoxLayout(slot.params_container)
-    slot.params_layout.setContentsMargins(0, 4, 0, 4)
-    slot.params_layout.setSpacing(8)
+    m = mt['slider_section_margins']
+    slot.params_layout.setContentsMargins(m[0], m[1], m[2], m[3])
+    slot.params_layout.setSpacing(mt['slider_row_spacing'])
     return slot.params_container
 
 
@@ -96,7 +102,15 @@ def build_modulator_scope(slot):
 
 def build_param_slider(slot, param):
     """Build a parameter control - CycleButton for mode, DragSlider for continuous."""
-    container = QVBoxLayout()
+    mt = MODULATOR_THEME
+    
+    # Fixed-width column widget
+    col = QWidget()
+    col.setFixedWidth(mt['slider_column_width'])
+    col.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+    
+    container = QVBoxLayout(col)
+    container.setContentsMargins(0, 0, 0, 0)
     container.setSpacing(2)
     
     key = param['key']
@@ -106,12 +120,15 @@ def build_param_slider(slot, param):
     except (ValueError, TypeError):
         steps_i = None
     
-    # Label
+    # Label - CRITICAL: fixed width prevents column expansion
     label = QLabel(param.get('label', key.upper()[:4]))
     label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
     label.setAlignment(Qt.AlignCenter)
     label.setStyleSheet(f"color: {COLORS['text']};")
     label.setToolTip(param.get('tooltip', ''))
+    label.setFixedHeight(mt['param_label_height'])
+    label.setFixedWidth(mt['slider_column_width'])
+    label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     container.addWidget(label)
     
     # Use CycleButton for stepped params (mode: CLK/FREE for LFO, TOR/APA/INE for Sloth)
@@ -134,6 +151,8 @@ def build_param_slider(slot, param):
         btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         btn.setStyleSheet(button_style('submenu'))
         btn.setToolTip(tooltip)
+        btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        btn.setMinimumWidth(0)
         btn.index_changed.connect(
             lambda idx, k=key: slot._on_mode_changed(k, idx)
         )
@@ -144,6 +163,7 @@ def build_param_slider(slot, param):
         slider = DragSlider()
         slider.setFixedWidth(25)
         slider.setFixedHeight(60)
+        slider.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         default = param.get('default', 0.5)
         slider.setValue(int(default * 1000))
         
@@ -153,11 +173,12 @@ def build_param_slider(slot, param):
         container.addWidget(slider, alignment=Qt.AlignCenter)
         slot.param_sliders[key] = slider
     
-    return container
+    return col
 
 
 def build_output_row(slot, output_idx, label, output_config):
     """Build an output row with controls."""
+    mt = MODULATOR_THEME
     row = QHBoxLayout()
     row.setSpacing(4)
     
@@ -165,7 +186,7 @@ def build_output_row(slot, output_idx, label, output_config):
     out_label = QLabel(label)
     out_label.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
     out_label.setStyleSheet(f"color: {COLORS['text_bright']};")
-    out_label.setFixedWidth(20)
+    out_label.setFixedWidth(mt['output_label_width'])
     out_label.setToolTip(f"Output {label}: route to mod matrix")
     row.addWidget(out_label)
     

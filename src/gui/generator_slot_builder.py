@@ -3,7 +3,7 @@ Generator Slot UI Builder
 Handles layout construction for GeneratorSlot
 """
 
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QWidget
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QWidget, QSizePolicy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -24,8 +24,12 @@ MIDI_CHANNELS = ["OFF"] + [str(i) for i in range(1, 17)]
 def build_generator_header(slot):
     """Build the header row with slot ID and generator type selector."""
     gt = GENERATOR_THEME
-    header = QHBoxLayout()
+    
+    # Header widget
+    header_widget = QWidget()
+    header = QHBoxLayout(header_widget)
     header.setSpacing(gt['header_spacing'])
+    header.setContentsMargins(0, 0, 0, 0)
     
     slot.id_label = QLabel(f"GEN {slot.slot_id}")
     slot.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
@@ -34,30 +38,43 @@ def build_generator_header(slot):
     
     header.addStretch()
     
-    # Generator type selector - drag or click to change
-    # Fixed width prevents scroll dead zone when name length changes
+    # Container to clip overflow
+    btn_container = QFrame()
+    btn_container.setFixedWidth(gt.get('header_type_width', 75))
+    btn_container.setStyleSheet("background: transparent; border: none;")
+    btn_layout = QHBoxLayout(btn_container)
+    btn_layout.setContentsMargins(0, 0, 0, 0)
+    btn_layout.setSpacing(0)
+    
+    # Generator type selector
     initial_index = GENERATOR_CYCLE.index(slot.generator_type) if slot.generator_type in GENERATOR_CYCLE else 0
     slot.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
     slot.type_btn.wrap = True
     slot.type_btn.sensitivity_key = 'generator'
-    slot.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
-    slot.type_btn.setFixedWidth(90)  # Fits longest name, consistent scroll target
+    slot.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
+    # CRITICAL: allow shrink below sizeHint, prevents spill/overflow
+    slot.type_btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+    slot.type_btn.setMinimumWidth(0)
+    slot.type_btn.setMaximumWidth(gt.get('header_type_width', 75))
+    slot.type_btn.setFixedHeight(gt.get('header_type_height', 22))
     slot.type_btn.setStyleSheet(f"""
         QPushButton {{
-            color: {COLORS['text']};
+            color: {COLORS['enabled_text']};
             background: transparent;
             border: none;
             text-align: right;
-            padding: 2px 4px;
+            padding: 0px;
         }}
         QPushButton:hover {{
             color: {COLORS['enabled_text']};
         }}
     """)
     slot.type_btn.value_changed.connect(slot.on_generator_type_changed)
-    header.addWidget(slot.type_btn)
+    btn_layout.addWidget(slot.type_btn)
     
-    return header
+    header.addWidget(btn_container)
+    
+    return header_widget
 
 
 def build_param_column(label_text, slider, label_style='dim'):
@@ -240,6 +257,10 @@ def build_generator_slot_ui(slot):
     """Build the complete generator slot UI."""
     gt = GENERATOR_THEME
     
+    # Constrain slot to not expand beyond allocated space
+    from PyQt5.QtWidgets import QSizePolicy
+    slot.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+    
     layout = QVBoxLayout(slot)
     margin = gt['slot_margin']
     layout.setContentsMargins(margin[0], margin[1], margin[2], margin[3])
@@ -247,7 +268,7 @@ def build_generator_slot_ui(slot):
     
     # GeneratorHeader
     generator_header = build_generator_header(slot)
-    layout.addLayout(generator_header)
+    layout.addWidget(generator_header)
     
     # GeneratorFrame (contains sliders + buttons strip)
     generator_frame = QFrame()
@@ -268,7 +289,7 @@ def build_generator_slot_ui(slot):
     
     # GeneratorSliderSection (left side)
     generator_slider_section = QVBoxLayout()
-    generator_slider_section.setSpacing(8)
+    generator_slider_section.setSpacing(gt.get('slider_section_spacing', 8))
     
     # Custom params row
     custom_row = build_custom_params_row(slot)
