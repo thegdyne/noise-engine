@@ -16,7 +16,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
 from src.gui.effects_chain import EffectsChain
-from src.gui.modulation_sources import ModulationSources
+from src.gui.mod_source_panel import ModSourcePanel
 from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
@@ -49,6 +49,9 @@ class MainFrame(QMainWindow):
         
         self.master_bpm = BPM_DEFAULT
         
+        # Scope repaint throttling (~30fps instead of per-message)
+        self._mod_scope_dirty = set()
+        
         self.setup_ui()
         
     def setup_ui(self):
@@ -76,9 +79,20 @@ class MainFrame(QMainWindow):
         content_layout.setSpacing(10)
         
         # Left - MOD SOURCES
-        self.modulation_sources = ModulationSources()
-        self.modulation_sources.setFixedWidth(220)
-        content_layout.addWidget(self.modulation_sources)
+        self.mod_source_panel = ModSourcePanel()
+        self.mod_source_panel.setFixedWidth(320)  # 2 columns
+        self.mod_source_panel.generator_changed.connect(self.on_mod_generator_changed)
+        self.mod_source_panel.parameter_changed.connect(self.on_mod_param_changed)
+        self.mod_source_panel.output_wave_changed.connect(self.on_mod_output_wave)
+        self.mod_source_panel.output_phase_changed.connect(self.on_mod_output_phase)
+        self.mod_source_panel.output_polarity_changed.connect(self.on_mod_output_polarity)
+        content_layout.addWidget(self.mod_source_panel)
+        
+        # Scope repaint timer (~30fps)
+        from PyQt5.QtCore import QTimer
+        self._mod_scope_timer = QTimer(self)
+        self._mod_scope_timer.timeout.connect(self._flush_mod_scopes)
+        self._mod_scope_timer.start(33)  # ~30fps
         
         # Center - GENERATORS
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
@@ -306,7 +320,6 @@ class MainFrame(QMainWindow):
     def on_bpm_changed(self, bpm):
         """Handle BPM change."""
         self.master_bpm = bpm
-        self.modulation_sources.set_master_bpm(bpm)
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
         
@@ -323,6 +336,7 @@ class MainFrame(QMainWindow):
             self.osc.audio_device_changing.connect(self.on_audio_device_changing)
             self.osc.audio_device_ready.connect(self.on_audio_device_ready)
             self.osc.comp_gr_received.connect(self.on_comp_gr_received)
+            self.osc.mod_bus_value_received.connect(self.on_mod_bus_value)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -331,7 +345,6 @@ class MainFrame(QMainWindow):
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
-                self.modulation_sources.set_master_bpm(self.master_bpm)
                 
                 # Send initial master volume
                 self.osc.client.send_message(OSC_PATHS['master_volume'], [self.master_section.get_volume()])
@@ -345,6 +358,9 @@ class MainFrame(QMainWindow):
                     port_index = self.midi_selector.get_port_index(current_midi)
                     if port_index >= 0:
                         self.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
+                
+                # Send initial mod source state
+                self._sync_mod_sources()
             else:
                 self.status_label.setText("● Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
@@ -522,6 +538,110 @@ class MainFrame(QMainWindow):
         """Handle effect amount change."""
         if self.osc_connected and slot_id in self.active_effects:
             self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [amount])
+    
+    # -------------------------------------------------------------------------
+    # Mod Source Handlers
+    # -------------------------------------------------------------------------
+    
+    def _sync_mod_slot_state(self, slot_id, send_generator=True):
+        """Push full UI state for one mod slot to SC (SSOT)."""
+        if not self.osc_connected:
+            return
+        from src.config import get_mod_generator_custom_params, map_value
+        
+        slot = self.mod_source_panel.get_slot(slot_id)
+        if not slot:
+            return
+        
+        gen_name = slot.generator_name
+        
+        if send_generator:
+            self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
+        
+        # Enable/disable scope
+        enabled = 1 if gen_name != "Empty" else 0
+        self.osc.client.send_message(OSC_PATHS['mod_scope_enable'], [slot_id, enabled])
+        
+        if gen_name == "Empty":
+            return
+        
+        # Sync outputs (wave/phase/polarity) from UI
+        for out_idx, row in enumerate(slot.output_rows):
+            if 'wave' in row:
+                self.osc.client.send_message(OSC_PATHS['mod_output_wave'], [slot_id, out_idx, row['wave'].get_index()])
+            if 'phase' in row:
+                self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, out_idx, row['phase'].get_index()])
+            if 'polarity' in row:
+                self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, out_idx, row['polarity'].get_index()])
+        
+        # Sync custom params from UI sliders
+        for param in get_mod_generator_custom_params(gen_name):
+            key = param['key']
+            slider = slot.param_sliders.get(key)
+            if slider:
+                normalized = slider.value() / 1000.0
+                real_value = map_value(normalized, param)
+                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, real_value])
+    
+    def _sync_mod_sources(self):
+        """Send current mod source state to SC on connect."""
+        from src.config import MOD_SLOT_COUNT
+        
+        for slot_id in range(1, MOD_SLOT_COUNT + 1):
+            self._sync_mod_slot_state(slot_id, send_generator=True)
+            slot = self.mod_source_panel.get_slot(slot_id)
+            if slot:
+                logger.debug(f"Synced mod {slot_id}: {slot.generator_name}", component="OSC")
+    
+    def on_mod_generator_changed(self, slot_id, gen_name):
+        """Handle mod source generator change - full sync to SC."""
+        if self.osc_connected:
+            # Full push to SC so UI is SSOT after rebuild
+            self._sync_mod_slot_state(slot_id, send_generator=True)
+        logger.debug(f"Mod {slot_id} generator: {gen_name}", component="OSC")
+        
+    def on_mod_param_changed(self, slot_id, key, value):
+        """Handle mod source parameter change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, value])
+        logger.debug(f"Mod {slot_id} {key}: {value:.3f}", component="OSC")
+        
+    def on_mod_output_wave(self, slot_id, output_idx, wave_index):
+        """Handle mod output waveform change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_output_wave'], [slot_id, output_idx, wave_index])
+        logger.debug(f"Mod {slot_id} out {output_idx} wave: {wave_index}", component="OSC")
+        
+    def on_mod_output_phase(self, slot_id, output_idx, phase_index):
+        """Handle mod output phase change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, output_idx, phase_index])
+        logger.debug(f"Mod {slot_id} out {output_idx} phase: {phase_index}", component="OSC")
+        
+    def on_mod_output_polarity(self, slot_id, output_idx, polarity):
+        """Handle mod output polarity change."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, output_idx, polarity])
+        logger.debug(f"Mod {slot_id} out {output_idx} polarity: {polarity}", component="OSC")
+        
+    def on_mod_bus_value(self, bus_idx, value):
+        """Handle mod bus value from SC - route to appropriate scope."""
+        # Calculate slot from bus index: bus 0-2 → slot 1, bus 3-5 → slot 2, etc.
+        slot_id = (bus_idx // 3) + 1
+        output_idx = bus_idx % 3
+        
+        slot = self.mod_source_panel.get_slot(slot_id)
+        if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
+            slot.scope.push_value(output_idx, value)
+            self._mod_scope_dirty.add(slot_id)  # Mark for repaint
+        
+    def _flush_mod_scopes(self):
+        """Repaint dirty scopes at throttled rate (~30fps)."""
+        for slot_id in list(self._mod_scope_dirty):
+            slot = self.mod_source_panel.get_slot(slot_id)
+            if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
+                slot.scope.update()
+        self._mod_scope_dirty.clear()
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change from mixer."""

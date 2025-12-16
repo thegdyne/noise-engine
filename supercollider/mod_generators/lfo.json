@@ -1,0 +1,29 @@
+{
+    "name": "LFO",
+    "synthdef": "modLFO",
+    "output_config": "waveform_phase",
+    "outputs": ["A", "B", "C"],
+    "custom_params": [
+        {
+            "key": "rate",
+            "label": "RATE",
+            "tooltip": "Clock division",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "shape",
+            "label": "SHAP",
+            "tooltip": "Waveform distortion (centre point shift)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "reference": "Ginkosynthese TTLFO v2"
+}

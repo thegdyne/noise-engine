@@ -2,110 +2,157 @@
 Theme - Centralized color and style definitions
 All UI components reference this for consistent styling
 
+Loads from active skin in src/gui/skins/
 RULE: All sliders must be vertical - no horizontal sliders
 """
-import platform
+from .skins import active as skin
 
-# === FONTS ===
-FONT_FAMILY = 'Helvetica'
-MONO_FONT = 'Menlo' if platform.system() == 'Darwin' else 'Courier New'
+# =============================================================================
+# SKIN ACCESS
+# =============================================================================
+
+def get(key, default='#ff00ff'):
+    """Get value from active skin. Magenta = missing key."""
+    return skin.SKIN.get(key, default)
+
+def accent(module_type):
+    """Get accent colour for module type: 'generator', 'mod_lfo', 'mod_sloth', 'effect', 'master'."""
+    return get(f'accent_{module_type}')
+
+def accent_dim(module_type):
+    """Get dimmed accent colour for module type."""
+    return get(f'accent_{module_type}_dim')
+
+def accent_bg(module_type):
+    """Get background accent colour for module type."""
+    return get(f'accent_{module_type}_bg')
+
+# =============================================================================
+# BACKWARDS COMPATIBLE EXPORTS
+# These map old COLORS keys to new skin keys
+# =============================================================================
+
+FONT_FAMILY = get('font_family')
+MONO_FONT = get('font_mono')
 
 FONT_SIZES = {
-    'display': 32,    # Large displays (BPM)
-    'title': 16,      # Main titles (NOISE ENGINE)
-    'section': 12,    # Section headers (MIXER, EFFECTS)
-    'slot_title': 11, # Generator/effect slot titles
-    'label': 10,      # Labels
-    'small': 9,       # Smaller labels
-    'tiny': 8,        # Button text, values
-    'micro': 7,       # Smallest text (mute/solo buttons)
+    'display': get('font_size_display'),
+    'title': get('font_size_title'),
+    'section': get('font_size_section'),
+    'slot_title': get('font_size_slot_title'),
+    'label': get('font_size_label'),
+    'small': get('font_size_small'),
+    'tiny': get('font_size_tiny'),
+    'micro': get('font_size_micro'),
 }
 
-# Drag/scroll sensitivity settings
 DRAG_SENSITIVITY = {
-    'slider_normal': 100,
-    'slider_fine': 400,
-    'cycle_normal': 15,
-    'cycle_fine': 40,
-    'generator_normal': 5,
-    'generator_fine': 12,
-    'bpm_value_normal': 3,
-    'bpm_value_fine': 35,
+    'slider_normal': get('drag_slider_normal'),
+    'slider_fine': get('drag_slider_fine'),
+    'cycle_normal': get('drag_cycle_normal'),
+    'cycle_fine': get('drag_cycle_fine'),
+    'generator_normal': get('drag_generator_normal'),
+    'generator_fine': get('drag_generator_fine'),
+    'bpm_value_normal': get('drag_bpm_normal'),
+    'bpm_value_fine': get('drag_bpm_fine'),
 }
 
-# Base colors
+# Main COLORS dict - maps old keys to skin values
 COLORS = {
-    # States
-    'enabled': '#335533',
-    'enabled_text': '#88ff88',
-    'enabled_hover': '#446644',
-    'disabled': '#333',
-    'disabled_text': '#666',
-    'inactive': '#222',
-    'inactive_text': '#444',
+    # States (old naming)
+    'enabled': get('state_enabled_bg'),
+    'enabled_text': get('state_enabled_text'),
+    'enabled_hover': get('state_enabled_hover'),
+    'disabled': get('state_disabled_bg'),
+    'disabled_text': get('state_disabled_text'),
+    'inactive': get('bg_dark'),
+    'inactive_text': get('text_dim'),
     
     # Semantic colors
-    'active': '#335533',
-    'active_text': '#88ff88',
-    'active_bg': '#1a2a1a',
-    'submenu': '#553311',
-    'submenu_text': '#ff8833',
-    'submenu_hover': '#664422',
-    'selected': '#333355',
-    'selected_text': '#8888ff',
-    'warning': '#553333',
-    'warning_text': '#ff8888',
-    'warning_hover': '#664444',
+    'active': get('state_enabled_bg'),
+    'active_text': get('state_enabled_text'),
+    'active_bg': get('state_enabled_bg'),
+    'submenu': get('state_submenu_bg'),
+    'submenu_text': get('state_submenu_text'),
+    'submenu_hover': get('state_submenu_hover'),
+    'selected': get('state_selected_bg'),
+    'selected_text': get('state_selected_text'),
+    'warning': get('state_warning_bg'),
+    'warning_text': get('state_warning_text'),
+    'warning_hover': get('state_warning_hover'),
     
     # UI elements
-    'background': '#1a1a1a',
-    'background_dark': '#0a0a0a',
-    'background_light': '#222',
-    'background_highlight': '#2a2a2a',
-    'border': '#333',
-    'border_light': '#555',
-    'border_active': '#44aa44',
-    'text': '#888',
-    'text_bright': '#aaa',
-    'text_dim': '#555',
-    'text_label': '#666',
+    'background': get('bg_mid'),
+    'background_dark': get('bg_dark'),
+    'background_light': get('bg_light'),
+    'background_highlight': get('bg_highlight'),
+    'border': get('border_dark'),
+    'border_light': get('border_light'),
+    'border_active': get('state_enabled_border'),
+    'text': get('text_mid'),
+    'text_bright': get('text_bright'),
+    'text_dim': get('text_dim'),
+    'text_label': get('text_dim'),
     
     # Special displays
-    'bpm_text': '#ff3333',
+    'bpm_text': get('bpm_text'),
     
     # Indicators
-    'audio_on': '#44ff44',
-    'audio_off': '#555',
-    'midi_on': '#ffaa00',
-    'midi_off': '#555',
-    'clock_pulse': '#44ff44',
+    'audio_on': get('led_audio_on'),
+    'audio_off': get('led_audio_off'),
+    'midi_on': get('led_midi_on'),
+    'midi_off': get('led_midi_off'),
+    'clock_pulse': get('led_clock'),
     
-    # Generator controls (skinnable)
-    'mute_on': '#ff4444',
-    'mute_on_text': '#ffffff',
-    'mute_off': '#442222',
-    'mute_off_text': '#884444',
-    'gate_on': '#44ff44',
-    'gate_off': '#223322',
-    'midi_ch_bg': '#222244',
-    'midi_ch_text': '#8888ff',
-    'midi_ch_off_bg': '#222',
-    'midi_ch_off_text': '#555',
+    # Generator controls
+    'mute_on': get('led_mute_on'),
+    'mute_on_text': get('led_mute_on_text'),
+    'mute_off': get('led_mute_off'),
+    'mute_off_text': get('led_mute_off_text'),
+    'gate_on': get('led_gate_on'),
+    'gate_off': get('led_gate_off'),
+    'midi_ch_bg': get('midi_ch_bg'),
+    'midi_ch_text': get('midi_ch_text'),
+    'midi_ch_off_bg': get('midi_ch_off_bg'),
+    'midi_ch_off_text': get('midi_ch_off_text'),
     
     # Sliders/controls
-    'slider_groove': '#333',
-    'slider_handle': '#888',
-    'slider_handle_hover': '#aaa',
+    'slider_groove': get('slider_groove'),
+    'slider_handle': get('slider_handle'),
+    'slider_handle_hover': get('slider_handle_hover'),
     
-    # WIP (Work In Progress) panels
-    'wip_bg': '#151515',
-    'wip_bg_light': '#1a1a1a',
-    'wip_border': '#252525',
-    'wip_text': '#383838',
-    'wip_text_dim': '#444',
+    # WIP panels
+    'wip_bg': get('wip_bg'),
+    'wip_bg_light': get('wip_bg_light'),
+    'wip_border': get('wip_border'),
+    'wip_text': get('wip_text'),
+    'wip_text_dim': get('wip_text_dim'),
+    
+    # === NEW: Module accents ===
+    'accent_generator': get('accent_generator'),
+    'accent_generator_dim': get('accent_generator_dim'),
+    'accent_mod_lfo': get('accent_mod_lfo'),
+    'accent_mod_lfo_dim': get('accent_mod_lfo_dim'),
+    'accent_mod_sloth': get('accent_mod_sloth'),
+    'accent_mod_sloth_dim': get('accent_mod_sloth_dim'),
+    'accent_effect': get('accent_effect'),
+    'accent_effect_dim': get('accent_effect_dim'),
+    
+    # Scope
+    'scope_trace_a': get('scope_trace_a'),
+    'scope_trace_b': get('scope_trace_b'),
+    'scope_trace_c': get('scope_trace_c'),
+    'scope_grid': get('scope_grid'),
+    'scope_center': get('scope_center'),
+    
+    # Meters
+    'meter_bg': get('meter_bg'),
+    'meter_normal': get('meter_normal'),
+    'meter_warn': get('meter_warn'),
+    'meter_clip': get('meter_clip'),
 }
 
-# Override specific component colors if needed
+# Component-specific overrides (for future use)
 COMPONENT_COLORS = {}
 
 
@@ -117,6 +164,10 @@ def get_color(key, component=None):
             return COMPONENT_COLORS[component_key]
     return COLORS.get(key, '#ff00ff')
 
+
+# =============================================================================
+# STYLE FUNCTIONS
+# =============================================================================
 
 def button_style(state='disabled'):
     """Get button stylesheet for state: enabled, disabled, submenu, inactive, warning."""
@@ -179,14 +230,14 @@ def slider_style():
     """Get standard vertical slider stylesheet."""
     return f"""
         QSlider::groove:vertical {{
-            border: 1px solid {COLORS['border_light']};
+            border: 1px solid {get('slider_groove_border')};
             width: 8px;
             background: {COLORS['slider_groove']};
             border-radius: 4px;
         }}
         QSlider::handle:vertical {{
             background: {COLORS['slider_handle']};
-            border: 1px solid {COLORS['border_light']};
+            border: 1px solid {get('slider_handle_border')};
             height: 12px;
             margin: 0 -3px;
             border-radius: 6px;
@@ -201,18 +252,17 @@ def slider_style_center_notch():
     """
     Vertical slider with center notch mark.
     Use for sliders with a meaningful center position (e.g. EQ at 0dB).
-    Shows a visual tick at the midpoint to indicate double-click reset target.
     """
     return f"""
         QSlider::groove:vertical {{
-            border: 1px solid {COLORS['border_light']};
+            border: 1px solid {get('slider_groove_border')};
             width: 8px;
             background: qlineargradient(
                 x1:0, y1:0, x2:0, y2:1,
                 stop:0 {COLORS['slider_groove']},
                 stop:0.48 {COLORS['slider_groove']},
-                stop:0.49 {COLORS['border_light']},
-                stop:0.51 {COLORS['border_light']},
+                stop:0.49 {get('border_light')},
+                stop:0.51 {get('border_light')},
                 stop:0.52 {COLORS['slider_groove']},
                 stop:1 {COLORS['slider_groove']}
             );
@@ -220,7 +270,7 @@ def slider_style_center_notch():
         }}
         QSlider::handle:vertical {{
             background: {COLORS['slider_handle']};
-            border: 1px solid {COLORS['border_light']};
+            border: 1px solid {get('slider_handle_border')};
             height: 12px;
             margin: 0 -3px;
             border-radius: 6px;
@@ -241,12 +291,12 @@ def pan_slider_style():
             height: 4px;
             background: qlineargradient(
                 x1:0, y1:0, x2:1, y2:0,
-                stop:0 {COLORS['background_dark']},
-                stop:0.48 {COLORS['background_dark']},
-                stop:0.49 {COLORS['border_light']},
-                stop:0.51 {COLORS['border_light']},
-                stop:0.52 {COLORS['background_dark']},
-                stop:1 {COLORS['background_dark']}
+                stop:0 {get('bg_darkest')},
+                stop:0.48 {get('bg_darkest')},
+                stop:0.49 {get('border_light')},
+                stop:0.51 {get('border_light')},
+                stop:0.52 {get('bg_darkest')},
+                stop:1 {get('bg_darkest')}
             );
             border-radius: 2px;
         }}
@@ -254,17 +304,18 @@ def pan_slider_style():
             width: 8px;
             height: 12px;
             margin: -4px 0;
-            background: {COLORS['text_dim']};
+            background: {get('text_dim')};
             border-radius: 2px;
         }}
         QSlider::handle:horizontal:hover {{
-            background: {COLORS['text']};
+            background: {get('text_mid')};
         }}
     """
 
 
-# === SKINNABLE GENERATOR CONTROL STYLES ===
-# These are separated for future skin system
+# =============================================================================
+# SKINNABLE CONTROL STYLES
+# =============================================================================
 
 def mute_button_style(muted=False):
     """Mute button style - bright red when muted."""
@@ -285,7 +336,7 @@ def mute_button_style(muted=False):
                 border-radius: 3px;
             }}
             QPushButton:hover {{
-                background-color: #553333;
+                background-color: {get('state_warning_bg')};
             }}
         """
 
@@ -297,7 +348,7 @@ def gate_indicator_style(active=False):
             QLabel {{
                 background-color: {COLORS['gate_on']};
                 border-radius: 4px;
-                border: 1px solid #66ff66;
+                border: 1px solid {get('led_gate_border_on')};
             }}
         """
     else:
@@ -305,7 +356,7 @@ def gate_indicator_style(active=False):
             QLabel {{
                 background-color: {COLORS['gate_off']};
                 border-radius: 4px;
-                border: 1px solid #334433;
+                border: 1px solid {get('led_gate_border_off')};
             }}
         """
 
@@ -321,7 +372,7 @@ def midi_channel_style(active=True):
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                background-color: #333366;
+                background-color: {get('state_selected_bg')};
             }}
         """
     else:
@@ -374,8 +425,8 @@ def wip_badge_style():
     """Style for the 'Coming Soon' badge - more prominent."""
     return f"""
         QLabel {{
-            background-color: #442200;
-            color: #aa6600;
+            background-color: {get('state_submenu_bg')};
+            color: {get('accent_mod_sloth_dim')};
             border-radius: 4px;
             padding: 3px 8px;
             font-size: 10px;
@@ -384,8 +435,9 @@ def wip_badge_style():
     """
 
 
-# === PANEL STYLES ===
-# Use for main sections - no visible labels, tooltips on hover
+# =============================================================================
+# PANEL STYLES
+# =============================================================================
 
 def panel_style():
     """Standard panel/pane style with border. Use setToolTip() for hover labels."""
@@ -425,7 +477,7 @@ def panel_style_highlight():
     return f"""
         QFrame, QWidget {{
             background-color: {COLORS['background_highlight']};
-            border: 1px solid {COLORS['border_light']};
+            border: 1px solid {get('border_light')};
             border-radius: 4px;
         }}
         QLabel {{
@@ -435,27 +487,20 @@ def panel_style_highlight():
     """
 
 
-# Panel tooltips - consistent naming across the app
+# Panel tooltips
 PANEL_TOOLTIPS = {
-    # Main sections
     'master': 'MASTER OUTPUT',
     'mixer': 'MIXER - 8 Channel Strips',
     'generators': 'GENERATORS - 8 Synth Slots',
     'mod_sources': 'MODULATION SOURCES - LFOs & Envelopes',
     'fx_chain': 'FX CHAIN - 4 Effect Slots',
-    
-    # Master subsections
     'eq': 'DJ Isolator EQ - 3-band with kill switches',
     'comp': 'SSL G-Series Style Bus Compressor',
     'limiter': 'Brickwall Limiter - Output protection',
     'output': 'Master Output - Volume & Metering',
-    
-    # Generator subsections
     'gen_params': 'Generator Parameters',
     'gen_filter': 'Multimode Filter (LP/BP/HP)',
     'gen_env': 'Clock-synced Envelope',
-    
-    # Effect types
     'fx_delay': 'Delay Effect',
     'fx_reverb': 'Reverb Effect',
     'fx_chorus': 'Chorus Effect',
@@ -468,38 +513,25 @@ def get_panel_tooltip(key):
     return PANEL_TOOLTIPS.get(key, '')
 
 
-# === GENERATOR THEME ===
-# Default generator styling - can be overridden per-generator in future
+# =============================================================================
+# GENERATOR THEME
+# =============================================================================
+
 GENERATOR_THEME = {
-    # Param label styling
     'param_label_font': MONO_FONT,
     'param_label_size': FONT_SIZES['tiny'],
     'param_label_bold': True,
     'param_label_height': 14,
-    
-    # Colors for param labels
-    'param_label_color': '#888',        # Active/standard params (FRQ, CUT, etc.)
-    'param_label_color_dim': '#555',    # Inactive/custom params (P1-P5 when unused)
-    'param_label_color_active': '#8f8', # Custom param when generator uses it
-    
-    # Slot styling
-    'slot_background': '#1a1a1a',
-    'slot_border': '#333',
-    'slot_border_active': '#44aa44',
-    
-    # Future: accent colors per generator type
-    # 'accent': '#44aa44',
-    # 'accent_dim': '#224422',
+    'param_label_color': get('text_mid'),
+    'param_label_color_dim': get('text_dim'),
+    'param_label_color_active': get('accent_generator'),
+    'slot_background': get('bg_mid'),
+    'slot_border': get('border_dark'),
+    'slot_border_active': get('accent_generator_dim'),
 }
 
 
 def get_generator_theme(generator_name=None):
-    """Get theme dict for a generator, with defaults.
-    
-    Future: load per-generator overrides from JSON configs.
-    """
+    """Get theme dict for a generator, with defaults."""
     theme = GENERATOR_THEME.copy()
-    # Future: merge per-generator overrides here
-    # if generator_name and generator_name in GENERATOR_OVERRIDES:
-    #     theme.update(GENERATOR_OVERRIDES[generator_name])
     return theme

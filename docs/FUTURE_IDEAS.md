@@ -113,12 +113,22 @@ SynthDef(\external_in, {
 
 ---
 
-## Modulator System
+## Modulator System ✓ DESIGNED
 
-- **Routing:** how do we wire modulators to targets? (dropdown? matrix? config file?)
-- Chaos (Triple Sloths style)
-- More LFO shapes
+**Design doc:** `docs/MOD_SOURCES.md`
+
+4 mod source slots in left panel, each with 3 outputs (12 mod buses total). Uses same slot architecture as audio generators but stripped down for CV output.
+
+**Initial mod generators:**
+- **LFO** - TTLFO v2 style, 3 outputs with independent waveform/phase/polarity, shared RATE + SHAP
+- **Sloth** - NLC Triple Sloth style chaos, X/Y/Z outputs, Torpor/Apathy/Inertia speed modes
+
+**Per-slot scope** with auto-ranging time scale.
+
+**Future mod generators:**
 - Clockable envelope generator (ADSR triggered by clock division)
+- Drift (slow smooth random)
+- Step sequencer
 
 ---
 
@@ -172,7 +182,7 @@ A starter repo/folder structure we can clone for new projects. Contains: config/
 
 - Oscilloscope (switchable source)
 - Waveform display per generator
-- LFO visualisation
+- ~~LFO visualisation~~ ✓ Designed (per-slot scope in MOD_SOURCES.md)
 - ~~Level meters on mixer~~ ✓ Done (per-channel stereo meters)
 - Clock pulse indicator
 
@@ -238,19 +248,21 @@ gt = get_generator_theme(slot.generator_type)
 
 ---
 
-## Modulation System (Dec 2025)
+## Modulation Routing (Dec 2025)
 
 **Concept:** Comprehensive modulation routing with visual feedback.
 
 ### Part 1: Pin Matrix Window
-Second screen with large connection matrix. Rows = mod sources (LFOs, ENVs, MIDI CCs), columns = destinations (all generator params). Click intersections to connect. Each connection has its own depth (-100% to +100%) set at the target - same LFO can modulate cutoff at +80% and resonance at -20%.
+Second screen with large connection matrix. Rows = mod sources (from `MOD_SOURCES.md` - 12 buses), columns = destinations (all generator params). Click intersections to connect. Each connection has its own depth (-100% to +100%) set at the target - same LFO output can modulate cutoff at +80% and resonance at -20%.
 
 ### Part 2: Modulation Visualisation  
 Korg wavestate-style indicators on modulated controls. Shows:
 - Static bracket for min/max modulation range
 - Moving line for current modulated value in real-time
 
-**Design doc:** `docs/MODULATION_SYSTEM.md`
+**Design docs:** 
+- `docs/MOD_SOURCES.md` - Mod source slots and generators (LFO, Sloth)
+- `docs/MODULATION_SYSTEM.md` - Routing matrix and visualisation
 
 ---
 
@@ -306,10 +318,7 @@ logger.gen(slot_id, "Generator action")
 ---
 
 ### Modulation routing UI
-Three options:
-1. Dropdown per modulator ("LFO1 → Filter Cutoff")
-2. Matrix grid (sources down, destinations across)
-3. Config file only (no UI, edit JSON)
+See `docs/MOD_SOURCES.md` for mod source architecture and `docs/MODULATION_SYSTEM.md` for routing matrix design.
 
 ### Mixer swapping
 Tab system? Or separate "mixer type" in config?

@@ -31,6 +31,7 @@ class OSCBridge(QObject):
     levels_received = pyqtSignal(float, float, float, float)  # ampL, ampR, peakL, peakR
     channel_levels_received = pyqtSignal(int, float, float)  # slot_id, ampL, ampR
     comp_gr_received = pyqtSignal(float)  # compressor gain reduction in dB
+    mod_bus_value_received = pyqtSignal(int, float)  # bus_idx, value (for mod scope)
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
     # Audio device signals
@@ -199,6 +200,9 @@ class OSCBridge(QObject):
         dispatcher.map(OSC_PATHS['audio_device_ready'], self._handle_audio_device_ready)
         dispatcher.map(OSC_PATHS['audio_device_error'], self._handle_audio_device_error)
         
+        # Handle mod bus values from SC (for scope display)
+        dispatcher.map(OSC_PATHS['mod_bus_value'], self._handle_mod_bus_value)
+        
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
         
@@ -264,6 +268,15 @@ class OSCBridge(QObject):
         if len(args) >= 1:
             gr_db = float(args[0])
             self.comp_gr_received.emit(gr_db)
+    
+    def _handle_mod_bus_value(self, address, *args):
+        """Handle mod bus value from SC (for scope display)."""
+        if self._deleted:
+            return
+        if len(args) >= 2:
+            bus_idx = int(args[0])
+            value = float(args[1])
+            self.mod_bus_value_received.emit(bus_idx, value)
     
     def _handle_audio_devices_count(self, address, *args):
         """Handle audio device count from SC - start of device list."""
