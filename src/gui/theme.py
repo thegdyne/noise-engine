@@ -527,13 +527,26 @@ GENERATOR_THEME = {
     'param_label_color_dim': get('text_dim'),
     'param_label_color_active': get('accent_generator'),
     
-    # Slot frame
+    # Slot (outer container)
     'slot_background': get('bg_mid'),
     'slot_border': get('border_dark'),
     'slot_border_active': get('accent_generator_dim'),
+    'slot_margin': (4, 6, 4, 6),  # left, top, right, bottom
+    
+    # Header
+    'header_spacing': 4,
+    
+    # GeneratorFrame (inner container for sliders + buttons)
+    'frame_background': get('background'),
+    'frame_border': get('border'),
+    'frame_border_width': 1,
+    'frame_border_radius': 4,
+    'frame_padding': (4, 6, 4, 6),  # left, top, right, bottom
     
     # Button strip - order defines visual stacking (top to bottom)
     'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
+    'button_strip_width': 44,
+    'button_strip_spacing': 2,
     
     # Button strip - per-button config
     'button_strip': {
@@ -543,6 +556,8 @@ GENERATOR_THEME = {
             'font_bold': True,
             'style': 'enabled',
             'tooltip': 'Filter Type: LP / HP / BP',
+            'width': 36,
+            'height': 24,
         },
         'env': {
             'font': MONO_FONT,
@@ -550,6 +565,8 @@ GENERATOR_THEME = {
             'font_bold': True,
             'style': 'disabled',
             'tooltip': 'Envelope source: OFF (drone), CLK (clock), MIDI',
+            'width': 36,
+            'height': 24,
         },
         'rate': {
             'font': MONO_FONT,
@@ -557,26 +574,32 @@ GENERATOR_THEME = {
             'font_bold': False,
             'style': 'inactive',
             'tooltip': 'Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16',
+            'width': 36,
+            'height': 24,
         },
         'midi': {
             'font': MONO_FONT,
             'font_size': FONT_SIZES['tiny'],
             'font_bold': True,
-            'style': 'midi',  # Special style
+            'style': 'midi',
             'tooltip': 'MIDI Input Channel (OFF or 1-16)',
+            'width': 36,
+            'height': 24,
         },
         'mute': {
             'font': MONO_FONT,
             'font_size': FONT_SIZES['small'],
             'font_bold': True,
-            'style': 'mute',  # Special style
+            'style': 'mute',
             'tooltip': 'Mute Generator',
-            'height': 20,  # Override height
+            'width': 36,
+            'height': 20,
         },
         'gate': {
-            'style': 'gate',  # Special style (LED indicator)
+            'style': 'gate',
             'tooltip': 'Gate Activity',
-            'height': 20,  # Override height
+            'width': 36,
+            'height': 20,
         },
     },
 }
