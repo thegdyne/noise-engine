@@ -682,7 +682,7 @@ class MainFrame(QMainWindow):
     def on_generator_eq_changed(self, gen_id, band, value):
         """Handle generator EQ change from mixer. band: 'lo'/'mid'/'hi', value: 0-2 linear."""
         if self.osc_connected:
-            osc_path = f'/noise/strip/eq/{band}'
+            osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
             self.osc.client.send_message(osc_path, [gen_id, value])
         logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
         

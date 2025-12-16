@@ -505,6 +505,7 @@ OSC_PATHS = {
     'gen_strip_solo': '/noise/gen/solo',
     'gen_gain': '/noise/gen/gain',  # Per-channel gain stage (0dB, +6dB, +12dB)
     'gen_pan': '/noise/gen/pan',  # Per-channel pan (-1=L, 0=center, 1=R)
+    'gen_strip_eq_base': '/noise/strip/eq',  # Per-channel EQ: /noise/strip/eq/{band}
     'gen_levels': '/noise/gen/levels',  # Per-channel level metering
     'gen_trim': '/noise/gen/trim',  # Per-channel loudness trim (from JSON config)
     # MIDI

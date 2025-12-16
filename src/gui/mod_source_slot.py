@@ -190,6 +190,10 @@ class ModSourceSlot(QWidget):
         
         key = param['key']
         steps = param.get('steps')
+        try:
+            steps_i = int(steps) if steps is not None else None
+        except (ValueError, TypeError):
+            steps_i = None
         
         # Label
         label = QLabel(param.get('label', key.upper()[:4]))
@@ -200,7 +204,7 @@ class ModSourceSlot(QWidget):
         container.addWidget(label)
         
         # Use CycleButton for stepped params (like mode: CLK/FREE)
-        if key == 'mode' and steps == 2:
+        if key == 'mode' and steps_i == 2:
             btn = CycleButton(MOD_LFO_MODES, initial_index=0)
             btn.setFixedSize(40, 22)
             btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))

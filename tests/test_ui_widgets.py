@@ -338,30 +338,36 @@ class TestChannelStripOSC:
     
     def test_pan_sends_osc_on_change(self, project_root):
         """Pan change handler must send OSC via gen_pan path."""
+        import re
         filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
-        # Handler must exist and send to gen_pan
-        assert 'on_generator_pan_changed' in content, \
-            "Pan change handler must exist"
-        assert "OSC_PATHS['gen_pan']" in content, \
+        # Extract the function block and verify OSC send is inside it
+        m = re.search(r"def on_generator_pan_changed\(.*?\):([\s\S]*?)(\n    def |\Z)", content)
+        assert m, "on_generator_pan_changed() function not found"
+        block = m.group(1)
+        assert "OSC_PATHS['gen_pan']" in block, \
             "Pan handler must use OSC_PATHS['gen_pan']"
-        assert 'send_message' in content, \
+        assert "send_message" in block, \
             "Pan handler must call send_message"
     
     def test_eq_sends_osc_on_change(self, project_root):
-        """EQ change handler must send OSC messages."""
+        """EQ change handler must send OSC messages via SSOT path."""
+        import re
         filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
-        # Handler must exist and send OSC
-        assert 'on_generator_eq_changed' in content, \
-            "EQ change handler must exist"
-        # EQ uses dynamic path construction: /noise/strip/eq/{band}
-        assert '/noise/strip/eq/' in content, \
-            "EQ handler must send to /noise/strip/eq/ path"
+        # Extract the function block
+        m = re.search(r"def on_generator_eq_changed\(.*?\):([\s\S]*?)(\n    def |\Z)", content)
+        assert m, "on_generator_eq_changed() function not found"
+        block = m.group(1)
+        # Must use OSC_PATHS, not hardcoded path
+        assert "OSC_PATHS['gen_strip_eq_base']" in block, \
+            "EQ handler must use OSC_PATHS['gen_strip_eq_base']"
+        assert "send_message" in block, \
+            "EQ handler must call send_message"
     
     def test_mixer_signals_connected(self, project_root):
         """MixerPanel pan/EQ signals must be connected in main_frame."""
