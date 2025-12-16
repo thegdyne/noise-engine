@@ -487,6 +487,8 @@ class MainFrame(QMainWindow):
                 # Send output trim for loudness normalization (from generator JSON config)
                 trim_db = get_generator_output_trim_db(new_type)
                 self.osc.client.send_message(OSC_PATHS['gen_trim'], [slot_id, trim_db])
+                # Re-sync strip state (pan/EQ/mute/solo/gain) so UI values persist
+                self._sync_strip_state_to_sc(slot_id)
             
             self.generator_grid.set_generator_active(slot_id, True)
             slot = self.generator_grid.get_slot(slot_id)
@@ -685,6 +687,32 @@ class MainFrame(QMainWindow):
             osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
             self.osc.client.send_message(osc_path, [gen_id, value])
         logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
+    
+    def _sync_strip_state_to_sc(self, slot_id):
+        """Re-sync mixer strip state to SC after generator change.
+        
+        This ensures pan/EQ/mute/solo/gain persist when switching generators,
+        since SC creates a fresh synth with default values.
+        """
+        if not self.osc_connected:
+            return
+        
+        state = self.mixer_panel.get_channel_strip_state(slot_id)
+        if not state:
+            return
+        
+        # Re-send all strip parameters to SC
+        self.osc.client.send_message(OSC_PATHS['gen_pan'], [slot_id, state['pan']])
+        self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1 if state['muted'] else 0])
+        self.osc.client.send_message(OSC_PATHS['gen_strip_solo'], [slot_id, 1 if state['soloed'] else 0])
+        self.osc.client.send_message(OSC_PATHS['gen_gain'], [slot_id, state['gain_db']])
+        
+        # EQ bands
+        for band in ['lo', 'mid', 'hi']:
+            osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
+            self.osc.client.send_message(osc_path, [slot_id, state[f'eq_{band}']])
+        
+        logger.debug(f"Gen {slot_id} strip state synced (pan={state['pan']:.2f})", component="OSC")
         
     def on_master_volume_from_master(self, volume):
         """Handle master volume change from master section."""

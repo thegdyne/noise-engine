@@ -409,3 +409,52 @@ class TestModSlotSync:
             "Mode CycleButton must use MOD_LFO_MODES"
         assert 'CycleButton(MOD_LFO_MODES' in content, \
             "Mode must create CycleButton with MOD_LFO_MODES values"
+
+
+class TestStripStatePersistence:
+    """Verify mixer strip state persists across generator changes."""
+    
+    def test_strip_state_sync_exists(self, project_root):
+        """_sync_strip_state_to_sc must exist and send pan/EQ/mute/solo/gain."""
+        import re
+        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        with open(filepath, 'r') as f:
+            content = f.read()
+        
+        # Extract the function block
+        m = re.search(r"def _sync_strip_state_to_sc\(.*?\):([\s\S]*?)(\n    def |\Z)", content)
+        assert m, "_sync_strip_state_to_sc() function not found"
+        block = m.group(1)
+        
+        # Must send all strip params
+        assert "gen_pan" in block, "Strip sync must send pan"
+        assert "gen_mute" in block, "Strip sync must send mute"
+        assert "gen_strip_solo" in block, "Strip sync must send solo"
+        assert "gen_gain" in block, "Strip sync must send gain"
+        assert "gen_strip_eq_base" in block, "Strip sync must send EQ"
+    
+    def test_strip_sync_called_on_generator_change(self, project_root):
+        """on_generator_changed must call _sync_strip_state_to_sc."""
+        import re
+        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        with open(filepath, 'r') as f:
+            content = f.read()
+        
+        # Extract on_generator_changed function
+        m = re.search(r"def on_generator_changed\(.*?\):([\s\S]*?)(\n    def |\Z)", content)
+        assert m, "on_generator_changed() function not found"
+        block = m.group(1)
+        
+        assert "_sync_strip_state_to_sc" in block, \
+            "on_generator_changed must call _sync_strip_state_to_sc"
+    
+    def test_channel_strip_has_get_strip_state(self, project_root):
+        """ChannelStrip must have get_strip_state method."""
+        filepath = os.path.join(project_root, 'src', 'gui', 'mixer_panel.py')
+        with open(filepath, 'r') as f:
+            content = f.read()
+        
+        assert 'def get_strip_state(self)' in content, \
+            "ChannelStrip must have get_strip_state method"
+        assert "'pan'" in content and "'muted'" in content, \
+            "get_strip_state must return pan and muted state"

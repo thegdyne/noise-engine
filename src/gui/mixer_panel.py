@@ -427,6 +427,19 @@ class ChannelStrip(QWidget):
         self.gain_btn.setText(text)
         self.gain_btn.setStyleSheet(button_style(style))
         self.gain_changed.emit(self.channel_id, db)
+    
+    def get_strip_state(self):
+        """Return current strip state for syncing to SC after generator change."""
+        return {
+            'volume': self.fader.value() / 1000.0,
+            'pan': self.pan_value,
+            'muted': self.muted,
+            'soloed': self.soloed,
+            'gain_db': self.GAIN_STAGES[self.gain_index][0],
+            'eq_lo': self.eq_lo.value() / 100.0,  # 0-2 linear
+            'eq_mid': self.eq_mid.value() / 100.0,
+            'eq_hi': self.eq_hi.value() / 100.0,
+        }
 
 
 class MixerPanel(QWidget):
@@ -512,3 +525,9 @@ class MixerPanel(QWidget):
         """Update level meter for a channel."""
         if channel_id in self.channels:
             self.channels[channel_id].set_levels(left, right)
+    
+    def get_channel_strip_state(self, channel_id):
+        """Get strip state for a channel (for syncing to SC)."""
+        if channel_id in self.channels:
+            return self.channels[channel_id].get_strip_state()
+        return None
