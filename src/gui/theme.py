@@ -544,7 +544,7 @@ GENERATOR_THEME = {
     # Header layout
     'header_inset_left': 4,       # left margin for GEN label
     'header_inset_right': 6,      # right margin - gives breathing room
-    'header_selector_text_pad': 2, # internal text padding for selector
+    'header_selector_text_pad': 3, # internal text padding for selector
     'header_overlay_height': 24,  # reserved space at top of content for header overlay
     'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
     'header_content_gap': 2,      # header-to-sliders distance inside the frame
