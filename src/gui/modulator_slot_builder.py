@@ -38,6 +38,7 @@ def build_modulator_header(slot):
     
     # Slot number
     slot.id_label = QLabel(f"MOD {slot.slot_id}")
+    slot.id_label.setObjectName(f"mod{slot.slot_id}_label")  # DEBUG
     slot.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
     slot.id_label.setStyleSheet(f"color: {COLORS['text_bright']};")
     header.addWidget(slot.id_label)
@@ -47,6 +48,7 @@ def build_modulator_header(slot):
     # Generator selector button
     initial_idx = MOD_GENERATOR_CYCLE.index(slot.default_generator) if slot.default_generator in MOD_GENERATOR_CYCLE else 0
     slot.gen_button = CycleButton(MOD_GENERATOR_CYCLE, initial_index=initial_idx)
+    slot.gen_button.setObjectName(f"mod{slot.slot_id}_type")  # DEBUG
     slot.gen_button.setFixedSize(mt['header_button_width'], mt['header_button_height'])
     # CRITICAL: allow shrink below sizeHint, prevents overflow
     slot.gen_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
@@ -94,8 +96,9 @@ def build_modulator_output_section(slot):
 def build_modulator_scope(slot):
     """Build the oscilloscope display."""
     from .mod_scope import ModScope
+    mt = MODULATOR_THEME
     slot.scope = ModScope(history_length=100)
-    slot.scope.setFixedHeight(50)
+    slot.scope.setFixedHeight(mt['scope_height'])  # FIXED: uses theme value
     slot.scope.setStyleSheet(f"""
         border: 1px solid {COLORS['border']};
         border-radius: 3px;
@@ -154,9 +157,11 @@ def build_param_slider(slot, param):
         default_idx = max(0, min(default_idx, steps_i - 1))
         
         btn = CycleButton(mode_labels, initial_index=default_idx)
+        btn.setObjectName(f"mod{slot.slot_id}_mode")  # DEBUG
         # Mode buttons need specific width to show text like "CLK", "FREE"
         mode_width = mt.get('mode_button_width', 48)
-        btn.setFixedSize(mode_width, 22)
+        mode_height = mt.get('mode_button_height', 22)
+        btn.setFixedSize(mode_width, mode_height)  # FIXED: uses theme values
         btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         btn.setStyleSheet(button_style('submenu'))
         btn.setToolTip(tooltip)
@@ -172,8 +177,8 @@ def build_param_slider(slot, param):
     else:
         # Standard slider for continuous params
         slider = DragSlider()
-        slider.setFixedWidth(25)
-        slider.setFixedHeight(60)
+        slider.setFixedWidth(mt.get('slider_width', 25))   # FIXED: uses theme value
+        slider.setFixedHeight(mt.get('slider_height', 60))  # FIXED: uses theme value
         slider.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         default = param.get('default', 0.5)
         slider.setValue(int(default * 1000))
@@ -203,10 +208,13 @@ def build_output_row(slot, output_idx, label, output_config):
     
     row_widgets = {'label': out_label}
     
+    btn_height = mt.get('output_button_height', 20)
+    
     if output_config == "waveform_phase":
         # LFO: waveform + phase + polarity
         wave_btn = CycleButton(MOD_LFO_WAVEFORMS, initial_index=0)
-        wave_btn.setFixedSize(40, 20)
+        wave_btn.setObjectName(f"mod{slot.slot_id}_wave{output_idx}")  # DEBUG
+        wave_btn.setFixedSize(mt.get('wave_button_width', 40), btn_height)  # FIXED: theme values
         wave_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         wave_btn.setStyleSheet(button_style('submenu'))
         wave_btn.setToolTip("Waveform: Saw/Tri/Sqr/Sin/S&H")
@@ -222,7 +230,8 @@ def build_output_row(slot, output_idx, label, output_config):
         default_phase_indices = [0, 3, 5]
         phase_labels = [f"{p}°" for p in MOD_LFO_PHASES]
         phase_btn = CycleButton(phase_labels, initial_index=default_phase_indices[output_idx])
-        phase_btn.setFixedSize(38, 20)
+        phase_btn.setObjectName(f"mod{slot.slot_id}_phase{output_idx}")  # DEBUG
+        phase_btn.setFixedSize(mt.get('phase_button_width', 38), btn_height)  # FIXED: theme values
         phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         phase_btn.setStyleSheet(button_style('submenu'))
         phase_btn.setToolTip("Phase offset: 0°-315° in 45° steps")
@@ -236,7 +245,8 @@ def build_output_row(slot, output_idx, label, output_config):
     
     # Polarity button (all generators)
     pol_btn = CycleButton(MOD_POLARITY, initial_index=1)  # Default BI
-    pol_btn.setFixedSize(28, 20)
+    pol_btn.setObjectName(f"mod{slot.slot_id}_pol{output_idx}")  # DEBUG
+    pol_btn.setFixedSize(mt.get('pol_button_width', 28), btn_height)  # FIXED: theme values
     pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
     pol_btn.setStyleSheet(button_style('submenu'))
     pol_btn.setToolTip("Polarity: UNI (0→1) / BI (-1→+1)")

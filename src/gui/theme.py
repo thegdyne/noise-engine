@@ -544,7 +544,8 @@ GENERATOR_THEME = {
     
     # Header layout
     'header_inset_left': 14,       # left margin for GEN label
-    'header_inset_right': 6,      # right margin - gives breathing room
+    'header_inset_right': 0,      # flush with edge
+    'header_type_offset_right': 4,  # extra right shift for type selector only
     'header_selector_text_pad': 4, # internal text padding for selector
     'header_overlay_height': 24,  # reserved space at top of content for header overlay
     'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
@@ -552,7 +553,7 @@ GENERATOR_THEME = {
     
     # Header
     'header_spacing': 4,
-    'header_type_width': 40,      # matches button_strip_width
+    'header_type_width': 70,      # FIXED: wider for long names like "Subtractive"
     'header_type_height': 20,     # shorter height
     
     # GeneratorFrame (inner container for sliders + buttons)
@@ -560,7 +561,7 @@ GENERATOR_THEME = {
     'frame_border': get('border_mid'),
     'frame_border_width': 1,
     'frame_border_radius': 4,
-    'frame_padding': (3, 3, 3, 3),  # tighter padding
+    'frame_padding': (3, 3, 3, 3),  # frame internal padding
     
     # Slider section
     'slider_column_width': 22,    # width of each label+slider column
@@ -667,8 +668,17 @@ MODULATOR_THEME = {
     # Param columns / spacing
     'slider_column_width': 26,
     'mode_button_width': 48,          # wider for text like "FREE", "CLK"
+    'mode_button_height': 22,
     'slider_row_spacing': 8,          # horizontal gap between columns
     'slider_section_margins': (0, 4, 0, 4),
+    'slider_width': 25,
+    'slider_height': 60,
+    
+    # Output row buttons
+    'output_button_height': 20,
+    'wave_button_width': 40,
+    'phase_button_width': 38,
+    'pol_button_width': 28,
     
     # Output labels
     'output_label_font': MONO_FONT,

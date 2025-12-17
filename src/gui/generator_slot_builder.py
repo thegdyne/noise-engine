@@ -35,6 +35,7 @@ def build_generator_header(slot):
     header.setContentsMargins(l, 0, r, 0)
     
     slot.id_label = QLabel(f"GEN {slot.slot_id}")
+    slot.id_label.setObjectName(f"gen{slot.slot_id}_label")  # DEBUG
     slot.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
     slot.id_label.setStyleSheet(f"color: {COLORS['text']};")
     slot.id_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -45,17 +46,20 @@ def build_generator_header(slot):
     header.addStretch(1)
     
     # Container to clip overflow
+    type_offset = gt.get('header_type_offset_right', 0)
     btn_container = QFrame()
     btn_container.setFixedWidth(gt.get('header_type_width', 75))
     btn_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     btn_container.setStyleSheet("background: transparent; border: none;")
     btn_layout = QHBoxLayout(btn_container)
-    btn_layout.setContentsMargins(0, 0, 0, 0)
+    # Negative right margin shifts content past container edge
+    btn_layout.setContentsMargins(0, 0, -type_offset, 0)
     btn_layout.setSpacing(0)
     
     # Generator type selector
     initial_index = GENERATOR_CYCLE.index(slot.generator_type) if slot.generator_type in GENERATOR_CYCLE else 0
     slot.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
+    slot.type_btn.setObjectName(f"gen{slot.slot_id}_type")  # DEBUG: shows in overlay
     slot.type_btn.wrap = True
     slot.type_btn.sensitivity_key = 'generator'
     slot.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
@@ -208,6 +212,7 @@ def build_generator_button_strip(slot):
         
         if btn_key == 'filter':
             slot.filter_btn = CycleButton(FILTER_TYPES, initial_index=0)
+            slot.filter_btn.setObjectName(f"gen{slot.slot_id}_filter")  # DEBUG
             btn = slot.filter_btn
             btn.setFixedSize(btn_width, btn_height)
             btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
@@ -218,6 +223,7 @@ def build_generator_button_strip(slot):
             
         elif btn_key == 'env':
             slot.env_btn = CycleButton(ENV_SOURCES, initial_index=0)
+            slot.env_btn.setObjectName(f"gen{slot.slot_id}_env")  # DEBUG
             btn = slot.env_btn
             btn.setFixedSize(btn_width, btn_height)
             btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
@@ -228,6 +234,7 @@ def build_generator_button_strip(slot):
             
         elif btn_key == 'rate':
             slot.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
+            slot.rate_btn.setObjectName(f"gen{slot.slot_id}_rate")  # DEBUG
             btn = slot.rate_btn
             btn.setFixedSize(btn_width, btn_height)
             btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
@@ -238,6 +245,7 @@ def build_generator_button_strip(slot):
             
         elif btn_key == 'midi':
             slot.midi_btn = CycleButton(MIDI_CHANNELS, initial_index=0)
+            slot.midi_btn.setObjectName(f"gen{slot.slot_id}_midi")  # DEBUG
             btn = slot.midi_btn
             btn.setFixedSize(btn_width, btn_height)
             btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
@@ -247,6 +255,7 @@ def build_generator_button_strip(slot):
             
         elif btn_key == 'mute':
             slot.mute_btn = QPushButton("M")
+            slot.mute_btn.setObjectName(f"gen{slot.slot_id}_mute")  # DEBUG
             btn = slot.mute_btn
             btn.setFixedSize(btn_width, btn_height)
             btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
@@ -255,6 +264,7 @@ def build_generator_button_strip(slot):
             
         elif btn_key == 'gate':
             slot.gate_led = QLabel()
+            slot.gate_led.setObjectName(f"gen{slot.slot_id}_gate")  # DEBUG
             btn = slot.gate_led
             btn.setFixedSize(btn_width, btn_height)
             btn.setStyleSheet(gate_indicator_style(False))

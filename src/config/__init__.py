@@ -501,7 +501,6 @@ OSC_PATHS = {
     'fidelity_amount': '/noise/fidelity_amount',
     # Channel strip (mixer)
     'gen_volume': '/noise/gen/volume',
-    # Remove this line - gen_mute already exists with same path
     'gen_strip_solo': '/noise/gen/solo',
     'gen_gain': '/noise/gen/gain',  # Per-channel gain stage (0dB, +6dB, +12dB)
     'gen_pan': '/noise/gen/pan',  # Per-channel pan (-1=L, 0=center, 1=R)
