@@ -147,7 +147,7 @@ Empty generator = no synth, buses zeroed.
     };
     
     // Create mod group (runs before generators)
-    ~modGroup = Group.new(s, \addToHead);
+    ~modGroup = Group.after(~clockGroup);  // After clock for proper sync
     
     "  ✓ Mod slots ready (4 slots × 4 outputs)".postln;
 };

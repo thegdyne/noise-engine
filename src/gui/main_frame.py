@@ -813,19 +813,27 @@ class MainFrame(QMainWindow):
         base_real = map_value(slider_norm, param_config)
         
         # Sum up total amount and offset from all connections
-        # For bipolar, modulation swings from -amount to +amount
-        total_amount = 0.0
-        total_offset = 0.0
+        # Sum per-connection extrema respecting polarity mode
+        from src.gui.mod_routing_state import Polarity
+        
+        delta_min = 0.0
+        delta_max = 0.0
         
         for c in connections:
-            total_amount += c.effective_range  # depth * amount combined
-            total_offset += c.offset
-        
-        # Calculate delta at modulation extremes
-        # At signal = +1: delta = +amount + offset
-        # At signal = -1: delta = -amount + offset
-        delta_max = total_amount + total_offset
-        delta_min = -total_amount + total_offset
+            r = c.effective_range  # depth * amount
+            
+            if c.polarity == Polarity.BIPOLAR:
+                mn, mx = -r, +r
+            elif c.polarity == Polarity.UNI_POS:
+                mn, mx = 0.0, +r
+            else:  # Polarity.UNI_NEG
+                mn, mx = -r, 0.0
+            
+            mn += c.offset
+            mx += c.offset
+            
+            delta_min += mn
+            delta_max += mx
         
         # Apply modulation curve to get real value range
         if curve == 'exp' and oct_range > 0:

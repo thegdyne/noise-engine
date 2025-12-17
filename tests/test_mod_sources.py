@@ -66,7 +66,7 @@ class TestModConstants:
         assert "x4" in MOD_CLOCK_RATES
         
     def test_polarity(self):
-        """Polarity should be UNI and BI."""
+        """Polarity should be NORM and INV (invert)."""
         assert MOD_POLARITY == ["NORM", "INV"]
         
     def test_output_labels(self):
