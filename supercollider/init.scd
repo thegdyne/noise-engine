@@ -73,6 +73,10 @@ s.waitForBoot({
     (~basePath +/+ "core/mod_lfo.scd").load;
     (~basePath +/+ "core/mod_sloth.scd").load;
     
+    // Load mod routing/apply system
+    (~basePath +/+ "core/mod_apply.scd").load;
+    ~setupModApply.();
+    
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
     ~setupOSC.();
