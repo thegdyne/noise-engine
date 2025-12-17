@@ -23,7 +23,7 @@ Configuration:
 import os
 from PyQt5.QtWidgets import QWidget, QApplication, QShortcut
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QKeySequence
-from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtCore import Qt, QRect, QObject
 
 # Global flag
 DEBUG_LAYOUT = os.environ.get('DEBUG_LAYOUT', '0') == '1'
@@ -52,7 +52,7 @@ class DebugClickFilter:
             app.removeEventFilter(self._filter)
 
 
-class _ClickEventFilter(QWidget):
+class _ClickEventFilter(QObject):
     """Actual event filter implementation."""
     
     def __init__(self):
@@ -114,6 +114,17 @@ DEBUG_COLORS = {
 
 # Red border for fixed-size widgets
 FIXED_SIZE_COLOR = QColor(255, 0, 0, 200)
+
+# QSizePolicy enum values to readable names
+SIZE_POLICY_NAMES = {
+    0: 'Fixed', 
+    1: 'Min', 
+    3: 'Ignored',
+    4: 'Max', 
+    5: 'Pref', 
+    7: 'Expand', 
+    13: 'MinExp'
+}
 
 # Store original paintEvent methods
 _original_paint_events = {}
@@ -294,9 +305,8 @@ def dump_layout(w, indent=0):
     """
     prefix = "  " * indent
     sp = w.sizePolicy()
-    h_policies = {0: 'Fixed', 1: 'Min', 4: 'Max', 5: 'Pref', 7: 'Expand', 13: 'MinExp', 3: 'Ignored'}
-    h_str = h_policies.get(sp.horizontalPolicy(), str(sp.horizontalPolicy()))
-    v_str = h_policies.get(sp.verticalPolicy(), str(sp.verticalPolicy()))
+    h_str = SIZE_POLICY_NAMES.get(sp.horizontalPolicy(), str(sp.horizontalPolicy()))
+    v_str = SIZE_POLICY_NAMES.get(sp.verticalPolicy(), str(sp.verticalPolicy()))
     
     name = w.objectName() or w.__class__.__name__
     geo = w.geometry()
@@ -355,9 +365,8 @@ def log_size_constraints(widget, label=""):
     geo = widget.geometry()
     policy = widget.sizePolicy()
     
-    h_policies = {0: 'Fixed', 1: 'Min', 4: 'Max', 5: 'Preferred', 7: 'Expanding', 13: 'MinExp', 3: 'Ignored'}
-    h_str = h_policies.get(policy.horizontalPolicy(), str(policy.horizontalPolicy()))
-    v_str = h_policies.get(policy.verticalPolicy(), str(policy.verticalPolicy()))
+    h_str = SIZE_POLICY_NAMES.get(policy.horizontalPolicy(), str(policy.horizontalPolicy()))
+    v_str = SIZE_POLICY_NAMES.get(policy.verticalPolicy(), str(policy.verticalPolicy()))
     
     fixed_marker = " ⚠️FIXED" if has_fixed_size(widget) else ""
     print(f"[{label}] geo={geo.width()}x{geo.height()} hint={hint.width()}x{hint.height()} "

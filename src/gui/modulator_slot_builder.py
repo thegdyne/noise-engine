@@ -98,6 +98,7 @@ def build_modulator_scope(slot):
     from .mod_scope import ModScope
     mt = MODULATOR_THEME
     slot.scope = ModScope(history_length=100)
+    slot.scope.setObjectName(f"mod{slot.slot_id}_scope")  # DEBUG
     slot.scope.setFixedHeight(mt['scope_height'])  # FIXED: uses theme value
     slot.scope.setStyleSheet(f"""
         border: 1px solid {COLORS['border']};
