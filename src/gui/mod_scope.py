@@ -51,10 +51,10 @@ class ModScope(QWidget):
         
         # Trace colors from skin (with fallback for 4th)
         self.trace_colors = [
-            _hex_to_qcolor(COLORS.get('scope_trace_a', '#00ff00')),
-            _hex_to_qcolor(COLORS.get('scope_trace_b', '#ff6600')),
-            _hex_to_qcolor(COLORS.get('scope_trace_c', '#00ffff')),
-            _hex_to_qcolor(COLORS.get('scope_trace_d', '#ff00ff')),
+            _hex_to_qcolor(COLORS['scope_trace_a']),
+            _hex_to_qcolor(COLORS['scope_trace_b']),
+            _hex_to_qcolor(COLORS['scope_trace_c']),
+            _hex_to_qcolor(COLORS['scope_trace_d']),
         ]
         self.grid_color = _hex_to_qcolor(COLORS['scope_grid'])
         self.center_color = _hex_to_qcolor(COLORS['scope_center'])
