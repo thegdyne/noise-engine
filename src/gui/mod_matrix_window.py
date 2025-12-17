@@ -281,7 +281,7 @@ class ModMatrixWindow(QMainWindow):
         for conn in self.routing_state.get_all_connections():
             cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
             if cell:
-                cell.set_connection(True, conn.depth, conn.enabled)
+                cell.set_connection(True, conn.depth, conn.polarity.value)
     
     def _on_cell_clicked(self, bus: int, slot: int, param: str):
         """Handle cell left-click: toggle connection."""
@@ -299,8 +299,7 @@ class ModMatrixWindow(QMainWindow):
                 source_bus=bus,
                 target_slot=slot,
                 target_param=param,
-                depth=0.5,
-                enabled=True
+                depth=0.5
             )
             self.routing_state.add_connection(new_conn)
     
@@ -331,8 +330,7 @@ class ModMatrixWindow(QMainWindow):
                 source_bus=bus,
                 target_slot=slot,
                 target_param=param,
-                depth=0.5,
-                enabled=True
+                depth=0.5
             )
             self.routing_state.add_connection(conn)
         
@@ -356,9 +354,6 @@ class ModMatrixWindow(QMainWindow):
         popup.depth_changed.connect(
             lambda d, b=bus, s=slot, p=param: self._on_popup_depth_changed(b, s, p, d)
         )
-        popup.enable_toggled.connect(
-            lambda e, b=bus, s=slot, p=param: self._on_popup_enable_toggled(b, s, p, e)
-        )
         popup.remove_requested.connect(
             lambda b=bus, s=slot, p=param: self._on_popup_remove(b, s, p)
         )
@@ -375,10 +370,6 @@ class ModMatrixWindow(QMainWindow):
         """Handle depth change from popup."""
         self.routing_state.set_depth(bus, slot, param, depth)
     
-    def _on_popup_enable_toggled(self, bus: int, slot: int, param: str, enabled: bool):
-        """Handle enable toggle from popup."""
-        self.routing_state.set_enabled(bus, slot, param, enabled)
-    
     def _on_popup_remove(self, bus: int, slot: int, param: str):
         """Handle remove from popup."""
         self.routing_state.remove_connection(bus, slot, param)
@@ -387,7 +378,7 @@ class ModMatrixWindow(QMainWindow):
         """Update cell when connection added."""
         cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
         if cell:
-            cell.set_connection(True, conn.depth, conn.enabled)
+            cell.set_connection(True, conn.depth, conn.polarity.value)
     
     def _on_connection_removed(self, source_bus: int, target_slot: int, target_param: str):
         """Update cell when connection removed."""
@@ -396,10 +387,10 @@ class ModMatrixWindow(QMainWindow):
             cell.set_connection(False)
     
     def _on_connection_changed(self, conn: ModConnection):
-        """Update cell when connection depth/enabled changes."""
+        """Update cell when connection parameters change."""
         cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
         if cell:
-            cell.set_connection(True, conn.depth, conn.enabled)
+            cell.set_connection(True, conn.depth, conn.polarity.value)
     
     def _on_all_cleared(self):
         """Clear all cells when routing cleared."""
@@ -587,13 +578,12 @@ class ModMatrixWindow(QMainWindow):
                 source_bus=bus,
                 target_slot=slot,
                 target_param=param,
-                depth=depth,
-                enabled=True
+                depth=depth
             )
             self.routing_state.add_connection(new_conn)
     
     def _invert_selected_depth(self):
-        """Invert the depth sign for selected cell."""
+        """Toggle invert flag for selected cell."""
         key = self._get_selected_key()
         if not key:
             return
@@ -602,8 +592,7 @@ class ModMatrixWindow(QMainWindow):
         conn = self.routing_state.get_connection(bus, slot, param)
         
         if conn:
-            new_depth = -conn.depth
-            self.routing_state.set_depth(bus, slot, param, new_depth)
+            self.routing_state.set_invert(bus, slot, param, not conn.invert)
     
     def _clear_selection(self):
         """Clear selection visual."""

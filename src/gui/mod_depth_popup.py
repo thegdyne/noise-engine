@@ -2,11 +2,14 @@
 Mod Depth Popup
 Dialog for adjusting modulation connection depth.
 
+NOTE: This popup will be replaced in Phase 3 with a new design that includes
+amount, polarity, and invert controls.
+
 Shows:
 - Connection info header (e.g. "M1.A → G1 CUT")
-- Horizontal slider: -100% to +100%
+- Horizontal slider: 0% to 100%
 - Current value display
-- Buttons: Disable/Enable, Remove, Close
+- Buttons: Remove, Close
 """
 
 from PyQt5.QtWidgets import (
@@ -25,7 +28,6 @@ class ModDepthPopup(QDialog):
     
     # Signals
     depth_changed = pyqtSignal(float)      # New depth value
-    enable_toggled = pyqtSignal(bool)      # Enable/disable toggled
     remove_requested = pyqtSignal()        # Remove connection
     
     def __init__(self, connection: ModConnection, source_label: str, target_label: str, parent=None):
@@ -36,7 +38,7 @@ class ModDepthPopup(QDialog):
         self.target_label = target_label  # e.g. "G1 CUT"
         
         self.setWindowTitle("Mod Depth")
-        self.setFixedSize(320, 180)
+        self.setFixedSize(320, 160)
         self.setModal(False)  # Non-modal so user can hear changes
         
         # Dark theme
@@ -105,14 +107,14 @@ class ModDepthPopup(QDialog):
         slider_layout = QHBoxLayout()
         
         # Min label
-        min_label = QLabel("-100%")
+        min_label = QLabel("0%")
         min_label.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         min_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         slider_layout.addWidget(min_label)
         
-        # Slider: -100 to +100 (maps to -1.0 to +1.0)
+        # Slider: 0 to 100 (maps to 0.0 to 1.0)
         self.depth_slider = QSlider(Qt.Horizontal)
-        self.depth_slider.setRange(-100, 100)
+        self.depth_slider.setRange(0, 100)
         self.depth_slider.setValue(int(self.connection.depth * 100))
         self.depth_slider.setTickPosition(QSlider.TicksBelow)
         self.depth_slider.setTickInterval(25)
@@ -120,7 +122,7 @@ class ModDepthPopup(QDialog):
         slider_layout.addWidget(self.depth_slider, 1)
         
         # Max label
-        max_label = QLabel("+100%")
+        max_label = QLabel("100%")
         max_label.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         max_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         slider_layout.addWidget(max_label)
@@ -136,11 +138,6 @@ class ModDepthPopup(QDialog):
         # Buttons
         button_layout = QHBoxLayout()
         button_layout.setSpacing(8)
-        
-        # Enable/Disable button
-        self.enable_btn = QPushButton()
-        self.enable_btn.clicked.connect(self._on_enable_clicked)
-        button_layout.addWidget(self.enable_btn)
         
         # Remove button
         remove_btn = QPushButton("Remove")
@@ -166,25 +163,16 @@ class ModDepthPopup(QDialog):
         layout.addLayout(button_layout)
         
     def _update_display(self):
-        """Update value display and button states."""
+        """Update value display."""
         depth_pct = int(self.connection.depth * 100)
-        sign = "+" if depth_pct >= 0 else ""
-        self.value_label.setText(f"{sign}{depth_pct}%")
+        self.value_label.setText(f"{depth_pct}%")
         
         # Colour based on depth
         if self.connection.depth > 0:
-            color = COLORS['enabled']  # Green for positive
-        elif self.connection.depth < 0:
-            color = '#ff6600'  # Orange for inverted
+            color = COLORS['enabled']  # Green
         else:
             color = COLORS['text_dim']
         self.value_label.setStyleSheet(f"color: {color};")
-        
-        # Enable button text
-        if self.connection.enabled:
-            self.enable_btn.setText("Disable")
-        else:
-            self.enable_btn.setText("Enable")
             
     def _on_slider_changed(self, value: int):
         """Handle slider value change."""
@@ -192,12 +180,6 @@ class ModDepthPopup(QDialog):
         self.connection.depth = new_depth
         self._update_display()
         self.depth_changed.emit(new_depth)
-        
-    def _on_enable_clicked(self):
-        """Toggle enable state."""
-        self.connection.enabled = not self.connection.enabled
-        self._update_display()
-        self.enable_toggled.emit(self.connection.enabled)
         
     def _on_remove_clicked(self):
         """Request connection removal."""

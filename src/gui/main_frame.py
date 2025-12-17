@@ -699,7 +699,6 @@ class MainFrame(QMainWindow):
         self.mod_routing.connection_added.connect(self._on_mod_route_added)
         self.mod_routing.connection_removed.connect(self._on_mod_route_removed)
         self.mod_routing.connection_changed.connect(self._on_mod_route_changed)
-        self.mod_routing.enable_changed.connect(self._on_mod_route_enable_changed)
         self.mod_routing.all_cleared.connect(self._on_mod_routes_cleared)
     
     def _on_mod_route_added(self, conn):
@@ -707,9 +706,11 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_add'],
-                [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
+                [conn.source_bus, conn.target_slot, conn.target_param,
+                 conn.depth, conn.amount, conn.polarity.value, int(conn.invert)]
             )
-            logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} @ {conn.depth}", component="MOD")
+            logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} "
+                        f"(d={conn.depth}, a={conn.amount}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
         
         # Update slider visualization
         self._update_slider_mod_range(conn.target_slot, conn.target_param)
@@ -727,32 +728,14 @@ class MainFrame(QMainWindow):
         self._update_slider_mod_range(target_slot, target_param)
     
     def _on_mod_route_changed(self, conn):
-        """Send mod route depth change to SC."""
+        """Send mod route parameter change to SC."""
         if self.osc_connected:
-            # Only send depth update - enable state is handled separately
+            # Send all params via set message
             self.osc.client.send_message(
-                OSC_PATHS['mod_route_depth'],
-                [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
+                OSC_PATHS['mod_route_set'],
+                [conn.source_bus, conn.target_slot, conn.target_param,
+                 conn.depth, conn.amount, conn.polarity.value, int(conn.invert)]
             )
-        
-        # Update slider visualization
-        self._update_slider_mod_range(conn.target_slot, conn.target_param)
-    
-    def _on_mod_route_enable_changed(self, conn):
-        """Send mod route enable/disable to SC."""
-        if self.osc_connected:
-            if conn.enabled:
-                # Re-add route (will use current base value)
-                self.osc.client.send_message(
-                    OSC_PATHS['mod_route_add'],
-                    [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
-                )
-            else:
-                # Remove route
-                self.osc.client.send_message(
-                    OSC_PATHS['mod_route_remove'],
-                    [conn.source_bus, conn.target_slot, conn.target_param]
-                )
         
         # Update slider visualization
         self._update_slider_mod_range(conn.target_slot, conn.target_param)
@@ -767,33 +750,43 @@ class MainFrame(QMainWindow):
         
         slider = slot.sliders[param]
         
-        # Get all active connections to this param
+        # Get all connections to this param
         connections = self.mod_routing.get_connections_for_target(slot_id, param)
-        enabled_connections = [c for c in connections if c.enabled]
         
-        if not enabled_connections:
-            # No active modulation - clear visualization
+        if not connections:
+            # No modulation - clear visualization
             slider.clear_modulation()
             return
         
-        # Calculate combined modulation range (sum of all depths)
+        # Calculate combined modulation range using up/down aggregation
+        # This handles mixed polarities correctly
+        from gui.mod_routing_state import Polarity
+        
         base_value = slider.value() / 1000.0  # Normalized 0-1
         
-        # Sum absolute depths for total range
-        # Each depth contributes ±(depth * 0.5) to the range
-        total_depth = sum(abs(c.depth) for c in enabled_connections)
-        half_range = total_depth * 0.5
+        up_range = 0.0
+        down_range = 0.0
         
-        mod_min = max(0, base_value - half_range)
-        mod_max = min(1, base_value + half_range)
+        for c in connections:
+            effective = c.depth * c.amount
+            if c.polarity == Polarity.BIPOLAR:
+                up_range += effective
+                down_range += effective
+            elif c.polarity == Polarity.UNI_POS:
+                up_range += effective
+            elif c.polarity == Polarity.UNI_NEG:
+                down_range += effective
+        
+        mod_min = max(0, base_value - down_range)
+        mod_max = min(1, base_value + up_range)
         
         # Get color: mixed if multiple sources, else based on first source type
-        if len(enabled_connections) > 1:
+        if len(connections) > 1:
             # Multiple sources - use cyan to indicate mixed
             color = QColor('#00cccc')
         else:
             # Single source - color by type
-            conn = enabled_connections[0]
+            conn = connections[0]
             mod_slot = conn.source_bus // 4 + 1
             source_slot = self.modulator_grid.get_slot(mod_slot)
             if source_slot and source_slot.generator_name == 'Sloth':
@@ -813,11 +806,11 @@ class MainFrame(QMainWindow):
         if not self.osc_connected:
             return
         for conn in self.mod_routing.get_all_connections():
-            if conn.enabled:
-                self.osc.client.send_message(
-                    OSC_PATHS['mod_route_add'],
-                    [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
-                )
+            self.osc.client.send_message(
+                OSC_PATHS['mod_route_add'],
+                [conn.source_bus, conn.target_slot, conn.target_param,
+                 conn.depth, conn.amount, conn.polarity.value, int(conn.invert)]
+            )
         logger.debug(f"Synced {len(self.mod_routing)} mod routes to SC", component="MOD")
     
     def _open_mod_matrix(self):

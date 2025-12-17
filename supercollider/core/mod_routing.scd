@@ -1,29 +1,51 @@
 /*
 Mod Routing OSC Handlers
-Receives routing commands from Python and applies them via mod_apply.scd
+Receives routing commands from Python and applies them via mod_apply_v2.scd
 
 OSC Paths:
-  /noise/mod/route/add     [source_bus, slot, param, depth]
+  /noise/mod/route/add     [source_bus, slot, param, depth, amount, polarity, invert]
+  /noise/mod/route/set     [source_bus, slot, param, depth, amount, polarity, invert]
   /noise/mod/route/remove  [source_bus, slot, param]
-  /noise/mod/route/depth   [source_bus, slot, param, depth]
-  /noise/mod/route/enable  [source_bus, slot, param, enabled]
 
-Depends on: mod_apply.scd (~addModRoute, ~removeModRoute, ~setModRouteDepth)
+Parameters:
+  depth: 0.0-1.0 (range width)
+  amount: 0.0-1.0 (VCA level)
+  polarity: 0=bipolar, 1=uni+, 2=uni-
+  invert: 0=normal, 1=inverted
+
+Depends on: mod_apply_v2.scd (~addModRoute, ~removeModRoute, ~setModRoute)
 */
 
 ~setupModRouting = {
     "Setting up mod routing OSC handlers...".postln;
     
-    // Add a mod route: source_bus → slot.param @ depth
+    // Add a mod route: source_bus → slot.param with full params
     OSCdef(\modRouteAdd, { |msg|
         var sourceBus = msg[1].asInteger;
         var targetSlot = msg[2].asInteger;
         var targetParam = msg[3].asString;
         var depth = msg[4].asFloat;
+        var amount = msg[5].asFloat;
+        var polarity = msg[6].asInteger;
+        var invert = msg[7].asInteger;
         
-        ("OSC: Add route bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++ " @ " ++ depth).postln;
-        ~addModRoute.(sourceBus, targetSlot, targetParam.asSymbol, depth);
+        ("OSC: Add route bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++
+         " [d=" ++ depth ++ ", a=" ++ amount ++ ", p=" ++ polarity ++ ", i=" ++ invert ++ "]").postln;
+        ~addModRoute.(sourceBus, targetSlot, targetParam.asSymbol, depth, amount, polarity, invert);
     }, '/noise/mod/route/add');
+    
+    // Set/update mod route params (creates if doesn't exist)
+    OSCdef(\modRouteSet, { |msg|
+        var sourceBus = msg[1].asInteger;
+        var targetSlot = msg[2].asInteger;
+        var targetParam = msg[3].asString;
+        var depth = msg[4].asFloat;
+        var amount = msg[5].asFloat;
+        var polarity = msg[6].asInteger;
+        var invert = msg[7].asInteger;
+        
+        ~setModRoute.(sourceBus, targetSlot, targetParam.asSymbol, depth, amount, polarity, invert);
+    }, '/noise/mod/route/set');
     
     // Remove a mod route
     OSCdef(\modRouteRemove, { |msg|
@@ -34,42 +56,6 @@ Depends on: mod_apply.scd (~addModRoute, ~removeModRoute, ~setModRouteDepth)
         ("OSC: Remove route bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam).postln;
         ~removeModRoute.(sourceBus, targetSlot, targetParam.asSymbol);
     }, '/noise/mod/route/remove');
-    
-    // Update route depth
-    OSCdef(\modRouteDepth, { |msg|
-        var sourceBus = msg[1].asInteger;
-        var targetSlot = msg[2].asInteger;
-        var targetParam = msg[3].asString;
-        var depth = msg[4].asFloat;
-        
-        ~setModRouteDepth.(sourceBus, targetSlot, targetParam.asSymbol, depth);
-    }, '/noise/mod/route/depth');
-    
-    // Enable/disable route (removes synth but keeps base value stored)
-    OSCdef(\modRouteEnable, { |msg|
-        var sourceBus = msg[1].asInteger;
-        var targetSlot = msg[2].asInteger;
-        var targetParam = msg[3].asString;
-        var enabled = msg[4].asInteger == 1;
-        
-        if(enabled) {
-            // Re-add with stored depth (default 0.5 if not found)
-            var key = "%_%_%".format(sourceBus, targetSlot, targetParam);
-            var depth = ~modRouteDepths[key] ?? 0.5;
-            ~addModRoute.(sourceBus, targetSlot, targetParam.asSymbol, depth);
-        } {
-            // Store depth before removing
-            var key = "%_%_%".format(sourceBus, targetSlot, targetParam);
-            var synth = ~modRouteSynths[key];
-            if(synth.notNil) {
-                // We can't easily read depth back, so just remove
-                ~removeModRoute.(sourceBus, targetSlot, targetParam.asSymbol);
-            };
-        };
-    }, '/noise/mod/route/enable');
-    
-    // Storage for depths when disabled (to restore on re-enable)
-    ~modRouteDepths = Dictionary.new;
     
     "  ✓ Mod routing OSC handlers ready".postln;
 };
