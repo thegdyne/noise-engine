@@ -124,6 +124,7 @@ class DragSlider(QSlider):
         """
         self._mod_current = norm_value
         self.update()
+        self.repaint()  # Force immediate repaint
     
     def clear_modulation(self):
         """Clear modulation visualization."""
@@ -226,11 +227,11 @@ class DragSlider(QSlider):
             # Draw current modulated value indicator (animated line)
             if self._mod_current is not None:
                 current_y = norm_to_y(self._mod_current)
-                indicator_color = QColor(self._mod_color)
-                painter.setPen(QPen(indicator_color, 3))
+                # Bright white indicator for visibility
+                painter.setPen(QPen(QColor('#ffffff'), 4))
                 painter.drawLine(
-                    groove_x - 4, int(current_y),
-                    groove_x + groove_width + 4, int(current_y)
+                    groove_x - 6, int(current_y),
+                    groove_x + groove_width + 6, int(current_y)
                 )
             
             painter.end()

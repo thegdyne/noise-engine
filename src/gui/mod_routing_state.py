@@ -3,8 +3,8 @@ Mod Routing State
 Data model for modulation connections between mod buses and generator parameters.
 
 Each connection routes a mod bus output to a generator parameter with:
-- depth: max range width (0-1)
-- amount: VCA level (0-1)
+- amount: modulation range width (0-1)
+- offset: shifts mod range up/down (-1 to +1)
 - polarity: bipolar/uni+/uni-
 - invert: flip mod signal before polarity
 """
@@ -28,8 +28,8 @@ class ModConnection:
     source_bus: int       # 0-15 (4 slots × 4 outputs)
     target_slot: int      # 1-8 (generator slot)
     target_param: str     # 'cutoff', 'frequency', 'resonance', etc.
-    depth: float = 0.5    # 0.0 to 1.0 (range width)
-    amount: float = 1.0   # 0.0 to 1.0 (VCA level)
+    depth: float = 1.0    # Always 1.0 (kept for SC compat, not user-facing)
+    amount: float = 0.5   # 0.0 to 1.0 (modulation range)
     offset: float = 0.0   # -1.0 to 1.0 (shifts mod range up/down)
     polarity: Polarity = Polarity.BIPOLAR
     invert: bool = False  # Flip signal before polarity

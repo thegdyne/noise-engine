@@ -753,7 +753,13 @@ class MainFrame(QMainWindow):
         from PyQt5.QtGui import QColor
         
         slot = self.generator_grid.get_slot(slot_id)
-        if not slot or param not in slot.sliders:
+        if not slot:
+            return
+        
+        if not hasattr(slot, 'sliders'):
+            return
+            
+        if param not in slot.sliders:
             return
         
         slider = slot.sliders[param]
@@ -766,69 +772,34 @@ class MainFrame(QMainWindow):
             slider.clear_modulation()
             return
         
-        # Calculate combined modulation ranges:
-        # - Outer (depth): maximum possible modulation range
-        # - Inner (depth × amount): actual current modulation range
+        # Calculate modulation range from amount and offset
+        # Always bipolar (symmetric around center)
         
         base_value = slider.value() / 1000.0  # Normalized 0-1
         
-        # Outer range (depth only)
-        outer_up = 0.0
-        outer_down = 0.0
-        
-        # Inner range (depth × amount)
-        inner_up = 0.0
-        inner_down = 0.0
-        
+        total_amount = 0.0
         total_offset = 0.0
         
         for c in connections:
-            depth_only = c.depth
-            effective = c.depth * c.amount
+            total_amount += c.amount
             total_offset += c.offset
-            
-            if c.polarity == Polarity.BIPOLAR:
-                outer_up += depth_only
-                outer_down += depth_only
-                inner_up += effective
-                inner_down += effective
-            elif c.polarity == Polarity.UNI_POS:
-                outer_up += depth_only
-                inner_up += effective
-            elif c.polarity == Polarity.UNI_NEG:
-                outer_down += depth_only
-                inner_down += effective
         
         # Apply offset to the center point
         center = base_value + total_offset
         
-        # Calculate outer range (depth)
-        outer_unclipped_min = center - outer_down
-        outer_unclipped_max = center + outer_up
+        # Calculate range (symmetric/bipolar)
+        unclipped_min = center - total_amount
+        unclipped_max = center + total_amount
         
-        if outer_unclipped_max <= 0.0:
-            outer_min = 0.0
-            outer_max = 0.0
-        elif outer_unclipped_min >= 1.0:
-            outer_min = 1.0
-            outer_max = 1.0
+        if unclipped_max <= 0.0:
+            range_min = 0.0
+            range_max = 0.0
+        elif unclipped_min >= 1.0:
+            range_min = 1.0
+            range_max = 1.0
         else:
-            outer_min = max(0.0, outer_unclipped_min)
-            outer_max = min(1.0, outer_unclipped_max)
-        
-        # Calculate inner range (depth × amount)
-        inner_unclipped_min = center - inner_down
-        inner_unclipped_max = center + inner_up
-        
-        if inner_unclipped_max <= 0.0:
-            inner_min = 0.0
-            inner_max = 0.0
-        elif inner_unclipped_min >= 1.0:
-            inner_min = 1.0
-            inner_max = 1.0
-        else:
-            inner_min = max(0.0, inner_unclipped_min)
-            inner_max = min(1.0, inner_unclipped_max)
+            range_min = max(0.0, unclipped_min)
+            range_max = min(1.0, unclipped_max)
         
         # Get color: mixed if multiple sources, else based on first source type
         if len(connections) > 1:
@@ -844,7 +815,8 @@ class MainFrame(QMainWindow):
             else:
                 color = QColor('#00ff66')  # Green
         
-        slider.set_modulation_range(outer_min, outer_max, inner_min, inner_max, color)
+        # Pass same values for outer and inner (single bracket pair now)
+        slider.set_modulation_range(range_min, range_max, range_min, range_max, color)
     
     def _on_mod_routes_cleared(self):
         """Handle all routes cleared - clear all slider brackets."""

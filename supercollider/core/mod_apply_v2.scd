@@ -287,7 +287,7 @@ Mapped-space modulation:
     // ========================================
     
     ~modValueStreamAddr = NetAddr("127.0.0.1", 57121);
-    ~modValueStreamRate = 20;  // fps
+    ~modValueStreamRate = 30;  // fps (bumped from 20)
     
     ~startModValueStream = {
         if(~modValueStreamRoutine.notNil) {
