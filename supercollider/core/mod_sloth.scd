@@ -71,17 +71,19 @@ SynthDef(\modSloth, {
     r = r * 2;  // Scale up for more prominent gate
     r = r.clip(0, 1);
     
-    // Scale to 0-1 range (unipolar base)
-    sigX = x * 0.5 + 0.5;
-    sigY = y * 0.5 + 0.5;
-    sigZ = z * 0.5 + 0.5;
-    sigR = r;  // Already 0-1
+    // Always output -1 to +1 (true bipolar)
+    // x, y, z are already -1 to +1
+    // r needs conversion from 0-1
+    sigX = x;
+    sigY = y;
+    sigZ = z;
+    sigR = r * 2 - 1;
     
-    // Apply polarity: 0=UNI (0 to 1), 1=BI (-1 to +1)
-    sigX = Select.kr(polarityX, [sigX, x]);
-    sigY = Select.kr(polarityY, [sigY, y]);
-    sigZ = Select.kr(polarityZ, [sigZ, z]);
-    sigR = Select.kr(polarityR, [sigR, r * 2 - 1]);
+    // Polarity button now controls invert: 0=normal, 1=inverted
+    sigX = Select.kr(polarityX, [sigX, sigX.neg]);
+    sigY = Select.kr(polarityY, [sigY, sigY.neg]);
+    sigZ = Select.kr(polarityZ, [sigZ, sigZ.neg]);
+    sigR = Select.kr(polarityR, [sigR, sigR.neg]);
     
     // Output to control buses
     Out.kr(outX, sigX);

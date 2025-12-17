@@ -191,11 +191,17 @@ SynthDef(\modLFO, {
     sigC = makeWave.(pC, waveC, shape, sah);
     sigD = makeWave.(pD, waveD, shape, sah);
     
-    // Apply polarity: 0=UNI (0 to 1), 1=BI (-1 to +1)
-    sigA = Select.kr(polarityA, [sigA, sigA * 2 - 1]);
-    sigB = Select.kr(polarityB, [sigB, sigB * 2 - 1]);
-    sigC = Select.kr(polarityC, [sigC, sigC * 2 - 1]);
-    sigD = Select.kr(polarityD, [sigD, sigD * 2 - 1]);
+    // Always output -1 to +1 (true bipolar)
+    // Polarity button now controls invert: 0=normal, 1=inverted
+    sigA = sigA * 2 - 1;
+    sigB = sigB * 2 - 1;
+    sigC = sigC * 2 - 1;
+    sigD = sigD * 2 - 1;
+    
+    sigA = Select.kr(polarityA, [sigA, sigA.neg]);
+    sigB = Select.kr(polarityB, [sigB, sigB.neg]);
+    sigC = Select.kr(polarityC, [sigC, sigC.neg]);
+    sigD = Select.kr(polarityD, [sigD, sigD.neg]);
     
     // Output to control buses
     Out.kr(outA, sigA);

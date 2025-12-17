@@ -27,7 +27,7 @@ from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
     CLOCK_RATE_INDEX, FILTER_TYPE_INDEX, GENERATORS, GENERATOR_CYCLE,
-    BPM_DEFAULT, OSC_PATHS
+    BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
 )
 from src.utils.logger import logger
 
@@ -685,13 +685,17 @@ class MainFrame(QMainWindow):
         """Handle batched modulated parameter values from SC - update sliders.
         
         Args:
-            values: List of (slot, param, norm_value) tuples
+            values: List of (slot, param, raw_value) tuples where raw_value is
+                    the actual mapped parameter value (Hz, seconds, etc.)
         """
-        for slot_id, param, norm_value in values:
+        for slot_id, param, raw_value in values:
             slot = self.generator_grid.get_slot(slot_id)
             if slot:
                 slider = self._get_slot_slider(slot, param)
                 if slider:
+                    # Convert raw mapped value to normalized 0-1 for slider display
+                    param_config = get_param_config(param)
+                    norm_value = unmap_value(raw_value, param_config)
                     slider.set_modulated_value(norm_value)
         
     def _flush_mod_scopes(self):
@@ -772,8 +776,14 @@ class MainFrame(QMainWindow):
         return None
     
     def _update_slider_mod_range(self, slot_id, param):
-        """Update slider modulation range visualization based on active connections."""
+        """Update slider modulation range visualization based on active connections.
+        
+        Computes modulation range in real parameter units using the same math as SC,
+        then unmaps back to 0-1 slider space for display.
+        """
         from PyQt5.QtGui import QColor
+        from src.config import map_value
+        import math
         
         slot = self.generator_grid.get_slot(slot_id)
         if not slot:
@@ -791,34 +801,57 @@ class MainFrame(QMainWindow):
             slider.clear_modulation()
             return
         
-        # Calculate modulation range from amount and offset
-        # Always bipolar (symmetric around center)
+        # Get param config for this parameter
+        param_config = get_param_config(param)
+        min_val = param_config.get('min', 0.0)
+        max_val = param_config.get('max', 1.0)
+        curve = param_config.get('curve', 'lin')
+        oct_range = param_config.get('oct_range', 0)
         
-        base_value = slider.value() / 1000.0  # Normalized 0-1
+        # Get current slider position and convert to real value
+        slider_norm = slider.value() / 1000.0  # Normalized 0-1
+        base_real = map_value(slider_norm, param_config)
         
+        # Sum up total amount and offset from all connections
+        # For bipolar, modulation swings from -amount to +amount
         total_amount = 0.0
         total_offset = 0.0
         
         for c in connections:
-            total_amount += c.amount
+            total_amount += c.effective_range  # depth * amount combined
             total_offset += c.offset
         
-        # Apply offset to the center point
-        center = base_value + total_offset
+        # Calculate delta at modulation extremes
+        # At signal = +1: delta = +amount + offset
+        # At signal = -1: delta = -amount + offset
+        delta_max = total_amount + total_offset
+        delta_min = -total_amount + total_offset
         
-        # Calculate range (symmetric/bipolar)
-        unclipped_min = center - total_amount
-        unclipped_max = center + total_amount
-        
-        if unclipped_max <= 0.0:
-            range_min = 0.0
-            range_max = 0.0
-        elif unclipped_min >= 1.0:
-            range_min = 1.0
-            range_max = 1.0
+        # Apply modulation curve to get real value range
+        if curve == 'exp' and oct_range > 0:
+            # Exponential: out = base * 2^(delta * octRange)
+            # Protect against invalid base values
+            if base_real <= 0:
+                base_real = min_val if min_val > 0 else 0.001
+            mod_max_real = base_real * math.pow(2, delta_max * oct_range)
+            mod_min_real = base_real * math.pow(2, delta_min * oct_range)
         else:
-            range_min = max(0.0, unclipped_min)
-            range_max = min(1.0, unclipped_max)
+            # Linear: out = base + delta * range
+            param_range = max_val - min_val
+            mod_max_real = base_real + delta_max * param_range
+            mod_min_real = base_real + delta_min * param_range
+        
+        # Clamp to param limits
+        mod_max_real = max(min_val, min(max_val, mod_max_real))
+        mod_min_real = max(min_val, min(max_val, mod_min_real))
+        
+        # Ensure min <= max
+        if mod_min_real > mod_max_real:
+            mod_min_real, mod_max_real = mod_max_real, mod_min_real
+        
+        # Unmap back to 0-1 slider space for display
+        range_min = unmap_value(mod_min_real, param_config)
+        range_max = unmap_value(mod_max_real, param_config)
         
         # Get color: mixed if multiple sources, else based on first source type
         if len(connections) > 1:

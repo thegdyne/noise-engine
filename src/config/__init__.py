@@ -21,28 +21,31 @@ GENERATOR_PARAMS = [
         'curve': 'exp',
         'unit': 'Hz',
         'invert': False,
+        'oct_range': 4,  # Modulation range in octaves
     },
     {
         'key': 'cutoff',
         'label': 'CUT',
         'tooltip': 'Filter Cutoff',
         'default': 1.0,  # Fully up = filter open
-        'min': 1.0,      # 1Hz - effectively closed
+        'min': 20.0,     # 20Hz - match SC
         'max': 16000.0,
         'curve': 'exp',
         'unit': 'Hz',
         'invert': False,
+        'oct_range': 4,  # Modulation range in octaves
     },
     {
         'key': 'resonance',
         'label': 'RES',
         'tooltip': 'Filter Resonance',
         'default': 0.0,  # Fully down = no resonance
-        'min': 0.001,    # Self-oscillation territory
+        'min': 0.1,      # Match SC
         'max': 1.0,
-        'curve': 'exp',  # Exponential - gets intense at top
+        'curve': 'lin',  # Linear to match SC modulation
         'unit': '',
         'invert': True,  # High slider = low rq = more resonance
+        'oct_range': 0,
     },
     {
         'key': 'attack',
@@ -50,23 +53,43 @@ GENERATOR_PARAMS = [
         'tooltip': 'VCA Attack',
         'default': 0.0,  # Snappiest
         'min': 0.0001,
-        'max': 0.5,
+        'max': 2.0,      # Match SC
         'curve': 'exp',
         'unit': 's',
         'invert': False,
+        'oct_range': 0,  # Linear modulation
     },
     {
         'key': 'decay',
         'label': 'DEC',
         'tooltip': 'VCA Decay',
         'default': 0.73,  # 1s
-        'min': 0.0001,    # 0.1ms - super snappy
-        'max': 30.0,      # 30 seconds - Maths-style range
+        'min': 0.01,      # Match SC
+        'max': 10.0,      # Match SC
         'curve': 'exp',
         'unit': 's',
         'invert': False,
+        'oct_range': 0,  # Linear modulation
     },
 ]
+
+# Build lookup dict for quick access
+GENERATOR_PARAMS_BY_KEY = {p['key']: p for p in GENERATOR_PARAMS}
+
+# Custom params (P1-P5) config for modulation
+CUSTOM_PARAM_CONFIG = {
+    'min': 0.0,
+    'max': 1.0,
+    'curve': 'lin',
+    'oct_range': 0,
+}
+
+
+def get_param_config(param_key):
+    """Get param config by key, including custom params."""
+    if param_key.startswith('p') and len(param_key) == 2 and param_key[1].isdigit():
+        return CUSTOM_PARAM_CONFIG
+    return GENERATOR_PARAMS_BY_KEY.get(param_key, CUSTOM_PARAM_CONFIG)
 
 
 def map_value(normalized, param):
@@ -112,6 +135,41 @@ def map_value(normalized, param):
         result = float(param.get('default', 0.5))
     
     return result
+
+
+def unmap_value(mapped, param):
+    """
+    Inverse of map_value: convert real parameter value back to normalized 0-1.
+    Used for displaying current modulated values on sliders.
+    """
+    min_val = param.get('min', 0.0)
+    max_val = param.get('max', 1.0)
+    
+    # Clamp to valid range
+    mapped = max(min_val, min(max_val, mapped))
+    
+    if param.get('curve', 'lin') == 'exp':
+        # Exponential: inverse is log
+        if min_val <= 0:
+            min_val = 0.001
+        if max_val <= min_val:
+            max_val = min_val * 1.001
+        if mapped <= 0:
+            mapped = min_val
+        # norm = log(mapped/min) / log(max/min)
+        normalized = math.log(mapped / min_val) / math.log(max_val / min_val)
+    else:
+        # Linear: inverse is simple
+        if max_val == min_val:
+            normalized = 0.5
+        else:
+            normalized = (mapped - min_val) / (max_val - min_val)
+    
+    # Apply invert (same as map_value, since it's symmetric)
+    if param.get('invert', False):
+        normalized = 1.0 - normalized
+    
+    return max(0.0, min(1.0, normalized))
 
 
 def format_value(value, param):

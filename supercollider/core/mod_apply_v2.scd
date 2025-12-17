@@ -29,14 +29,15 @@ Mapped-space modulation:
     ~modRoutes = Dictionary.new;
     
     // Parameter config: [minVal, maxVal, curve, octRange]
-    // curve: 0=linear, 1=exponential
-    // octRange: octaves of sweep for exp params (e.g. 4 = ±4 octaves at 100% depth)
+    // curve: 0=linear, 1=exponential (for modulation behavior)
+    // octRange: octaves of sweep for exp mod (e.g. 4 = ±4 octaves at 100% depth)
+    // MUST MATCH Python GENERATOR_PARAMS - Python is SSOT
     ~paramConfig = Dictionary.new;
-    ~paramConfig[\cutoff] = [20, 16000, 1, 4];      // exp, 4 octaves
-    ~paramConfig[\frequency] = [20, 8000, 1, 4];   // exp, 4 octaves
-    ~paramConfig[\resonance] = [0.1, 1.0, 0, 0];   // linear
-    ~paramConfig[\attack] = [0.0001, 2.0, 0, 0];   // linear
-    ~paramConfig[\decay] = [0.01, 10.0, 0, 0];     // linear
+    ~paramConfig[\cutoff] = [20, 16000, 1, 4];      // exp mod, 4 octaves
+    ~paramConfig[\frequency] = [20, 8000, 1, 4];    // exp mod, 4 octaves
+    ~paramConfig[\resonance] = [0.1, 1.0, 0, 0];    // linear mod
+    ~paramConfig[\attack] = [0.0001, 2.0, 0, 0];    // linear mod
+    ~paramConfig[\decay] = [0.01, 10.0, 0, 0];      // linear mod
     // Custom params (P1-P5) - linear 0-1
     ~paramConfig[\p1] = [0, 1, 0, 0];
     ~paramConfig[\p2] = [0, 1, 0, 0];
@@ -337,7 +338,7 @@ Mapped-space modulation:
                 
                 // Collect values for all destinations with active routes
                 ~modRoutes.keysValuesDo { |destKey, routes|
-                    var parts, targetSlot, targetParam, paramBus, currentVal, config, normVal;
+                    var parts, targetSlot, targetParam, paramBus, currentVal;
                     
                     if(routes.notNil and: { routes.any({ |x| x.notNil }) }) {
                         parts = destKey.asString.split($_);
@@ -346,16 +347,13 @@ Mapped-space modulation:
                             targetParam = parts[1].asSymbol;
                             
                             paramBus = ~getParamBus.(targetSlot, targetParam);
-                            config = ~paramConfig[targetParam] ?? [0, 1, 0, 4];
                             
                             if(paramBus.notNil) {
                                 currentVal = paramBus.getSynchronous;
                                 
-                                // Normalize to 0-1 for UI
-                                normVal = (currentVal - config[0]) / (config[1] - config[0]);
-                                normVal = normVal.clip(0, 1);
-                                
-                                messages.add([targetSlot, targetParam.asString, normVal]);
+                                // Send raw mapped value - Python will unmap to 0-1
+                                // This keeps Python as SSOT for mapping/unmapping logic
+                                messages.add([targetSlot, targetParam.asString, currentVal]);
                             };
                         };
                     };
