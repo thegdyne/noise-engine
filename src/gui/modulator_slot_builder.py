@@ -255,7 +255,7 @@ def build_output_row(slot, output_idx, label, output_config):
     pol_btn.setFixedSize(mt.get('pol_button_width', 28), btn_height)  # FIXED: theme values
     pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
     pol_btn.setStyleSheet(button_style('submenu'))
-    pol_btn.setToolTip("Polarity: UNI (0→1) / BI (-1→+1)")
+    pol_btn.setToolTip("Invert: NORM (original) / INV (flipped)")
     pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
     pol_btn.text_padding_lr = 2
     pol_btn.value_changed.connect(

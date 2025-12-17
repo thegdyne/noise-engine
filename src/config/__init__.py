@@ -458,8 +458,8 @@ MOD_CLOCK_TICKS_PER_QUARTER = 32  # Derived from x32 clock
 MOD_CLOCK_TICKS_PER_CYCLE = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
 
 # Polarity options
-MOD_POLARITY = ["UNI", "BI"]
-MOD_POLARITY_INDEX = {"UNI": 0, "BI": 1}
+MOD_POLARITY = ["NORM", "INV"]
+MOD_POLARITY_INDEX = {"NORM": 0, "INV": 1}
 
 # Output labels by generator type (4 outputs each)
 MOD_OUTPUT_LABELS = {
@@ -490,7 +490,7 @@ def _load_mod_generator_configs():
             "synthdef": None,
             "custom_params": [],
             "output_config": "fixed",
-            "outputs": ["A", "B", "C"]
+            "outputs": ["A", "B", "C", "D"]
         }
     }
     
@@ -516,7 +516,7 @@ def _load_mod_generator_configs():
                         "synthdef": config.get('synthdef'),
                         "custom_params": config.get('custom_params', []),
                         "output_config": config.get('output_config', 'fixed'),
-                        "outputs": config.get('outputs', ['A', 'B', 'C'])
+                        "outputs": config.get('outputs', ['A', 'B', 'C', 'D'])
                     }
         except UnicodeDecodeError as e:
             if logger:

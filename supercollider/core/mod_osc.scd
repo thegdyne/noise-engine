@@ -81,7 +81,7 @@ Paths:
     
     // Scope streaming routine (~30fps)
     ~modScopeRoutine = Routine({
-        var netAddr = NetAddr("127.0.0.1", ~pythonListenPort);
+        var netAddr = ~pythonAddr;
         
         loop {
             4.do { |idx|
