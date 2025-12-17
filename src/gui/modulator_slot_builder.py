@@ -248,7 +248,7 @@ def build_output_row(slot, output_idx, label, output_config):
             row_widgets['phase'] = phase_btn
     
     # Polarity button (all generators)
-    # Default: BI for most, UNI for R output (Sloth gate)
+    # Default: NORM (non-inverted) for all outputs
     default_polarity = 0  # NORM by default
     pol_btn = CycleButton(MOD_POLARITY, initial_index=default_polarity)
     pol_btn.setObjectName(f"mod{slot.slot_id}_pol{output_idx}")  # DEBUG

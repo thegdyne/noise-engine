@@ -29,7 +29,7 @@ class TestModConstants:
         assert MOD_SLOT_COUNT == 4
         
     def test_outputs_per_slot(self):
-        """Should have 3 outputs per slot."""
+        """Should have 4 outputs per slot (quadrature)."""
         assert MOD_OUTPUTS_PER_SLOT == 4
         
     def test_bus_count_ssot(self):
