@@ -230,23 +230,36 @@ def _load_generator_configs():
         return
     
     for filename in os.listdir(generators_dir):
-        if filename.endswith('.json'):
-            filepath = os.path.join(generators_dir, filename)
-            try:
-                with open(filepath, 'r') as f:
-                    config = json.load(f)
-                    name = config.get('name')
-                    if name:
-                        _GENERATOR_CONFIGS[name] = {
-                            "synthdef": config.get('synthdef'),
-                            "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
-                            "pitch_target": config.get('pitch_target'),  # None if not specified
-                            "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
-                            "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
-                        }
-            except (json.JSONDecodeError, IOError) as e:
-                if logger:
-                    logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
+        # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
+        if not filename.endswith('.json'):
+            continue
+        if filename.startswith('.'):
+            continue
+        
+        filepath = os.path.join(generators_dir, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                name = config.get('name')
+                if name:
+                    _GENERATOR_CONFIGS[name] = {
+                        "synthdef": config.get('synthdef'),
+                        "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
+                        "pitch_target": config.get('pitch_target'),  # None if not specified
+                        "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
+                        "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
+                    }
+        except UnicodeDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping non-UTF8 generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping invalid JSON generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except IOError as e:
+            if logger:
+                logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
     
     # Validate GENERATOR_CYCLE
     for name in GENERATOR_CYCLE:
@@ -347,6 +360,14 @@ MOD_LFO_WAVEFORM_INDEX = {w: i for i, w in enumerate(MOD_LFO_WAVEFORMS)}
 MOD_LFO_PHASES = [0, 45, 90, 135, 180, 225, 270, 315]
 MOD_LFO_PHASE_INDEX = {p: i for i, p in enumerate(MOD_LFO_PHASES)}
 
+# LFO sync modes
+MOD_LFO_MODES = ["CLK", "FREE"]  # CLK = clock synced, FREE = manual frequency
+MOD_LFO_MODE_INDEX = {m: i for i, m in enumerate(MOD_LFO_MODES)}
+
+# LFO free-running frequency range (Hz)
+MOD_LFO_FREQ_MIN = 0.01   # ~100 second cycle
+MOD_LFO_FREQ_MAX = 100.0  # Audio rate modulation
+
 # Sloth speed modes (NLC Triple Sloth inspired)
 MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
 MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
@@ -409,22 +430,35 @@ def _load_mod_generator_configs():
         return
     
     for filename in os.listdir(mod_generators_dir):
-        if filename.endswith('.json'):
-            filepath = os.path.join(mod_generators_dir, filename)
-            try:
-                with open(filepath, 'r') as f:
-                    config = json.load(f)
-                    name = config.get('name')
-                    if name:
-                        _MOD_GENERATOR_CONFIGS[name] = {
-                            "synthdef": config.get('synthdef'),
-                            "custom_params": config.get('custom_params', []),
-                            "output_config": config.get('output_config', 'fixed'),
-                            "outputs": config.get('outputs', ['A', 'B', 'C'])
-                        }
-            except (json.JSONDecodeError, IOError) as e:
-                if logger:
-                    logger.warning(f"Failed to load mod generator {filepath}: {e}", component="CONFIG")
+        # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
+        if not filename.endswith('.json'):
+            continue
+        if filename.startswith('.'):
+            continue
+        
+        filepath = os.path.join(mod_generators_dir, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                name = config.get('name')
+                if name:
+                    _MOD_GENERATOR_CONFIGS[name] = {
+                        "synthdef": config.get('synthdef'),
+                        "custom_params": config.get('custom_params', []),
+                        "output_config": config.get('output_config', 'fixed'),
+                        "outputs": config.get('outputs', ['A', 'B', 'C'])
+                    }
+        except UnicodeDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping non-UTF8 mod generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping invalid JSON mod generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except IOError as e:
+            if logger:
+                logger.warning(f"Failed to load mod generator {filepath}: {e}", component="CONFIG")
     
     # Validate MOD_GENERATOR_CYCLE
     for name in MOD_GENERATOR_CYCLE:
@@ -493,10 +527,10 @@ OSC_PATHS = {
     'fidelity_amount': '/noise/fidelity_amount',
     # Channel strip (mixer)
     'gen_volume': '/noise/gen/volume',
-    # Remove this line - gen_mute already exists with same path
     'gen_strip_solo': '/noise/gen/solo',
     'gen_gain': '/noise/gen/gain',  # Per-channel gain stage (0dB, +6dB, +12dB)
     'gen_pan': '/noise/gen/pan',  # Per-channel pan (-1=L, 0=center, 1=R)
+    'gen_strip_eq_base': '/noise/strip/eq',  # Per-channel EQ: /noise/strip/eq/{band}
     'gen_levels': '/noise/gen/levels',  # Per-channel level metering
     'gen_trim': '/noise/gen/trim',  # Per-channel loudness trim (from JSON config)
     # MIDI
@@ -595,4 +629,12 @@ SIZES = {
     'effect_slot_width': 70,
     'lfo_widget_width': 60,
     'buttons_column_width': 44,
+    
+    # Layout spacing (global)
+    'spacing_tight': 2,       # Within compact widgets
+    'spacing_normal': 4,      # Between related elements  
+    'spacing_section': 6,     # Between sections/panels
+    'margin_none': 0,         # Panels that butt together
+    'margin_tight': 4,        # Compact internal margins
+    'margin_normal': 8,       # Standard internal margins
 }

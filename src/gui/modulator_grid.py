@@ -1,6 +1,6 @@
 """
-Mod Source Panel
-Container for MOD_SLOT_COUNT mod source slots in the left panel
+Modulator Grid
+Container for MOD_SLOT_COUNT modulator slots in the left panel
 
 Layout: 2 rows × 2 columns to align with generator grid rows.
 """
@@ -9,13 +9,13 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayo
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .mod_source_slot import ModSourceSlot
+from .modulator_slot import ModulatorSlot
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES
-from src.config import MOD_SLOT_COUNT
+from src.config import MOD_SLOT_COUNT, SIZES
 
 
-class ModSourcePanel(QWidget):
-    """Container for mod source slots - 2x2 grid layout."""
+class ModulatorGrid(QWidget):
+    """Container for modulator slots - 2x2 grid layout."""
     
     # Forwarded signals from slots
     generator_changed = pyqtSignal(int, str)
@@ -30,24 +30,17 @@ class ModSourcePanel(QWidget):
         self.setup_ui()
         
     def setup_ui(self):
-        """Build the panel with 2x2 slot grid."""
+        """Build the grid with 2x2 slot layout."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
-        
-        # Header
-        header = QHBoxLayout()
-        title = QLabel("MOD SOURCES")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
-        title.setStyleSheet(f"color: {COLORS['text_bright']};")
-        header.addWidget(title)
-        header.addStretch()
-        layout.addLayout(header)
+        layout.setContentsMargins(SIZES['margin_none'], SIZES['margin_none'], 
+                                   SIZES['margin_none'], SIZES['margin_none'])
+        layout.setSpacing(SIZES['margin_none'])
         
         # 2x2 grid for slots (aligns with 2 generator rows)
         grid = QGridLayout()
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setSpacing(8)
+        grid.setContentsMargins(SIZES['margin_none'], SIZES['margin_none'],
+                                 SIZES['margin_none'], SIZES['margin_none'])
+        grid.setSpacing(SIZES['spacing_normal'])
         
         # Create slots in 2x2 layout with default generators
         # Slot 1 (LFO) | Slot 2 (Sloth)  (top row)
@@ -57,7 +50,7 @@ class ModSourcePanel(QWidget):
         
         for i in range(1, MOD_SLOT_COUNT + 1):
             default_gen = slot_defaults[i - 1]
-            slot = ModSourceSlot(i, default_generator=default_gen)
+            slot = ModulatorSlot(i, default_generator=default_gen)
             self._connect_slot_signals(slot)
             row, col = positions[i - 1]
             grid.addWidget(slot, row, col)
@@ -70,7 +63,7 @@ class ModSourcePanel(QWidget):
         layout.addLayout(grid, stretch=1)
         
     def _connect_slot_signals(self, slot):
-        """Connect slot signals to panel signals."""
+        """Connect slot signals to grid signals."""
         slot.generator_changed.connect(self.generator_changed.emit)
         slot.parameter_changed.connect(self.parameter_changed.emit)
         slot.output_wave_changed.connect(self.output_wave_changed.emit)

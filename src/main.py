@@ -31,6 +31,16 @@ def main():
     
     window = MainFrame()
     
+    # Install F9 hotkey for layout debug toggle
+    from src.gui.layout_debug import install_debug_hotkey
+    install_debug_hotkey(window)
+    
+    # Enable layout debug overlay if DEBUG_LAYOUT=1
+    if os.environ.get('DEBUG_LAYOUT', '0') == '1':
+        from src.gui.layout_debug import enable_layout_debug
+        logger.info("Layout debug mode ENABLED", component="APP")
+        enable_layout_debug(window)
+    
     window.show()
     
     sys.exit(app.exec_())

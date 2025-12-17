@@ -213,7 +213,7 @@ class ChannelStrip(QWidget):
         self.pan_slider = PanSlider(Qt.Horizontal)
         self.pan_slider.setRange(-100, 100)  # -100 = L, 0 = C, 100 = R
         self.pan_slider.setValue(0)
-        self.pan_slider.setFixedWidth(40)
+        self.pan_slider.setFixedWidth(45)
         self.pan_slider.setFixedHeight(16)
         self.pan_slider.setToolTip("Pan: L ← C → R (double-click to center)")
         self.pan_slider.valueChanged.connect(self.on_pan_changed)
@@ -400,6 +400,20 @@ class ChannelStrip(QWidget):
     def on_pan_changed(self, value):
         """Handle pan slider movement."""
         self.pan_value = value / 100.0  # Convert to -1 to 1 range
+        
+        # Show drag tooltip
+        if value < -5:
+            pan_text = f"L{abs(value)}"
+        elif value > 5:
+            pan_text = f"R{value}"
+        else:
+            pan_text = "C"
+        
+        from PyQt5.QtWidgets import QToolTip
+        from PyQt5.QtCore import QPoint
+        pos = self.pan_slider.mapToGlobal(QPoint(self.pan_slider.width() // 2, -20))
+        QToolTip.showText(pos, pan_text, self.pan_slider)
+        
         self.pan_changed.emit(self.channel_id, self.pan_value)
         
     def toggle_mute(self):
@@ -427,6 +441,19 @@ class ChannelStrip(QWidget):
         self.gain_btn.setText(text)
         self.gain_btn.setStyleSheet(button_style(style))
         self.gain_changed.emit(self.channel_id, db)
+    
+    def get_strip_state(self):
+        """Return current strip state for syncing to SC after generator change."""
+        return {
+            'volume': self.fader.value() / 1000.0,
+            'pan': self.pan_value,
+            'muted': self.muted,
+            'soloed': self.soloed,
+            'gain_db': self.GAIN_STAGES[self.gain_index][0],
+            'eq_lo': self.eq_lo.value() / 100.0,  # 0-2 linear
+            'eq_mid': self.eq_mid.value() / 100.0,
+            'eq_hi': self.eq_hi.value() / 100.0,
+        }
 
 
 class MixerPanel(QWidget):
@@ -448,8 +475,9 @@ class MixerPanel(QWidget):
     def setup_ui(self):
         """Create mixer panel."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(0)
+        layout.setContentsMargins(SIZES['margin_none'], SIZES['margin_none'],
+                                   SIZES['margin_none'], SIZES['margin_none'])
+        layout.setSpacing(SIZES['margin_none'])
         
         # Channel strips frame with tooltip
         channels_frame = QFrame()
@@ -462,8 +490,9 @@ class MixerPanel(QWidget):
             }}
         """)
         channels_layout = QHBoxLayout(channels_frame)
-        channels_layout.setContentsMargins(5, 5, 5, 5)
-        channels_layout.setSpacing(2)
+        channels_layout.setContentsMargins(SIZES['margin_tight'], SIZES['margin_tight'],
+                                            SIZES['margin_tight'], SIZES['margin_tight'])
+        channels_layout.setSpacing(SIZES['spacing_tight'])
         
         for i in range(1, self.num_generators + 1):
             channel = ChannelStrip(i, str(i))
@@ -512,3 +541,9 @@ class MixerPanel(QWidget):
         """Update level meter for a channel."""
         if channel_id in self.channels:
             self.channels[channel_id].set_levels(left, right)
+    
+    def get_channel_strip_state(self, channel_id):
+        """Get strip state for a channel (for syncing to SC)."""
+        if channel_id in self.channels:
+            return self.channels[channel_id].get_strip_state()
+        return None

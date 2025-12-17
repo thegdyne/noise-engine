@@ -3,7 +3,7 @@ Generator Slot UI Builder
 Handles layout construction for GeneratorSlot
 """
 
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QWidget
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QWidget, QSizePolicy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
@@ -21,39 +21,77 @@ from src.config import (
 MIDI_CHANNELS = ["OFF"] + [str(i) for i in range(1, 17)]
 
 
-def build_header(slot):
+def build_generator_header(slot):
     """Build the header row with slot ID and generator type selector."""
-    header = QHBoxLayout()
+    gt = GENERATOR_THEME
+    
+    # Header widget - must expand to fill slot width
+    header_widget = QWidget()
+    header_widget.setObjectName(f"gen{slot.slot_id}_header")  # DEBUG
+    header_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    header = QHBoxLayout(header_widget)
+    header.setSpacing(gt['header_spacing'])
+    l = gt.get('header_inset_left', gt.get('header_inset_lr', 6))
+    r = gt.get('header_inset_right', gt.get('header_inset_lr', 6))
+    header.setContentsMargins(l, 0, r, 0)
     
     slot.id_label = QLabel(f"GEN {slot.slot_id}")
+    slot.id_label.setObjectName(f"gen{slot.slot_id}_label")  # DEBUG
     slot.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
     slot.id_label.setStyleSheet(f"color: {COLORS['text']};")
+    slot.id_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+    slot.id_label.setContentsMargins(2, 0, 0, 0)  # small left pad to match right pad
     header.addWidget(slot.id_label)
     
-    header.addStretch()
+    # CRITICAL: push selector to the right edge
+    header.addStretch(1)
     
-    # Generator type selector - drag or click to change
+    # Container to clip overflow
+    type_offset = gt.get('header_type_offset_right', 0)
+    btn_container = QFrame()
+    btn_container.setObjectName(f"gen{slot.slot_id}_type_container")  # DEBUG
+    btn_container.setFixedWidth(gt.get('header_type_width', 75))
+    btn_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    btn_container.setStyleSheet("background: transparent; border: none;")
+    btn_layout = QHBoxLayout(btn_container)
+    # Negative right margin shifts content past container edge
+    btn_layout.setContentsMargins(0, 0, -type_offset, 0)
+    btn_layout.setSpacing(0)
+    
+    # Generator type selector
     initial_index = GENERATOR_CYCLE.index(slot.generator_type) if slot.generator_type in GENERATOR_CYCLE else 0
     slot.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
+    slot.type_btn.setObjectName(f"gen{slot.slot_id}_type")  # DEBUG: shows in overlay
     slot.type_btn.wrap = True
     slot.type_btn.sensitivity_key = 'generator'
-    slot.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['slot_title'], QFont.Bold))
+    slot.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
+    # CRITICAL: allow shrink below sizeHint, prevents spill/overflow
+    w = gt.get('header_type_width', 75)
+    slot.type_btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+    slot.type_btn.setMinimumWidth(0)
+    slot.type_btn.setFixedWidth(w)   # lock it to container width
+    slot.type_btn.setFixedHeight(gt.get('header_type_height', 22))
     slot.type_btn.setStyleSheet(f"""
         QPushButton {{
-            color: {COLORS['text']};
+            color: {COLORS['enabled_text']};
             background: transparent;
             border: none;
             text-align: right;
-            padding: 2px 4px;
+            padding: 0px;
         }}
         QPushButton:hover {{
             color: {COLORS['enabled_text']};
         }}
     """)
+    # Align text left inside the selector box (sits over button strip)
+    slot.type_btn.text_alignment = Qt.AlignVCenter | Qt.AlignLeft
+    slot.type_btn.text_padding_lr = gt.get('header_selector_text_pad', 6)
     slot.type_btn.value_changed.connect(slot.on_generator_type_changed)
-    header.addWidget(slot.type_btn)
+    btn_layout.addWidget(slot.type_btn)
     
-    return header
+    header.addWidget(btn_container)
+    
+    return header_widget
 
 
 def build_param_column(label_text, slider, label_style='dim'):
@@ -69,20 +107,23 @@ def build_param_column(label_text, slider, label_style='dim'):
     Returns:
         (QWidget, QLabel) - the column widget and label for later updates
     """
+    gt = GENERATOR_THEME
+    col_w = gt['slider_column_width']
+    
     widget = QWidget()
-    widget.setFixedWidth(35)  # Constrain column width
+    widget.setFixedWidth(col_w)
     layout = QVBoxLayout(widget)
     layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(2)
+    layout.setSpacing(1)
     
     # Label styling from generator theme
-    gt = GENERATOR_THEME
     font_weight = QFont.Bold if gt['param_label_bold'] else QFont.Normal
     
     lbl = QLabel(label_text)
     lbl.setFont(QFont(gt['param_label_font'], gt['param_label_size'], font_weight))
     lbl.setAlignment(Qt.AlignCenter)
     lbl.setFixedHeight(gt['param_label_height'])
+    lbl.setFixedWidth(col_w)
     
     if label_style == 'dim':
         lbl.setStyleSheet(f"color: {gt['param_label_color_dim']};")
@@ -99,15 +140,18 @@ def build_param_column(label_text, slider, label_style='dim'):
 
 def build_custom_params_row(slot):
     """Build the custom parameters row (P1-P5)."""
+    gt = GENERATOR_THEME
+    
     custom_row = QHBoxLayout()
-    custom_row.setSpacing(5)
+    custom_row.setSpacing(gt['slider_gap'])
     
     slot.custom_sliders = []
     slot.custom_labels = []
     
     for i in range(MAX_CUSTOM_PARAMS):
         slider = MiniSlider()
-        slider.setMinimumHeight(50)  # Min height, can grow with window
+        slider.setFixedWidth(gt['slider_column_width'])
+        slider.setMinimumHeight(gt.get('slider_min_height', 50))
         slider.setEnabled(False)
         slider.normalizedValueChanged.connect(
             lambda norm, idx=i: slot.on_custom_param_changed(idx, norm)
@@ -118,25 +162,23 @@ def build_custom_params_row(slot):
         slot.custom_labels.append(lbl)
         custom_row.addWidget(widget)
     
-    # Spacer to match buttons column
-    custom_spacer = QWidget()
-    custom_spacer.setFixedWidth(SIZES['buttons_column_width'] + 5)
-    custom_row.addWidget(custom_spacer)
-    
     return custom_row
 
 
 def build_standard_params_row(slot):
-    """Build the standard parameters row (FRQ, CUT, RES, ATK, DEC) + buttons."""
+    """Build the standard parameters row (FRQ, CUT, RES, ATK, DEC)."""
+    gt = GENERATOR_THEME
+    
     params_layout = QHBoxLayout()
-    params_layout.setSpacing(5)
+    params_layout.setSpacing(gt['slider_gap'])
     
     slot.sliders = {}
     slot.slider_labels = {}
     
     for param in GENERATOR_PARAMS:
         slider = MiniSlider(param_config=param)
-        slider.setMinimumHeight(50)  # Min height, can grow with window
+        slider.setFixedWidth(gt['slider_column_width'])
+        slider.setMinimumHeight(gt.get('slider_min_height', 50))
         slider.setToolTip(param['tooltip'])
         slider.normalizedValueChanged.connect(
             lambda norm, p=param: slot.on_param_changed(p['key'], norm, p)
@@ -149,117 +191,155 @@ def build_standard_params_row(slot):
         slot.slider_labels[param['key']] = lbl
         params_layout.addWidget(widget)
     
-    params_layout.addSpacing(5)
-    
-    # Add buttons column
-    buttons_widget = build_buttons_column(slot)
-    params_layout.addWidget(buttons_widget)
-    
     return params_layout
 
 
-def build_buttons_column(slot):
-    """Build the buttons column (filter, ENV, rate, MIDI, mute/gate)."""
-    buttons_widget = QWidget()
-    buttons_widget.setFixedWidth(SIZES['buttons_column_width'])
-    buttons_layout = QVBoxLayout(buttons_widget)
-    buttons_layout.setContentsMargins(0, 0, 0, 0)
-    buttons_layout.setSpacing(3)
+def build_generator_button_strip(slot):
+    """Build the right-side buttons strip using theme config for order and styling."""
+    gt = GENERATOR_THEME
+    strip_config = gt['button_strip']
+    button_order = gt['button_strip_order']
     
-    # Filter type - CycleButton
-    slot.filter_btn = CycleButton(FILTER_TYPES, initial_index=0)
-    slot.filter_btn.setFixedSize(*SIZES['button_medium'])
-    slot.filter_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
-    slot.filter_btn.setStyleSheet(button_style('enabled'))
-    slot.filter_btn.wrap = True
-    slot.filter_btn.value_changed.connect(slot.on_filter_changed)
-    slot.filter_btn.setEnabled(False)
-    slot.filter_btn.setToolTip("Filter Type: LP / HP / BP")
-    buttons_layout.addWidget(slot.filter_btn)
+    strip = QWidget()
+    strip.setFixedWidth(gt['button_strip_width'])
+    layout = QVBoxLayout(strip)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(gt['button_strip_spacing'])
     
-    # ENV source - CycleButton (OFF/CLK/MIDI)
-    slot.env_btn = CycleButton(ENV_SOURCES, initial_index=0)
-    slot.env_btn.setFixedSize(*SIZES['button_medium'])
-    slot.env_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-    slot.env_btn.setStyleSheet(button_style('disabled'))
-    slot.env_btn.wrap = True
-    slot.env_btn.value_changed.connect(slot.on_env_source_changed)
-    slot.env_btn.setEnabled(False)
-    slot.env_btn.setToolTip("Envelope source: OFF (drone), CLK (clock), MIDI")
-    buttons_layout.addWidget(slot.env_btn)
+    # Build buttons in theme-defined order
+    for btn_key in button_order:
+        cfg = strip_config[btn_key]
+        btn_width = cfg.get('width', 36)
+        btn_height = cfg.get('height', 24)
+        
+        if btn_key == 'filter':
+            slot.filter_btn = CycleButton(FILTER_TYPES, initial_index=0)
+            slot.filter_btn.setObjectName(f"gen{slot.slot_id}_filter")  # DEBUG
+            btn = slot.filter_btn
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
+            btn.setStyleSheet(button_style(cfg['style']))
+            btn.wrap = True
+            btn.value_changed.connect(slot.on_filter_changed)
+            btn.setEnabled(False)
+            
+        elif btn_key == 'env':
+            slot.env_btn = CycleButton(ENV_SOURCES, initial_index=0)
+            slot.env_btn.setObjectName(f"gen{slot.slot_id}_env")  # DEBUG
+            btn = slot.env_btn
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
+            btn.setStyleSheet(button_style(cfg['style']))
+            btn.wrap = True
+            btn.value_changed.connect(slot.on_env_source_changed)
+            btn.setEnabled(False)
+            
+        elif btn_key == 'rate':
+            slot.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
+            slot.rate_btn.setObjectName(f"gen{slot.slot_id}_rate")  # DEBUG
+            btn = slot.rate_btn
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
+            btn.setStyleSheet(button_style(cfg['style']))
+            btn.wrap = False
+            btn.value_changed.connect(slot.on_rate_changed)
+            btn.setEnabled(False)
+            
+        elif btn_key == 'midi':
+            slot.midi_btn = CycleButton(MIDI_CHANNELS, initial_index=0)
+            slot.midi_btn.setObjectName(f"gen{slot.slot_id}_midi")  # DEBUG
+            btn = slot.midi_btn
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
+            btn.setStyleSheet(midi_channel_style(False))
+            btn.wrap = True
+            btn.value_changed.connect(slot.on_midi_channel_changed)
+            
+        elif btn_key == 'mute':
+            slot.mute_btn = QPushButton("M")
+            slot.mute_btn.setObjectName(f"gen{slot.slot_id}_mute")  # DEBUG
+            btn = slot.mute_btn
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
+            btn.setStyleSheet(mute_button_style(False))
+            btn.clicked.connect(slot.toggle_mute)
+            
+        elif btn_key == 'gate':
+            slot.gate_led = QLabel()
+            slot.gate_led.setObjectName(f"gen{slot.slot_id}_gate")  # DEBUG
+            btn = slot.gate_led
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setStyleSheet(gate_indicator_style(False))
+            btn.setAlignment(Qt.AlignCenter)
+        
+        btn.setToolTip(cfg['tooltip'])
+        layout.addWidget(btn, alignment=Qt.AlignCenter)
     
-    # CLK rate - CycleButton
-    slot.rate_btn = CycleButton(CLOCK_RATES, initial_index=CLOCK_DEFAULT_INDEX)
-    slot.rate_btn.setFixedSize(*SIZES['button_medium'])
-    slot.rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
-    slot.rate_btn.setStyleSheet(button_style('inactive'))
-    slot.rate_btn.wrap = False
-    slot.rate_btn.value_changed.connect(slot.on_rate_changed)
-    slot.rate_btn.setEnabled(False)
-    slot.rate_btn.setToolTip("Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16")
-    buttons_layout.addWidget(slot.rate_btn)
+    layout.addStretch()
     
-    # Separator/spacer
-    buttons_layout.addSpacing(6)
-    
-    # MIDI channel selector
-    slot.midi_btn = CycleButton(MIDI_CHANNELS, initial_index=0)
-    slot.midi_btn.setFixedSize(*SIZES['button_medium'])
-    slot.midi_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
-    slot.midi_btn.setStyleSheet(midi_channel_style(False))
-    slot.midi_btn.wrap = True
-    slot.midi_btn.value_changed.connect(slot.on_midi_channel_changed)
-    slot.midi_btn.setToolTip("MIDI Input Channel (OFF or 1-16)")
-    buttons_layout.addWidget(slot.midi_btn)
-    
-    # Mute/Gate row
-    mute_gate_row = QHBoxLayout()
-    mute_gate_row.setSpacing(2)
-    mute_gate_row.setContentsMargins(0, 0, 0, 0)
-    
-    slot.mute_btn = QPushButton("M")
-    slot.mute_btn.setFixedSize(18, 18)
-    slot.mute_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro'], QFont.Bold))
-    slot.mute_btn.setStyleSheet(mute_button_style(False))
-    slot.mute_btn.clicked.connect(slot.toggle_mute)
-    slot.mute_btn.setToolTip("Mute Generator")
-    mute_gate_row.addWidget(slot.mute_btn)
-    
-    slot.gate_led = QLabel()
-    slot.gate_led.setFixedSize(18, 18)
-    slot.gate_led.setStyleSheet(gate_indicator_style(False))
-    slot.gate_led.setToolTip("Gate Activity")
-    mute_gate_row.addWidget(slot.gate_led)
-    
-    buttons_layout.addLayout(mute_gate_row)
-    buttons_layout.addStretch()
-    
-    return buttons_widget
+    return strip
 
-def build_slot_ui(slot):
+
+def build_generator_slot_ui(slot):
     """Build the complete generator slot UI."""
+    gt = GENERATOR_THEME
+    
+    # Constrain slot to not expand beyond allocated space
+    from PyQt5.QtWidgets import QSizePolicy
+    slot.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+    
     layout = QVBoxLayout(slot)
-    layout.setContentsMargins(8, 8, 8, 8)
-    layout.setSpacing(5)
+    margin = gt['slot_margin']
+    layout.setContentsMargins(margin[0], margin[1], margin[2], margin[3])
+    # Header now lives INSIDE the frame, so slot spacing can be small
+    layout.setSpacing(0)
     
-    # Header
-    header = build_header(slot)
-    layout.addLayout(header)
+    # GeneratorFrame (contains header + sliders + buttons strip)
+    generator_frame = QFrame()
+    generator_frame.setObjectName("generatorFrame")
+    generator_frame.setStyleSheet(f"""
+        QFrame#generatorFrame {{
+            background-color: {gt['frame_background']};
+            border: {gt['frame_border_width']}px solid {gt['frame_border']};
+            border-radius: {gt['frame_border_radius']}px;
+        }}
+    """)
     
-    # Params frame
-    params_frame = QFrame()
-    params_frame.setStyleSheet(f"background-color: {COLORS['background']}; border-radius: 4px;")
-    params_frame.setObjectName("paramsFrame")
-    params_outer = QVBoxLayout(params_frame)
-    params_outer.setContentsMargins(8, 8, 8, 8)
-    params_outer.setSpacing(8)
+    # Frame layout is VERTICAL: header on top, content row below
+    padding = gt['frame_padding']
+    frame_v = QVBoxLayout(generator_frame)
+    frame_v.setContentsMargins(padding[0], padding[1], padding[2], padding[3])
+    frame_v.setSpacing(gt.get('header_content_gap', 6))
+    
+    # Header inside frame
+    generator_header = build_generator_header(slot)
+    frame_v.addWidget(generator_header)
+    
+    # Content row (sliders left, buttons right)
+    content_row = QHBoxLayout()
+    content_row.setSpacing(gt.get('content_row_spacing', SIZES['spacing_normal']))
+    
+    # GeneratorSliderSection (left side)
+    generator_slider_section = QVBoxLayout()
+    generator_slider_section.setSpacing(gt.get('slider_section_spacing', 8))
     
     # Custom params row
     custom_row = build_custom_params_row(slot)
-    params_outer.addLayout(custom_row)
+    generator_slider_section.addLayout(custom_row)
     
     # Standard params row
     params_row = build_standard_params_row(slot)
-    params_outer.addLayout(params_row)
+    generator_slider_section.addLayout(params_row)
     
-    layout.addWidget(params_frame, stretch=1)  # Let params frame grow
+    content_row.addLayout(generator_slider_section)
+    
+    # GeneratorButtonStrip (right side, inside frame)
+    generator_button_strip = build_generator_button_strip(slot)
+    content_row.addWidget(generator_button_strip)
+    
+    frame_v.addLayout(content_row)
+    
+    # Frame should not expand horizontally
+    generator_frame.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+    
+    layout.addWidget(generator_frame)

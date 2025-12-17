@@ -187,6 +187,7 @@ def button_style(state='disabled'):
             QPushButton {{
                 background-color: {COLORS['submenu']};
                 color: {COLORS['submenu_text']};
+                border: 1px solid {COLORS['submenu_text']};
                 border-radius: 3px;
             }}
             QPushButton:hover {{
@@ -229,6 +230,10 @@ def button_style(state='disabled'):
 def slider_style():
     """Get standard vertical slider stylesheet."""
     return f"""
+        QSlider {{
+            border: none;
+            background: transparent;
+        }}
         QSlider::groove:vertical {{
             border: 1px solid {get('slider_groove_border')};
             width: 8px;
@@ -254,6 +259,10 @@ def slider_style_center_notch():
     Use for sliders with a meaningful center position (e.g. EQ at 0dB).
     """
     return f"""
+        QSlider {{
+            border: none;
+            background: transparent;
+        }}
         QSlider::groove:vertical {{
             border: 1px solid {get('slider_groove_border')};
             width: 8px;
@@ -518,6 +527,7 @@ def get_panel_tooltip(key):
 # =============================================================================
 
 GENERATOR_THEME = {
+    # Param labels
     'param_label_font': MONO_FONT,
     'param_label_size': FONT_SIZES['tiny'],
     'param_label_bold': True,
@@ -525,13 +535,165 @@ GENERATOR_THEME = {
     'param_label_color': get('text_mid'),
     'param_label_color_dim': get('text_dim'),
     'param_label_color_active': get('accent_generator'),
+    
+    # Slot (outer container)
     'slot_background': get('bg_mid'),
     'slot_border': get('border_dark'),
     'slot_border_active': get('accent_generator_dim'),
+    'slot_margin': (2, 4, 2, 4),  # tighter margins
+    
+    # Header layout
+    'header_inset_left': 14,       # left margin for GEN label
+    'header_inset_right': 0,      # flush with edge
+    'header_type_offset_right': 4,  # extra right shift for type selector only
+    'header_selector_text_pad': 4, # internal text padding for selector
+    'header_overlay_height': 24,  # reserved space at top of content for header overlay
+    'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
+    'header_content_gap': 2,      # header-to-sliders distance inside the frame
+    
+    # Header
+    'header_spacing': 4,
+    'header_type_width': 70,      # FIXED: wider for long names like "Subtractive"
+    'header_type_height': 20,     # shorter height
+    
+    # GeneratorFrame (inner container for sliders + buttons)
+    'frame_background': get('bg_base'),
+    'frame_border': get('border_mid'),
+    'frame_border_width': 1,
+    'frame_border_radius': 4,
+    'frame_padding': (3, 3, 3, 3),  # frame internal padding
+    
+    # Slider section
+    'slider_column_width': 22,    # width of each label+slider column
+    'slider_gap': 1,              # horizontal gap between columns
+    'slider_section_spacing': 6, # vertical gap between custom row + standard row
+    'slider_min_height': 38,      # minimum slider height (smaller = more compact)
+    'content_row_spacing': 2,     # gap between slider section and button strip
+    
+    # Button strip - order defines visual stacking (top to bottom)
+    'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
+    'button_strip_width': 40,
+    'button_strip_spacing': 2,
+    
+    # Button strip - per-button config
+    'button_strip': {
+        'filter': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['small'],
+            'font_bold': True,
+            'style': 'enabled',
+            'tooltip': 'Filter Type: LP / HP / BP',
+            'width': 36,
+            'height': 24,
+        },
+        'env': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['tiny'],
+            'font_bold': True,
+            'style': 'disabled',
+            'tooltip': 'Envelope source: OFF (drone), CLK (clock), MIDI',
+            'width': 36,
+            'height': 24,
+        },
+        'rate': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['tiny'],
+            'font_bold': False,
+            'style': 'inactive',
+            'tooltip': 'Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16',
+            'width': 36,
+            'height': 24,
+        },
+        'midi': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['tiny'],
+            'font_bold': True,
+            'style': 'midi',
+            'tooltip': 'MIDI Input Channel (OFF or 1-16)',
+            'width': 36,
+            'height': 24,
+        },
+        'mute': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['small'],
+            'font_bold': True,
+            'style': 'mute',
+            'tooltip': 'Mute Generator',
+            'width': 36,
+            'height': 20,
+        },
+        'gate': {
+            'style': 'gate',
+            'tooltip': 'Gate Activity',
+            'width': 36,
+            'height': 20,
+        },
+    },
 }
 
 
 def get_generator_theme(generator_name=None):
     """Get theme dict for a generator, with defaults."""
     theme = GENERATOR_THEME.copy()
+    return theme
+
+
+# =============================================================================
+# MODULATOR THEME
+# =============================================================================
+
+MODULATOR_THEME = {
+    # Slot styling
+    'slot_border': get('border_dark'),
+    'slot_border_lfo': get('accent_mod_lfo'),
+    'slot_border_sloth': get('accent_mod_sloth'),
+    'slot_background': get('background_light'),
+    'slot_background_empty': get('background'),
+    
+    # Header
+    'header_font': FONT_FAMILY,
+    'header_size': FONT_SIZES['small'],
+    'header_bold': True,
+    'header_color': get('text_bright'),
+    'header_spacing': 6,
+    'header_button_width': 60,
+    'header_button_height': 22,
+    
+    # Param labels
+    'param_label_font': MONO_FONT,
+    'param_label_size': FONT_SIZES['micro'],
+    'param_label_color': get('text'),
+    'param_label_height': 14,
+    
+    # Param columns / spacing
+    'slider_column_width': 26,
+    'mode_button_width': 48,          # wider for text like "FREE", "CLK"
+    'mode_button_height': 22,
+    'slider_row_spacing': 8,          # horizontal gap between columns
+    'slider_section_margins': (0, 4, 0, 4),
+    'slider_width': 25,
+    'slider_height': 60,
+    
+    # Output row buttons
+    'output_button_height': 20,
+    'wave_button_width': 40,
+    'phase_button_width': 38,
+    'pol_button_width': 28,
+    
+    # Output labels
+    'output_label_font': MONO_FONT,
+    'output_label_size': FONT_SIZES['small'],
+    'output_label_bold': True,
+    'output_label_color': get('text_bright'),
+    'output_label_width': 20,
+    
+    # Scope
+    'scope_height': 50,
+    'scope_border': get('border'),
+}
+
+
+def get_modulator_theme(generator_name=None):
+    """Get theme dict for a modulator, with defaults."""
+    theme = MODULATOR_THEME.copy()
     return theme

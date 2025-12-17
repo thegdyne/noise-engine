@@ -1,0 +1,478 @@
+"""
+Layout Debug Utility for Noise Engine
+
+Enables visual debugging of Qt layouts by overlaying size/geometry info
+on widgets and drawing colored backgrounds to reveal container bounds.
+
+Usage:
+    from gui.layout_debug import enable_layout_debug, disable_layout_debug
+    
+    # Enable on specific widget and children
+    enable_layout_debug(widget)
+    
+    # Or enable globally via environment variable:
+    # DEBUG_LAYOUT=1 python src/main.py
+    
+    # Or toggle with F9 at runtime (if hotkey installed)
+
+Configuration:
+    Set DEBUG_LAYOUT=1 environment variable before launching, or call
+    enable_layout_debug() on specific widgets at runtime.
+"""
+
+import os
+from PyQt5.QtWidgets import QWidget, QApplication, QShortcut
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QKeySequence
+from PyQt5.QtCore import Qt, QRect, QObject
+
+# Global flag
+DEBUG_LAYOUT = os.environ.get('DEBUG_LAYOUT', '0') == '1'
+_debug_enabled = False
+_main_window = None
+_click_filter = None  # Event filter for click-to-trace
+
+
+class DebugClickFilter:
+    """Event filter that traces widget hierarchy on click when debug mode is active."""
+    
+    def __init__(self):
+        from PyQt5.QtCore import QObject, QEvent
+        self._filter = _ClickEventFilter()
+    
+    def install(self, window):
+        """Install the event filter on the application."""
+        app = QApplication.instance()
+        if app:
+            app.installEventFilter(self._filter)
+    
+    def remove(self):
+        """Remove the event filter."""
+        app = QApplication.instance()
+        if app:
+            app.removeEventFilter(self._filter)
+
+
+class _ClickEventFilter(QObject):
+    """Actual event filter implementation."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def eventFilter(self, obj, event):
+        from PyQt5.QtCore import QEvent
+        
+        # Only intercept mouse press when debug is enabled
+        if _debug_enabled and event.type() == QEvent.MouseButtonPress:
+            # Get the widget under the cursor
+            pos = event.globalPos()
+            widget = QApplication.widgetAt(pos)
+            
+            if widget:
+                print("\n" + "="*50)
+                print(f"[Click-to-Trace] Widget under cursor:")
+                print("="*50)
+                _trace_parents_internal(widget)
+                print("="*50 + "\n")
+        
+        # Don't consume the event - let it propagate normally
+        return False
+
+
+def _trace_parents_internal(widget):
+    """Internal version of trace_parents for click handler."""
+    current = widget
+    indent = 0
+    
+    while current is not None:
+        name = current.objectName() or ""
+        class_name = current.__class__.__name__
+        geo = current.geometry()
+        
+        if name:
+            label = f"{name} ({class_name})"
+        else:
+            label = class_name
+        
+        prefix = "  ↑ " * indent if indent > 0 else ""
+        fixed = " ⚠️FIXED" if has_fixed_size(current) else ""
+        print(f"{prefix}{label} {geo.width()}x{geo.height()}{fixed}")
+        
+        current = current.parent()
+        indent += 1
+
+# Colors for different widget types (semi-transparent)
+DEBUG_COLORS = {
+    'QFrame': QColor(255, 0, 0, 30),      # Red
+    'QWidget': QColor(0, 255, 0, 30),     # Green
+    'QLabel': QColor(0, 0, 255, 30),      # Blue
+    'QPushButton': QColor(255, 255, 0, 30),  # Yellow
+    'QSlider': QColor(255, 0, 255, 30),   # Magenta
+    'QVBoxLayout': QColor(0, 255, 255, 30),  # Cyan
+    'QHBoxLayout': QColor(255, 128, 0, 30),  # Orange
+    'default': QColor(128, 128, 128, 30),    # Gray
+}
+
+# Red border for fixed-size widgets
+FIXED_SIZE_COLOR = QColor(255, 0, 0, 200)
+
+# QSizePolicy enum values to readable names
+SIZE_POLICY_NAMES = {
+    0: 'Fixed', 
+    1: 'Min', 
+    3: 'Ignored',
+    4: 'Max', 
+    5: 'Pref', 
+    7: 'Expand', 
+    13: 'MinExp'
+}
+
+# Store original paintEvent methods
+_original_paint_events = {}
+
+
+def get_debug_color(widget):
+    """Get debug color based on widget class name."""
+    class_name = widget.__class__.__name__
+    return DEBUG_COLORS.get(class_name, DEBUG_COLORS['default'])
+
+
+def has_fixed_size(widget):
+    """Check if widget has fixed size constraints."""
+    policy = widget.sizePolicy()
+    h_fixed = policy.horizontalPolicy() == 0  # QSizePolicy.Fixed
+    v_fixed = policy.verticalPolicy() == 0
+    
+    # Also check if min == max (effectively fixed)
+    min_w, max_w = widget.minimumWidth(), widget.maximumWidth()
+    min_h, max_h = widget.minimumHeight(), widget.maximumHeight()
+    w_locked = min_w == max_w and min_w > 0
+    h_locked = min_h == max_h and min_h > 0
+    
+    return h_fixed or v_fixed or w_locked or h_locked
+
+
+def debug_paint_event(widget, original_paint, event):
+    """Replacement paintEvent that draws debug overlay."""
+    # Call original paint first
+    original_paint(event)
+    
+    # Draw debug overlay
+    painter = QPainter(widget)
+    painter.setRenderHint(QPainter.Antialiasing)
+    
+    # Semi-transparent background
+    color = get_debug_color(widget)
+    painter.fillRect(widget.rect(), color)
+    
+    # Red border for fixed-size widgets
+    if has_fixed_size(widget):
+        painter.setPen(QPen(FIXED_SIZE_COLOR, 2))
+        painter.drawRect(widget.rect().adjusted(1, 1, -1, -1))
+    else:
+        # Normal border
+        border_color = QColor(color)
+        border_color.setAlpha(150)
+        painter.setPen(QPen(border_color, 1))
+        painter.drawRect(widget.rect().adjusted(0, 0, -1, -1))
+    
+    # Size info text
+    geo = widget.geometry()
+    hint = widget.sizeHint()
+    policy = widget.sizePolicy()
+    
+    name = widget.objectName() or widget.__class__.__name__
+    info = f"{name}\n{geo.width()}x{geo.height()}"
+    if hint.isValid():
+        info += f"\nhint:{hint.width()}x{hint.height()}"
+    
+    # Draw text background
+    painter.setFont(QFont('Monaco', 8))
+    text_rect = painter.fontMetrics().boundingRect(
+        QRect(0, 0, 200, 100), 
+        Qt.AlignLeft | Qt.TextWordWrap, 
+        info
+    )
+    text_rect.moveTo(2, 2)
+    text_rect.adjust(-1, -1, 3, 3)
+    
+    painter.fillRect(text_rect, QColor(0, 0, 0, 180))
+    painter.setPen(Qt.white)
+    painter.drawText(text_rect.adjusted(2, 2, 0, 0), Qt.AlignLeft, info)
+    
+    painter.end()
+
+
+def enable_layout_debug(widget=None, recursive=True):
+    """
+    Enable layout debugging on a widget (and optionally its children).
+    
+    Args:
+        widget: QWidget to debug. If None, applies to all top-level windows.
+        recursive: If True, also debug all child widgets.
+    """
+    global DEBUG_LAYOUT, _debug_enabled
+    DEBUG_LAYOUT = True
+    _debug_enabled = True
+    
+    if widget is None:
+        app = QApplication.instance()
+        if app:
+            for w in app.topLevelWidgets():
+                enable_layout_debug(w, recursive)
+        return
+    
+    # Store and replace paintEvent
+    widget_id = id(widget)
+    if widget_id not in _original_paint_events:
+        original = widget.paintEvent
+        _original_paint_events[widget_id] = original
+        widget.paintEvent = lambda e, w=widget, o=original: debug_paint_event(w, o, e)
+    
+    if recursive:
+        for child in widget.findChildren(QWidget):
+            enable_layout_debug(child, recursive=False)
+    
+    # Force repaint
+    widget.update()
+
+
+def disable_layout_debug(widget=None, recursive=True):
+    """
+    Disable layout debugging and restore original paintEvent.
+    
+    Args:
+        widget: QWidget to restore. If None, applies to all.
+        recursive: If True, also restore all child widgets.
+    """
+    global DEBUG_LAYOUT, _debug_enabled
+    DEBUG_LAYOUT = False
+    _debug_enabled = False
+    
+    if widget is None:
+        app = QApplication.instance()
+        if app:
+            for w in app.topLevelWidgets():
+                disable_layout_debug(w, recursive)
+        return
+    
+    widget_id = id(widget)
+    if widget_id in _original_paint_events:
+        widget.paintEvent = _original_paint_events.pop(widget_id)
+    
+    if recursive:
+        for child in widget.findChildren(QWidget):
+            disable_layout_debug(child, recursive=False)
+    
+    # Force repaint
+    widget.update()
+
+
+def toggle_layout_debug():
+    """Toggle layout debug mode on/off."""
+    global _debug_enabled, _main_window, _click_filter
+    
+    if _debug_enabled:
+        disable_layout_debug(_main_window)
+        if _click_filter:
+            _click_filter.remove()
+        print("[Layout Debug] DISABLED")
+    else:
+        enable_layout_debug(_main_window)
+        # Install click-to-trace filter
+        if _click_filter is None:
+            _click_filter = DebugClickFilter()
+        _click_filter.install(_main_window)
+        print("[Layout Debug] ENABLED - Red borders = fixed size, CLICK to trace hierarchy")
+
+
+def install_debug_hotkey(window):
+    """Install F9 hotkey to toggle layout debug (use Fn+F9 on Mac)."""
+    global _main_window
+    _main_window = window
+    
+    shortcut = QShortcut(QKeySequence(Qt.Key_F9), window)
+    shortcut.activated.connect(toggle_layout_debug)
+    print("[Layout Debug] Press F9 (Fn+F9 on Mac) to toggle X-ray mode")
+
+
+def dump_layout(w, indent=0):
+    """
+    Quick one-liner to dump a widget's layout constraints.
+    
+    Usage:
+        from gui.layout_debug import dump_layout
+        dump_layout(self.type_btn)
+    """
+    prefix = "  " * indent
+    sp = w.sizePolicy()
+    h_str = SIZE_POLICY_NAMES.get(sp.horizontalPolicy(), str(sp.horizontalPolicy()))
+    v_str = SIZE_POLICY_NAMES.get(sp.verticalPolicy(), str(sp.verticalPolicy()))
+    
+    name = w.objectName() or w.__class__.__name__
+    geo = w.geometry()
+    hint = w.sizeHint()
+    
+    print(f"{prefix}{name}: geo={geo.width()}x{geo.height()} hint={hint.width()}x{hint.height()} "
+          f"policy=({h_str},{v_str}) min={w.minimumWidth()}x{w.minimumHeight()} "
+          f"max={w.maximumWidth()}x{w.maximumHeight()}")
+
+
+def print_widget_info(widget, indent=0):
+    """
+    Print detailed size/policy info for a widget tree.
+    
+    Usage:
+        print_widget_info(my_widget)
+    """
+    prefix = "  " * indent
+    name = widget.objectName() or widget.__class__.__name__
+    geo = widget.geometry()
+    hint = widget.sizeHint()
+    min_hint = widget.minimumSizeHint()
+    policy = widget.sizePolicy()
+    
+    print(f"{prefix}{name}:")
+    print(f"{prefix}  geometry: {geo.width()}x{geo.height()} at ({geo.x()},{geo.y()})")
+    print(f"{prefix}  sizeHint: {hint.width()}x{hint.height()}")
+    print(f"{prefix}  minSizeHint: {min_hint.width()}x{min_hint.height()}")
+    print(f"{prefix}  policy: H={policy.horizontalPolicy()} V={policy.verticalPolicy()}")
+    print(f"{prefix}  min: {widget.minimumWidth()}x{widget.minimumHeight()}")
+    print(f"{prefix}  max: {widget.maximumWidth()}x{widget.maximumHeight()}")
+    
+    if has_fixed_size(widget):
+        print(f"{prefix}  ⚠️  FIXED SIZE")
+    
+    layout = widget.layout()
+    if layout:
+        margins = layout.contentsMargins()
+        print(f"{prefix}  layout: {layout.__class__.__name__}")
+        print(f"{prefix}  margins: L={margins.left()} T={margins.top()} R={margins.right()} B={margins.bottom()}")
+        print(f"{prefix}  spacing: {layout.spacing()}")
+    
+    for child in widget.children():
+        if isinstance(child, QWidget):
+            print_widget_info(child, indent + 1)
+
+
+def log_size_constraints(widget, label=""):
+    """
+    Quick one-liner to log a widget's size constraints.
+    
+    Usage:
+        log_size_constraints(self.type_btn, "type_btn")
+    """
+    hint = widget.sizeHint()
+    geo = widget.geometry()
+    policy = widget.sizePolicy()
+    
+    h_str = SIZE_POLICY_NAMES.get(policy.horizontalPolicy(), str(policy.horizontalPolicy()))
+    v_str = SIZE_POLICY_NAMES.get(policy.verticalPolicy(), str(policy.verticalPolicy()))
+    
+    fixed_marker = " ⚠️FIXED" if has_fixed_size(widget) else ""
+    print(f"[{label}] geo={geo.width()}x{geo.height()} hint={hint.width()}x{hint.height()} "
+          f"policy=({h_str},{v_str}) min={widget.minimumWidth()}x{widget.minimumHeight()} "
+          f"max={widget.maximumWidth()}x{widget.maximumHeight()}{fixed_marker}")
+
+
+def trace_parents(widget):
+    """
+    Walk up the widget hierarchy and print each parent.
+    
+    Usage:
+        trace_parents(self.type_btn)
+        # or find by name first:
+        w = find_widget("gen1_type")
+        trace_parents(w)
+    
+    Output:
+        gen1_type (CycleButton) 70x20
+          ↑ QFrame 70x22
+          ↑ QWidget 280x22
+          ↑ gen1_frame (QFrame) 280x350
+          ↑ GeneratorSlot 284x354
+          ↑ GeneratorGrid 1200x720
+          ↑ MainFrame 1400x800
+    """
+    current = widget
+    indent = 0
+    
+    while current is not None:
+        name = current.objectName() or ""
+        class_name = current.__class__.__name__
+        geo = current.geometry()
+        
+        if name:
+            label = f"{name} ({class_name})"
+        else:
+            label = class_name
+        
+        prefix = "  ↑ " * indent if indent > 0 else ""
+        print(f"{prefix}{label} {geo.width()}x{geo.height()}")
+        
+        current = current.parent()
+        indent += 1
+
+
+def find_widget(name, root=None):
+    """
+    Find a widget by objectName.
+    
+    Usage:
+        w = find_widget("gen1_type")
+        dump_layout(w)
+        trace_parents(w)
+    
+    Args:
+        name: The objectName to search for
+        root: Starting widget (defaults to all top-level windows)
+    
+    Returns:
+        QWidget or None
+    """
+    from PyQt5.QtWidgets import QApplication
+    
+    if root is None:
+        app = QApplication.instance()
+        if not app:
+            return None
+        for window in app.topLevelWidgets():
+            result = find_widget(name, window)
+            if result:
+                return result
+        return None
+    
+    if root.objectName() == name:
+        return root
+    
+    for child in root.findChildren(QWidget):
+        if child.objectName() == name:
+            return child
+    
+    return None
+
+
+def list_widgets(pattern=None, root=None):
+    """
+    List all widgets, optionally filtered by objectName pattern.
+    
+    Usage:
+        list_widgets()           # All widgets with names
+        list_widgets("gen")      # Only widgets containing "gen"
+        list_widgets("mod1_")    # Only mod1 widgets
+    """
+    from PyQt5.QtWidgets import QApplication
+    
+    if root is None:
+        app = QApplication.instance()
+        if not app:
+            return
+        for window in app.topLevelWidgets():
+            list_widgets(pattern, window)
+        return
+    
+    for child in root.findChildren(QWidget):
+        name = child.objectName()
+        if name:
+            if pattern is None or pattern in name:
+                geo = child.geometry()
+                print(f"{name}: {geo.width()}x{geo.height()} ({child.__class__.__name__})")

@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QFrame, QShortcut, QStackedLayout)
+                             QPushButton, QLabel, QFrame, QShortcut)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QKeySequence
 
@@ -16,7 +16,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
 from src.gui.effects_chain import EffectsChain
-from src.gui.mod_source_panel import ModSourcePanel
+from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
@@ -78,15 +78,15 @@ class MainFrame(QMainWindow):
         content_layout.setContentsMargins(5, 5, 5, 5)
         content_layout.setSpacing(10)
         
-        # Left - MOD SOURCES
-        self.mod_source_panel = ModSourcePanel()
-        self.mod_source_panel.setFixedWidth(320)  # 2 columns
-        self.mod_source_panel.generator_changed.connect(self.on_mod_generator_changed)
-        self.mod_source_panel.parameter_changed.connect(self.on_mod_param_changed)
-        self.mod_source_panel.output_wave_changed.connect(self.on_mod_output_wave)
-        self.mod_source_panel.output_phase_changed.connect(self.on_mod_output_phase)
-        self.mod_source_panel.output_polarity_changed.connect(self.on_mod_output_polarity)
-        content_layout.addWidget(self.mod_source_panel)
+        # Left - MODULATOR GRID
+        self.modulator_grid = ModulatorGrid()
+        self.modulator_grid.setFixedWidth(320)  # 2 columns
+        self.modulator_grid.generator_changed.connect(self.on_mod_generator_changed)
+        self.modulator_grid.parameter_changed.connect(self.on_mod_param_changed)
+        self.modulator_grid.output_wave_changed.connect(self.on_mod_output_wave)
+        self.modulator_grid.output_phase_changed.connect(self.on_mod_output_phase)
+        self.modulator_grid.output_polarity_changed.connect(self.on_mod_output_polarity)
+        content_layout.addWidget(self.modulator_grid)
         
         # Scope repaint timer (~30fps)
         from PyQt5.QtCore import QTimer
@@ -229,21 +229,13 @@ class MainFrame(QMainWindow):
         layout.addStretch()
         
         self.connect_btn = QPushButton("Connect SuperCollider")
-        self.connect_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {COLORS['border_light']};
-                color: white;
-                padding: 5px 15px;
-                border-radius: 3px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['text']};
-            }}
-        """)
+        self.connect_btn.setFixedWidth(180)  # FIXED: fits "Connect SuperCollider"
+        self.connect_btn.setStyleSheet(self._connect_btn_style())
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
         
         self.status_label = QLabel("● Disconnected")
+        self.status_label.setFixedWidth(130)  # FIXED: fits "● CONNECTION LOST"
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
         
@@ -366,9 +358,17 @@ class MainFrame(QMainWindow):
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
             try:
+                # Disconnect all signals connected in toggle_connection
                 self.osc.gate_triggered.disconnect(self.on_gate_trigger)
+                self.osc.levels_received.disconnect(self.on_levels_received)
+                self.osc.channel_levels_received.disconnect(self.on_channel_levels_received)
                 self.osc.connection_lost.disconnect(self.on_connection_lost)
                 self.osc.connection_restored.disconnect(self.on_connection_restored)
+                self.osc.audio_devices_received.disconnect(self.on_audio_devices_received)
+                self.osc.audio_device_changing.disconnect(self.on_audio_device_changing)
+                self.osc.audio_device_ready.disconnect(self.on_audio_device_ready)
+                self.osc.comp_gr_received.disconnect(self.on_comp_gr_received)
+                self.osc.mod_bus_value_received.disconnect(self.on_mod_bus_value)
             except TypeError:
                 pass  # Signals weren't connected
             self.osc.disconnect()
@@ -389,12 +389,26 @@ class MainFrame(QMainWindow):
         """Handle connection restored after reconnect."""
         self.osc_connected = True
         self.connect_btn.setText("Disconnect")
-        self.connect_btn.setStyleSheet("")  # Reset to default style
+        self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
         self.status_label.setText("● Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         
         # Resend current state
         self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
+    
+    def _connect_btn_style(self):
+        """Return the standard connect button stylesheet."""
+        return f"""
+            QPushButton {{
+                background-color: {COLORS['border_light']};
+                color: white;
+                padding: 5px 15px;
+                border-radius: 3px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['text']};
+            }}
+        """
     
     def on_gate_trigger(self, slot_id):
         """Handle gate trigger from SC - flash LED."""
@@ -487,6 +501,10 @@ class MainFrame(QMainWindow):
                 # Send output trim for loudness normalization (from generator JSON config)
                 trim_db = get_generator_output_trim_db(new_type)
                 self.osc.client.send_message(OSC_PATHS['gen_trim'], [slot_id, trim_db])
+                # Re-sync strip state (pan/EQ/mute/solo/gain) so UI values persist
+                self._sync_strip_state_to_sc(slot_id)
+                # Re-sync generator slot state (mute/env/rate/midi/filter persist across type changes)
+                self._sync_generator_slot_state_to_sc(slot_id)
             
             self.generator_grid.set_generator_active(slot_id, True)
             slot = self.generator_grid.get_slot(slot_id)
@@ -549,7 +567,7 @@ class MainFrame(QMainWindow):
             return
         from src.config import get_mod_generator_custom_params, map_value
         
-        slot = self.mod_source_panel.get_slot(slot_id)
+        slot = self.modulator_grid.get_slot(slot_id)
         if not slot:
             return
         
@@ -574,13 +592,19 @@ class MainFrame(QMainWindow):
             if 'polarity' in row:
                 self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, out_idx, row['polarity'].get_index()])
         
-        # Sync custom params from UI sliders
+        # Sync custom params from UI sliders/buttons
         for param in get_mod_generator_custom_params(gen_name):
             key = param['key']
-            slider = slot.param_sliders.get(key)
-            if slider:
-                normalized = slider.value() / 1000.0
-                real_value = map_value(normalized, param)
+            control = slot.param_sliders.get(key)
+            if control:
+                # CycleButton (mode) vs DragSlider (rate, shape, etc)
+                if hasattr(control, 'get_index'):
+                    # CycleButton - index is the value (0=CLK, 1=FREE)
+                    real_value = float(control.get_index())
+                else:
+                    # DragSlider - normalize and map
+                    normalized = control.value() / 1000.0
+                    real_value = map_value(normalized, param)
                 self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, real_value])
     
     def _sync_mod_sources(self):
@@ -589,7 +613,7 @@ class MainFrame(QMainWindow):
         
         for slot_id in range(1, MOD_SLOT_COUNT + 1):
             self._sync_mod_slot_state(slot_id, send_generator=True)
-            slot = self.mod_source_panel.get_slot(slot_id)
+            slot = self.modulator_grid.get_slot(slot_id)
             if slot:
                 logger.debug(f"Synced mod {slot_id}: {slot.generator_name}", component="OSC")
     
@@ -630,7 +654,7 @@ class MainFrame(QMainWindow):
         slot_id = (bus_idx // 3) + 1
         output_idx = bus_idx % 3
         
-        slot = self.mod_source_panel.get_slot(slot_id)
+        slot = self.modulator_grid.get_slot(slot_id)
         if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
             slot.scope.push_value(output_idx, value)
             self._mod_scope_dirty.add(slot_id)  # Mark for repaint
@@ -638,7 +662,7 @@ class MainFrame(QMainWindow):
     def _flush_mod_scopes(self):
         """Repaint dirty scopes at throttled rate (~30fps)."""
         for slot_id in list(self._mod_scope_dirty):
-            slot = self.mod_source_panel.get_slot(slot_id)
+            slot = self.modulator_grid.get_slot(slot_id)
             if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
                 slot.scope.update()
         self._mod_scope_dirty.clear()
@@ -676,9 +700,76 @@ class MainFrame(QMainWindow):
     def on_generator_eq_changed(self, gen_id, band, value):
         """Handle generator EQ change from mixer. band: 'lo'/'mid'/'hi', value: 0-2 linear."""
         if self.osc_connected:
-            osc_path = f'/noise/strip/eq/{band}'
+            osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
             self.osc.client.send_message(osc_path, [gen_id, value])
         logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
+    
+    def _sync_strip_state_to_sc(self, slot_id):
+        """Re-sync mixer strip state to SC after generator change.
+        
+        This ensures pan/EQ/mute/solo/gain persist when switching generators,
+        since SC creates a fresh synth with default values.
+        """
+        if not self.osc_connected:
+            return
+        
+        state = self.mixer_panel.get_channel_strip_state(slot_id)
+        if not state:
+            return
+        
+        # Re-send all strip parameters to SC
+        self.osc.client.send_message(OSC_PATHS['gen_pan'], [slot_id, state['pan']])
+        self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1 if state['muted'] else 0])
+        self.osc.client.send_message(OSC_PATHS['gen_strip_solo'], [slot_id, 1 if state['soloed'] else 0])
+        self.osc.client.send_message(OSC_PATHS['gen_gain'], [slot_id, state['gain_db']])
+        
+        # EQ bands
+        for band in ['lo', 'mid', 'hi']:
+            osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
+            self.osc.client.send_message(osc_path, [slot_id, state[f'eq_{band}']])
+        
+        logger.debug(f"Gen {slot_id} strip state synced (pan={state['pan']:.2f})", component="OSC")
+    
+    def _sync_generator_slot_state_to_sc(self, slot_id):
+        """Re-sync generator slot control state to SC after type change.
+        
+        This ensures mute/env/rate/midi/filter persist when switching generators,
+        since SC creates a fresh synth with default values.
+        
+        Note: The slot's mute button state is separate from mixer strip mute.
+        If slot is muted, we send mute=1 regardless of mixer strip state.
+        """
+        if not self.osc_connected:
+            return
+        
+        slot = self.generator_grid.get_slot(slot_id)
+        if not slot:
+            return
+        
+        # Generator slot mute (overrides strip mute if set)
+        if slot.muted:
+            self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1])
+        
+        # Envelope source (0=OFF, 1=CLK, 2=MIDI)
+        self.osc.client.send_message(OSC_PATHS['gen_env_source'], [slot_id, slot.env_source])
+        
+        # Clock rate (only relevant when env_source=CLK)
+        if slot.env_source == 1 and hasattr(slot, 'rate_btn'):
+            rate = slot.rate_btn.get_value()
+            rate_index = CLOCK_RATE_INDEX.get(rate, 3)
+            self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
+        
+        # MIDI channel (only relevant when env_source=MIDI)
+        if slot.env_source == 2:
+            self.osc.client.send_message(OSC_PATHS['gen_midi_channel'], [slot_id, slot.midi_channel])
+        
+        # Filter type
+        if hasattr(slot, 'filter_btn'):
+            filter_type = slot.filter_btn.get_value()
+            self.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
+        
+        logger.debug(f"Gen {slot_id} slot state synced (mute={slot.muted}, env={slot.env_source})", component="OSC")
+        
         
     def on_master_volume_from_master(self, volume):
         """Handle master volume change from master section."""
