@@ -41,9 +41,13 @@ class ModMatrixCell(QWidget):
         self.depth = 0.0
         self.source_type = 'LFO'  # Updated by matrix window
         
+        # Selection state
+        self._selected = False
+        
         # Sizing
         self.setFixedSize(28, 24)
         self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.NoFocus)  # Don't steal focus from matrix window
         
         # Hover state
         self._hovered = False
@@ -59,6 +63,11 @@ class ModMatrixCell(QWidget):
         """Update source type for colouring."""
         self.source_type = source_type
         self.update()
+    
+    def set_selected(self, selected: bool):
+        """Update selection state."""
+        self._selected = selected
+        self.update()
         
     def paintEvent(self, event):
         """Draw the cell."""
@@ -68,8 +77,17 @@ class ModMatrixCell(QWidget):
         w, h = self.width(), self.height()
         cx, cy = w // 2, h // 2
         
-        # Background on hover
-        if self._hovered:
+        # Selection highlight (draw first, under everything)
+        if self._selected:
+            painter.fillRect(0, 0, w, h, QColor('#444466'))
+            # Draw focus border
+            pen = QPen(QColor('#8888ff'))
+            pen.setWidth(2)
+            painter.setPen(pen)
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRect(1, 1, w - 2, h - 2)
+        # Background on hover (only if not selected)
+        elif self._hovered:
             painter.fillRect(0, 0, w, h, QColor('#333333'))
         
         # Get colour for source type
@@ -106,8 +124,8 @@ class ModMatrixCell(QWidget):
                 painter.setPen(QPen(QColor('#000000'), 2))
                 painter.drawLine(int(cx - 3), int(cy), int(cx + 3), int(cy))
         else:
-            # Empty cell - draw subtle dot on hover
-            if self._hovered:
+            # Empty cell - draw subtle dot on hover or when selected
+            if self._hovered or self._selected:
                 painter.setBrush(QBrush(QColor('#555555')))
                 painter.setPen(Qt.NoPen)
                 painter.drawEllipse(QRectF(cx - 3, cy - 3, 6, 6))
@@ -124,6 +142,11 @@ class ModMatrixCell(QWidget):
         
     def mousePressEvent(self, event):
         """Handle mouse click."""
+        # Give focus to the matrix window for keyboard navigation
+        top_window = self.window()
+        if top_window:
+            top_window.setFocus(Qt.MouseFocusReason)
+        
         if event.button() == Qt.LeftButton:
             self.clicked.emit()
         elif event.button() == Qt.RightButton:
