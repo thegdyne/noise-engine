@@ -230,23 +230,36 @@ def _load_generator_configs():
         return
     
     for filename in os.listdir(generators_dir):
-        if filename.endswith('.json'):
-            filepath = os.path.join(generators_dir, filename)
-            try:
-                with open(filepath, 'r') as f:
-                    config = json.load(f)
-                    name = config.get('name')
-                    if name:
-                        _GENERATOR_CONFIGS[name] = {
-                            "synthdef": config.get('synthdef'),
-                            "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
-                            "pitch_target": config.get('pitch_target'),  # None if not specified
-                            "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
-                            "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
-                        }
-            except (json.JSONDecodeError, IOError) as e:
-                if logger:
-                    logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
+        # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
+        if not filename.endswith('.json'):
+            continue
+        if filename.startswith('.'):
+            continue
+        
+        filepath = os.path.join(generators_dir, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                name = config.get('name')
+                if name:
+                    _GENERATOR_CONFIGS[name] = {
+                        "synthdef": config.get('synthdef'),
+                        "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
+                        "pitch_target": config.get('pitch_target'),  # None if not specified
+                        "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
+                        "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
+                    }
+        except UnicodeDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping non-UTF8 generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping invalid JSON generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except IOError as e:
+            if logger:
+                logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
     
     # Validate GENERATOR_CYCLE
     for name in GENERATOR_CYCLE:
@@ -417,22 +430,35 @@ def _load_mod_generator_configs():
         return
     
     for filename in os.listdir(mod_generators_dir):
-        if filename.endswith('.json'):
-            filepath = os.path.join(mod_generators_dir, filename)
-            try:
-                with open(filepath, 'r') as f:
-                    config = json.load(f)
-                    name = config.get('name')
-                    if name:
-                        _MOD_GENERATOR_CONFIGS[name] = {
-                            "synthdef": config.get('synthdef'),
-                            "custom_params": config.get('custom_params', []),
-                            "output_config": config.get('output_config', 'fixed'),
-                            "outputs": config.get('outputs', ['A', 'B', 'C'])
-                        }
-            except (json.JSONDecodeError, IOError) as e:
-                if logger:
-                    logger.warning(f"Failed to load mod generator {filepath}: {e}", component="CONFIG")
+        # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
+        if not filename.endswith('.json'):
+            continue
+        if filename.startswith('.'):
+            continue
+        
+        filepath = os.path.join(mod_generators_dir, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                name = config.get('name')
+                if name:
+                    _MOD_GENERATOR_CONFIGS[name] = {
+                        "synthdef": config.get('synthdef'),
+                        "custom_params": config.get('custom_params', []),
+                        "output_config": config.get('output_config', 'fixed'),
+                        "outputs": config.get('outputs', ['A', 'B', 'C'])
+                    }
+        except UnicodeDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping non-UTF8 mod generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.warning(f"Skipping invalid JSON mod generator config: {filename} ({e})", component="CONFIG")
+            continue
+        except IOError as e:
+            if logger:
+                logger.warning(f"Failed to load mod generator {filepath}: {e}", component="CONFIG")
     
     # Validate MOD_GENERATOR_CYCLE
     for name in MOD_GENERATOR_CYCLE:

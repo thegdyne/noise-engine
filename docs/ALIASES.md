@@ -51,15 +51,14 @@ noise-torture        # Click "Next Name" to cycle through torture strings
 |-----|--------|
 | **F9** (Fn+F9 on Mac) | Toggle layout debug overlay |
 
-## Dimension Convention
+## Creating Archives (macOS)
 
-When discussing widget sizes, use `WIDTHxHEIGHT` format matching the debug overlay:
+Prevent AppleDouble metadata files from polluting archives:
 
+```bash
+# For tar
+COPYFILE_DISABLE=1 tar -cf changes.tar .
+
+# For zip
+zip -r latest.zip . -x "*/._*" -x "*/.DS_Store"
 ```
-# Examples
-Button: 160x27 → 180x27    # Width increased
-Label: 115x16              # Fixed size
-Mode button: 48x22         # Was squeezed to 19x22
-```
-
-This matches what you see in the debug overlay and makes changes clear.
