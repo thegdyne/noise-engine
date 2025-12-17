@@ -20,6 +20,7 @@ from PyQt5.QtGui import QFont, QColor
 
 from .mod_matrix_cell import ModMatrixCell
 from .mod_routing_state import ModRoutingState, ModConnection
+from .mod_depth_popup import ModDepthPopup
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT
 
 
@@ -263,9 +264,66 @@ class ModMatrixWindow(QMainWindow):
             self.routing_state.add_connection(new_conn)
     
     def _on_cell_right_clicked(self, bus: int, slot: int, param: str):
-        """Handle cell right-click: show depth popup (Phase 5)."""
-        # TODO: Phase 5 - show ModDepthPopup
-        pass
+        """Handle cell right-click: show depth popup for existing connection, or create new."""
+        conn = self.routing_state.get_connection(bus, slot, param)
+        
+        if not conn:
+            # No connection - create one first, then open popup
+            conn = ModConnection(
+                source_bus=bus,
+                target_slot=slot,
+                target_param=param,
+                depth=0.5,
+                enabled=True
+            )
+            self.routing_state.add_connection(conn)
+        
+        # Get labels for popup header
+        mod_slot = bus // OUTPUTS_PER_MOD_SLOT
+        output_idx = bus % OUTPUTS_PER_MOD_SLOT
+        slot_type = self.mod_slot_types[mod_slot]
+        output_labels = self._get_output_labels(slot_type)
+        source_label = f"M{mod_slot + 1}.{output_labels[output_idx]}"
+        
+        # Find param label
+        param_label = param.upper()[:3]
+        for key, label in GEN_PARAMS:
+            if key == param:
+                param_label = label
+                break
+        target_label = f"G{slot} {param_label}"
+        
+        # Show popup
+        popup = ModDepthPopup(conn, source_label, target_label, self)
+        popup.depth_changed.connect(
+            lambda d, b=bus, s=slot, p=param: self._on_popup_depth_changed(b, s, p, d)
+        )
+        popup.enable_toggled.connect(
+            lambda e, b=bus, s=slot, p=param: self._on_popup_enable_toggled(b, s, p, e)
+        )
+        popup.remove_requested.connect(
+            lambda b=bus, s=slot, p=param: self._on_popup_remove(b, s, p)
+        )
+        
+        # Position popup near the cell
+        cell = self.cells.get((bus, slot, param))
+        if cell:
+            global_pos = cell.mapToGlobal(cell.rect().center())
+            popup.move(global_pos.x() + 20, global_pos.y() - 50)
+        
+        popup.show()
+    
+    def _on_popup_depth_changed(self, bus: int, slot: int, param: str, depth: float):
+        """Handle depth change from popup."""
+        self.routing_state.set_depth(bus, slot, param, depth)
+    
+    def _on_popup_enable_toggled(self, bus: int, slot: int, param: str, enabled: bool):
+        """Handle enable toggle from popup."""
+        self.routing_state.set_enabled(bus, slot, param, enabled)
+    
+    def _on_popup_remove(self, bus: int, slot: int, param: str):
+        """Handle remove from popup."""
+        self.routing_state.remove_connection(bus, slot, param)
     
     def _on_connection_added(self, conn: ModConnection):
         """Update cell when connection added."""
