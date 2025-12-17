@@ -32,7 +32,7 @@ class ModDebugWindow(QDialog):
         self.generator_grid = generator_grid
         
         self.setWindowTitle("Mod Routing Debug")
-        self.setMinimumSize(900, 400)
+        self.setMinimumSize(1000, 400)
         self.setStyleSheet(f"background-color: {COLORS['background']}; color: {COLORS['text']};")
         
         # Make it a tool window
@@ -66,10 +66,10 @@ class ModDebugWindow(QDialog):
         
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(12)
+        self.table.setColumnCount(14)
         self.table.setHorizontalHeaderLabels([
             "ModSrc", "ModTgt", "CurrDep", "CurrAmt", "CurrOff", 
-            "Pol", "Inv", "+Rng", "-Rng", "SldrVal", "SldrMin", "SldrMax"
+            "Pol", "Inv", "+Rng", "-Rng", "SldrVal", "SldrMin", "SldrMax", "PaintMin", "PaintMax"
         ])
         self.table.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -182,6 +182,8 @@ class ModDebugWindow(QDialog):
             base = 0.5  # Default fallback
             slider_min = None
             slider_max = None
+            paint_min = None
+            paint_max = None
             if self.generator_grid:
                 slot = self.generator_grid.get_slot(conn.target_slot)
                 if slot and conn.target_param in slot.sliders:
@@ -190,6 +192,9 @@ class ModDebugWindow(QDialog):
                     # Get what the slider actually has stored
                     slider_min = slider._mod_range_min
                     slider_max = slider._mod_range_max
+                    # Get what was used in last paint
+                    paint_min = getattr(slider, '_last_paint_min', None)
+                    paint_max = getattr(slider, '_last_paint_max', None)
             
             # Polarity display
             polarity_names = {
@@ -211,7 +216,9 @@ class ModDebugWindow(QDialog):
                 f"{down_range:.2f}",
                 f"{base:.2f}",
                 f"{slider_min:.2f}" if slider_min is not None else "?",
-                f"{slider_max:.2f}" if slider_max is not None else "?"
+                f"{slider_max:.2f}" if slider_max is not None else "?",
+                f"{paint_min:.2f}" if paint_min is not None else "?",
+                f"{paint_max:.2f}" if paint_max is not None else "?"
             ]
             
             for col, text in enumerate(items):
@@ -237,6 +244,13 @@ class ModDebugWindow(QDialog):
                     expected_max = min(1, base + conn.offset + up_range)
                     if abs(slider_max - expected_max) > 0.01:
                         item.setForeground(QColor('#ff0000'))  # Red if mismatch
+                # Paint vs Slider mismatch
+                elif col == 12 and paint_min is not None and slider_min is not None:  # PaintMin
+                    if abs(paint_min - slider_min) > 0.01:
+                        item.setForeground(QColor('#ff0000'))  # Red if paint differs from slider
+                elif col == 13 and paint_max is not None and slider_max is not None:  # PaintMax
+                    if abs(paint_max - slider_max) > 0.01:
+                        item.setForeground(QColor('#ff0000'))  # Red if paint differs from slider
                 
                 self.table.setItem(row, col, item)
 

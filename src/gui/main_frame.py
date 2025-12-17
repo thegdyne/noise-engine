@@ -766,31 +766,69 @@ class MainFrame(QMainWindow):
             slider.clear_modulation()
             return
         
-        # Calculate combined modulation range using up/down aggregation
-        # This handles mixed polarities and offset correctly
+        # Calculate combined modulation ranges:
+        # - Outer (depth): maximum possible modulation range
+        # - Inner (depth × amount): actual current modulation range
         
         base_value = slider.value() / 1000.0  # Normalized 0-1
         
-        up_range = 0.0
-        down_range = 0.0
+        # Outer range (depth only)
+        outer_up = 0.0
+        outer_down = 0.0
+        
+        # Inner range (depth × amount)
+        inner_up = 0.0
+        inner_down = 0.0
+        
         total_offset = 0.0
         
         for c in connections:
+            depth_only = c.depth
             effective = c.depth * c.amount
-            total_offset += c.offset  # Sum offsets from all connections
+            total_offset += c.offset
             
             if c.polarity == Polarity.BIPOLAR:
-                up_range += effective
-                down_range += effective
+                outer_up += depth_only
+                outer_down += depth_only
+                inner_up += effective
+                inner_down += effective
             elif c.polarity == Polarity.UNI_POS:
-                up_range += effective
+                outer_up += depth_only
+                inner_up += effective
             elif c.polarity == Polarity.UNI_NEG:
-                down_range += effective
+                outer_down += depth_only
+                inner_down += effective
         
-        # Apply offset to the center point, then calculate range
+        # Apply offset to the center point
         center = base_value + total_offset
-        mod_min = max(0, center - down_range)
-        mod_max = min(1, center + up_range)
+        
+        # Calculate outer range (depth)
+        outer_unclipped_min = center - outer_down
+        outer_unclipped_max = center + outer_up
+        
+        if outer_unclipped_max <= 0.0:
+            outer_min = 0.0
+            outer_max = 0.0
+        elif outer_unclipped_min >= 1.0:
+            outer_min = 1.0
+            outer_max = 1.0
+        else:
+            outer_min = max(0.0, outer_unclipped_min)
+            outer_max = min(1.0, outer_unclipped_max)
+        
+        # Calculate inner range (depth × amount)
+        inner_unclipped_min = center - inner_down
+        inner_unclipped_max = center + inner_up
+        
+        if inner_unclipped_max <= 0.0:
+            inner_min = 0.0
+            inner_max = 0.0
+        elif inner_unclipped_min >= 1.0:
+            inner_min = 1.0
+            inner_max = 1.0
+        else:
+            inner_min = max(0.0, inner_unclipped_min)
+            inner_max = min(1.0, inner_unclipped_max)
         
         # Get color: mixed if multiple sources, else based on first source type
         if len(connections) > 1:
@@ -806,7 +844,7 @@ class MainFrame(QMainWindow):
             else:
                 color = QColor('#00ff66')  # Green
         
-        slider.set_modulation_range(mod_min, mod_max, color)
+        slider.set_modulation_range(outer_min, outer_max, inner_min, inner_max, color)
     
     def _on_mod_routes_cleared(self):
         """Handle all routes cleared - clear all slider brackets."""
@@ -832,16 +870,35 @@ class MainFrame(QMainWindow):
         logger.debug(f"Synced {len(self.mod_routing)} mod routes to SC", component="MOD")
     
     def _open_mod_matrix(self):
-        """Open the mod routing matrix window (Cmd+M)."""
+        """Toggle the mod routing matrix window (Cmd+M)."""
         if self.mod_matrix_window is None:
-            self.mod_matrix_window = ModMatrixWindow(self.mod_routing, self)
+            self.mod_matrix_window = ModMatrixWindow(
+                self.mod_routing, 
+                get_target_value_callback=self._get_target_slider_value,
+                parent=self
+            )
             # Connect mod slot type changes to update matrix
             self.modulator_grid.generator_changed.connect(self._on_mod_slot_type_changed_for_matrix)
         
-        self.mod_matrix_window.show()
-        self.mod_matrix_window.raise_()
-        self.mod_matrix_window.activateWindow()
-        logger.info("Mod matrix window opened", component="MOD")
+        # Toggle visibility
+        if self.mod_matrix_window.isVisible():
+            self.mod_matrix_window.hide()
+            logger.info("Mod matrix window closed", component="MOD")
+        else:
+            self.mod_matrix_window.show()
+            self.mod_matrix_window.raise_()
+            self.mod_matrix_window.activateWindow()
+            logger.info("Mod matrix window opened", component="MOD")
+    
+    def _get_target_slider_value(self, slot_id: int, param: str) -> float:
+        """Get normalized 0-1 value of a generator parameter slider.
+        
+        Used by mod popup to calculate depth limits.
+        """
+        slot = self.generator_grid.get_slot(slot_id)
+        if slot and param in slot.sliders:
+            return slot.sliders[param].value() / 1000.0
+        return 0.5  # Default to center if not found
     
     def _on_mod_slot_type_changed_for_matrix(self, slot_id: int, gen_name: str):
         """Update matrix window when mod slot type changes."""

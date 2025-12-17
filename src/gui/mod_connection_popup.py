@@ -35,12 +35,15 @@ class ModConnectionPopup(QDialog):
     connection_changed = pyqtSignal(object)  # Emits ModConnection on any change
     remove_requested = pyqtSignal()          # Remove connection
     
-    def __init__(self, connection: ModConnection, source_label: str, target_label: str, parent=None):
+    def __init__(self, connection: ModConnection, source_label: str, target_label: str, 
+                 get_target_value=None, parent=None):
         super().__init__(parent)
         
         self.connection = connection
         self.source_label = source_label  # e.g. "M1.A"
         self.target_label = target_label  # e.g. "G1 CUT"
+        self.get_target_value = get_target_value  # Callback returning 0-1 slider value
+        self._syncing = False  # Prevent feedback during sync
         
         # Throttle timer for OSC updates
         self._pending_update = False
@@ -269,6 +272,11 @@ class ModConnectionPopup(QDialog):
         
     def _sync_from_connection(self):
         """Set UI state from connection (blocks signals to avoid feedback loop)."""
+        self._syncing = True
+        
+        # Update depth limit based on polarity first
+        self._update_depth_limit()
+        
         # Block signals while syncing to avoid triggering change events
         self.depth_slider.blockSignals(True)
         self.amount_slider.blockSignals(True)
@@ -291,6 +299,7 @@ class ModConnectionPopup(QDialog):
         self.btn_invert.setChecked(self.connection.invert)
         
         self._update_value_labels()
+        self._syncing = False
     
     def sync_from_state(self, conn: ModConnection):
         """Update popup to reflect external changes to the connection."""
@@ -344,7 +353,52 @@ class ModConnectionPopup(QDialog):
         """Handle polarity button change."""
         polarity_id = self.polarity_group.id(button)
         self.connection.polarity = Polarity(polarity_id)
+        self._update_depth_limit()
         self._schedule_update()
+    
+    def _update_depth_limit(self):
+        """Update depth slider max based on polarity and target value.
+        
+        This prevents modulation from going outside 0-1 range.
+        - Bi: limited by distance to nearest edge
+        - U+: limited by distance to top (1.0)
+        - U-: limited by distance to bottom (0.0)
+        """
+        if not self.get_target_value:
+            return
+        
+        target_val = self.get_target_value()
+        polarity = self.connection.polarity
+        
+        # Calculate max depth that keeps modulation in 0-1 range
+        if polarity == Polarity.BIPOLAR:
+            # Bipolar: can't exceed distance to nearest edge
+            max_depth = min(target_val, 1.0 - target_val)
+        elif polarity == Polarity.UNI_POS:
+            # Uni+: can't exceed distance to top
+            max_depth = 1.0 - target_val
+        elif polarity == Polarity.UNI_NEG:
+            # Uni-: can't exceed distance to bottom
+            max_depth = target_val
+        else:
+            max_depth = 1.0
+        
+        # Convert to slider range (0-100) and apply
+        max_slider = int(max_depth * 100)
+        max_slider = max(1, max_slider)  # At least 1% to avoid dead slider
+        
+        self.depth_slider.blockSignals(True)
+        self.depth_slider.setMaximum(max_slider)
+        # Clamp current value if needed
+        if self.depth_slider.value() > max_slider:
+            self.depth_slider.setValue(max_slider)
+            self.connection.depth = max_slider / 100.0
+            # Schedule update to emit the clamped value (but not during sync)
+            if not self._syncing:
+                self._schedule_update()
+        self.depth_slider.blockSignals(False)
+        
+        self._update_value_labels()
         
     def _on_invert_changed(self):
         """Handle invert toggle."""

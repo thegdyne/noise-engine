@@ -23,7 +23,7 @@ Row labels update dynamically based on mod slot types (LFO/Sloth).
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QScrollArea, QSizePolicy, QApplication
+    QLabel, QFrame, QScrollArea, QSizePolicy, QApplication, QShortcut
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 from PyQt5.QtGui import QFont, QColor, QKeySequence
@@ -58,10 +58,11 @@ TOTAL_COLS = NUM_GEN_SLOTS * len(GEN_PARAMS)        # 40
 class ModMatrixWindow(QMainWindow):
     """Matrix window for mod routing."""
     
-    def __init__(self, routing_state: ModRoutingState, parent=None):
+    def __init__(self, routing_state: ModRoutingState, get_target_value_callback=None, parent=None):
         super().__init__(parent)
         
         self.routing_state = routing_state
+        self.get_target_value = get_target_value_callback  # (slot_id, param) -> float 0-1
         self.cells = {}  # (bus, slot, param) -> ModMatrixCell
         self.cell_grid = []  # [row][col] -> (bus, slot, param) for navigation
         self.mod_slot_types = ['LFO', 'Sloth', 'LFO', 'Sloth']  # Default types
@@ -92,6 +93,10 @@ class ModMatrixWindow(QMainWindow):
         self._setup_ui()
         self._connect_signals()
         self._sync_from_state()
+        
+        # Cmd+M to close (toggle) when this window has focus
+        close_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
+        close_shortcut.activated.connect(self.hide)
         
     def _setup_ui(self):
         """Build the matrix UI."""
@@ -353,8 +358,12 @@ class ModMatrixWindow(QMainWindow):
         if hasattr(self, '_open_popup') and self._open_popup:
             self._open_popup.close()
         
-        # Show popup
-        popup = ModConnectionPopup(conn, source_label, target_label, self)
+        # Show popup with target value callback
+        popup = ModConnectionPopup(
+            conn, source_label, target_label, 
+            get_target_value=lambda: self.get_target_value(slot, param) if self.get_target_value else 0.5,
+            parent=self
+        )
         popup.connection_changed.connect(
             lambda c, b=bus, s=slot, p=param: self._on_popup_connection_changed(b, s, p, c)
         )
