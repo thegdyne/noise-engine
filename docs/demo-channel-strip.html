@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channel Strips - Noise Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #12121a;
+            --bg-card: #1a1a25;
+            --border: #2a2a3a;
+            --text: #888899;
+            --text-bright: #ccccdd;
+            --accent-green: #44ff88;
+            --accent-orange: #ff8844;
+            --accent-magenta: #ff44aa;
+            --accent-cyan: #44ddff;
+            --accent-red: #ff4444;
+            --accent-yellow: #ffdd44;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            padding: 40px 20px;
+        }
+        
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .back-link {
+            color: var(--text);
+            text-decoration: none;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+        }
+        
+        .back-link:hover { color: var(--accent-orange); }
+        
+        h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 36px;
+            color: var(--text-bright);
+        }
+        
+        h1 span { color: var(--accent-orange); }
+        
+        .mixer-visual {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 40px 0;
+            overflow-x: auto;
+        }
+        
+        .mixer-strip-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            min-width: 700px;
+        }
+        
+        .channel-strip {
+            width: 75px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .channel-strip.active {
+            border-color: var(--accent-orange);
+        }
+        
+        .channel-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--accent-orange);
+            font-weight: 700;
+        }
+        
+        .channel-type {
+            font-size: 9px;
+            color: var(--text);
+            text-align: center;
+            height: 24px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .eq-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+        }
+        
+        .eq-band {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .eq-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: var(--text);
+            width: 15px;
+        }
+        
+        .eq-slider {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            position: relative;
+        }
+        
+        .eq-slider::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: var(--accent-orange);
+            border-radius: 50%;
+        }
+        
+        .pan-knob {
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            position: relative;
+            background: var(--bg-panel);
+        }
+        
+        .pan-knob::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 8px;
+            background: var(--accent-cyan);
+            border-radius: 1px;
+        }
+        
+        .fader-track {
+            width: 20px;
+            height: 80px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            position: relative;
+        }
+        
+        .fader-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, var(--accent-green) 0%, var(--accent-yellow) 70%, var(--accent-red) 100%);
+            border-radius: 0 0 2px 2px;
+        }
+        
+        .fader-knob {
+            position: absolute;
+            left: -3px;
+            right: -3px;
+            height: 10px;
+            background: var(--text-bright);
+            border-radius: 2px;
+        }
+        
+        .meter {
+            width: 8px;
+            height: 80px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .meter-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, var(--accent-green) 0%, var(--accent-green) 60%, var(--accent-yellow) 80%, var(--accent-red) 100%);
+            animation: meterBounce 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes meterBounce {
+            0% { height: 45%; }
+            100% { height: 65%; }
+        }
+        
+        .mute-solo {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .btn-ms {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            background: var(--bg-panel);
+            color: var(--text);
+            cursor: pointer;
+        }
+        
+        .btn-ms.mute.active { background: var(--accent-red); color: white; border-color: var(--accent-red); }
+        .btn-ms.solo.active { background: var(--accent-yellow); color: black; border-color: var(--accent-yellow); }
+        
+        .section {
+            margin: 50px 0;
+        }
+        
+        .section h2 {
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            color: var(--text-bright);
+            margin-bottom: 25px;
+            padding-left: 15px;
+            border-left: 3px solid var(--accent-orange);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+        }
+        
+        .feature-card h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            color: var(--text-bright);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .feature-card h3 .icon {
+            color: var(--accent-orange);
+        }
+        
+        .feature-card ul {
+            list-style: none;
+        }
+        
+        .feature-card li {
+            padding: 5px 0;
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        .feature-card li::before {
+            content: '• ';
+            color: var(--accent-orange);
+        }
+        
+        .eq-detail {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .eq-detail h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 20px;
+            color: var(--accent-orange);
+            margin-bottom: 20px;
+        }
+        
+        .eq-bands {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .eq-band-card {
+            flex: 1;
+            min-width: 150px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .eq-band-card h4 {
+            font-family: 'Space Mono', monospace;
+            font-size: 20px;
+            color: var(--text-bright);
+            margin-bottom: 5px;
+        }
+        
+        .eq-band-card .freq {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-orange);
+            margin-bottom: 10px;
+        }
+        
+        .eq-band-card p {
+            font-size: 12px;
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="demo-index.html" class="back-link">← Back to Demo</a>
+            <h1><span>▮</span> Channel Strips</h1>
+        </header>
+        
+        <div class="mixer-visual">
+            <div class="mixer-strip-row">
+                <div class="channel-strip active">
+                    <div class="channel-number">1</div>
+                    <div class="channel-type">Subtractive</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 75%"></div>
+                            <div class="fader-knob" style="bottom: calc(75% - 5px)"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 60%"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute">M</button>
+                        <button class="btn-ms solo">S</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip">
+                    <div class="channel-number">2</div>
+                    <div class="channel-type">Karplus</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 60%"></div>
+                            <div class="fader-knob" style="bottom: calc(60% - 5px)"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 45%"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute">M</button>
+                        <button class="btn-ms solo">S</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip">
+                    <div class="channel-number">3</div>
+                    <div class="channel-type">Granular</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 50%"></div>
+                            <div class="fader-knob" style="bottom: calc(50% - 5px)"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 35%"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute active">M</button>
+                        <button class="btn-ms solo">S</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip">
+                    <div class="channel-number">4</div>
+                    <div class="channel-type">FM</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 65%"></div>
+                            <div class="fader-knob" style="bottom: calc(65% - 5px)"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 50%"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute">M</button>
+                        <button class="btn-ms solo active">S</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip">
+                    <div class="channel-number">5</div>
+                    <div class="channel-type">Dust</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 40%"></div>
+                            <div class="fader-knob" style="bottom: calc(40% - 5px)"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 25%"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute">M</button>
+                        <button class="btn-ms solo">S</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip">
+                    <div class="channel-number">6</div>
+                    <div class="channel-type">Crackle</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 55%"></div>
+                            <div class="fader-knob" style="bottom: calc(55% - 5px)"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 40%"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute">M</button>
+                        <button class="btn-ms solo">S</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip">
+                    <div class="channel-number">7</div>
+                    <div class="channel-type">Empty</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 0%"></div>
+                            <div class="fader-knob" style="bottom: -5px"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 0%; animation: none;"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute">M</button>
+                        <button class="btn-ms solo">S</button>
+                    </div>
+                </div>
+                
+                <div class="channel-strip">
+                    <div class="channel-number">8</div>
+                    <div class="channel-type">Empty</div>
+                    <div class="eq-section">
+                        <div class="eq-band"><span class="eq-label">HI</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">MD</span><div class="eq-slider"></div></div>
+                        <div class="eq-band"><span class="eq-label">LO</span><div class="eq-slider"></div></div>
+                    </div>
+                    <div class="pan-knob"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <div class="fader-track">
+                            <div class="fader-fill" style="height: 0%"></div>
+                            <div class="fader-knob" style="bottom: -5px"></div>
+                        </div>
+                        <div class="meter">
+                            <div class="meter-fill" style="height: 0%; animation: none;"></div>
+                        </div>
+                    </div>
+                    <div class="mute-solo">
+                        <button class="btn-ms mute">M</button>
+                        <button class="btn-ms solo">S</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Per-Channel Controls</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="icon">▮</span> Volume Fader</h3>
+                    <ul>
+                        <li>Range: -∞ to +6dB</li>
+                        <li>Unity gain at 0dB mark</li>
+                        <li>Smooth interpolation</li>
+                        <li>Double-click to reset</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span class="icon">◐</span> Pan Control</h3>
+                    <ul>
+                        <li>Full stereo field</li>
+                        <li>Center detent</li>
+                        <li>Constant power law</li>
+                        <li>Double-click centers</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span class="icon">M</span> Mute</h3>
+                    <ul>
+                        <li>Instant silence</li>
+                        <li>Red indicator when active</li>
+                        <li>Pre-fader cutoff</li>
+                        <li>Exclusive with solo</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><span class="icon">S</span> Solo</h3>
+                    <ul>
+                        <li>Isolate channel(s)</li>
+                        <li>Yellow indicator</li>
+                        <li>Multiple solos stack</li>
+                        <li>AFL monitoring</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="eq-detail">
+            <h3>3-Band Parametric EQ</h3>
+            <p style="color: var(--text-bright); margin-bottom: 20px;">Each channel has a 3-band parametric EQ for tone shaping before the mix bus.</p>
+            
+            <div class="eq-bands">
+                <div class="eq-band-card">
+                    <h4>LO</h4>
+                    <div class="freq">200 Hz</div>
+                    <p>Low shelf<br>±12dB range</p>
+                </div>
+                <div class="eq-band-card">
+                    <h4>MID</h4>
+                    <div class="freq">1.2 kHz</div>
+                    <p>Peaking bell<br>±12dB range</p>
+                </div>
+                <div class="eq-band-card">
+                    <h4>HI</h4>
+                    <div class="freq">4 kHz</div>
+                    <p>High shelf<br>±12dB range</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

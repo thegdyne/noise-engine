@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standard Components - Noise Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #12121a;
+            --bg-card: #1a1a25;
+            --border: #2a2a3a;
+            --text: #888899;
+            --text-bright: #ccccdd;
+            --accent-green: #44ff88;
+            --accent-orange: #ff8844;
+            --accent-magenta: #ff44aa;
+            --accent-cyan: #44ddff;
+            --accent-purple: #8844ff;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            padding: 40px 20px;
+        }
+        
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .back-link {
+            color: var(--text);
+            text-decoration: none;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+        }
+        
+        .back-link:hover { color: var(--accent-purple); }
+        
+        h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 36px;
+            color: var(--text-bright);
+        }
+        
+        h1 span { color: var(--accent-purple); }
+        
+        .intro {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        
+        .intro p {
+            font-size: 18px;
+            color: var(--text-bright);
+            line-height: 1.7;
+        }
+        
+        .params-visual {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 50px 0;
+            flex-wrap: wrap;
+        }
+        
+        .param-slider {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .param-track {
+            width: 30px;
+            height: 120px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .param-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, var(--param-color), transparent);
+            transition: height 0.3s ease;
+        }
+        
+        .param-knob {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 26px;
+            height: 8px;
+            background: var(--param-color);
+            border-radius: 2px;
+            box-shadow: 0 0 10px var(--param-color);
+        }
+        
+        .param-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--param-color);
+        }
+        
+        .param-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text);
+        }
+        
+        .section {
+            margin: 50px 0;
+        }
+        
+        .section h2 {
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            color: var(--text-bright);
+            margin-bottom: 25px;
+            padding-left: 15px;
+            border-left: 3px solid var(--accent-purple);
+        }
+        
+        .param-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .param-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+            border-top: 3px solid var(--card-color, var(--accent-green));
+        }
+        
+        .param-card h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 20px;
+            color: var(--card-color, var(--text-bright));
+            margin-bottom: 5px;
+        }
+        
+        .param-card .full-name {
+            font-size: 12px;
+            color: var(--text);
+            margin-bottom: 15px;
+        }
+        
+        .param-card p {
+            font-size: 14px;
+            color: var(--text-bright);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .param-card .range {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--text);
+            background: var(--bg-card);
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .filter-section {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .filter-section h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 20px;
+            color: var(--accent-orange);
+            margin-bottom: 20px;
+        }
+        
+        .filter-types {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-type {
+            flex: 1;
+            min-width: 150px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .filter-type h4 {
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            color: var(--accent-orange);
+            margin-bottom: 10px;
+        }
+        
+        .filter-type p {
+            font-size: 13px;
+            color: var(--text);
+        }
+        
+        .filter-curve {
+            height: 60px;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .filter-curve svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .filter-curve path {
+            fill: none;
+            stroke: var(--accent-orange);
+            stroke-width: 2;
+        }
+        
+        .envelope-section {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .envelope-section h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 20px;
+            color: var(--accent-cyan);
+            margin-bottom: 20px;
+        }
+        
+        .envelope-visual {
+            display: flex;
+            align-items: flex-end;
+            gap: 5px;
+            height: 80px;
+            margin: 20px 0;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+        
+        .env-segment {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .env-bar {
+            width: 40px;
+            background: var(--accent-cyan);
+            border-radius: 2px;
+            position: relative;
+        }
+        
+        .env-bar.attack { height: 60px; animation: attack 2s infinite; }
+        .env-bar.decay { height: 40px; animation: decay 2s infinite; }
+        .env-bar.sustain { height: 25px; width: 60px; }
+        .env-bar.release { height: 0px; }
+        
+        @keyframes attack {
+            0% { height: 0; }
+            25% { height: 60px; }
+            100% { height: 60px; }
+        }
+        
+        @keyframes decay {
+            0%, 25% { height: 60px; }
+            50% { height: 40px; }
+            100% { height: 40px; }
+        }
+        
+        .env-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text);
+        }
+        
+        .clock-rates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        
+        .clock-rate {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            padding: 5px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+        }
+        
+        .clock-rate.active {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(68, 221, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="demo-index.html" class="back-link">← Back to Demo</a>
+            <h1><span>◉</span> Standard Components</h1>
+        </header>
+        
+        <div class="intro">
+            <p>Every generator shares the same 5 standard parameters, multimode filter, and clock-synced envelope. This means consistent muscle memory across all 22 generator types.</p>
+        </div>
+        
+        <div class="params-visual">
+            <div class="param-slider" style="--param-color: #44ff88">
+                <div class="param-label">FRQ</div>
+                <div class="param-track">
+                    <div class="param-fill" style="height: 65%"></div>
+                    <div class="param-knob" style="bottom: calc(65% - 4px)"></div>
+                </div>
+                <div class="param-value">440Hz</div>
+            </div>
+            <div class="param-slider" style="--param-color: #ff8844">
+                <div class="param-label">CUT</div>
+                <div class="param-track">
+                    <div class="param-fill" style="height: 80%"></div>
+                    <div class="param-knob" style="bottom: calc(80% - 4px)"></div>
+                </div>
+                <div class="param-value">4.2kHz</div>
+            </div>
+            <div class="param-slider" style="--param-color: #ff44aa">
+                <div class="param-label">RES</div>
+                <div class="param-track">
+                    <div class="param-fill" style="height: 35%"></div>
+                    <div class="param-knob" style="bottom: calc(35% - 4px)"></div>
+                </div>
+                <div class="param-value">0.35</div>
+            </div>
+            <div class="param-slider" style="--param-color: #44ddff">
+                <div class="param-label">ATK</div>
+                <div class="param-track">
+                    <div class="param-fill" style="height: 15%"></div>
+                    <div class="param-knob" style="bottom: calc(15% - 4px)"></div>
+                </div>
+                <div class="param-value">12ms</div>
+            </div>
+            <div class="param-slider" style="--param-color: #8844ff">
+                <div class="param-label">DEC</div>
+                <div class="param-track">
+                    <div class="param-fill" style="height: 55%"></div>
+                    <div class="param-knob" style="bottom: calc(55% - 4px)"></div>
+                </div>
+                <div class="param-value">850ms</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>The Five Parameters</h2>
+            
+            <div class="param-cards">
+                <div class="param-card" style="--card-color: #44ff88">
+                    <h3>FRQ</h3>
+                    <div class="full-name">Frequency / Rate</div>
+                    <p>Base pitch or primary oscillator frequency. Exponential curve for musical control.</p>
+                    <span class="range">20Hz → 8kHz</span>
+                </div>
+                
+                <div class="param-card" style="--card-color: #ff8844">
+                    <h3>CUT</h3>
+                    <div class="full-name">Filter Cutoff</div>
+                    <p>Multimode filter cutoff frequency. Works with LP, HP, and BP modes.</p>
+                    <span class="range">20Hz → 16kHz</span>
+                </div>
+                
+                <div class="param-card" style="--card-color: #ff44aa">
+                    <h3>RES</h3>
+                    <div class="full-name">Filter Resonance</div>
+                    <p>Filter Q / emphasis at cutoff. Inverted control (up = more resonant).</p>
+                    <span class="range">0.1 → 1.0</span>
+                </div>
+                
+                <div class="param-card" style="--card-color: #44ddff">
+                    <h3>ATK</h3>
+                    <div class="full-name">VCA Attack</div>
+                    <p>Envelope attack time. How quickly the sound rises.</p>
+                    <span class="range">0.1ms → 2s</span>
+                </div>
+                
+                <div class="param-card" style="--card-color: #8844ff">
+                    <h3>DEC</h3>
+                    <div class="full-name">VCA Decay</div>
+                    <p>Envelope decay/release time. How long the sound rings out.</p>
+                    <span class="range">10ms → 10s</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h3>Multimode Filter</h3>
+            <p style="color: var(--text-bright); margin-bottom: 20px;">Every generator has a state-variable filter with three modes, controlled by CUT and RES.</p>
+            
+            <div class="filter-types">
+                <div class="filter-type">
+                    <h4>LP</h4>
+                    <div class="filter-curve">
+                        <svg viewBox="0 0 100 60">
+                            <path d="M 0 50 Q 40 50 50 10 Q 60 50 100 50" />
+                        </svg>
+                    </div>
+                    <p>Low Pass - removes highs</p>
+                </div>
+                <div class="filter-type">
+                    <h4>HP</h4>
+                    <div class="filter-curve">
+                        <svg viewBox="0 0 100 60">
+                            <path d="M 0 50 Q 40 50 50 10 Q 60 50 100 50" />
+                        </svg>
+                    </div>
+                    <p>High Pass - removes lows</p>
+                </div>
+                <div class="filter-type">
+                    <h4>BP</h4>
+                    <div class="filter-curve">
+                        <svg viewBox="0 0 100 60">
+                            <path d="M 0 50 Q 30 50 50 10 Q 70 50 100 50" />
+                        </svg>
+                    </div>
+                    <p>Band Pass - isolated band</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="envelope-section">
+            <h3>Clock-Synced Envelope</h3>
+            <p style="color: var(--text-bright); margin-bottom: 20px;">
+                ATK and DEC control an AD envelope on the VCA. The envelope can be triggered by:
+            </p>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+                <div style="flex: 1; min-width: 150px; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                    <strong style="color: var(--accent-cyan);">OFF</strong>
+                    <p style="font-size: 13px; color: var(--text); margin-top: 5px;">Drone mode - continuous sound</p>
+                </div>
+                <div style="flex: 1; min-width: 150px; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                    <strong style="color: var(--accent-cyan);">CLK</strong>
+                    <p style="font-size: 13px; color: var(--text); margin-top: 5px;">Triggered by master clock</p>
+                </div>
+                <div style="flex: 1; min-width: 150px; padding: 15px; background: var(--bg-card); border-radius: 8px;">
+                    <strong style="color: var(--accent-cyan);">MIDI</strong>
+                    <p style="font-size: 13px; color: var(--text); margin-top: 5px;">Triggered by MIDI notes</p>
+                </div>
+            </div>
+            
+            <p style="color: var(--text-bright); margin-bottom: 10px;">Clock division rates:</p>
+            <div class="clock-rates">
+                <span class="clock-rate">/16</span>
+                <span class="clock-rate">/12</span>
+                <span class="clock-rate">/8</span>
+                <span class="clock-rate">/4</span>
+                <span class="clock-rate">/2</span>
+                <span class="clock-rate active">CLK</span>
+                <span class="clock-rate">x2</span>
+                <span class="clock-rate">x4</span>
+                <span class="clock-rate">x8</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
