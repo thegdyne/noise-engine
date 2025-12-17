@@ -23,10 +23,10 @@ Empty generator = no synth, buses zeroed.
     // Phases now controlled by pattern+rotate, not per-output
     ~modOutputState = Array.fill(4, {
         [
-            Dictionary.newFrom([\wave, 0, \polarity, 1]),  // A/X
-            Dictionary.newFrom([\wave, 0, \polarity, 1]),  // B/Y
-            Dictionary.newFrom([\wave, 0, \polarity, 1]),  // C/Z
-            Dictionary.newFrom([\wave, 0, \polarity, 1])   // D/R
+            Dictionary.newFrom([\wave, 0, \polarity, 0]),  // A/X
+            Dictionary.newFrom([\wave, 0, \polarity, 0]),  // B/Y
+            Dictionary.newFrom([\wave, 0, \polarity, 0]),  // C/Z
+            Dictionary.newFrom([\wave, 0, \polarity, 0])   // D/R
         ]
     });
     
@@ -75,10 +75,10 @@ Empty generator = no synth, buses zeroed.
                 \waveB, outState[1][\wave] ? 0,
                 \waveC, outState[2][\wave] ? 0,
                 \waveD, outState[3][\wave] ? 0,
-                \polarityA, outState[0][\polarity] ? 1,
-                \polarityB, outState[1][\polarity] ? 1,
-                \polarityC, outState[2][\polarity] ? 1,
-                \polarityD, outState[3][\polarity] ? 1,
+                \polarityA, outState[0][\polarity] ? 0,
+                \polarityB, outState[1][\polarity] ? 0,
+                \polarityC, outState[2][\polarity] ? 0,
+                \polarityD, outState[3][\polarity] ? 0,
                 \clockTrigBus, ~clockTrigBus.index,
                 \clockIndex, ~modClockSourceIndex,  // From config.scd
                 \bpmBus, ~clockBus.index
@@ -93,10 +93,10 @@ Empty generator = no synth, buses zeroed.
                 \outR, busD,
                 \mode, params[\mode] ? 0,
                 \bias, params[\bias] ? 0.5,
-                \polarityX, outState[0][\polarity] ? 1,
-                \polarityY, outState[1][\polarity] ? 1,
-                \polarityZ, outState[2][\polarity] ? 1,
-                \polarityR, outState[3][\polarity] ? 0  // R defaults unipolar
+                \polarityX, outState[0][\polarity] ? 0,
+                \polarityY, outState[1][\polarity] ? 0,
+                \polarityZ, outState[2][\polarity] ? 0,
+                \polarityR, outState[3][\polarity] ? 0  // R defaults NORM
             ], ~modGroup);
             ("  Mod slot " ++ slot ++ " → Sloth").postln;
         }

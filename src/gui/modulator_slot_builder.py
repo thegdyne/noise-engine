@@ -249,7 +249,7 @@ def build_output_row(slot, output_idx, label, output_config):
     
     # Polarity button (all generators)
     # Default: BI for most, UNI for R output (Sloth gate)
-    default_polarity = 0 if (output_config == "fixed" and output_idx == 3) else 1
+    default_polarity = 0  # NORM by default
     pol_btn = CycleButton(MOD_POLARITY, initial_index=default_polarity)
     pol_btn.setObjectName(f"mod{slot.slot_id}_pol{output_idx}")  # DEBUG
     pol_btn.setFixedSize(mt.get('pol_button_width', 28), btn_height)  # FIXED: theme values

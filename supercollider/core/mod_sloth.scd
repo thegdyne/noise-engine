@@ -23,7 +23,7 @@ SynthDef(\modSloth, {
     arg outX, outY, outZ, outR,      // 4 output bus indices (was 3)
         mode = 0,                     // 0=Torpor, 1=Apathy, 2=Inertia
         bias = 0.5,                   // Attractor weight
-        polarityX = 1, polarityY = 1, polarityZ = 1, polarityR = 0;  // 0=UNI, 1=BI (R defaults UNI)
+        polarityX = 0, polarityY = 0, polarityZ = 0, polarityR = 0;  // 0=NORM, 1=INV
     
     var freq, x, y, z, r;
     var sigX, sigY, sigZ, sigR;

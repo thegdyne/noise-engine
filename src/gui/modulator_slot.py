@@ -39,7 +39,7 @@ class ModulatorSlot(QWidget):
     parameter_changed = pyqtSignal(int, str, float)  # slot_id, param_key, value
     output_wave_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, wave_index
     output_phase_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, phase_index
-    output_polarity_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, polarity (0=UNI, 1=BI)
+    output_polarity_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, invert (0=NORM, 1=INV)
     
     def __init__(self, slot_id, default_generator="Empty", parent=None):
         super().__init__(parent)

@@ -54,7 +54,7 @@ Paths:
     OSCdef(\modOutputPolarity, { |msg|
         var slot = msg[1].asInteger;
         var output = msg[2].asInteger;  // 0-3 (4 outputs)
-        var polarity = msg[3].asInteger;  // 0=UNI, 1=BI
+        var polarity = msg[3].asInteger;  // 0=NORM, 1=INV
         
         if(slot >= 1 && slot <= 4 && output >= 0 && output <= 3) {
             ~setModOutputPolarity.(slot, output, polarity);

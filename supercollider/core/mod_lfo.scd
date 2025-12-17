@@ -57,7 +57,7 @@ SynthDef(\modLFO, {
         pattern = 0,                  // Phase pattern index (0-5)
         rotate = 0,                   // Phase rotation (0-23 = 0-345 deg in 15 deg steps)
         waveA = 0, waveB = 0, waveC = 0, waveD = 0,  // Waveform indices (0-7)
-        polarityA = 1, polarityB = 1, polarityC = 1, polarityD = 1,  // 0=UNI, 1=BI
+        polarityA = 0, polarityB = 0, polarityC = 0, polarityD = 0,  // 0=NORM, 1=INV
         clockTrigBus = 0,             // Clock trigger bus base
         clockIndex = 10,              // Set from ~modClockSourceIndex in mod_slots.scd
         bpmBus = 0;                   // BPM control bus
