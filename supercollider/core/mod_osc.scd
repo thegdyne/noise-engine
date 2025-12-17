@@ -6,7 +6,6 @@ Paths:
   /noise/mod/generator/{slot}           - set generator type
   /noise/mod/param/{slot}/{key}         - set parameter value
   /noise/mod/out/wave/{slot}/{output}   - set output waveform (LFO)
-  /noise/mod/out/phase/{slot}/{output}  - set output phase (LFO)
   /noise/mod/out/pol/{slot}/{output}    - set output polarity
   /noise/mod/scope/enable/{slot}        - enable scope streaming
 */
@@ -43,32 +42,21 @@ Paths:
     // Output waveform: /noise/mod/out/wave/{slot}/{output} waveIndex
     OSCdef(\modOutputWave, { |msg|
         var slot = msg[1].asInteger;
-        var output = msg[2].asInteger;  // 0-2
+        var output = msg[2].asInteger;  // 0-3 (4 outputs)
         var waveIndex = msg[3].asInteger;
         
-        if(slot >= 1 && slot <= 4 && output >= 0 && output <= 2) {
+        if(slot >= 1 && slot <= 4 && output >= 0 && output <= 3) {
             ~setModOutputWave.(slot, output, waveIndex);
         };
     }, '/noise/mod/out/wave');
     
-    // Output phase: /noise/mod/out/phase/{slot}/{output} phaseIndex
-    OSCdef(\modOutputPhase, { |msg|
-        var slot = msg[1].asInteger;
-        var output = msg[2].asInteger;  // 0-2
-        var phaseIndex = msg[3].asInteger;  // 0-7 for 0°-315°
-        
-        if(slot >= 1 && slot <= 4 && output >= 0 && output <= 2) {
-            ~setModOutputPhase.(slot, output, phaseIndex);
-        };
-    }, '/noise/mod/out/phase');
-    
     // Output polarity: /noise/mod/out/pol/{slot}/{output} polarity
     OSCdef(\modOutputPolarity, { |msg|
         var slot = msg[1].asInteger;
-        var output = msg[2].asInteger;  // 0-2
+        var output = msg[2].asInteger;  // 0-3 (4 outputs)
         var polarity = msg[3].asInteger;  // 0=UNI, 1=BI
         
-        if(slot >= 1 && slot <= 4 && output >= 0 && output <= 2) {
+        if(slot >= 1 && slot <= 4 && output >= 0 && output <= 3) {
             ~setModOutputPolarity.(slot, output, polarity);
         };
     }, '/noise/mod/out/pol');
@@ -99,8 +87,8 @@ Paths:
             4.do { |idx|
                 var slot = idx + 1;
                 if(~modScopeEnabled[idx]) {
-                    // Send 3 bus values for this slot
-                    3.do { |out|
+                    // Send 4 bus values for this slot (quadrature)
+                    4.do { |out|
                         var busIdx = ~modBusIndex.(slot, out);
                         var value = ~modBuses[busIdx].getSynchronous;
                         netAddr.sendMsg('/noise/mod/bus/value', busIdx, value);
@@ -126,5 +114,5 @@ Paths:
         "  Mod scope streaming stopped".postln;
     };
     
-    "  ✓ Mod OSC handlers ready".postln;
+    "  ✓ Mod OSC handlers ready (4 outputs per slot)".postln;
 };

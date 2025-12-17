@@ -650,9 +650,9 @@ class MainFrame(QMainWindow):
         
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""
-        # Calculate slot from bus index: bus 0-2 → slot 1, bus 3-5 → slot 2, etc.
-        slot_id = (bus_idx // 3) + 1
-        output_idx = bus_idx % 3
+        # Calculate slot from bus index: bus 0-3 → slot 1, bus 4-7 → slot 2, etc.
+        slot_id = (bus_idx // 4) + 1
+        output_idx = bus_idx % 4
         
         slot = self.modulator_grid.get_slot(slot_id)
         if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
