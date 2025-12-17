@@ -34,6 +34,32 @@ Currently modulation may use fixed parameter ranges (e.g. cutoff always sweeps 2
 
 ---
 
+### Modulation Offset / Base Value Behaviour Tuning
+
+**Status:** Needs design discussion  
+**Complexity:** Medium  
+**Affects:** `supercollider/core/mod_apply.scd`, UI slider interaction
+
+**Problem:**
+Need to define and implement correct behaviour for:
+1. What happens when user moves slider while modulation is active?
+2. Should base value update live, or be captured once at route creation?
+3. How do slider visualization brackets respond to manual slider changes?
+4. What's the interaction between multiple sources and manual control?
+
+**Current Behaviour:**
+- Base value captured when route is created
+- Moving slider while modulated doesn't update the modulation center point
+- Visualization may not match actual modulation range after slider move
+
+**Desired Behaviour:**
+- TBD - needs user input on preferred workflow
+- Options: live tracking, explicit "set base" action, or modal (mod vs edit modes)
+
+**Related to:** Relative Modulation feature above
+
+---
+
 ## Medium Priority
 
 ### Arrow Key Speed Control
