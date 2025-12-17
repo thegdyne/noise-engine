@@ -37,6 +37,7 @@ class GeneratorSlot(QWidget):
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
         self.slot_id = slot_id
+        self.setObjectName(f"gen{slot_id}_slot")  # DEBUG
         self.generator_type = generator_type
         self.active = False
         self.clock_enabled = False  # Legacy

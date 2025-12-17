@@ -29,6 +29,76 @@ from PyQt5.QtCore import Qt, QRect
 DEBUG_LAYOUT = os.environ.get('DEBUG_LAYOUT', '0') == '1'
 _debug_enabled = False
 _main_window = None
+_click_filter = None  # Event filter for click-to-trace
+
+
+class DebugClickFilter:
+    """Event filter that traces widget hierarchy on click when debug mode is active."""
+    
+    def __init__(self):
+        from PyQt5.QtCore import QObject, QEvent
+        self._filter = _ClickEventFilter()
+    
+    def install(self, window):
+        """Install the event filter on the application."""
+        app = QApplication.instance()
+        if app:
+            app.installEventFilter(self._filter)
+    
+    def remove(self):
+        """Remove the event filter."""
+        app = QApplication.instance()
+        if app:
+            app.removeEventFilter(self._filter)
+
+
+class _ClickEventFilter(QWidget):
+    """Actual event filter implementation."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def eventFilter(self, obj, event):
+        from PyQt5.QtCore import QEvent
+        
+        # Only intercept mouse press when debug is enabled
+        if _debug_enabled and event.type() == QEvent.MouseButtonPress:
+            # Get the widget under the cursor
+            pos = event.globalPos()
+            widget = QApplication.widgetAt(pos)
+            
+            if widget:
+                print("\n" + "="*50)
+                print(f"[Click-to-Trace] Widget under cursor:")
+                print("="*50)
+                _trace_parents_internal(widget)
+                print("="*50 + "\n")
+        
+        # Don't consume the event - let it propagate normally
+        return False
+
+
+def _trace_parents_internal(widget):
+    """Internal version of trace_parents for click handler."""
+    current = widget
+    indent = 0
+    
+    while current is not None:
+        name = current.objectName() or ""
+        class_name = current.__class__.__name__
+        geo = current.geometry()
+        
+        if name:
+            label = f"{name} ({class_name})"
+        else:
+            label = class_name
+        
+        prefix = "  ↑ " * indent if indent > 0 else ""
+        fixed = " ⚠️FIXED" if has_fixed_size(current) else ""
+        print(f"{prefix}{label} {geo.width()}x{geo.height()}{fixed}")
+        
+        current = current.parent()
+        indent += 1
 
 # Colors for different widget types (semi-transparent)
 DEBUG_COLORS = {
@@ -188,14 +258,20 @@ def disable_layout_debug(widget=None, recursive=True):
 
 def toggle_layout_debug():
     """Toggle layout debug mode on/off."""
-    global _debug_enabled, _main_window
+    global _debug_enabled, _main_window, _click_filter
     
     if _debug_enabled:
         disable_layout_debug(_main_window)
+        if _click_filter:
+            _click_filter.remove()
         print("[Layout Debug] DISABLED")
     else:
         enable_layout_debug(_main_window)
-        print("[Layout Debug] ENABLED - Red borders = fixed size")
+        # Install click-to-trace filter
+        if _click_filter is None:
+            _click_filter = DebugClickFilter()
+        _click_filter.install(_main_window)
+        print("[Layout Debug] ENABLED - Red borders = fixed size, CLICK to trace hierarchy")
 
 
 def install_debug_hotkey(window):
@@ -287,3 +363,107 @@ def log_size_constraints(widget, label=""):
     print(f"[{label}] geo={geo.width()}x{geo.height()} hint={hint.width()}x{hint.height()} "
           f"policy=({h_str},{v_str}) min={widget.minimumWidth()}x{widget.minimumHeight()} "
           f"max={widget.maximumWidth()}x{widget.maximumHeight()}{fixed_marker}")
+
+
+def trace_parents(widget):
+    """
+    Walk up the widget hierarchy and print each parent.
+    
+    Usage:
+        trace_parents(self.type_btn)
+        # or find by name first:
+        w = find_widget("gen1_type")
+        trace_parents(w)
+    
+    Output:
+        gen1_type (CycleButton) 70x20
+          ↑ QFrame 70x22
+          ↑ QWidget 280x22
+          ↑ gen1_frame (QFrame) 280x350
+          ↑ GeneratorSlot 284x354
+          ↑ GeneratorGrid 1200x720
+          ↑ MainFrame 1400x800
+    """
+    current = widget
+    indent = 0
+    
+    while current is not None:
+        name = current.objectName() or ""
+        class_name = current.__class__.__name__
+        geo = current.geometry()
+        
+        if name:
+            label = f"{name} ({class_name})"
+        else:
+            label = class_name
+        
+        prefix = "  ↑ " * indent if indent > 0 else ""
+        print(f"{prefix}{label} {geo.width()}x{geo.height()}")
+        
+        current = current.parent()
+        indent += 1
+
+
+def find_widget(name, root=None):
+    """
+    Find a widget by objectName.
+    
+    Usage:
+        w = find_widget("gen1_type")
+        dump_layout(w)
+        trace_parents(w)
+    
+    Args:
+        name: The objectName to search for
+        root: Starting widget (defaults to all top-level windows)
+    
+    Returns:
+        QWidget or None
+    """
+    from PyQt5.QtWidgets import QApplication
+    
+    if root is None:
+        app = QApplication.instance()
+        if not app:
+            return None
+        for window in app.topLevelWidgets():
+            result = find_widget(name, window)
+            if result:
+                return result
+        return None
+    
+    if root.objectName() == name:
+        return root
+    
+    for child in root.findChildren(QWidget):
+        if child.objectName() == name:
+            return child
+    
+    return None
+
+
+def list_widgets(pattern=None, root=None):
+    """
+    List all widgets, optionally filtered by objectName pattern.
+    
+    Usage:
+        list_widgets()           # All widgets with names
+        list_widgets("gen")      # Only widgets containing "gen"
+        list_widgets("mod1_")    # Only mod1 widgets
+    """
+    from PyQt5.QtWidgets import QApplication
+    
+    if root is None:
+        app = QApplication.instance()
+        if not app:
+            return
+        for window in app.topLevelWidgets():
+            list_widgets(pattern, window)
+        return
+    
+    for child in root.findChildren(QWidget):
+        name = child.objectName()
+        if name:
+            if pattern is None or pattern in name:
+                geo = child.geometry()
+                print(f"{name}: {geo.width()}x{geo.height()} ({child.__class__.__name__})")

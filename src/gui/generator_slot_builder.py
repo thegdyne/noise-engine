@@ -27,6 +27,7 @@ def build_generator_header(slot):
     
     # Header widget - must expand to fill slot width
     header_widget = QWidget()
+    header_widget.setObjectName(f"gen{slot.slot_id}_header")  # DEBUG
     header_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     header = QHBoxLayout(header_widget)
     header.setSpacing(gt['header_spacing'])
@@ -48,6 +49,7 @@ def build_generator_header(slot):
     # Container to clip overflow
     type_offset = gt.get('header_type_offset_right', 0)
     btn_container = QFrame()
+    btn_container.setObjectName(f"gen{slot.slot_id}_type_container")  # DEBUG
     btn_container.setFixedWidth(gt.get('header_type_width', 75))
     btn_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     btn_container.setStyleSheet("background: transparent; border: none;")
