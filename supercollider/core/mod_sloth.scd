@@ -2,24 +2,31 @@
 Mod Sloth SynthDef
 NLC Triple Sloth inspired chaos modulation source
 
-Outputs X, Y, Z from different stages of chaos circuit.
-Z is inverted Y.
+Outputs:
+- X: Primary chaos (fast movement)
+- Y: Secondary chaos (coupled to X)
+- Z: Inverted Y (as per NLC design)
+- R: Rectified gate (fires when slow > fast, irregular bursts)
 
 Controls:
 - Mode: Torpor (15-30s), Apathy (60-90s), Inertia (30-40min)
 - Bias: Attractor weight (time spent in each chaos state)
 
+The R output creates gate-like pulses useful for triggering events.
+It pulses when the slower chaos outputs exceed the faster one,
+creating musically interesting irregular rhythms.
+
 Reference: Nonlinear Circuits 8HP Triple Sloth (Andrew F)
 */
 
 SynthDef(\modSloth, {
-    arg outX, outY, outZ,           // Output bus indices
-        mode = 0,                    // 0=Torpor, 1=Apathy, 2=Inertia
-        bias = 0.5,                  // Attractor weight
-        polarityX = 1, polarityY = 1, polarityZ = 1;  // 0=UNI, 1=BI
+    arg outX, outY, outZ, outR,      // 4 output bus indices (was 3)
+        mode = 0,                     // 0=Torpor, 1=Apathy, 2=Inertia
+        bias = 0.5,                   // Attractor weight
+        polarityX = 1, polarityY = 1, polarityZ = 1, polarityR = 0;  // 0=UNI, 1=BI (R defaults UNI)
     
-    var freq, x, y, z;
-    var sigX, sigY, sigZ;
+    var freq, x, y, z, r;
+    var sigX, sigY, sigZ, sigR;
     var freqs, biasScaled;
     
     // Base frequencies for each mode
@@ -42,10 +49,10 @@ SynthDef(\modSloth, {
     // Using coupled oscillators with feedback for chaotic behavior
     // This is a simplified approximation - true Lorenz would need more computation
     
-    // X: Primary chaos signal
+    // X: Primary chaos signal (faster movement)
     x = LFNoise2.kr(freq * 1.1);
     
-    // Y: Secondary chaos signal (coupled to X)
+    // Y: Secondary chaos signal (coupled to X, slower)
     y = LFNoise2.kr(freq * 0.9);
     
     // Add some cross-modulation for more chaotic interaction
@@ -55,20 +62,32 @@ SynthDef(\modSloth, {
     // Z: Inverted Y (as per NLC design)
     z = y.neg;
     
+    // R: Rectified sum - fires when slow outputs exceed fast
+    // Creates irregular gate-like pulses
+    // max(0, y + z - x) simplified since z = -y:
+    // max(0, y - y - x) = max(0, -x) = max(0, x.neg)
+    // But more interesting: max(0, (y.abs + z.abs) - x.abs)
+    r = ((y.abs + z.abs * 0.5) - x.abs).max(0);
+    r = r * 2;  // Scale up for more prominent gate
+    r = r.clip(0, 1);
+    
     // Scale to 0-1 range (unipolar base)
     sigX = x * 0.5 + 0.5;
     sigY = y * 0.5 + 0.5;
     sigZ = z * 0.5 + 0.5;
+    sigR = r;  // Already 0-1
     
     // Apply polarity: 0=UNI (0 to 1), 1=BI (-1 to +1)
     sigX = Select.kr(polarityX, [sigX, x]);
     sigY = Select.kr(polarityY, [sigY, y]);
     sigZ = Select.kr(polarityZ, [sigZ, z]);
+    sigR = Select.kr(polarityR, [sigR, r * 2 - 1]);
     
     // Output to control buses
     Out.kr(outX, sigX);
     Out.kr(outY, sigY);
     Out.kr(outZ, sigZ);
+    Out.kr(outR, sigR);
 }).add;
 
-"  ✓ modSloth SynthDef loaded".postln;
+"  ✓ modSloth SynthDef loaded (4 outputs: X/Y/Z + R gate)".postln;

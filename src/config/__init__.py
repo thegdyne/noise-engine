@@ -342,8 +342,8 @@ LFO_WAVEFORM_INDEX = {
 # === MOD SOURCES ===
 # Slot and bus counts
 MOD_SLOT_COUNT = 4
-MOD_OUTPUTS_PER_SLOT = 3
-MOD_BUS_COUNT = MOD_SLOT_COUNT * MOD_OUTPUTS_PER_SLOT  # 12
+MOD_OUTPUTS_PER_SLOT = 4  # Quadrature: A/B/C/D or X/Y/Z/R
+MOD_BUS_COUNT = MOD_SLOT_COUNT * MOD_OUTPUTS_PER_SLOT  # 16
 
 # Mod generator cycle (like GENERATOR_CYCLE)
 MOD_GENERATOR_CYCLE = [
@@ -359,6 +359,18 @@ MOD_LFO_WAVEFORM_INDEX = {w: i for i, w in enumerate(MOD_LFO_WAVEFORMS)}
 # LFO phase steps (degrees)
 MOD_LFO_PHASES = [0, 45, 90, 135, 180, 225, 270, 315]
 MOD_LFO_PHASE_INDEX = {p: i for i, p in enumerate(MOD_LFO_PHASES)}
+
+# LFO quadrature phase patterns (degrees for A, B, C, D)
+MOD_LFO_PHASE_PATTERNS = {
+    "QUAD":   [0, 90, 180, 270],   # Classic quadrature
+    "PAIR":   [0, 0, 180, 180],    # Two pairs, 180° apart
+    "SPREAD": [0, 45, 180, 225],   # Spread across cycle
+    "TIGHT":  [0, 22, 45, 67],     # Tight cluster
+    "WIDE":   [0, 120, 180, 300],  # Wide spread
+    "SYNC":   [0, 0, 0, 0],        # All in phase
+}
+MOD_LFO_PHASE_PATTERN_NAMES = list(MOD_LFO_PHASE_PATTERNS.keys())
+MOD_LFO_ROTATE_STEPS = 24  # 15° per step (360/24)
 
 # LFO sync modes
 MOD_LFO_MODES = ["CLK", "FREE"]  # CLK = clock synced, FREE = manual frequency
@@ -391,11 +403,11 @@ MOD_CLOCK_TICKS_PER_CYCLE = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
 MOD_POLARITY = ["UNI", "BI"]
 MOD_POLARITY_INDEX = {"UNI": 0, "BI": 1}
 
-# Output labels by generator type
+# Output labels by generator type (4 outputs each)
 MOD_OUTPUT_LABELS = {
-    "Empty": ["A", "B", "C"],
-    "LFO": ["A", "B", "C"],
-    "Sloth": ["X", "Y", "Z"],
+    "Empty": ["A", "B", "C", "D"],
+    "LFO": ["A", "B", "C", "D"],      # Quadrature phases
+    "Sloth": ["X", "Y", "Z", "R"],    # R = rectified gate
 }
 
 # Mod generator configs loaded from JSON files

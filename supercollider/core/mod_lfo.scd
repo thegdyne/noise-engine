@@ -1,16 +1,26 @@
 /*
 Mod LFO SynthDef
-TTLFO v2 inspired clock-synced LFO with 3 independent outputs
+TTLFO v2 inspired clock-synced LFO with 4 independent outputs (quadrature)
 
 Each output has:
 - Waveform select (8 types)
-- Phase offset (0-315° in 45° steps)
+- Phase offset (derived from pattern + rotate)
 - Polarity (unipolar 0-1 or bipolar -1 to +1)
 
 Shared controls:
 - Mode (0=CLK sync, 1=FREE running)
 - Rate (CLK: clock division, FREE: manual frequency 0.01-100Hz)
 - Shape (waveform distortion / centre point shift)
+- Pattern (0-5: QUAD/PAIR/SPREAD/TIGHT/WIDE/SYNC)
+- Rotate (0-23: 15 degree steps, shifts all phases together)
+
+Phase patterns (degrees for A/B/C/D):
+  QUAD:   0, 90, 180, 270  (classic quadrature)
+  PAIR:   0, 0, 180, 180   (two pairs)
+  SPREAD: 0, 45, 180, 225  (spread across cycle)
+  TIGHT:  0, 22, 45, 67    (tight cluster)
+  WIDE:   0, 120, 180, 300 (wide spread)
+  SYNC:   0, 0, 0, 0       (all in phase)
 
 Clock sync mode (mode=0):
 - Uses x32 clock (index 12) = 32 triggers per quarter note
@@ -40,23 +50,26 @@ Reference: Ginkosynthese TTLFO v2
 */
 
 SynthDef(\modLFO, {
-    arg outA, outB, outC,           // Output bus indices
-        mode = 0,                    // 0=CLK, 1=FREE
-        rate = 0.5,                  // CLK: division (0-1), FREE: freq (0-1 maps to 0.01-100Hz)
-        shape = 0.5,                 // Waveform distortion (0.5 = no distortion)
-        waveA = 0, waveB = 0, waveC = 0,     // Waveform indices (0-7)
-        phaseA = 0, phaseB = 0, phaseC = 0,  // Phase indices (0-7 = 0°-315°)
-        polarityA = 1, polarityB = 1, polarityC = 1,  // 0=UNI, 1=BI
-        clockTrigBus = 0,            // Clock trigger bus base
-        clockIndex = 10,             // Set from ~modClockSourceIndex in mod_slots.scd
-        bpmBus = 0;                  // BPM control bus
+    arg outA, outB, outC, outD,      // 4 output bus indices (was 3)
+        mode = 0,                     // 0=CLK, 1=FREE
+        rate = 0.5,                   // CLK: division (0-1), FREE: freq (0-1 maps to 0.01-100Hz)
+        shape = 0.5,                  // Waveform distortion (0.5 = no distortion)
+        pattern = 0,                  // Phase pattern index (0-5)
+        rotate = 0,                   // Phase rotation (0-23 = 0-345 deg in 15 deg steps)
+        waveA = 0, waveB = 0, waveC = 0, waveD = 0,  // Waveform indices (0-7)
+        polarityA = 1, polarityB = 1, polarityC = 1, polarityD = 1,  // 0=UNI, 1=BI
+        clockTrigBus = 0,             // Clock trigger bus base
+        clockIndex = 10,              // Set from ~modClockSourceIndex in mod_slots.scd
+        bpmBus = 0;                   // BPM control bus
     
-    var basePhase, pA, pB, pC;
-    var sigA, sigB, sigC;
+    var basePhase, pA, pB, pC, pD;
+    var sigA, sigB, sigC, sigD;
     var rateIndex, ticksPerCycle;
     var clk, trig, atrig, tickHz, resetTrig, freq;
     var wrapTrig, sah;
     var freeFreq, clkFreq;
+    var patternPhases, rotateOffset;
+    var phaseA, phaseB, phaseC, phaseD;
     
     // Waveform generation function
     var makeWave = { |p, waveIndex, shapeVal, sahSig|
@@ -89,6 +102,33 @@ SynthDef(\modLFO, {
         // 7: Sample & Hold (uses shared S&H signal)
         Select.kr(waveIndex.clip(0, 7), [saw, ramp, sqr, tri, sin, rectP, rectN, sahSig]);
     };
+    
+    // ---- PHASE PATTERN SELECTION ----
+    // Pattern index 0-5 selects base phases (in 1/8ths of cycle, i.e. 45 deg steps)
+    // Stored as [A, B, C, D] offsets
+    patternPhases = Select.kr(pattern.clip(0, 5), [
+        // QUAD: 0, 90, 180, 270 deg = 0, 2, 4, 6 (in 1/8ths)
+        [0, 2, 4, 6],
+        // PAIR: 0, 0, 180, 180 deg = 0, 0, 4, 4
+        [0, 0, 4, 4],
+        // SPREAD: 0, 45, 180, 225 deg = 0, 1, 4, 5
+        [0, 1, 4, 5],
+        // TIGHT: 0, 22.5, 45, 67.5 deg = 0, 0.5, 1, 1.5
+        [0, 0.5, 1, 1.5],
+        // WIDE: 0, 120, 180, 300 deg = 0, 2.67, 4, 6.67
+        [0, 2.67, 4, 6.67],
+        // SYNC: 0, 0, 0, 0 deg = 0, 0, 0, 0
+        [0, 0, 0, 0]
+    ]);
+    
+    // Rotate offset: 0-23 maps to 0-345 deg in 15 deg steps = 0-7.67 in 1/8ths
+    rotateOffset = rotate.clip(0, 23) / 3;  // 24 steps / 8 eighths = 3
+    
+    // Calculate final phase offsets (in 0-1 range)
+    phaseA = (patternPhases[0] + rotateOffset) / 8;
+    phaseB = (patternPhases[1] + rotateOffset) / 8;
+    phaseC = (patternPhases[2] + rotateOffset) / 8;
+    phaseD = (patternPhases[3] + rotateOffset) / 8;
     
     // ---- MODE SELECTION ----
     // mode: 0 = CLK (clock synced), 1 = FREE (manual frequency)
@@ -139,25 +179,29 @@ SynthDef(\modLFO, {
     ]);
     sah = Latch.kr(WhiteNoise.kr, wrapTrig) * 0.5 + 0.5;
     
-    // Phase offsets (index 0-7 = 0°-315° in 45° steps = 0-0.875)
-    pA = (basePhase + (phaseA / 8)).wrap(0, 1);
-    pB = (basePhase + (phaseB / 8)).wrap(0, 1);
-    pC = (basePhase + (phaseC / 8)).wrap(0, 1);
+    // Apply phase offsets (wrap to 0-1)
+    pA = (basePhase + phaseA).wrap(0, 1);
+    pB = (basePhase + phaseB).wrap(0, 1);
+    pC = (basePhase + phaseC).wrap(0, 1);
+    pD = (basePhase + phaseD).wrap(0, 1);
     
     // Generate waveforms
     sigA = makeWave.(pA, waveA, shape, sah);
     sigB = makeWave.(pB, waveB, shape, sah);
     sigC = makeWave.(pC, waveC, shape, sah);
+    sigD = makeWave.(pD, waveD, shape, sah);
     
     // Apply polarity: 0=UNI (0 to 1), 1=BI (-1 to +1)
     sigA = Select.kr(polarityA, [sigA, sigA * 2 - 1]);
     sigB = Select.kr(polarityB, [sigB, sigB * 2 - 1]);
     sigC = Select.kr(polarityC, [sigC, sigC * 2 - 1]);
+    sigD = Select.kr(polarityD, [sigD, sigD * 2 - 1]);
     
     // Output to control buses
     Out.kr(outA, sigA);
     Out.kr(outB, sigB);
     Out.kr(outC, sigC);
+    Out.kr(outD, sigD);
 }).add;
 
-"  ✓ modLFO SynthDef loaded (CLK sync + FREE mode, Phasor-smooth)".postln;
+"  ✓ modLFO SynthDef loaded (4 outputs, quadrature patterns, rotate)".postln;

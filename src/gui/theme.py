@@ -142,6 +142,7 @@ COLORS = {
     'scope_trace_a': get('scope_trace_a'),
     'scope_trace_b': get('scope_trace_b'),
     'scope_trace_c': get('scope_trace_c'),
+    'scope_trace_d': get('scope_trace_d'),
     'scope_grid': get('scope_grid'),
     'scope_center': get('scope_center'),
     

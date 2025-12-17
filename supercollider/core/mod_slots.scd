@@ -2,7 +2,7 @@
 Mod Slots
 Manages mod source synth lifecycle (create/free per slot)
 
-Each slot can have one active synth writing to 3 mod buses.
+Each slot can have one active synth writing to 4 mod buses (quadrature).
 Switching generators frees old synth and creates new one.
 Empty generator = no synth, buses zeroed.
 */
@@ -19,14 +19,14 @@ Empty generator = no synth, buses zeroed.
     // Per-slot parameter state (for recreation after param changes)
     ~modParams = Array.fill(4, { Dictionary.new });
     
-    // Per-output state: waveform, phase, polarity
-    // Default phases: A=0° (0), B=120° (2.67→3), C=240° (5.33→5)
-    // Using indices: 0, 3, 5 gives roughly 120° spacing
+    // Per-output state: waveform, polarity (4 outputs per slot)
+    // Phases now controlled by pattern+rotate, not per-output
     ~modOutputState = Array.fill(4, {
         [
-            Dictionary.newFrom([\wave, 0, \phase, 0, \polarity, 1]),  // A: 0°
-            Dictionary.newFrom([\wave, 0, \phase, 3, \polarity, 1]),  // B: 135° (close to 120°)
-            Dictionary.newFrom([\wave, 0, \phase, 5, \polarity, 1])   // C: 225° (close to 240°)
+            Dictionary.newFrom([\wave, 0, \polarity, 1]),  // A/X
+            Dictionary.newFrom([\wave, 0, \polarity, 1]),  // B/Y
+            Dictionary.newFrom([\wave, 0, \polarity, 1]),  // C/Z
+            Dictionary.newFrom([\wave, 0, \polarity, 1])   // D/R
         ]
     });
     
@@ -44,10 +44,11 @@ Empty generator = no synth, buses zeroed.
     // Start mod slot with specified generator
     ~startModSlot = { |slot, genName|
         var idx = slot - 1;
-        var base = idx * 3;
+        var base = idx * 4;  // 4 outputs per slot
         var busA = ~modBuses[base + 0].index;
         var busB = ~modBuses[base + 1].index;
         var busC = ~modBuses[base + 2].index;
+        var busD = ~modBuses[base + 3].index;
         var params = ~modParams[idx];
         var outState = ~modOutputState[idx];
         
@@ -64,18 +65,20 @@ Empty generator = no synth, buses zeroed.
                 \outA, busA,
                 \outB, busB,
                 \outC, busC,
+                \outD, busD,
                 \mode, params[\mode] ? 0,
                 \rate, params[\rate] ? 0.5,
                 \shape, params[\shape] ? 0.5,
+                \pattern, params[\pattern] ? 0,  // QUAD default
+                \rotate, params[\rotate] ? 0,
                 \waveA, outState[0][\wave] ? 0,
                 \waveB, outState[1][\wave] ? 0,
                 \waveC, outState[2][\wave] ? 0,
-                \phaseA, outState[0][\phase] ? 0,
-                \phaseB, outState[1][\phase] ? 0,
-                \phaseC, outState[2][\phase] ? 0,
+                \waveD, outState[3][\wave] ? 0,
                 \polarityA, outState[0][\polarity] ? 1,
                 \polarityB, outState[1][\polarity] ? 1,
                 \polarityC, outState[2][\polarity] ? 1,
+                \polarityD, outState[3][\polarity] ? 1,
                 \clockTrigBus, ~clockTrigBus.index,
                 \clockIndex, ~modClockSourceIndex,  // From config.scd
                 \bpmBus, ~clockBus.index
@@ -87,11 +90,13 @@ Empty generator = no synth, buses zeroed.
                 \outX, busA,
                 \outY, busB,
                 \outZ, busC,
+                \outR, busD,
                 \mode, params[\mode] ? 0,
                 \bias, params[\bias] ? 0.5,
                 \polarityX, outState[0][\polarity] ? 1,
                 \polarityY, outState[1][\polarity] ? 1,
-                \polarityZ, outState[2][\polarity] ? 1
+                \polarityZ, outState[2][\polarity] ? 1,
+                \polarityR, outState[3][\polarity] ? 0  // R defaults unipolar
             ], ~modGroup);
             ("  Mod slot " ++ slot ++ " → Sloth").postln;
         }
@@ -114,22 +119,10 @@ Empty generator = no synth, buses zeroed.
         var idx = slot - 1;
         var paramName;
         if(~modGenNames[idx] != "LFO") { ^nil };
-        paramName = [\waveA, \waveB, \waveC][output];
+        paramName = [\waveA, \waveB, \waveC, \waveD][output];
         ~modOutputState[idx][output][\wave] = waveIndex;
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(paramName, waveIndex);
-        };
-    };
-    
-    // Update output phase (LFO only)
-    ~setModOutputPhase = { |slot, output, phaseIndex|
-        var idx = slot - 1;
-        var paramName;
-        if(~modGenNames[idx] != "LFO") { ^nil };
-        paramName = [\phaseA, \phaseB, \phaseC][output];
-        ~modOutputState[idx][output][\phase] = phaseIndex;
-        if(~modNodes[idx].notNil) {
-            ~modNodes[idx].set(paramName, phaseIndex);
         };
     };
     
@@ -143,9 +136,9 @@ Empty generator = no synth, buses zeroed.
         
         // Parameter name depends on generator type
         if(genName == "LFO") {
-            paramName = [\polarityA, \polarityB, \polarityC][output];
+            paramName = [\polarityA, \polarityB, \polarityC, \polarityD][output];
         } {
-            paramName = [\polarityX, \polarityY, \polarityZ][output];
+            paramName = [\polarityX, \polarityY, \polarityZ, \polarityR][output];
         };
         
         if(~modNodes[idx].notNil) {
@@ -156,5 +149,5 @@ Empty generator = no synth, buses zeroed.
     // Create mod group (runs before generators)
     ~modGroup = Group.new(s, \addToHead);
     
-    "  ✓ Mod slots ready (4 slots)".postln;
+    "  ✓ Mod slots ready (4 slots × 4 outputs)".postln;
 };

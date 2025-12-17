@@ -211,8 +211,9 @@ def build_output_row(slot, output_idx, label, output_config):
     
     btn_height = mt.get('output_button_height', 20)
     
-    if output_config == "waveform_phase":
-        # LFO: waveform + phase + polarity
+    if output_config in ("waveform_phase", "pattern_rotate"):
+        # LFO: waveform + polarity per output
+        # pattern_rotate: phases controlled globally via PAT/ROT params
         wave_btn = CycleButton(MOD_LFO_WAVEFORMS, initial_index=0)
         wave_btn.setObjectName(f"mod{slot.slot_id}_wave{output_idx}")  # DEBUG
         wave_btn.setFixedSize(mt.get('wave_button_width', 40), btn_height)  # FIXED: theme values
@@ -227,25 +228,29 @@ def build_output_row(slot, output_idx, label, output_config):
         row.addWidget(wave_btn)
         row_widgets['wave'] = wave_btn
         
-        # Default phases: A=0° (idx 0), B=135° (idx 3), C=225° (idx 5)
-        default_phase_indices = [0, 3, 5]
-        phase_labels = [f"{p}°" for p in MOD_LFO_PHASES]
-        phase_btn = CycleButton(phase_labels, initial_index=default_phase_indices[output_idx])
-        phase_btn.setObjectName(f"mod{slot.slot_id}_phase{output_idx}")  # DEBUG
-        phase_btn.setFixedSize(mt.get('phase_button_width', 38), btn_height)  # FIXED: theme values
-        phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        phase_btn.setStyleSheet(button_style('submenu'))
-        phase_btn.setToolTip("Phase offset: 0°-315° in 45° steps")
-        phase_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-        phase_btn.text_padding_lr = 2
-        phase_btn.value_changed.connect(
-            lambda p, idx=output_idx, plabels=phase_labels: slot._on_phase_changed(idx, plabels.index(p))
-        )
-        row.addWidget(phase_btn)
-        row_widgets['phase'] = phase_btn
+        # Only add per-output phase for old "waveform_phase" config (backward compat)
+        if output_config == "waveform_phase":
+            # Default phases: A=0° (idx 0), B=135° (idx 3), C=225° (idx 5)
+            default_phase_indices = [0, 3, 5, 6]  # 4 outputs now
+            phase_labels = [f"{p}°" for p in MOD_LFO_PHASES]
+            phase_btn = CycleButton(phase_labels, initial_index=default_phase_indices[output_idx] if output_idx < len(default_phase_indices) else 0)
+            phase_btn.setObjectName(f"mod{slot.slot_id}_phase{output_idx}")  # DEBUG
+            phase_btn.setFixedSize(mt.get('phase_button_width', 38), btn_height)  # FIXED: theme values
+            phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+            phase_btn.setStyleSheet(button_style('submenu'))
+            phase_btn.setToolTip("Phase offset: 0°-315° in 45° steps")
+            phase_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+            phase_btn.text_padding_lr = 2
+            phase_btn.value_changed.connect(
+                lambda p, idx=output_idx, plabels=phase_labels: slot._on_phase_changed(idx, plabels.index(p))
+            )
+            row.addWidget(phase_btn)
+            row_widgets['phase'] = phase_btn
     
     # Polarity button (all generators)
-    pol_btn = CycleButton(MOD_POLARITY, initial_index=1)  # Default BI
+    # Default: BI for most, UNI for R output (Sloth gate)
+    default_polarity = 0 if (output_config == "fixed" and output_idx == 3) else 1
+    pol_btn = CycleButton(MOD_POLARITY, initial_index=default_polarity)
     pol_btn.setObjectName(f"mod{slot.slot_id}_pol{output_idx}")  # DEBUG
     pol_btn.setFixedSize(mt.get('pol_button_width', 28), btn_height)  # FIXED: theme values
     pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))

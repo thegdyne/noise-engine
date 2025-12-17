@@ -161,6 +161,7 @@ SKIN = {
     'scope_trace_a': '#00ff66',
     'scope_trace_b': '#00ccff', 
     'scope_trace_c': '#ff8800',
+    'scope_trace_d': '#ff00ff',  # Magenta for D/R output
     'scope_grid': '#2a2a2a',
     'scope_center': '#3a3a3a',
     

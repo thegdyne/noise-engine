@@ -2,7 +2,7 @@
     "name": "Sloth",
     "synthdef": "modSloth",
     "output_config": "fixed",
-    "outputs": ["X", "Y", "Z"],
+    "outputs": ["X", "Y", "Z", "R"],
     "custom_params": [
         {
             "key": "mode",
@@ -13,7 +13,8 @@
             "max": 2,
             "steps": 3,
             "curve": "lin",
-            "unit": ""
+            "unit": "",
+            "display_values": ["TOR", "APA", "INE"]
         },
         {
             "key": "bias",

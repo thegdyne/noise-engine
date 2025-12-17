@@ -1,11 +1,11 @@
 """
 Modulator Slot Component
-Individual modulation source with 3 outputs
+Individual modulation source with 4 outputs (quadrature)
 
 Follows GeneratorSlot patterns but simplified:
 - No filter, envelope, or channel strip
-- 3 outputs per slot (A/B/C or X/Y/Z)
-- Per-output waveform, phase, polarity (LFO)
+- 4 outputs per slot (A/B/C/D or X/Y/Z/R)
+- Per-output waveform, polarity (LFO)
 - Per-output polarity only (Sloth)
 - Integrated scope display
 """
@@ -32,7 +32,7 @@ from .modulator_slot_builder import (
 
 
 class ModulatorSlot(QWidget):
-    """A single modulator slot with 3 outputs."""
+    """A single modulator slot with 4 outputs."""
     
     # Signals
     generator_changed = pyqtSignal(int, str)  # slot_id, generator_name

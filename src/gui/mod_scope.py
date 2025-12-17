@@ -2,7 +2,7 @@
 Mod Scope Widget
 Real-time waveform display for mod source outputs
 
-Shows 3 traces (A/B/C or X/Y/Z) with circular buffer history.
+Shows 4 traces (A/B/C/D or X/Y/Z/R) with circular buffer history.
 Receives values from SC via OSC at ~30fps.
 """
 
@@ -25,7 +25,7 @@ class ModScope(QWidget):
     Oscilloscope-style display for mod source outputs.
     
     Features:
-    - 3 traces with history buffer
+    - 4 traces with history buffer
     - Bipolar (-1 to +1) or unipolar (0 to 1) display
     - Grid with center line
     - Configurable history length
@@ -35,8 +35,9 @@ class ModScope(QWidget):
         super().__init__(parent)
         self.history_length = history_length
         
-        # Circular buffers for each output (0, 1, 2)
+        # Circular buffers for each output (0, 1, 2, 3)
         self.buffers = [
+            deque([0.0] * history_length, maxlen=history_length),
             deque([0.0] * history_length, maxlen=history_length),
             deque([0.0] * history_length, maxlen=history_length),
             deque([0.0] * history_length, maxlen=history_length),
@@ -46,13 +47,14 @@ class ModScope(QWidget):
         self.display_mode = 'bipolar'
         
         # Which traces are visible
-        self.trace_visible = [True, True, True]
+        self.trace_visible = [True, True, True, True]
         
-        # Trace colors from skin
+        # Trace colors from skin (with fallback for 4th)
         self.trace_colors = [
-            _hex_to_qcolor(COLORS['scope_trace_a']),
-            _hex_to_qcolor(COLORS['scope_trace_b']),
-            _hex_to_qcolor(COLORS['scope_trace_c']),
+            _hex_to_qcolor(COLORS.get('scope_trace_a', '#00ff00')),
+            _hex_to_qcolor(COLORS.get('scope_trace_b', '#ff6600')),
+            _hex_to_qcolor(COLORS.get('scope_trace_c', '#00ffff')),
+            _hex_to_qcolor(COLORS.get('scope_trace_d', '#ff00ff')),
         ]
         self.grid_color = _hex_to_qcolor(COLORS['scope_grid'])
         self.center_color = _hex_to_qcolor(COLORS['scope_center'])
@@ -66,20 +68,20 @@ class ModScope(QWidget):
         Add a new value to the specified output buffer.
         
         Args:
-            output_idx: 0, 1, or 2 (A/X, B/Y, C/Z)
+            output_idx: 0, 1, 2, or 3 (A/X, B/Y, C/Z, D/R)
             value: float, typically -1 to +1 or 0 to 1
         """
-        if 0 <= output_idx < 3:
+        if 0 <= output_idx < 4:
             self.buffers[output_idx].append(value)
             
     def push_values(self, values):
         """
-        Add values for all 3 outputs at once.
+        Add values for all 4 outputs at once.
         
         Args:
-            values: list of 3 floats [A, B, C]
+            values: list of 4 floats [A, B, C, D]
         """
-        for i, val in enumerate(values[:3]):
+        for i, val in enumerate(values[:4]):
             self.buffers[i].append(val)
             
     def clear(self):
@@ -95,7 +97,7 @@ class ModScope(QWidget):
         
     def set_trace_visible(self, output_idx, visible):
         """Show or hide a specific trace."""
-        if 0 <= output_idx < 3:
+        if 0 <= output_idx < 4:
             self.trace_visible[output_idx] = visible
             self.update()
             
@@ -114,7 +116,7 @@ class ModScope(QWidget):
         self._draw_grid(painter, w, h)
         
         # Draw traces
-        for i in range(3):
+        for i in range(4):
             if self.trace_visible[i]:
                 self._draw_trace(painter, w, h, i)
                 
@@ -222,12 +224,12 @@ class ModScopeController:
         Handle incoming bus value from OSC.
         
         Args:
-            bus_idx: 0-11
+            bus_idx: 0-15 (4 slots × 4 outputs)
             value: float
         """
         # Calculate slot and output from bus index
-        slot_id = (bus_idx // 3) + 1  # 1-4
-        output_idx = bus_idx % 3       # 0-2
+        slot_id = (bus_idx // 4) + 1  # 1-4
+        output_idx = bus_idx % 4       # 0-3
         
         if slot_id in self.enabled_slots and slot_id in self.scopes:
             self.scopes[slot_id].push_value(output_idx, value)

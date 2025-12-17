@@ -1,8 +1,8 @@
 {
     "name": "LFO",
     "synthdef": "modLFO",
-    "output_config": "waveform_phase",
-    "outputs": ["A", "B", "C"],
+    "output_config": "pattern_rotate",
+    "outputs": ["A", "B", "C", "D"],
     "custom_params": [
         {
             "key": "mode",
@@ -32,6 +32,29 @@
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "pattern",
+            "label": "PAT",
+            "tooltip": "Phase pattern: QUAD/PAIR/SPREAD/TIGHT/WIDE/SYNC",
+            "default": 0,
+            "min": 0,
+            "max": 5,
+            "steps": 6,
+            "curve": "lin",
+            "unit": "",
+            "display_values": ["QUAD", "PAIR", "SPRD", "TGHT", "WIDE", "SYNC"]
+        },
+        {
+            "key": "rotate",
+            "label": "ROT",
+            "tooltip": "Rotate all phases together (15 deg steps)",
+            "default": 0,
+            "min": 0,
+            "max": 23,
+            "steps": 24,
             "curve": "lin",
             "unit": ""
         }
