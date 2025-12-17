@@ -67,7 +67,7 @@ class TestModConstants:
         
     def test_polarity(self):
         """Polarity should be UNI and BI."""
-        assert MOD_POLARITY == ["UNI", "BI"]
+        assert MOD_POLARITY == ["NORM", "INV"]
         
     def test_output_labels(self):
         """Output labels should differ by generator type."""
@@ -80,21 +80,24 @@ class TestModBusIndex:
     """Test bus index calculation."""
     
     def test_bus_index_formula(self):
-        """Bus index = (slot - 1) * 3 + output."""
-        # Slot 1, outputs 0-2 → buses 0-2
-        assert (1 - 1) * 3 + 0 == 0
-        assert (1 - 1) * 3 + 1 == 1
-        assert (1 - 1) * 3 + 2 == 2
+        """Bus index = (slot - 1) * 4 + output."""
+        # Slot 1, outputs 0-3 → buses 0-3
+        assert (1 - 1) * 4 + 0 == 0
+        assert (1 - 1) * 4 + 1 == 1
+        assert (1 - 1) * 4 + 2 == 2
+        assert (1 - 1) * 4 + 3 == 3
         
-        # Slot 2, outputs 0-2 → buses 3-5
-        assert (2 - 1) * 3 + 0 == 3
-        assert (2 - 1) * 3 + 1 == 4
-        assert (2 - 1) * 3 + 2 == 5
+        # Slot 2, outputs 0-3 → buses 4-7
+        assert (2 - 1) * 4 + 0 == 4
+        assert (2 - 1) * 4 + 1 == 5
+        assert (2 - 1) * 4 + 2 == 6
+        assert (2 - 1) * 4 + 3 == 7
         
-        # Slot 4, outputs 0-2 → buses 9-11
-        assert (4 - 1) * 3 + 0 == 9
-        assert (4 - 1) * 3 + 1 == 10
-        assert (4 - 1) * 3 + 2 == 11
+        # Slot 4, outputs 0-3 → buses 12-15
+        assert (4 - 1) * 4 + 0 == 12
+        assert (4 - 1) * 4 + 1 == 13
+        assert (4 - 1) * 4 + 2 == 14
+        assert (4 - 1) * 4 + 3 == 15
 
 
 class TestModGeneratorLoaders:

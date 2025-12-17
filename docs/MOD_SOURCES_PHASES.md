@@ -299,7 +299,7 @@
 | shape param (waveform distortion) | ✅ |
 | Per-output waveform select | ✅ |
 | Per-output phase offset | ✅ |
-| Per-output polarity (UNI/BI) | ✅ |
+| Per-output invert (NORM/INV) | ✅ |
 | Clock sync via `~clockTrigBus` | ✅ |
 | 8 waveform types | ✅ |
 | Shape distortion algorithm | ✅ |
@@ -312,7 +312,7 @@
 | 3 output buses (outX, outY, outZ) | ✅ |
 | mode param (Torpor/Apathy/Inertia) | ✅ |
 | bias param (attractor weight) | ✅ |
-| Per-output polarity (UNI/BI) | ✅ |
+| Per-output invert (NORM/INV) | ✅ |
 | Chaos algorithm | ✅ (simplified Lorenz-like) |
 | Time scaling per mode | ✅ |
 | Z = inverted Y | ✅ |

@@ -15,7 +15,7 @@
 - [x] 3 independent outputs (A, B, C)
 - [x] Per-output waveform selection
 - [x] Per-output phase offset (8 steps: 0°-315°)
-- [x] Per-output polarity (UNI/BI)
+- [x] Per-output invert (NORM/INV)
 - [x] Default phases spread at ~120° (0°, 135°, 225°)
 - [x] Frequency derived from BPM (stays in sync)
 - [x] Smooth Phasor-based phase (no stepping)
@@ -43,7 +43,7 @@
 - [x] Bias control (attractor weighting)
 - [x] 3 outputs: X, Y, Z
 - [x] Z = inverted Y (per NLC design)
-- [x] Per-output polarity (UNI/BI)
+- [x] Per-output invert (NORM/INV)
 - [x] MODE slider with drag control
 - [x] BIAS slider with drag control
 - [x] Timings within NLC Triple Sloth spec
@@ -146,7 +146,7 @@
 - [x] `MOD_CLOCK_RATES` (12 rates)
 - [x] `MOD_CLOCK_SOURCE_INDEX = 12`
 - [x] `MOD_CLOCK_TICKS_PER_CYCLE` (12 values)
-- [x] `MOD_POLARITY = ["UNI", "BI"]`
+- [x] `MOD_POLARITY = ["NORM", "INV"]`
 - [x] `MOD_OUTPUT_LABELS` dict
 - [x] OSC paths in config
 - [x] JSON configs for LFO and Sloth

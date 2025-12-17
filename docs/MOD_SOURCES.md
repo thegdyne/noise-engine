@@ -285,7 +285,7 @@ MOD_CLOCK_RATES = ["/64", "/32", "/16", "/8", "/4", "/2", "1", "x2", "x4", "x8",
 MOD_CLOCK_SOURCE_INDEX = 12  # x32 clock
 MOD_CLOCK_TICKS_PER_QUARTER = 32
 MOD_CLOCK_TICKS_PER_CYCLE = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
-MOD_POLARITY = ["UNI", "BI"]
+MOD_POLARITY = ["NORM", "INV"]
 MOD_OUTPUT_LABELS = {"Empty": [...], "LFO": ["A","B","C"], "Sloth": ["X","Y","Z"]}
 ```
 
