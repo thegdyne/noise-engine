@@ -30,12 +30,12 @@ class TestModConstants:
         
     def test_outputs_per_slot(self):
         """Should have 3 outputs per slot."""
-        assert MOD_OUTPUTS_PER_SLOT == 3
+        assert MOD_OUTPUTS_PER_SLOT == 4
         
     def test_bus_count_ssot(self):
         """Bus count should equal slots × outputs (SSOT)."""
         assert MOD_BUS_COUNT == MOD_SLOT_COUNT * MOD_OUTPUTS_PER_SLOT
-        assert MOD_BUS_COUNT == 12
+        assert MOD_BUS_COUNT == 16
         
     def test_generator_cycle(self):
         """Generator cycle should start with Empty."""
@@ -71,9 +71,9 @@ class TestModConstants:
         
     def test_output_labels(self):
         """Output labels should differ by generator type."""
-        assert MOD_OUTPUT_LABELS["LFO"] == ["A", "B", "C"]
-        assert MOD_OUTPUT_LABELS["Sloth"] == ["X", "Y", "Z"]
-        assert MOD_OUTPUT_LABELS["Empty"] == ["A", "B", "C"]
+        assert MOD_OUTPUT_LABELS["LFO"] == ["A", "B", "C", "D"]
+        assert MOD_OUTPUT_LABELS["Sloth"] == ["X", "Y", "Z", "R"]
+        assert MOD_OUTPUT_LABELS["Empty"] == ["A", "B", "C", "D"]
 
 
 class TestModBusIndex:
@@ -145,11 +145,11 @@ class TestModGeneratorLoaders:
         
     def test_output_labels_lfo(self):
         """LFO output labels should be A/B/C."""
-        assert get_mod_output_labels("LFO") == ["A", "B", "C"]
+        assert get_mod_output_labels("LFO") == ["A", "B", "C", "D"]
         
     def test_output_labels_sloth(self):
         """Sloth output labels should be X/Y/Z."""
-        assert get_mod_output_labels("Sloth") == ["X", "Y", "Z"]
+        assert get_mod_output_labels("Sloth") == ["X", "Y", "Z", "R"]
 
 
 class TestStepsQuantization:
