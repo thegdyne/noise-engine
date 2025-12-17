@@ -248,21 +248,34 @@ gt = get_generator_theme(slot.generator_type)
 
 ---
 
-## Modulation Routing (Dec 2025)
+## Modulation Routing (Dec 2025) ✓ DESIGNED
 
-**Concept:** Comprehensive modulation routing with visual feedback.
+**Status:** Design Complete  
+**Design docs:** 
+- `docs/PIN_MATRIX_DESIGN.md` - Full matrix architecture (16 buses, flexible slots)
+- `docs/MOD_MATRIX_ROLLOUT.md` - 13-phase implementation plan with code snippets
+- `docs/MOD_SOURCES.md` - Mod source slots and generators (LFO, Sloth)
+
+**Architecture:**
+- 4 mod slots × 4 outputs = 16 mod buses
+- Flexible slot system (any mod type in any slot)
+- LFO outputs: A (0°), B (90°), C (180°), D (270°) - quadrature
+- Sloth outputs: X (Torpor), Y (Apathy), Z (Inertia), R (rectified gate)
 
 ### Part 1: Pin Matrix Window
-Second screen with large connection matrix. Rows = mod sources (from `MOD_SOURCES.md` - 12 buses), columns = destinations (all generator params). Click intersections to connect. Each connection has its own depth (-100% to +100%) set at the target - same LFO output can modulate cutoff at +80% and resonance at -20%.
+Second screen with large connection matrix. Rows = 16 mod sources, columns = destinations (all generator params). Click intersections to connect. Each connection has its own depth (-100% to +100%).
 
 ### Part 2: Modulation Visualisation  
 Korg wavestate-style indicators on modulated controls. Shows:
 - Static bracket for min/max modulation range
 - Moving line for current modulated value in real-time
 
-**Design docs:** 
-- `docs/MOD_SOURCES.md` - Mod source slots and generators (LFO, Sloth)
-- `docs/MODULATION_SYSTEM.md` - Routing matrix and visualisation
+### Part 3: Quadrature Expansion (Phase 0 prerequisite)
+Expand LFO from 3→4 outputs with phase patterns:
+- QUAD: 0°, 90°, 180°, 270°
+- PAIR: 0°, 0°, 180°, 180°
+- SPREAD: 0°, 45°, 180°, 225°
+- Custom rotate control
 
 ---
 
@@ -387,3 +400,74 @@ A S D F G H J K L ;     (white keys - C to C)
 - Clear error messages: "SuperCollider IDE is running on port 57120. Close it and try again."
 
 **Design doc:** `docs/SERVER_CONTROLS.md`
+
+---
+
+## Integr8tor - Event Streaming Backbone
+
+**Status:** Design Complete  
+**Design doc:** `docs/INTEGR8TOR.md`
+
+**Concept:** Outbound broadcast fabric using Kafka/Redpanda that makes every parameter change available to an ecosystem of consumers - visual layers, analysers, recorders, external tools.
+
+### Three-Lane Architecture
+
+| Lane | Transport | Latency | Purpose |
+|------|-----------|---------|---------|
+| GUI ↔ GUI | Qt signals | <1ms | Intra-GUI state |
+| Python ↔ SC | OSC | <2ms | Audio control |
+| Engine → World | Integr8tor | 10-20ms | External broadcast |
+
+**Critical:** Integr8tor is a side-channel. Kafka can be down and the synth still runs.
+
+```
+Noise Engine ──OSC──► SuperCollider (audio, fast)
+      │
+      └──Kafka──► TouchDesigner (visuals)
+               ► Resolume (VJ)
+               ► Max/MSP (Ableton)
+               ► Session Recorder
+```
+
+**Architecture:**
+- 5 topics: `noise.params`, `noise.mod`, `noise.audio`, `noise.events`, `noise.state`
+- Keyed messages for ordering (per-partition)
+- At-least-once delivery + idempotent consumers
+- Publish is non-blocking; failures logged, never block audio path
+
+**Key features:**
+- Session recording with periodic snapshots for scrubbing
+- Replay with user pinning (user touch overrides automation for 3s)
+- Multi-producer support (GUI + SC bridge share session_id)
+- Rate limiting (60Hz params, 30Hz meters)
+- Actor-based filtering (user/mod/midi/preset/replay/telemetry)
+
+**Implementation phases:**
+| Phase | Scope | Sessions |
+|-------|-------|----------|
+| 0 | SQLite recorder (prove value, zero infra) | 0.5 |
+| A | Docker + Redpanda + basic produce/consume | 1 |
+| B | `Integr8tor` class integrated into Noise Engine | 1-2 |
+| C | SC bridge (levels + mod buses @ 30fps) | 1 |
+| D | Session recorder + player with scrubbing | 1 |
+| E | TouchDesigner consumer template | 1-2 |
+
+**Use cases:**
+- Record/replay automation performances
+- Audio-reactive visuals synced to parameter changes
+- Multi-instance sync (multiple Noise Engines sharing state)
+- DAW integration via Max for Live bridge
+- Machine learning on parameter streams
+
+**Dependencies:** `confluent-kafka`, `msgpack`, Docker (Redpanda)
+
+---
+
+## Imaginarium - Natural Language Preset Creation
+
+**Concept:** Natural language interface for creating custom synthesizer presets.
+
+"Give me a dark, evolving pad with slow filter movement and subtle detuning"
+→ Generates generator selection, parameter values, modulation routing
+
+**Future exploration** - requires LLM integration and preset knowledge base.
