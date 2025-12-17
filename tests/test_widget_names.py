@@ -28,6 +28,7 @@ REQUIRED_NAME_PATTERNS = {
     'mod{N}_type': 'Modulator type selector',
     'mod{N}_label': 'Modulator ID label',
     'mod{N}_mode': 'Mode button (CLK/FREE)',
+    'mod{N}_scope': 'Modulator oscilloscope',
     'mod{N}_wave{M}': 'Waveform button per output',
     'mod{N}_phase{M}': 'Phase button per output',
     'mod{N}_pol{M}': 'Polarity button per output',
@@ -72,7 +73,7 @@ class TestWidgetObjectNames:
     
     def test_modulator_slot_names_pattern(self):
         """Test modulator slot naming convention."""
-        expected_components = ['slot', 'type', 'label', 'mode']
+        expected_components = ['slot', 'type', 'label', 'mode', 'scope']
         
         for component in expected_components:
             pattern = f'mod{{N}}_{component}'

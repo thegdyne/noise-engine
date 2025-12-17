@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QFrame, QShortcut, QStackedLayout)
+                             QPushButton, QLabel, QFrame, QShortcut)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QKeySequence
 
@@ -230,17 +230,7 @@ class MainFrame(QMainWindow):
         
         self.connect_btn = QPushButton("Connect SuperCollider")
         self.connect_btn.setFixedWidth(180)  # FIXED: fits "Connect SuperCollider"
-        self.connect_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {COLORS['border_light']};
-                color: white;
-                padding: 5px 15px;
-                border-radius: 3px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['text']};
-            }}
-        """)
+        self.connect_btn.setStyleSheet(self._connect_btn_style())
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
         
@@ -368,9 +358,17 @@ class MainFrame(QMainWindow):
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
             try:
+                # Disconnect all signals connected in toggle_connection
                 self.osc.gate_triggered.disconnect(self.on_gate_trigger)
+                self.osc.levels_received.disconnect(self.on_levels_received)
+                self.osc.channel_levels_received.disconnect(self.on_channel_levels_received)
                 self.osc.connection_lost.disconnect(self.on_connection_lost)
                 self.osc.connection_restored.disconnect(self.on_connection_restored)
+                self.osc.audio_devices_received.disconnect(self.on_audio_devices_received)
+                self.osc.audio_device_changing.disconnect(self.on_audio_device_changing)
+                self.osc.audio_device_ready.disconnect(self.on_audio_device_ready)
+                self.osc.comp_gr_received.disconnect(self.on_comp_gr_received)
+                self.osc.mod_bus_value_received.disconnect(self.on_mod_bus_value)
             except TypeError:
                 pass  # Signals weren't connected
             self.osc.disconnect()
@@ -391,12 +389,26 @@ class MainFrame(QMainWindow):
         """Handle connection restored after reconnect."""
         self.osc_connected = True
         self.connect_btn.setText("Disconnect")
-        self.connect_btn.setStyleSheet("")  # Reset to default style
+        self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
         self.status_label.setText("● Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         
         # Resend current state
         self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
+    
+    def _connect_btn_style(self):
+        """Return the standard connect button stylesheet."""
+        return f"""
+            QPushButton {{
+                background-color: {COLORS['border_light']};
+                color: white;
+                padding: 5px 15px;
+                border-radius: 3px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['text']};
+            }}
+        """
     
     def on_gate_trigger(self, slot_id):
         """Handle gate trigger from SC - flash LED."""
