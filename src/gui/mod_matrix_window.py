@@ -30,7 +30,7 @@ from PyQt5.QtGui import QFont, QColor, QKeySequence
 
 from .mod_matrix_cell import ModMatrixCell
 from .mod_routing_state import ModRoutingState, ModConnection
-from .mod_depth_popup import ModDepthPopup
+from .mod_connection_popup import ModConnectionPopup
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT
 
 
@@ -350,9 +350,9 @@ class ModMatrixWindow(QMainWindow):
         target_label = f"G{slot} {param_label}"
         
         # Show popup
-        popup = ModDepthPopup(conn, source_label, target_label, self)
-        popup.depth_changed.connect(
-            lambda d, b=bus, s=slot, p=param: self._on_popup_depth_changed(b, s, p, d)
+        popup = ModConnectionPopup(conn, source_label, target_label, self)
+        popup.connection_changed.connect(
+            lambda c, b=bus, s=slot, p=param: self._on_popup_connection_changed(b, s, p, c)
         )
         popup.remove_requested.connect(
             lambda b=bus, s=slot, p=param: self._on_popup_remove(b, s, p)
@@ -366,9 +366,15 @@ class ModMatrixWindow(QMainWindow):
         
         popup.show()
     
-    def _on_popup_depth_changed(self, bus: int, slot: int, param: str, depth: float):
-        """Handle depth change from popup."""
-        self.routing_state.set_depth(bus, slot, param, depth)
+    def _on_popup_connection_changed(self, bus: int, slot: int, param: str, conn: ModConnection):
+        """Handle connection change from popup (depth, amount, polarity, invert)."""
+        self.routing_state.update_connection(
+            bus, slot, param,
+            depth=conn.depth,
+            amount=conn.amount,
+            polarity=conn.polarity,
+            invert=conn.invert
+        )
     
     def _on_popup_remove(self, bus: int, slot: int, param: str):
         """Handle remove from popup."""
