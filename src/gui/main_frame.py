@@ -20,6 +20,7 @@ from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
+from src.gui.mod_routing_state import ModRoutingState, ModConnection
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
@@ -48,6 +49,10 @@ class MainFrame(QMainWindow):
         self.active_effects = {}
         
         self.master_bpm = BPM_DEFAULT
+        
+        # Mod routing state
+        self.mod_routing = ModRoutingState()
+        self._connect_mod_routing_signals()
         
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
@@ -165,6 +170,10 @@ class MainFrame(QMainWindow):
         # Keyboard shortcut for console (Cmd+` or Ctrl+`)
         console_shortcut = QShortcut(QKeySequence("Ctrl+`"), self)
         console_shortcut.activated.connect(self.toggle_console)
+        
+        # Debug shortcut: test mod routing (Ctrl+M)
+        mod_test_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
+        mod_test_shortcut.activated.connect(self._test_mod_routing)
         
         # Log startup
         logger.info("Noise Engine started", component="APP")
@@ -666,6 +675,75 @@ class MainFrame(QMainWindow):
             if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
                 slot.scope.update()
         self._mod_scope_dirty.clear()
+    
+    def _connect_mod_routing_signals(self):
+        """Connect mod routing state signals to OSC."""
+        self.mod_routing.connection_added.connect(self._on_mod_route_added)
+        self.mod_routing.connection_removed.connect(self._on_mod_route_removed)
+        self.mod_routing.connection_changed.connect(self._on_mod_route_changed)
+        self.mod_routing.all_cleared.connect(self._on_mod_routes_cleared)
+    
+    def _on_mod_route_added(self, conn):
+        """Send new mod route to SC."""
+        if self.osc_connected:
+            self.osc.client.send_message(
+                OSC_PATHS['mod_route_add'],
+                [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
+            )
+            logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} @ {conn.depth}", component="MOD")
+    
+    def _on_mod_route_removed(self, source_bus, target_slot, target_param):
+        """Send mod route removal to SC."""
+        if self.osc_connected:
+            self.osc.client.send_message(
+                OSC_PATHS['mod_route_remove'],
+                [source_bus, target_slot, target_param]
+            )
+            logger.debug(f"Mod route removed: bus {source_bus} → slot {target_slot}.{target_param}", component="MOD")
+    
+    def _on_mod_route_changed(self, conn):
+        """Send mod route depth/enable change to SC."""
+        if self.osc_connected:
+            # Send depth update
+            self.osc.client.send_message(
+                OSC_PATHS['mod_route_depth'],
+                [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
+            )
+            # Send enable state
+            self.osc.client.send_message(
+                OSC_PATHS['mod_route_enable'],
+                [conn.source_bus, conn.target_slot, conn.target_param, 1 if conn.enabled else 0]
+            )
+    
+    def _on_mod_routes_cleared(self):
+        """Handle all routes cleared - would need to remove all in SC."""
+        # For now, log it - full clear would iterate stored connections
+        logger.debug("All mod routes cleared", component="MOD")
+    
+    def _sync_mod_routing_to_sc(self):
+        """Sync all mod routing state to SC (called on reconnect)."""
+        if not self.osc_connected:
+            return
+        for conn in self.mod_routing.get_all_connections():
+            if conn.enabled:
+                self.osc.client.send_message(
+                    OSC_PATHS['mod_route_add'],
+                    [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
+                )
+        logger.debug(f"Synced {len(self.mod_routing)} mod routes to SC", component="MOD")
+    
+    def _test_mod_routing(self):
+        """Debug: Toggle test mod route (Ctrl+M). Routes MOD1.A → GEN1.cutoff."""
+        test_key = "0_1_cutoff"
+        if test_key in self.mod_routing:
+            # Remove existing test route
+            self.mod_routing.remove_connection(0, 1, 'cutoff')
+            logger.info("Test mod route REMOVED: MOD1.A → GEN1.cutoff", component="MOD")
+        else:
+            # Add test route
+            conn = ModConnection(source_bus=0, target_slot=1, target_param='cutoff', depth=0.5)
+            self.mod_routing.add_connection(conn)
+            logger.info("Test mod route ADDED: MOD1.A → GEN1.cutoff @ 0.5", component="MOD")
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change from mixer."""
