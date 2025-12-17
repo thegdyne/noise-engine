@@ -32,6 +32,7 @@ class OSCBridge(QObject):
     channel_levels_received = pyqtSignal(int, float, float)  # slot_id, ampL, ampR
     comp_gr_received = pyqtSignal(float)  # compressor gain reduction in dB
     mod_bus_value_received = pyqtSignal(int, float)  # bus_idx, value (for mod scope)
+    mod_values_received = pyqtSignal(list)  # [(slot, param, value), ...] for slider visualization
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
     # Audio device signals
@@ -203,6 +204,9 @@ class OSCBridge(QObject):
         # Handle mod bus values from SC (for scope display)
         dispatcher.map(OSC_PATHS['mod_bus_value'], self._handle_mod_bus_value)
         
+        # Handle batched mod values from SC (for slider visualization)
+        dispatcher.map('/noise/mod/values', self._handle_mod_values)
+        
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
         
@@ -277,6 +281,28 @@ class OSCBridge(QObject):
             bus_idx = int(args[0])
             value = float(args[1])
             self.mod_bus_value_received.emit(bus_idx, value)
+    
+    def _handle_mod_values(self, address, *args):
+        """Handle batched modulated parameter values from SC (for slider visualization).
+        
+        Format: [slot1, param1, val1, slot2, param2, val2, ...]
+        Emits: [(slot, param, value), ...]
+        """
+        if self._deleted:
+            return
+        
+        # Parse triplets
+        values = []
+        i = 0
+        while i + 2 < len(args):
+            slot = int(args[i])
+            param = str(args[i + 1])
+            value = float(args[i + 2])
+            values.append((slot, param, value))
+            i += 3
+        
+        if values:
+            self.mod_values_received.emit(values)
     
     def _handle_audio_devices_count(self, address, *args):
         """Handle audio device count from SC - start of device list."""

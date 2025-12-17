@@ -5,7 +5,7 @@ Atomic components with no business logic - just behavior
 
 from PyQt5.QtWidgets import QSlider, QPushButton, QLabel, QApplication, QWidget
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPoint
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPainter, QPen, QColor
 
 from .theme import slider_style, DRAG_SENSITIVITY, COLORS, MONO_FONT, FONT_SIZES
 
@@ -54,6 +54,7 @@ class DragSlider(QSlider):
     Hold Shift for fine control.
     
     Supports optional ValuePopup for displaying mapped values during drag.
+    Supports modulation visualization (range brackets + animated value).
     
     Base class - use MiniSlider for generator params, or customize size.
     """
@@ -80,6 +81,102 @@ class DragSlider(QSlider):
         
         # Double-click reset (optional)
         self._double_click_value = None
+        
+        # Modulation visualization
+        self._mod_range_min = None   # Normalized 0-1
+        self._mod_range_max = None   # Normalized 0-1
+        self._mod_current = None     # Normalized 0-1 (animated value)
+        self._mod_color = QColor('#00ff66')  # Default green
+    
+    def set_modulation_range(self, min_norm: float, max_norm: float, color: QColor = None):
+        """
+        Set modulation range to display on slider.
+        
+        Args:
+            min_norm: Minimum normalized value (0-1)
+            max_norm: Maximum normalized value (0-1)
+            color: Optional color for the mod indicator
+        """
+        self._mod_range_min = min_norm
+        self._mod_range_max = max_norm
+        if color:
+            self._mod_color = color
+        self.update()
+    
+    def set_modulated_value(self, norm_value: float):
+        """
+        Set the current modulated value (animated indicator).
+        
+        Args:
+            norm_value: Normalized value (0-1)
+        """
+        self._mod_current = norm_value
+        self.update()
+    
+    def clear_modulation(self):
+        """Clear modulation visualization."""
+        self._mod_range_min = None
+        self._mod_range_max = None
+        self._mod_current = None
+        self.update()
+    
+    def has_modulation(self) -> bool:
+        """Check if modulation is active on this slider."""
+        return self._mod_range_min is not None
+    
+    def paintEvent(self, event):
+        """Draw slider with modulation overlay."""
+        # Let Qt draw the standard slider first
+        super().paintEvent(event)
+        
+        # Draw modulation overlay if active
+        if self._mod_range_min is not None:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            # Calculate groove geometry
+            groove_width = 8
+            groove_margin = 5
+            groove_x = (self.width() - groove_width) // 2
+            available_height = self.height() - 2 * groove_margin
+            
+            # Convert normalized values to Y positions (inverted - 0 at bottom)
+            def norm_to_y(norm):
+                return groove_margin + (1.0 - norm) * available_height
+            
+            min_y = norm_to_y(self._mod_range_min)
+            max_y = norm_to_y(self._mod_range_max)
+            
+            # Draw modulation range as semi-transparent overlay
+            mod_color = QColor(self._mod_color)
+            mod_color.setAlpha(80)
+            painter.fillRect(
+                int(groove_x), int(max_y),
+                groove_width, int(min_y - max_y),
+                mod_color
+            )
+            
+            # Draw range brackets (top and bottom lines)
+            bracket_color = QColor(self._mod_color)
+            bracket_color.setAlpha(200)
+            painter.setPen(QPen(bracket_color, 2))
+            
+            # Top bracket
+            painter.drawLine(groove_x - 2, int(max_y), groove_x + groove_width + 2, int(max_y))
+            # Bottom bracket  
+            painter.drawLine(groove_x - 2, int(min_y), groove_x + groove_width + 2, int(min_y))
+            
+            # Draw current modulated value indicator (animated line)
+            if self._mod_current is not None:
+                current_y = norm_to_y(self._mod_current)
+                indicator_color = QColor(self._mod_color)
+                painter.setPen(QPen(indicator_color, 3))
+                painter.drawLine(
+                    groove_x - 4, int(current_y),
+                    groove_x + groove_width + 4, int(current_y)
+                )
+            
+            painter.end()
         
     def set_param_config(self, param_config, format_func=None):
         """

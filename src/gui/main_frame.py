@@ -342,6 +342,7 @@ class MainFrame(QMainWindow):
             self.osc.audio_device_ready.connect(self.on_audio_device_ready)
             self.osc.comp_gr_received.connect(self.on_comp_gr_received)
             self.osc.mod_bus_value_received.connect(self.on_mod_bus_value)
+            self.osc.mod_values_received.connect(self.on_mod_values_received)
             
             if self.osc.connect():
                 self.osc_connected = True
@@ -382,6 +383,7 @@ class MainFrame(QMainWindow):
                 self.osc.audio_device_ready.disconnect(self.on_audio_device_ready)
                 self.osc.comp_gr_received.disconnect(self.on_comp_gr_received)
                 self.osc.mod_bus_value_received.disconnect(self.on_mod_bus_value)
+                self.osc.mod_values_received.disconnect(self.on_mod_values_received)
             except TypeError:
                 pass  # Signals weren't connected
             self.osc.disconnect()
@@ -671,6 +673,18 @@ class MainFrame(QMainWindow):
         if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
             slot.scope.push_value(output_idx, value)
             self._mod_scope_dirty.add(slot_id)  # Mark for repaint
+    
+    def on_mod_values_received(self, values):
+        """Handle batched modulated parameter values from SC - update sliders.
+        
+        Args:
+            values: List of (slot, param, norm_value) tuples
+        """
+        for slot_id, param, norm_value in values:
+            slot = self.generator_grid.get_slot(slot_id)
+            if slot and param in slot.sliders:
+                slider = slot.sliders[param]
+                slider.set_modulated_value(norm_value)
         
     def _flush_mod_scopes(self):
         """Repaint dirty scopes at throttled rate (~30fps)."""
@@ -688,22 +702,28 @@ class MainFrame(QMainWindow):
         self.mod_routing.all_cleared.connect(self._on_mod_routes_cleared)
     
     def _on_mod_route_added(self, conn):
-        """Send new mod route to SC."""
+        """Send new mod route to SC and update slider visualization."""
         if self.osc_connected:
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_add'],
                 [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
             )
             logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} @ {conn.depth}", component="MOD")
+        
+        # Update slider visualization
+        self._update_slider_mod_range(conn.target_slot, conn.target_param)
     
     def _on_mod_route_removed(self, source_bus, target_slot, target_param):
-        """Send mod route removal to SC."""
+        """Send mod route removal to SC and update slider visualization."""
         if self.osc_connected:
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_remove'],
                 [source_bus, target_slot, target_param]
             )
             logger.debug(f"Mod route removed: bus {source_bus} → slot {target_slot}.{target_param}", component="MOD")
+        
+        # Update slider visualization (may clear if no more routes)
+        self._update_slider_mod_range(target_slot, target_param)
     
     def _on_mod_route_changed(self, conn):
         """Send mod route depth/enable change to SC."""
@@ -718,6 +738,55 @@ class MainFrame(QMainWindow):
                 OSC_PATHS['mod_route_enable'],
                 [conn.source_bus, conn.target_slot, conn.target_param, 1 if conn.enabled else 0]
             )
+        
+        # Update slider visualization
+        self._update_slider_mod_range(conn.target_slot, conn.target_param)
+    
+    def _update_slider_mod_range(self, slot_id, param):
+        """Update slider modulation range visualization based on active connections."""
+        from PyQt5.QtGui import QColor
+        
+        slot = self.generator_grid.get_slot(slot_id)
+        if not slot or param not in slot.sliders:
+            return
+        
+        slider = slot.sliders[param]
+        
+        # Get all active connections to this param
+        connections = self.mod_routing.get_connections_for_target(slot_id, param)
+        enabled_connections = [c for c in connections if c.enabled]
+        
+        if not enabled_connections:
+            # No active modulation - clear visualization
+            slider.clear_modulation()
+            return
+        
+        # Calculate combined modulation range
+        # For now, use the first connection's depth (Phase 8 will handle multi-source)
+        conn = enabled_connections[0]
+        base_value = slider.value() / 1000.0  # Normalized 0-1
+        
+        # Calculate min/max based on depth
+        # depth of 0.5 means ±25% of range (because we multiply by 0.5 in SC)
+        half_range = abs(conn.depth) * 0.5
+        
+        if conn.depth >= 0:
+            mod_min = max(0, base_value - half_range)
+            mod_max = min(1, base_value + half_range)
+        else:
+            # Inverted: swap direction
+            mod_min = max(0, base_value - half_range)
+            mod_max = min(1, base_value + half_range)
+        
+        # Get color based on source (LFO = green, Sloth = orange)
+        mod_slot = conn.source_bus // 4 + 1
+        source_slot = self.modulator_grid.get_slot(mod_slot)
+        if source_slot and source_slot.generator_name == 'Sloth':
+            color = QColor('#ff8800')  # Orange
+        else:
+            color = QColor('#00ff66')  # Green
+        
+        slider.set_modulation_range(mod_min, mod_max, color)
     
     def _on_mod_routes_cleared(self):
         """Handle all routes cleared - would need to remove all in SC."""

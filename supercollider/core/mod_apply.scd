@@ -65,7 +65,7 @@ Where:
     
     // Helper to create a mod route
     ~addModRoute = { |sourceBus, targetSlot, targetParam, depth=0.5|
-        var key = "%" ++ "_" ++ "%" ++ "_" ++ "%".format(sourceBus, targetSlot, targetParam);
+        var key = "%_%_%".format(sourceBus, targetSlot, targetParam);
         var paramBus, baseVal, range, curve;
         
         // Get param bus
@@ -101,11 +101,16 @@ Where:
         
         ("Mod route: bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++ 
          " (base=" ++ baseVal.round(0.01) ++ ", depth=" ++ depth ++ ")").postln;
+        
+        // Start value stream if this is the first route
+        if(~modValueStreamRoutine.isNil) {
+            ~startModValueStream.();
+        };
     };
     
     // Helper to remove a mod route
     ~removeModRoute = { |sourceBus, targetSlot, targetParam|
-        var key = "%" ++ "_" ++ "%" ++ "_" ++ "%".format(sourceBus, targetSlot, targetParam);
+        var key = "%_%_%".format(sourceBus, targetSlot, targetParam);
         var paramBus, baseVal;
         
         // Free synth
@@ -123,11 +128,16 @@ Where:
         };
         
         ("Mod route removed: bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam).postln;
+        
+        // Stop value stream if no more routes
+        if(~modRouteSynths.select({ |v| v.notNil }).size == 0) {
+            ~stopModValueStream.();
+        };
     };
     
     // Helper to update depth
     ~setModRouteDepth = { |sourceBus, targetSlot, targetParam, depth|
-        var key = "%" ++ "_" ++ "%" ++ "_" ++ "%".format(sourceBus, targetSlot, targetParam);
+        var key = "%_%_%".format(sourceBus, targetSlot, targetParam);
         var synth = ~modRouteSynths[key];
         if(synth.notNil) {
             synth.set(\depth, depth);
@@ -160,6 +170,77 @@ Where:
         ~setModRouteDepth.(0, 1, \cutoff, depth);
         ("Mod depth set to " ++ depth).postln;
     };
+    
+    // ========================================
+    // MODULATION VALUE STREAMING (for UI)
+    // ========================================
+    
+    // Routine to stream modulated values to Python at ~20fps
+    ~modValueStreamAddr = NetAddr("127.0.0.1", 57121);  // Python OSC port
+    ~modValueStreamRate = 20;  // fps
+    
+    ~startModValueStream = {
+        if(~modValueStreamRoutine.notNil) {
+            ~modValueStreamRoutine.stop;
+        };
+        
+        ~modValueStreamRoutine = Routine({
+            loop {
+                var messages = List.new;
+                
+                // Collect all active mod routes
+                ~modRouteSynths.keysValuesDo { |key, synth|
+                    var parts, sourceBus, targetSlot, targetParam, paramBus, currentVal, range, normVal;
+                    
+                    if(synth.notNil) {
+                        // Parse key: "sourceBus_targetSlot_param"
+                        parts = key.asString.split($_);
+                        if(parts.size >= 3) {
+                            sourceBus = parts[0].asInteger;
+                            targetSlot = parts[1].asInteger;
+                            targetParam = parts[2].asSymbol;
+                            
+                            // Get current value from param bus
+                            paramBus = ~genParams[targetSlot][targetParam];
+                            if(paramBus.notNil) {
+                                currentVal = paramBus.getSynchronous;
+                                
+                                // Normalize to 0-1 based on param range
+                                range = ~paramRanges[targetParam] ?? [0, 1];
+                                normVal = (currentVal - range[0]) / (range[1] - range[0]);
+                                normVal = normVal.clip(0, 1);
+                                
+                                // Add to messages: [targetSlot, targetParam, normVal]
+                                messages.add([targetSlot, targetParam.asString, normVal]);
+                            };
+                        };
+                    };
+                };
+                
+                // Send if we have any values
+                if(messages.size > 0) {
+                    // Flatten for OSC: slot1, param1, val1, slot2, param2, val2, ...
+                    var flat = messages.collect({ |m| m }).flatten;
+                    ~modValueStreamAddr.sendMsg('/noise/mod/values', *flat);
+                };
+                
+                (1 / ~modValueStreamRate).wait;
+            };
+        }).play;
+        
+        "Mod value stream started".postln;
+    };
+    
+    ~stopModValueStream = {
+        if(~modValueStreamRoutine.notNil) {
+            ~modValueStreamRoutine.stop;
+            ~modValueStreamRoutine = nil;
+        };
+        "Mod value stream stopped".postln;
+    };
+    
+    // Auto-start streaming when first route is added
+    // (will be checked in ~addModRoute)
     
     "  ✓ Mod apply ready (run ~testModulation.() to test)".postln;
 };
