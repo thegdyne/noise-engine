@@ -1,0 +1,130 @@
+"""
+Mod Matrix Cell
+Individual clickable cell in the mod routing matrix.
+
+Visual states:
+- Empty: no connection
+- Filled circle: active connection
+- Ring: disabled connection
+- Size/intensity: depth magnitude
+"""
+
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import Qt, pyqtSignal, QRectF
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
+
+
+class ModMatrixCell(QWidget):
+    """A single cell in the mod routing matrix."""
+    
+    # Signals
+    clicked = pyqtSignal()           # Left click
+    right_clicked = pyqtSignal()     # Right click (for depth popup)
+    
+    # Colours by mod source type
+    SOURCE_COLORS = {
+        'LFO': '#00ff66',      # Green
+        'Sloth': '#ff8800',    # Orange  
+        'Empty': '#666666',    # Grey
+    }
+    
+    def __init__(self, source_bus: int, target_slot: int, target_param: str, parent=None):
+        super().__init__(parent)
+        
+        self.source_bus = source_bus
+        self.target_slot = target_slot
+        self.target_param = target_param
+        
+        # State
+        self.connected = False
+        self.enabled = True
+        self.depth = 0.0
+        self.source_type = 'LFO'  # Updated by matrix window
+        
+        # Sizing
+        self.setFixedSize(28, 24)
+        self.setMouseTracking(True)
+        
+        # Hover state
+        self._hovered = False
+        
+    def set_connection(self, connected: bool, depth: float = 0.0, enabled: bool = True):
+        """Update cell state."""
+        self.connected = connected
+        self.depth = depth
+        self.enabled = enabled
+        self.update()
+        
+    def set_source_type(self, source_type: str):
+        """Update source type for colouring."""
+        self.source_type = source_type
+        self.update()
+        
+    def paintEvent(self, event):
+        """Draw the cell."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        w, h = self.width(), self.height()
+        cx, cy = w // 2, h // 2
+        
+        # Background on hover
+        if self._hovered:
+            painter.fillRect(0, 0, w, h, QColor('#333333'))
+        
+        # Get colour for source type
+        color = QColor(self.SOURCE_COLORS.get(self.source_type, '#666666'))
+        
+        if self.connected:
+            # Circle size based on depth magnitude (4-10 radius)
+            base_radius = 4
+            max_radius = 10
+            radius = base_radius + abs(self.depth) * (max_radius - base_radius)
+            radius = min(radius, min(w, h) // 2 - 2)
+            
+            if self.enabled:
+                # Filled circle for active connection
+                painter.setBrush(QBrush(color))
+                painter.setPen(Qt.NoPen)
+            else:
+                # Ring for disabled connection
+                painter.setBrush(Qt.NoBrush)
+                pen = QPen(color)
+                pen.setWidth(2)
+                painter.setPen(pen)
+            
+            # Draw negative depth indicator (invert colour or add marker)
+            if self.depth < 0:
+                # Dimmer colour for negative
+                color.setAlpha(180)
+                painter.setBrush(QBrush(color) if self.enabled else Qt.NoBrush)
+            
+            painter.drawEllipse(QRectF(cx - radius, cy - radius, radius * 2, radius * 2))
+            
+            # Negative depth: draw minus sign
+            if self.depth < 0 and self.enabled:
+                painter.setPen(QPen(QColor('#000000'), 2))
+                painter.drawLine(int(cx - 3), int(cy), int(cx + 3), int(cy))
+        else:
+            # Empty cell - draw subtle dot on hover
+            if self._hovered:
+                painter.setBrush(QBrush(QColor('#555555')))
+                painter.setPen(Qt.NoPen)
+                painter.drawEllipse(QRectF(cx - 3, cy - 3, 6, 6))
+    
+    def enterEvent(self, event):
+        """Mouse entered cell."""
+        self._hovered = True
+        self.update()
+        
+    def leaveEvent(self, event):
+        """Mouse left cell."""
+        self._hovered = False
+        self.update()
+        
+    def mousePressEvent(self, event):
+        """Handle mouse click."""
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        elif event.button() == Qt.RightButton:
+            self.right_clicked.emit()

@@ -21,6 +21,7 @@ from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
 from src.gui.mod_routing_state import ModRoutingState, ModConnection
+from src.gui.mod_matrix_window import ModMatrixWindow
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
@@ -53,6 +54,9 @@ class MainFrame(QMainWindow):
         # Mod routing state
         self.mod_routing = ModRoutingState()
         self._connect_mod_routing_signals()
+        
+        # Mod matrix window (created on first open)
+        self.mod_matrix_window = None
         
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
@@ -171,9 +175,9 @@ class MainFrame(QMainWindow):
         console_shortcut = QShortcut(QKeySequence("Ctrl+`"), self)
         console_shortcut.activated.connect(self.toggle_console)
         
-        # Debug shortcut: test mod routing (Ctrl+M)
-        mod_test_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
-        mod_test_shortcut.activated.connect(self._test_mod_routing)
+        # Shortcut: open mod matrix window (Ctrl+M / Cmd+M)
+        mod_matrix_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
+        mod_matrix_shortcut.activated.connect(self._open_mod_matrix)
         
         # Log startup
         logger.info("Noise Engine started", component="APP")
@@ -732,18 +736,22 @@ class MainFrame(QMainWindow):
                 )
         logger.debug(f"Synced {len(self.mod_routing)} mod routes to SC", component="MOD")
     
-    def _test_mod_routing(self):
-        """Debug: Toggle test mod route (Ctrl+M). Routes MOD1.A → GEN1.cutoff."""
-        test_key = "0_1_cutoff"
-        if test_key in self.mod_routing:
-            # Remove existing test route
-            self.mod_routing.remove_connection(0, 1, 'cutoff')
-            logger.info("Test mod route REMOVED: MOD1.A → GEN1.cutoff", component="MOD")
-        else:
-            # Add test route
-            conn = ModConnection(source_bus=0, target_slot=1, target_param='cutoff', depth=0.5)
-            self.mod_routing.add_connection(conn)
-            logger.info("Test mod route ADDED: MOD1.A → GEN1.cutoff @ 0.5", component="MOD")
+    def _open_mod_matrix(self):
+        """Open the mod routing matrix window (Cmd+M)."""
+        if self.mod_matrix_window is None:
+            self.mod_matrix_window = ModMatrixWindow(self.mod_routing, self)
+            # Connect mod slot type changes to update matrix
+            self.modulator_grid.generator_changed.connect(self._on_mod_slot_type_changed_for_matrix)
+        
+        self.mod_matrix_window.show()
+        self.mod_matrix_window.raise_()
+        self.mod_matrix_window.activateWindow()
+        logger.info("Mod matrix window opened", component="MOD")
+    
+    def _on_mod_slot_type_changed_for_matrix(self, slot_id: int, gen_name: str):
+        """Update matrix window when mod slot type changes."""
+        if self.mod_matrix_window:
+            self.mod_matrix_window.update_mod_slot_type(slot_id, gen_name)
         
     def on_generator_volume_changed(self, gen_id, volume):
         """Handle generator volume change from mixer."""
