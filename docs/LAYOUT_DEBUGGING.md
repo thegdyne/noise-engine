@@ -6,68 +6,61 @@ When Qt layouts misbehave, it's usually because of invisible constraints that do
 - A widget's `sizeHint()` being larger than expected
 - Custom `paintEvent()` drawing outside widget bounds
 
-## Quick Debug Methods
+## Quick Start
 
-### 1. Environment Variable (Visual Overlay)
+### F9 Toggle (Runtime)
+Press **F9** at any time to toggle the layout debug overlay on/off.
 
+```
+[Layout Debug] Press F9 to toggle X-ray mode
+[Layout Debug] ENABLED - Red borders = fixed size
+[Layout Debug] DISABLED
+```
+
+### Environment Variable (Startup)
 ```bash
 DEBUG_LAYOUT=1 python src/main.py
 ```
 
-This draws colored overlays on every widget showing:
-- Widget name/class
-- Actual size (WxH)
-- Size hint
+### Layout Sandbox (Isolated Testing)
+```bash
+# Test generator slot in isolation
+python tools/layout_sandbox.py --generator
 
-### 2. Print Widget Tree
+# Test modulator slot
+python tools/layout_sandbox.py --modulator
 
+# Torture test with long names
+python tools/layout_sandbox.py --generator --torture
+```
+
+## What the Overlay Shows
+
+- **Colored backgrounds** by widget type (red=QFrame, green=QWidget, etc.)
+- **Red borders** = widget has FIXED size constraints (watch these!)
+- **Text overlay** shows: name, actual size, size hint
+- **⚠️ FIXED** marker in console output for constrained widgets
+
+## Debug Functions
+
+### Print Widget Tree
 ```python
 from gui.layout_debug import print_widget_info
 print_widget_info(self)  # In any widget
 ```
 
-Output:
-```
-GeneratorSlot:
-  geometry: 280x350 at (10,10)
-  sizeHint: 250x300
-  minSizeHint: 200x250
-  policy: H=5 V=5
-  min: 0x0
-  max: 16777215x16777215
-  layout: QVBoxLayout
-  margins: L=4 T=4 R=4 B=4
-  spacing: 6
-    type_btn:
-      geometry: 75x22 at (...)
-      ...
+### Quick One-Liner
+```python
+from gui.layout_debug import dump_layout
+dump_layout(self.type_btn)
+# Output: type_btn: geo=75x22 hint=120x22 policy=(Fixed,Fixed) min=40x22 max=75x22
 ```
 
-### 3. Log Single Widget
-
+### Log Single Widget
 ```python
 from gui.layout_debug import log_size_constraints
 log_size_constraints(self.type_btn, "type_btn")
-```
-
-Output:
-```
-[type_btn] geo=75x22 hint=120x22 policy=(Fixed,Fixed) min=40x22 max=75x22
-```
-
-### 4. Enable at Runtime
-
-```python
-from gui.layout_debug import enable_layout_debug, disable_layout_debug
-
-# Debug specific widget
-enable_layout_debug(self.generator_frame)
-
-# Debug all windows
-enable_layout_debug()
-
-# Turn off
-disable_layout_debug()
+# Output: [type_btn] geo=75x22 hint=120x22 policy=(Fixed,Fixed) min=40x22 max=75x22 ⚠️FIXED
 ```
 
 ## Common Qt Layout Gotchas

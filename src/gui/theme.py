@@ -187,6 +187,7 @@ def button_style(state='disabled'):
             QPushButton {{
                 background-color: {COLORS['submenu']};
                 color: {COLORS['submenu_text']};
+                border: 1px solid {COLORS['submenu_text']};
                 border-radius: 3px;
             }}
             QPushButton:hover {{
@@ -539,19 +540,19 @@ GENERATOR_THEME = {
     'slot_background': get('bg_mid'),
     'slot_border': get('border_dark'),
     'slot_border_active': get('accent_generator_dim'),
-    'slot_margin': (0, 2, 0, 2),  # tighter margins
+    'slot_margin': (2, 4, 2, 4),  # tighter margins
     
     # Header layout
-    'header_inset_left': 4,       # left margin for GEN label
+    'header_inset_left': 14,       # left margin for GEN label
     'header_inset_right': 6,      # right margin - gives breathing room
-    'header_selector_text_pad': 3, # internal text padding for selector
+    'header_selector_text_pad': 4, # internal text padding for selector
     'header_overlay_height': 24,  # reserved space at top of content for header overlay
     'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
     'header_content_gap': 2,      # header-to-sliders distance inside the frame
     
     # Header
     'header_spacing': 4,
-    'header_type_width': 56,      # matches button_strip_width
+    'header_type_width': 40,      # matches button_strip_width
     'header_type_height': 20,     # shorter height
     
     # GeneratorFrame (inner container for sliders + buttons)
@@ -559,14 +560,14 @@ GENERATOR_THEME = {
     'frame_border': get('border_mid'),
     'frame_border_width': 1,
     'frame_border_radius': 4,
-    'frame_padding': (0, 1, 1, 1),  # tighter padding
+    'frame_padding': (3, 3, 3, 3),  # tighter padding
     
     # Slider section
     'slider_column_width': 22,    # width of each label+slider column
     'slider_gap': 1,              # horizontal gap between columns
     'slider_section_spacing': 6, # vertical gap between custom row + standard row
     'slider_min_height': 38,      # minimum slider height (smaller = more compact)
-    'content_row_spacing': 0,     # gap between slider section and button strip
+    'content_row_spacing': 2,     # gap between slider section and button strip
     
     # Button strip - order defines visual stacking (top to bottom)
     'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
@@ -665,6 +666,7 @@ MODULATOR_THEME = {
     
     # Param columns / spacing
     'slider_column_width': 26,
+    'mode_button_width': 48,          # wider for text like "FREE", "CLK"
     'slider_row_spacing': 8,          # horizontal gap between columns
     'slider_section_margins': (0, 4, 0, 4),
     

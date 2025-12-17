@@ -7,6 +7,19 @@ Development utilities for the Noise Engine project.
 | Tool | Description |
 |------|-------------|
 | `tune_layout.py` | Interactive CLI for adjusting generator slot layout. See [docs/layout-tuning.md](../docs/layout-tuning.md) |
+| `layout_sandbox.py` | Test slots in isolation with resizable window and torture tests |
+
+## Layout Debugging
+
+```bash
+# Visual overlay showing widget sizes (or press F9 at runtime)
+DEBUG_LAYOUT=1 python src/main.py
+
+# Test slot in isolation
+python tools/layout_sandbox.py --generator --torture
+```
+
+See [docs/LAYOUT_DEBUGGING.md](../docs/LAYOUT_DEBUGGING.md) for full guide.
 
 ## Code Quality
 

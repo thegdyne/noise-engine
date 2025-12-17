@@ -53,6 +53,9 @@ def build_modulator_header(slot):
     slot.gen_button.setMinimumWidth(0)
     slot.gen_button.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
     slot.gen_button.setStyleSheet(button_style('submenu'))
+    # Left-align text with padding
+    slot.gen_button.text_alignment = Qt.AlignVCenter | Qt.AlignLeft
+    slot.gen_button.text_padding_lr = 4
     slot.gen_button.value_changed.connect(slot._on_generator_changed)
     header.addWidget(slot.gen_button)
     
@@ -104,21 +107,25 @@ def build_param_slider(slot, param):
     """Build a parameter control - CycleButton for mode, DragSlider for continuous."""
     mt = MODULATOR_THEME
     
-    # Fixed-width column widget
-    col = QWidget()
-    col.setFixedWidth(mt['slider_column_width'])
-    col.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-    
-    container = QVBoxLayout(col)
-    container.setContentsMargins(0, 0, 0, 0)
-    container.setSpacing(2)
-    
     key = param['key']
     steps = param.get('steps')
     try:
         steps_i = int(steps) if steps is not None else None
     except (ValueError, TypeError):
         steps_i = None
+    
+    # Mode buttons need wider column
+    is_mode_btn = key == 'mode' and steps_i in (2, 3)
+    col_width = mt.get('mode_button_width', 48) if is_mode_btn else mt['slider_column_width']
+    
+    # Fixed-width column widget
+    col = QWidget()
+    col.setFixedWidth(col_width)
+    col.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+    
+    container = QVBoxLayout(col)
+    container.setContentsMargins(0, 0, 0, 0)
+    container.setSpacing(2)
     
     # Label - CRITICAL: fixed width prevents column expansion
     label = QLabel(param.get('label', key.upper()[:4]))
@@ -127,12 +134,12 @@ def build_param_slider(slot, param):
     label.setStyleSheet(f"color: {COLORS['text']};")
     label.setToolTip(param.get('tooltip', ''))
     label.setFixedHeight(mt['param_label_height'])
-    label.setFixedWidth(mt['slider_column_width'])
+    label.setFixedWidth(col_width)
     label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     container.addWidget(label)
     
     # Use CycleButton for stepped params (mode: CLK/FREE for LFO, TOR/APA/INE for Sloth)
-    if key == 'mode' and steps_i in (2, 3):
+    if is_mode_btn:
         if steps_i == 2:
             # LFO mode: CLK/FREE
             mode_labels = MOD_LFO_MODES
@@ -147,18 +154,20 @@ def build_param_slider(slot, param):
         default_idx = max(0, min(default_idx, steps_i - 1))
         
         btn = CycleButton(mode_labels, initial_index=default_idx)
-        # MUST fit inside the fixed-width column
-        btn.setFixedHeight(22)
-        btn.setMaximumWidth(mt['slider_column_width'])
-        btn.setMinimumWidth(0)
+        # Mode buttons need specific width to show text like "CLK", "FREE"
+        mode_width = mt.get('mode_button_width', 48)
+        btn.setFixedSize(mode_width, 22)
         btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         btn.setStyleSheet(button_style('submenu'))
         btn.setToolTip(tooltip)
-        btn.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        # Center-align text
+        btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+        btn.text_padding_lr = 2
         btn.index_changed.connect(
             lambda idx, k=key: slot._on_mode_changed(k, idx)
         )
-        container.addWidget(btn, alignment=Qt.AlignCenter)
+        container.addWidget(btn)
         slot.param_sliders[key] = btn
     else:
         # Standard slider for continuous params
@@ -201,6 +210,8 @@ def build_output_row(slot, output_idx, label, output_config):
         wave_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         wave_btn.setStyleSheet(button_style('submenu'))
         wave_btn.setToolTip("Waveform: Saw/Tri/Sqr/Sin/S&H")
+        wave_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+        wave_btn.text_padding_lr = 2
         wave_btn.value_changed.connect(
             lambda w, idx=output_idx, wforms=MOD_LFO_WAVEFORMS: slot._on_wave_changed(idx, wforms.index(w))
         )
@@ -211,10 +222,12 @@ def build_output_row(slot, output_idx, label, output_config):
         default_phase_indices = [0, 3, 5]
         phase_labels = [f"{p}°" for p in MOD_LFO_PHASES]
         phase_btn = CycleButton(phase_labels, initial_index=default_phase_indices[output_idx])
-        phase_btn.setFixedSize(35, 20)
+        phase_btn.setFixedSize(38, 20)
         phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         phase_btn.setStyleSheet(button_style('submenu'))
         phase_btn.setToolTip("Phase offset: 0°-315° in 45° steps")
+        phase_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+        phase_btn.text_padding_lr = 2
         phase_btn.value_changed.connect(
             lambda p, idx=output_idx, plabels=phase_labels: slot._on_phase_changed(idx, plabels.index(p))
         )
@@ -227,6 +240,8 @@ def build_output_row(slot, output_idx, label, output_config):
     pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
     pol_btn.setStyleSheet(button_style('submenu'))
     pol_btn.setToolTip("Polarity: UNI (0→1) / BI (-1→+1)")
+    pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+    pol_btn.text_padding_lr = 2
     pol_btn.value_changed.connect(
         lambda p, idx=output_idx, pols=MOD_POLARITY: slot._on_polarity_changed(idx, pols.index(p))
     )

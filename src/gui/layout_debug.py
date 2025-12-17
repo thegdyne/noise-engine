@@ -12,6 +12,8 @@ Usage:
     
     # Or enable globally via environment variable:
     # DEBUG_LAYOUT=1 python src/main.py
+    
+    # Or toggle with F9 at runtime (if hotkey installed)
 
 Configuration:
     Set DEBUG_LAYOUT=1 environment variable before launching, or call
@@ -19,12 +21,14 @@ Configuration:
 """
 
 import os
-from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen
+from PyQt5.QtWidgets import QWidget, QApplication, QShortcut
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QKeySequence
 from PyQt5.QtCore import Qt, QRect
 
 # Global flag
 DEBUG_LAYOUT = os.environ.get('DEBUG_LAYOUT', '0') == '1'
+_debug_enabled = False
+_main_window = None
 
 # Colors for different widget types (semi-transparent)
 DEBUG_COLORS = {
@@ -38,6 +42,9 @@ DEBUG_COLORS = {
     'default': QColor(128, 128, 128, 30),    # Gray
 }
 
+# Red border for fixed-size widgets
+FIXED_SIZE_COLOR = QColor(255, 0, 0, 200)
+
 # Store original paintEvent methods
 _original_paint_events = {}
 
@@ -46,6 +53,21 @@ def get_debug_color(widget):
     """Get debug color based on widget class name."""
     class_name = widget.__class__.__name__
     return DEBUG_COLORS.get(class_name, DEBUG_COLORS['default'])
+
+
+def has_fixed_size(widget):
+    """Check if widget has fixed size constraints."""
+    policy = widget.sizePolicy()
+    h_fixed = policy.horizontalPolicy() == 0  # QSizePolicy.Fixed
+    v_fixed = policy.verticalPolicy() == 0
+    
+    # Also check if min == max (effectively fixed)
+    min_w, max_w = widget.minimumWidth(), widget.maximumWidth()
+    min_h, max_h = widget.minimumHeight(), widget.maximumHeight()
+    w_locked = min_w == max_w and min_w > 0
+    h_locked = min_h == max_h and min_h > 0
+    
+    return h_fixed or v_fixed or w_locked or h_locked
 
 
 def debug_paint_event(widget, original_paint, event):
@@ -61,11 +83,16 @@ def debug_paint_event(widget, original_paint, event):
     color = get_debug_color(widget)
     painter.fillRect(widget.rect(), color)
     
-    # Border
-    border_color = QColor(color)
-    border_color.setAlpha(150)
-    painter.setPen(QPen(border_color, 1))
-    painter.drawRect(widget.rect().adjusted(0, 0, -1, -1))
+    # Red border for fixed-size widgets
+    if has_fixed_size(widget):
+        painter.setPen(QPen(FIXED_SIZE_COLOR, 2))
+        painter.drawRect(widget.rect().adjusted(1, 1, -1, -1))
+    else:
+        # Normal border
+        border_color = QColor(color)
+        border_color.setAlpha(150)
+        painter.setPen(QPen(border_color, 1))
+        painter.drawRect(widget.rect().adjusted(0, 0, -1, -1))
     
     # Size info text
     geo = widget.geometry()
@@ -102,8 +129,9 @@ def enable_layout_debug(widget=None, recursive=True):
         widget: QWidget to debug. If None, applies to all top-level windows.
         recursive: If True, also debug all child widgets.
     """
-    global DEBUG_LAYOUT
+    global DEBUG_LAYOUT, _debug_enabled
     DEBUG_LAYOUT = True
+    _debug_enabled = True
     
     if widget is None:
         app = QApplication.instance()
@@ -122,6 +150,9 @@ def enable_layout_debug(widget=None, recursive=True):
     if recursive:
         for child in widget.findChildren(QWidget):
             enable_layout_debug(child, recursive=False)
+    
+    # Force repaint
+    widget.update()
 
 
 def disable_layout_debug(widget=None, recursive=True):
@@ -132,15 +163,15 @@ def disable_layout_debug(widget=None, recursive=True):
         widget: QWidget to restore. If None, applies to all.
         recursive: If True, also restore all child widgets.
     """
-    global DEBUG_LAYOUT
+    global DEBUG_LAYOUT, _debug_enabled
     DEBUG_LAYOUT = False
+    _debug_enabled = False
     
     if widget is None:
-        # Restore all
-        for widget_id, original in list(_original_paint_events.items()):
-            # Can't easily get widget from id, so just clear
-            pass
-        _original_paint_events.clear()
+        app = QApplication.instance()
+        if app:
+            for w in app.topLevelWidgets():
+                disable_layout_debug(w, recursive)
         return
     
     widget_id = id(widget)
@@ -150,6 +181,54 @@ def disable_layout_debug(widget=None, recursive=True):
     if recursive:
         for child in widget.findChildren(QWidget):
             disable_layout_debug(child, recursive=False)
+    
+    # Force repaint
+    widget.update()
+
+
+def toggle_layout_debug():
+    """Toggle layout debug mode on/off."""
+    global _debug_enabled, _main_window
+    
+    if _debug_enabled:
+        disable_layout_debug(_main_window)
+        print("[Layout Debug] DISABLED")
+    else:
+        enable_layout_debug(_main_window)
+        print("[Layout Debug] ENABLED - Red borders = fixed size")
+
+
+def install_debug_hotkey(window):
+    """Install F9 hotkey to toggle layout debug."""
+    global _main_window
+    _main_window = window
+    
+    shortcut = QShortcut(QKeySequence(Qt.Key_F9), window)
+    shortcut.activated.connect(toggle_layout_debug)
+    print("[Layout Debug] Press F9 to toggle X-ray mode")
+
+
+def dump_layout(w, indent=0):
+    """
+    Quick one-liner to dump a widget's layout constraints.
+    
+    Usage:
+        from gui.layout_debug import dump_layout
+        dump_layout(self.type_btn)
+    """
+    prefix = "  " * indent
+    sp = w.sizePolicy()
+    h_policies = {0: 'Fixed', 1: 'Min', 4: 'Max', 5: 'Pref', 7: 'Expand', 13: 'MinExp', 3: 'Ignored'}
+    h_str = h_policies.get(sp.horizontalPolicy(), str(sp.horizontalPolicy()))
+    v_str = h_policies.get(sp.verticalPolicy(), str(sp.verticalPolicy()))
+    
+    name = w.objectName() or w.__class__.__name__
+    geo = w.geometry()
+    hint = w.sizeHint()
+    
+    print(f"{prefix}{name}: geo={geo.width()}x{geo.height()} hint={hint.width()}x{hint.height()} "
+          f"policy=({h_str},{v_str}) min={w.minimumWidth()}x{w.minimumHeight()} "
+          f"max={w.maximumWidth()}x{w.maximumHeight()}")
 
 
 def print_widget_info(widget, indent=0):
@@ -173,6 +252,9 @@ def print_widget_info(widget, indent=0):
     print(f"{prefix}  policy: H={policy.horizontalPolicy()} V={policy.verticalPolicy()}")
     print(f"{prefix}  min: {widget.minimumWidth()}x{widget.minimumHeight()}")
     print(f"{prefix}  max: {widget.maximumWidth()}x{widget.maximumHeight()}")
+    
+    if has_fixed_size(widget):
+        print(f"{prefix}  ⚠️  FIXED SIZE")
     
     layout = widget.layout()
     if layout:
@@ -201,4 +283,7 @@ def log_size_constraints(widget, label=""):
     h_str = h_policies.get(policy.horizontalPolicy(), str(policy.horizontalPolicy()))
     v_str = h_policies.get(policy.verticalPolicy(), str(policy.verticalPolicy()))
     
-    print(f"[{label}] geo={geo.width()}x{geo.height()} hint={hint.width()}x{hint.height()} policy=({h_str},{v_str}) min={widget.minimumWidth()}x{widget.minimumHeight()} max={widget.maximumWidth()}x{widget.maximumHeight()}")
+    fixed_marker = " ⚠️FIXED" if has_fixed_size(widget) else ""
+    print(f"[{label}] geo={geo.width()}x{geo.height()} hint={hint.width()}x{hint.height()} "
+          f"policy=({h_str},{v_str}) min={widget.minimumWidth()}x{widget.minimumHeight()} "
+          f"max={widget.maximumWidth()}x{widget.maximumHeight()}{fixed_marker}")
