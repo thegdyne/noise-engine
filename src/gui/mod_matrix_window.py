@@ -303,7 +303,7 @@ class ModMatrixWindow(QMainWindow):
         for conn in self.routing_state.get_all_connections():
             cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
             if cell:
-                cell.set_connection(True, conn.depth, conn.polarity.value)
+                cell.set_connection(True, conn.amount)
     
     def _on_cell_clicked(self, bus: int, slot: int, param: str):
         """Handle cell left-click: toggle connection."""
@@ -423,7 +423,7 @@ class ModMatrixWindow(QMainWindow):
         """Update cell when connection added."""
         cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
         if cell:
-            cell.set_connection(True, conn.depth, conn.polarity.value)
+            cell.set_connection(True, conn.amount)
     
     def _on_connection_removed(self, source_bus: int, target_slot: int, target_param: str):
         """Update cell when connection removed."""
@@ -438,7 +438,7 @@ class ModMatrixWindow(QMainWindow):
         """Update cell and popup when connection parameters change."""
         cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
         if cell:
-            cell.set_connection(True, conn.depth, conn.polarity.value)
+            cell.set_connection(True, conn.amount)
         # Sync popup if open
         if hasattr(self, '_open_popup') and self._open_popup:
             self._open_popup.sync_from_state(conn)

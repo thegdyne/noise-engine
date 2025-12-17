@@ -43,8 +43,7 @@ class ModMatrixCell(QWidget):
         
         # State
         self.connected = False
-        self.depth = 0.0
-        self.polarity = 0  # 0=bipolar, 1=uni+, 2=uni-
+        self.amount = 0.0  # Controls dot size (0-1)
         self.source_type = 'LFO'  # Updated by matrix window
         
         # Selection state
@@ -61,11 +60,10 @@ class ModMatrixCell(QWidget):
         # Hover state
         self._hovered = False
         
-    def set_connection(self, connected: bool, depth: float = 0.0, polarity: int = 0):
+    def set_connection(self, connected: bool, amount: float = 0.5):
         """Update cell state."""
         self.connected = connected
-        self.depth = depth
-        self.polarity = polarity
+        self.amount = amount
         self.update()
         
     def set_source_type(self, source_type: str):
@@ -107,33 +105,16 @@ class ModMatrixCell(QWidget):
         color = QColor(self.SOURCE_COLORS.get(self.source_type, '#666666'))
         
         if self.connected:
-            # Circle size based on depth (4-10 radius)
-            base_radius = 4
+            # Circle size based on amount (3-10 radius)
+            min_radius = 3
             max_radius = 10
-            radius = base_radius + self.depth * (max_radius - base_radius)
+            radius = min_radius + self.amount * (max_radius - min_radius)
             radius = min(radius, min(w, h) // 2 - 2)
             
             # Filled circle for connection
             painter.setBrush(QBrush(color))
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(QRectF(cx - radius, cy - radius, radius * 2, radius * 2))
-            
-            # Polarity arrows
-            if self.polarity == 1:  # uni+
-                # Draw up arrow above circle
-                painter.setPen(QPen(color, 2))
-                arrow_y = cy - radius - 3
-                painter.drawLine(int(cx), int(arrow_y), int(cx), int(arrow_y - 4))
-                painter.drawLine(int(cx - 2), int(arrow_y - 2), int(cx), int(arrow_y - 4))
-                painter.drawLine(int(cx + 2), int(arrow_y - 2), int(cx), int(arrow_y - 4))
-            elif self.polarity == 2:  # uni-
-                # Draw down arrow below circle
-                painter.setPen(QPen(color, 2))
-                arrow_y = cy + radius + 3
-                painter.drawLine(int(cx), int(arrow_y), int(cx), int(arrow_y + 4))
-                painter.drawLine(int(cx - 2), int(arrow_y + 2), int(cx), int(arrow_y + 4))
-                painter.drawLine(int(cx + 2), int(arrow_y + 2), int(cx), int(arrow_y + 4))
-            # polarity == 0 (bipolar): no arrow
         else:
             # Empty cell - draw subtle dot on hover or when selected
             if self._hovered or self._selected:

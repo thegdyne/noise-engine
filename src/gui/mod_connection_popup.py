@@ -260,6 +260,23 @@ class ModConnectionPopup(QDialog):
             self.offset_slider.setValue(0)
             return True
         return super().eventFilter(obj, event)
+    
+    def keyPressEvent(self, event):
+        """Handle number keys to set amount."""
+        key = event.key()
+        
+        # 1-9: set amount (10%-90%)
+        if Qt.Key_1 <= key <= Qt.Key_9:
+            value = (key - Qt.Key_0) * 10  # 10-90
+            self.amount_slider.setValue(value)
+        # 0: set amount to 100%
+        elif key == Qt.Key_0:
+            self.amount_slider.setValue(100)
+        # Escape: close
+        elif key == Qt.Key_Escape:
+            self.close()
+        else:
+            super().keyPressEvent(event)
         
     def closeEvent(self, event):
         """Flush any pending updates on close."""
