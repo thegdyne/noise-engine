@@ -30,6 +30,7 @@ class ModConnection:
     target_param: str     # 'cutoff', 'frequency', 'resonance', etc.
     depth: float = 0.5    # 0.0 to 1.0 (range width)
     amount: float = 1.0   # 0.0 to 1.0 (VCA level)
+    offset: float = 0.0   # -1.0 to 1.0 (shifts mod range up/down)
     polarity: Polarity = Polarity.BIPOLAR
     invert: bool = False  # Flip signal before polarity
     
@@ -51,6 +52,7 @@ class ModConnection:
             'target_param': self.target_param,
             'depth': self.depth,
             'amount': self.amount,
+            'offset': self.offset,
             'polarity': self.polarity.value,
             'invert': self.invert,
         }
@@ -76,6 +78,7 @@ class ModConnection:
             target_param=data['target_param'],
             depth=depth,
             amount=data.get('amount', 1.0),
+            offset=data.get('offset', 0.0),
             polarity=Polarity(data.get('polarity', 0)),
             invert=invert,
         )
@@ -133,6 +136,7 @@ class ModRoutingState(QObject):
     def update_connection(self, source_bus: int, target_slot: int, target_param: str,
                           depth: Optional[float] = None,
                           amount: Optional[float] = None,
+                          offset: Optional[float] = None,
                           polarity: Optional[Polarity] = None,
                           invert: Optional[bool] = None) -> bool:
         """
@@ -150,6 +154,8 @@ class ModRoutingState(QObject):
             conn.depth = max(0.0, min(1.0, depth))
         if amount is not None:
             conn.amount = max(0.0, min(1.0, amount))
+        if offset is not None:
+            conn.offset = max(-1.0, min(1.0, offset))
         if polarity is not None:
             conn.polarity = polarity
         if invert is not None:
@@ -165,6 +171,10 @@ class ModRoutingState(QObject):
     def set_amount(self, source_bus: int, target_slot: int, target_param: str, amount: float) -> bool:
         """Update connection amount (0-1)."""
         return self.update_connection(source_bus, target_slot, target_param, amount=amount)
+    
+    def set_offset(self, source_bus: int, target_slot: int, target_param: str, offset: float) -> bool:
+        """Update connection offset (-1 to +1)."""
+        return self.update_connection(source_bus, target_slot, target_param, offset=offset)
     
     def set_polarity(self, source_bus: int, target_slot: int, target_param: str, polarity: Polarity) -> bool:
         """Update connection polarity."""

@@ -102,6 +102,10 @@ class DragSlider(QSlider):
         if color:
             self._mod_color = color
         self.update()
+        self.repaint()  # Force immediate repaint
+        # Also update parent in case of composite widgets
+        if self.parent():
+            self.parent().update()
     
     def set_modulated_value(self, norm_value: float):
         """

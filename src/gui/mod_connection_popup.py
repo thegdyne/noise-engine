@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QSlider, 
     QPushButton, QFrame, QButtonGroup
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent
 from PyQt5.QtGui import QFont
 
 from .mod_routing_state import ModConnection, Polarity
@@ -50,8 +50,11 @@ class ModConnectionPopup(QDialog):
         self._throttle_ms = 16  # ~60Hz max
         
         self.setWindowTitle("Mod Connection")
-        self.setFixedSize(280, 220)
+        self.setFixedSize(280, 250)
         self.setModal(False)  # Non-modal so user can hear changes
+        
+        # Tool window: stays with parent, doesn't appear in task switcher
+        self.setWindowFlags(Qt.Tool | Qt.WindowStaysOnTopHint)
         
         # Dark theme
         self.setStyleSheet(f"""
@@ -156,6 +159,27 @@ class ModConnectionPopup(QDialog):
         
         layout.addLayout(amount_layout)
         
+        # Offset slider row (-100% to +100%)
+        offset_layout = QHBoxLayout()
+        offset_label = QLabel("Offset")
+        offset_label.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        offset_label.setFixedWidth(50)
+        offset_layout.addWidget(offset_label)
+        
+        self.offset_slider = QSlider(Qt.Horizontal)
+        self.offset_slider.setRange(-100, 100)
+        self.offset_slider.valueChanged.connect(self._on_offset_changed)
+        self.offset_slider.installEventFilter(self)  # For double-click reset
+        offset_layout.addWidget(self.offset_slider, 1)
+        
+        self.offset_value = QLabel("0%")
+        self.offset_value.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        self.offset_value.setFixedWidth(40)
+        self.offset_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        offset_layout.addWidget(self.offset_value)
+        
+        layout.addLayout(offset_layout)
+        
         # Separator
         sep2 = QFrame()
         sep2.setFrameShape(QFrame.HLine)
@@ -244,9 +268,19 @@ class ModConnectionPopup(QDialog):
         layout.addLayout(button_layout)
         
     def _sync_from_connection(self):
-        """Set UI state from connection."""
+        """Set UI state from connection (blocks signals to avoid feedback loop)."""
+        # Block signals while syncing to avoid triggering change events
+        self.depth_slider.blockSignals(True)
+        self.amount_slider.blockSignals(True)
+        self.offset_slider.blockSignals(True)
+        
         self.depth_slider.setValue(int(self.connection.depth * 100))
         self.amount_slider.setValue(int(self.connection.amount * 100))
+        self.offset_slider.setValue(int(self.connection.offset * 100))
+        
+        self.depth_slider.blockSignals(False)
+        self.amount_slider.blockSignals(False)
+        self.offset_slider.blockSignals(False)
         
         # Polarity buttons
         polarity_btn = self.polarity_group.button(self.connection.polarity.value)
@@ -257,11 +291,24 @@ class ModConnectionPopup(QDialog):
         self.btn_invert.setChecked(self.connection.invert)
         
         self._update_value_labels()
+    
+    def sync_from_state(self, conn: ModConnection):
+        """Update popup to reflect external changes to the connection."""
+        # Only update if this is our connection
+        if (conn.source_bus == self.connection.source_bus and
+            conn.target_slot == self.connection.target_slot and
+            conn.target_param == self.connection.target_param):
+            self.connection = conn
+            self._sync_from_connection()
         
     def _update_value_labels(self):
         """Update the percentage labels."""
         self.depth_value.setText(f"{int(self.connection.depth * 100)}%")
         self.amount_value.setText(f"{int(self.connection.amount * 100)}%")
+        # Offset shows sign
+        offset_pct = int(self.connection.offset * 100)
+        sign = "+" if offset_pct > 0 else ""
+        self.offset_value.setText(f"{sign}{offset_pct}%")
         
     def _schedule_update(self):
         """Schedule a throttled update emission."""
@@ -286,6 +333,12 @@ class ModConnectionPopup(QDialog):
         self.connection.amount = value / 100.0
         self._update_value_labels()
         self._schedule_update()
+    
+    def _on_offset_changed(self, value: int):
+        """Handle offset slider change."""
+        self.connection.offset = value / 100.0
+        self._update_value_labels()
+        self._schedule_update()
         
     def _on_polarity_changed(self, button):
         """Handle polarity button change."""
@@ -302,6 +355,13 @@ class ModConnectionPopup(QDialog):
         """Request connection removal."""
         self.remove_requested.emit()
         self.accept()
+    
+    def eventFilter(self, obj, event):
+        """Handle double-click on offset slider to reset to 0."""
+        if obj == self.offset_slider and event.type() == QEvent.MouseButtonDblClick:
+            self.offset_slider.setValue(0)
+            return True
+        return super().eventFilter(obj, event)
         
     def closeEvent(self, event):
         """Flush any pending updates on close."""

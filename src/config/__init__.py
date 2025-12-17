@@ -597,10 +597,10 @@ OSC_PATHS = {
     'mod_scope_enable': '/noise/mod/scope/enable',  # /noise/mod/scope/enable/{slot} (Python → SC)
     
     # Mod routing (connections between mod buses and generator params)
-    # New protocol: add/set/remove with full params
-    'mod_route_add': '/noise/mod/route/add',        # [source_bus, slot, param, depth, amount, polarity, invert]
-    'mod_route_set': '/noise/mod/route/set',        # [source_bus, slot, param, depth, amount, polarity, invert]
-    'mod_route_remove': '/noise/mod/route/remove',  # [source_bus, slot, param]
+    # Protocol: add/set/remove with full params (depth, amount, offset, polarity, invert)
+    'mod_route_add': '/noise/mod/route/add',        # [bus, slot, param, depth, amount, offset, polarity, invert]
+    'mod_route_set': '/noise/mod/route/set',        # [bus, slot, param, depth, amount, offset, polarity, invert]
+    'mod_route_remove': '/noise/mod/route/remove',  # [bus, slot, param]
 }
 
 # === WIDGET SIZES ===

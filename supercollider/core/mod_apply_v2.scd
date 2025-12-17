@@ -9,13 +9,14 @@ Architecture:
 - 0 routes = passthrough (all buses = -1, deltas = 0)
 - NEVER rebuild synths - create once, update via .set()
 
-Per-slot args: busK, depthK, amountK, polarityK, invertK
+Per-slot args: busK, depthK, amountK, offsetK, polarityK, invertK
 Polarity: 0=bipolar, 1=uni+, 2=uni-
 Invert: 0=normal, 1=inverted (flips signal before polarity)
+Offset: -1 to +1, shifts mod range up/down from base value
 
 Mapped-space modulation:
-- Linear params: delta = polarityFn(s, r) * range
-- Exp params: out = base * (2 ** (polarityFn(s, r) * octRange))
+- Linear params: delta = polarityFn(s, r) + offset
+- Exp params: out = base * (2 ** (polarityFn(s, r) + offset) * octRange))
 */
 
 ~setupModApply = {
@@ -41,12 +42,12 @@ Mapped-space modulation:
     ~modulatableParams = [\cutoff, \frequency, \resonance, \attack, \decay];
     
     // SynthDef with 4 fixed route slots
-    // Each slot: bus, depth, amount, polarity, invert
+    // Each slot: bus, depth, amount, offset, polarity, invert
     SynthDef(\modApply, { |userBus, outBus, minVal=0, maxVal=1, curve=0, octRange=4,
-                          bus0=(-1), depth0=0, amount0=1, polarity0=0, invert0=0,
-                          bus1=(-1), depth1=0, amount1=1, polarity1=0, invert1=0,
-                          bus2=(-1), depth2=0, amount2=1, polarity2=0, invert2=0,
-                          bus3=(-1), depth3=0, amount3=1, polarity3=0, invert3=0|
+                          bus0=(-1), depth0=0, amount0=1, offset0=0, polarity0=0, invert0=0,
+                          bus1=(-1), depth1=0, amount1=1, offset1=0, polarity1=0, invert1=0,
+                          bus2=(-1), depth2=0, amount2=1, offset2=0, polarity2=0, invert2=0,
+                          bus3=(-1), depth3=0, amount3=1, offset3=0, polarity3=0, invert3=0|
         var base, range, totalDelta, out;
         var s0, s1, s2, s3;
         var r0, r1, r2, r3;
@@ -64,7 +65,7 @@ Mapped-space modulation:
             s0 * r0,                           // 0: bipolar
             ((s0 + 1) * 0.5) * r0,             // 1: uni+
             ((s0 + 1) * 0.5).neg * r0          // 2: uni-
-        ]);
+        ]) + offset0;  // Add offset after modulation
         
         // === SLOT 1 ===
         s1 = Select.kr(bus1 >= 0, [0, In.kr(bus1)]);
@@ -74,7 +75,7 @@ Mapped-space modulation:
             s1 * r1,
             ((s1 + 1) * 0.5) * r1,
             ((s1 + 1) * 0.5).neg * r1
-        ]);
+        ]) + offset1;
         
         // === SLOT 2 ===
         s2 = Select.kr(bus2 >= 0, [0, In.kr(bus2)]);
@@ -84,7 +85,7 @@ Mapped-space modulation:
             s2 * r2,
             ((s2 + 1) * 0.5) * r2,
             ((s2 + 1) * 0.5).neg * r2
-        ]);
+        ]) + offset2;
         
         // === SLOT 3 ===
         s3 = Select.kr(bus3 >= 0, [0, In.kr(bus3)]);
@@ -94,7 +95,7 @@ Mapped-space modulation:
             s3 * r3,
             ((s3 + 1) * 0.5) * r3,
             ((s3 + 1) * 0.5).neg * r3
-        ]);
+        ]) + offset3;
         
         // Sum all deltas
         totalDelta = d0 + d1 + d2 + d3;
@@ -180,7 +181,7 @@ Mapped-space modulation:
     };
     
     // Add a route (find free slot, use .set())
-    ~addModRoute = { |sourceBus, targetSlot, targetParam, depth=0.5, amount=1.0, polarity=0, invert=0|
+    ~addModRoute = { |sourceBus, targetSlot, targetParam, depth=0.5, amount=1.0, offset=0.0, polarity=0, invert=0|
         var destKey = ~destKey.(targetSlot, targetParam.asSymbol);
         var synth = ~modApplySynths[destKey];
         var routes = ~modRoutes[destKey];
@@ -206,12 +207,13 @@ Mapped-space modulation:
             ("bus" ++ slotIdx).asSymbol, ~modBuses[sourceBus].index,
             ("depth" ++ slotIdx).asSymbol, depth,
             ("amount" ++ slotIdx).asSymbol, amount,
+            ("offset" ++ slotIdx).asSymbol, offset,
             ("polarity" ++ slotIdx).asSymbol, polarity,
             ("invert" ++ slotIdx).asSymbol, invert
         );
         
         ("Mod route: bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++ 
-         " [idx=" ++ slotIdx ++ ", d=" ++ depth ++ ", a=" ++ amount ++ 
+         " [idx=" ++ slotIdx ++ ", d=" ++ depth ++ ", a=" ++ amount ++ ", o=" ++ offset ++
          ", p=" ++ polarity ++ ", i=" ++ invert ++ "]").postln;
         
         // Start value stream if first route
@@ -246,9 +248,9 @@ Mapped-space modulation:
         };
     };
     
-    // Update route parameters via .set() (depth, amount, polarity, invert)
+    // Update route parameters via .set() (depth, amount, offset, polarity, invert)
     // Creates route if it doesn't exist
-    ~setModRoute = { |sourceBus, targetSlot, targetParam, depth, amount, polarity, invert|
+    ~setModRoute = { |sourceBus, targetSlot, targetParam, depth, amount, offset, polarity, invert|
         var destKey = ~destKey.(targetSlot, targetParam.asSymbol);
         var synth = ~modApplySynths[destKey];
         var routes = ~modRoutes[destKey];
@@ -259,7 +261,7 @@ Mapped-space modulation:
         slotIdx = routes.indexOf(sourceBus);
         if(slotIdx.isNil) {
             // Create if missing
-            slotIdx = ~addModRoute.(sourceBus, targetSlot, targetParam, depth, amount, polarity, invert);
+            slotIdx = ~addModRoute.(sourceBus, targetSlot, targetParam, depth, amount, offset, polarity, invert);
             ^slotIdx;
         };
         
@@ -267,6 +269,7 @@ Mapped-space modulation:
         synth.set(
             ("depth" ++ slotIdx).asSymbol, depth,
             ("amount" ++ slotIdx).asSymbol, amount,
+            ("offset" ++ slotIdx).asSymbol, offset,
             ("polarity" ++ slotIdx).asSymbol, polarity,
             ("invert" ++ slotIdx).asSymbol, invert
         );
@@ -349,7 +352,7 @@ Mapped-space modulation:
         "=== RELATIVE MOD TEST ===".postln;
         "1. Set CUT slider to different positions".postln;
         "2. Modulation should center around slider position".postln;
-        ~addModRoute.(0, 1, \cutoff, 0.5, 1.0, 0, 0);  // bipolar, no invert
+        ~addModRoute.(0, 1, \cutoff, 0.5, 1.0, 0.0, 0, 0);  // bipolar, no offset, no invert
         "Route: MOD1.A → GEN1 cutoff (bipolar, depth=0.5)".postln;
         "Run ~stopRelativeMod.() to stop.".postln;
     };
@@ -362,9 +365,18 @@ Mapped-space modulation:
     ~testPolarities = {
         "=== POLARITY TEST ===".postln;
         "Testing bipolar...".postln;
-        ~addModRoute.(0, 1, \cutoff, 0.5, 1.0, 0, 0);
-        "Run ~setModRoute.(0, 1, \\cutoff, 0.5, 1.0, 1, 0) for uni+".postln;
-        "Run ~setModRoute.(0, 1, \\cutoff, 0.5, 1.0, 2, 0) for uni-".postln;
+        ~addModRoute.(0, 1, \cutoff, 0.5, 1.0, 0.0, 0, 0);
+        "Run ~setModRoute.(0, 1, \\cutoff, 0.5, 1.0, 0.0, 1, 0) for uni+".postln;
+        "Run ~setModRoute.(0, 1, \\cutoff, 0.5, 1.0, 0.0, 2, 0) for uni-".postln;
+        "Run ~stopRelativeMod.() to stop.".postln;
+    };
+    
+    ~testOffset = {
+        "=== OFFSET TEST ===".postln;
+        "Testing offset +0.5...".postln;
+        ~addModRoute.(0, 1, \cutoff, 0.3, 1.0, 0.5, 0, 0);  // offset shifts mod up
+        "Modulation should be centered +50% from slider position".postln;
+        "Run ~setModRoute.(0, 1, \\cutoff, 0.3, 1.0, -0.5, 0, 0) for offset down".postln;
         "Run ~stopRelativeMod.() to stop.".postln;
     };
     

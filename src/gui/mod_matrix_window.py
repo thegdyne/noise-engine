@@ -29,7 +29,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 from PyQt5.QtGui import QFont, QColor, QKeySequence
 
 from .mod_matrix_cell import ModMatrixCell
-from .mod_routing_state import ModRoutingState, ModConnection
+from .mod_routing_state import ModRoutingState, ModConnection, Polarity
 from .mod_connection_popup import ModConnectionPopup
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT
 
@@ -349,6 +349,10 @@ class ModMatrixWindow(QMainWindow):
                 break
         target_label = f"G{slot} {param_label}"
         
+        # Close any existing popup
+        if hasattr(self, '_open_popup') and self._open_popup:
+            self._open_popup.close()
+        
         # Show popup
         popup = ModConnectionPopup(conn, source_label, target_label, self)
         popup.connection_changed.connect(
@@ -357,6 +361,10 @@ class ModMatrixWindow(QMainWindow):
         popup.remove_requested.connect(
             lambda b=bus, s=slot, p=param: self._on_popup_remove(b, s, p)
         )
+        popup.finished.connect(self._on_popup_closed)
+        
+        # Store reference so keyboard changes can update it
+        self._open_popup = popup
         
         # Position popup near the cell
         cell = self.cells.get((bus, slot, param))
@@ -366,12 +374,17 @@ class ModMatrixWindow(QMainWindow):
         
         popup.show()
     
+    def _on_popup_closed(self):
+        """Clear popup reference when closed."""
+        self._open_popup = None
+    
     def _on_popup_connection_changed(self, bus: int, slot: int, param: str, conn: ModConnection):
-        """Handle connection change from popup (depth, amount, polarity, invert)."""
+        """Handle connection change from popup (depth, amount, offset, polarity, invert)."""
         self.routing_state.update_connection(
             bus, slot, param,
             depth=conn.depth,
             amount=conn.amount,
+            offset=conn.offset,
             polarity=conn.polarity,
             invert=conn.invert
         )
@@ -391,17 +404,26 @@ class ModMatrixWindow(QMainWindow):
         cell = self.cells.get((source_bus, target_slot, target_param))
         if cell:
             cell.set_connection(False)
+        # Close popup if it was showing this connection
+        if hasattr(self, '_open_popup') and self._open_popup:
+            self._open_popup.close()
     
     def _on_connection_changed(self, conn: ModConnection):
-        """Update cell when connection parameters change."""
+        """Update cell and popup when connection parameters change."""
         cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
         if cell:
             cell.set_connection(True, conn.depth, conn.polarity.value)
+        # Sync popup if open
+        if hasattr(self, '_open_popup') and self._open_popup:
+            self._open_popup.sync_from_state(conn)
     
     def _on_all_cleared(self):
         """Clear all cells when routing cleared."""
         for cell in self.cells.values():
             cell.set_connection(False)
+        # Close popup if open
+        if hasattr(self, '_open_popup') and self._open_popup:
+            self._open_popup.close()
     
     def update_mod_slot_type(self, slot: int, slot_type: str):
         """
@@ -444,6 +466,7 @@ class ModMatrixWindow(QMainWindow):
     def keyPressEvent(self, event):
         """Handle keyboard input for navigation and actions."""
         key = event.key()
+        text = event.text()  # Use text for +/- detection (UK keyboard safe)
         modifiers = event.modifiers()
         
         # Arrow keys: navigate
@@ -464,22 +487,40 @@ class ModMatrixWindow(QMainWindow):
         elif key in (Qt.Key_Delete, Qt.Key_Backspace):
             self._remove_selected()
         
-        # D: open depth popup
+        # D: open connection popup
         elif key == Qt.Key_D:
             self._open_depth_popup_for_selected()
         
-        # 1-9: quick depth (10%-90%)
+        # 1-9: set depth (Shift) or amount (no modifier)
         elif Qt.Key_1 <= key <= Qt.Key_9:
-            depth = (key - Qt.Key_0) / 10.0
-            self._set_selected_depth(depth)
+            value = (key - Qt.Key_0) / 10.0  # 0.1 to 0.9
+            if modifiers & Qt.ShiftModifier:
+                self._set_selected_depth(value)
+            else:
+                self._set_selected_amount(value)
         
-        # 0: set depth to 0% (effectively disable)
+        # 0: set depth to 100%
         elif key == Qt.Key_0:
-            self._set_selected_depth(0.0)
+            if modifiers & Qt.ShiftModifier:
+                self._set_selected_depth(1.0)
+            else:
+                self._set_selected_amount(1.0)
         
-        # Minus: invert depth
-        elif key == Qt.Key_Minus:
-            self._invert_selected_depth()
+        # Polarity via text (more reliable across keyboard layouts)
+        elif text == '-':
+            self._set_selected_polarity(Polarity.UNI_NEG)
+        elif text == '+':
+            self._set_selected_polarity(Polarity.UNI_POS)
+        elif text == '=':
+            self._set_selected_polarity(Polarity.BIPOLAR)
+        
+        # P: cycle polarity (Bi -> U+ -> U- -> Bi)
+        elif key == Qt.Key_P:
+            self._cycle_selected_polarity()
+        
+        # I: toggle invert
+        elif key == Qt.Key_I:
+            self._toggle_selected_invert()
         
         # Escape: deselect
         elif key == Qt.Key_Escape:
@@ -588,7 +629,65 @@ class ModMatrixWindow(QMainWindow):
             )
             self.routing_state.add_connection(new_conn)
     
-    def _invert_selected_depth(self):
+    def _set_selected_amount(self, amount: float):
+        """Set amount for selected cell (creates connection if needed)."""
+        key = self._get_selected_key()
+        if not key:
+            return
+        
+        bus, slot, param = key
+        conn = self.routing_state.get_connection(bus, slot, param)
+        
+        if conn:
+            self.routing_state.set_amount(bus, slot, param, amount)
+        else:
+            # Create new connection with this amount
+            new_conn = ModConnection(
+                source_bus=bus,
+                target_slot=slot,
+                target_param=param,
+                depth=0.5,
+                amount=amount
+            )
+            self.routing_state.add_connection(new_conn)
+    
+    def _set_selected_polarity(self, polarity: Polarity):
+        """Set polarity for selected cell (creates connection if needed)."""
+        key = self._get_selected_key()
+        if not key:
+            return
+        
+        bus, slot, param = key
+        conn = self.routing_state.get_connection(bus, slot, param)
+        
+        if conn:
+            self.routing_state.set_polarity(bus, slot, param, polarity)
+        else:
+            # Create new connection with this polarity
+            new_conn = ModConnection(
+                source_bus=bus,
+                target_slot=slot,
+                target_param=param,
+                depth=0.5,
+                polarity=polarity
+            )
+            self.routing_state.add_connection(new_conn)
+    
+    def _cycle_selected_polarity(self):
+        """Cycle polarity for selected cell: Bi -> U+ -> U- -> Bi."""
+        key = self._get_selected_key()
+        if not key:
+            return
+        
+        bus, slot, param = key
+        conn = self.routing_state.get_connection(bus, slot, param)
+        
+        if conn:
+            # Cycle: BIPOLAR(0) -> UNI_POS(1) -> UNI_NEG(2) -> BIPOLAR(0)
+            next_polarity = Polarity((conn.polarity.value + 1) % 3)
+            self.routing_state.set_polarity(bus, slot, param, next_polarity)
+    
+    def _toggle_selected_invert(self):
         """Toggle invert flag for selected cell."""
         key = self._get_selected_key()
         if not key:

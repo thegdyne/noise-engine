@@ -20,8 +20,9 @@ from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
-from src.gui.mod_routing_state import ModRoutingState, ModConnection
+from src.gui.mod_routing_state import ModRoutingState, ModConnection, Polarity
 from src.gui.mod_matrix_window import ModMatrixWindow
+from src.gui.mod_debug import install_mod_debug_hotkey
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
@@ -178,6 +179,9 @@ class MainFrame(QMainWindow):
         # Shortcut: open mod matrix window (Ctrl+M / Cmd+M)
         mod_matrix_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
         mod_matrix_shortcut.activated.connect(self._open_mod_matrix)
+        
+        # Shortcut: mod debug window (F10)
+        install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
         
         # Log startup
         logger.info("Noise Engine started", component="APP")
@@ -410,6 +414,9 @@ class MainFrame(QMainWindow):
         
         # Resend current state
         self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
+        
+        # Clear mod routing (SC has fresh state after restart)
+        self.mod_routing.clear()
     
     def _connect_btn_style(self):
         """Return the standard connect button stylesheet."""
@@ -707,10 +714,10 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_add'],
                 [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.polarity.value, int(conn.invert)]
+                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
             )
             logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} "
-                        f"(d={conn.depth}, a={conn.amount}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
+                        f"(d={conn.depth}, a={conn.amount}, o={conn.offset}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
         
         # Update slider visualization
         self._update_slider_mod_range(conn.target_slot, conn.target_param)
@@ -734,11 +741,12 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_set'],
                 [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.polarity.value, int(conn.invert)]
+                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
             )
         
-        # Update slider visualization
-        self._update_slider_mod_range(conn.target_slot, conn.target_param)
+        # Update slider visualization (deferred to ensure state is fully updated)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self._update_slider_mod_range(conn.target_slot, conn.target_param))
     
     def _update_slider_mod_range(self, slot_id, param):
         """Update slider modulation range visualization based on active connections."""
@@ -759,16 +767,18 @@ class MainFrame(QMainWindow):
             return
         
         # Calculate combined modulation range using up/down aggregation
-        # This handles mixed polarities correctly
-        from gui.mod_routing_state import Polarity
+        # This handles mixed polarities and offset correctly
         
         base_value = slider.value() / 1000.0  # Normalized 0-1
         
         up_range = 0.0
         down_range = 0.0
+        total_offset = 0.0
         
         for c in connections:
             effective = c.depth * c.amount
+            total_offset += c.offset  # Sum offsets from all connections
+            
             if c.polarity == Polarity.BIPOLAR:
                 up_range += effective
                 down_range += effective
@@ -777,8 +787,10 @@ class MainFrame(QMainWindow):
             elif c.polarity == Polarity.UNI_NEG:
                 down_range += effective
         
-        mod_min = max(0, base_value - down_range)
-        mod_max = min(1, base_value + up_range)
+        # Apply offset to the center point, then calculate range
+        center = base_value + total_offset
+        mod_min = max(0, center - down_range)
+        mod_max = min(1, center + up_range)
         
         # Get color: mixed if multiple sources, else based on first source type
         if len(connections) > 1:
@@ -797,9 +809,15 @@ class MainFrame(QMainWindow):
         slider.set_modulation_range(mod_min, mod_max, color)
     
     def _on_mod_routes_cleared(self):
-        """Handle all routes cleared - would need to remove all in SC."""
-        # For now, log it - full clear would iterate stored connections
+        """Handle all routes cleared - clear all slider brackets."""
         logger.debug("All mod routes cleared", component="MOD")
+        
+        # Clear all slider modulation visualizations
+        for slot_id in range(1, 9):
+            slot = self.generator_grid.get_slot(slot_id)
+            if slot:
+                for param, slider in slot.sliders.items():
+                    slider.clear_modulation()
     
     def _sync_mod_routing_to_sc(self):
         """Sync all mod routing state to SC (called on reconnect)."""
@@ -809,7 +827,7 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_add'],
                 [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.polarity.value, int(conn.invert)]
+                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
             )
         logger.debug(f"Synced {len(self.mod_routing)} mod routes to SC", component="MOD")
     
