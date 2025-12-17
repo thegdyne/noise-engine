@@ -83,6 +83,39 @@
             50% { transform: translateX(4px); }
         }
         
+        /* 🎛️ MOD MATRIX BADGE */
+        .badge.matrix {
+            border-color: #00ff66;
+            color: #00ff66;
+            background: linear-gradient(135deg, rgba(0, 255, 102, 0.15), rgba(255, 136, 0, 0.15));
+            position: relative;
+            overflow: hidden;
+        }
+        .badge.matrix .matrix-dots {
+            display: inline-flex;
+            gap: 2px;
+            margin: 0 4px;
+        }
+        .badge.matrix .matrix-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #00ff66;
+            animation: matrixPulse 1.5s ease-in-out infinite;
+        }
+        .badge.matrix .matrix-dot:nth-child(2) { 
+            background: #ff8800; 
+            animation-delay: 0.3s; 
+        }
+        .badge.matrix .matrix-dot:nth-child(3) { 
+            background: #00cccc; 
+            animation-delay: 0.6s; 
+        }
+        @keyframes matrixPulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
         /* 🐧 DISCORD ANNOUNCEMENT 🐧 */
         .discord-banner {
             background: linear-gradient(135deg, #5865F2 0%, #3b43a8 100%);
@@ -878,6 +911,7 @@
         .trophy-section.mixer { --section-color: #ff44aa; --section-rgb: 255, 68, 170; }
         .trophy-section.generators { --section-color: #44ddff; --section-rgb: 68, 221, 255; }
         .trophy-section.system { --section-color: #ff8844; --section-rgb: 255, 136, 68; }
+        .trophy-section.modulation { --section-color: #00ff66; --section-rgb: 0, 255, 102; }
         
         .trophy-section-header {
             display: flex;
@@ -1026,6 +1060,7 @@
                 <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">22 Generators</span>
                 <span class="badge" style="border-color: var(--accent-magenta); color: var(--accent-magenta);">MIDI In</span>
                 <span class="badge panning"><span class="pan-icon">◀</span> STEREO PAN <span class="pan-icon">▶</span></span>
+                <span class="badge matrix"><span class="matrix-dots"><span class="matrix-dot"></span><span class="matrix-dot"></span><span class="matrix-dot"></span></span>MOD MATRIX</span>
                 <span class="badge surgeon"><span class="heartbeat">❤️</span><span class="scalpel">🔪</span> UI SURGEON</span>
             </div>
         </header>
@@ -1116,6 +1151,10 @@
                             <span class="trophy-section-title">Modulation</span>
                         </div>
                         <div class="trophy-items">
+                            <div class="trophy-item featured new">
+                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-text">16×40 Mod Matrix</span>
+                            </div>
                             <div class="trophy-item featured">
                                 <span class="trophy-item-icon">〰️</span>
                                 <span class="trophy-item-text">LFO (TTLFO v2 style)</span>
@@ -1128,17 +1167,21 @@
                                 <span class="trophy-item-icon">📊</span>
                                 <span class="trophy-item-text">Real-time Scope</span>
                             </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🔢</span>
-                                <span class="trophy-item-text">12 Clock Rates</span>
+                            <div class="trophy-item new">
+                                <span class="trophy-item-icon">🎚️</span>
+                                <span class="trophy-item-text">Animated Slider Viz</span>
+                            </div>
+                            <div class="trophy-item new">
+                                <span class="trophy-item-icon">➕</span>
+                                <span class="trophy-item-text">Multi-Source (4 per dest)</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🎨</span>
-                                <span class="trophy-item-text">8 Waveforms</span>
+                                <span class="trophy-item-icon">⌨️</span>
+                                <span class="trophy-item-text">Full Keyboard Nav</span>
                             </div>
                             <div class="trophy-item">
                                 <span class="trophy-item-icon">🚌</span>
-                                <span class="trophy-item-text">12 Mod Buses</span>
+                                <span class="trophy-item-text">16 Mod Buses</span>
                             </div>
                         </div>
                     </div>
