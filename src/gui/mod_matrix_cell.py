@@ -28,6 +28,12 @@ class ModMatrixCell(QWidget):
         'Empty': '#666666',    # Grey
     }
     
+    # Alternating background tints for generator grouping
+    GEN_TINTS = {
+        'odd': '#1a1a1a',    # Slightly lighter for odd generators (1,3,5,7)
+        'even': '#141414',   # Darker for even generators (2,4,6,8)
+    }
+    
     def __init__(self, source_bus: int, target_slot: int, target_param: str, parent=None):
         super().__init__(parent)
         
@@ -43,6 +49,9 @@ class ModMatrixCell(QWidget):
         
         # Selection state
         self._selected = False
+        
+        # Generator group tint (odd/even)
+        self._gen_tint = 'odd' if target_slot % 2 == 1 else 'even'
         
         # Sizing
         self.setFixedSize(28, 24)
@@ -77,7 +86,11 @@ class ModMatrixCell(QWidget):
         w, h = self.width(), self.height()
         cx, cy = w // 2, h // 2
         
-        # Selection highlight (draw first, under everything)
+        # Generator group background tint (always draw first)
+        tint_color = self.GEN_TINTS.get(self._gen_tint, self.GEN_TINTS['odd'])
+        painter.fillRect(0, 0, w, h, QColor(tint_color))
+        
+        # Selection highlight
         if self._selected:
             painter.fillRect(0, 0, w, h, QColor('#444466'))
             # Draw focus border

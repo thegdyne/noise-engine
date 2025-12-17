@@ -37,9 +37,46 @@ Mapped-space modulation:
     ~paramConfig[\resonance] = [0.1, 1.0, 0, 0];   // linear
     ~paramConfig[\attack] = [0.0001, 2.0, 0, 0];   // linear
     ~paramConfig[\decay] = [0.01, 10.0, 0, 0];     // linear
+    // Custom params (P1-P5) - linear 0-1
+    ~paramConfig[\p1] = [0, 1, 0, 0];
+    ~paramConfig[\p2] = [0, 1, 0, 0];
+    ~paramConfig[\p3] = [0, 1, 0, 0];
+    ~paramConfig[\p4] = [0, 1, 0, 0];
+    ~paramConfig[\p5] = [0, 1, 0, 0];
     
     // Modulatable params (list of params that get passthrough synths)
-    ~modulatableParams = [\cutoff, \frequency, \resonance, \attack, \decay];
+    ~modulatableParams = [\cutoff, \frequency, \resonance, \attack, \decay, \p1, \p2, \p3, \p4, \p5];
+    
+    // Helper: check if param is a custom param (p1-p5)
+    ~isCustomParam = { |param|
+        var s = param.asString;
+        (s.size == 2) and: { s[0] == $p } and: { s[1].isDecDigit }
+    };
+    
+    // Helper: get custom param index (p1 -> 0, p2 -> 1, etc.)
+    ~customParamIndex = { |param|
+        param.asString[1].asString.asInteger - 1
+    };
+    
+    // Helper: get param output bus (handles both standard and custom params)
+    ~getParamBus = { |slot, param|
+        if(~isCustomParam.(param)) {
+            var idx = ~customParamIndex.(param);
+            ~genParams[slot][\custom][idx]
+        } {
+            ~genParams[slot][param.asSymbol]
+        }
+    };
+    
+    // Helper: get user param bus (for relative modulation center point)
+    ~getUserParamBus = { |slot, param|
+        if(~isCustomParam.(param)) {
+            var idx = ~customParamIndex.(param);
+            ~genUserParams[slot][\custom][idx]
+        } {
+            ~genUserParams[slot][param.asSymbol]
+        }
+    };
     
     // SynthDef with 4 fixed route slots
     // Each slot: bus, depth, amount, offset, polarity, invert
@@ -123,8 +160,8 @@ Mapped-space modulation:
         var userBus, outBus, config;
         var synth;
         
-        userBus = ~genUserParams[slot][param.asSymbol];
-        outBus = ~genParams[slot][param.asSymbol];
+        userBus = ~getUserParamBus.(slot, param);
+        outBus = ~getParamBus.(slot, param);
         config = ~paramConfig[param.asSymbol] ?? [0, 1, 0, 4];
         
         if(userBus.isNil or: { outBus.isNil }) {
@@ -308,7 +345,7 @@ Mapped-space modulation:
                             targetSlot = parts[0].asInteger;
                             targetParam = parts[1].asSymbol;
                             
-                            paramBus = ~genParams[targetSlot][targetParam];
+                            paramBus = ~getParamBus.(targetSlot, targetParam);
                             config = ~paramConfig[targetParam] ?? [0, 1, 0, 4];
                             
                             if(paramBus.notNil) {

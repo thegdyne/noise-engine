@@ -689,9 +689,10 @@ class MainFrame(QMainWindow):
         """
         for slot_id, param, norm_value in values:
             slot = self.generator_grid.get_slot(slot_id)
-            if slot and param in slot.sliders:
-                slider = slot.sliders[param]
-                slider.set_modulated_value(norm_value)
+            if slot:
+                slider = self._get_slot_slider(slot, param)
+                if slider:
+                    slider.set_modulated_value(norm_value)
         
     def _flush_mod_scopes(self):
         """Repaint dirty scopes at throttled rate (~30fps)."""
@@ -748,6 +749,28 @@ class MainFrame(QMainWindow):
         from PyQt5.QtCore import QTimer
         QTimer.singleShot(0, lambda: self._update_slider_mod_range(conn.target_slot, conn.target_param))
     
+    def _get_slot_slider(self, slot, param):
+        """Get slider for a param, handling both standard and custom (P1-P5) params.
+        
+        Args:
+            slot: Generator slot widget
+            param: Parameter name ('cutoff', 'p1', etc.)
+            
+        Returns:
+            FaderSlider or None if not found
+        """
+        # Check for custom params (p1-p5)
+        if param.startswith('p') and len(param) == 2 and param[1].isdigit():
+            idx = int(param[1]) - 1  # p1 -> 0, p2 -> 1, etc.
+            if hasattr(slot, 'custom_sliders') and 0 <= idx < len(slot.custom_sliders):
+                return slot.custom_sliders[idx]
+            return None
+        
+        # Standard params
+        if hasattr(slot, 'sliders') and param in slot.sliders:
+            return slot.sliders[param]
+        return None
+    
     def _update_slider_mod_range(self, slot_id, param):
         """Update slider modulation range visualization based on active connections."""
         from PyQt5.QtGui import QColor
@@ -756,13 +779,9 @@ class MainFrame(QMainWindow):
         if not slot:
             return
         
-        if not hasattr(slot, 'sliders'):
+        slider = self._get_slot_slider(slot, param)
+        if not slider:
             return
-            
-        if param not in slot.sliders:
-            return
-        
-        slider = slot.sliders[param]
         
         # Get all connections to this param
         connections = self.mod_routing.get_connections_for_target(slot_id, param)
@@ -826,8 +845,13 @@ class MainFrame(QMainWindow):
         for slot_id in range(1, 9):
             slot = self.generator_grid.get_slot(slot_id)
             if slot:
+                # Standard params
                 for param, slider in slot.sliders.items():
                     slider.clear_modulation()
+                # Custom params (P1-P5)
+                if hasattr(slot, 'custom_sliders'):
+                    for slider in slot.custom_sliders:
+                        slider.clear_modulation()
     
     def _sync_mod_routing_to_sc(self):
         """Sync all mod routing state to SC (called on reconnect)."""
@@ -868,8 +892,10 @@ class MainFrame(QMainWindow):
         Used by mod popup to calculate depth limits.
         """
         slot = self.generator_grid.get_slot(slot_id)
-        if slot and param in slot.sliders:
-            return slot.sliders[param].value() / 1000.0
+        if slot:
+            slider = self._get_slot_slider(slot, param)
+            if slider:
+                return slider.value() / 1000.0
         return 0.5  # Default to center if not found
     
     def _on_mod_slot_type_changed_for_matrix(self, slot_id: int, gen_name: str):

@@ -64,6 +64,8 @@ Default values are real values (not normalized):
         ~genUserParams[slot][\resonance] = Bus.control(s, 1).set(1.0);
         ~genUserParams[slot][\attack] = Bus.control(s, 1).set(0.0001);
         ~genUserParams[slot][\decay] = Bus.control(s, 1).set(1.0);
+        // Custom params (P1-P5)
+        ~genUserParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });
     };
     
     // Audio buses

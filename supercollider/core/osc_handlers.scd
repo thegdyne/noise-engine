@@ -90,11 +90,14 @@ All OSC message routing
     
     // Per-generator custom parameters
     // Path format: /noise/gen/custom/{slot}/{param_index}
+    // Write to both genParams (output) and genUserParams (base for relative modulation)
     8.do { |i|
         var slot = i + 1;
         5.do { |p|
             OSCdef(("genCustom" ++ slot ++ "_" ++ p).asSymbol, { |msg|
-                ~genParams[slot][\custom][p].set(msg[1].asFloat);
+                var val = msg[1].asFloat;
+                ~genParams[slot][\custom][p].set(val);
+                ~genUserParams[slot][\custom][p].set(val);
             }, "/noise/gen/custom/" ++ slot ++ "/" ++ p);
         };
     };

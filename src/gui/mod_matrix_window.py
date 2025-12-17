@@ -29,7 +29,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 from PyQt5.QtGui import QFont, QColor, QKeySequence
 
 from .mod_matrix_cell import ModMatrixCell
-from .mod_routing_state import ModRoutingState, ModConnection, Polarity
+from .mod_routing_state import ModRoutingState, ModConnection
 from .mod_connection_popup import ModConnectionPopup
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT
 
@@ -41,6 +41,11 @@ GEN_PARAMS = [
     ('frequency', 'FRQ'),
     ('attack', 'ATK'),
     ('decay', 'DEC'),
+    ('p1', 'P1'),
+    ('p2', 'P2'),
+    ('p3', 'P3'),
+    ('p4', 'P4'),
+    ('p5', 'P5'),
 ]
 
 # Number of generator slots
@@ -52,7 +57,7 @@ OUTPUTS_PER_MOD_SLOT = 4
 
 # Total rows and columns for navigation
 TOTAL_ROWS = NUM_MOD_SLOTS * OUTPUTS_PER_MOD_SLOT  # 16
-TOTAL_COLS = NUM_GEN_SLOTS * len(GEN_PARAMS)        # 40
+TOTAL_COLS = NUM_GEN_SLOTS * len(GEN_PARAMS)        # 80 (8 slots * 10 params)
 
 
 class ModMatrixWindow(QMainWindow):
@@ -147,7 +152,15 @@ class ModMatrixWindow(QMainWindow):
         """Build column headers: G1 CUT, G1 RES, G2 CUT, etc."""
         col = 1  # Start after row header column
         
+        # Alternating tints for generator grouping
+        gen_tints = {
+            'odd': '#1a1a1a',    # Slightly lighter for odd generators (1,3,5,7)
+            'even': '#141414',   # Darker for even generators (2,4,6,8)
+        }
+        
         for gen_slot in range(1, NUM_GEN_SLOTS + 1):
+            tint = gen_tints['odd'] if gen_slot % 2 == 1 else gen_tints['even']
+            
             for param_key, param_label in GEN_PARAMS:
                 # Two-line header: "G1" / "CUT"
                 header = QLabel(f"G{gen_slot}\n{param_label}")
@@ -156,7 +169,7 @@ class ModMatrixWindow(QMainWindow):
                 header.setFixedSize(28, 36)
                 header.setStyleSheet(f"""
                     color: {COLORS['text']};
-                    background-color: {COLORS['background_light']};
+                    background-color: {tint};
                     border-bottom: 1px solid {COLORS['border']};
                 """)
                 layout.addWidget(header, 0, col)
@@ -165,8 +178,8 @@ class ModMatrixWindow(QMainWindow):
             # Add separator after each generator's params
             if gen_slot < NUM_GEN_SLOTS:
                 sep = QFrame()
-                sep.setFixedWidth(2)
-                sep.setStyleSheet(f"background-color: {COLORS['border']};")
+                sep.setFixedWidth(3)
+                sep.setStyleSheet(f"background-color: {COLORS['background']}; border: none;")
                 layout.addWidget(sep, 0, col)
                 col += 1
                 
@@ -216,8 +229,12 @@ class ModMatrixWindow(QMainWindow):
                         col += 1
                         nav_col += 1
                     
-                    # Skip separator column
+                    # Add vertical separator between generators
                     if gen_slot < NUM_GEN_SLOTS:
+                        sep = QFrame()
+                        sep.setFixedWidth(3)
+                        sep.setStyleSheet(f"background-color: {COLORS['background']}; border: none;")
+                        layout.addWidget(sep, row, col)
                         col += 1
                 
                 self.cell_grid.append(row_cells)
@@ -475,18 +492,28 @@ class ModMatrixWindow(QMainWindow):
     def keyPressEvent(self, event):
         """Handle keyboard input for navigation and actions."""
         key = event.key()
-        text = event.text()  # Use text for +/- detection (UK keyboard safe)
         modifiers = event.modifiers()
+        
+        # Navigation step size:
+        # - Normal: 1 cell
+        # - Shift: 5 cells (half a generator)
+        # - Ctrl/Cmd: 10 cols (full generator) or 4 rows (full mod slot)
+        ctrl_held = modifiers & (Qt.ControlModifier | Qt.MetaModifier)  # Ctrl or Cmd
+        shift_held = modifiers & Qt.ShiftModifier
         
         # Arrow keys: navigate
         if key == Qt.Key_Up:
-            self._move_selection(-1, 0)
+            step = 4 if ctrl_held else (5 if shift_held else 1)
+            self._move_selection(-step, 0)
         elif key == Qt.Key_Down:
-            self._move_selection(1, 0)
+            step = 4 if ctrl_held else (5 if shift_held else 1)
+            self._move_selection(step, 0)
         elif key == Qt.Key_Left:
-            self._move_selection(0, -1)
+            step = 10 if ctrl_held else (5 if shift_held else 1)
+            self._move_selection(0, -step)
         elif key == Qt.Key_Right:
-            self._move_selection(0, 1)
+            step = 10 if ctrl_held else (5 if shift_held else 1)
+            self._move_selection(0, step)
         
         # Space: toggle connection
         elif key == Qt.Key_Space:
@@ -500,36 +527,14 @@ class ModMatrixWindow(QMainWindow):
         elif key == Qt.Key_D:
             self._open_depth_popup_for_selected()
         
-        # 1-9: set depth (Shift) or amount (no modifier)
+        # 1-9: set amount (10%-90%)
         elif Qt.Key_1 <= key <= Qt.Key_9:
             value = (key - Qt.Key_0) / 10.0  # 0.1 to 0.9
-            if modifiers & Qt.ShiftModifier:
-                self._set_selected_depth(value)
-            else:
-                self._set_selected_amount(value)
+            self._set_selected_amount(value)
         
-        # 0: set depth to 100%
+        # 0: set amount to 100%
         elif key == Qt.Key_0:
-            if modifiers & Qt.ShiftModifier:
-                self._set_selected_depth(1.0)
-            else:
-                self._set_selected_amount(1.0)
-        
-        # Polarity via text (more reliable across keyboard layouts)
-        elif text == '-':
-            self._set_selected_polarity(Polarity.UNI_NEG)
-        elif text == '+':
-            self._set_selected_polarity(Polarity.UNI_POS)
-        elif text == '=':
-            self._set_selected_polarity(Polarity.BIPOLAR)
-        
-        # P: cycle polarity (Bi -> U+ -> U- -> Bi)
-        elif key == Qt.Key_P:
-            self._cycle_selected_polarity()
-        
-        # I: toggle invert
-        elif key == Qt.Key_I:
-            self._toggle_selected_invert()
+            self._set_selected_amount(1.0)
         
         # Escape: deselect
         elif key == Qt.Key_Escape:
@@ -617,27 +622,6 @@ class ModMatrixWindow(QMainWindow):
         if key:
             self._on_cell_right_clicked(*key)
     
-    def _set_selected_depth(self, depth: float):
-        """Set depth for selected cell (creates connection if needed)."""
-        key = self._get_selected_key()
-        if not key:
-            return
-        
-        bus, slot, param = key
-        conn = self.routing_state.get_connection(bus, slot, param)
-        
-        if conn:
-            self.routing_state.set_depth(bus, slot, param, depth)
-        else:
-            # Create new connection with this depth
-            new_conn = ModConnection(
-                source_bus=bus,
-                target_slot=slot,
-                target_param=param,
-                depth=depth
-            )
-            self.routing_state.add_connection(new_conn)
-    
     def _set_selected_amount(self, amount: float):
         """Set amount for selected cell (creates connection if needed)."""
         key = self._get_selected_key()
@@ -655,58 +639,9 @@ class ModMatrixWindow(QMainWindow):
                 source_bus=bus,
                 target_slot=slot,
                 target_param=param,
-                depth=0.5,
                 amount=amount
             )
             self.routing_state.add_connection(new_conn)
-    
-    def _set_selected_polarity(self, polarity: Polarity):
-        """Set polarity for selected cell (creates connection if needed)."""
-        key = self._get_selected_key()
-        if not key:
-            return
-        
-        bus, slot, param = key
-        conn = self.routing_state.get_connection(bus, slot, param)
-        
-        if conn:
-            self.routing_state.set_polarity(bus, slot, param, polarity)
-        else:
-            # Create new connection with this polarity
-            new_conn = ModConnection(
-                source_bus=bus,
-                target_slot=slot,
-                target_param=param,
-                depth=0.5,
-                polarity=polarity
-            )
-            self.routing_state.add_connection(new_conn)
-    
-    def _cycle_selected_polarity(self):
-        """Cycle polarity for selected cell: Bi -> U+ -> U- -> Bi."""
-        key = self._get_selected_key()
-        if not key:
-            return
-        
-        bus, slot, param = key
-        conn = self.routing_state.get_connection(bus, slot, param)
-        
-        if conn:
-            # Cycle: BIPOLAR(0) -> UNI_POS(1) -> UNI_NEG(2) -> BIPOLAR(0)
-            next_polarity = Polarity((conn.polarity.value + 1) % 3)
-            self.routing_state.set_polarity(bus, slot, param, next_polarity)
-    
-    def _toggle_selected_invert(self):
-        """Toggle invert flag for selected cell."""
-        key = self._get_selected_key()
-        if not key:
-            return
-        
-        bus, slot, param = key
-        conn = self.routing_state.get_connection(bus, slot, param)
-        
-        if conn:
-            self.routing_state.set_invert(bus, slot, param, not conn.invert)
     
     def _clear_selection(self):
         """Clear selection visual."""
