@@ -776,30 +776,30 @@ class MainFrame(QMainWindow):
             slider.clear_modulation()
             return
         
-        # Calculate combined modulation range
-        # For now, use the first connection's depth (Phase 8 will handle multi-source)
-        conn = enabled_connections[0]
+        # Calculate combined modulation range (sum of all depths)
         base_value = slider.value() / 1000.0  # Normalized 0-1
         
-        # Calculate min/max based on depth
-        # depth of 0.5 means ±25% of range (because we multiply by 0.5 in SC)
-        half_range = abs(conn.depth) * 0.5
+        # Sum absolute depths for total range
+        # Each depth contributes ±(depth * 0.5) to the range
+        total_depth = sum(abs(c.depth) for c in enabled_connections)
+        half_range = total_depth * 0.5
         
-        if conn.depth >= 0:
-            mod_min = max(0, base_value - half_range)
-            mod_max = min(1, base_value + half_range)
-        else:
-            # Inverted: swap direction
-            mod_min = max(0, base_value - half_range)
-            mod_max = min(1, base_value + half_range)
+        mod_min = max(0, base_value - half_range)
+        mod_max = min(1, base_value + half_range)
         
-        # Get color based on source (LFO = green, Sloth = orange)
-        mod_slot = conn.source_bus // 4 + 1
-        source_slot = self.modulator_grid.get_slot(mod_slot)
-        if source_slot and source_slot.generator_name == 'Sloth':
-            color = QColor('#ff8800')  # Orange
+        # Get color: mixed if multiple sources, else based on first source type
+        if len(enabled_connections) > 1:
+            # Multiple sources - use cyan to indicate mixed
+            color = QColor('#00cccc')
         else:
-            color = QColor('#00ff66')  # Green
+            # Single source - color by type
+            conn = enabled_connections[0]
+            mod_slot = conn.source_bus // 4 + 1
+            source_slot = self.modulator_grid.get_slot(mod_slot)
+            if source_slot and source_slot.generator_name == 'Sloth':
+                color = QColor('#ff8800')  # Orange
+            else:
+                color = QColor('#00ff66')  # Green
         
         slider.set_modulation_range(mod_min, mod_max, color)
     

@@ -74,7 +74,7 @@ s.waitForBoot({
     (~basePath +/+ "core/mod_sloth.scd").load;
     
     // Load mod routing/apply system
-    (~basePath +/+ "core/mod_apply.scd").load;
+    (~basePath +/+ "core/mod_apply_v2.scd").load;
     ~setupModApply.();
     
     // Load mod routing OSC handlers (depends on mod_apply)

@@ -54,12 +54,12 @@ Depends on: mod_apply.scd (~addModRoute, ~removeModRoute, ~setModRouteDepth)
         
         if(enabled) {
             // Re-add with stored depth (default 0.5 if not found)
-            var key = "%" ++ "_" ++ "%" ++ "_" ++ "%".format(sourceBus, targetSlot, targetParam);
+            var key = "%_%_%".format(sourceBus, targetSlot, targetParam);
             var depth = ~modRouteDepths[key] ?? 0.5;
             ~addModRoute.(sourceBus, targetSlot, targetParam.asSymbol, depth);
         } {
             // Store depth before removing
-            var key = "%" ++ "_" ++ "%" ++ "_" ++ "%".format(sourceBus, targetSlot, targetParam);
+            var key = "%_%_%".format(sourceBus, targetSlot, targetParam);
             var synth = ~modRouteSynths[key];
             if(synth.notNil) {
                 // We can't easily read depth back, so just remove
