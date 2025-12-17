@@ -199,13 +199,13 @@ def toggle_layout_debug():
 
 
 def install_debug_hotkey(window):
-    """Install F9 hotkey to toggle layout debug."""
+    """Install F9 hotkey to toggle layout debug (use Fn+F9 on Mac)."""
     global _main_window
     _main_window = window
     
     shortcut = QShortcut(QKeySequence(Qt.Key_F9), window)
     shortcut.activated.connect(toggle_layout_debug)
-    print("[Layout Debug] Press F9 to toggle X-ray mode")
+    print("[Layout Debug] Press F9 (Fn+F9 on Mac) to toggle X-ray mode")
 
 
 def dump_layout(w, indent=0):

@@ -16,7 +16,10 @@ import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
+sys.path.insert(0, src_path)
+# Also add parent for 'src.config' imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel
 from PyQt5.QtCore import Qt

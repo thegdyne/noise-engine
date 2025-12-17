@@ -1,26 +1,35 @@
 # Noise Engine TODO
 
-**Updated:** 2025-12-16
+**Updated:** 2025-12-17
 
 ---
 
 ## Completed This Session ✅
 
+- [x] Modulator mode button width (48x22, was 19px)
+- [x] Header bar stability (fixed-width button 180x27, status 130x16)
+- [x] Layout debug F9 hotkey toggle
+- [x] Red border highlighting for fixed-size widgets
+- [x] Layout sandbox tool with torture testing
+- [x] Shell aliases documentation
+
+---
+
+## Previously Completed ✅
+
 - [x] Generator slot layout refactor (compact, theme-driven)
 - [x] CycleButton text clipping and elision
 - [x] Layout tuning tool (`tools/tune_layout.py`)
 - [x] Tools documentation (`tools/README.md`)
+- [x] Modulator slot layout compactness
 
 ---
 
 ## Immediate / Polish
 
 - [ ] **Selector box width** - Widen for long generator names like "Wavetable"
-  ```bash
-  sed -i '' "s/'header_type_width': 40/'header_type_width': 56/" src/gui/theme.py
-  ```
-- [ ] **Modulator slot layout** - Apply same compactness treatment as generators
-- [ ] **Scroll area dead zones** - Test and verify scroll behavior
+- [ ] **Review mixer section** - Check for similar resizing button issues
+- [ ] **Test all generators** - Verify compact layout with debug overlay
 
 ---
 
@@ -95,8 +104,8 @@
 
 ## Technical Debt
 
-- [ ] Review generator slot vertical alignment consistency
 - [ ] Audit theme values for unused keys
+- [ ] Review generator slot vertical alignment consistency
 - [ ] Test all generators with new compact layout
 
 ---
@@ -112,11 +121,22 @@
 
 ## Quick Reference
 
-### Layout Tuning
+### Development Aliases
 ```bash
-python tools/tune_layout.py show
-python tools/tune_layout.py gen right 4
-python tools/tune_layout.py reset
+noise          # Run app
+noise-debug    # Run with debug overlay
+noise-sandbox  # Test generator in isolation
+noise-torture  # Test with long names
+```
+
+### Layout Debugging
+```bash
+# In app: press Fn+F9 to toggle overlay
+# Red borders = fixed-size widgets
+
+# Quick check in code:
+from gui.layout_debug import dump_layout
+dump_layout(widget)  # Shows: geo, hint, policy, min/max
 ```
 
 ### Run Tests

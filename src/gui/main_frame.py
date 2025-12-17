@@ -229,6 +229,7 @@ class MainFrame(QMainWindow):
         layout.addStretch()
         
         self.connect_btn = QPushButton("Connect SuperCollider")
+        self.connect_btn.setFixedWidth(180)  # FIXED: fits "Connect SuperCollider"
         self.connect_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {COLORS['border_light']};
@@ -244,6 +245,7 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.connect_btn)
         
         self.status_label = QLabel("● Disconnected")
+        self.status_label.setFixedWidth(130)  # FIXED: fits "● CONNECTION LOST"
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
         

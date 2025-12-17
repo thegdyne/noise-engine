@@ -34,6 +34,30 @@ python tools/layout_sandbox.py --modulator
 python tools/layout_sandbox.py --generator --torture
 ```
 
+**Or use aliases:**
+```bash
+noise-sandbox        # Generator slot
+noise-mod-sandbox    # Modulator slot  
+noise-torture        # Generator with long name testing
+```
+
+**How to use the sandbox:**
+
+1. **Resize the window** - Drag edges to test how the slot responds to different sizes
+2. **Toggle debug** - Click "Toggle Debug (F9)" button or press Fn+F9 to see widget sizes and constraints
+3. **In torture mode** - Click "Next Name" to cycle through long generator names:
+   - "Empty"
+   - "Subtractive (Resonant)"
+   - "FM + Waveshaper + Feedback"
+   - "Wavetable Morphing Synth"
+   - etc.
+
+**What it's for:**
+- Quick iteration without running the full app
+- Test layout changes in isolation
+- Verify text elision works with long names
+- Check responsive behavior at different window sizes
+
 ## What the Overlay Shows
 
 - **Colored backgrounds** by widget type (red=QFrame, green=QWidget, etc.)
@@ -150,3 +174,37 @@ class MyWidget(QWidget):
 ```
 
 Always set `objectName` for easier debugging!
+
+## Dimension Convention
+
+When discussing widget sizes, use `WIDTHxHEIGHT` format:
+
+```
+Button: 160x27 → 180x27    # Width increased from 160 to 180
+Label: 115x16 → 130x16     # Widened to prevent truncation
+Mode button: 19x22 → 48x22 # Was being squeezed
+```
+
+This matches the debug overlay output and makes changes clear in commit messages and discussions.
+
+**Example commit message:**
+```
+fix(gui): widen connect button 160x27 → 180x27
+
+Button was truncating "Connect SuperCollider" text.
+Fixed with setFixedWidth(180).
+```
+
+## Red Border = Fixed Size
+
+In debug mode, widgets with **red borders** have fixed size constraints:
+- `setFixedSize()`, `setFixedWidth()`, `setFixedHeight()`
+- `sizePolicy` = Fixed
+- `minimumSize` == `maximumSize`
+
+These are often the cause of layout issues - they won't resize no matter what you do to margins or spacing.
+
+**When you see a red border on a too-small widget:**
+1. Check if it has `setFixedWidth(N)` - increase N
+2. Check if its container has a fixed width - container constrains children
+3. Check for `setMaximumWidth()` limiting growth
