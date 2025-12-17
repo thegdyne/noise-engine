@@ -491,6 +491,8 @@ class MainFrame(QMainWindow):
                 self.osc.client.send_message(OSC_PATHS['gen_trim'], [slot_id, trim_db])
                 # Re-sync strip state (pan/EQ/mute/solo/gain) so UI values persist
                 self._sync_strip_state_to_sc(slot_id)
+                # Re-sync generator slot state (mute/env/rate/midi/filter persist across type changes)
+                self._sync_generator_slot_state_to_sc(slot_id)
             
             self.generator_grid.set_generator_active(slot_id, True)
             slot = self.generator_grid.get_slot(slot_id)
@@ -715,6 +717,47 @@ class MainFrame(QMainWindow):
             self.osc.client.send_message(osc_path, [slot_id, state[f'eq_{band}']])
         
         logger.debug(f"Gen {slot_id} strip state synced (pan={state['pan']:.2f})", component="OSC")
+    
+    def _sync_generator_slot_state_to_sc(self, slot_id):
+        """Re-sync generator slot control state to SC after type change.
+        
+        This ensures mute/env/rate/midi/filter persist when switching generators,
+        since SC creates a fresh synth with default values.
+        
+        Note: The slot's mute button state is separate from mixer strip mute.
+        If slot is muted, we send mute=1 regardless of mixer strip state.
+        """
+        if not self.osc_connected:
+            return
+        
+        slot = self.generator_grid.get_slot(slot_id)
+        if not slot:
+            return
+        
+        # Generator slot mute (overrides strip mute if set)
+        if slot.muted:
+            self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1])
+        
+        # Envelope source (0=OFF, 1=CLK, 2=MIDI)
+        self.osc.client.send_message(OSC_PATHS['gen_env_source'], [slot_id, slot.env_source])
+        
+        # Clock rate (only relevant when env_source=CLK)
+        if slot.env_source == 1 and hasattr(slot, 'rate_btn'):
+            rate = slot.rate_btn.get_value()
+            rate_index = CLOCK_RATE_INDEX.get(rate, 3)
+            self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
+        
+        # MIDI channel (only relevant when env_source=MIDI)
+        if slot.env_source == 2:
+            self.osc.client.send_message(OSC_PATHS['gen_midi_channel'], [slot_id, slot.midi_channel])
+        
+        # Filter type
+        if hasattr(slot, 'filter_btn'):
+            filter_type = slot.filter_btn.get_value()
+            self.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
+        
+        logger.debug(f"Gen {slot_id} slot state synced (mute={slot.muted}, env={slot.env_source})", component="OSC")
+        
         
     def on_master_volume_from_master(self, volume):
         """Handle master volume change from master section."""
