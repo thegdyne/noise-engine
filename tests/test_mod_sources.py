@@ -113,8 +113,8 @@ class TestModGeneratorLoaders:
         assert get_mod_generator_synthdef("Empty") is None
         
     def test_lfo_output_config(self):
-        """LFO should have waveform_phase output config."""
-        assert get_mod_generator_output_config("LFO") == "waveform_phase"
+        """LFO should have pattern_rotate output config."""
+        assert get_mod_generator_output_config("LFO") == "pattern_rotate"
         
     def test_sloth_output_config(self):
         """Sloth should have fixed output config."""
