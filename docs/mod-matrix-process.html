@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mod Matrix - 8 Phases to Completion | Noise Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #12121a;
+            --bg-card: #1a1a25;
+            --border: #2a2a3a;
+            --text: #999;
+            --text-bright: #e0e0e0;
+            --accent-green: #00ff66;
+            --accent-orange: #ff8800;
+            --accent-magenta: #ff44aa;
+            --accent-cyan: #00cccc;
+            --accent-blue: #4488ff;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.7;
+            font-size: 17px;
+        }
+        
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 30% 30%, rgba(0, 255, 102, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 70%, rgba(255, 136, 0, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        /* Matrix background animation */
+        .matrix-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            gap: 2px;
+            padding: 20px;
+            height: 100%;
+        }
+        
+        .matrix-cell {
+            aspect-ratio: 1;
+            border-radius: 50%;
+            animation: pulse 3s ease-in-out infinite;
+        }
+        
+        .matrix-cell:nth-child(4n) { background: var(--accent-green); animation-delay: 0s; }
+        .matrix-cell:nth-child(4n+1) { background: var(--accent-orange); animation-delay: 0.5s; }
+        .matrix-cell:nth-child(4n+2) { background: var(--accent-cyan); animation-delay: 1s; }
+        .matrix-cell:nth-child(4n+3) { background: transparent; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+        
+        .hero-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 4px;
+            color: var(--accent-green);
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(32px, 6vw, 56px);
+            color: var(--text-bright);
+            margin-bottom: 30px;
+            line-height: 1.2;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero h1 span { color: var(--accent-green); }
+        .hero h1 .orange { color: var(--accent-orange); }
+        
+        .hero-subtitle {
+            font-size: 20px;
+            color: var(--text);
+            max-width: 650px;
+            margin-bottom: 50px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 50px;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-stat {
+            text-align: center;
+        }
+        
+        .hero-stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--accent-green);
+            text-shadow: 0 0 30px rgba(0, 255, 102, 0.5);
+        }
+        
+        .hero-stat-value.orange { color: var(--accent-orange); text-shadow: 0 0 30px rgba(255, 136, 0, 0.5); }
+        .hero-stat-value.cyan { color: var(--accent-cyan); text-shadow: 0 0 30px rgba(0, 204, 204, 0.5); }
+        
+        .hero-stat-label {
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text);
+            margin-top: 5px;
+        }
+        
+        .scroll-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            color: var(--text);
+            opacity: 0.6;
+            animation: bounce 2s ease-in-out infinite;
+            z-index: 1;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+        
+        /* Container */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        
+        /* Sections */
+        section {
+            padding: 120px 0;
+            border-top: 1px solid var(--border);
+        }
+        
+        .section-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            font-family: 'Space Mono', monospace;
+            font-size: 32px;
+            color: var(--text-bright);
+            margin-bottom: 30px;
+            line-height: 1.3;
+        }
+        
+        h2 span { color: var(--accent-green); }
+        h2 .orange { color: var(--accent-orange); }
+        
+        p { margin-bottom: 20px; }
+        
+        /* Challenge box */
+        .challenge {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.1), rgba(255, 136, 0, 0.1));
+            border-left: 3px solid var(--accent-orange);
+            padding: 30px 40px;
+            margin: 40px 0;
+        }
+        
+        .challenge-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--accent-orange);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        
+        .challenge p {
+            color: var(--text-bright);
+            margin-bottom: 0;
+        }
+        
+        /* Solution box */
+        .solution {
+            background: linear-gradient(135deg, rgba(0, 255, 102, 0.05), rgba(0, 204, 204, 0.05));
+            border-left: 3px solid var(--accent-green);
+            padding: 30px 40px;
+            margin: 40px 0;
+        }
+        
+        .solution-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--accent-green);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        
+        /* Phase grid */
+        .phase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 50px 0;
+        }
+        
+        .phase-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 30px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .phase-card:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-5px);
+        }
+        
+        .phase-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--bg-card);
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            opacity: 0.5;
+        }
+        
+        .phase-card:nth-child(even) .phase-number { color: var(--accent-orange); opacity: 0.2; }
+        .phase-card:nth-child(odd) .phase-number { color: var(--accent-green); opacity: 0.2; }
+        
+        .phase-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            color: var(--text-bright);
+            margin-bottom: 10px;
+        }
+        
+        .phase-desc {
+            font-size: 14px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .phase-check {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 18px;
+        }
+        
+        /* Code block */
+        .code-block {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        
+        .code-block pre {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--text-bright);
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        .code-block .comment { color: #666; }
+        .code-block .keyword { color: var(--accent-cyan); }
+        .code-block .string { color: var(--accent-orange); }
+        .code-block .number { color: var(--accent-green); }
+        
+        /* Key insight */
+        .insight {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-cyan);
+            padding: 30px;
+            margin: 40px 0;
+            position: relative;
+        }
+        
+        .insight::before {
+            content: '💡';
+            position: absolute;
+            top: -15px;
+            left: 30px;
+            background: var(--bg-dark);
+            padding: 0 10px;
+            font-size: 24px;
+        }
+        
+        .insight-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            color: var(--accent-cyan);
+            margin-bottom: 15px;
+        }
+        
+        /* Bug story */
+        .bug-story {
+            background: var(--bg-panel);
+            padding: 40px;
+            margin: 50px 0;
+            border-radius: 8px;
+        }
+        
+        .bug-story-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .bug-icon {
+            font-size: 32px;
+        }
+        
+        .bug-story-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 20px;
+            color: var(--text-bright);
+        }
+        
+        .bug-timeline {
+            border-left: 2px solid var(--border);
+            padding-left: 25px;
+            margin-left: 15px;
+        }
+        
+        .bug-step {
+            position: relative;
+            padding-bottom: 25px;
+        }
+        
+        .bug-step:last-child { padding-bottom: 0; }
+        
+        .bug-step::before {
+            content: '';
+            position: absolute;
+            left: -31px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-orange);
+        }
+        
+        .bug-step:last-child::before { background: var(--accent-green); }
+        
+        .bug-step-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-orange);
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        .bug-step:last-child .bug-step-label { color: var(--accent-green); }
+        
+        /* Spec preview */
+        .spec-preview {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            margin: 40px 0;
+        }
+        
+        .spec-preview-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .spec-preview-icon {
+            font-size: 20px;
+        }
+        
+        .spec-preview-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--text-bright);
+        }
+        
+        .spec-preview-badge {
+            margin-left: auto;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            background: var(--accent-green);
+            color: var(--bg-dark);
+            padding: 3px 10px;
+            border-radius: 3px;
+        }
+        
+        .spec-preview-content {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.8;
+        }
+        
+        .spec-preview-content .heading {
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+        
+        /* Result comparison */
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 50px 0;
+        }
+        
+        @media (max-width: 700px) {
+            .result-grid { grid-template-columns: 1fr; }
+        }
+        
+        .result-box {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 30px;
+        }
+        
+        .result-box-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--accent-orange);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        
+        .result-box.after .result-box-title { color: var(--accent-green); }
+        
+        .result-list {
+            list-style: none;
+        }
+        
+        .result-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        
+        .result-list li:last-child { border-bottom: none; }
+        
+        /* Methodology */
+        .method-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin: 50px 0;
+        }
+        
+        .method-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .method-card:hover {
+            border-color: var(--accent-green);
+        }
+        
+        .method-icon {
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        
+        .method-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            color: var(--text-bright);
+            margin-bottom: 10px;
+        }
+        
+        .method-desc {
+            font-size: 14px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        /* Quote */
+        .quote {
+            background: linear-gradient(135deg, var(--bg-panel), var(--bg-card));
+            padding: 80px 30px;
+            text-align: center;
+        }
+        
+        .quote-text {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(20px, 3vw, 28px);
+            color: var(--text-bright);
+            max-width: 800px;
+            margin: 0 auto 20px;
+            line-height: 1.5;
+        }
+        
+        .quote-text span { color: var(--accent-green); }
+        
+        .quote-attribution {
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        /* CTA */
+        .cta {
+            text-align: center;
+            padding: 100px 30px;
+        }
+        
+        .cta h2 { margin-bottom: 20px; }
+        
+        .cta p {
+            max-width: 500px;
+            margin: 0 auto 40px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            padding: 15px 30px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--accent-green);
+            color: var(--bg-dark);
+        }
+        
+        .btn-primary:hover {
+            background: #33ff88;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-bright);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px;
+            border-top: 1px solid var(--border);
+            font-size: 14px;
+        }
+        
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+        
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <!-- Hero -->
+    <div class="hero">
+        <div class="matrix-bg">
+            <div class="matrix-grid">
+                <!-- Generate 100 cells for background effect -->
+                <script>
+                    for(let i = 0; i < 100; i++) {
+                        document.write('<div class="matrix-cell"></div>');
+                    }
+                </script>
+            </div>
+        </div>
+        
+        <span class="hero-label">Case Study</span>
+        <h1>The <span>Mod Matrix</span>:<br>8 Phases to <span class="orange">Completion</span></h1>
+        <p class="hero-subtitle">How we built a professional modulation routing system through methodical, phased delivery — and what we learned along the way.</p>
+        
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">8</div>
+                <div class="hero-stat-label">Phases</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value orange">640</div>
+                <div class="hero-stat-label">Routing Points</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value cyan">1</div>
+                <div class="hero-stat-label">Session Per Phase</div>
+            </div>
+        </div>
+        
+        <span class="scroll-hint">↓ The story</span>
+    </div>
+    
+    <!-- The Challenge -->
+    <section>
+        <div class="container">
+            <span class="section-label">The Beginning</span>
+            <h2>A complex feature with <span>no shortcuts</span></h2>
+            
+            <p>Modulation routing is the heart of any serious synthesizer. LFOs sweeping filter cutoffs. Chaos generators adding unpredictable movement. Multiple sources combining on the same destination. It's what makes patches come alive.</p>
+            
+            <p>But it's also one of the most complex features to implement correctly. The mod matrix touches everything: the modulation sources, the audio engine, the UI, OSC communication, preset saving. Get any part wrong and the whole system fails.</p>
+            
+            <div class="challenge">
+                <div class="challenge-title">The Challenge</div>
+                <p>Build a 16×40 modulation routing matrix (640 connection points) with real-time visualization, keyboard navigation, multi-source summation, and animated feedback — across Python, SuperCollider, and OSC.</p>
+            </div>
+            
+            <p>This wasn't something we could hack together in an afternoon. It needed a plan.</p>
+        </div>
+    </section>
+    
+    <!-- The Approach -->
+    <section>
+        <div class="container">
+            <span class="section-label">The Approach</span>
+            <h2>Document first, <span class="orange">code second</span></h2>
+            
+            <p>Before writing a single line of code, we created a comprehensive specification document: <strong>MOD_MATRIX_ROLLOUT.md</strong>. Over 1,000 lines of planning before implementation.</p>
+            
+            <div class="spec-preview">
+                <div class="spec-preview-header">
+                    <span class="spec-preview-icon">📄</span>
+                    <span class="spec-preview-title">MOD_MATRIX_ROLLOUT.md</span>
+                    <span class="spec-preview-badge">1069 lines</span>
+                </div>
+                <div class="spec-preview-content">
+                    <span class="heading">## Phase 4: Matrix Window - Basic Grid</span><br><br>
+                    **Goal:** Visual matrix window with clickable cells.<br>
+                    **Duration:** 2-3 sessions<br><br>
+                    **Layout Spec:**<br>
+                    - Window size: ~1200 × 600 (resizable)<br>
+                    - Row height: 24px<br>
+                    - Column width: 28px<br>
+                    - Separators: Horizontal every 4 rows, vertical every 10 columns<br><br>
+                    <span class="heading">### Success Criteria</span><br>
+                    - [ ] Cmd+M opens matrix window<br>
+                    - [ ] Click cell → connection created → audio responds<br>
+                    - [ ] Row labels match loaded generator types
+                </div>
+            </div>
+            
+            <p>The spec defined everything: file locations, class structures, OSC message formats, keyboard shortcuts, visual layouts, success criteria. Each phase had explicit deliverables and verification steps.</p>
+            
+            <div class="insight">
+                <div class="insight-title">Why This Worked</div>
+                <p>The spec became a contract between human and AI. Instead of vague requests like "add modulation," we had precise instructions: "Create ModMatrixCell class with clicked signal, set_connection method, paintEvent that draws circles sized by depth." No ambiguity. No back-and-forth clarification. Just execute.</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- The Phases -->
+    <section>
+        <div class="container">
+            <span class="section-label">The Execution</span>
+            <h2>8 phases, <span>8 deliveries</span></h2>
+            
+            <p>Each phase was a complete, testable unit. Commit, test, move on. If something broke, we knew exactly where.</p>
+            
+            <div class="phase-grid">
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">0</span>
+                    <div class="phase-title">Quadrature Expansion</div>
+                    <div class="phase-desc">Expand from 3 to 4 outputs per mod slot. 16 total buses. Pattern/rotate phase control.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">1</span>
+                    <div class="phase-title">OSC Wiring</div>
+                    <div class="phase-desc">Update SC handlers for 4 outputs. Scope streaming sends all 4 values per slot.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">2</span>
+                    <div class="phase-title">Routing Engine</div>
+                    <div class="phase-desc">mod_apply.scd with \modRoute synth. Parameter ranges, exponential curves for frequency.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">3</span>
+                    <div class="phase-title">Data Model</div>
+                    <div class="phase-desc">ModRoutingState with Qt signals. ModConnection dataclass. Preset serialization.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">4</span>
+                    <div class="phase-title">Pin Matrix UI</div>
+                    <div class="phase-desc">16×40 grid with clickable cells. Dynamic row labels. Source-type colouring.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">5</span>
+                    <div class="phase-title">Depth Control</div>
+                    <div class="phase-desc">Right-click popup with slider. -100% to +100%. Enable/disable/remove buttons.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">6</span>
+                    <div class="phase-title">Keyboard Navigation</div>
+                    <div class="phase-desc">Arrow keys, Space to toggle, 1-9 quick depth, - to invert. Window persistence.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">7</span>
+                    <div class="phase-title">Slider Visualization</div>
+                    <div class="phase-desc">Range brackets on sliders. Animated value line. Colour-coded by source type.</div>
+                </div>
+                
+                <div class="phase-card">
+                    <span class="phase-check">✅</span>
+                    <span class="phase-number">8</span>
+                    <div class="phase-title">Multi-Source</div>
+                    <div class="phase-desc">Up to 4 sources per destination. Summed contributions. Cyan brackets for combined.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- The Bugs -->
+    <section>
+        <div class="container">
+            <span class="section-label">The Reality</span>
+            <h2>Bugs happen. <span class="orange">Process fixes them.</span></h2>
+            
+            <p>No plan survives contact with reality. Here are three bugs we encountered and how the phased approach helped us fix them quickly.</p>
+            
+            <div class="bug-story">
+                <div class="bug-story-header">
+                    <span class="bug-icon">🐛</span>
+                    <div class="bug-story-title">Bug #1: The Scope Mismatch</div>
+                </div>
+                <div class="bug-timeline">
+                    <div class="bug-step">
+                        <div class="bug-step-label">Symptom</div>
+                        <p>MOD1 scope showed 3 LFO traces + 1 Sloth trace. MOD2 scope showed MOD1's outputs. Everything was offset.</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Investigation</div>
+                        <p>Scopes looked correct individually. The routing was wrong. Bus index calculation still used // 3 from when we had 3 outputs per slot.</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Root Cause</div>
+                        <p>main_frame.py line 654-655: <code>slot_id = (bus_idx // 3) + 1</code> should be <code>// 4</code></p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Fix</div>
+                        <p>Two-character change. Found in minutes because we knew exactly which phase introduced the 4-output expansion.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-story">
+                <div class="bug-story-header">
+                    <span class="bug-icon">🐛</span>
+                    <div class="bug-story-title">Bug #2: The Format String</div>
+                </div>
+                <div class="bug-timeline">
+                    <div class="bug-step">
+                        <div class="bug-step-label">Symptom</div>
+                        <p>SC error: "Message 'at' not understood. RECEIVER: nil" with targetParam showing as '0' instead of 'cutoff'.</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Investigation</div>
+                        <p>Key was being constructed wrong. The format string wasn't working as expected.</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Root Cause</div>
+                        <p>SuperCollider operator precedence: <code>"%" ++ "_" ++ "%" ++ "_" ++ "%".format(a,b,c)</code> only applies .format to the last "%"</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Fix</div>
+                        <p>Changed to <code>"%_%_%".format(a,b,c)</code> — parentheses implicit when no concatenation.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-story">
+                <div class="bug-story-header">
+                    <span class="bug-icon">🐛</span>
+                    <div class="bug-story-title">Bug #3: The Repeated AddRoute</div>
+                </div>
+                <div class="bug-timeline">
+                    <div class="bug-step">
+                        <div class="bug-step-label">Symptom</div>
+                        <p>Console flooded with "Mod route: bus 0 → slot 1 cutoff" messages. Base value changed each time: 16000, 14267, 11303...</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Investigation</div>
+                        <p>The route was being re-added continuously. Each time it captured the current (modulated!) value as the new base.</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Root Cause</div>
+                        <p>Python was sending both depth AND enable OSC messages on every change. Enable triggered addModRoute again.</p>
+                    </div>
+                    <div class="bug-step">
+                        <div class="bug-step-label">Fix</div>
+                        <p>Split into separate signals: connection_changed (depth only) and enable_changed. Now they don't interfere.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <p>Each bug was found within minutes of the phase that introduced it. Test after each phase. Catch bugs while context is fresh.</p>
+        </div>
+    </section>
+    
+    <!-- What Made It Work -->
+    <section>
+        <div class="container">
+            <span class="section-label">The Methodology</span>
+            <h2>Why this <span>worked</span></h2>
+            
+            <div class="method-cards">
+                <div class="method-card">
+                    <div class="method-icon">📋</div>
+                    <div class="method-title">Spec Before Code</div>
+                    <div class="method-desc">1,000+ lines of documentation before implementation. Every phase had explicit file lists, class structures, and success criteria.</div>
+                </div>
+                
+                <div class="method-card">
+                    <div class="method-icon">📦</div>
+                    <div class="method-title">Atomic Phases</div>
+                    <div class="method-desc">Each phase was independently testable. Phase 4 (UI) worked without Phase 7 (visualization). Build incrementally, verify constantly.</div>
+                </div>
+                
+                <div class="method-card">
+                    <div class="method-icon">🔄</div>
+                    <div class="method-title">Test-After-Commit</div>
+                    <div class="method-desc">Every phase ended with "restart SC and Python, test these specific things." Bugs caught in the same session they were introduced.</div>
+                </div>
+                
+                <div class="method-card">
+                    <div class="method-icon">📁</div>
+                    <div class="method-title">Zip Deliveries</div>
+                    <div class="method-desc">Each phase packaged as a zip file with exact paths. No ambiguity about what goes where. Unzip, copy, done.</div>
+                </div>
+                
+                <div class="method-card">
+                    <div class="method-icon">🎯</div>
+                    <div class="method-title">Single Session Focus</div>
+                    <div class="method-desc">One phase per session. Deep focus on one problem. No context-switching between unrelated features.</div>
+                </div>
+                
+                <div class="method-card">
+                    <div class="method-icon">📝</div>
+                    <div class="method-title">Living Backlog</div>
+                    <div class="method-desc">Feature requests documented immediately. "No code now" was explicit. Ideas captured without derailing current phase.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Before/After -->
+    <section>
+        <div class="container">
+            <span class="section-label">The Transformation</span>
+            <h2>Before and <span>after</span></h2>
+            
+            <div class="result-grid">
+                <div class="result-box before">
+                    <div class="result-box-title">Before</div>
+                    <ul class="result-list">
+                        <li>3 outputs per mod slot (12 total buses)</li>
+                        <li>No visual routing interface</li>
+                        <li>Hardcoded test connections only</li>
+                        <li>Single source per destination</li>
+                        <li>No visual feedback on sliders</li>
+                        <li>Mouse-only interaction</li>
+                    </ul>
+                </div>
+                
+                <div class="result-box after">
+                    <div class="result-box-title">After</div>
+                    <ul class="result-list">
+                        <li>4 outputs per mod slot (16 total buses)</li>
+                        <li>Full 16×40 pin matrix UI</li>
+                        <li>Click to create connections</li>
+                        <li>Up to 4 sources per destination</li>
+                        <li>Animated range brackets on sliders</li>
+                        <li>Full keyboard navigation</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="code-block">
+                <pre><span class="comment">// The whole system in action:</span>
+
+<span class="comment">// 1. User clicks matrix cell M1.A → G1 CUT</span>
+<span class="comment">// 2. Python creates ModConnection, emits signal</span>
+<span class="comment">// 3. OSC sends /noise/mod/route/add [0, 1, "cutoff", 0.5]</span>
+<span class="comment">// 4. SC creates modulation synth, starts value stream</span>
+<span class="comment">// 5. Slider shows green brackets, animated line moves</span>
+<span class="comment">// 6. Filter sweeps with LFO</span>
+
+<span class="comment">// Total latency: ~50ms from click to audio</span></pre>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Quote -->
+    <div class="quote">
+        <p class="quote-text">"The mod matrix is 8 phases, but it's really <span>one process</span>: spec, implement, test, commit, repeat. The complexity is in the planning, not the execution."</p>
+        <p class="quote-attribution">— Noise Engine Development</p>
+    </div>
+    
+    <!-- CTA -->
+    <section class="cta">
+        <h2>See the <span>code</span></h2>
+        <p>The full spec, all phases, and every commit are in the repo. Study the process, not just the result.</p>
+        <div class="cta-buttons">
+            <a href="https://github.com/thegdyne/noise-engine" class="btn btn-primary">View on GitHub</a>
+            <a href="process.html" class="btn btn-secondary">← The Process</a>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <p>8 phases. 8 sessions. 1 methodology.</p>
+        <p style="margin-top: 10px;"><a href="index.html">Noise Engine</a> · <a href="process.html">The Process</a> · <a href="https://github.com/thegdyne/noise-engine">GitHub</a></p>
+    </footer>
+    
+    <script>
+        // Generate matrix background cells
+        const grid = document.querySelector('.matrix-grid');
+        if (grid && grid.children.length === 0) {
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                cell.style.animationDelay = (Math.random() * 3) + 's';
+                grid.appendChild(cell);
+            }
+        }
+    </script>
+</body>
+</html>
