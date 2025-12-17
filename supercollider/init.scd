@@ -77,6 +77,12 @@ s.waitForBoot({
     (~basePath +/+ "core/mod_apply_v2.scd").load;
     ~setupModApply.();
     
+    // Sync to ensure \modApply SynthDef is registered before creating instances
+    s.sync;
+    
+    // Initialize passthrough synths (must be after mod_apply and mod_slots)
+    ~initPassthroughs.();
+    
     // Load mod routing OSC handlers (depends on mod_apply)
     (~basePath +/+ "core/mod_routing.scd").load;
     ~setupModRouting.();

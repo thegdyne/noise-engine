@@ -52,6 +52,20 @@ Default values are real values (not normalized):
         ~genParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });
     };
     
+    // User-set parameter values (for relative modulation)
+    // Sliders write here, modApply reads this as center point
+    // When no modulation active, these are copied to ~genParams
+    ~genUserParams = Dictionary.new;
+    8.do { |i|
+        var slot = i + 1;
+        ~genUserParams[slot] = Dictionary.new;
+        ~genUserParams[slot][\frequency] = Bus.control(s, 1).set(400);
+        ~genUserParams[slot][\cutoff] = Bus.control(s, 1).set(16000);
+        ~genUserParams[slot][\resonance] = Bus.control(s, 1).set(1.0);
+        ~genUserParams[slot][\attack] = Bus.control(s, 1).set(0.0001);
+        ~genUserParams[slot][\decay] = Bus.control(s, 1).set(1.0);
+    };
+    
     // Audio buses
     ~masterBus = Bus.audio(s, 2);
     
@@ -75,5 +89,5 @@ Default values are real values (not normalized):
     ~stripGroup = nil;
     ~fxGroup = nil;
     
-    "  ✓ Buses ready (% clock rates, % gen buses)".format(~clockRates.size, ~genBus.size).postln;
+    "  ✓ Buses ready (% clock rates, % gen buses, user params for relative mod)".format(~clockRates.size, ~genBus.size).postln;
 };

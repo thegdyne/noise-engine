@@ -3,68 +3,112 @@ Mod Apply v2 - Multi-Source Modulation Engine
 Supports multiple mod sources targeting the same parameter.
 
 Architecture:
-- One \modApply synth per destination (slot+param combo)
-- Each synth reads up to 4 mod buses and sums their contributions
-- Routes stored in ~modRoutes dictionary
+- One \modApply synth per destination (slot+param combo) - ALWAYS RUNNING
+- Each synth reads center from ~genUserParams bus (live tracking)
+- Each synth has 4 FIXED route slots, updated via .set() ONLY
+- 0 routes = passthrough (all buses = -1, deltas = 0)
+- NEVER rebuild synths - create once, update via .set()
 
-Summation: ADD mode (sum values, clip to range)
+Per-slot args: busK, depthK, amountK, polarityK, invertK
+Polarity: 0=bipolar, 1=uni+, 2=uni-
+Invert: 0=normal, 1=inverted (flips signal before polarity)
+
+Mapped-space modulation:
+- Linear params: delta = polarityFn(s, r) * range
+- Exp params: out = base * (2 ** (polarityFn(s, r) * octRange))
 */
 
 ~setupModApply = {
-    "Setting up mod apply (multi-source)...".postln;
+    "Setting up mod apply (multi-source, .set() only)...".postln;
     
-    // Routes per destination: "slot_param" -> List of [sourceBus, depth]
-    ~modRoutes = Dictionary.new;
-    
-    // Active combiner synths: "slot_param" -> Synth
+    // Active synths: "slot_param" -> Synth (created once, never freed)
     ~modApplySynths = Dictionary.new;
     
-    // Base values: "slot_param" -> value (captured when first route added)
-    ~modBaseValues = Dictionary.new;
+    // Route tracking: "slot_param" -> Array[4] of source buses (nil = empty slot)
+    ~modRoutes = Dictionary.new;
     
-    // Parameter ranges for modulation scaling
-    ~paramRanges = Dictionary.new;
-    ~paramRanges[\cutoff] = [20, 16000];
-    ~paramRanges[\frequency] = [20, 8000];
-    ~paramRanges[\resonance] = [0.1, 1.0];
-    ~paramRanges[\attack] = [0.0001, 2.0];
-    ~paramRanges[\decay] = [0.01, 10.0];
-    ~paramRanges[\custom] = [0, 1];
+    // Parameter config: [minVal, maxVal, curve, octRange]
+    // curve: 0=linear, 1=exponential
+    // octRange: octaves of sweep for exp params (e.g. 4 = ±4 octaves at 100% depth)
+    ~paramConfig = Dictionary.new;
+    ~paramConfig[\cutoff] = [20, 16000, 1, 4];      // exp, 4 octaves
+    ~paramConfig[\frequency] = [20, 8000, 1, 4];   // exp, 4 octaves
+    ~paramConfig[\resonance] = [0.1, 1.0, 0, 0];   // linear
+    ~paramConfig[\attack] = [0.0001, 2.0, 0, 0];   // linear
+    ~paramConfig[\decay] = [0.01, 10.0, 0, 0];     // linear
     
-    // SynthDef for multi-source modulation (up to 4 sources)
-    // Reads multiple mod buses, sums contributions, writes to param bus
-    SynthDef(\modApply, { |paramBus, baseValue=0.5, minVal=0, maxVal=1, curve=0,
-                          bus0=(-1), depth0=0, bus1=(-1), depth1=0,
-                          bus2=(-1), depth2=0, bus3=(-1), depth3=0|
-        var modVal0, modVal1, modVal2, modVal3;
-        var sum, range, offset, outVal;
+    // Modulatable params (list of params that get passthrough synths)
+    ~modulatableParams = [\cutoff, \frequency, \resonance, \attack, \decay];
+    
+    // SynthDef with 4 fixed route slots
+    // Each slot: bus, depth, amount, polarity, invert
+    SynthDef(\modApply, { |userBus, outBus, minVal=0, maxVal=1, curve=0, octRange=4,
+                          bus0=(-1), depth0=0, amount0=1, polarity0=0, invert0=0,
+                          bus1=(-1), depth1=0, amount1=1, polarity1=0, invert1=0,
+                          bus2=(-1), depth2=0, amount2=1, polarity2=0, invert2=0,
+                          bus3=(-1), depth3=0, amount3=1, polarity3=0, invert3=0|
+        var base, range, totalDelta, out;
+        var s0, s1, s2, s3;
+        var r0, r1, r2, r3;
+        var d0, d1, d2, d3;
         
-        // Read mod buses (use 0 if bus index is -1 = unused)
-        modVal0 = Select.kr(bus0 >= 0, [0, In.kr(bus0)]);
-        modVal1 = Select.kr(bus1 >= 0, [0, In.kr(bus1)]);
-        modVal2 = Select.kr(bus2 >= 0, [0, In.kr(bus2)]);
-        modVal3 = Select.kr(bus3 >= 0, [0, In.kr(bus3)]);
-        
-        // Sum all contributions (mod * depth)
-        sum = (modVal0 * depth0) + (modVal1 * depth1) + 
-              (modVal2 * depth2) + (modVal3 * depth3);
-        
-        // Calculate range
+        // Read center value from user params bus (live tracking)
+        base = In.kr(userBus);
         range = maxVal - minVal;
         
-        // Apply summed modulation
-        offset = sum * range * 0.5;  // *0.5 because mod is ±1
-        
-        // Linear vs exponential curves
-        outVal = Select.kr(curve, [
-            // Linear (curve=0)
-            (baseValue + offset).clip(minVal, maxVal),
-            // Exponential (curve=1) - for frequency/cutoff
-            (baseValue * (2 ** (sum * 4))).clip(minVal, maxVal)
+        // === SLOT 0 ===
+        s0 = Select.kr(bus0 >= 0, [0, In.kr(bus0)]);
+        s0 = s0 * Select.kr(invert0, [1, -1]);  // Apply invert
+        r0 = depth0 * amount0;
+        d0 = Select.kr(polarity0, [
+            s0 * r0,                           // 0: bipolar
+            ((s0 + 1) * 0.5) * r0,             // 1: uni+
+            ((s0 + 1) * 0.5).neg * r0          // 2: uni-
         ]);
         
-        // Write to param bus
-        ReplaceOut.kr(paramBus, outVal);
+        // === SLOT 1 ===
+        s1 = Select.kr(bus1 >= 0, [0, In.kr(bus1)]);
+        s1 = s1 * Select.kr(invert1, [1, -1]);
+        r1 = depth1 * amount1;
+        d1 = Select.kr(polarity1, [
+            s1 * r1,
+            ((s1 + 1) * 0.5) * r1,
+            ((s1 + 1) * 0.5).neg * r1
+        ]);
+        
+        // === SLOT 2 ===
+        s2 = Select.kr(bus2 >= 0, [0, In.kr(bus2)]);
+        s2 = s2 * Select.kr(invert2, [1, -1]);
+        r2 = depth2 * amount2;
+        d2 = Select.kr(polarity2, [
+            s2 * r2,
+            ((s2 + 1) * 0.5) * r2,
+            ((s2 + 1) * 0.5).neg * r2
+        ]);
+        
+        // === SLOT 3 ===
+        s3 = Select.kr(bus3 >= 0, [0, In.kr(bus3)]);
+        s3 = s3 * Select.kr(invert3, [1, -1]);
+        r3 = depth3 * amount3;
+        d3 = Select.kr(polarity3, [
+            s3 * r3,
+            ((s3 + 1) * 0.5) * r3,
+            ((s3 + 1) * 0.5).neg * r3
+        ]);
+        
+        // Sum all deltas
+        totalDelta = d0 + d1 + d2 + d3;
+        
+        // Apply modulation based on curve type
+        out = Select.kr(curve, [
+            // Linear (curve=0): base + delta * range
+            (base + (totalDelta * range)).clip(minVal, maxVal),
+            // Exponential (curve=1): base * 2^(delta * octRange)
+            (base * (2 ** (totalDelta * octRange))).clip(minVal, maxVal)
+        ]);
+        
+        // Write to output bus
+        ReplaceOut.kr(outBus, out);
     }).add;
     
     // Helper: Get destination key
@@ -72,141 +116,167 @@ Summation: ADD mode (sum values, clip to range)
         "%_%".format(slot, param);
     };
     
-    // Helper: Rebuild combiner synth for a destination
-    ~rebuildModApply = { |slot, param|
+    // Create a modApply synth for a destination (called ONCE per slot+param)
+    ~createModApply = { |slot, param|
         var destKey = ~destKey.(slot, param);
-        var routes = ~modRoutes[destKey];
-        var paramBus, baseVal, range, curve;
-        var args;
+        var userBus, outBus, config;
+        var synth;
         
-        // Free existing synth
-        ~modApplySynths[destKey].free;
-        ~modApplySynths[destKey] = nil;
+        userBus = ~genUserParams[slot][param.asSymbol];
+        outBus = ~genParams[slot][param.asSymbol];
+        config = ~paramConfig[param.asSymbol] ?? [0, 1, 0, 4];
         
-        // If no routes, restore base value and exit
-        if(routes.isNil or: { routes.size == 0 }) {
-            baseVal = ~modBaseValues[destKey];
-            if(baseVal.notNil) {
-                paramBus = ~genParams[slot][param.asSymbol];
-                if(paramBus.notNil) { paramBus.set(baseVal) };
-            };
-            ("Mod apply: cleared for slot " ++ slot ++ " " ++ param).postln;
-            ^nil;
-        };
-        
-        // Get param bus
-        paramBus = ~genParams[slot][param.asSymbol];
-        if(paramBus.isNil) {
+        if(userBus.isNil or: { outBus.isNil }) {
             ("Mod apply: unknown param " ++ param ++ " for slot " ++ slot).warn;
             ^nil;
         };
         
-        // Get or capture base value
-        baseVal = ~modBaseValues[destKey];
-        if(baseVal.isNil) {
-            baseVal = paramBus.getSynchronous;
-            ~modBaseValues[destKey] = baseVal;
-        };
+        synth = Synth(\modApply, [
+            \userBus, userBus.index,
+            \outBus, outBus.index,
+            \minVal, config[0],
+            \maxVal, config[1],
+            \curve, config[2],
+            \octRange, config[3],
+            // All slots disabled by default (bus = -1)
+            \bus0, -1, \depth0, 0, \amount0, 1, \polarity0, 0, \invert0, 0,
+            \bus1, -1, \depth1, 0, \amount1, 1, \polarity1, 0, \invert1, 0,
+            \bus2, -1, \depth2, 0, \amount2, 1, \polarity2, 0, \invert2, 0,
+            \bus3, -1, \depth3, 0, \amount3, 1, \polarity3, 0, \invert3, 0
+        ], ~modGroup, \addAfter);
         
-        // Get range for this param
-        range = ~paramRanges[param.asSymbol] ?? [0, 1];
+        ~modApplySynths[destKey] = synth;
+        ~modRoutes[destKey] = Array.fill(4, { nil });  // Track which source in each slot
         
-        // Exponential curve for frequency-like params
-        curve = if([\cutoff, \frequency].includes(param.asSymbol), 1, 0);
-        
-        // Build synth args
-        args = [
-            \paramBus, paramBus.index,
-            \baseValue, baseVal,
-            \minVal, range[0],
-            \maxVal, range[1],
-            \curve, curve
-        ];
-        
-        // Add up to 4 routes
-        routes.do { |route, i|
-            if(i < 4) {
-                var busKey = ("bus" ++ i).asSymbol;
-                var depthKey = ("depth" ++ i).asSymbol;
-                args = args ++ [busKey, ~modBuses[route[0]].index, depthKey, route[1]];
-            };
-        };
-        
-        // Create combiner synth
-        ~modApplySynths[destKey] = Synth(\modApply, args, ~modGroup, \addAfter);
-        
-        ("Mod apply: slot " ++ slot ++ " " ++ param ++ " with " ++ routes.size ++ " sources").postln;
+        synth;
     };
     
-    // Add a mod route
-    ~addModRoute = { |sourceBus, targetSlot, targetParam, depth=0.5|
-        var destKey = ~destKey.(targetSlot, targetParam);
+    // Initialize passthrough synths for all slots × params
+    ~initPassthroughs = {
+        "Creating passthrough synths (40 total, .set() only updates)...".postln;
+        8.do { |i|
+            var slot = i + 1;
+            ~modulatableParams.do { |param|
+                ~createModApply.(slot, param);
+            };
+        };
+        "  ✓ 40 modApply synths created (never rebuilt)".postln;
+    };
+    
+    // Find slot index for a source bus, or first free slot
+    ~findSlot = { |destKey, sourceBus|
         var routes = ~modRoutes[destKey];
-        var existing;
+        var existingIdx, freeIdx;
         
-        // Initialize routes list if needed
-        if(routes.isNil) {
-            routes = List.new;
-            ~modRoutes[destKey] = routes;
-        };
+        if(routes.isNil) { ^nil };
         
-        // Check if this source already connected
-        existing = routes.detect { |r| r[0] == sourceBus };
-        if(existing.notNil) {
-            // Update depth
-            existing[1] = depth;
+        existingIdx = routes.indexOf(sourceBus);
+        if(existingIdx.notNil) {
+            existingIdx;  // Already connected
         } {
-            // Add new route
-            routes.add([sourceBus, depth]);
+            freeIdx = routes.indexOf(nil);  // First free slot
+            freeIdx;  // May be nil if full
+        };
+    };
+    
+    // Add a route (find free slot, use .set())
+    ~addModRoute = { |sourceBus, targetSlot, targetParam, depth=0.5, amount=1.0, polarity=0, invert=0|
+        var destKey = ~destKey.(targetSlot, targetParam.asSymbol);
+        var synth = ~modApplySynths[destKey];
+        var routes = ~modRoutes[destKey];
+        var slotIdx;
+        
+        if(synth.isNil) {
+            ("Mod apply: no synth for " ++ destKey).warn;
+            ^nil;
         };
         
-        // Rebuild synth
-        ~rebuildModApply.(targetSlot, targetParam.asSymbol);
+        slotIdx = ~findSlot.(destKey, sourceBus);
         
-        // Start value stream if this is the first route overall
+        if(slotIdx.isNil) {
+            ("Mod apply: no free slots for " ++ destKey ++ " (max 4)").warn;
+            ^nil;
+        };
+        
+        // Update tracking
+        routes[slotIdx] = sourceBus;
+        
+        // Set synth args for this slot via .set() - NO REBUILD
+        synth.set(
+            ("bus" ++ slotIdx).asSymbol, ~modBuses[sourceBus].index,
+            ("depth" ++ slotIdx).asSymbol, depth,
+            ("amount" ++ slotIdx).asSymbol, amount,
+            ("polarity" ++ slotIdx).asSymbol, polarity,
+            ("invert" ++ slotIdx).asSymbol, invert
+        );
+        
+        ("Mod route: bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++ 
+         " [idx=" ++ slotIdx ++ ", d=" ++ depth ++ ", a=" ++ amount ++ 
+         ", p=" ++ polarity ++ ", i=" ++ invert ++ "]").postln;
+        
+        // Start value stream if first route
         if(~modValueStreamRoutine.isNil) {
             ~startModValueStream.();
         };
+        
+        slotIdx;
     };
     
-    // Remove a mod route
+    // Remove a route (set bus to -1 via .set())
     ~removeModRoute = { |sourceBus, targetSlot, targetParam|
-        var destKey = ~destKey.(targetSlot, targetParam);
+        var destKey = ~destKey.(targetSlot, targetParam.asSymbol);
+        var synth = ~modApplySynths[destKey];
         var routes = ~modRoutes[destKey];
+        var slotIdx;
         
-        if(routes.notNil) {
-            routes.removeAllSuchThat { |r| r[0] == sourceBus };
-        };
+        if(synth.isNil or: { routes.isNil }) { ^nil };
         
-        // Rebuild synth (will clear if no routes left)
-        ~rebuildModApply.(targetSlot, targetParam.asSymbol);
+        slotIdx = routes.indexOf(sourceBus);
+        if(slotIdx.isNil) { ^nil };  // Not connected
         
-        // Stop value stream if no more routes
-        if(~modRoutes.select({ |v| v.notNil and: { v.size > 0 } }).size == 0) {
+        // Clear slot - just set bus to -1, NO REBUILD
+        routes[slotIdx] = nil;
+        synth.set(("bus" ++ slotIdx).asSymbol, -1);
+        
+        ("Mod route removed: bus " ++ sourceBus ++ " from slot " ++ targetSlot ++ " " ++ targetParam).postln;
+        
+        // Stop value stream if no routes remain
+        if(~modRoutes.select({ |r| r.notNil and: { r.any({ |x| x.notNil }) } }).size == 0) {
             ~stopModValueStream.();
         };
     };
     
-    // Update route depth
-    ~setModRouteDepth = { |sourceBus, targetSlot, targetParam, depth|
-        var destKey = ~destKey.(targetSlot, targetParam);
+    // Update route parameters via .set() (depth, amount, polarity, invert)
+    // Creates route if it doesn't exist
+    ~setModRoute = { |sourceBus, targetSlot, targetParam, depth, amount, polarity, invert|
+        var destKey = ~destKey.(targetSlot, targetParam.asSymbol);
+        var synth = ~modApplySynths[destKey];
         var routes = ~modRoutes[destKey];
-        var existing;
+        var slotIdx;
         
-        if(routes.notNil) {
-            existing = routes.detect { |r| r[0] == sourceBus };
-            if(existing.notNil) {
-                existing[1] = depth;
-                ~rebuildModApply.(targetSlot, targetParam.asSymbol);
-            };
+        if(synth.isNil) { ^nil };
+        
+        slotIdx = routes.indexOf(sourceBus);
+        if(slotIdx.isNil) {
+            // Create if missing
+            slotIdx = ~addModRoute.(sourceBus, targetSlot, targetParam, depth, amount, polarity, invert);
+            ^slotIdx;
         };
+        
+        // Update existing connection via .set() - NO REBUILD
+        synth.set(
+            ("depth" ++ slotIdx).asSymbol, depth,
+            ("amount" ++ slotIdx).asSymbol, amount,
+            ("polarity" ++ slotIdx).asSymbol, polarity,
+            ("invert" ++ slotIdx).asSymbol, invert
+        );
     };
     
     // Get route count for a destination
     ~getRouteCount = { |targetSlot, targetParam|
         var destKey = ~destKey.(targetSlot, targetParam);
         var routes = ~modRoutes[destKey];
-        if(routes.notNil) { routes.size } { 0 };
+        if(routes.notNil) { routes.count({ |x| x.notNil }) } { 0 };
     };
     
     // ========================================
@@ -227,20 +297,22 @@ Summation: ADD mode (sum values, clip to range)
                 
                 // Collect values for all destinations with active routes
                 ~modRoutes.keysValuesDo { |destKey, routes|
-                    var parts, targetSlot, targetParam, paramBus, currentVal, range, normVal;
+                    var parts, targetSlot, targetParam, paramBus, currentVal, config, normVal;
                     
-                    if(routes.notNil and: { routes.size > 0 }) {
+                    if(routes.notNil and: { routes.any({ |x| x.notNil }) }) {
                         parts = destKey.asString.split($_);
                         if(parts.size >= 2) {
                             targetSlot = parts[0].asInteger;
                             targetParam = parts[1].asSymbol;
                             
                             paramBus = ~genParams[targetSlot][targetParam];
+                            config = ~paramConfig[targetParam] ?? [0, 1, 0, 4];
+                            
                             if(paramBus.notNil) {
                                 currentVal = paramBus.getSynchronous;
                                 
-                                range = ~paramRanges[targetParam] ?? [0, 1];
-                                normVal = (currentVal - range[0]) / (range[1] - range[0]);
+                                // Normalize to 0-1 for UI
+                                normVal = (currentVal - config[0]) / (config[1] - config[0]);
                                 normVal = normVal.clip(0, 1);
                                 
                                 messages.add([targetSlot, targetParam.asString, normVal]);
@@ -273,19 +345,28 @@ Summation: ADD mode (sum values, clip to range)
     // TEST HELPERS
     // ========================================
     
-    ~testMultiMod = {
-        "=== MULTI-SOURCE TEST ===".postln;
-        "Routing: MOD1.A (bus 0) + MOD2.X (bus 4) → GEN1 cutoff".postln;
-        ~addModRoute.(0, 1, \cutoff, 0.5);
-        ~addModRoute.(4, 1, \cutoff, 0.3);
-        "Both sources active. Run ~stopMultiMod.() to stop.".postln;
+    ~testRelativeMod = {
+        "=== RELATIVE MOD TEST ===".postln;
+        "1. Set CUT slider to different positions".postln;
+        "2. Modulation should center around slider position".postln;
+        ~addModRoute.(0, 1, \cutoff, 0.5, 1.0, 0, 0);  // bipolar, no invert
+        "Route: MOD1.A → GEN1 cutoff (bipolar, depth=0.5)".postln;
+        "Run ~stopRelativeMod.() to stop.".postln;
     };
     
-    ~stopMultiMod = {
+    ~stopRelativeMod = {
         ~removeModRoute.(0, 1, \cutoff);
-        ~removeModRoute.(4, 1, \cutoff);
-        "Multi-source test stopped.".postln;
+        "Relative mod test stopped.".postln;
     };
     
-    "  ✓ Mod apply ready (multi-source, max 4 per destination)".postln;
+    ~testPolarities = {
+        "=== POLARITY TEST ===".postln;
+        "Testing bipolar...".postln;
+        ~addModRoute.(0, 1, \cutoff, 0.5, 1.0, 0, 0);
+        "Run ~setModRoute.(0, 1, \\cutoff, 0.5, 1.0, 1, 0) for uni+".postln;
+        "Run ~setModRoute.(0, 1, \\cutoff, 0.5, 1.0, 2, 0) for uni-".postln;
+        "Run ~stopRelativeMod.() to stop.".postln;
+    };
+    
+    "  ✓ Mod apply ready (40 synths, .set() only, 4 slots per target)".postln;
 };

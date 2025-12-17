@@ -36,24 +36,35 @@ All OSC message routing
     }, '/noise/fidelity_amount');
     
     // Per-generator parameters
+    // Write to ~genUserParams ONLY - modApply passthrough handles ~genParams
     OSCdef(\genFrequency, { |msg|
-        ~genParams[msg[1].asInteger][\frequency].set(msg[2].asFloat);
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat;
+        ~genUserParams[slot][\frequency].set(value);
     }, '/noise/gen/frequency');
     
     OSCdef(\genCutoff, { |msg|
-        ~genParams[msg[1].asInteger][\cutoff].set(msg[2].asFloat);
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat;
+        ~genUserParams[slot][\cutoff].set(value);
     }, '/noise/gen/cutoff');
     
     OSCdef(\genResonance, { |msg|
-        ~genParams[msg[1].asInteger][\resonance].set(msg[2].asFloat);
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat;
+        ~genUserParams[slot][\resonance].set(value);
     }, '/noise/gen/resonance');
     
     OSCdef(\genAttack, { |msg|
-        ~genParams[msg[1].asInteger][\attack].set(msg[2].asFloat);
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat;
+        ~genUserParams[slot][\attack].set(value);
     }, '/noise/gen/attack');
     
     OSCdef(\genDecay, { |msg|
-        ~genParams[msg[1].asInteger][\decay].set(msg[2].asFloat);
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat;
+        ~genUserParams[slot][\decay].set(value);
     }, '/noise/gen/decay');
     
     OSCdef(\genFilterType, { |msg|
