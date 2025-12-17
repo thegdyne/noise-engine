@@ -699,6 +699,7 @@ class MainFrame(QMainWindow):
         self.mod_routing.connection_added.connect(self._on_mod_route_added)
         self.mod_routing.connection_removed.connect(self._on_mod_route_removed)
         self.mod_routing.connection_changed.connect(self._on_mod_route_changed)
+        self.mod_routing.enable_changed.connect(self._on_mod_route_enable_changed)
         self.mod_routing.all_cleared.connect(self._on_mod_routes_cleared)
     
     def _on_mod_route_added(self, conn):
@@ -726,18 +727,32 @@ class MainFrame(QMainWindow):
         self._update_slider_mod_range(target_slot, target_param)
     
     def _on_mod_route_changed(self, conn):
-        """Send mod route depth/enable change to SC."""
+        """Send mod route depth change to SC."""
         if self.osc_connected:
-            # Send depth update
+            # Only send depth update - enable state is handled separately
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_depth'],
                 [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
             )
-            # Send enable state
-            self.osc.client.send_message(
-                OSC_PATHS['mod_route_enable'],
-                [conn.source_bus, conn.target_slot, conn.target_param, 1 if conn.enabled else 0]
-            )
+        
+        # Update slider visualization
+        self._update_slider_mod_range(conn.target_slot, conn.target_param)
+    
+    def _on_mod_route_enable_changed(self, conn):
+        """Send mod route enable/disable to SC."""
+        if self.osc_connected:
+            if conn.enabled:
+                # Re-add route (will use current base value)
+                self.osc.client.send_message(
+                    OSC_PATHS['mod_route_add'],
+                    [conn.source_bus, conn.target_slot, conn.target_param, conn.depth]
+                )
+            else:
+                # Remove route
+                self.osc.client.send_message(
+                    OSC_PATHS['mod_route_remove'],
+                    [conn.source_bus, conn.target_slot, conn.target_param]
+                )
         
         # Update slider visualization
         self._update_slider_mod_range(conn.target_slot, conn.target_param)

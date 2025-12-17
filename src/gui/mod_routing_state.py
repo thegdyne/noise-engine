@@ -57,7 +57,8 @@ class ModRoutingState(QObject):
     # Signals
     connection_added = pyqtSignal(object)      # ModConnection
     connection_removed = pyqtSignal(int, int, str)  # source_bus, target_slot, target_param
-    connection_changed = pyqtSignal(object)    # ModConnection (depth or enabled changed)
+    connection_changed = pyqtSignal(object)    # ModConnection (depth changed)
+    enable_changed = pyqtSignal(object)        # ModConnection (enabled state changed)
     all_cleared = pyqtSignal()                 # All connections removed
     
     def __init__(self, parent=None):
@@ -123,7 +124,7 @@ class ModRoutingState(QObject):
             return False
         
         conn.enabled = enabled
-        self.connection_changed.emit(conn)
+        self.enable_changed.emit(conn)
         return True
     
     def get_connections_for_bus(self, source_bus: int) -> List[ModConnection]:
