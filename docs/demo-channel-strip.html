@@ -553,7 +553,7 @@
                 <div class="feature-card">
                     <h3><span class="icon">▮</span> Volume Fader</h3>
                     <ul>
-                        <li>Range: -∞ to +6dB</li>
+                        <li>Range: 0dB to +12dB</li>
                         <li>Unity gain at 0dB mark</li>
                         <li>Smooth interpolation</li>
                         <li>Double-click to reset</li>
@@ -593,10 +593,15 @@
         </div>
         
         <div class="eq-detail">
-            <h3>3-Band Parametric EQ</h3>
-            <p style="color: var(--text-bright); margin-bottom: 20px;">Each channel has a 3-band parametric EQ for tone shaping before the mix bus.</p>
+            <h3>3-Band Parametric EQ + Hi/Lo Cut</h3>
+            <p style="color: var(--text-bright); margin-bottom: 20px;">Each channel has a 3-band parametric EQ plus high and low cut filters for tone shaping before the mix bus.</p>
             
             <div class="eq-bands">
+                <div class="eq-band-card">
+                    <h4>LO CUT</h4>
+                    <div class="freq">20-500 Hz</div>
+                    <p>High-pass filter<br>Remove rumble</p>
+                </div>
                 <div class="eq-band-card">
                     <h4>LO</h4>
                     <div class="freq">200 Hz</div>
@@ -611,6 +616,11 @@
                     <h4>HI</h4>
                     <div class="freq">4 kHz</div>
                     <p>High shelf<br>±12dB range</p>
+                </div>
+                <div class="eq-band-card">
+                    <h4>HI CUT</h4>
+                    <div class="freq">1-20 kHz</div>
+                    <p>Low-pass filter<br>Remove harshness</p>
                 </div>
             </div>
         </div>
