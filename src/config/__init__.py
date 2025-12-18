@@ -347,7 +347,7 @@ def _discover_packs():
         # Skip files, hidden dirs, and special entries
         if not os.path.isdir(pack_path):
             continue
-        if entry.startswith('.'):
+        if entry.startswith('.') or entry.startswith('_'):
             continue
         
         manifest_path = os.path.join(pack_path, 'manifest.json')
