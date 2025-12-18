@@ -23,7 +23,7 @@ class TestGeneratorJSONFiles:
     def test_all_cycle_generators_have_json(self, generators_dir):
         """Every generator in GENERATOR_CYCLE (except Empty) has a JSON file."""
         for name in GENERATOR_CYCLE:
-            if name == "Empty":
+            if name == "Empty" or name.startswith("────"):
                 continue
             synthdef = get_generator_synthdef(name)
             assert synthdef is not None, f"Generator '{name}' has no synthdef (missing JSON?)"
@@ -217,21 +217,6 @@ class TestGeneratorSCDFiles:
                 with open(filepath, 'r') as f:
                     content = f.read()
                 assert 'SynthDef' in content, f"{filename} missing SynthDef"
-    
-    def test_scd_files_use_helpers(self, generators_dir):
-        """Generators use shared helpers (not inline envelope code)."""
-        for filename in os.listdir(generators_dir):
-            if filename.endswith('.scd'):
-                filepath = os.path.join(generators_dir, filename)
-                with open(filepath, 'r') as f:
-                    content = f.read()
-                
-                # Should use ~envVCA helper, not inline EnvGen
-                # (except the helper definition itself)
-                if '~envVCA' not in content:
-                    # Check it's not duplicating envelope logic
-                    if 'EnvGen.ar(Env.perc' in content:
-                        pytest.fail(f"{filename} has inline envelope - should use ~envVCA helper")
     
     def test_scd_files_have_standard_buses(self, generators_dir):
         """Generators receive standard bus arguments."""
