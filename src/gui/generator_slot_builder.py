@@ -63,6 +63,7 @@ def build_generator_header(slot):
     slot.type_btn = CycleButton(GENERATOR_CYCLE, initial_index=initial_index)
     slot.type_btn.setObjectName(f"gen{slot.slot_id}_type")  # DEBUG: shows in overlay
     slot.type_btn.wrap = True
+    slot.type_btn.skip_prefix = "────"  # Skip pack separator entries
     slot.type_btn.sensitivity_key = 'generator'
     slot.type_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
     # CRITICAL: allow shrink below sizeHint, prevents spill/overflow

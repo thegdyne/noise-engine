@@ -450,3 +450,114 @@ class TestSynthDefUniqueness:
         assert "Collider" not in _GENERATOR_CONFIGS
         # Core should still be there
         assert "Core Gen" in _GENERATOR_CONFIGS
+
+
+class TestDynamicGeneratorCycle:
+    """Test dynamic GENERATOR_CYCLE building (Phase 4)."""
+    
+    def test_generator_cycle_includes_core(self):
+        """Core generators should appear in cycle."""
+        from src.config import GENERATOR_CYCLE
+        
+        assert "Empty" in GENERATOR_CYCLE
+        assert "Subtractive" in GENERATOR_CYCLE
+        assert "FM" in GENERATOR_CYCLE
+    
+    def test_generator_cycle_includes_pack_generators(self):
+        """Pack generators should appear after core with separator."""
+        from src.config import (
+            _discover_packs, _load_generator_configs, _finalize_config,
+            GENERATOR_CYCLE, get_enabled_packs
+        )
+        
+        # Re-run full sequence
+        _discover_packs()
+        _load_generator_configs()
+        _finalize_config()
+        
+        # Check pack generators are in cycle
+        enabled = get_enabled_packs()
+        if enabled:
+            # Use loaded_generators (resolved display names)
+            gen_name = enabled[0].get('loaded_generators', [None])[0]
+            if gen_name:
+                assert gen_name in GENERATOR_CYCLE
+    
+    def test_generator_cycle_has_separators(self):
+        """Pack sections should have separator headers."""
+        from src.config import (
+            _discover_packs, _load_generator_configs, _finalize_config,
+            GENERATOR_CYCLE, get_enabled_packs
+        )
+        
+        _discover_packs()
+        _load_generator_configs()
+        _finalize_config()
+        
+        separators = [g for g in GENERATOR_CYCLE if g.startswith("────")]
+        enabled_with_generators = [p for p in get_enabled_packs() if p.get('loaded_generators')]
+        
+        # Should have one separator per pack with loaded generators
+        assert len(separators) == len(enabled_with_generators)
+    
+    def test_generator_cycle_order(self):
+        """Core generators should come before pack generators."""
+        from src.config import (
+            _discover_packs, _load_generator_configs, _finalize_config,
+            GENERATOR_CYCLE
+        )
+        
+        _discover_packs()
+        _load_generator_configs()
+        _finalize_config()
+        
+        # Find last core generator
+        core_last_idx = GENERATOR_CYCLE.index("Giant B0N0") if "Giant B0N0" in GENERATOR_CYCLE else -1
+        
+        # Find first separator
+        first_sep_idx = next(
+            (i for i, g in enumerate(GENERATOR_CYCLE) if g.startswith("────")), 
+            len(GENERATOR_CYCLE)
+        )
+        
+        # Core should come before pack separators
+        if core_last_idx >= 0 and first_sep_idx < len(GENERATOR_CYCLE):
+            assert core_last_idx < first_sep_idx
+    
+    def test_get_valid_generators_excludes_separators(self):
+        """get_valid_generators() should not include separators."""
+        from src.config import (
+            _discover_packs, _load_generator_configs, _finalize_config,
+            get_valid_generators
+        )
+        
+        _discover_packs()
+        _load_generator_configs()
+        _finalize_config()
+        
+        valid = get_valid_generators()
+        
+        # No separators
+        assert not any(g.startswith("────") for g in valid)
+        
+        # But should include generators
+        assert "Empty" in valid
+        assert "Subtractive" in valid
+    
+    def test_example_pack_in_cycle(self):
+        """Example pack generators should appear in GENERATOR_CYCLE."""
+        from src.config import (
+            _discover_packs, _load_generator_configs, _finalize_config,
+            GENERATOR_CYCLE
+        )
+        
+        _discover_packs()
+        _load_generator_configs()
+        _finalize_config()
+        
+        # Example pack separator
+        assert "──── Example Pack ────" in GENERATOR_CYCLE
+        
+        # Example pack generators (after separator)
+        assert "Sine Drone" in GENERATOR_CYCLE
+        assert "Pulse Bass" in GENERATOR_CYCLE

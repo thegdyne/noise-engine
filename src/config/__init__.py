@@ -223,9 +223,9 @@ BPM_MIN = 20
 BPM_MAX = 300
 
 # === GENERATORS ===
-# Cycle order when clicking generator slot
-# All generators now have SynthDefs with standard signal flow
-GENERATOR_CYCLE = [
+# Core generator order (static list for preferred ordering)
+# Pack generators are appended dynamically after these
+_CORE_GENERATOR_ORDER = [
     "Empty",
     # Basic synthesis
     "Test Synth",
@@ -256,6 +256,10 @@ GENERATOR_CYCLE = [
     "Geiger",
     "Giant B0N0",
 ]
+
+# Dynamic generator cycle (built after loading)
+# Includes core generators + pack generators with separators
+GENERATOR_CYCLE = []  # Populated by _finalize_config()
 
 # Maximum custom params per generator
 MAX_CUSTOM_PARAMS = 5
@@ -560,15 +564,71 @@ def _load_generator_configs():
         if logger and loaded_from_pack:
             logger.info(f"Loaded {len(loaded_from_pack)} generators from pack '{pack['display_name']}'", component="PACKS")
     
-    # Validate GENERATOR_CYCLE
-    for name in GENERATOR_CYCLE:
+    # Note: GENERATOR_CYCLE validation moved to _finalize_config() after cycle is built
+
+
+def _build_generator_cycle():
+    """
+    Build complete generator list: core + enabled packs.
+    
+    Returns:
+        list: Ordered generator names for UI dropdown (includes separators)
+    """
+    cycle = []
+    
+    # 1. Core generators (in defined order)
+    for name in _CORE_GENERATOR_ORDER:
+        if name in _GENERATOR_CONFIGS:
+            cycle.append(name)
+    
+    # 2. Pack generators (grouped by pack, in manifest order)
+    for pack in get_enabled_packs():
+        # Use resolved display names stored during loading (preserves manifest order)
+        pack_generators = pack.get('loaded_generators', [])
+        
+        if pack_generators:
+            # Add separator (special entry, handled by UI)
+            cycle.append(f"──── {pack['display_name']} ────")
+            cycle.extend(pack_generators)
+    
+    return cycle
+
+
+def get_valid_generators():
+    """
+    Get generator names only (no separators).
+    
+    CANONICAL accessor - use this everywhere you need a list of selectable generator names.
+    
+    Returns:
+        list: Generator names that can be selected (excludes separator entries)
+    """
+    return [g for g in GENERATOR_CYCLE if not g.startswith("────")]
+
+
+def _finalize_config():
+    """Called after all loading complete to build dynamic lists."""
+    global GENERATOR_CYCLE
+    
+    # Late import to avoid circular dependency
+    try:
+        from src.utils.logger import logger
+    except ImportError:
+        logger = None
+    
+    GENERATOR_CYCLE = _build_generator_cycle()
+    
+    # Validate core generators exist
+    for name in _CORE_GENERATOR_ORDER:
         if name != "Empty" and name not in _GENERATOR_CONFIGS:
             if logger:
-                logger.warning(f"'{name}' in GENERATOR_CYCLE but no JSON found", component="CONFIG")
+                logger.warning(f"'{name}' in _CORE_GENERATOR_ORDER but no JSON found", component="CONFIG")
 
-# Load on import - ORDER MATTERS for Phase 3+
-_discover_packs()  # Must be before _load_generator_configs() for pack loading
-_load_generator_configs()
+
+# Load on import - ORDER MATTERS
+_discover_packs()           # 1. Find packs
+_load_generator_configs()   # 2. Load core + pack generators
+_finalize_config()          # 3. Build GENERATOR_CYCLE
 
 def get_generator_synthdef(name):
     """Get SynthDef name for a generator display name."""
