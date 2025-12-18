@@ -294,7 +294,8 @@ def _discover_packs():
     except ImportError:
         logger = None
     
-    _PACK_CONFIGS = {}
+    # Clear in place to preserve external references (important for tests)
+    _PACK_CONFIGS.clear()
     
     # Find packs directory relative to this file
     config_dir = os.path.dirname(os.path.abspath(__file__))
@@ -421,8 +422,11 @@ def _load_generator_configs():
     project_dir = os.path.dirname(src_dir)
     generators_dir = os.path.join(project_dir, 'supercollider', 'generators')
     
-    _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": [], "pitch_target": None, "output_trim_db": 0.0}}
-    _GENERATOR_SOURCES = {"Empty": None}  # None = core generator
+    # Clear in place to preserve external references (important for tests)
+    _GENERATOR_CONFIGS.clear()
+    _GENERATOR_CONFIGS["Empty"] = {"synthdef": None, "custom_params": [], "pitch_target": None, "output_trim_db": 0.0}
+    _GENERATOR_SOURCES.clear()
+    _GENERATOR_SOURCES["Empty"] = None  # None = core generator
     _LOADED_SYNTHDEFS = set()  # Track SynthDef symbols across core + packs
     
     # === LOAD CORE GENERATORS ===
@@ -616,7 +620,9 @@ def _finalize_config():
     except ImportError:
         logger = None
     
-    GENERATOR_CYCLE = _build_generator_cycle()
+    # Clear and extend in place to preserve external references (important for tests)
+    GENERATOR_CYCLE.clear()
+    GENERATOR_CYCLE.extend(_build_generator_cycle())
     
     # Validate core generators exist
     for name in _CORE_GENERATOR_ORDER:

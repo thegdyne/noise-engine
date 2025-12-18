@@ -85,6 +85,8 @@ Each entry in `generators` can be:
 
 File stem matching is faster and unambiguous. Display name lookup is fallback.
 
+**Note:** File stems are case-sensitive on Linux/macOS. Ensure manifest entries match filename case exactly (e.g., `"tb303"` for `tb303.json`, not `"TB303"`).
+
 ---
 
 ## Generator Files
