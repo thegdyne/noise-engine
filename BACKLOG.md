@@ -5,12 +5,12 @@
 ---
 
 ## Now
-- [ ] Pack System — Phase 1: Infrastructure (spec ✅, needs rollout)
+- [x] Pack System — Phase 1: Infrastructure ✅
 
 ---
 
 ## Next (spec approved, ready to plan)
-- [ ] Pack System — Phase 2: UI Integration
+- [x] Pack System — Phase 2: UI Integration ✅
 - [ ] Pack System — Phase 3: Preset Integration
 
 ---
