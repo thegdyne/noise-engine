@@ -24,6 +24,7 @@
 ---
 
 ## Mopup (Small — just do it)
+- [ ] UI font audit — improve visibility across all labels (like HI/MID/LO fix)
 - [ ] EQ labels HI/MID/LO on channel strip
 - [ ] Numeric keys work while arrows held
 - [ ] Shift + -/+ for offset control
