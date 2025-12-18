@@ -506,3 +506,51 @@ Modulate signal amplitude (and optionally filter) with LFO to simulate unstable 
 
 ### Feedback Sustainer
 Compression + feedback loop for infinite sustain. Signal gradually crossfades from fundamental into upper harmonics. Like software EBow. Sustain + harmonic blend controls.
+
+## Master Heat (Analog Heat style)
+
+Saturation/distortion section for master output, inspired by Elektron Analog Heat.
+
+### Core Circuits
+- **CLEAN** — Subtle overdrive, old mixer character
+- **TAPE** — Tape saturation, woolly warmth
+- **TUBE** — Tube-like glow and sheen  
+- **CRUNCH** — Gritty, aggressive character
+
+### Controls
+- Circuit selector (dropdown)
+- DRIVE — Gain into circuit (0-100%)
+- MIX — Wet/dry blend (0-100%)
+- ON/OFF toggle
+
+### Signal Flow
+After compressor, before limiter:
+`EQ → Compressor → Heat → Limiter → Master Vol`
+
+### Implementation Notes
+SuperCollider waveshaping with different transfer functions per circuit type.
+Could use tanh, softclip, parabolic, or crossover distortion algorithms.
+
+## Master Heat (Analog Heat style)
+
+Saturation/distortion section for master output, inspired by Elektron Analog Heat.
+
+### Core Circuits
+- **CLEAN** — Subtle overdrive, old mixer character
+- **TAPE** — Tape saturation, woolly warmth
+- **TUBE** — Tube-like glow and sheen  
+- **CRUNCH** — Gritty, aggressive character
+
+### Controls
+- Circuit selector (dropdown)
+- DRIVE — Gain into circuit (0-100%)
+- MIX — Wet/dry blend (0-100%)
+- ON/OFF toggle
+
+### Signal Flow
+After compressor, before limiter:
+`EQ → Compressor → Heat → Limiter → Master Vol`
+
+### Implementation Notes
+SuperCollider waveshaping with different transfer functions per circuit type.
+Could use tanh, softclip, parabolic, or crossover distortion algorithms.
