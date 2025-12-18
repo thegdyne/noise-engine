@@ -1,9 +1,9 @@
 # Noise Engine Pack System Specification
 
 **Version:** 1.0  
-**Status:** Draft  
+**Status:** Approved  
 **Author:** Gareth / Claude  
-**Date:** December 2024  
+**Date:** December 2025  
 
 ---
 
