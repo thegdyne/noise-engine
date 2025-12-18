@@ -438,6 +438,81 @@ def get_generator_source(generator_name):
         str or None: Pack id (directory name), or None if core generator
     """
     return _GENERATOR_SOURCES.get(generator_name)
+# Current pack selection (None = Core, or pack_id string)
+_CURRENT_PACK = None
+
+
+def get_current_pack():
+    """
+    Get currently selected pack.
+    
+    Returns:
+        str or None: Pack id, or None for Core
+    """
+    return _CURRENT_PACK
+
+
+def set_current_pack(pack_id):
+    """
+    Set current pack. Validates pack exists.
+    
+    Args:
+        pack_id: Pack id string, or None for Core
+        
+    Returns:
+        bool: True if pack was set, False if pack not found
+    """
+    global _CURRENT_PACK
+    
+    if pack_id is None:
+        _CURRENT_PACK = None
+        return True
+    
+    if pack_id in _PACK_CONFIGS and _PACK_CONFIGS[pack_id].get('enabled', False):
+        _CURRENT_PACK = pack_id
+        return True
+    
+    # Pack not found, fall back to Core
+    _CURRENT_PACK = None
+    return False
+
+
+def get_generators_for_pack(pack_id=None):
+    """
+    Get generator names for a specific pack (or Core).
+    
+    Args:
+        pack_id: Pack id, or None for Core generators
+        
+    Returns:
+        list: Generator names in order, always starts with "Empty"
+    """
+    result = ["Empty"]
+    
+    if pack_id is None:
+        # Core generators: those with source = None
+        for name, source in _GENERATOR_SOURCES.items():
+            if source is None and name != "Empty":
+                result.append(name)
+    else:
+        # Pack generators: those with matching source
+        pack = _PACK_CONFIGS.get(pack_id)
+        if pack and 'loaded_generators' in pack:
+            result.extend(pack['loaded_generators'])
+    
+    return result
+
+
+def get_current_generators():
+    """
+    Get generators for currently selected pack.
+    
+    Returns:
+        list: Generator names for current pack (or Core)
+    """
+    return get_generators_for_pack(_CURRENT_PACK)
+
+
 
 def _load_generator_configs():
     """Load generator configs from core + enabled packs."""

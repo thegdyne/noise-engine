@@ -518,6 +518,12 @@ class CycleButton(QPushButton):
         """Get current index."""
         return self.index
         
+    def set_values(self, values):
+        """Update the list of values and reset to first."""
+        self.values = values
+        self.index = 0
+        self._update_display()
+
     def cycle_forward(self):
         """Move to next value (higher index), skipping skip_prefix entries."""
         start_index = self.index
