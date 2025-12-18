@@ -227,6 +227,39 @@ BPM_MAX = 300
 # Pack generators are appended dynamically after these
 _CORE_GENERATOR_ORDER = [
     "Empty",
+    # Classic synths
+    "TB-303",
+    "Juno",
+    "SH-101",
+    "MS-20",
+    "C64 SID",
+    "Buchla",
+    "Drone",
+    # 808 Drums
+    "808 Kick",
+    "808 Snare",
+    "808 Hat",
+    "808 Clap",
+    # Conceptual
+    "THOR",
+    # Electric Shepherd Collection
+    "FEEDR",
+    "HUSK",
+    "TETHER",
+    "LIMINAL",
+    "DUSK",
+    "BEACON",
+    "STATIC",
+    "LONGING",
+    # R'lyeh Collection
+    "CTHULHU",
+    "RLYEH",
+    "ABYSS",
+    "MADNESS",
+    "TEMPEST",
+    "VESSEL",
+    "TENTACLE",
+    "DAGON",
     # Basic synthesis
     "Test Synth",
     "Subtractive",

@@ -1,0 +1,57 @@
+{
+    "name": "CTHULHU",
+    "synthdef": "cthulhu",
+    "custom_params": [
+        {
+            "key": "mass",
+            "label": "MAS",
+            "tooltip": "Entity mass (sub-bass presence)",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "geometry",
+            "label": "GEO",
+            "tooltip": "Non-Euclidean geometry (impossible harmonics)",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "dread",
+            "label": "DRD",
+            "tooltip": "Psychic dread (low frequency throb)",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "voice",
+            "label": "VOX",
+            "tooltip": "Ancient voice (eldritch vocalization)",
+            "default": 0.2,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "dream",
+            "label": "DRM",
+            "tooltip": "Dream transmission (ethereal shimmer)",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}

@@ -1,0 +1,57 @@
+{
+    "name": "808 Kick",
+    "synthdef": "kick_808",
+    "custom_params": [
+        {
+            "key": "punch",
+            "label": "PCH",
+            "tooltip": "Pitch envelope depth (click/punch)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "tone",
+            "label": "TNE",
+            "tooltip": "Tone/Body balance (fundamental to harmonics)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "decay_time",
+            "label": "DKY",
+            "tooltip": "Kick decay length",
+            "default": 0.5,
+            "min": 0.1,
+            "max": 2.0,
+            "curve": "exp",
+            "unit": "s"
+        },
+        {
+            "key": "drive",
+            "label": "DRV",
+            "tooltip": "Saturation/Drive amount",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "click",
+            "label": "CLK",
+            "tooltip": "Click transient level",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}
