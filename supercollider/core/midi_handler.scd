@@ -119,9 +119,9 @@ OSC messages to Python:
             var freq = note.midicps;
             var amp = vel / 127.0;
             
-            // Set frequency from note
-            if(~genParams[slot].notNil && ~genParams[slot][\frequency].notNil, {
-                ~genParams[slot][\frequency].set(freq);
+            // Set frequency from note - use userParams so modApply doesn't overwrite
+            if(~genUserParams[slot].notNil && ~genUserParams[slot][\frequency].notNil, {
+                ~genUserParams[slot][\frequency].set(freq);
             });
             
             // Trigger envelope if generator exists
