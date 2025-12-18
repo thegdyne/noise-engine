@@ -135,24 +135,42 @@ class ChannelStrip(QWidget):
         self._label.setStyleSheet(f"color: {COLORS['text_dim']};")  # Start dimmed
         layout.addWidget(self._label)
         
-        # === EQ Section (3 mini knobs: H, M, L) ===
+        # === EQ Section (3 mini knobs: HI, MID, LO) ===
         eq_layout = QVBoxLayout()
         eq_layout.setSpacing(1)
         eq_layout.setContentsMargins(0, 0, 0, 2)
         
-        # HI knob
+        # EQ label style
+        eq_label_style = f"color: {COLORS['text_bright']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;" 
+
+        # HI knob with label
+        hi_label = QLabel("HI")
+        hi_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        hi_label.setStyleSheet(eq_label_style)
+        hi_label.setAlignment(Qt.AlignCenter)
+        eq_layout.addWidget(hi_label)
         self.eq_hi = MiniKnob()
         self.eq_hi.setToolTip("HI EQ: >2.5kHz (double-click reset)")
         self.eq_hi.valueChanged.connect(lambda v: self._on_eq_changed('hi', v))
         eq_layout.addWidget(self.eq_hi, alignment=Qt.AlignCenter)
         
-        # MID knob
+        # MID knob with label
+        mid_label = QLabel("MID")
+        mid_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        mid_label.setStyleSheet(eq_label_style)
+        mid_label.setAlignment(Qt.AlignCenter)
+        eq_layout.addWidget(mid_label)
         self.eq_mid = MiniKnob()
         self.eq_mid.setToolTip("MID EQ: 250Hz-2.5kHz (double-click reset)")
         self.eq_mid.valueChanged.connect(lambda v: self._on_eq_changed('mid', v))
         eq_layout.addWidget(self.eq_mid, alignment=Qt.AlignCenter)
         
-        # LO knob
+        # LO knob with label
+        lo_label = QLabel("LO")
+        lo_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        lo_label.setStyleSheet(eq_label_style)
+        lo_label.setAlignment(Qt.AlignCenter)
+        eq_layout.addWidget(lo_label)
         self.eq_lo = MiniKnob()
         self.eq_lo.setToolTip("LO EQ: <250Hz (double-click reset)")
         self.eq_lo.valueChanged.connect(lambda v: self._on_eq_changed('lo', v))
