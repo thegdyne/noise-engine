@@ -264,6 +264,143 @@ MAX_CUSTOM_PARAMS = 5
 # Maps display name -> {"synthdef": str, "custom_params": list, "pitch_target": int|None, "output_trim_db": float}
 _GENERATOR_CONFIGS = {}
 
+# === PACK SYSTEM ===
+# Pack configs loaded from manifest.json files
+# Maps pack_id (directory name) -> {id, display_name, version, author, enabled, generators, path}
+_PACK_CONFIGS = {}
+
+# Track which generators came from which pack (for UI grouping)
+# Maps generator_name -> pack_id (None for core generators)
+_GENERATOR_SOURCES = {}
+
+
+def _discover_packs():
+    """
+    Scan packs/ directory for valid pack manifests.
+    Populates _PACK_CONFIGS with metadata (does not load generators).
+    
+    Returns:
+        dict: {pack_id: {id, display_name, version, author, enabled, generators, path}}
+    """
+    global _PACK_CONFIGS
+    
+    # Late import to avoid circular dependency at module load time
+    try:
+        from src.utils.logger import logger
+    except ImportError:
+        logger = None
+    
+    _PACK_CONFIGS = {}
+    
+    # Find packs directory relative to this file
+    config_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(config_dir)
+    project_dir = os.path.dirname(src_dir)
+    packs_dir = os.path.join(project_dir, 'packs')
+    
+    if not os.path.exists(packs_dir):
+        if logger:
+            logger.debug("No packs/ directory found", component="PACKS")
+        return _PACK_CONFIGS
+    
+    for entry in sorted(os.listdir(packs_dir)):
+        pack_path = os.path.join(packs_dir, entry)
+        
+        # Skip files, hidden dirs, and special entries
+        if not os.path.isdir(pack_path):
+            continue
+        if entry.startswith('.'):
+            continue
+        
+        manifest_path = os.path.join(pack_path, 'manifest.json')
+        if not os.path.exists(manifest_path):
+            if logger:
+                logger.warning(f"Pack '{entry}' missing manifest.json, skipping", component="PACKS")
+            continue
+        
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+            
+            # Validate required fields
+            required = ['pack_format', 'name', 'enabled', 'generators']
+            missing = [field for field in required if field not in manifest]
+            if missing:
+                if logger:
+                    logger.warning(f"Pack '{entry}' manifest missing fields: {missing}", component="PACKS")
+                continue
+            
+            # Check format version
+            if manifest['pack_format'] != 1:
+                if logger:
+                    logger.warning(f"Pack '{entry}' has unsupported format version {manifest['pack_format']}", component="PACKS")
+                continue
+            
+            pack_id = entry  # directory name = stable unique pack ID
+            display_name = manifest['name']  # UI name (can collide, not used as key)
+            
+            _PACK_CONFIGS[pack_id] = {
+                'id': pack_id,
+                'display_name': display_name,
+                'version': manifest.get('version', '0.0.0'),
+                'author': manifest.get('author', 'Unknown'),
+                'description': manifest.get('description', ''),
+                'enabled': manifest.get('enabled', True),
+                'generators': manifest.get('generators', []),
+                'path': pack_path,
+            }
+            
+            status = "enabled" if manifest.get('enabled', True) else "disabled"
+            gen_count = len(manifest.get('generators', []))
+            if logger:
+                logger.info(
+                    f"Found pack: {display_name} v{manifest.get('version', '?')} "
+                    f"(id={pack_id}, {gen_count} generators, {status})",
+                    component="PACKS"
+                )
+        
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.warning(f"Pack '{entry}' has invalid manifest.json: {e}", component="PACKS")
+        except IOError as e:
+            if logger:
+                logger.warning(f"Failed to read pack '{entry}': {e}", component="PACKS")
+    
+    return _PACK_CONFIGS
+
+
+def get_discovered_packs():
+    """
+    Get all discovered packs (enabled and disabled).
+    
+    Returns:
+        dict: {pack_id: {id, display_name, version, author, enabled, generators, path}}
+    """
+    return _PACK_CONFIGS.copy()
+
+
+def get_enabled_packs():
+    """
+    Get only enabled packs, in discovery order.
+    
+    Note: Returned dicts may be augmented during load (e.g., 'loaded_generators'
+    is added by _load_generator_configs()).
+    
+    Returns:
+        list: [{id, display_name, version, author, generators, path, ...}, ...]
+    """
+    return [p for p in _PACK_CONFIGS.values() if p.get('enabled', False)]
+
+
+def get_generator_source(generator_name):
+    """
+    Get which pack a generator came from.
+    
+    Returns:
+        str or None: Pack id (directory name), or None if core generator
+    """
+    return _GENERATOR_SOURCES.get(generator_name)
+
 def _load_generator_configs():
     """Load generator configs from JSON files in supercollider/generators/"""
     global _GENERATOR_CONFIGS
@@ -325,7 +462,8 @@ def _load_generator_configs():
             if logger:
                 logger.warning(f"'{name}' in GENERATOR_CYCLE but no JSON found", component="CONFIG")
 
-# Load on import
+# Load on import - ORDER MATTERS for Phase 3+
+_discover_packs()  # Must be before _load_generator_configs() for pack loading
 _load_generator_configs()
 
 def get_generator_synthdef(name):
