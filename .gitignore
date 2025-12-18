@@ -27,3 +27,37 @@ presets/*.json
 
 # SuperCollider
 supercollider/recordings/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+._*
+Thumbs.db
+
+# Project specific
+*.wav
+*.aif
+presets/*.json
+!presets/default.json
+
+# SuperCollider
+supercollider/recordings/
+
+# Packs - ignore user packs, keep .gitkeep and _example
+packs/*
+!packs/.gitkeep
+!packs/_example/

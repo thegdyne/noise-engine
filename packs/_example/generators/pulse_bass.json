@@ -1,0 +1,46 @@
+{
+    "name": "Pulse Bass",
+    "synthdef": "example_pulse_bass",
+    "custom_params": [
+        {
+            "key": "pulse_width",
+            "label": "PWM",
+            "tooltip": "Pulse width (square to thin)",
+            "default": 0.5,
+            "min": 0.1,
+            "max": 0.9,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "pwm_depth",
+            "label": "DPT",
+            "tooltip": "PWM modulation depth",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "pwm_rate",
+            "label": "RAT",
+            "tooltip": "PWM modulation rate",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "exp",
+            "unit": "Hz"
+        },
+        {
+            "key": "sub_level",
+            "label": "SUB",
+            "tooltip": "Sub oscillator level",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ]
+}
