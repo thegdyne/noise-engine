@@ -277,63 +277,45 @@ class TestPackAPI:
         
         assert result is None
 
-
 class TestExamplePackDiscovery:
-    """Test that the shipped _example pack is discovered correctly."""
+    """Test that underscore-prefixed packs are skipped (templates)."""
     
-    def test_example_pack_discovered(self):
-        """The _example pack should be discoverable."""
+    def test_example_pack_skipped(self):
+        """The _example pack should NOT be discovered (underscore prefix = template)."""
         from src.config import _discover_packs, get_discovered_packs
         
-        # Re-run discovery to pick up actual packs
         _discover_packs()
         packs = get_discovered_packs()
         
-        # _example pack should exist (from Phase 1)
-        assert "_example" in packs
-        assert packs["_example"]["display_name"] == "Example Pack"
-        assert packs["_example"]["enabled"] is True
-        assert "sine_drone" in packs["_example"]["generators"]
-        assert "pulse_bass" in packs["_example"]["generators"]
+        # _example pack should NOT be discovered (underscore prefix)
+        assert "_example" not in packs
     
-    def test_example_pack_in_enabled(self):
-        """The _example pack should appear in enabled packs."""
+    def test_example_pack_not_in_enabled(self):
+        """The _example pack should NOT appear in enabled packs."""
         from src.config import _discover_packs, get_enabled_packs
         
         _discover_packs()
         enabled = get_enabled_packs()
         
         pack_ids = [p["id"] for p in enabled]
-        assert "_example" in pack_ids
-
+        assert "_example" not in pack_ids
 
 class TestPackGeneratorLoading:
-    """Test generator loading from packs (Phase 3)."""
+    """Test generator loading from packs."""
     
-    def test_example_pack_generators_loaded(self):
-        """Generators from _example pack should be loaded."""
+    def test_core_generators_marked_as_core(self):
+        """Core generators should have None as source."""
         from src.config import (
             _discover_packs, _load_generator_configs,
-            _GENERATOR_CONFIGS, _GENERATOR_SOURCES,
-            get_generator_synthdef
+            _GENERATOR_SOURCES
         )
         
-        # Re-run full loading sequence
         _discover_packs()
         _load_generator_configs()
         
-        # Check generators are loaded
-        assert "Sine Drone" in _GENERATOR_CONFIGS
-        assert "Pulse Bass" in _GENERATOR_CONFIGS
-        
-        # Check sources are tracked
-        assert _GENERATOR_SOURCES.get("Sine Drone") == "_example"
-        assert _GENERATOR_SOURCES.get("Pulse Bass") == "_example"
-        
-        # Check synthdef lookup works
-        assert get_generator_synthdef("Sine Drone") == "example_sine_drone"
-        assert get_generator_synthdef("Pulse Bass") == "example_pulse_bass"
-    
+        # Core generators should have None source
+        assert _GENERATOR_SOURCES.get("Empty") is None
+ 
     def test_core_generators_marked_as_core(self):
         """Core generators should have None as source."""
         from src.config import (
@@ -349,40 +331,6 @@ class TestPackGeneratorLoading:
         assert _GENERATOR_SOURCES.get("FM") is None
         assert _GENERATOR_SOURCES.get("Empty") is None
     
-    def test_loaded_generators_stored_in_pack(self):
-        """Pack should have loaded_generators list after loading."""
-        from src.config import (
-            _discover_packs, _load_generator_configs,
-            get_enabled_packs
-        )
-        
-        _discover_packs()
-        _load_generator_configs()
-        
-        enabled = get_enabled_packs()
-        example_pack = next((p for p in enabled if p["id"] == "_example"), None)
-        
-        assert example_pack is not None
-        assert "loaded_generators" in example_pack
-        assert "Sine Drone" in example_pack["loaded_generators"]
-        assert "Pulse Bass" in example_pack["loaded_generators"]
-    
-    def test_pack_generator_has_pack_metadata(self):
-        """Pack generators should include pack metadata."""
-        from src.config import (
-            _discover_packs, _load_generator_configs,
-            _GENERATOR_CONFIGS
-        )
-        
-        _discover_packs()
-        _load_generator_configs()
-        
-        sine_config = _GENERATOR_CONFIGS.get("Sine Drone", {})
-        
-        assert sine_config.get("pack") == "_example"
-        assert "pack_path" in sine_config
-
-
 class TestSynthDefUniqueness:
     """Test SynthDef symbol collision detection."""
     
@@ -554,20 +502,3 @@ class TestDynamicGeneratorCycle:
         if "Subtractive" in _GENERATOR_CONFIGS:
             assert "Subtractive" in valid
     
-    def test_example_pack_in_cycle(self):
-        """Example pack generators should appear in GENERATOR_CYCLE."""
-        from src.config import (
-            _discover_packs, _load_generator_configs, _finalize_config,
-            GENERATOR_CYCLE
-        )
-        
-        _discover_packs()
-        _load_generator_configs()
-        _finalize_config()
-        
-        # Example pack separator
-        assert "──── Example Pack ────" in GENERATOR_CYCLE
-        
-        # Example pack generators (after separator)
-        assert "Sine Drone" in GENERATOR_CYCLE
-        assert "Pulse Bass" in GENERATOR_CYCLE
