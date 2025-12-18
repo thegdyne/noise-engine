@@ -495,3 +495,14 @@ docs/
 ---
 
 *Last updated: December 2025*
+
+## Effect Ideas (from hardware concepts)
+
+### Second Harmonic Tracker
+Pitch-tracking resonant filter locked to 2x fundamental. Creates singing overtone that follows played notes. Mix control for blend. Inspired by valve harmonic enhancement.
+
+### Supply Sag / Rail Modulation  
+Modulate signal amplitude (and optionally filter) with LFO to simulate unstable power supply. Sine = tube sag/bloom, square = choppy gate. Freq + depth + waveform controls.
+
+### Feedback Sustainer
+Compression + feedback loop for infinite sustain. Signal gradually crossfades from fundamental into upper harmonics. Like software EBow. Sustain + harmonic blend controls.
