@@ -24,6 +24,7 @@
 ---
 
 ## Mopup (Small — just do it)
+- [ ] Mod matrix: continuous arrow movement while number pressed (hold arrow, tap number, keep moving)
 - [ ] EQ labels HI/MID/LO on channel strip
 - [ ] Numeric keys work while arrows held
 - [ ] Shift + -/+ for offset control
