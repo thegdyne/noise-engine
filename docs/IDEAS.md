@@ -554,3 +554,162 @@ After compressor, before limiter:
 ### Implementation Notes
 SuperCollider waveshaping with different transfer functions per circuit type.
 Could use tanh, softclip, parabolic, or crossover distortion algorithms.
+
+## Master FX Ideas
+
+### Analog-Inspired
+
+#### Master Heat (Analog Heat style)
+Saturation/distortion section for master output.
+
+**Circuits:**
+- CLEAN — Subtle overdrive, old mixer character
+- TAPE — Tape saturation, woolly warmth  
+- TUBE — Tube-like glow and sheen
+- CRUNCH — Gritty, aggressive character
+
+**Controls:** Circuit selector, DRIVE, MIX, ON/OFF
+
+**Signal Flow:** After compressor, before limiter
+
+**Implementation:** SuperCollider waveshaping with different transfer functions per circuit. tanh, softclip, parabolic, crossover distortion.
+
+---
+
+#### Space Echo (Roland RE-201 style)
+Tape delay with degradation and spring reverb character.
+
+**Core Character:**
+- Multi-tap delay (3 virtual playback heads)
+- High frequency loss per repeat (darker echoes)
+- Tape saturation on feedback path
+- Wow/flutter from motor variation
+- Optional spring reverb
+
+**Controls:**
+| Control | Function |
+|---------|----------|
+| TIME | Delay time 50-500ms |
+| FEEDBACK | Regeneration/intensity |
+| TONE | High-cut on feedback (darker repeats) |
+| WOW | Pitch modulation depth |
+| MIX | Wet/dry blend |
+| MODE | Single / Multi-tap (3 heads) |
+| REVERB | Spring reverb blend |
+
+**Implementation:** DelayC with LPF in feedback, SinOsc for wow modulation, slight saturation per repeat.
+
+---
+
+### Digital FX
+
+#### Shimmer Reverb
+Pitch-shifted reverb for ethereal pads.
+
+**Controls:** SIZE, DECAY, SHIMMER (pitch shift amount ±12st), TONE, MIX
+
+**Implementation:** FreeVerb or GVerb with PitchShift in feedback loop. Octave up (+12st) is classic shimmer.
+
+---
+
+#### Spectral Freeze
+FFT-based effect that captures and holds a spectral snapshot.
+
+**Controls:** FREEZE (trigger/gate), BLUR (spectral smear), MIX
+
+**Implementation:** FFT with PV_Freeze, PV_MagSmear for blur.
+
+---
+
+#### Granular Smear  
+Buffer-based granular processing for texture and timestretching.
+
+**Controls:** 
+- GRAIN SIZE (10-500ms)
+- DENSITY (grains per second)
+- PITCH (±24st)
+- SPREAD (stereo scatter)
+- POSITION (playback position in buffer)
+- MIX
+
+**Implementation:** GrainBuf or TGrains with modulatable parameters.
+
+---
+
+#### Bit Reducer
+Digital degradation — sample rate and bit depth reduction.
+
+**Controls:**
+- BITS (1-16 bit depth)
+- RATE (sample rate reduction factor)
+- MIX
+
+**Implementation:** Decimator UGen or manual sample-and-hold with quantization.
+
+---
+
+#### Resonator Bank
+Tuned comb filter bank for metallic/tonal coloring.
+
+**Controls:**
+- ROOT (fundamental frequency)
+- CHORD (interval structure: unison, 5th, octave, etc.)
+- DECAY (ring time)
+- BRIGHTNESS (damping)
+- MIX
+
+**Implementation:** Bank of CombC filters tuned to harmonic intervals.
+
+---
+
+#### Frequency Shifter
+True frequency shift (not pitch shift) — creates inharmonic content.
+
+**Controls:**
+- SHIFT (-500 to +500 Hz)
+- MIX
+
+**Implementation:** FreqShift UGen. Small shifts = phaser-like, large shifts = metallic/robotic.
+
+---
+
+#### Stutter / Glitch
+Buffer capture with rhythmic retriggering.
+
+**Controls:**
+- SIZE (buffer length: 1/32 to 1/1 beat divisions)
+- RETRIG (manual or sync'd trigger)
+- REVERSE (probability or toggle)
+- PITCH (repitch buffer ±12st)
+- MIX
+
+**Implementation:** BufWr/BufRd with trigger logic, tempo sync.
+
+---
+
+#### Infinite Reverb
+Reverb with feedback >= 1 for drones and washes.
+
+**Controls:**
+- SIZE
+- FREEZE (locks decay at infinity)
+- TONE (LPF/HPF on feedback)
+- MOD (subtle pitch modulation to avoid metallic buildup)
+- MIX
+
+**Implementation:** GVerb or custom FDN with controllable feedback, HPF/LPF in loop.
+
+---
+
+### FX Architecture Notes
+
+**Master Section Chain (proposed):**
+```
+Channel Strips → Mixer Sum → EQ → Compressor → Heat → Space Echo → Master FX Slot → Limiter → Output
+```
+
+**Per-Channel FX (future):**
+Each channel strip could have an FX slot before the mixer. Simpler effects only (filter, drive, delay send).
+
+**Modulation:**
+All FX parameters should be modulatable via the existing mod matrix system.
