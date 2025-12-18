@@ -1,0 +1,57 @@
+{
+    "name": "808 Snare",
+    "synthdef": "snare_808",
+    "custom_params": [
+        {
+            "key": "tone_level",
+            "label": "TNE",
+            "tooltip": "Tonal body level",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "noise_level",
+            "label": "SNR",
+            "tooltip": "Snare noise level",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "snap",
+            "label": "SNP",
+            "tooltip": "Snap/Attack transient",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "tone_decay",
+            "label": "TDK",
+            "tooltip": "Tone decay time",
+            "default": 0.15,
+            "min": 0.05,
+            "max": 0.5,
+            "curve": "exp",
+            "unit": "s"
+        },
+        {
+            "key": "noise_decay",
+            "label": "NDK",
+            "tooltip": "Noise decay time",
+            "default": 0.2,
+            "min": 0.05,
+            "max": 0.6,
+            "curve": "exp",
+            "unit": "s"
+        }
+    ],
+    "output_trim_db": -3.0
+}
