@@ -305,3 +305,148 @@ class TestExamplePackDiscovery:
         
         pack_ids = [p["id"] for p in enabled]
         assert "_example" in pack_ids
+
+
+class TestPackGeneratorLoading:
+    """Test generator loading from packs (Phase 3)."""
+    
+    def test_example_pack_generators_loaded(self):
+        """Generators from _example pack should be loaded."""
+        from src.config import (
+            _discover_packs, _load_generator_configs,
+            _GENERATOR_CONFIGS, _GENERATOR_SOURCES,
+            get_generator_synthdef
+        )
+        
+        # Re-run full loading sequence
+        _discover_packs()
+        _load_generator_configs()
+        
+        # Check generators are loaded
+        assert "Sine Drone" in _GENERATOR_CONFIGS
+        assert "Pulse Bass" in _GENERATOR_CONFIGS
+        
+        # Check sources are tracked
+        assert _GENERATOR_SOURCES.get("Sine Drone") == "_example"
+        assert _GENERATOR_SOURCES.get("Pulse Bass") == "_example"
+        
+        # Check synthdef lookup works
+        assert get_generator_synthdef("Sine Drone") == "example_sine_drone"
+        assert get_generator_synthdef("Pulse Bass") == "example_pulse_bass"
+    
+    def test_core_generators_marked_as_core(self):
+        """Core generators should have None as source."""
+        from src.config import (
+            _discover_packs, _load_generator_configs,
+            _GENERATOR_SOURCES
+        )
+        
+        _discover_packs()
+        _load_generator_configs()
+        
+        # Core generators should have None source
+        assert _GENERATOR_SOURCES.get("Subtractive") is None
+        assert _GENERATOR_SOURCES.get("FM") is None
+        assert _GENERATOR_SOURCES.get("Empty") is None
+    
+    def test_loaded_generators_stored_in_pack(self):
+        """Pack should have loaded_generators list after loading."""
+        from src.config import (
+            _discover_packs, _load_generator_configs,
+            get_enabled_packs
+        )
+        
+        _discover_packs()
+        _load_generator_configs()
+        
+        enabled = get_enabled_packs()
+        example_pack = next((p for p in enabled if p["id"] == "_example"), None)
+        
+        assert example_pack is not None
+        assert "loaded_generators" in example_pack
+        assert "Sine Drone" in example_pack["loaded_generators"]
+        assert "Pulse Bass" in example_pack["loaded_generators"]
+    
+    def test_pack_generator_has_pack_metadata(self):
+        """Pack generators should include pack metadata."""
+        from src.config import (
+            _discover_packs, _load_generator_configs,
+            _GENERATOR_CONFIGS
+        )
+        
+        _discover_packs()
+        _load_generator_configs()
+        
+        sine_config = _GENERATOR_CONFIGS.get("Sine Drone", {})
+        
+        assert sine_config.get("pack") == "_example"
+        assert "pack_path" in sine_config
+
+
+class TestSynthDefUniqueness:
+    """Test SynthDef symbol collision detection."""
+    
+    @pytest.fixture
+    def temp_packs_dir(self, tmp_path, monkeypatch):
+        """Create a temporary packs directory for testing."""
+        packs_dir = tmp_path / "packs"
+        packs_dir.mkdir()
+        
+        # Also create fake supercollider/generators with a core generator
+        sc_dir = tmp_path / "supercollider" / "generators"
+        sc_dir.mkdir(parents=True)
+        
+        # Create a core generator
+        core_gen = {
+            "name": "Core Gen",
+            "synthdef": "core_synthdef",
+            "custom_params": []
+        }
+        (sc_dir / "core_gen.json").write_text(json.dumps(core_gen))
+        
+        import src.config
+        original_file = src.config.__file__
+        
+        fake_src = tmp_path / "src"
+        fake_config = fake_src / "config"
+        fake_config.mkdir(parents=True)
+        
+        monkeypatch.setattr(src.config, '__file__', str(fake_config / "__init__.py"))
+        
+        yield packs_dir
+        
+        monkeypatch.setattr(src.config, '__file__', original_file)
+    
+    def test_synthdef_collision_with_core_skipped(self, temp_packs_dir):
+        """Pack generator with same synthdef as core should be skipped."""
+        from src.config import _discover_packs, _load_generator_configs, _GENERATOR_CONFIGS
+        
+        # Create pack with colliding synthdef
+        pack_dir = temp_packs_dir / "colliding_pack"
+        pack_dir.mkdir()
+        gen_dir = pack_dir / "generators"
+        gen_dir.mkdir()
+        
+        manifest = {
+            "pack_format": 1,
+            "name": "Colliding Pack",
+            "enabled": True,
+            "generators": ["collider"]
+        }
+        (pack_dir / "manifest.json").write_text(json.dumps(manifest))
+        
+        # Generator with same synthdef as core
+        collider = {
+            "name": "Collider",
+            "synthdef": "core_synthdef",  # Same as core!
+            "custom_params": []
+        }
+        (gen_dir / "collider.json").write_text(json.dumps(collider))
+        
+        _discover_packs()
+        _load_generator_configs()
+        
+        # Collider should NOT be loaded due to synthdef collision
+        assert "Collider" not in _GENERATOR_CONFIGS
+        # Core should still be there
+        assert "Core Gen" in _GENERATOR_CONFIGS

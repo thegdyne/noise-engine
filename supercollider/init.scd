@@ -65,6 +65,30 @@ s.waitForBoot({
         ("  ✓ " ++ file.fileNameWithoutExtension).postln;
     });
     
+    // Load pack generators (scan packs/*/generators/)
+    ~packGeneratorCount = 0;
+    ~packsPath = ~basePath.dirname +/+ "packs/";
+    if(File.exists(~packsPath), {
+        "Loading pack generators...".postln;
+        PathName(~packsPath).folders.do({ |packDir|
+            var manifestPath = packDir.fullPath +/+ "manifest.json";
+            var genPath = packDir.fullPath +/+ "generators/";
+            
+            // Only load if manifest exists and generators folder exists
+            if(File.exists(manifestPath) && File.exists(genPath), {
+                var packFiles = PathName(genPath).files.select({ |f| f.extension == "scd" });
+                if(packFiles.size > 0, {
+                    ("  Pack: " ++ packDir.folderName).postln;
+                    packFiles.do({ |file|
+                        file.fullPath.load;
+                        ("    ✓ " ++ file.fileNameWithoutExtension).postln;
+                    });
+                    ~packGeneratorCount = ~packGeneratorCount + packFiles.size;
+                });
+            });
+        });
+    });
+    
     // Load mod slots (after clock exists for ~clockTrigBus reference)
     (~basePath +/+ "core/mod_slots.scd").load;
     ~setupModSlots.();
@@ -172,7 +196,10 @@ s.waitForBoot({
     "========================================".postln;
     "✓ Noise Engine ready!".postln;
     "✓ Core modules loaded".postln;
-    ("✓ " ++ ~generatorFiles.size ++ " generators available").postln;
+    ("✓ " ++ ~generatorFiles.size ++ " core generators loaded").postln;
+    if(~packGeneratorCount.notNil && (~packGeneratorCount > 0), {
+        ("✓ " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
+    });
     "✓ 4 mod source slots ready".postln;
     ("✓ OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;

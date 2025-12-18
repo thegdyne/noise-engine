@@ -402,8 +402,8 @@ def get_generator_source(generator_name):
     return _GENERATOR_SOURCES.get(generator_name)
 
 def _load_generator_configs():
-    """Load generator configs from JSON files in supercollider/generators/"""
-    global _GENERATOR_CONFIGS
+    """Load generator configs from core + enabled packs."""
+    global _GENERATOR_CONFIGS, _GENERATOR_SOURCES
     
     # Late import to avoid circular dependency at module load time
     try:
@@ -418,43 +418,147 @@ def _load_generator_configs():
     generators_dir = os.path.join(project_dir, 'supercollider', 'generators')
     
     _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": [], "pitch_target": None, "output_trim_db": 0.0}}
+    _GENERATOR_SOURCES = {"Empty": None}  # None = core generator
+    _LOADED_SYNTHDEFS = set()  # Track SynthDef symbols across core + packs
     
+    # === LOAD CORE GENERATORS ===
     if not os.path.exists(generators_dir):
         if logger:
             logger.warning(f"Generators directory not found: {generators_dir}", component="CONFIG")
-        return
+    else:
+        for filename in os.listdir(generators_dir):
+            # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
+            if not filename.endswith('.json'):
+                continue
+            if filename.startswith('.'):
+                continue
+            
+            filepath = os.path.join(generators_dir, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    name = config.get('name')
+                    synthdef = config.get('synthdef')
+                    if name:
+                        _GENERATOR_CONFIGS[name] = {
+                            "synthdef": synthdef,
+                            "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
+                            "pitch_target": config.get('pitch_target'),  # None if not specified
+                            "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
+                            "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
+                        }
+                        _GENERATOR_SOURCES[name] = None  # Mark as core
+                        if synthdef:
+                            _LOADED_SYNTHDEFS.add(synthdef)
+            except UnicodeDecodeError as e:
+                if logger:
+                    logger.warning(f"Skipping non-UTF8 generator config: {filename} ({e})", component="CONFIG")
+                continue
+            except json.JSONDecodeError as e:
+                if logger:
+                    logger.warning(f"Skipping invalid JSON generator config: {filename} ({e})", component="CONFIG")
+                continue
+            except IOError as e:
+                if logger:
+                    logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
     
-    for filename in os.listdir(generators_dir):
-        # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
-        if not filename.endswith('.json'):
-            continue
-        if filename.startswith('.'):
+    # === LOAD PACK GENERATORS ===
+    for pack in get_enabled_packs():
+        pack_generators_dir = os.path.join(pack['path'], 'generators')
+        
+        if not os.path.exists(pack_generators_dir):
+            if logger:
+                logger.warning(f"Pack '{pack['display_name']}' has no generators/ directory", component="PACKS")
             continue
         
-        filepath = os.path.join(generators_dir, filename)
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                name = config.get('name')
-                if name:
-                    _GENERATOR_CONFIGS[name] = {
-                        "synthdef": config.get('synthdef'),
-                        "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
-                        "pitch_target": config.get('pitch_target'),  # None if not specified
-                        "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
-                        "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
-                    }
-        except UnicodeDecodeError as e:
-            if logger:
-                logger.warning(f"Skipping non-UTF8 generator config: {filename} ({e})", component="CONFIG")
-            continue
-        except json.JSONDecodeError as e:
-            if logger:
-                logger.warning(f"Skipping invalid JSON generator config: {filename} ({e})", component="CONFIG")
-            continue
-        except IOError as e:
-            if logger:
-                logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
+        loaded_from_pack = []
+        
+        for gen_entry in pack['generators']:
+            # Try file-stem match first (recommended), then display-name fallback
+            json_file = None
+            gen_name = None
+            config = None
+            
+            # 1. Try file-stem match: gen_entry.json
+            stem_path = os.path.join(pack_generators_dir, f"{gen_entry}.json")
+            if os.path.exists(stem_path):
+                try:
+                    with open(stem_path, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                        json_file = stem_path
+                        gen_name = config.get('name', gen_entry)  # Use display name from JSON
+                except (json.JSONDecodeError, IOError):
+                    pass
+            
+            # 2. Fallback: search by display name
+            if not json_file:
+                for filename in os.listdir(pack_generators_dir):
+                    if filename.endswith('.json') and not filename.startswith('.'):
+                        filepath = os.path.join(pack_generators_dir, filename)
+                        try:
+                            with open(filepath, 'r', encoding='utf-8') as f:
+                                file_config = json.load(f)
+                                if file_config.get('name') == gen_entry:
+                                    json_file = filepath
+                                    gen_name = gen_entry
+                                    config = file_config
+                                    break
+                        except (json.JSONDecodeError, IOError):
+                            continue
+            
+            if not json_file:
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': generator '{gen_entry}' not found", component="PACKS")
+                continue
+            
+            # Check for display name conflicts with core
+            if gen_name in _GENERATOR_CONFIGS and _GENERATOR_SOURCES.get(gen_name) is None:
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': '{gen_name}' conflicts with core generator, skipping", component="PACKS")
+                continue
+            
+            # Check for display name conflicts with other packs
+            if gen_name in _GENERATOR_CONFIGS:
+                existing_pack = _GENERATOR_SOURCES.get(gen_name)
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': '{gen_name}' already loaded from '{existing_pack}', skipping", component="PACKS")
+                continue
+            
+            # Validate SynthDef symbol uniqueness
+            synthdef = config.get('synthdef')
+            if not synthdef:
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': '{gen_name}' missing synthdef, skipping", component="PACKS")
+                continue
+            
+            if synthdef in _LOADED_SYNTHDEFS:
+                if logger:
+                    logger.warning(
+                        f"Pack '{pack['display_name']}': synthdef '{synthdef}' already loaded "
+                        f"(conflicts with core/another pack), skipping '{gen_name}'",
+                        component="PACKS"
+                    )
+                continue
+            
+            # Load the generator
+            _GENERATOR_CONFIGS[gen_name] = {
+                "synthdef": synthdef,
+                "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
+                "pitch_target": config.get('pitch_target'),
+                "midi_retrig": config.get('midi_retrig', False),
+                "output_trim_db": config.get('output_trim_db', 0.0),
+                "pack": pack['id'],  # Track source pack
+                "pack_path": pack['path'],
+            }
+            _GENERATOR_SOURCES[gen_name] = pack['id']
+            _LOADED_SYNTHDEFS.add(synthdef)
+            loaded_from_pack.append(gen_name)
+        
+        # Store resolved generator names for Phase 4 cycle building
+        pack['loaded_generators'] = loaded_from_pack
+        
+        if logger and loaded_from_pack:
+            logger.info(f"Loaded {len(loaded_from_pack)} generators from pack '{pack['display_name']}'", component="PACKS")
     
     # Validate GENERATOR_CYCLE
     for name in GENERATOR_CYCLE:
