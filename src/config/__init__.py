@@ -240,6 +240,17 @@ _CORE_GENERATOR_ORDER = [
     "808 Snare",
     "808 Hat",
     "808 Clap",
+    # Conceptual
+    "THOR",
+    # R'lyeh Collection
+    "CTHULHU",
+    "RLYEH",
+    "ABYSS",
+    "MADNESS",
+    "TEMPEST",
+    "VESSEL",
+    "TENTACLE",
+    "DAGON",
     # Basic synthesis
     "Test Synth",
     "Subtractive",

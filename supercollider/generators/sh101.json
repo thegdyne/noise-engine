@@ -26,7 +26,7 @@
         {
             "key": "sub_level",
             "label": "SUB",
-            "tooltip": "Sub Oscillator Level (-1 or -2 oct)",
+            "tooltip": "Sub Oscillator Level (-1 oct)",
             "default": 0.0,
             "min": 0.0,
             "max": 1.0,
@@ -45,7 +45,7 @@
         },
         {
             "key": "filter_env",
-            "label": "ENV",
+            "label": "FEN",
             "tooltip": "Filter Envelope Amount",
             "default": 0.3,
             "min": 0.0,

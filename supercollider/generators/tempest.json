@@ -1,0 +1,57 @@
+{
+    "name": "TEMPEST",
+    "synthdef": "tempest",
+    "custom_params": [
+        {
+            "key": "waves",
+            "label": "WAV",
+            "tooltip": "Crashing wave intensity",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "wind",
+            "label": "WND",
+            "tooltip": "Howling wind",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "thunder",
+            "label": "THN",
+            "tooltip": "Thunder rumble",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "spray",
+            "label": "SPY",
+            "tooltip": "Sea spray and foam",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "surge",
+            "label": "SRG",
+            "tooltip": "Storm surge intensity",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}

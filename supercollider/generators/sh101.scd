@@ -24,8 +24,8 @@ SynthDef(\sh101, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                     customBus0, customBus1, customBus2, customBus3, customBus4|
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
     var waveform, pulseWidth, subLevel, noiseLevel, filterEnv;
-    var saw, square, sub, noise, filtEnvSig;
-    var envGate, envTrig, ampEnv, filtEnvGen;
+    var saw, square, sub, noise, filtEnvSig, envOctaves;
+    var envTrig, filtEnvGen;
     
     // Standard params
     freq = In.kr(freqBus);
@@ -41,9 +41,11 @@ SynthDef(\sh101, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Custom params
     waveform = In.kr(customBus0);
     pulseWidth = In.kr(customBus1);
+    pulseWidth = pulseWidth.clip(0.05, 0.95);  // Safety clamp for modulation edge cases
     subLevel = In.kr(customBus2);
     noiseLevel = In.kr(customBus3);
     filterEnv = In.kr(customBus4);
+    filterEnv = Lag.kr(filterEnv, 0.02);  // Smooth to prevent zipper noise
     
     // === VCO ===
     saw = Saw.ar(freq);
@@ -52,7 +54,7 @@ SynthDef(\sh101, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = SelectX.ar(waveform, [
         saw,                        // 0: Saw only
         square,                     // 1: Square only
-        (saw + square) * 0.6        // 2: Both mixed
+        (saw + square) * 0.5        // 2: Both mixed (balanced level)
     ]);
     
     // === SUB OSCILLATOR ===
@@ -64,12 +66,11 @@ SynthDef(\sh101, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = sig + (noise * noiseLevel * 0.5);
     
     // === FILTER ENVELOPE ===
-    // Generate envelope for filter modulation
-    // Clock triggers are audio rate, need A2K for EnvGen.kr
-    envTrig = Select.ar(envSource, [
-        DC.ar(0),                                    // OFF: no trigger
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),  // CLK
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))  // MIDI
+    // Clock triggers are audio rate - clamp indices for safety
+    envTrig = Select.ar(envSource.round.clip(0, 2), [
+        DC.ar(0),                                                          // OFF: no trigger
+        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),   // CLK
+        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))             // MIDI
     ]);
     
     filtEnvGen = EnvGen.ar(
@@ -77,11 +78,13 @@ SynthDef(\sh101, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         envTrig
     );
     
-    // Apply filter envelope - modulates cutoff upward
-    filtEnvSig = filterFreq * (1 + (filtEnvGen * filterEnv * 4));
+    // === FILTER MODULATION (octave-based) ===
+    // Exponential scaling gives musical response across full knob range
+    // Max 4 octaves of sweep
+    envOctaves = filtEnvGen * filterEnv * 4;
+    filtEnvSig = filterFreq * (2 ** envOctaves);
     
-    // === FILTER (SH-101 style - resonant lowpass) ===
-    // Override filter type to LP for authentic 101 sound, but respect user choice
+    // === FILTER ===
     sig = ~multiFilter.(sig, filterType, filtEnvSig.clip(20, 16000), rq);
     
     // === OUTPUT ===

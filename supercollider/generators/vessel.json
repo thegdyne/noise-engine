@@ -1,0 +1,57 @@
+{
+    "name": "VESSEL",
+    "synthdef": "vessel",
+    "custom_params": [
+        {
+            "key": "creak",
+            "label": "CRK",
+            "tooltip": "Wood creaking and straining",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "sail",
+            "label": "SAL",
+            "tooltip": "Sail flapping in wind",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "rope",
+            "label": "RPE",
+            "tooltip": "Rope tension and snap",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "hull",
+            "label": "HUL",
+            "tooltip": "Hull resonance against waves",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "doom",
+            "label": "DOM",
+            "tooltip": "Sense of impending doom",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}

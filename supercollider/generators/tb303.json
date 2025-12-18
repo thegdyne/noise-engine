@@ -35,8 +35,8 @@
         },
         {
             "key": "env_decay",
-            "label": "DKY",
-            "tooltip": "Filter Envelope Decay",
+            "label": "FDK",
+            "tooltip": "Filter Envelope Decay (separate from amp decay)",
             "default": 0.3,
             "min": 0.05,
             "max": 1.0,

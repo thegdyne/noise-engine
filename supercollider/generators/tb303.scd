@@ -25,7 +25,7 @@ SynthDef(\tb303, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
     var waveform, accent, envMod, envDecay, slide;
     var slidingFreq, saw, square;
-    var envTrig, filtEnv, filtFreqMod, accentedRes, accentedAmp;
+    var envTrig, filtEnv, filtFreqMod, envOctaves, accentedRes, accentedAmp;
     
     // Standard params
     freq = In.kr(freqBus);
@@ -41,12 +41,14 @@ SynthDef(\tb303, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Custom params
     waveform = In.kr(customBus0);
     accent = In.kr(customBus1);
+    accent = Lag.kr(accent, 0.02);  // Smooth accent changes to prevent zipper noise
     envMod = In.kr(customBus2);
     envDecay = In.kr(customBus3);
     slide = In.kr(customBus4);
     
     // === SLIDE (Portamento) ===
-    slidingFreq = Lag.kr(freq, slide * 0.3);
+    // Squared mapping gives more resolution in short glides (the musical sweet spot)
+    slidingFreq = Lag.kr(freq, slide.squared * 0.3);
     
     // === VCO ===
     saw = Saw.ar(slidingFreq);
@@ -54,11 +56,11 @@ SynthDef(\tb303, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = SelectX.ar(waveform, [saw, square]);
     
     // === FILTER ENVELOPE ===
-    // Clock triggers are audio rate
-    envTrig = Select.ar(envSource, [
-        DC.ar(0),                                    // OFF: no trigger
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),  // CLK
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))  // MIDI
+    // Clock triggers are audio rate - clamp indices for safety
+    envTrig = Select.ar(envSource.round.clip(0, 2), [
+        DC.ar(0),                                                      // OFF: no trigger
+        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),  // CLK
+        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))            // MIDI
     ]);
     
     // 303-style snappy envelope - very fast attack, variable decay
@@ -72,9 +74,11 @@ SynthDef(\tb303, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     accentedRes = rq * (1 - (accent * 0.3));  // Lower RQ = more resonance
     accentedAmp = amp * (1 + (accent * 0.5)); // Louder on accent
     
-    // Filter frequency with envelope and accent
-    // Accent also increases envelope depth
-    filtFreqMod = filterFreq * (1 + (filtEnv * envMod * (1 + (accent * 2)) * 6));
+    // === FILTER MODULATION (octave-based) ===
+    // Exponential scaling gives musical response across full knob range
+    // Max 4 octaves of sweep, accent doubles the depth
+    envOctaves = filtEnv * envMod * (1 + (accent * 2)) * 4;
+    filtFreqMod = filterFreq * (2 ** envOctaves);
     filtFreqMod = filtFreqMod.clip(20, 18000);
     
     // === 303 FILTER ===
