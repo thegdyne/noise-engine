@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QFrame, QScrollArea, QSizePolicy, QApplication, QShortcut
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QSettings
+from PyQt5.QtCore import Qt, pyqtSignal, QSettings, QTimer
 from PyQt5.QtGui import QFont, QColor, QKeySequence
 
 from .mod_matrix_cell import ModMatrixCell
@@ -79,7 +79,14 @@ class ModMatrixWindow(QMainWindow):
         # Drag state
         self._dragging = False
         self._drag_start = None
-        
+
+        # Navigation timer for continuous movement
+        self._nav_timer = QTimer(self)
+        self._nav_timer.timeout.connect(self._on_nav_timer)
+        self._nav_direction = (0, 0)  # (row_delta, col_delta)
+        self._nav_step = 1  # Step size (modified by Shift/Ctrl)
+        self._held_arrow = None
+ 
         self.setWindowTitle("Mod Matrix")
         self.setMinimumSize(800, 500)
         
@@ -501,20 +508,25 @@ class ModMatrixWindow(QMainWindow):
         ctrl_held = modifiers & (Qt.ControlModifier | Qt.MetaModifier)  # Ctrl or Cmd
         shift_held = modifiers & Qt.ShiftModifier
         
-        # Arrow keys: navigate
-        if key == Qt.Key_Up:
-            step = 4 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(-step, 0)
-        elif key == Qt.Key_Down:
-            step = 4 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(step, 0)
-        elif key == Qt.Key_Left:
-            step = 10 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(0, -step)
-        elif key == Qt.Key_Right:
-            step = 10 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(0, step)
-        
+        # Arrow keys: start/continue navigation
+        if key in (Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right):
+            if key == Qt.Key_Up:
+                step = 4 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (-step, 0)
+            elif key == Qt.Key_Down:
+                step = 4 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (step, 0)
+            elif key == Qt.Key_Left:
+                step = 10 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (0, -step)
+            elif key == Qt.Key_Right:
+                step = 10 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (0, step)
+            
+            self._held_arrow = key
+            self._move_selection(*self._nav_direction)
+            self._nav_timer.start(100)
+ 
         # Space: toggle connection
         elif key == Qt.Key_Space:
             self._toggle_selected()
@@ -560,7 +572,19 @@ class ModMatrixWindow(QMainWindow):
         
         else:
             super().keyPressEvent(event)
-    
+
+    def keyReleaseEvent(self, event):
+        """Stop navigation timer when arrow released."""
+        if event.key() == self._held_arrow:
+            self._nav_timer.stop()
+            self._held_arrow = None
+        super().keyReleaseEvent(event)
+
+    def _on_nav_timer(self):
+        """Continue movement while arrow held."""
+        if self._held_arrow:
+            self._move_selection(*self._nav_direction)
+ 
     def _move_selection(self, row_delta: int, col_delta: int):
         """Move selection by given delta."""
         # Clear old selection visual
