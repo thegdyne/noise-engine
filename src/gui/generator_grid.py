@@ -120,3 +120,9 @@ class GeneratorGrid(QWidget):
         """Set active state for a slot."""
         if slot_id in self.slots:
             self.slots[slot_id].set_active(active)
+
+    def set_available_generators(self, generators):
+        """Update available generators in all slots."""
+        for slot in self.slots.values():
+            slot.type_btn.set_values(generators)
+

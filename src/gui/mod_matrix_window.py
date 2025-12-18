@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QFrame, QScrollArea, QSizePolicy, QApplication, QShortcut
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QSettings
+from PyQt5.QtCore import Qt, pyqtSignal, QSettings, QTimer
 from PyQt5.QtGui import QFont, QColor, QKeySequence
 
 from .mod_matrix_cell import ModMatrixCell
@@ -79,7 +79,14 @@ class ModMatrixWindow(QMainWindow):
         # Drag state
         self._dragging = False
         self._drag_start = None
-        
+
+        # Navigation timer for continuous movement
+        self._nav_timer = QTimer(self)
+        self._nav_timer.timeout.connect(self._on_nav_timer)
+        self._nav_direction = (0, 0)  # (row_delta, col_delta)
+        self._nav_step = 1  # Step size (modified by Shift/Ctrl)
+        self._held_arrow = None
+ 
         self.setWindowTitle("Mod Matrix")
         self.setMinimumSize(800, 500)
         
@@ -501,20 +508,25 @@ class ModMatrixWindow(QMainWindow):
         ctrl_held = modifiers & (Qt.ControlModifier | Qt.MetaModifier)  # Ctrl or Cmd
         shift_held = modifiers & Qt.ShiftModifier
         
-        # Arrow keys: navigate
-        if key == Qt.Key_Up:
-            step = 4 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(-step, 0)
-        elif key == Qt.Key_Down:
-            step = 4 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(step, 0)
-        elif key == Qt.Key_Left:
-            step = 10 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(0, -step)
-        elif key == Qt.Key_Right:
-            step = 10 if ctrl_held else (5 if shift_held else 1)
-            self._move_selection(0, step)
-        
+        # Arrow keys: start/continue navigation
+        if key in (Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right):
+            if key == Qt.Key_Up:
+                step = 4 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (-step, 0)
+            elif key == Qt.Key_Down:
+                step = 4 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (step, 0)
+            elif key == Qt.Key_Left:
+                step = 10 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (0, -step)
+            elif key == Qt.Key_Right:
+                step = 10 if ctrl_held else (5 if shift_held else 1)
+                self._nav_direction = (0, step)
+            
+            self._held_arrow = key
+            self._move_selection(*self._nav_direction)
+            self._nav_timer.start(100)
+ 
         # Space: toggle connection
         elif key == Qt.Key_Space:
             self._toggle_selected()
@@ -535,14 +547,44 @@ class ModMatrixWindow(QMainWindow):
         # 0: set amount to 100%
         elif key == Qt.Key_0:
             self._set_selected_amount(1.0)
-        
+
+        # Shifted number keys (Shift held for fine navigation)
+        elif key == Qt.Key_Exclam:      self._set_selected_amount(0.1)  # Shift+1
+        elif key == Qt.Key_At:          self._set_selected_amount(0.2)  # Shift+2
+        elif key == Qt.Key_NumberSign:  self._set_selected_amount(0.3)  # Shift+3
+        elif key == Qt.Key_Dollar:      self._set_selected_amount(0.4)  # Shift+4
+        elif key == Qt.Key_Percent:     self._set_selected_amount(0.5)  # Shift+5
+        elif key == Qt.Key_AsciiCircum: self._set_selected_amount(0.6)  # Shift+6
+        elif key == Qt.Key_Ampersand:   self._set_selected_amount(0.7)  # Shift+7
+        elif key == Qt.Key_Asterisk:    self._set_selected_amount(0.8)  # Shift+8
+        elif key == Qt.Key_ParenLeft:   self._set_selected_amount(0.9)  # Shift+9
+        elif key == Qt.Key_ParenRight:  self._set_selected_amount(1.0)  # Shift+0 
+
+        # Shift + -/+ : adjust offset
+        elif key == Qt.Key_Underscore:  # Shift + minus
+            self._adjust_selected_offset(-10)
+        elif key == Qt.Key_Plus:        # Shift + equals
+            self._adjust_selected_offset(10)        
+
         # Escape: deselect
         elif key == Qt.Key_Escape:
             self._clear_selection()
         
         else:
             super().keyPressEvent(event)
-    
+
+    def keyReleaseEvent(self, event):
+        """Stop navigation timer when arrow released."""
+        if event.key() == self._held_arrow:
+            self._nav_timer.stop()
+            self._held_arrow = None
+        super().keyReleaseEvent(event)
+
+    def _on_nav_timer(self):
+        """Continue movement while arrow held."""
+        if self._held_arrow:
+            self._move_selection(*self._nav_direction)
+ 
     def _move_selection(self, row_delta: int, col_delta: int):
         """Move selection by given delta."""
         # Clear old selection visual
@@ -642,7 +684,21 @@ class ModMatrixWindow(QMainWindow):
                 amount=amount
             )
             self.routing_state.add_connection(new_conn)
-    
+
+    def _adjust_selected_offset(self, delta: int):
+        """Adjust offset for selected cell by delta (-10 or +10)."""
+        key = self._get_selected_key()
+        if not key:
+            return
+        
+        bus, slot, param = key
+        conn = self.routing_state.get_connection(bus, slot, param)
+        
+        if conn:
+            current = int(conn.offset * 100)
+            new_offset = max(-100, min(100, current + delta))
+            self.routing_state.set_offset(bus, slot, param, new_offset / 100.0) 
+
     def _clear_selection(self):
         """Clear selection visual."""
         self._update_selection_visual(False)

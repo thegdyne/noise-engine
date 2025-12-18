@@ -204,3 +204,28 @@ bash tools/ssot.sh  # Runs check, updates badge, commits if changed
 | `tools/debug_add.sh` | Add debug output to SC files |
 | `tools/debug_remove.sh` | Remove debug output from SC files |
 | `tools/add_milestone.sh` | Add milestone to index.html |
+
+## Edit Workflow Preferences
+
+When making code changes:
+
+1. **Small edits:** Use `sed -i ''` commands (no comments in command blocks — breaks copy-paste)
+2. **Verify:** Use `grep -n` to confirm changes
+3. **Big edits:** Give line numbers, user edits in vi
+4. **Multi-step tasks:** Show percentage complete at each step, e.g. `**[Phase 2: 85%]**`
+
+### Process Discipline
+
+- **Keep it lean** — push back when over-engineering process
+- **Tiered features:**
+  - Large (1+ week): Spec + Rollout + CI gate
+  - Medium (2-5 days): Spec only
+  - Small (<1 day): Just do it
+- Give honest critical feedback when deviating from lean approach
+
+### Key Docs
+
+- `PROCESS.md` — Lean workflow rules
+- `BACKLOG.md` — Active work tracking  
+- `docs/IDEAS.md` — All captured feature ideas
+- `docs/rollout/` — Phased rollout plans for large features

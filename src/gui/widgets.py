@@ -471,6 +471,7 @@ class CycleButton(QPushButton):
         self.wrap = True  # Default: cycle wraps around at ends
         self.wrap_at_start = False  # Only wrap when going up from index 0
         self.sensitivity_key = 'cycle'  # Key prefix for DRAG_SENSITIVITY lookup
+        self.skip_prefix = None  # Skip values starting with this prefix (e.g., "────" for separators)
         # Text alignment for custom paint (stylesheet text-align is ignored)
         self.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
         self.text_padding_lr = 3  # default padding for custom draw
@@ -481,6 +482,12 @@ class CycleButton(QPushButton):
         self.drag_start_y = 0
         self.drag_start_index = 0
         self.moved_during_press = False
+    
+    def _should_skip(self, index):
+        """Check if value at index should be skipped."""
+        if self.skip_prefix is None:
+            return False
+        return self.values[index].startswith(self.skip_prefix)
         
     def _update_display(self):
         """Update button text."""
@@ -511,21 +518,55 @@ class CycleButton(QPushButton):
         """Get current index."""
         return self.index
         
+    def set_values(self, values):
+        """Update the list of values and reset to first."""
+        self.values = values
+        self.index = 0
+        self._update_display()
+
     def cycle_forward(self):
-        """Move to next value (higher index)."""
-        if self.wrap:
-            self.index = (self.index + 1) % len(self.values)
-        else:
-            self.index = min(self.index + 1, len(self.values) - 1)
+        """Move to next value (higher index), skipping skip_prefix entries."""
+        start_index = self.index
+        attempts = 0
+        max_attempts = len(self.values)
+        
+        while attempts < max_attempts:
+            if self.wrap:
+                self.index = (self.index + 1) % len(self.values)
+            else:
+                self.index = min(self.index + 1, len(self.values) - 1)
+            
+            if not self._should_skip(self.index):
+                break
+            
+            # Prevent infinite loop if all values are skippable
+            attempts += 1
+            if self.index == start_index:
+                break
+        
         self._update_display()
         self._emit_signals()
         
     def cycle_backward(self):
-        """Move to previous value (lower index)."""
-        if self.wrap:
-            self.index = (self.index - 1) % len(self.values)
-        else:
-            self.index = max(self.index - 1, 0)
+        """Move to previous value (lower index), skipping skip_prefix entries."""
+        start_index = self.index
+        attempts = 0
+        max_attempts = len(self.values)
+        
+        while attempts < max_attempts:
+            if self.wrap:
+                self.index = (self.index - 1) % len(self.values)
+            else:
+                self.index = max(self.index - 1, 0)
+            
+            if not self._should_skip(self.index):
+                break
+            
+            # Prevent infinite loop
+            attempts += 1
+            if self.index == start_index:
+                break
+        
         self._update_display()
         self._emit_signals()
         
@@ -559,6 +600,14 @@ class CycleButton(QPushButton):
                 new_index = len(self.values) + (new_index % len(self.values))
             else:
                 new_index = max(0, min(len(self.values) - 1, new_index))
+            
+            # Skip over separator entries
+            if self._should_skip(new_index):
+                direction = 1 if steps >= 0 else -1
+                attempts = 0
+                while self._should_skip(new_index) and attempts < len(self.values):
+                    new_index = (new_index + direction) % len(self.values)
+                    attempts += 1
             
             if new_index != self.index:
                 self.moved_during_press = True

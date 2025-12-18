@@ -1,0 +1,13 @@
+{
+    "pack_format": 1,
+    "name": "Example Pack",
+    "version": "1.0.0",
+    "author": "Noise Engine",
+    "description": "Example pack demonstrating the pack format",
+    "url": "https://github.com/yourrepo/noise-engine",
+    "enabled": true,
+    "generators": [
+        "sine_drone",
+        "pulse_bass"
+    ]
+}

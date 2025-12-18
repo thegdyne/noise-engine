@@ -56,7 +56,36 @@ s.waitForBoot({
     (~basePath +/+ "core/master.scd").load;
     ~setupMaster.();
     
-    // Load generators (auto-load all .scd files)
+    // Load pack generators FIRST (so core can override any SynthDef name collisions)
+    ~packGeneratorCount = 0;
+    ~packsPath = ~basePath.dirname +/+ "packs/";
+    if(File.exists(~packsPath), {
+        "Loading pack generators...".postln;
+        PathName(~packsPath).folders.do({ |packDir|
+            var manifestPath, genPath;
+            
+            // Skip hidden directories (e.g., .git)
+            if(packDir.folderName.beginsWith(".").not, {
+                manifestPath = packDir.fullPath +/+ "manifest.json";
+                genPath = packDir.fullPath +/+ "generators/";
+                
+                // Only load if manifest exists and generators folder exists
+                if(File.exists(manifestPath) && File.exists(genPath), {
+                    var packFiles = PathName(genPath).files.select({ |f| f.extension == "scd" });
+                    if(packFiles.size > 0, {
+                        ("  Pack: " ++ packDir.folderName).postln;
+                        packFiles.do({ |file|
+                            file.fullPath.load;
+                            ("    ✓ " ++ file.fileNameWithoutExtension).postln;
+                        });
+                        ~packGeneratorCount = ~packGeneratorCount + packFiles.size;
+                    });
+                });
+            });
+        });
+    });
+    
+    // Load core generators AFTER packs (core wins on SynthDef name collisions)
     "Loading generators...".postln;
     ~generatorPath = ~basePath +/+ "generators/";
     ~generatorFiles = PathName(~generatorPath).files.select({ |f| f.extension == "scd" });
@@ -172,7 +201,10 @@ s.waitForBoot({
     "========================================".postln;
     "✓ Noise Engine ready!".postln;
     "✓ Core modules loaded".postln;
-    ("✓ " ++ ~generatorFiles.size ++ " generators available").postln;
+    ("✓ " ++ ~generatorFiles.size ++ " core generators loaded").postln;
+    if(~packGeneratorCount.notNil && (~packGeneratorCount > 0), {
+        ("✓ " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
+    });
     "✓ 4 mod source slots ready".postln;
     ("✓ OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;

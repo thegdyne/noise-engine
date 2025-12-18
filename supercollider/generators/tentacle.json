@@ -1,0 +1,57 @@
+{
+    "name": "TENTACLE",
+    "synthdef": "tentacle",
+    "custom_params": [
+        {
+            "key": "writhe",
+            "label": "WRT",
+            "tooltip": "Writhing movement intensity",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "slither",
+            "label": "SLT",
+            "tooltip": "Wet slithering texture",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "suction",
+            "label": "SUC",
+            "tooltip": "Suction cup sounds",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "mass",
+            "label": "MAS",
+            "tooltip": "Tentacle mass/thickness",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "reach",
+            "label": "RCH",
+            "tooltip": "Reaching/grabbing motion",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}

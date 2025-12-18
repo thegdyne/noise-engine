@@ -18,6 +18,7 @@ from src.gui.master_section import MasterSection
 from src.gui.effects_chain import EffectsChain
 from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
+from src.gui.pack_selector import PackSelector
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
 from src.gui.mod_routing_state import ModRoutingState, ModConnection, Polarity
@@ -209,6 +210,13 @@ class MainFrame(QMainWindow):
         
         layout.addSpacing(20)
         
+        # Pack selector
+        self.pack_selector = PackSelector()
+        self.pack_selector.pack_changed.connect(self.on_pack_changed)
+        layout.addWidget(self.pack_selector)
+        
+        layout.addSpacing(20)
+        
         # Audio device selector
         from src.gui.audio_device_selector import AudioDeviceSelector
         self.audio_selector = AudioDeviceSelector()
@@ -332,6 +340,22 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
         
+    def on_pack_changed(self, pack_id):
+        """Handle pack selection change."""
+        from src.config import get_current_generators
+        
+        # Get new generator list
+        generators = get_current_generators()
+        
+        # Update all generator slots
+        self.generator_grid.set_available_generators(generators)
+        
+        # Reset all slots to Empty
+        for slot_id in range(8):
+            self.generator_grid.set_generator_type(slot_id, "Empty")
+            self.on_generator_changed(slot_id, "Empty")
+
+
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
         if not self.osc_connected:

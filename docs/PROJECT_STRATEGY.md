@@ -639,3 +639,8 @@ All generators in SuperCollider receive the same parameter buses:
 - FRQ, CUT, RES, ATK, DEC, FilterType
 - Each generator interprets these appropriately for its sound
 - Adding new generators = implement interface, don't repeat wiring
+
+## Development Process
+
+See [DUAL_AI_WORKFLOW.md](DUAL_AI_WORKFLOW.md) for the 14-step dual-AI development process used for feature implementation.
+

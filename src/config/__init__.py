@@ -223,10 +223,43 @@ BPM_MIN = 20
 BPM_MAX = 300
 
 # === GENERATORS ===
-# Cycle order when clicking generator slot
-# All generators now have SynthDefs with standard signal flow
-GENERATOR_CYCLE = [
+# Core generator order (static list for preferred ordering)
+# Pack generators are appended dynamically after these
+_CORE_GENERATOR_ORDER = [
     "Empty",
+    # Classic synths
+    "TB-303",
+    "Juno",
+    "SH-101",
+    "MS-20",
+    "C64 SID",
+    "Buchla",
+    "Drone",
+    # 808 Drums
+    "808 Kick",
+    "808 Snare",
+    "808 Hat",
+    "808 Clap",
+    # Conceptual
+    "THOR",
+    # Electric Shepherd Collection
+    "FEEDR",
+    "HUSK",
+    "TETHER",
+    "LIMINAL",
+    "DUSK",
+    "BEACON",
+    "STATIC",
+    "LONGING",
+    # R'lyeh Collection
+    "CTHULHU",
+    "RLYEH",
+    "ABYSS",
+    "MADNESS",
+    "TEMPEST",
+    "VESSEL",
+    "TENTACLE",
+    "DAGON",
     # Basic synthesis
     "Test Synth",
     "Subtractive",
@@ -257,6 +290,10 @@ GENERATOR_CYCLE = [
     "Giant B0N0",
 ]
 
+# Dynamic generator cycle (built after loading)
+# Includes core generators + pack generators with separators
+GENERATOR_CYCLE = []  # Populated by _finalize_config()
+
 # Maximum custom params per generator
 MAX_CUSTOM_PARAMS = 5
 
@@ -264,9 +301,222 @@ MAX_CUSTOM_PARAMS = 5
 # Maps display name -> {"synthdef": str, "custom_params": list, "pitch_target": int|None, "output_trim_db": float}
 _GENERATOR_CONFIGS = {}
 
+# === PACK SYSTEM ===
+# Pack configs loaded from manifest.json files
+# Maps pack_id (directory name) -> {id, display_name, version, author, enabled, generators, path}
+_PACK_CONFIGS = {}
+
+# Track which generators came from which pack (for UI grouping)
+# Maps generator_name -> pack_id (None for core generators)
+_GENERATOR_SOURCES = {}
+
+
+def _discover_packs():
+    """
+    Scan packs/ directory for valid pack manifests.
+    Populates _PACK_CONFIGS with metadata (does not load generators).
+    
+    Returns:
+        dict: {pack_id: {id, display_name, version, author, enabled, generators, path}}
+    """
+    global _PACK_CONFIGS
+    
+    # Late import to avoid circular dependency at module load time
+    try:
+        from src.utils.logger import logger
+    except ImportError:
+        logger = None
+    
+    # Clear in place to preserve external references (important for tests)
+    _PACK_CONFIGS.clear()
+    
+    # Find packs directory relative to this file
+    config_dir = os.path.dirname(os.path.abspath(__file__))
+    src_dir = os.path.dirname(config_dir)
+    project_dir = os.path.dirname(src_dir)
+    packs_dir = os.path.join(project_dir, 'packs')
+    
+    if not os.path.exists(packs_dir):
+        if logger:
+            logger.debug("No packs/ directory found", component="PACKS")
+        return _PACK_CONFIGS
+    
+    for entry in sorted(os.listdir(packs_dir)):
+        pack_path = os.path.join(packs_dir, entry)
+        
+        # Skip files, hidden dirs, and special entries
+        if not os.path.isdir(pack_path):
+            continue
+        if entry.startswith('.') or entry.startswith('_'):
+            continue
+        
+        manifest_path = os.path.join(pack_path, 'manifest.json')
+        if not os.path.exists(manifest_path):
+            if logger:
+                logger.warning(f"Pack '{entry}' missing manifest.json, skipping", component="PACKS")
+            continue
+        
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+            
+            # Validate required fields
+            required = ['pack_format', 'name', 'enabled', 'generators']
+            missing = [field for field in required if field not in manifest]
+            if missing:
+                if logger:
+                    logger.warning(f"Pack '{entry}' manifest missing fields: {missing}", component="PACKS")
+                continue
+            
+            # Check format version
+            if manifest['pack_format'] != 1:
+                if logger:
+                    logger.warning(f"Pack '{entry}' has unsupported format version {manifest['pack_format']}", component="PACKS")
+                continue
+            
+            pack_id = entry  # directory name = stable unique pack ID
+            display_name = manifest['name']  # UI name (can collide, not used as key)
+            
+            _PACK_CONFIGS[pack_id] = {
+                'id': pack_id,
+                'display_name': display_name,
+                'version': manifest.get('version', '0.0.0'),
+                'author': manifest.get('author', 'Unknown'),
+                'description': manifest.get('description', ''),
+                'enabled': manifest.get('enabled', True),
+                'generators': manifest.get('generators', []),
+                'path': pack_path,
+            }
+            
+            status = "enabled" if manifest.get('enabled', True) else "disabled"
+            gen_count = len(manifest.get('generators', []))
+            if logger:
+                logger.info(
+                    f"Found pack: {display_name} v{manifest.get('version', '?')} "
+                    f"(id={pack_id}, {gen_count} generators, {status})",
+                    component="PACKS"
+                )
+        
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.warning(f"Pack '{entry}' has invalid manifest.json: {e}", component="PACKS")
+        except IOError as e:
+            if logger:
+                logger.warning(f"Failed to read pack '{entry}': {e}", component="PACKS")
+    
+    return _PACK_CONFIGS
+
+
+def get_discovered_packs():
+    """
+    Get all discovered packs (enabled and disabled).
+    
+    Returns:
+        dict: {pack_id: {id, display_name, version, author, enabled, generators, path}}
+    """
+    return _PACK_CONFIGS.copy()
+
+
+def get_enabled_packs():
+    """
+    Get only enabled packs, in discovery order.
+    
+    Note: Returned dicts may be augmented during load (e.g., 'loaded_generators'
+    is added by _load_generator_configs()).
+    
+    Returns:
+        list: [{id, display_name, version, author, generators, path, ...}, ...]
+    """
+    return [p for p in _PACK_CONFIGS.values() if p.get('enabled', False)]
+
+
+def get_generator_source(generator_name):
+    """
+    Get which pack a generator came from.
+    
+    Returns:
+        str or None: Pack id (directory name), or None if core generator
+    """
+    return _GENERATOR_SOURCES.get(generator_name)
+# Current pack selection (None = Core, or pack_id string)
+_CURRENT_PACK = None
+
+
+def get_current_pack():
+    """
+    Get currently selected pack.
+    
+    Returns:
+        str or None: Pack id, or None for Core
+    """
+    return _CURRENT_PACK
+
+
+def set_current_pack(pack_id):
+    """
+    Set current pack. Validates pack exists.
+    
+    Args:
+        pack_id: Pack id string, or None for Core
+        
+    Returns:
+        bool: True if pack was set, False if pack not found
+    """
+    global _CURRENT_PACK
+    
+    if pack_id is None:
+        _CURRENT_PACK = None
+        return True
+    
+    if pack_id in _PACK_CONFIGS and _PACK_CONFIGS[pack_id].get('enabled', False):
+        _CURRENT_PACK = pack_id
+        return True
+    
+    # Pack not found, fall back to Core
+    _CURRENT_PACK = None
+    return False
+
+
+def get_generators_for_pack(pack_id=None):
+    """
+    Get generator names for a specific pack (or Core).
+    
+    Args:
+        pack_id: Pack id, or None for Core generators
+        
+    Returns:
+        list: Generator names in order, always starts with "Empty"
+    """
+    result = ["Empty"]
+    
+    if pack_id is None:
+        # Core generators: those with source = None
+        for name, source in _GENERATOR_SOURCES.items():
+            if source is None and name != "Empty":
+                result.append(name)
+    else:
+        # Pack generators: those with matching source
+        pack = _PACK_CONFIGS.get(pack_id)
+        if pack and 'loaded_generators' in pack:
+            result.extend(pack['loaded_generators'])
+    
+    return result
+
+
+def get_current_generators():
+    """
+    Get generators for currently selected pack.
+    
+    Returns:
+        list: Generator names for current pack (or Core)
+    """
+    return get_generators_for_pack(_CURRENT_PACK)
+
+
+
 def _load_generator_configs():
-    """Load generator configs from JSON files in supercollider/generators/"""
-    global _GENERATOR_CONFIGS
+    """Load generator configs from core + enabled packs."""
+    global _GENERATOR_CONFIGS, _GENERATOR_SOURCES
     
     # Late import to avoid circular dependency at module load time
     try:
@@ -280,53 +530,219 @@ def _load_generator_configs():
     project_dir = os.path.dirname(src_dir)
     generators_dir = os.path.join(project_dir, 'supercollider', 'generators')
     
-    _GENERATOR_CONFIGS = {"Empty": {"synthdef": None, "custom_params": [], "pitch_target": None, "output_trim_db": 0.0}}
+    # Clear in place to preserve external references (important for tests)
+    _GENERATOR_CONFIGS.clear()
+    _GENERATOR_CONFIGS["Empty"] = {"synthdef": None, "custom_params": [], "pitch_target": None, "output_trim_db": 0.0}
+    _GENERATOR_SOURCES.clear()
+    _GENERATOR_SOURCES["Empty"] = None  # None = core generator
+    _LOADED_SYNTHDEFS = set()  # Track SynthDef symbols across core + packs
     
+    # === LOAD CORE GENERATORS ===
     if not os.path.exists(generators_dir):
         if logger:
             logger.warning(f"Generators directory not found: {generators_dir}", component="CONFIG")
-        return
+    else:
+        for filename in os.listdir(generators_dir):
+            # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
+            if not filename.endswith('.json'):
+                continue
+            if filename.startswith('.'):
+                continue
+            
+            filepath = os.path.join(generators_dir, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    name = config.get('name')
+                    synthdef = config.get('synthdef')
+                    if name:
+                        _GENERATOR_CONFIGS[name] = {
+                            "synthdef": synthdef,
+                            "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
+                            "pitch_target": config.get('pitch_target'),  # None if not specified
+                            "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
+                            "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
+                        }
+                        _GENERATOR_SOURCES[name] = None  # Mark as core
+                        if synthdef:
+                            _LOADED_SYNTHDEFS.add(synthdef)
+            except UnicodeDecodeError as e:
+                if logger:
+                    logger.warning(f"Skipping non-UTF8 generator config: {filename} ({e})", component="CONFIG")
+                continue
+            except json.JSONDecodeError as e:
+                if logger:
+                    logger.warning(f"Skipping invalid JSON generator config: {filename} ({e})", component="CONFIG")
+                continue
+            except IOError as e:
+                if logger:
+                    logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
     
-    for filename in os.listdir(generators_dir):
-        # Skip non-JSON and hidden files (AppleDouble ._*.json, .DS_Store, etc.)
-        if not filename.endswith('.json'):
-            continue
-        if filename.startswith('.'):
+    # === LOAD PACK GENERATORS ===
+    for pack in get_enabled_packs():
+        pack_generators_dir = os.path.join(pack['path'], 'generators')
+        
+        if not os.path.exists(pack_generators_dir):
+            if logger:
+                logger.warning(f"Pack '{pack['display_name']}' has no generators/ directory", component="PACKS")
             continue
         
-        filepath = os.path.join(generators_dir, filename)
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                name = config.get('name')
-                if name:
-                    _GENERATOR_CONFIGS[name] = {
-                        "synthdef": config.get('synthdef'),
-                        "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
-                        "pitch_target": config.get('pitch_target'),  # None if not specified
-                        "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
-                        "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
-                    }
-        except UnicodeDecodeError as e:
-            if logger:
-                logger.warning(f"Skipping non-UTF8 generator config: {filename} ({e})", component="CONFIG")
-            continue
-        except json.JSONDecodeError as e:
-            if logger:
-                logger.warning(f"Skipping invalid JSON generator config: {filename} ({e})", component="CONFIG")
-            continue
-        except IOError as e:
-            if logger:
-                logger.warning(f"Failed to load {filepath}: {e}", component="CONFIG")
+        loaded_from_pack = []
+        
+        for gen_entry in pack['generators']:
+            # Try file-stem match first (recommended), then display-name fallback
+            json_file = None
+            gen_name = None
+            config = None
+            
+            # 1. Try file-stem match: gen_entry.json
+            stem_path = os.path.join(pack_generators_dir, f"{gen_entry}.json")
+            if os.path.exists(stem_path):
+                try:
+                    with open(stem_path, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                        json_file = stem_path
+                        gen_name = config.get('name', gen_entry)  # Use display name from JSON
+                except (json.JSONDecodeError, IOError):
+                    pass
+            
+            # 2. Fallback: search by display name
+            if not json_file:
+                for filename in os.listdir(pack_generators_dir):
+                    if filename.endswith('.json') and not filename.startswith('.'):
+                        filepath = os.path.join(pack_generators_dir, filename)
+                        try:
+                            with open(filepath, 'r', encoding='utf-8') as f:
+                                file_config = json.load(f)
+                                if file_config.get('name') == gen_entry:
+                                    json_file = filepath
+                                    gen_name = gen_entry
+                                    config = file_config
+                                    break
+                        except (json.JSONDecodeError, IOError):
+                            continue
+            
+            if not json_file:
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': generator '{gen_entry}' not found", component="PACKS")
+                continue
+            
+            # Check for display name conflicts with core
+            if gen_name in _GENERATOR_CONFIGS and _GENERATOR_SOURCES.get(gen_name) is None:
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': '{gen_name}' conflicts with core generator, skipping", component="PACKS")
+                continue
+            
+            # Check for display name conflicts with other packs
+            if gen_name in _GENERATOR_CONFIGS:
+                existing_pack = _GENERATOR_SOURCES.get(gen_name)
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': '{gen_name}' already loaded from '{existing_pack}', skipping", component="PACKS")
+                continue
+            
+            # Validate SynthDef symbol uniqueness
+            synthdef = config.get('synthdef')
+            if not synthdef:
+                if logger:
+                    logger.warning(f"Pack '{pack['display_name']}': '{gen_name}' missing synthdef, skipping", component="PACKS")
+                continue
+            
+            if synthdef in _LOADED_SYNTHDEFS:
+                if logger:
+                    logger.warning(
+                        f"Pack '{pack['display_name']}': synthdef '{synthdef}' already loaded "
+                        f"(conflicts with core/another pack), skipping '{gen_name}'",
+                        component="PACKS"
+                    )
+                continue
+            
+            # Load the generator
+            _GENERATOR_CONFIGS[gen_name] = {
+                "synthdef": synthdef,
+                "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
+                "pitch_target": config.get('pitch_target'),
+                "midi_retrig": config.get('midi_retrig', False),
+                "output_trim_db": config.get('output_trim_db', 0.0),
+                "pack": pack['id'],  # Track source pack
+                "pack_path": pack['path'],
+            }
+            _GENERATOR_SOURCES[gen_name] = pack['id']
+            _LOADED_SYNTHDEFS.add(synthdef)
+            loaded_from_pack.append(gen_name)
+        
+        # Store resolved generator names for Phase 4 cycle building
+        pack['loaded_generators'] = loaded_from_pack
+        
+        if logger and loaded_from_pack:
+            logger.info(f"Loaded {len(loaded_from_pack)} generators from pack '{pack['display_name']}'", component="PACKS")
     
-    # Validate GENERATOR_CYCLE
-    for name in GENERATOR_CYCLE:
+    # Note: GENERATOR_CYCLE validation moved to _finalize_config() after cycle is built
+
+
+def _build_generator_cycle():
+    """
+    Build complete generator list: core + enabled packs.
+    
+    Returns:
+        list: Ordered generator names for UI dropdown (includes separators)
+    """
+    cycle = []
+    
+    # 1. Core generators (in defined order)
+    for name in _CORE_GENERATOR_ORDER:
+        if name in _GENERATOR_CONFIGS:
+            cycle.append(name)
+    
+    # 2. Pack generators (grouped by pack, in manifest order)
+    for pack in get_enabled_packs():
+        # Use resolved display names stored during loading (preserves manifest order)
+        pack_generators = pack.get('loaded_generators', [])
+        
+        if pack_generators:
+            # Add separator (special entry, handled by UI)
+            cycle.append(f"──── {pack['display_name']} ────")
+            cycle.extend(pack_generators)
+    
+    return cycle
+
+
+def get_valid_generators():
+    """
+    Get generator names only (no separators).
+    
+    CANONICAL accessor - use this everywhere you need a list of selectable generator names.
+    
+    Returns:
+        list: Generator names that can be selected (excludes separator entries)
+    """
+    return [g for g in GENERATOR_CYCLE if not g.startswith("────")]
+
+
+def _finalize_config():
+    """Called after all loading complete to build dynamic lists."""
+    global GENERATOR_CYCLE
+    
+    # Late import to avoid circular dependency
+    try:
+        from src.utils.logger import logger
+    except ImportError:
+        logger = None
+    
+    # Clear and extend in place to preserve external references (important for tests)
+    GENERATOR_CYCLE.clear()
+    GENERATOR_CYCLE.extend(_build_generator_cycle())
+    
+    # Validate core generators exist
+    for name in _CORE_GENERATOR_ORDER:
         if name != "Empty" and name not in _GENERATOR_CONFIGS:
             if logger:
-                logger.warning(f"'{name}' in GENERATOR_CYCLE but no JSON found", component="CONFIG")
+                logger.warning(f"'{name}' in _CORE_GENERATOR_ORDER but no JSON found", component="CONFIG")
 
-# Load on import
-_load_generator_configs()
+
+# Load on import - ORDER MATTERS
+_discover_packs()           # 1. Find packs
+_load_generator_configs()   # 2. Load core + pack generators
+_finalize_config()          # 3. Build GENERATOR_CYCLE
 
 def get_generator_synthdef(name):
     """Get SynthDef name for a generator display name."""

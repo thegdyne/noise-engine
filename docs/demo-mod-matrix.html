@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mod Matrix - Noise Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #12121a;
+            --bg-card: #1a1a25;
+            --border: #2a2a3a;
+            --text: #888899;
+            --text-bright: #ccccdd;
+            --accent-green: #44ff88;
+            --accent-orange: #ff8844;
+            --accent-magenta: #ff44aa;
+            --accent-cyan: #44ddff;
+            --accent-yellow: #ffdd44;
+            --accent-lfo: #00ff66;
+            --accent-sloth: #ff6600;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            padding: 40px 20px;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .back-link {
+            color: var(--text);
+            text-decoration: none;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+        }
+        
+        .back-link:hover { color: var(--accent-yellow); }
+        
+        h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 36px;
+            color: var(--text-bright);
+        }
+        
+        h1 span { color: var(--accent-yellow); }
+        
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            color: var(--accent-yellow);
+            text-shadow: 0 0 20px rgba(255, 221, 68, 0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        .matrix-visual {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 40px 0;
+            overflow-x: auto;
+        }
+        
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(16, 30px);
+            gap: 3px;
+            min-width: 600px;
+        }
+        
+        .matrix-header {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--text);
+            text-align: center;
+            padding: 5px 2px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            height: 60px;
+        }
+        
+        .matrix-header.lfo { color: var(--accent-lfo); }
+        .matrix-header.sloth { color: var(--accent-sloth); }
+        
+        .matrix-row-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            padding-right: 10px;
+        }
+        
+        .matrix-cell {
+            width: 30px;
+            height: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .matrix-cell:hover {
+            border-color: var(--accent-yellow);
+        }
+        
+        .matrix-cell.active {
+            background: var(--accent-lfo);
+            box-shadow: 0 0 8px var(--accent-lfo);
+        }
+        
+        .matrix-cell.active-sloth {
+            background: var(--accent-sloth);
+            box-shadow: 0 0 8px var(--accent-sloth);
+        }
+        
+        .corner { background: transparent; border: none; }
+        
+        .section {
+            margin: 50px 0;
+        }
+        
+        .section h2 {
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            color: var(--text-bright);
+            margin-bottom: 25px;
+            padding-left: 15px;
+            border-left: 3px solid var(--accent-yellow);
+        }
+        
+        .mod-sources {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        
+        .mod-source-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            border-top: 3px solid var(--card-color, var(--accent-green));
+        }
+        
+        .mod-source-card h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 22px;
+            color: var(--card-color, var(--text-bright));
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mod-source-card .subtitle {
+            font-size: 12px;
+            color: var(--text);
+            margin-bottom: 20px;
+        }
+        
+        .outputs-visual {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .output-trace {
+            flex: 1;
+            height: 60px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .output-trace::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to right, transparent, var(--trace-color, var(--accent-green)), transparent);
+            animation: waveMove 2s linear infinite;
+            opacity: 0.5;
+        }
+        
+        @keyframes waveMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .output-label {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--trace-color, var(--text));
+            z-index: 1;
+        }
+        
+        .feature-list {
+            margin-top: 15px;
+        }
+        
+        .feature-list li {
+            padding: 5px 0;
+            font-size: 14px;
+            color: var(--text);
+            list-style: none;
+        }
+        
+        .feature-list li::before {
+            content: '→ ';
+            color: var(--card-color, var(--accent-green));
+        }
+        
+        .phase-patterns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .pattern {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .pattern-name {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-lfo);
+            margin-bottom: 5px;
+        }
+        
+        .pattern-dots {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+        }
+        
+        .pattern-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-lfo);
+            opacity: 0.3;
+        }
+        
+        .pattern-dot.active { opacity: 1; }
+        
+        .routing-example {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .routing-example h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            color: var(--accent-yellow);
+            margin-bottom: 20px;
+        }
+        
+        .routing-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .routing-node {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 15px 25px;
+            text-align: center;
+        }
+        
+        .routing-node.source { border-color: var(--accent-lfo); }
+        .routing-node.target { border-color: var(--accent-orange); }
+        
+        .routing-node h4 {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: var(--text-bright);
+        }
+        
+        .routing-node p {
+            font-size: 12px;
+            color: var(--text);
+        }
+        
+        .routing-arrow {
+            font-size: 20px;
+            color: var(--accent-yellow);
+        }
+        
+        .connection-params {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .conn-param {
+            background: var(--bg-card);
+            border-radius: 6px;
+            padding: 10px 15px;
+            text-align: center;
+        }
+        
+        .conn-param-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text);
+        }
+        
+        .conn-param-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            color: var(--accent-yellow);
+        }
+        
+        .slider-bracket {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .slider-bracket h3 {
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            color: var(--text-bright);
+            margin-bottom: 20px;
+        }
+        
+        .bracket-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .slider-track-v {
+            width: 30px;
+            height: 150px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .slider-bracket-range {
+            position: absolute;
+            left: -5px;
+            right: -5px;
+            background: rgba(68, 255, 136, 0.2);
+            border: 1px solid var(--accent-green);
+            border-radius: 2px;
+        }
+        
+        .slider-knob-v {
+            position: absolute;
+            left: 3px;
+            right: 3px;
+            height: 10px;
+            background: var(--text-bright);
+            border-radius: 2px;
+        }
+        
+        .bracket-labels {
+            text-align: left;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+        }
+        
+        .bracket-labels .max { color: var(--accent-green); }
+        .bracket-labels .base { color: var(--text-bright); }
+        .bracket-labels .min { color: var(--accent-green); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="demo-index.html" class="back-link">← Back to Demo</a>
+            <h1><span>▦</span> Mod Matrix</h1>
+        </header>
+        
+        <div class="stats-row">
+            <div class="stat">
+                <div class="stat-value">16</div>
+                <div class="stat-label">Mod Sources</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">40</div>
+                <div class="stat-label">Destinations/Gen</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">4</div>
+                <div class="stat-label">Sources per Dest</div>
+            </div>
+        </div>
+        
+        <div class="matrix-visual">
+            <div class="matrix-grid">
+                <!-- Header row -->
+                <div class="corner"></div>
+                <div class="matrix-header lfo">M1.A</div>
+                <div class="matrix-header lfo">M1.B</div>
+                <div class="matrix-header lfo">M1.C</div>
+                <div class="matrix-header lfo">M1.D</div>
+                <div class="matrix-header lfo">M2.A</div>
+                <div class="matrix-header lfo">M2.B</div>
+                <div class="matrix-header lfo">M2.C</div>
+                <div class="matrix-header lfo">M2.D</div>
+                <div class="matrix-header sloth">M3.X</div>
+                <div class="matrix-header sloth">M3.Y</div>
+                <div class="matrix-header sloth">M3.Z</div>
+                <div class="matrix-header sloth">M3.R</div>
+                <div class="matrix-header">M4.A</div>
+                <div class="matrix-header">M4.B</div>
+                <div class="matrix-header">M4.C</div>
+                <div class="matrix-header">M4.D</div>
+                
+                <!-- Row 1 -->
+                <div class="matrix-row-label">G1.FRQ</div>
+                <div class="matrix-cell active"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                
+                <!-- Row 2 -->
+                <div class="matrix-row-label">G1.CUT</div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell active"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell active-sloth"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                
+                <!-- Row 3 -->
+                <div class="matrix-row-label">G1.RES</div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell active-sloth"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                
+                <!-- Row 4 -->
+                <div class="matrix-row-label">G2.FRQ</div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell active"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                
+                <!-- Row 5 -->
+                <div class="matrix-row-label">G2.CUT</div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell active"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+                <div class="matrix-cell"></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Mod Sources</h2>
+            
+            <div class="mod-sources">
+                <div class="mod-source-card" style="--card-color: var(--accent-lfo)">
+                    <h3>LFO <span style="font-size: 12px; font-weight: normal; color: var(--text);">× 4 slots</span></h3>
+                    <div class="subtitle">Inspired by Ginkosynthese TTLFO v2</div>
+                    
+                    <div class="outputs-visual">
+                        <div class="output-trace" style="--trace-color: var(--accent-lfo)">
+                            <span class="output-label" style="--trace-color: var(--accent-lfo)">A</span>
+                        </div>
+                        <div class="output-trace" style="--trace-color: #00cc55; animation-delay: -0.5s">
+                            <span class="output-label" style="--trace-color: #00cc55">B</span>
+                        </div>
+                        <div class="output-trace" style="--trace-color: #009944; animation-delay: -1s">
+                            <span class="output-label" style="--trace-color: #009944">C</span>
+                        </div>
+                        <div class="output-trace" style="--trace-color: #006633; animation-delay: -1.5s">
+                            <span class="output-label" style="--trace-color: #006633">D</span>
+                        </div>
+                    </div>
+                    
+                    <ul class="feature-list">
+                        <li>8 waveforms (Saw, Ramp, Sqr, Tri, Sin, Rect+, Rect-, S&H)</li>
+                        <li>Quadrature outputs (4 phases)</li>
+                        <li>6 phase patterns + rotate</li>
+                        <li>Clock sync or free-running</li>
+                        <li>12 clock divisions (/64 to x32)</li>
+                    </ul>
+                    
+                    <div class="phase-patterns">
+                        <div class="pattern">
+                            <div class="pattern-name">QUAD</div>
+                            <div class="pattern-dots">
+                                <div class="pattern-dot active"></div>
+                                <div class="pattern-dot active"></div>
+                                <div class="pattern-dot active"></div>
+                                <div class="pattern-dot active"></div>
+                            </div>
+                        </div>
+                        <div class="pattern">
+                            <div class="pattern-name">PAIR</div>
+                            <div class="pattern-dots">
+                                <div class="pattern-dot active"></div>
+                                <div class="pattern-dot active"></div>
+                                <div class="pattern-dot"></div>
+                                <div class="pattern-dot"></div>
+                            </div>
+                        </div>
+                        <div class="pattern">
+                            <div class="pattern-name">SYNC</div>
+                            <div class="pattern-dots">
+                                <div class="pattern-dot active"></div>
+                                <div class="pattern-dot"></div>
+                                <div class="pattern-dot"></div>
+                                <div class="pattern-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mod-source-card" style="--card-color: var(--accent-sloth)">
+                    <h3>Sloth <span style="font-size: 12px; font-weight: normal; color: var(--text);">× 4 slots</span></h3>
+                    <div class="subtitle">Inspired by NLC Triple Sloth</div>
+                    
+                    <div class="outputs-visual">
+                        <div class="output-trace" style="--trace-color: var(--accent-sloth); animation-duration: 8s">
+                            <span class="output-label" style="--trace-color: var(--accent-sloth)">X</span>
+                        </div>
+                        <div class="output-trace" style="--trace-color: #cc5500; animation-duration: 12s; animation-delay: -2s">
+                            <span class="output-label" style="--trace-color: #cc5500">Y</span>
+                        </div>
+                        <div class="output-trace" style="--trace-color: #994400; animation-duration: 15s; animation-delay: -5s">
+                            <span class="output-label" style="--trace-color: #994400">Z</span>
+                        </div>
+                        <div class="output-trace" style="--trace-color: #663300; animation-duration: 6s; animation-delay: -1s">
+                            <span class="output-label" style="--trace-color: #663300">R</span>
+                        </div>
+                    </div>
+                    
+                    <ul class="feature-list">
+                        <li>Chaotic Lorenz system</li>
+                        <li>3 speed modes</li>
+                        <li>X, Y, Z: chaos outputs</li>
+                        <li>R: rectified gate</li>
+                        <li>Slowly evolving textures</li>
+                    </ul>
+                    
+                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 80px; background: var(--bg-card); border-radius: 6px; padding: 10px; text-align: center;">
+                            <div style="font-family: 'Space Mono'; font-size: 14px; color: var(--accent-sloth);">TOR</div>
+                            <div style="font-size: 11px; color: var(--text);">15-30s</div>
+                        </div>
+                        <div style="flex: 1; min-width: 80px; background: var(--bg-card); border-radius: 6px; padding: 10px; text-align: center;">
+                            <div style="font-family: 'Space Mono'; font-size: 14px; color: var(--accent-sloth);">APA</div>
+                            <div style="font-size: 11px; color: var(--text);">60-90s</div>
+                        </div>
+                        <div style="flex: 1; min-width: 80px; background: var(--bg-card); border-radius: 6px; padding: 10px; text-align: center;">
+                            <div style="font-family: 'Space Mono'; font-size: 14px; color: var(--accent-sloth);">INE</div>
+                            <div style="font-size: 11px; color: var(--text);">30-40min</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="routing-example">
+            <h3>Example Routing</h3>
+            
+            <div class="routing-flow">
+                <div class="routing-node source">
+                    <h4>M1.A</h4>
+                    <p>LFO Output A</p>
+                </div>
+                <span class="routing-arrow">→</span>
+                <div class="routing-node">
+                    <h4>Amount: 50%</h4>
+                    <p>Modulation depth</p>
+                </div>
+                <span class="routing-arrow">→</span>
+                <div class="routing-node target">
+                    <h4>G1.CUT</h4>
+                    <p>Filter Cutoff</p>
+                </div>
+            </div>
+            
+            <div class="connection-params">
+                <div class="conn-param">
+                    <div class="conn-param-label">AMOUNT</div>
+                    <div class="conn-param-value">50%</div>
+                </div>
+                <div class="conn-param">
+                    <div class="conn-param-label">OFFSET</div>
+                    <div class="conn-param-value">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="slider-bracket">
+            <h3>Real-Time Slider Visualization</h3>
+            <p style="color: var(--text); margin-bottom: 30px;">Modulation range shown as animated brackets on each slider</p>
+            
+            <div class="bracket-visual">
+                <div class="slider-track-v">
+                    <div class="slider-bracket-range" style="top: 25%; bottom: 35%;"></div>
+                    <div class="slider-knob-v" style="top: calc(50% - 5px);"></div>
+                </div>
+                <div class="bracket-labels">
+                    <div class="max" style="margin-bottom: 25px;">← Max (+25%)</div>
+                    <div class="base" style="margin-bottom: 25px;">← Base value</div>
+                    <div class="min">← Min (-25%)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

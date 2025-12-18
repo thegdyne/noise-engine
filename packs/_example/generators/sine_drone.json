@@ -1,0 +1,36 @@
+{
+    "name": "Sine Drone",
+    "synthdef": "example_sine_drone",
+    "custom_params": [
+        {
+            "key": "harmonics",
+            "label": "HRM",
+            "tooltip": "Harmonic content (pure to rich)",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "detune",
+            "label": "DTN",
+            "tooltip": "Stereo detune amount",
+            "default": 0.2,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "vibrato",
+            "label": "VIB",
+            "tooltip": "Vibrato depth",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ]
+}
