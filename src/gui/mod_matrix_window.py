@@ -535,7 +535,25 @@ class ModMatrixWindow(QMainWindow):
         # 0: set amount to 100%
         elif key == Qt.Key_0:
             self._set_selected_amount(1.0)
-        
+
+        # Shifted number keys (Shift held for fine navigation)
+        elif key == Qt.Key_Exclam:      self._set_selected_amount(0.1)  # Shift+1
+        elif key == Qt.Key_At:          self._set_selected_amount(0.2)  # Shift+2
+        elif key == Qt.Key_NumberSign:  self._set_selected_amount(0.3)  # Shift+3
+        elif key == Qt.Key_Dollar:      self._set_selected_amount(0.4)  # Shift+4
+        elif key == Qt.Key_Percent:     self._set_selected_amount(0.5)  # Shift+5
+        elif key == Qt.Key_AsciiCircum: self._set_selected_amount(0.6)  # Shift+6
+        elif key == Qt.Key_Ampersand:   self._set_selected_amount(0.7)  # Shift+7
+        elif key == Qt.Key_Asterisk:    self._set_selected_amount(0.8)  # Shift+8
+        elif key == Qt.Key_ParenLeft:   self._set_selected_amount(0.9)  # Shift+9
+        elif key == Qt.Key_ParenRight:  self._set_selected_amount(1.0)  # Shift+0 
+
+        # Shift + -/+ : adjust offset
+        elif key == Qt.Key_Underscore:  # Shift + minus
+            self._adjust_selected_offset(-10)
+        elif key == Qt.Key_Plus:        # Shift + equals
+            self._adjust_selected_offset(10)        
+
         # Escape: deselect
         elif key == Qt.Key_Escape:
             self._clear_selection()
@@ -642,7 +660,21 @@ class ModMatrixWindow(QMainWindow):
                 amount=amount
             )
             self.routing_state.add_connection(new_conn)
-    
+
+    def _adjust_selected_offset(self, delta: int):
+        """Adjust offset for selected cell by delta (-10 or +10)."""
+        key = self._get_selected_key()
+        if not key:
+            return
+        
+        bus, slot, param = key
+        conn = self.routing_state.get_connection(bus, slot, param)
+        
+        if conn:
+            current = int(conn.offset * 100)
+            new_offset = max(-100, min(100, current + delta))
+            self.routing_state.set_offset(bus, slot, param, new_offset / 100.0) 
+
     def _clear_selection(self):
         """Clear selection visual."""
         self._update_selection_visual(False)

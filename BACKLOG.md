@@ -52,3 +52,4 @@
 - ✅ 30+ new generators (classic synths, 808, atmospheric)
 - ✅ MIDI frequency routing fix (userParams)
 - ✅ CI/CD pipeline (207 tests)
+- [ ] Mod matrix: visual indicator for offset (arrow top/bottom of cell)
