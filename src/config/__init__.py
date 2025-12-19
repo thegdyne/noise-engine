@@ -222,6 +222,12 @@ BPM_DEFAULT = 120
 BPM_MIN = 20
 BPM_MAX = 300
 
+# === FX SYSTEM DEFAULTS ===
+FX_ECHO_RETURN_DEFAULT = 0.5
+FX_VERB_RETURN_DEFAULT = 0.3
+FX_SLOT_ECHO_SEND_DEFAULT = 0.0
+FX_SLOT_VERB_SEND_DEFAULT = 0.0
+
 # === GENERATORS ===
 # Core generator order (static list for preferred ordering)
 # Pack generators are appended dynamically after these
@@ -1001,6 +1007,10 @@ OSC_PATHS = {
     'gen_strip_eq_base': '/noise/strip/eq',  # Per-channel EQ: /noise/strip/eq/{band}
     'gen_levels': '/noise/gen/levels',  # Per-channel level metering
     'gen_trim': '/noise/gen/trim',  # Per-channel loudness trim (from JSON config)
+    'strip_echo_send': '/noise/strip/echo/send',  # Per-channel echo send (0-1)
+    'strip_verb_send': '/noise/strip/verb/send',  # Per-channel verb send (0-1)
+    'master_echo_return': '/noise/master/echo/return',  # Master echo return level
+    'master_verb_return': '/noise/master/verb/return',  # Master verb return level
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash

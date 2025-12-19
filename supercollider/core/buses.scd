@@ -73,6 +73,19 @@ Default values are real values (not normalized):
     
     // Per-generator output buses (8 stereo buses, one per slot)
     ~genBus = Array.fill(8, { Bus.audio(s, 2) });
+
+    // === FX BUSES (Phase 1) ===
+    // Dry sum (channel strips write here)
+    ~drySumBus = Bus.audio(s, 2);
+    
+    // Send buses (channel strips tap here based on send amounts)
+    ~echoSendBus = Bus.audio(s, 2);
+    ~verbSendBus = Bus.audio(s, 2);
+    
+    // Return buses (FX synths write 100% wet here)
+    ~echoReturnBus = Bus.audio(s, 2);
+    ~verbReturnBus = Bus.audio(s, 2);
+
     
     // Solo system
     ~soloActive = Bus.control(s, 1).set(0);  // 1 if any channel soloed
@@ -90,6 +103,8 @@ Default values are real values (not normalized):
     ~genGroup = nil;
     ~stripGroup = nil;
     ~fxGroup = nil;
+    ~mixerGroup = nil;
+    ~masterGroup = nil;
     
     "  ✓ Buses ready (% clock rates, % gen buses, user params for relative mod)".format(~clockRates.size, ~genBus.size).postln;
 };
