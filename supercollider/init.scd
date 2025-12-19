@@ -51,6 +51,14 @@ s.waitForBoot({
     // Load FX mixer (sums dry + returns)
     (~basePath +/+ "core/fx_mixer.scd").load;
     ~setupFxMixer.();
+
+    // Load Heat (saturation)
+    (~basePath +/+ "effects/heat.scd").load;
+    ~setupHeat.();
+
+    // Load Tape Echo (delay)
+    (~basePath +/+ "effects/tape_echo.scd").load;
+    ~setupTapeEcho.();
     
     // Load effects
     (~basePath +/+ "effects/master_passthrough.scd").load;
@@ -144,6 +152,10 @@ s.waitForBoot({
     ~startFxMixer.();
     ~setupFxMixerOSC.();
     ~startMasterPassthrough.();
+    ~startHeat.();
+    ~setupHeatOSC.();
+    ~startTapeEcho.();
+    ~setupTapeEchoOSC.();
     ~setupMasterOSC.();
     ~setupChannelMeterForward.();  // Forward channel levels to Python
     
