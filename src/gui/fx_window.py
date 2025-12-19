@@ -21,7 +21,7 @@ class FXSection(QFrame):
         self.setFrameStyle(QFrame.StyledPanel)
         self.setStyleSheet(f"""
             FXSection {{
-                background-color: {COLORS['surface']};
+                background-color: {COLORS['background']};
                 border: 1px solid {COLORS['border']};
                 border-radius: 4px;
             }}
@@ -65,20 +65,20 @@ class FXSection(QFrame):
             self.bypass_btn.setText("ON")
             self.bypass_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {COLORS['accent']};
-                    color: {COLORS['bg']};
+                    background-color: {COLORS['accent_effect']};
+                    color: {COLORS['background']};
                     border: none;
                     border-radius: 2px;
                 }}
                 QPushButton:hover {{
-                    background-color: {COLORS['accent_bright']};
+                    background-color: {COLORS['accent_effect']};
                 }}
             """)
         else:
             self.bypass_btn.setText("BYP")
             self.bypass_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {COLORS['surface_light']};
+                    background-color: {COLORS['background_light']};
                     color: {COLORS['text_dim']};
                     border: 1px solid {COLORS['border']};
                     border-radius: 2px;
@@ -97,7 +97,7 @@ class FXSection(QFrame):
         container = QVBoxLayout()
         container.setSpacing(2)
         
-        knob = DragSlider(Qt.Vertical)
+        knob = DragSlider()
         knob.setRange(min_val, max_val)
         knob.setValue(default)
         knob.setFixedSize(28, 50)
@@ -364,10 +364,10 @@ class FXWindow(QMainWindow):
         # Style
         self.setStyleSheet(f"""
             QMainWindow {{
-                background-color: {COLORS['bg']};
+                background-color: {COLORS['background']};
             }}
             QComboBox {{
-                background-color: {COLORS['surface']};
+                background-color: {COLORS['background']};
                 color: {COLORS['text']};
                 border: 1px solid {COLORS['border']};
                 border-radius: 2px;
@@ -378,9 +378,9 @@ class FXWindow(QMainWindow):
                 width: 12px;
             }}
             QComboBox QAbstractItemView {{
-                background-color: {COLORS['surface']};
+                background-color: {COLORS['background']};
                 color: {COLORS['text']};
-                selection-background-color: {COLORS['accent']};
+                selection-background-color: {COLORS['accent_effect']};
             }}
         """)
     
