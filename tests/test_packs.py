@@ -502,3 +502,23 @@ class TestDynamicGeneratorCycle:
         if "Subtractive" in _GENERATOR_CONFIGS:
             assert "Subtractive" in valid
     
+
+
+class TestCorePacks:
+    """Test the shipped core packs."""
+    
+    def test_electric_shepherd_discovered(self):
+        from src.config import get_discovered_packs
+        """Electric Shepherd pack should be discovered."""
+        packs = get_discovered_packs()
+        assert "electric-shepherd" in packs
+        assert packs["electric-shepherd"]["enabled"] is True
+        assert len(packs["electric-shepherd"]["generators"]) == 8
+    
+    def test_rlyeh_discovered(self):
+        from src.config import get_discovered_packs
+        """R'lyeh pack should be discovered."""
+        packs = get_discovered_packs()
+        assert "rlyeh" in packs
+        assert packs["rlyeh"]["enabled"] is True
+        assert len(packs["rlyeh"]["generators"]) == 8

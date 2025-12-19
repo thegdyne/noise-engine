@@ -1,0 +1,18 @@
+{
+    "pack_format": 1,
+    "name": "Electric Shepherd",
+    "version": "1.0.0",
+    "author": "Noise Engine",
+    "description": "Atmospheric and textural generators inspired by electronic soundscapes",
+    "enabled": true,
+    "generators": [
+        "FEEDR",
+        "HUSK",
+        "TETHER",
+        "LIMINAL",
+        "DUSK",
+        "BEACON",
+        "STATIC",
+        "LONGING"
+    ]
+}
