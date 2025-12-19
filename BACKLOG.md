@@ -67,3 +67,10 @@
   - Frontend stores last known state to disk (JSON) for recovery
   - Startup flag: `--resume` vs `--reset`
   - Auto-detect if SC has existing synths running
+
+## Web-Based Manual
+- [ ] Create documentation website for Noise Engine
+- Consider: GitHub Pages, MkDocs, or simple HTML
+- Sections: Getting started, Generators, Packs, Modulation, MIDI, API reference
+- Include screenshots, audio examples
+- Auto-generate generator list from pack manifests
