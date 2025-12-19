@@ -171,62 +171,6 @@ s.waitForBoot({
     ~setupMasterOSC.();
     ~setupChannelMeterForward.();  // Forward channel levels to Python
     
-    // Second sync + re-register channel strip handlers to fix timing issue
-    s.sync;
-    OSCdef(\genVolume).free;
-    OSCdef(\genMute).free;
-    OSCdef(\genSolo).free;
-    OSCdef(\genGain).free;
-    OSCdef(\genPan).free;
-    OSCdef(\genVolume, { |msg|
-        var slot = msg[1].asInteger;
-        var vol = msg[2].asFloat.clip(0, 1);
-        if(~channelStrips[slot - 1].notNil, {
-            ~channelStrips[slot - 1].set(\vol, vol);
-        });
-    }, '/noise/gen/volume');
-    OSCdef(\genMute, { |msg|
-        var slot = msg[1].asInteger;
-        var muted = msg[2].asInteger;
-        var idx = slot - 1;
-        ~stripMuteState[idx] = muted;
-        if(~channelStrips[idx].notNil, {
-            ~channelStrips[idx].set(\mute, muted);
-        });
-    }, '/noise/gen/mute');
-    OSCdef(\genSolo, { |msg|
-        var slot = msg[1].asInteger;
-        var soloed = msg[2].asInteger;
-        var idx = slot - 1;
-        var oldSolo = ~stripSoloState[idx] ? 0;
-        if(~channelStrips[idx].notNil, {
-            ~stripSoloState[idx] = soloed;
-            if(soloed == 1 && oldSolo == 0, { ~soloCount = ~soloCount + 1 });
-            if(soloed == 0 && oldSolo == 1, { ~soloCount = ~soloCount - 1 });
-            ~soloActive.set(if(~soloCount > 0, 1, 0));
-            ~channelStrips[idx].set(\solo, soloed);
-        });
-    }, '/noise/gen/solo');
-    OSCdef(\genGain, { |msg|
-        var slot = msg[1].asInteger;
-        var gainDb = msg[2].asInteger;
-        var gainLinear = (10 ** (gainDb / 20));
-        var idx = slot - 1;
-        ~stripGainState[idx] = gainLinear;
-        if(~channelStrips[idx].notNil, {
-            ~channelStrips[idx].set(\gain, gainLinear);
-        });
-    }, '/noise/gen/gain');
-    OSCdef(\genPan, { |msg|
-        var slot = msg[1].asInteger;
-        var pan = msg[2].asFloat.clip(-1, 1);
-        var idx = slot - 1;
-        ~stripPanState[idx] = pan;
-        if(~channelStrips[idx].notNil, {
-            ~channelStrips[idx].set(\pan, pan);
-        });
-    }, '/noise/gen/pan');
-    
     "".postln;
     "========================================".postln;
     "✓ Noise Engine ready!".postln;
