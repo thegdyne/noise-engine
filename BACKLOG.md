@@ -74,3 +74,6 @@
 - Sections: Getting started, Generators, Packs, Modulation, MIDI, API reference
 - Include screenshots, audio examples
 - Auto-generate generator list from pack manifests
+
+## Housekeeping
+- [ ] Merge dev → main (tests failing in main due to new tests not pushed)
