@@ -152,28 +152,28 @@ class FXModule(QFrame):
             self.turbo_btn.setText("T1")
             self.turbo_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #ff8800;
-                    color: #000000;
-                    border: 1px solid #ffaa00;
+                    background-color: {COLORS['turbo_t1']};
+                    color: {COLORS['background_dark']};
+                    border: 1px solid {COLORS['turbo_t1']};
                     border-radius: 2px;
                     padding: 0px;
                 }}
                 QPushButton:hover {{
-                    background-color: #ffaa00;
+                    background-color: {COLORS['turbo_t1']};
                 }}
             """)
         else:  # T2
             self.turbo_btn.setText("T2")
             self.turbo_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #ff2200;
-                    color: #ffffff;
-                    border: 1px solid #ff4400;
+                    background-color: {COLORS['turbo_t2']};
+                    color: {COLORS['text']};
+                    border: 1px solid {COLORS['turbo_t2']};
                     border-radius: 2px;
                     padding: 0px;
                 }}
                 QPushButton:hover {{
-                    background-color: #ff4400;
+                    background-color: {COLORS['turbo_t2']};
                 }}
             """)
     
@@ -416,11 +416,11 @@ class ReverbModule(FXModule):
         
     def setup_controls(self):
         """Add Reverb-specific controls."""
-        # INI state: 50% RTN, moderate size/decay
-        self.size_knob = self.add_knob("SIZ", 120, "Room size")
-        self.decay_knob = self.add_knob("DEC", 120, "Decay time")
+        # INI state: Big space, controlled tail, prominent
+        self.size_knob = self.add_knob("SIZ", 150, "Room size")
+        self.decay_knob = self.add_knob("DEC", 130, "Decay time")
         self.tone_knob = self.add_knob("TONE", 100, "Brightness")
-        self.return_knob = self.add_knob("RTN", 100, "Return level")
+        self.return_knob = self.add_knob("RTN", 170, "Return level")
         
         # Connect knobs
         self.size_knob.valueChanged.connect(
@@ -433,25 +433,25 @@ class ReverbModule(FXModule):
             lambda v: self._send_osc(OSC_PATHS['master_verb_return'], v / 200.0))
     
     def _apply_turbo(self):
-        """Apply turbo presets for Reverb. 50% → 75% → 100%."""
+        """Apply turbo presets for Reverb. Scaled from INI: 75%/65%/85%."""
         if self.turbo_state == self.TURBO_OFF:
-            # INI: Room reverb - 50%
-            self.size_knob.setValue(120)
-            self.decay_knob.setValue(120)
-            self.tone_knob.setValue(100)  # neutral
-            self.return_knob.setValue(100)  # 50%
+            # INI: Big hall, controlled - 75%/65%/85%
+            self.size_knob.setValue(150)   # 75%
+            self.decay_knob.setValue(130)  # 65%
+            self.tone_knob.setValue(100)   # neutral
+            self.return_knob.setValue(170) # 85%
         elif self.turbo_state == self.TURBO_T1:
-            # T1: Cathedral - 75%
-            self.size_knob.setValue(160)
-            self.decay_knob.setValue(160)
-            self.tone_knob.setValue(70)  # darker
-            self.return_knob.setValue(150)  # 75%
+            # T1: Larger, longer - scale up ~15%
+            self.size_knob.setValue(180)   # 90%
+            self.decay_knob.setValue(165)  # 82.5%
+            self.tone_knob.setValue(80)    # slightly darker
+            self.return_knob.setValue(190) # 95%
         else:  # T2
-            # T2: Infinite wash - 100%
-            self.size_knob.setValue(200)
-            self.decay_knob.setValue(200)
-            self.tone_knob.setValue(120)  # shimmer
-            self.return_knob.setValue(200)  # 100%
+            # T2: Full send - max everything
+            self.size_knob.setValue(200)   # 100%
+            self.decay_knob.setValue(200)  # 100%
+            self.tone_knob.setValue(130)   # shimmer bright
+            self.return_knob.setValue(200) # 100%
 
 
 class FilterModule(FXModule):
@@ -565,16 +565,16 @@ class FilterModule(FXModule):
         self.f2_sync_btn.index_changed.connect(self._on_f2_sync_changed)
         self.bottom_layout.addWidget(self.f2_sync_btn)
         
-        # AMT knob for sync depth (small)
+        # CLK AMT knob for sync depth (small)
         amt_container = QVBoxLayout()
         amt_container.setSpacing(1)
         amt_container.setContentsMargins(0, 0, 0, 0)
         self.amt_knob = MiniKnob()
         self.amt_knob.setFixedSize(20, 20)
         self.amt_knob.setValue(0)
-        self.amt_knob.setToolTip("Sync modulation depth")
+        self.amt_knob.setToolTip("Clock sync modulation depth")
         amt_container.addWidget(self.amt_knob, alignment=Qt.AlignCenter)
-        amt_label = QLabel("AMT")
+        amt_label = QLabel("CLK")
         amt_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         amt_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         amt_label.setAlignment(Qt.AlignCenter)
