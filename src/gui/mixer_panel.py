@@ -98,7 +98,9 @@ class ChannelStrip(QWidget):
     solo_toggled = pyqtSignal(int, bool)
     gain_changed = pyqtSignal(int, int)  # channel_id, gain_db (0, 6, or 12)
     pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
-    eq_changed = pyqtSignal(int, str, float)  # channel_id, band ('lo'/'mid'/'hi'), value (0-2 linear)
+    eq_changed = pyqtSignal(int, str, float)  # channel_id, band
+    echo_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    verb_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
     
     # Gain stages: dB value, display text, color style
     GAIN_STAGES = [
@@ -201,6 +203,43 @@ class ChannelStrip(QWidget):
         
         layout.addLayout(eq_layout)
         
+        # === FX Sends (Echo/Verb) ===
+        sends_layout = QHBoxLayout()
+        sends_layout.setSpacing(2)
+        sends_layout.setContentsMargins(0, 2, 0, 2)
+        
+        # Echo send knob
+        echo_container = QVBoxLayout()
+        echo_container.setSpacing(0)
+        self.echo_send = MiniKnob()
+        self.echo_send.setToolTip("Echo Send (double-click reset)")
+        self.echo_send.setValue(0)  # Start at 0
+        self.echo_send.valueChanged.connect(self._on_echo_send_changed)
+        echo_label = QLabel("EC")
+        echo_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        echo_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        echo_label.setAlignment(Qt.AlignCenter)
+        echo_container.addWidget(self.echo_send, alignment=Qt.AlignCenter)
+        echo_container.addWidget(echo_label)
+        sends_layout.addLayout(echo_container)
+        
+        # Verb send knob
+        verb_container = QVBoxLayout()
+        verb_container.setSpacing(0)
+        self.verb_send = MiniKnob()
+        self.verb_send.setToolTip("Reverb Send (double-click reset)")
+        self.verb_send.setValue(0)  # Start at 0
+        self.verb_send.valueChanged.connect(self._on_verb_send_changed)
+        verb_label = QLabel("VB")
+        verb_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        verb_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        verb_label.setAlignment(Qt.AlignCenter)
+        verb_container.addWidget(self.verb_send, alignment=Qt.AlignCenter)
+        verb_container.addWidget(verb_label)
+        sends_layout.addLayout(verb_container)
+        
+        layout.addLayout(sends_layout)
+        
         # Fader + Meter side by side
         fader_meter_layout = QHBoxLayout()
         fader_meter_layout.setSpacing(2)
@@ -271,6 +310,16 @@ class ChannelStrip(QWidget):
         """Handle EQ knob change. Convert 0-200 to 0-2 linear."""
         linear = value / 100.0
         self.eq_changed.emit(self.channel_id, band, linear)
+    
+    def _on_echo_send_changed(self, value):
+        """Handle echo send knob change. Convert 0-200 to 0-1."""
+        send_level = value / 200.0
+        self.echo_send_changed.emit(self.channel_id, send_level)
+    
+    def _on_verb_send_changed(self, value):
+        """Handle verb send knob change. Convert 0-200 to 0-1."""
+        send_level = value / 200.0
+        self.verb_send_changed.emit(self.channel_id, send_level)
     
     def set_levels(self, left, right):
         """Update the channel meter levels."""
@@ -482,7 +531,11 @@ class MixerPanel(QWidget):
     generator_solo = pyqtSignal(int, bool)
     generator_gain_changed = pyqtSignal(int, int)  # channel_id, gain_db
     generator_pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
-    generator_eq_changed = pyqtSignal(int, str, float)  # channel_id, band, value (0-2)
+    generator_eq_changed = pyqtSignal(int, str, float)  # channel_id, band
+    generator_echo_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    generator_verb_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    echo_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    verb_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
     
     def __init__(self, num_generators=8, parent=None):
         super().__init__(parent)
@@ -520,6 +573,8 @@ class MixerPanel(QWidget):
             channel.gain_changed.connect(self.on_channel_gain)
             channel.pan_changed.connect(self.on_channel_pan)
             channel.eq_changed.connect(self.on_channel_eq)
+            channel.echo_send_changed.connect(self.on_channel_echo_send)
+            channel.verb_send_changed.connect(self.on_channel_verb_send)
             channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
@@ -549,6 +604,14 @@ class MixerPanel(QWidget):
     def on_channel_eq(self, channel_id, band, value):
         """Handle channel EQ change."""
         self.generator_eq_changed.emit(channel_id, band, value)
+    
+    def on_channel_echo_send(self, channel_id, value):
+        """Handle channel echo send change."""
+        self.generator_echo_send_changed.emit(channel_id, value)
+    
+    def on_channel_verb_send(self, channel_id, value):
+        """Handle channel verb send change."""
+        self.generator_verb_send_changed.emit(channel_id, value)
         
     def set_channel_active(self, channel_id, active):
         """Set active state for a channel (called when generator starts/stops)."""

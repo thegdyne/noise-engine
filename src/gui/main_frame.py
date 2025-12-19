@@ -127,6 +127,8 @@ class MainFrame(QMainWindow):
         self.mixer_panel.generator_gain_changed.connect(self.on_generator_gain_changed)
         self.mixer_panel.generator_pan_changed.connect(self.on_generator_pan_changed)
         self.mixer_panel.generator_eq_changed.connect(self.on_generator_eq_changed)
+        self.mixer_panel.generator_echo_send_changed.connect(self.on_generator_echo_send)
+        self.mixer_panel.generator_verb_send_changed.connect(self.on_generator_verb_send)
         content_layout.addWidget(self.mixer_panel, stretch=1)
         
         content_outer.addWidget(content_widget, stretch=1)
@@ -1006,6 +1008,18 @@ class MainFrame(QMainWindow):
             osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
             self.osc.client.send_message(osc_path, [gen_id, value])
         logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
+    
+    def on_generator_echo_send(self, gen_id, value):
+        """Handle generator echo send change from mixer. value: 0-1."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['strip_echo_send'], [gen_id, value])
+        logger.debug(f"Gen {gen_id} echo send: {value:.2f}", component="OSC")
+    
+    def on_generator_verb_send(self, gen_id, value):
+        """Handle generator verb send change from mixer. value: 0-1."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['strip_verb_send'], [gen_id, value])
+        logger.debug(f"Gen {gen_id} verb send: {value:.2f}", component="OSC")
     
     def _sync_strip_state_to_sc(self, slot_id):
         """Re-sync mixer strip state to SC after generator change.
