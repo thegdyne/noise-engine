@@ -53,3 +53,17 @@
 - ✅ MIDI frequency routing fix (userParams)
 - ✅ CI/CD pipeline (207 tests)
 - [ ] Mod matrix: visual indicator for offset (arrow top/bottom of cell)
+
+## Pack Presets
+- [ ] Save/load generator slot configurations at pack level (which generators in which slots)
+
+## Frontend/SC State Sync on Restart
+- [ ] Handle case where Python frontend restarts but SC still running with previous state
+- Options to develop:
+  1. **Warm restart**: Query SC state and restore frontend to match (generators, mod routes, etc.)
+  2. **Cold restart**: Full reset of both Python and SC to clean state
+- Considerations:
+  - SC could expose `/state` OSC endpoint returning current config
+  - Frontend stores last known state to disk (JSON) for recovery
+  - Startup flag: `--resume` vs `--reset`
+  - Auto-detect if SC has existing synths running
