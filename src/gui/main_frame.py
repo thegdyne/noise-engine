@@ -374,7 +374,7 @@ class MainFrame(QMainWindow):
             
             if self.osc.connect():
                 self.osc_connected = True
-                self.master_section.set_osc_bridge(self.osc)
+        self.master_section.set_osc_bridge(self.osc)
                 self.connect_btn.setText("Disconnect")
                 self.status_label.setText("● Connected")
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
@@ -432,7 +432,7 @@ class MainFrame(QMainWindow):
     def on_connection_restored(self):
         """Handle connection restored after reconnect."""
         self.osc_connected = True
-                self.master_section.set_osc_bridge(self.osc)
+        self.master_section.set_osc_bridge(self.osc)
         self.connect_btn.setText("Disconnect")
         self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
         self.status_label.setText("● Connected")
