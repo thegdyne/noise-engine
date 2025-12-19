@@ -9,6 +9,7 @@ Signal flow:
 Features:
   - Tube-style drive stage
   - Two resonant multimode filters (LP/BP/HP)
+  - Tempo-synced LFO modulation of cutoff (per-filter sync rates)
   - Harmonics sync (Filter2 = Filter1 / ratio)
   - Serial or parallel routing
   - Safety limiter for resonance
@@ -17,44 +18,92 @@ Features:
 ~setupDualFilter = {
     "Setting up Dual Filter...".postln;
     
-    // State defaults
+    // State defaults (match GUI INI state)
     ~fbDrive = 0.0;
-    ~fbFreq1 = 0.5;       // 0-1 maps to 20Hz-20kHz exp
-    ~fbReso1 = 0.0;
-    ~fbMode1 = 1;         // 0=LP, 1=BP, 2=HP
-    ~fbFreq2 = 0.35;
-    ~fbReso2 = 0.0;
-    ~fbMode2 = 1;
+    ~fbFreq1 = 0.6;       // 60% = 120/200
+    ~fbReso1 = 0.3;       // 30% = 60/200
+    ~fbMode1 = 0;         // 0=LP
+    ~fbFreq2 = 0.6;
+    ~fbReso2 = 0.3;
+    ~fbMode2 = 0;
+    ~fbSync1Rate = 0;     // LFO rate multiplier (0 = free/off)
+    ~fbSync2Rate = 0;
+    ~fbSyncAmt = 0.0;     // Sync modulation depth 0-1
     ~fbHarmonics = 0;     // 0=Free, 1-7 = sync ratios
     ~fbRouting = 0;       // 0=Serial, 1=Parallel
-    ~fbMix = 1.0;
+    ~fbMix = 0.5;         // 50%
     ~fbBypass = 1;        // 1=bypassed
     
-    SynthDef(\dualFilter, { |inBus, outBus, 
-                             drive=0, freq1=0.5, reso1=0, mode1=1,
-                             freq2=0.35, reso2=0, mode2=1,
-                             harmonics=0, routing=0, mix=1, bypass=1|
+    // Rate string to multiplier lookup
+    ~fbRateToMult = { |rateStr|
+        case
+        { rateStr == "" }     { 0 }
+        { rateStr == "/32" }  { 1/32 }
+        { rateStr == "/16" }  { 1/16 }
+        { rateStr == "/12" }  { 1/12 }
+        { rateStr == "/8" }   { 1/8 }
+        { rateStr == "/4" }   { 1/4 }
+        { rateStr == "/2" }   { 1/2 }
+        { rateStr == "CLK" }  { 1 }
+        { rateStr == "x2" }   { 2 }
+        { rateStr == "x4" }   { 4 }
+        { rateStr == "x8" }   { 8 }
+        { rateStr == "x12" }  { 12 }
+        { rateStr == "x16" }  { 16 }
+        { rateStr == "x32" }  { 32 }
+        { 0 };  // Default: no sync
+    };
+    
+    SynthDef(\dualFilter, { |inBus, outBus, bpmBus,
+                             drive=0, freq1=0.6, reso1=0.3, mode1=0,
+                             freq2=0.6, reso2=0.3, mode2=0,
+                             sync1Rate=0, sync2Rate=0, syncAmt=0,
+                             harmonics=0, routing=0, mix=0.5, bypass=1|
         var sig, dry, wet;
-        var f1hz, f2hz, rq1, rq2;
+        var f1hz, f2hz, f1base, f2base, rq1, rq2;
         var filt1, filt2, filtSerial, filtParallel;
         var harmonicRatios, syncedFreq2;
+        var lfo1, lfo2, tempoHz;
         
         // Harmonic ratios: Free/1/2/3/4/5/8/16
         harmonicRatios = #[1, 1, 2, 3, 4, 5, 8, 16];
         
-        // Map freq 0-1 to 20Hz-20kHz exponential
+        // Get tempo in Hz from BPM bus (BPM / 60 = beats per second)
+        tempoHz = In.kr(bpmBus) / 60;
+        
+        // Tempo-synced triangle LFOs (0 to 1 range)
+        // When rate is 0, LFO outputs 1 (no modulation)
+        lfo1 = Select.kr(sync1Rate > 0, [
+            DC.kr(1),
+            LFTri.kr(sync1Rate * tempoHz).range(0, 1)
+        ]);
+        lfo2 = Select.kr(sync2Rate > 0, [
+            DC.kr(1),
+            LFTri.kr(sync2Rate * tempoHz).range(0, 1)
+        ]);
+        
+        // Smooth params
         freq1 = VarLag.kr(freq1, 0.02, warp: \exp);
         freq2 = VarLag.kr(freq2, 0.02, warp: \exp);
-        f1hz = freq1.linexp(0, 1, 20, 20000);
+        syncAmt = Lag.kr(syncAmt, 0.05);
+        
+        // Base frequencies (exponential mapping)
+        f1base = freq1.linexp(0, 1, 20, 20000);
+        f2base = freq2.linexp(0, 1, 20, 20000);
+        
+        // Apply sync modulation: sweeps from (1-amt)*freq up to freq
+        // amt=0 → no sweep, amt=1 → full sweep from near-zero to freq
+        f1hz = f1base * ((1 - syncAmt) + (syncAmt * lfo1));
+        f2hz = f2base * ((1 - syncAmt) + (syncAmt * lfo2));
         
         // Apply harmonics sync if not Free (harmonics > 0)
         syncedFreq2 = f1hz / Select.kr(harmonics, harmonicRatios);
         f2hz = Select.kr(harmonics > 0, [
-            freq2.linexp(0, 1, 20, 20000),  // Free: independent
-            syncedFreq2                       // Synced
+            f2hz,        // Free: use independent freq (with sync mod)
+            syncedFreq2  // Synced to filter1
         ]);
         
-        // Map reso 0-1 to rq (1 = no reso, 0.01 = max reso)
+        // Map reso 0-1 to rq (1 = no reso, 0.05 = max reso)
         reso1 = Lag.kr(reso1, 0.02);
         reso2 = Lag.kr(reso2, 0.02);
         rq1 = (1 - reso1).linexp(0, 1, 0.05, 1);
@@ -107,7 +156,7 @@ Features:
         sig = (dry * (1 - mix)) + (wet * mix);
         
         // Bypass (click-free)
-        sig = XFade2.ar(sig, dry, (Lag.kr(bypass, 0.02) * 2) - 1);  // Crossfade bypass
+        sig = XFade2.ar(sig, dry, (Lag.kr(bypass, 0.02) * 2) - 1);
         
         ReplaceOut.ar(outBus, sig);
     }).add;
@@ -121,10 +170,11 @@ Features:
     // If Heat exists, insert directly after it; otherwise head of master
     target = if(~heatSynth.notNil, { ~heatSynth }, { ~masterGroup });
     action = if(~heatSynth.notNil, { \addAfter }, { \addToHead });
-    // Runs in masterGroup, after Heat
+    
     ~fbSynth = Synth(\dualFilter, [
         \inBus, ~masterBus,
         \outBus, ~masterBus,
+        \bpmBus, ~clockBus.index,
         \drive, ~fbDrive,
         \freq1, ~fbFreq1,
         \reso1, ~fbReso1,
@@ -132,6 +182,9 @@ Features:
         \freq2, ~fbFreq2,
         \reso2, ~fbReso2,
         \mode2, ~fbMode2,
+        \sync1Rate, ~fbSync1Rate,
+        \sync2Rate, ~fbSync2Rate,
+        \syncAmt, ~fbSyncAmt,
         \harmonics, ~fbHarmonics,
         \routing, ~fbRouting,
         \mix, ~fbMix,
@@ -167,6 +220,14 @@ Features:
         ("  Filter 1 mode: " ++ #["LP", "BP", "HP"][val]).postln;
     }, '/noise/master/fb/mode1');
     
+    OSCdef(\fbSync1, { |msg|
+        var rateStr = msg[1].asString;
+        var mult = ~fbRateToMult.(rateStr);
+        ~fbSync1Rate = mult;
+        if(~fbSynth.notNil) { ~fbSynth.set(\sync1Rate, mult) };
+        ("  Filter 1 sync: " ++ if(mult == 0, "FREE", rateStr)).postln;
+    }, '/noise/master/fb/sync1');
+    
     OSCdef(\fbFreq2, { |msg|
         var val = msg[1].asFloat.clip(0, 1);
         ~fbFreq2 = val;
@@ -185,6 +246,20 @@ Features:
         if(~fbSynth.notNil) { ~fbSynth.set(\mode2, val) };
         ("  Filter 2 mode: " ++ #["LP", "BP", "HP"][val]).postln;
     }, '/noise/master/fb/mode2');
+    
+    OSCdef(\fbSync2, { |msg|
+        var rateStr = msg[1].asString;
+        var mult = ~fbRateToMult.(rateStr);
+        ~fbSync2Rate = mult;
+        if(~fbSynth.notNil) { ~fbSynth.set(\sync2Rate, mult) };
+        ("  Filter 2 sync: " ++ if(mult == 0, "FREE", rateStr)).postln;
+    }, '/noise/master/fb/sync2');
+    
+    OSCdef(\fbSyncAmt, { |msg|
+        var val = msg[1].asFloat.clip(0, 1);
+        ~fbSyncAmt = val;
+        if(~fbSynth.notNil) { ~fbSynth.set(\syncAmt, val) };
+    }, '/noise/master/fb/syncAmt');
     
     OSCdef(\fbHarmonics, { |msg|
         var val = msg[1].asInteger.clip(0, 7);
