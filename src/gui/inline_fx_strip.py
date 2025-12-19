@@ -5,7 +5,7 @@ Heat | Echo | Reverb | Filter | [Full Window]
 """
 
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QPushButton
+    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QPushButton, QSizePolicy
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
@@ -37,6 +37,8 @@ class FXModule(QFrame):
         self.turbo_state = self.TURBO_OFF
         self.osc_bridge = None
         self.knobs = {}
+        # Expand horizontally
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setup_base_ui()
         
     def setup_base_ui(self):
@@ -700,6 +702,8 @@ class InlineFXStrip(QWidget):
         super().__init__(parent)
         self.osc_bridge = None
         self.modules = {}
+        # Expand horizontally to fill available space
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setup_ui()
         
     def setup_ui(self):
@@ -731,8 +735,6 @@ class InlineFXStrip(QWidget):
         self.filter = FilterModule()
         layout.addWidget(self.filter)
         self.modules['FILTER'] = self.filter
-        
-        layout.addStretch()
         
     def _separator(self):
         """Create vertical separator."""

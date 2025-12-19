@@ -147,7 +147,7 @@ class MainFrame(QMainWindow):
         
         # FX Chain (left side)
         bottom_section = self.create_bottom_section()
-        bottom_layout.addWidget(bottom_section, stretch=1)
+        bottom_layout.addWidget(bottom_section, stretch=2)
         
         # Master section (right side)
         self.master_section = MasterSection()
@@ -171,7 +171,7 @@ class MainFrame(QMainWindow):
         self.master_section.comp_makeup_changed.connect(self.on_comp_makeup_changed)
         self.master_section.comp_sc_hpf_changed.connect(self.on_comp_sc_hpf_changed)
         self.master_section.comp_bypass_changed.connect(self.on_comp_bypass_changed)
-        bottom_layout.addWidget(self.master_section, stretch=2)
+        bottom_layout.addWidget(self.master_section, stretch=3)
         
         main_layout.addWidget(bottom_container)
         
@@ -324,6 +324,7 @@ class MainFrame(QMainWindow):
         container.setFrameShape(QFrame.StyledPanel)
         container.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-top: 1px solid {COLORS['border_light']};")
         container.setFixedHeight(180)
+        container.setMaximumWidth(600)  # Cap FX strip width to give master more room
         
         layout = QHBoxLayout(container)
         layout.setContentsMargins(5, 5, 5, 5)
