@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES
 from .widgets import DragSlider
-from src.config import SIZES
+from src.config import SIZES, OSC_PATHS
 
 
 class FXSection(QFrame):

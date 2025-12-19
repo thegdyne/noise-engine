@@ -92,3 +92,4 @@
 - [ ] Dropdown styling (M1/M2/SYNC/ROUTE) - increase font, width, contrast
 - [ ] Heat circuit dropdown styling
 - [ ] Consider using layout_sandbox.py for FX UI debugging
+- [ ] Reverb pre-delay parameter
