@@ -415,7 +415,7 @@ Compressor sidechain:
         \compMakeup, ~compMakeup,
         \compScHpfIdx, ~compScHpfIdx,
         \compBypass, ~compBypass
-    ], ~masterGroup);
+    ], ~masterGroup, \addToTail);
     
     "  ✓ Master passthrough running (EQ ON, compressor ON, limiter ON)".postln;
 };
