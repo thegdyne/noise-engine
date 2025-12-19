@@ -242,24 +242,6 @@ _CORE_GENERATOR_ORDER = [
     "808 Clap",
     # Conceptual
     "THOR",
-    # Electric Shepherd Collection
-    "FEEDR",
-    "HUSK",
-    "TETHER",
-    "LIMINAL",
-    "DUSK",
-    "BEACON",
-    "STATIC",
-    "LONGING",
-    # R'lyeh Collection
-    "CTHULHU",
-    "RLYEH",
-    "ABYSS",
-    "MADNESS",
-    "TEMPEST",
-    "VESSEL",
-    "TENTACLE",
-    "DAGON",
     # Basic synthesis
     "Test Synth",
     "Subtractive",
