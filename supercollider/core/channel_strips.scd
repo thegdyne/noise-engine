@@ -61,7 +61,7 @@ EQ: 3-band DJ isolator
     
     SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan=0, 
                               genTrim=0, soloActiveBus, slotID=1,
-                              eqLo=1, eqMid=1, eqHi=1|
+                              eqLo=1, eqMid=1, eqHi=1, echoSend=0, verbSend=0, echoSendBus, verbSendBus|
         var sig, soloActive, soloGate, ampL, ampR;
         
         // Read stereo from per-generator bus (dual mono or true stereo)
@@ -100,6 +100,11 @@ EQ: 3-band DJ isolator
         ampR = Amplitude.kr(sig[1], 0.01, 0.1);
         SendReply.kr(Impulse.kr(24), '/noise/gen/levels', [slotID, ampL, ampR]);
         
+        // FX Sends (post-fader)
+        Out.ar(echoSendBus, sig * Lag.kr(echoSend, 0.02));
+        Out.ar(verbSendBus, sig * Lag.kr(verbSend, 0.02));
+        
+        // Main output
         Out.ar(outBus, sig);
     }).add;
     
@@ -114,6 +119,8 @@ EQ: 3-band DJ isolator
     ~stripEqLoState = Array.fill(8, { 1.0 });  // EQ LO (0-2 linear)
     ~stripEqMidState = Array.fill(8, { 1.0 }); // EQ MID
     ~stripEqHiState = Array.fill(8, { 1.0 });  // EQ HI
+    ~stripEchoSendState = Array.fill(8, { 0.0 }); // Echo send (0-1)
+    ~stripVerbSendState = Array.fill(8, { 0.0 }); // Verb send (0-1)
     
     "  ✓ Channel strip SynthDef ready (EQ: %Hz / %Hz, smooth: %ms)".format(
         ~eqLoXover, ~eqHiXover, (~eqSmoothTime * 1000).asInteger
@@ -123,7 +130,7 @@ EQ: 3-band DJ isolator
 // Start a channel strip for a slot (called when generator starts)
 ~startChannelStrip = { |slotID|
     var idx = slotID - 1;  // 0-indexed
-    var currentVol, currentMute, currentSolo, currentGain, currentPan, currentTrim;
+    var currentVol, currentMute, currentSolo, currentGain, currentPan, currentTrim, currentEchoSend, currentVerbSend;
     var currentEqLo, currentEqMid, currentEqHi;
     
     // Bounds check
@@ -140,6 +147,8 @@ EQ: 3-band DJ isolator
         currentEqLo = ~stripEqLoState[idx] ? 1.0;
         currentEqMid = ~stripEqMidState[idx] ? 1.0;
         currentEqHi = ~stripEqHiState[idx] ? 1.0;
+        currentEchoSend = ~stripEchoSendState[idx] ? 0.0;
+        currentVerbSend = ~stripVerbSendState[idx] ? 0.0;
         
         // Free existing strip if any
         if(~channelStrips[idx].notNil, {
@@ -150,7 +159,7 @@ EQ: 3-band DJ isolator
         // Create new strip with ALL preserved state
         ~channelStrips[idx] = Synth(\channelStrip, [
             \inBus, ~genBus[idx],
-            \outBus, ~masterBus,
+            \outBus, ~drySumBus,
             \vol, currentVol,
             \mute, currentMute,
             \solo, currentSolo,
@@ -161,7 +170,11 @@ EQ: 3-band DJ isolator
             \eqMid, currentEqMid,
             \eqHi, currentEqHi,
             \soloActiveBus, ~soloActive.index,
-            \slotID, slotID
+            \slotID, slotID,
+            \echoSend, currentEchoSend,
+            \verbSend, currentVerbSend,
+            \echoSendBus, ~echoSendBus,
+            \verbSendBus, ~verbSendBus
         ], ~stripGroup, \addToTail);
         
         "  Started strip % (vol:%, eq:[%,%,%])".format(

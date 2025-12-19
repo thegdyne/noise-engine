@@ -47,6 +47,10 @@ s.waitForBoot({
     // Load channel strips (must be before helpers use them)
     (~basePath +/+ "core/channel_strips.scd").load;
     ~setupChannelStrips.();
+
+    // Load FX mixer (sums dry + returns)
+    (~basePath +/+ "core/fx_mixer.scd").load;
+    ~setupFxMixer.();
     
     // Load effects
     (~basePath +/+ "effects/master_passthrough.scd").load;
@@ -137,6 +141,8 @@ s.waitForBoot({
     
     // Start audio
     ~startClock.();
+    ~startFxMixer.();
+    ~setupFxMixerOSC.();
     ~startMasterPassthrough.();
     ~setupMasterOSC.();
     ~setupChannelMeterForward.();  // Forward channel levels to Python

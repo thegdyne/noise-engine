@@ -32,7 +32,9 @@ Rate indices match CLOCK_RATES in Python config:
     ~clockGroup = Group.head(s);
     ~genGroup = Group.after(~clockGroup);
     ~stripGroup = Group.after(~genGroup);  // Channel strips after generators
-    ~fxGroup = Group.after(~stripGroup);   // Master FX after strips
+    ~fxGroup = Group.after(~stripGroup);   // FX processors after strips
+    ~mixerGroup = Group.after(~fxGroup);   // FX mixer sums dry + returns
+    ~masterGroup = Group.after(~mixerGroup); // Master chain (EQ, comp, limiter)
     
     ~clockSynth = Synth(\masterClock, [
         \bpmBus, ~clockBus.index,

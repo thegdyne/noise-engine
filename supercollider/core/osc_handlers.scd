@@ -261,5 +261,33 @@ All OSC message routing
         });
     }, '/noise/strip/eq/reset');
     
+
+    // === FX Send OSC Handlers ===
+    
+    // Per-channel Echo Send
+    OSCdef(\stripEchoSend, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat.clip(0, 1);
+        
+        ~withValidSlot.(slot, { |idx|
+            ~stripEchoSendState[idx] = value;
+            if(~channelStrips[idx].notNil, {
+                ~channelStrips[idx].set(\echoSend, value);
+            });
+        });
+    }, '/noise/strip/echo/send');
+    
+    // Per-channel Verb Send
+    OSCdef(\stripVerbSend, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat.clip(0, 1);
+        
+        ~withValidSlot.(slot, { |idx|
+            ~stripVerbSendState[idx] = value;
+            if(~channelStrips[idx].notNil, {
+                ~channelStrips[idx].set(\verbSend, value);
+            });
+        });
+    }, '/noise/strip/verb/send');
     "  ✓ OSC handlers ready".postln;
 };
