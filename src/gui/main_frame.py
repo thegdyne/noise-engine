@@ -15,7 +15,7 @@ from PyQt5.QtGui import QFont, QKeySequence
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
-from src.gui.effects_chain import EffectsChain
+from src.gui.inline_fx_strip import InlineFXStrip
 from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
 from src.gui.pack_selector import PackSelector
@@ -323,16 +323,14 @@ class MainFrame(QMainWindow):
         container = QFrame()
         container.setFrameShape(QFrame.StyledPanel)
         container.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-top: 1px solid {COLORS['border_light']};")
-        container.setFixedHeight(100)
+        container.setFixedHeight(180)
         
         layout = QHBoxLayout(container)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
         
-        self.effects_chain = EffectsChain()
-        self.effects_chain.effect_selected.connect(self.on_effect_selected)
-        self.effects_chain.effect_amount_changed.connect(self.on_effect_amount_changed)
-        layout.addWidget(self.effects_chain)
+        self.inline_fx = InlineFXStrip()
+        layout.addWidget(self.inline_fx)
         
         return container
         
@@ -377,6 +375,7 @@ class MainFrame(QMainWindow):
             if self.osc.connect():
                 self.osc_connected = True
                 self.master_section.set_osc_bridge(self.osc)
+                self.inline_fx.set_osc_bridge(self.osc)
                 self.connect_btn.setText("Disconnect")
                 self.status_label.setText("● Connected")
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
@@ -435,6 +434,7 @@ class MainFrame(QMainWindow):
         """Handle connection restored after reconnect."""
         self.osc_connected = True
         self.master_section.set_osc_bridge(self.osc)
+        self.inline_fx.set_osc_bridge(self.osc)
         self.connect_btn.setText("Disconnect")
         self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
         self.status_label.setText("● Connected")
@@ -580,33 +580,6 @@ class MainFrame(QMainWindow):
             # Update mixer channel active state
             self.mixer_panel.set_channel_active(slot_id, False)
                 
-    def on_effect_selected(self, slot_id):
-        """Handle effect slot selection."""
-        current_type = self.effects_chain.get_slot(slot_id).effect_type
-        
-        if current_type == "Empty":
-            new_type = "Fidelity"
-            slot = self.effects_chain.get_slot(slot_id)
-            slot.set_amount(0.75)
-            self.active_effects[slot_id] = new_type
-            if self.osc_connected:
-                self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [0.75])
-        elif current_type == "Fidelity":
-            new_type = "Empty"
-            if slot_id in self.active_effects:
-                del self.active_effects[slot_id]
-            if self.osc_connected:
-                self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [1.0])
-        else:
-            new_type = "Empty"
-        
-        self.effects_chain.set_effect_type(slot_id, new_type)
-            
-    def on_effect_amount_changed(self, slot_id, amount):
-        """Handle effect amount change."""
-        if self.osc_connected and slot_id in self.active_effects:
-            self.osc.client.send_message(OSC_PATHS['fidelity_amount'], [amount])
-    
     # -------------------------------------------------------------------------
     # Mod Source Handlers
     # -------------------------------------------------------------------------

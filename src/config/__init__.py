@@ -1032,9 +1032,12 @@ OSC_PATHS = {
     'fb_freq1': '/noise/master/fb/freq1',  # 0-1 (20Hz-20kHz exp)
     'fb_reso1': '/noise/master/fb/reso1',  # 0-1
     'fb_mode1': '/noise/master/fb/mode1',  # 0=LP, 1=BP, 2=HP
+    'fb_sync1': '/noise/master/fb/sync1',  # "" (free) or rate string (/16, CLK, x2, etc)
     'fb_freq2': '/noise/master/fb/freq2',  # 0-1 (20Hz-20kHz exp)
     'fb_reso2': '/noise/master/fb/reso2',  # 0-1
     'fb_mode2': '/noise/master/fb/mode2',  # 0=LP, 1=BP, 2=HP
+    'fb_sync2': '/noise/master/fb/sync2',  # "" (free) or rate string (/16, CLK, x2, etc)
+    'fb_sync_amt': '/noise/master/fb/syncAmt',  # 0-1 sync modulation depth
     'fb_harmonics': '/noise/master/fb/harmonics',  # 0=Free, 1-7=sync ratios
     'fb_routing': '/noise/master/fb/routing',  # 0=Serial, 1=Parallel
     'fb_mix': '/noise/master/fb/mix',  # 0-1 wet/dry

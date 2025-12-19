@@ -470,6 +470,7 @@ class CycleButton(QPushButton):
         self.index = initial_index
         self.wrap = True  # Default: cycle wraps around at ends
         self.wrap_at_start = False  # Only wrap when going up from index 0
+        self.invert_drag = False  # If True, drag up = lower index, drag down = higher index
         self.sensitivity_key = 'cycle'  # Key prefix for DRAG_SENSITIVITY lookup
         self.skip_prefix = None  # Skip values starting with this prefix (e.g., "────" for separators)
         # Text alignment for custom paint (stylesheet text-align is ignored)
@@ -589,6 +590,10 @@ class CycleButton(QPushButton):
                 
             delta_y = self.drag_start_y - event.globalPos().y()
             steps = int(delta_y / threshold)
+            
+            # Invert if requested (for filter sync: up = x multipliers, down = / divisions)
+            if self.invert_drag:
+                steps = -steps
             
             # Up = higher index (toward x2, x4 = faster triggers)
             new_index = self.drag_start_index + steps
