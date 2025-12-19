@@ -1011,6 +1011,18 @@ OSC_PATHS = {
     'strip_verb_send': '/noise/strip/verb/send',  # Per-channel verb send (0-1)
     'master_echo_return': '/noise/master/echo/return',  # Master echo return level
     'master_verb_return': '/noise/master/verb/return',  # Master verb return level
+    # Heat (saturation)
+    'heat_circuit': '/noise/master/heat/circuit',  # 0=Clean, 1=Tape, 2=Tube, 3=Crunch
+    'heat_drive': '/noise/master/heat/drive',  # 0-1
+    'heat_mix': '/noise/master/heat/mix',  # 0-1 wet/dry
+    'heat_bypass': '/noise/master/heat/bypass',  # 0=on, 1=bypassed
+    # Tape Echo (delay)
+    'echo_time': '/noise/master/echo/time',  # 0-1 (maps to 50-500ms)
+    'echo_feedback': '/noise/master/echo/feedback',  # 0-1
+    'echo_tone': '/noise/master/echo/tone',  # 0-1 (HF loss)
+    'echo_wow': '/noise/master/echo/wow',  # 0-1 (flutter)
+    'echo_spring': '/noise/master/echo/spring',  # 0-1 (spring reverb)
+    'echo_verb_send': '/noise/master/echo/verb_send',  # 0-1 (cross-feed to reverb)
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash
