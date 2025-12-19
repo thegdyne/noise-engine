@@ -82,3 +82,13 @@
 - [ ] P1: State sync on reconnect - create _sync_master_state() method to push UI→SC on connect/reconnect
 - [ ] P2: fx_window.py uses hardcoded OSC paths - refactor to use OSC_PATHS for SSOT
 - [ ] P2: master_passthrough LR4 comment doesn't match implementation - clarify or refactor EQ split
+
+## FX System UI Refinement
+- [ ] Integrate FX controls into EffectsChain banner (not just popup)
+  - Quick controls: bypass toggles, key knobs per FX
+  - Click for full popup with all params
+- [ ] Fidelity FX - already exists in effects_chain.py, needs integration with new FX
+- [ ] Per-channel echo/verb send knobs in mixer strip
+- [ ] Dropdown styling (M1/M2/SYNC/ROUTE) - increase font, width, contrast
+- [ ] Heat circuit dropdown styling
+- [ ] Consider using layout_sandbox.py for FX UI debugging
