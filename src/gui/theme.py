@@ -81,6 +81,10 @@ COLORS = {
     'warning_text': get('state_warning_text'),
     'warning_hover': get('state_warning_hover'),
     
+    # Turbo intensity
+    'turbo_t1': get('turbo_t1'),
+    'turbo_t2': get('turbo_t2'),
+    
     # UI elements
     'background': get('bg_mid'),
     'background_dark': get('bg_dark'),

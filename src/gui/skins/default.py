@@ -56,6 +56,10 @@ SKIN = {
     'accent_effect_dim': '#6644aa',
     'accent_effect_bg': '#1a1525',
     
+    # Turbo intensity colors
+    'turbo_t1': '#ff8800',  # Orange - hot
+    'turbo_t2': '#ff2200',  # Red - full send
+    
     # Master - White/Silver
     'accent_master': '#ffffff',
     'accent_master_dim': '#aaaaaa',

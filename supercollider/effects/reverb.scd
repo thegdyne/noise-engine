@@ -10,11 +10,11 @@ Signal flow:
     "Setting up Reverb...".postln;
     
     // State defaults
-    ~verbSize = 0.5;      // 0-1 room size
-    ~verbDecay = 0.5;     // 0-1 decay time
+    ~verbSize = 0.75;     // 0-1 room size (75%)
+    ~verbDecay = 0.65;    // 0-1 decay time (65%)
     ~verbTone = 0.7;      // 0-1 brightness
     
-    SynthDef(\reverb, { |inBus, outBus, size=0.5, decay=0.5, tone=0.7|
+    SynthDef(\reverb, { |inBus, outBus, size=0.75, decay=0.65, tone=0.7|
         var sig, verb, toneFreq;
         
         // Smooth params
