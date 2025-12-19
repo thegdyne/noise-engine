@@ -1,0 +1,450 @@
+"""
+FX Window
+Master FX controls: Heat, Tape Echo, Reverb, Dual Filter
+"""
+from PyQt5.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QLabel, QFrame, QPushButton, QComboBox, QSizePolicy
+)
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QFont
+from .theme import COLORS, FONT_FAMILY, FONT_SIZES
+from .widgets import DragSlider
+from src.config import SIZES
+
+
+class FXSection(QFrame):
+    """Base class for FX module sections."""
+    
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self.setFrameStyle(QFrame.StyledPanel)
+        self.setStyleSheet(f"""
+            FXSection {{
+                background-color: {COLORS['surface']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+            }}
+        """)
+        
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(8, 6, 8, 8)
+        self.layout.setSpacing(6)
+        
+        # Header
+        header = QHBoxLayout()
+        self.title_label = QLabel(title)
+        self.title_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
+        self.title_label.setStyleSheet(f"color: {COLORS['text']};")
+        header.addWidget(self.title_label)
+        header.addStretch()
+        
+        self.bypass_btn = QPushButton("ON")
+        self.bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.bypass_btn.setFixedSize(32, 18)
+        self.bypass_btn.clicked.connect(self._on_bypass_clicked)
+        header.addWidget(self.bypass_btn)
+        
+        self.layout.addLayout(header)
+        
+        # Controls container
+        self.controls = QHBoxLayout()
+        self.controls.setSpacing(8)
+        self.layout.addLayout(self.controls)
+        
+        self._bypassed = True
+        self._update_bypass_style()
+    
+    def _on_bypass_clicked(self):
+        self._bypassed = not self._bypassed
+        self._update_bypass_style()
+        self.on_bypass_changed(self._bypassed)
+    
+    def _update_bypass_style(self):
+        if not self._bypassed:
+            self.bypass_btn.setText("ON")
+            self.bypass_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['accent']};
+                    color: {COLORS['bg']};
+                    border: none;
+                    border-radius: 2px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['accent_bright']};
+                }}
+            """)
+        else:
+            self.bypass_btn.setText("BYP")
+            self.bypass_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['surface_light']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 2px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['border']};
+                }}
+            """)
+    
+    def on_bypass_changed(self, bypassed):
+        """Override in subclass."""
+        pass
+    
+    def add_knob(self, label, min_val=0, max_val=100, default=50):
+        """Add a labeled knob to controls."""
+        container = QVBoxLayout()
+        container.setSpacing(2)
+        
+        knob = DragSlider(Qt.Vertical)
+        knob.setRange(min_val, max_val)
+        knob.setValue(default)
+        knob.setFixedSize(28, 50)
+        
+        lbl = QLabel(label)
+        lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        lbl.setAlignment(Qt.AlignCenter)
+        
+        container.addWidget(knob, alignment=Qt.AlignCenter)
+        container.addWidget(lbl, alignment=Qt.AlignCenter)
+        self.controls.addLayout(container)
+        
+        return knob
+
+
+class HeatSection(FXSection):
+    """Heat saturation controls."""
+    
+    bypass_changed = pyqtSignal(int)
+    circuit_changed = pyqtSignal(int)
+    drive_changed = pyqtSignal(float)
+    mix_changed = pyqtSignal(float)
+    
+    def __init__(self, parent=None):
+        super().__init__("HEAT", parent)
+        
+        # Circuit selector
+        circuit_container = QVBoxLayout()
+        circuit_container.setSpacing(2)
+        
+        self.circuit_combo = QComboBox()
+        self.circuit_combo.addItems(["CLEAN", "TAPE", "TUBE", "CRUNCH"])
+        self.circuit_combo.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.circuit_combo.setFixedWidth(70)
+        self.circuit_combo.currentIndexChanged.connect(lambda i: self.circuit_changed.emit(i))
+        
+        circuit_lbl = QLabel("CIRCUIT")
+        circuit_lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        circuit_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        circuit_lbl.setAlignment(Qt.AlignCenter)
+        
+        circuit_container.addWidget(self.circuit_combo, alignment=Qt.AlignCenter)
+        circuit_container.addWidget(circuit_lbl, alignment=Qt.AlignCenter)
+        self.controls.addLayout(circuit_container)
+        
+        # Knobs
+        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0)
+        self.drive_knob.valueChanged.connect(lambda v: self.drive_changed.emit(v / 100.0))
+        
+        self.mix_knob = self.add_knob("MIX", 0, 100, 100)
+        self.mix_knob.valueChanged.connect(lambda v: self.mix_changed.emit(v / 100.0))
+    
+    def on_bypass_changed(self, bypassed):
+        self.bypass_changed.emit(1 if bypassed else 0)
+
+
+class TapeEchoSection(FXSection):
+    """Tape Echo delay controls."""
+    
+    time_changed = pyqtSignal(float)
+    feedback_changed = pyqtSignal(float)
+    tone_changed = pyqtSignal(float)
+    wow_changed = pyqtSignal(float)
+    spring_changed = pyqtSignal(float)
+    verb_send_changed = pyqtSignal(float)
+    return_changed = pyqtSignal(float)
+    
+    def __init__(self, parent=None):
+        super().__init__("TAPE ECHO", parent)
+        # No bypass for send effects - always on
+        self.bypass_btn.hide()
+        
+        self.time_knob = self.add_knob("TIME", 0, 100, 40)
+        self.time_knob.valueChanged.connect(lambda v: self.time_changed.emit(v / 100.0))
+        
+        self.feedback_knob = self.add_knob("FDBK", 0, 100, 30)
+        self.feedback_knob.valueChanged.connect(lambda v: self.feedback_changed.emit(v / 100.0))
+        
+        self.tone_knob = self.add_knob("TONE", 0, 100, 70)
+        self.tone_knob.valueChanged.connect(lambda v: self.tone_changed.emit(v / 100.0))
+        
+        self.wow_knob = self.add_knob("WOW", 0, 100, 10)
+        self.wow_knob.valueChanged.connect(lambda v: self.wow_changed.emit(v / 100.0))
+        
+        self.spring_knob = self.add_knob("SPRING", 0, 100, 0)
+        self.spring_knob.valueChanged.connect(lambda v: self.spring_changed.emit(v / 100.0))
+        
+        self.verb_send_knob = self.add_knob("→VRB", 0, 100, 0)
+        self.verb_send_knob.valueChanged.connect(lambda v: self.verb_send_changed.emit(v / 100.0))
+        
+        self.return_knob = self.add_knob("RTN", 0, 100, 50)
+        self.return_knob.valueChanged.connect(lambda v: self.return_changed.emit(v / 100.0))
+
+
+class ReverbSection(FXSection):
+    """Reverb controls."""
+    
+    size_changed = pyqtSignal(float)
+    decay_changed = pyqtSignal(float)
+    tone_changed = pyqtSignal(float)
+    return_changed = pyqtSignal(float)
+    
+    def __init__(self, parent=None):
+        super().__init__("REVERB", parent)
+        # No bypass for send effects
+        self.bypass_btn.hide()
+        
+        self.size_knob = self.add_knob("SIZE", 0, 100, 50)
+        self.size_knob.valueChanged.connect(lambda v: self.size_changed.emit(v / 100.0))
+        
+        self.decay_knob = self.add_knob("DECAY", 0, 100, 50)
+        self.decay_knob.valueChanged.connect(lambda v: self.decay_changed.emit(v / 100.0))
+        
+        self.tone_knob = self.add_knob("TONE", 0, 100, 70)
+        self.tone_knob.valueChanged.connect(lambda v: self.tone_changed.emit(v / 100.0))
+        
+        self.return_knob = self.add_knob("RTN", 0, 100, 30)
+        self.return_knob.valueChanged.connect(lambda v: self.return_changed.emit(v / 100.0))
+
+
+class DualFilterSection(FXSection):
+    """Dual Filter controls."""
+    
+    bypass_changed = pyqtSignal(int)
+    drive_changed = pyqtSignal(float)
+    freq1_changed = pyqtSignal(float)
+    reso1_changed = pyqtSignal(float)
+    mode1_changed = pyqtSignal(int)
+    freq2_changed = pyqtSignal(float)
+    reso2_changed = pyqtSignal(float)
+    mode2_changed = pyqtSignal(int)
+    harmonics_changed = pyqtSignal(int)
+    routing_changed = pyqtSignal(int)
+    mix_changed = pyqtSignal(float)
+    
+    def __init__(self, parent=None):
+        super().__init__("DUAL FILTER", parent)
+        
+        # Drive
+        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0)
+        self.drive_knob.valueChanged.connect(lambda v: self.drive_changed.emit(v / 100.0))
+        
+        # Filter 1
+        self.freq1_knob = self.add_knob("F1", 0, 100, 50)
+        self.freq1_knob.valueChanged.connect(lambda v: self.freq1_changed.emit(v / 100.0))
+        
+        self.reso1_knob = self.add_knob("R1", 0, 100, 0)
+        self.reso1_knob.valueChanged.connect(lambda v: self.reso1_changed.emit(v / 100.0))
+        
+        # Mode 1 combo
+        mode1_container = QVBoxLayout()
+        mode1_container.setSpacing(2)
+        self.mode1_combo = QComboBox()
+        self.mode1_combo.addItems(["LP", "BP", "HP"])
+        self.mode1_combo.setCurrentIndex(1)  # BP default
+        self.mode1_combo.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.mode1_combo.setFixedWidth(40)
+        self.mode1_combo.currentIndexChanged.connect(lambda i: self.mode1_changed.emit(i))
+        mode1_lbl = QLabel("M1")
+        mode1_lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        mode1_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        mode1_lbl.setAlignment(Qt.AlignCenter)
+        mode1_container.addWidget(self.mode1_combo, alignment=Qt.AlignCenter)
+        mode1_container.addWidget(mode1_lbl, alignment=Qt.AlignCenter)
+        self.controls.addLayout(mode1_container)
+        
+        # Filter 2
+        self.freq2_knob = self.add_knob("F2", 0, 100, 35)
+        self.freq2_knob.valueChanged.connect(lambda v: self.freq2_changed.emit(v / 100.0))
+        
+        self.reso2_knob = self.add_knob("R2", 0, 100, 0)
+        self.reso2_knob.valueChanged.connect(lambda v: self.reso2_changed.emit(v / 100.0))
+        
+        # Mode 2 combo
+        mode2_container = QVBoxLayout()
+        mode2_container.setSpacing(2)
+        self.mode2_combo = QComboBox()
+        self.mode2_combo.addItems(["LP", "BP", "HP"])
+        self.mode2_combo.setCurrentIndex(1)
+        self.mode2_combo.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.mode2_combo.setFixedWidth(40)
+        self.mode2_combo.currentIndexChanged.connect(lambda i: self.mode2_changed.emit(i))
+        mode2_lbl = QLabel("M2")
+        mode2_lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        mode2_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        mode2_lbl.setAlignment(Qt.AlignCenter)
+        mode2_container.addWidget(self.mode2_combo, alignment=Qt.AlignCenter)
+        mode2_container.addWidget(mode2_lbl, alignment=Qt.AlignCenter)
+        self.controls.addLayout(mode2_container)
+        
+        # Harmonics
+        harm_container = QVBoxLayout()
+        harm_container.setSpacing(2)
+        self.harmonics_combo = QComboBox()
+        self.harmonics_combo.addItems(["Free", "1", "2", "3", "4", "5", "8", "16"])
+        self.harmonics_combo.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.harmonics_combo.setFixedWidth(50)
+        self.harmonics_combo.currentIndexChanged.connect(lambda i: self.harmonics_changed.emit(i))
+        harm_lbl = QLabel("SYNC")
+        harm_lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        harm_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        harm_lbl.setAlignment(Qt.AlignCenter)
+        harm_container.addWidget(self.harmonics_combo, alignment=Qt.AlignCenter)
+        harm_container.addWidget(harm_lbl, alignment=Qt.AlignCenter)
+        self.controls.addLayout(harm_container)
+        
+        # Routing
+        route_container = QVBoxLayout()
+        route_container.setSpacing(2)
+        self.routing_combo = QComboBox()
+        self.routing_combo.addItems(["SER", "PAR"])
+        self.routing_combo.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
+        self.routing_combo.setFixedWidth(45)
+        self.routing_combo.currentIndexChanged.connect(lambda i: self.routing_changed.emit(i))
+        route_lbl = QLabel("ROUTE")
+        route_lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        route_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        route_lbl.setAlignment(Qt.AlignCenter)
+        route_container.addWidget(self.routing_combo, alignment=Qt.AlignCenter)
+        route_container.addWidget(route_lbl, alignment=Qt.AlignCenter)
+        self.controls.addLayout(route_container)
+        
+        # Mix
+        self.mix_knob = self.add_knob("MIX", 0, 100, 100)
+        self.mix_knob.valueChanged.connect(lambda v: self.mix_changed.emit(v / 100.0))
+    
+    def on_bypass_changed(self, bypassed):
+        self.bypass_changed.emit(1 if bypassed else 0)
+
+
+class FXWindow(QMainWindow):
+    """Master FX control window."""
+    
+    def __init__(self, osc_bridge=None, parent=None):
+        super().__init__(parent)
+        self.osc_bridge = osc_bridge
+        
+        self.setWindowTitle("Master FX")
+        self.setMinimumSize(500, 400)
+        
+        # Central widget
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
+        
+        # Sections
+        self.heat = HeatSection()
+        self.tape_echo = TapeEchoSection()
+        self.reverb = ReverbSection()
+        self.dual_filter = DualFilterSection()
+        
+        layout.addWidget(self.heat)
+        layout.addWidget(self.tape_echo)
+        layout.addWidget(self.reverb)
+        layout.addWidget(self.dual_filter)
+        layout.addStretch()
+        
+        # Connect signals
+        self._connect_signals()
+        
+        # Style
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-color: {COLORS['bg']};
+            }}
+            QComboBox {{
+                background-color: {COLORS['surface']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 2px;
+                padding: 2px 4px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 12px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {COLORS['surface']};
+                color: {COLORS['text']};
+                selection-background-color: {COLORS['accent']};
+            }}
+        """)
+    
+    def _connect_signals(self):
+        """Connect UI signals to OSC."""
+        if not self.osc_bridge:
+            return
+        
+        # Heat
+        self.heat.bypass_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/heat/bypass', [v]))
+        self.heat.circuit_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/heat/circuit', [v]))
+        self.heat.drive_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/heat/drive', [v]))
+        self.heat.mix_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/heat/mix', [v]))
+        
+        # Tape Echo
+        self.tape_echo.time_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/echo/time', [v]))
+        self.tape_echo.feedback_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/echo/feedback', [v]))
+        self.tape_echo.tone_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/echo/tone', [v]))
+        self.tape_echo.wow_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/echo/wow', [v]))
+        self.tape_echo.spring_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/echo/spring', [v]))
+        self.tape_echo.verb_send_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/echo/verb_send', [v]))
+        self.tape_echo.return_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/echo/return', [v]))
+        
+        # Reverb
+        self.reverb.size_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/verb/size', [v]))
+        self.reverb.decay_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/verb/decay', [v]))
+        self.reverb.tone_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/verb/tone', [v]))
+        self.reverb.return_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/verb/return', [v]))
+        
+        # Dual Filter
+        self.dual_filter.bypass_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/bypass', [v]))
+        self.dual_filter.drive_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/drive', [v]))
+        self.dual_filter.freq1_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/freq1', [v]))
+        self.dual_filter.reso1_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/reso1', [v]))
+        self.dual_filter.mode1_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/mode1', [v]))
+        self.dual_filter.freq2_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/freq2', [v]))
+        self.dual_filter.reso2_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/reso2', [v]))
+        self.dual_filter.mode2_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/mode2', [v]))
+        self.dual_filter.harmonics_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/harmonics', [v]))
+        self.dual_filter.routing_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/routing', [v]))
+        self.dual_filter.mix_changed.connect(
+            lambda v: self.osc_bridge.send_message('/noise/master/fb/mix', [v]))

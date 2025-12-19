@@ -12,6 +12,7 @@ from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, slider_style_center_notch
 from .widgets import DragSlider
+from .fx_window import FXWindow
 from src.config import SIZES
 
 
@@ -296,6 +297,8 @@ class MasterSection(QWidget):
         self.comp_attack_idx = 4  # 10ms
         self.comp_release_idx = 4  # Auto
         self.comp_sc_idx = 0  # Off
+        self.fx_window = None
+        self.osc_bridge = None
         self.setup_ui()
         
     def setup_ui(self):
@@ -748,6 +751,25 @@ class MasterSection(QWidget):
         self.meter_mode_btn.clicked.connect(self._on_meter_mode_clicked)
         self._update_meter_mode_style()
         meter_container.addWidget(self.meter_mode_btn, alignment=Qt.AlignCenter)
+
+        self.fx_btn = QPushButton("FX")
+        self.fx_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES["tiny"], QFont.Bold))
+        self.fx_btn.setFixedSize(32, 18)
+        self.fx_btn.setToolTip("Open Master FX window")
+        self.fx_btn.clicked.connect(self._on_fx_clicked)
+        self.fx_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS["surface_light"]};
+                color: {COLORS["accent"]};
+                border: 1px solid {COLORS["accent"]};
+                border-radius: 2px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS["accent"]};
+                color: {COLORS["bg"]};
+            }}
+        """)
+        meter_container.addWidget(self.fx_btn, alignment=Qt.AlignCenter)
         
         self.level_meter = LevelMeter()
         meter_container.addWidget(self.level_meter, alignment=Qt.AlignCenter)
@@ -797,6 +819,14 @@ class MasterSection(QWidget):
         self.level_meter.peak_r = 0.0
         
         self.meter_mode_changed.emit(self.meter_mode)
+
+    def _on_fx_clicked(self):
+        """Open FX window."""
+        if self.fx_window is None:
+            self.fx_window = FXWindow(self.osc_bridge, self)
+        self.fx_window.show()
+        self.fx_window.raise_()
+        self.fx_window.activateWindow()
     
     def _update_meter_mode_style(self):
         """Update button appearance based on current mode."""
@@ -1102,16 +1132,13 @@ class MasterSection(QWidget):
             peak_right: Optional peak level
         """
         self.level_meter.set_levels(left, right, peak_left, peak_right)
-        
-        # Update peak display
-        peak = max(peak_left or left, peak_right or right)
-        if peak > 0.001:
-            import math
-            db = 20 * math.log10(peak)
-            self.peak_label.setText(f"{db:.1f}")
-        else:
-            self.peak_label.setText("---")
-            
+
+    def set_osc_bridge(self, osc_bridge):
+        """Set OSC bridge for FX window."""
+        self.osc_bridge = osc_bridge
+        if self.fx_window is not None:
+            self.fx_window.osc_bridge = osc_bridge
+
     def get_volume(self):
         """Get current master volume (0.0 to 1.0)."""
         return self.master_fader.value() / 1000.0
