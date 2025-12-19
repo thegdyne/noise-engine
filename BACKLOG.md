@@ -77,3 +77,8 @@
 
 ## Housekeeping
 - [ ] Merge dev → main (tests failing in main due to new tests not pushed)
+
+## FX System v1.1
+- [ ] P1: State sync on reconnect - create _sync_master_state() method to push UI→SC on connect/reconnect
+- [ ] P2: fx_window.py uses hardcoded OSC paths - refactor to use OSC_PATHS for SSOT
+- [ ] P2: master_passthrough LR4 comment doesn't match implementation - clarify or refactor EQ split
