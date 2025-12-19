@@ -51,7 +51,7 @@ Circuits (same topology, different coefficients):
         // Smooth all params for click-free changes
         curve = VarLag.kr(curve, 0.05);
         asymmetry = VarLag.kr(asymmetry, 0.05);
-        hfLoss = VarLag.kr(hfLoss, 0.05);
+        hfLoss = VarLag.kr(hfLoss, 0.05, warp: \exp);
         preGain = VarLag.kr(preGain, 0.05);
         postGain = VarLag.kr(postGain, 0.05);
         drive = Lag.kr(drive, 0.02);
@@ -86,7 +86,7 @@ Circuits (same topology, different coefficients):
         sig = (dry * (1 - mix)) + (wet * mix);
         
         // Bypass (click-free)
-        sig = Select.ar(Lag.kr(bypass, 0.02), [sig, dry]);
+        sig = XFade2.ar(sig, dry, (Lag.kr(bypass, 0.02) * 2) - 1);  // Crossfade bypass
         
         ReplaceOut.ar(outBus, sig);
     }).add;

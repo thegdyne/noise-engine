@@ -70,19 +70,13 @@ Features:
         // Post-emphasis EQ (restore balance)
         delayed = BHiShelf.ar(delayed, 2000, 1, -2);
         
-        // Simple spring reverb simulation (if enabled)
-        springed = if(spring > 0.01,
-            // Allpass chain + comb for spring character
-            {
-                var sp = delayed;
-                sp = AllpassC.ar(sp, 0.05, 0.03, 0.1);
-                sp = AllpassC.ar(sp, 0.05, 0.022, 0.15);
-                sp = CombC.ar(sp, 0.1, 0.047, 0.2);
-                sp = LPF.ar(sp, 4000);
-                sp * spring
-            },
-            { DC.ar(0) }
-        );
+        // Spring reverb simulation (always runs, scaled by spring amount)
+        springed = delayed;
+        springed = AllpassC.ar(springed, 0.05, 0.03, 0.1);
+        springed = AllpassC.ar(springed, 0.05, 0.022, 0.15);
+        springed = CombC.ar(springed, 0.1, 0.047, 0.2);
+        springed = LPF.ar(springed, 4000);
+        springed = springed * spring;
         
         output = delayed + springed;
         

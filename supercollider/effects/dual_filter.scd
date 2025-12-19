@@ -43,8 +43,8 @@ Features:
         harmonicRatios = #[1, 1, 2, 3, 4, 5, 8, 16];
         
         // Map freq 0-1 to 20Hz-20kHz exponential
-        freq1 = VarLag.kr(freq1, 0.02);
-        freq2 = VarLag.kr(freq2, 0.02);
+        freq1 = VarLag.kr(freq1, 0.02, warp: \exp);
+        freq2 = VarLag.kr(freq2, 0.02, warp: \exp);
         f1hz = freq1.linexp(0, 1, 20, 20000);
         
         // Apply harmonics sync if not Free (harmonics > 0)
@@ -107,7 +107,7 @@ Features:
         sig = (dry * (1 - mix)) + (wet * mix);
         
         // Bypass (click-free)
-        sig = Select.ar(Lag.kr(bypass, 0.02), [sig, dry]);
+        sig = XFade2.ar(sig, dry, (Lag.kr(bypass, 0.02) * 2) - 1);  // Crossfade bypass
         
         ReplaceOut.ar(outBus, sig);
     }).add;
@@ -116,6 +116,11 @@ Features:
 };
 
 ~startDualFilter = {
+    var target, action;
+    
+    // If Heat exists, insert directly after it; otherwise head of master
+    target = if(~heatSynth.notNil, { ~heatSynth }, { ~masterGroup });
+    action = if(~heatSynth.notNil, { \addAfter }, { \addToHead });
     // Runs in masterGroup, after Heat
     ~fbSynth = Synth(\dualFilter, [
         \inBus, ~masterBus,
@@ -131,7 +136,7 @@ Features:
         \routing, ~fbRouting,
         \mix, ~fbMix,
         \bypass, ~fbBypass
-    ], ~masterGroup, \addAfter);  // After Heat in master chain
+    ], target, action);
     
     "  ✓ Dual Filter running (bypassed)".postln;
 };
