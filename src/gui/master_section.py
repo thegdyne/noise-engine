@@ -759,14 +759,14 @@ class MasterSection(QWidget):
         self.fx_btn.clicked.connect(self._on_fx_clicked)
         self.fx_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS["surface_light"]};
-                color: {COLORS["accent"]};
-                border: 1px solid {COLORS["accent"]};
+                background-color: {COLORS["background_light"]};
+                color: {COLORS["accent_effect"]};
+                border: 1px solid {COLORS["accent_effect"]};
                 border-radius: 2px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS["accent"]};
-                color: {COLORS["bg"]};
+                background-color: {COLORS["accent_effect"]};
+                color: {COLORS["background"]};
             }}
         """)
         meter_container.addWidget(self.fx_btn, alignment=Qt.AlignCenter)
