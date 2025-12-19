@@ -59,6 +59,14 @@ s.waitForBoot({
     // Load Tape Echo (delay)
     (~basePath +/+ "effects/tape_echo.scd").load;
     ~setupTapeEcho.();
+
+    // Load Reverb
+    (~basePath +/+ "effects/reverb.scd").load;
+    ~setupReverb.();
+
+    // Load Dual Filter
+    (~basePath +/+ "effects/dual_filter.scd").load;
+    ~setupDualFilter.();
     
     // Load effects
     (~basePath +/+ "effects/master_passthrough.scd").load;
@@ -156,6 +164,10 @@ s.waitForBoot({
     ~setupHeatOSC.();
     ~startTapeEcho.();
     ~setupTapeEchoOSC.();
+    ~startReverb.();
+    ~setupReverbOSC.();
+    ~startDualFilter.();
+    ~setupDualFilterOSC.();
     ~setupMasterOSC.();
     ~setupChannelMeterForward.();  // Forward channel levels to Python
     

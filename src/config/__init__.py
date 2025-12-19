@@ -1023,6 +1023,22 @@ OSC_PATHS = {
     'echo_wow': '/noise/master/echo/wow',  # 0-1 (flutter)
     'echo_spring': '/noise/master/echo/spring',  # 0-1 (spring reverb)
     'echo_verb_send': '/noise/master/echo/verb_send',  # 0-1 (cross-feed to reverb)
+    # Reverb
+    'verb_size': '/noise/master/verb/size',  # 0-1 room size
+    'verb_decay': '/noise/master/verb/decay',  # 0-1 tail length
+    'verb_tone': '/noise/master/verb/tone',  # 0-1 brightness
+    # Dual Filter
+    'fb_drive': '/noise/master/fb/drive',  # 0-1
+    'fb_freq1': '/noise/master/fb/freq1',  # 0-1 (20Hz-20kHz exp)
+    'fb_reso1': '/noise/master/fb/reso1',  # 0-1
+    'fb_mode1': '/noise/master/fb/mode1',  # 0=LP, 1=BP, 2=HP
+    'fb_freq2': '/noise/master/fb/freq2',  # 0-1 (20Hz-20kHz exp)
+    'fb_reso2': '/noise/master/fb/reso2',  # 0-1
+    'fb_mode2': '/noise/master/fb/mode2',  # 0=LP, 1=BP, 2=HP
+    'fb_harmonics': '/noise/master/fb/harmonics',  # 0=Free, 1-7=sync ratios
+    'fb_routing': '/noise/master/fb/routing',  # 0=Serial, 1=Parallel
+    'fb_mix': '/noise/master/fb/mix',  # 0-1 wet/dry
+    'fb_bypass': '/noise/master/fb/bypass',  # 0=on, 1=bypassed
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash
