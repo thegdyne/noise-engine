@@ -93,3 +93,4 @@
 - [ ] Heat circuit dropdown styling
 - [ ] Consider using layout_sandbox.py for FX UI debugging
 - [ ] Reverb pre-delay parameter
+- [ ] FX audio tuning (adjust default values, ranges, response curves)
