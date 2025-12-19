@@ -175,3 +175,43 @@ class TestOSCPortConfiguration:
             sc_port = int(match.group(1))
             assert sc_port == OSC_SEND_PORT, \
                 f"SC port {sc_port} != Python send port {OSC_SEND_PORT}"
+
+
+class TestOSCHandlerDuplicates:
+    """Test for duplicate OSCdef registrations in SuperCollider files."""
+    
+    def _count_osc_handlers(self, osc_path):
+        """Count how many files register an OSCdef for given path."""
+        import os
+        
+        sc_dir = 'supercollider'
+        handlers = []
+        
+        for root, dirs, files in os.walk(sc_dir):
+            for file in files:
+                if file.endswith('.scd') and 'backup' not in file:
+                    filepath = os.path.join(root, file)
+                    with open(filepath, 'r') as f:
+                        content = f.read()
+                    # Simple string search for the path
+                    if f"'{osc_path}'" in content or f'"{osc_path}"' in content:
+                        # Make sure it's in an OSCdef context
+                        if 'OSCdef' in content:
+                            handlers.append(filepath)
+        
+        return handlers
+    
+    def test_no_duplicate_gen_mute_handler(self):
+        """Ensure /noise/gen/mute is only registered once."""
+        handlers = self._count_osc_handlers('/noise/gen/mute')
+        assert len(handlers) == 1, f"Expected 1 mute handler, found {len(handlers)} in: {handlers}"
+    
+    def test_no_duplicate_gen_volume_handler(self):
+        """Ensure /noise/gen/volume is only registered once."""
+        handlers = self._count_osc_handlers('/noise/gen/volume')
+        assert len(handlers) == 1, f"Expected 1 volume handler, found {len(handlers)} in: {handlers}"
+
+    def test_no_duplicate_gen_solo_handler(self):
+        """Ensure /noise/gen/solo is only registered once."""
+        handlers = self._count_osc_handlers('/noise/gen/solo')
+        assert len(handlers) == 1, f"Expected 1 solo handler, found {len(handlers)} in: {handlers}"

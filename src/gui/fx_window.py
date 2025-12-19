@@ -384,6 +384,11 @@ class FXWindow(QMainWindow):
             }}
         """)
     
+    def _send_osc(self, path, value):
+        """Send OSC if connected."""
+        if self.osc_bridge and self.osc_bridge.client:
+            self.osc_bridge.client.send_message(path, [value])
+    
     def _connect_signals(self):
         """Connect UI signals to OSC."""
         if not self.osc_bridge:
@@ -391,60 +396,60 @@ class FXWindow(QMainWindow):
         
         # Heat
         self.heat.bypass_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/heat/bypass', [v]))
+            lambda v: self._send_osc(OSC_PATHS['heat_bypass'], v))
         self.heat.circuit_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/heat/circuit', [v]))
+            lambda v: self._send_osc(OSC_PATHS['heat_circuit'], v))
         self.heat.drive_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/heat/drive', [v]))
+            lambda v: self._send_osc(OSC_PATHS['heat_drive'], v))
         self.heat.mix_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/heat/mix', [v]))
+            lambda v: self._send_osc(OSC_PATHS['heat_mix'], v))
         
         # Tape Echo
         self.tape_echo.time_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/echo/time', [v]))
+            lambda v: self._send_osc(OSC_PATHS['echo_time'], v))
         self.tape_echo.feedback_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/echo/feedback', [v]))
+            lambda v: self._send_osc(OSC_PATHS['echo_feedback'], v))
         self.tape_echo.tone_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/echo/tone', [v]))
+            lambda v: self._send_osc(OSC_PATHS['echo_tone'], v))
         self.tape_echo.wow_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/echo/wow', [v]))
+            lambda v: self._send_osc(OSC_PATHS['echo_wow'], v))
         self.tape_echo.spring_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/echo/spring', [v]))
+            lambda v: self._send_osc(OSC_PATHS['echo_spring'], v))
         self.tape_echo.verb_send_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/echo/verb_send', [v]))
+            lambda v: self._send_osc(OSC_PATHS['echo_verb_send'], v))
         self.tape_echo.return_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/echo/return', [v]))
+            lambda v: self._send_osc(OSC_PATHS['master_echo_return'], v))
         
         # Reverb
         self.reverb.size_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/verb/size', [v]))
+            lambda v: self._send_osc(OSC_PATHS['verb_size'], v))
         self.reverb.decay_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/verb/decay', [v]))
+            lambda v: self._send_osc(OSC_PATHS['verb_decay'], v))
         self.reverb.tone_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/verb/tone', [v]))
+            lambda v: self._send_osc(OSC_PATHS['verb_tone'], v))
         self.reverb.return_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/verb/return', [v]))
+            lambda v: self._send_osc(OSC_PATHS['master_verb_return'], v))
         
         # Dual Filter
         self.dual_filter.bypass_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/bypass', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_bypass'], v))
         self.dual_filter.drive_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/drive', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_drive'], v))
         self.dual_filter.freq1_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/freq1', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_freq1'], v))
         self.dual_filter.reso1_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/reso1', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_reso1'], v))
         self.dual_filter.mode1_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/mode1', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_mode1'], v))
         self.dual_filter.freq2_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/freq2', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_freq2'], v))
         self.dual_filter.reso2_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/reso2', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_reso2'], v))
         self.dual_filter.mode2_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/mode2', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_mode2'], v))
         self.dual_filter.harmonics_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/harmonics', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_harmonics'], v))
         self.dual_filter.routing_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/routing', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_routing'], v))
         self.dual_filter.mix_changed.connect(
-            lambda v: self.osc_bridge.send_message('/noise/master/fb/mix', [v]))
+            lambda v: self._send_osc(OSC_PATHS['fb_mix'], v))

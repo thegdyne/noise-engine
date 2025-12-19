@@ -227,17 +227,6 @@ SynthDef(\midiRetrigContinuous, { |trigBus=0, rate=30, amp=1|
         });
     }, '/noise/gen/midiChannel');
     
-    // Set generator mute
-    OSCdef(\genMute, { |msg|
-        var slot = msg[1].asInteger;
-        var muted = msg[2].asInteger > 0;
-        
-        if(slot >= 1 && slot <= 8, {
-            ~genMuted[slot - 1] = muted;
-            ("Gen " ++ slot ++ " mute: " ++ muted).postln;
-        });
-    }, '/noise/gen/mute');
-    
     // Set generator MIDI retrig mode
     OSCdef(\genMidiRetrig, { |msg|
         var slot = msg[1].asInteger;
