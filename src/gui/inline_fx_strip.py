@@ -19,7 +19,6 @@ from src.config import OSC_PATHS, CLOCK_RATES, CLOCK_DEFAULT_INDEX
 FILTER_SYNC_MODES = ["FREE"] + CLOCK_RATES
 FILTER_SYNC_CLK_INDEX = CLOCK_DEFAULT_INDEX + 1  # CLK index (offset by FREE)
 
-
 class FXModule(QFrame):
     """Base class for inline FX module."""
     
@@ -31,14 +30,13 @@ class FXModule(QFrame):
     def __init__(self, name, has_bypass=False, has_turbo=True, parent=None):
         super().__init__(parent)
         self.name = name
+        self.setObjectName(f"{name}Module")
         self.has_bypass = has_bypass
         self.has_turbo = has_turbo
         self.bypassed = True if has_bypass else False
         self.turbo_state = self.TURBO_OFF
         self.osc_bridge = None
         self.knobs = {}
-        # Expand horizontally
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setup_base_ui()
         
     def setup_base_ui(self):
@@ -70,7 +68,7 @@ class FXModule(QFrame):
         if self.has_turbo:
             self.turbo_btn = QPushButton("TRB")
             self.turbo_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro'], QFont.Bold))
-            self.turbo_btn.setFixedSize(28, 16)
+            self.turbo_btn.setFixedSize(25, 16)
             self.turbo_btn.clicked.connect(self._cycle_turbo)
             self._update_turbo_style()
             title_row.addWidget(self.turbo_btn)
@@ -104,7 +102,7 @@ class FXModule(QFrame):
         
         # Create larger knob
         knob = MiniKnob()
-        knob.setFixedSize(28, 28)  # Larger than default 18x18
+        knob.setFixedSize(22, 22)  # Larger than default 18x18
         knob.setValue(default)
         knob.setToolTip(tooltip or f"{name} (double-click reset)")
         container.addWidget(knob, alignment=Qt.AlignCenter)
@@ -113,6 +111,7 @@ class FXModule(QFrame):
         label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         label.setStyleSheet(f"color: {COLORS['text_dim']};")
         label.setAlignment(Qt.AlignCenter)
+        #container.addWidget(label, alignment=Qt.AlignCenter)
         container.addWidget(label)
         
         self.knobs_layout.addLayout(container)
@@ -478,7 +477,7 @@ class FilterModule(FXModule):
         container.setContentsMargins(0, 0, 0, 0)
         
         knob = MiniKnob()
-        knob.setFixedSize(28, 28)
+        knob.setFixedSize(22, 22)
         knob.setValue(default)
         knob.setToolTip(tooltip)
         container.addWidget(knob, alignment=Qt.AlignCenter)
@@ -489,7 +488,7 @@ class FilterModule(FXModule):
         mode_label.setStyleSheet(f"color: {COLORS['text']};")
         mode_label.setAlignment(Qt.AlignCenter)
         mode_label.setCursor(Qt.PointingHandCursor)
-        mode_label.setFixedWidth(28)
+        mode_label.setFixedWidth(19)
         container.addWidget(mode_label)
         
         self.knobs_layout.addLayout(container)
@@ -702,37 +701,42 @@ class InlineFXStrip(QWidget):
         super().__init__(parent)
         self.osc_bridge = None
         self.modules = {}
-        # Expand horizontally to fill available space
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setup_ui()
         
     def setup_ui(self):
         """Create inline FX strip."""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(12)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         
-        # FX Modules
+        # FX Modules - fixed sizes
         self.heat = HeatModule()
+        self.heat.setFixedWidth(110)
+        self.heat.setFixedHeight(170)
         layout.addWidget(self.heat)
         self.modules['HEAT'] = self.heat
         
-        # Separator
         layout.addWidget(self._separator())
         
         self.echo = EchoModule()
+        self.echo.setFixedWidth(155)
+        self.echo.setFixedHeight(170)
         layout.addWidget(self.echo)
         self.modules['ECHO'] = self.echo
         
         layout.addWidget(self._separator())
         
         self.reverb = ReverbModule()
+        self.reverb.setFixedWidth(160)
+        self.reverb.setFixedHeight(170)
         layout.addWidget(self.reverb)
         self.modules['REVERB'] = self.reverb
         
         layout.addWidget(self._separator())
         
         self.filter = FilterModule()
+        self.filter.setFixedWidth(155)
+        self.filter.setFixedHeight(170)
         layout.addWidget(self.filter)
         self.modules['FILTER'] = self.filter
         
@@ -740,7 +744,9 @@ class InlineFXStrip(QWidget):
         """Create vertical separator."""
         sep = QFrame()
         sep.setFrameShape(QFrame.VLine)
+        sep.setFixedWidth(1)
         sep.setStyleSheet(f"color: {COLORS['border']};")
+        sep.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         return sep
         
     def set_osc_bridge(self, osc_bridge):
