@@ -522,6 +522,56 @@ class ChannelStrip(QWidget):
             'eq_hi': self.eq_hi.value() / 100.0,
         }
 
+    def get_state(self) -> dict:
+        """
+        Get current channel state for preset save.
+
+        Returns dict with:
+            volume: float (0-1)
+            pan: float (0-1, where 0.5 = center)
+            mute: bool
+            solo: bool
+        """
+        return {
+            "volume": self.fader.value() / 1000.0,
+            "pan": (self.pan_slider.value() + 100) / 200.0,  # Convert -100..100 to 0..1
+            "mute": self.muted,
+            "solo": self.soloed,
+        }
+
+    def set_state(self, state: dict):
+        """
+        Apply state from preset load.
+
+        Args:
+            state: dict from get_state() or preset file
+        """
+        # Volume
+        vol = state.get("volume", 0.8)
+        self.fader.blockSignals(True)
+        self.fader.setValue(int(vol * 1000))
+        self.fader.blockSignals(False)
+        self.volume_changed.emit(self.channel_id, vol)
+
+        # Pan (convert 0..1 back to -100..100)
+        pan = state.get("pan", 0.5)
+        pan_value = int((pan * 200) - 100)
+        self.pan_slider.blockSignals(True)
+        self.pan_slider.setValue(pan_value)
+        self.pan_slider.blockSignals(False)
+        self.pan_value = pan_value / 100.0
+        self.pan_changed.emit(self.channel_id, self.pan_value)
+
+        # Mute
+        mute = state.get("mute", False)
+        if mute != self.muted:
+            self.toggle_mute()
+
+        # Solo
+        solo = state.get("solo", False)
+        if solo != self.soloed:
+            self.toggle_solo()
+
 
 class MixerPanel(QWidget):
     """Mixer panel with channel strips."""
@@ -628,3 +678,14 @@ class MixerPanel(QWidget):
         if channel_id in self.channels:
             return self.channels[channel_id].get_strip_state()
         return None
+
+    def get_all_channel_states(self) -> list:
+        """Get state of all channels for preset save."""
+        return [self.channels[i].get_state() for i in range(1, self.num_generators + 1)]
+
+    def set_all_channel_states(self, states: list):
+        """Apply states to all channels from preset load."""
+        for i, state in enumerate(states):
+            channel_id = i + 1
+            if channel_id in self.channels:
+                self.channels[channel_id].set_state(state)

@@ -14,7 +14,7 @@ from src.config import (
     GENERATOR_PARAMS, map_value,
     get_generator_custom_params, get_generator_pitch_target,
     get_generator_midi_retrig, get_generator_retrig_param_index,
-    ENV_SOURCE_INDEX
+    ENV_SOURCE_INDEX, MAX_CUSTOM_PARAMS
 )
 from src.utils.logger import logger
 
@@ -53,6 +53,122 @@ class GeneratorSlot(QWidget):
         self.setMinimumSize(200, 220)
         build_generator_slot_ui(self)  # UI construction delegated to builder
         self.update_style()
+    
+    # -------------------------------------------------------------------------
+    # Preset State (Save/Load)
+    # -------------------------------------------------------------------------
+    
+    def get_state(self) -> dict:
+        """
+        Get current slot state for preset save.
+        
+        Returns dict with:
+            generator: str or None
+            params: dict of normalized values (0-1)
+            filter_type: int (0=LP, 1=HP, 2=BP)
+            env_source: int (0=OFF, 1=CLK, 2=MIDI)
+            clock_rate: int (index into CLOCK_RATES)
+            midi_channel: int (0=OFF, 1-16)
+        """
+        # Standard params
+        params = {}
+        for key, slider in self.sliders.items():
+            params[key] = slider.value() / 1000.0
+        
+        # Custom params
+        for i in range(MAX_CUSTOM_PARAMS):
+            params[f"custom_{i}"] = self.custom_sliders[i].value() / 1000.0
+        
+        return {
+            "generator": self.generator_type if self.generator_type != "Empty" else None,
+            "params": params,
+            "filter_type": self.filter_btn.current_index,
+            "env_source": self.env_source,
+            "clock_rate": self.rate_btn.current_index,
+            "midi_channel": self.midi_channel,
+        }
+    
+    def set_state(self, state: dict):
+        """
+        Apply state from preset load.
+        
+        Args:
+            state: dict from get_state() or preset file
+        """
+        gen = state.get("generator")
+        
+        # Set generator type first (this resets params to defaults)
+        if gen:
+            # Use set_generator_type which handles all the wiring
+            self.set_generator_type(gen)
+            # Emit signal so main_frame starts the generator
+            self.generator_changed.emit(self.slot_id, gen)
+        else:
+            self.set_generator_type("Empty")
+            return  # Empty slot, nothing more to do
+        
+        # Now override params with saved values
+        params = state.get("params", {})
+        
+        # Standard params
+        for key, slider in self.sliders.items():
+            if key in params:
+                value = params[key]
+                slider.blockSignals(True)
+                slider.setValue(int(value * 1000))
+                slider.blockSignals(False)
+                # Send the value to SC
+                param_config = next((p for p in GENERATOR_PARAMS if p['key'] == key), None)
+                if param_config:
+                    real_value = map_value(value, param_config)
+                    self.parameter_changed.emit(self.slot_id, key, real_value)
+        
+        # Custom params
+        custom_params = get_generator_custom_params(self.generator_type)
+        for i in range(MAX_CUSTOM_PARAMS):
+            key = f"custom_{i}"
+            if key in params:
+                value = params[key]
+                self.custom_sliders[i].blockSignals(True)
+                self.custom_sliders[i].setValue(int(value * 1000))
+                self.custom_sliders[i].blockSignals(False)
+                # Send the value to SC
+                if i < len(custom_params):
+                    real_value = map_value(value, custom_params[i])
+                    self.custom_parameter_changed.emit(self.slot_id, i, real_value)
+        
+        # Filter type
+        ft = state.get("filter_type", 0)
+        self.filter_btn.blockSignals(True)
+        self.filter_btn.set_index(ft)
+        self.filter_btn.blockSignals(False)
+        self.filter_type_changed.emit(self.slot_id, self.filter_btn.get_value())
+        
+        # Env source
+        es = state.get("env_source", 0)
+        self.env_btn.blockSignals(True)
+        self.env_btn.set_index(es)
+        self.env_btn.blockSignals(False)
+        self.env_source = es
+        self.update_env_style()
+        self.env_source_changed.emit(self.slot_id, self.env_source)
+        self._update_retrig_param_state()
+        
+        # Clock rate
+        cr = state.get("clock_rate", 4)
+        self.rate_btn.blockSignals(True)
+        self.rate_btn.set_index(cr)
+        self.rate_btn.blockSignals(False)
+        self.clock_rate_changed.emit(self.slot_id, self.rate_btn.get_value())
+        
+        # MIDI channel
+        mc = state.get("midi_channel", 0)
+        self.midi_channel = mc
+        self.midi_btn.blockSignals(True)
+        self.midi_btn.set_index(mc)
+        self.midi_btn.blockSignals(False)
+        self.midi_btn.setStyleSheet(midi_channel_style(mc > 0))
+        self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
     
     # -------------------------------------------------------------------------
     # Style Updates
@@ -180,7 +296,7 @@ class GeneratorSlot(QWidget):
         midi_retrig = get_generator_midi_retrig(gen_type)
         retrig_param_index = get_generator_retrig_param_index(gen_type)
         
-        from src.config import MAX_CUSTOM_PARAMS, format_value
+        from src.config import format_value
         
         for i in range(MAX_CUSTOM_PARAMS):
             if i < len(custom_params):
