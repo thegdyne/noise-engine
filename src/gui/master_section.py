@@ -665,7 +665,7 @@ class MasterSection(QWidget):
         comp_controls.addLayout(gr_container)
         
         comp_main.addLayout(comp_controls)
-        content_layout.addWidget(comp_widget)
+        content_layout.addWidget(comp_widget, stretch=2)
         
         # 3. LIMITER section
         limiter_widget = QWidget()

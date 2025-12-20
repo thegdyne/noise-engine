@@ -320,18 +320,21 @@ class MainFrame(QMainWindow):
         
     def create_bottom_section(self):
         """Create bottom section - effects only."""
+        from PyQt5.QtWidgets import QSizePolicy
         container = QFrame()
+        container.setObjectName("fxContainer")
         container.setFrameShape(QFrame.StyledPanel)
         container.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-top: 1px solid {COLORS['border_light']};")
         container.setFixedHeight(180)
-        container.setMaximumWidth(600)  # Cap FX strip width to give master more room
+        container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        container.setMinimumWidth(600)
         
         layout = QHBoxLayout(container)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
         
         self.inline_fx = InlineFXStrip()
-        layout.addWidget(self.inline_fx)
+        layout.addWidget(self.inline_fx, stretch=1)
         
         return container
         
