@@ -5,10 +5,9 @@
 ---
 
 ## Now
-- [ ] Expand Presets — add channel EQ, BPM, master settings to preset schema
+- [ ] Cross-Platform Testing — Windows & Linux compatibility
 
 ## Next (spec approved, ready to plan)
-- [ ] Cross-Platform Testing — Windows & Linux compatibility
 - [ ] Integration Tests — tests that boot SuperCollider
 
 ---
@@ -47,6 +46,7 @@
 - [ ] UI font audit — improve visibility across all labels
 - [ ] Empty mod state polish
 - [ ] MATRIX button on main UI — mod matrix is hidden (Ctrl+M only), needs visible button. Style: "The Matrix" film aesthetic (green rain, monospace)?
+- [ ] Preset overwrite confirmation — show "Overwrite / Save As New / Cancel" when saving with existing name
 
 ---
 
@@ -63,7 +63,7 @@
 ---
 
 ## Done (recent)
-- ✅ Preset System — Save/Load with Ctrl+S/O (Dec 20)
+- ✅ Preset System v2 — Full session state including channel EQ, BPM, master, mod sources, mod routing (Dec 20)
 - ✅ Generator Envelope Compliance — All 16 pack generators fixed (Dec 20)
 - ✅ Doc Reorganization — archive/, ideas/, demos/ (Dec 20)
 - ✅ Pack System — Phase 1-3 complete
