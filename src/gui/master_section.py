@@ -1313,3 +1313,142 @@ class MasterSection(QWidget):
         else:
             # Scale 0-20dB to 0-200 for meter
             self.comp_gr_meter.setValue(int(gr_db * 10))
+
+    def get_state(self) -> dict:
+        """Get master section state for preset save (Phase 2)."""
+        return {
+            "volume": self.master_fader.value() / 1000.0,
+            # EQ
+            "eq_hi": self.eq_hi_slider.value(),
+            "eq_mid": self.eq_mid_slider.value(),
+            "eq_lo": self.eq_lo_slider.value(),
+            "eq_hi_kill": self.eq_hi_kill,
+            "eq_mid_kill": self.eq_mid_kill,
+            "eq_lo_kill": self.eq_lo_kill,
+            "eq_locut": self.eq_locut,
+            "eq_bypass": self.eq_bypass,
+            # Compressor
+            "comp_threshold": self.comp_threshold.value(),
+            "comp_makeup": self.comp_makeup.value(),
+            "comp_ratio": self.comp_ratio_idx,
+            "comp_attack": self.comp_attack_idx,
+            "comp_release": self.comp_release_idx,
+            "comp_sc": self.comp_sc_idx,
+            "comp_bypass": self.comp_bypass,
+            # Limiter
+            "limiter_ceiling": self.ceiling_fader.value(),
+            "limiter_bypass": self.limiter_bypass,
+        }
+
+    def set_state(self, state: dict):
+        """Apply master section state from preset load (Phase 2)."""
+        # Master volume
+        vol = state.get("volume", 0.8)
+        self.master_fader.blockSignals(True)
+        self.master_fader.setValue(int(vol * 1000))
+        self.master_fader.blockSignals(False)
+        self._on_fader_changed(int(vol * 1000))
+
+        # === EQ ===
+        # EQ sliders
+        eq_hi = state.get("eq_hi", 120)
+        self.eq_hi_slider.blockSignals(True)
+        self.eq_hi_slider.setValue(eq_hi)
+        self.eq_hi_slider.blockSignals(False)
+        self._on_eq_hi_changed(eq_hi)
+
+        eq_mid = state.get("eq_mid", 120)
+        self.eq_mid_slider.blockSignals(True)
+        self.eq_mid_slider.setValue(eq_mid)
+        self.eq_mid_slider.blockSignals(False)
+        self._on_eq_mid_changed(eq_mid)
+
+        eq_lo = state.get("eq_lo", 120)
+        self.eq_lo_slider.blockSignals(True)
+        self.eq_lo_slider.setValue(eq_lo)
+        self.eq_lo_slider.blockSignals(False)
+        self._on_eq_lo_changed(eq_lo)
+
+        # EQ kills
+        eq_hi_kill = state.get("eq_hi_kill", 0)
+        if eq_hi_kill != self.eq_hi_kill:
+            self._on_eq_hi_kill_clicked()
+
+        eq_mid_kill = state.get("eq_mid_kill", 0)
+        if eq_mid_kill != self.eq_mid_kill:
+            self._on_eq_mid_kill_clicked()
+
+        eq_lo_kill = state.get("eq_lo_kill", 0)
+        if eq_lo_kill != self.eq_lo_kill:
+            self._on_eq_lo_kill_clicked()
+
+        # EQ locut
+        eq_locut = state.get("eq_locut", 0)
+        if eq_locut != self.eq_locut:
+            self._on_eq_locut_clicked()
+
+        # EQ bypass
+        eq_bypass = state.get("eq_bypass", 0)
+        if eq_bypass != self.eq_bypass:
+            self._on_eq_bypass_clicked()
+
+        # === Compressor ===
+        # Threshold
+        comp_threshold = state.get("comp_threshold", 100)
+        self.comp_threshold.blockSignals(True)
+        self.comp_threshold.setValue(comp_threshold)
+        self.comp_threshold.blockSignals(False)
+        self._on_comp_threshold_changed(comp_threshold)
+
+        # Makeup
+        comp_makeup = state.get("comp_makeup", 0)
+        self.comp_makeup.blockSignals(True)
+        self.comp_makeup.setValue(comp_makeup)
+        self.comp_makeup.blockSignals(False)
+        self._on_comp_makeup_changed(comp_makeup)
+
+        # Ratio (set index directly, update style)
+        comp_ratio = state.get("comp_ratio", 1)
+        if 0 <= comp_ratio < len(self.comp_ratio_btns):
+            self.comp_ratio_idx = comp_ratio
+            self._update_comp_ratio_style()
+            self.comp_ratio_changed.emit(comp_ratio)
+
+        # Attack
+        comp_attack = state.get("comp_attack", 4)
+        if 0 <= comp_attack < len(self.comp_attack_btns):
+            self.comp_attack_idx = comp_attack
+            self._update_comp_attack_style()
+            self.comp_attack_changed.emit(comp_attack)
+
+        # Release
+        comp_release = state.get("comp_release", 4)
+        if 0 <= comp_release < len(self.comp_release_btns):
+            self.comp_release_idx = comp_release
+            self._update_comp_release_style()
+            self.comp_release_changed.emit(comp_release)
+
+        # Sidechain HPF
+        comp_sc = state.get("comp_sc", 0)
+        if 0 <= comp_sc < len(self.comp_sc_btns):
+            self.comp_sc_idx = comp_sc
+            self._update_comp_sc_style()
+            self.comp_sc_changed.emit(comp_sc)
+
+        # Compressor bypass
+        comp_bypass = state.get("comp_bypass", 0)
+        if comp_bypass != self.comp_bypass:
+            self._on_comp_bypass_clicked()
+
+        # === Limiter ===
+        # Ceiling
+        limiter_ceiling = state.get("limiter_ceiling", 590)
+        self.ceiling_fader.blockSignals(True)
+        self.ceiling_fader.setValue(limiter_ceiling)
+        self.ceiling_fader.blockSignals(False)
+        self._on_ceiling_changed(limiter_ceiling)
+
+        # Limiter bypass
+        limiter_bypass = state.get("limiter_bypass", 0)
+        if limiter_bypass != self.limiter_bypass:
+            self._on_limiter_bypass_clicked()

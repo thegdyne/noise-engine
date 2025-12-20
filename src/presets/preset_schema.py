@@ -1,6 +1,7 @@
 """
 Preset schema definition and validation.
 v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
+   - Phase 2: BPM + Master section (EQ, compressor, limiter)
 """
 
 from dataclasses import dataclass, field
@@ -18,6 +19,15 @@ MIDI_CHANNELS = 16    # 0-16 (0=OFF)
 NUM_SLOTS = 8
 NUM_CUSTOM_PARAMS = 5
 GAIN_STAGES = 3       # 0=0dB, 1=+6dB, 2=+12dB
+
+# Phase 2: Master section constants
+BPM_MIN = 20
+BPM_MAX = 300
+BPM_DEFAULT = 120
+COMP_RATIOS = 3       # 0=2:1, 1=4:1, 2=10:1
+COMP_ATTACKS = 6      # 0-5: 0.1, 0.3, 1, 3, 10, 30ms
+COMP_RELEASES = 5     # 0-4: 0.1, 0.3, 0.6, 1.2, Auto
+COMP_SC_FREQS = 6     # 0-5: Off, 30, 60, 90, 120, 185Hz
 
 
 @dataclass
@@ -134,9 +144,84 @@ class ChannelState:
 
 
 @dataclass
+class MasterState:
+    """Master section state - Phase 2."""
+    # Master volume (0-1000 slider, stored as 0-1 float)
+    volume: float = 0.8
+    
+    # EQ (sliders 0-240, 120 = 0dB)
+    eq_hi: int = 120
+    eq_mid: int = 120
+    eq_lo: int = 120
+    eq_hi_kill: int = 0    # 0=off, 1=killed
+    eq_mid_kill: int = 0
+    eq_lo_kill: int = 0
+    eq_locut: int = 0      # 0=off, 1=on
+    eq_bypass: int = 0     # 0=on, 1=bypassed
+    
+    # Compressor
+    comp_threshold: int = 100   # 0-400, 200=0dB
+    comp_makeup: int = 0        # 0-200
+    comp_ratio: int = 1         # index 0-2
+    comp_attack: int = 4        # index 0-5
+    comp_release: int = 4       # index 0-4
+    comp_sc: int = 0            # index 0-5
+    comp_bypass: int = 0        # 0=on, 1=bypassed
+    
+    # Limiter
+    limiter_ceiling: int = 590  # 0-600, 590=-0.1dB
+    limiter_bypass: int = 0     # 0=on, 1=bypassed
+    
+    def to_dict(self) -> dict:
+        return {
+            "volume": self.volume,
+            "eq_hi": self.eq_hi,
+            "eq_mid": self.eq_mid,
+            "eq_lo": self.eq_lo,
+            "eq_hi_kill": self.eq_hi_kill,
+            "eq_mid_kill": self.eq_mid_kill,
+            "eq_lo_kill": self.eq_lo_kill,
+            "eq_locut": self.eq_locut,
+            "eq_bypass": self.eq_bypass,
+            "comp_threshold": self.comp_threshold,
+            "comp_makeup": self.comp_makeup,
+            "comp_ratio": self.comp_ratio,
+            "comp_attack": self.comp_attack,
+            "comp_release": self.comp_release,
+            "comp_sc": self.comp_sc,
+            "comp_bypass": self.comp_bypass,
+            "limiter_ceiling": self.limiter_ceiling,
+            "limiter_bypass": self.limiter_bypass,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "MasterState":
+        return cls(
+            volume=data.get("volume", 0.8),
+            eq_hi=data.get("eq_hi", 120),
+            eq_mid=data.get("eq_mid", 120),
+            eq_lo=data.get("eq_lo", 120),
+            eq_hi_kill=data.get("eq_hi_kill", 0),
+            eq_mid_kill=data.get("eq_mid_kill", 0),
+            eq_lo_kill=data.get("eq_lo_kill", 0),
+            eq_locut=data.get("eq_locut", 0),
+            eq_bypass=data.get("eq_bypass", 0),
+            comp_threshold=data.get("comp_threshold", 100),
+            comp_makeup=data.get("comp_makeup", 0),
+            comp_ratio=data.get("comp_ratio", 1),
+            comp_attack=data.get("comp_attack", 4),
+            comp_release=data.get("comp_release", 4),
+            comp_sc=data.get("comp_sc", 0),
+            comp_bypass=data.get("comp_bypass", 0),
+            limiter_ceiling=data.get("limiter_ceiling", 590),
+            limiter_bypass=data.get("limiter_bypass", 0),
+        )
+
+
+@dataclass
 class MixerState:
     channels: list = field(default_factory=lambda: [ChannelState() for _ in range(NUM_SLOTS)])
-    master_volume: float = 0.8
+    master_volume: float = 0.8  # Kept for backward compat, but master.volume is canonical
     
     def to_dict(self) -> dict:
         return {
@@ -167,6 +252,9 @@ class PresetState:
     created: str = ""
     slots: list = field(default_factory=lambda: [SlotState() for _ in range(NUM_SLOTS)])
     mixer: MixerState = field(default_factory=MixerState)
+    # Phase 2 additions
+    bpm: int = BPM_DEFAULT
+    master: MasterState = field(default_factory=MasterState)
     
     def to_dict(self) -> dict:
         return {
@@ -176,6 +264,8 @@ class PresetState:
             "created": self.created,
             "slots": [slot.to_dict() for slot in self.slots],
             "mixer": self.mixer.to_dict(),
+            "bpm": self.bpm,
+            "master": self.master.to_dict(),
         }
     
     @classmethod
@@ -194,6 +284,8 @@ class PresetState:
             created=data.get("created", ""),
             slots=slots[:NUM_SLOTS],
             mixer=MixerState.from_dict(data.get("mixer", {})),
+            bpm=data.get("bpm", BPM_DEFAULT),
+            master=MasterState.from_dict(data.get("master", {})),
         )
     
     def to_json(self, indent: int = 2) -> str:
@@ -257,13 +349,30 @@ def validate_preset(data: dict, strict: bool = False) -> tuple[bool, list[str]]:
         errors.extend(mixer_errors)
         warnings.extend(mixer_warnings)
     
+    # Check BPM (Phase 2)
+    bpm = data.get("bpm", BPM_DEFAULT)
+    bpm, warning = _coerce_int(bpm, "bpm")
+    if warning:
+        warnings.append(warning)
+    if bpm is not None and not (BPM_MIN <= bpm <= BPM_MAX):
+        errors.append(f"bpm must be {BPM_MIN}-{BPM_MAX}, got {bpm}")
+    
+    # Check master (Phase 2)
+    master = data.get("master", {})
+    if master and not isinstance(master, dict):
+        errors.append("master must be a dict")
+    elif master:
+        master_errors, master_warnings = _validate_master(master, strict)
+        errors.extend(master_errors)
+        warnings.extend(master_warnings)
+    
     if strict and (errors or warnings):
         raise PresetValidationError(errors + warnings)
     
     return len(errors) == 0, errors + warnings
 
 
-def _validate_slot(slot: dict, index: int, strict: bool = False) -> tuple[list[str], list[str]]:
+def _validate_slot(slot: dict, index: int, strict: bool = False) -> tuple:
     """Validate a single slot."""
     errors = []
     warnings = []
@@ -315,7 +424,7 @@ def _validate_slot(slot: dict, index: int, strict: bool = False) -> tuple[list[s
     return errors, warnings
 
 
-def _validate_mixer(mixer: dict, strict: bool = False) -> tuple[list[str], list[str]]:
+def _validate_mixer(mixer: dict, strict: bool = False) -> tuple:
     """Validate mixer state including Phase 1 channel strip fields."""
     errors = []
     warnings = []
@@ -390,6 +499,113 @@ def _validate_mixer(mixer: dict, strict: bool = False) -> tuple[list[str], list[
             val = ch.get(cut_key, False)
             if not isinstance(val, bool):
                 errors.append(f"{prefix}.{cut_key} must be bool, got {type(val).__name__}")
+    
+    return errors, warnings
+
+
+def _validate_master(master: dict, strict: bool = False) -> tuple:
+    """Validate master section state (Phase 2)."""
+    errors = []
+    warnings = []
+    prefix = "master"
+    
+    # Volume (0-1)
+    vol = master.get("volume", 0.8)
+    vol, warning = _coerce_float(vol, f"{prefix}.volume")
+    if warning:
+        warnings.append(warning)
+    if vol is not None and not (0.0 <= vol <= 1.0):
+        errors.append(f"{prefix}.volume must be 0-1, got {vol}")
+    
+    # EQ sliders (0-240)
+    for eq_key in ["eq_hi", "eq_mid", "eq_lo"]:
+        val = master.get(eq_key, 120)
+        val, warning = _coerce_int(val, f"{prefix}.{eq_key}")
+        if warning:
+            warnings.append(warning)
+        if val is not None and not (0 <= val <= 240):
+            errors.append(f"{prefix}.{eq_key} must be 0-240, got {val}")
+    
+    # EQ kills/buttons (0 or 1)
+    for btn_key in ["eq_hi_kill", "eq_mid_kill", "eq_lo_kill", "eq_locut", "eq_bypass"]:
+        val = master.get(btn_key, 0)
+        val, warning = _coerce_int(val, f"{prefix}.{btn_key}")
+        if warning:
+            warnings.append(warning)
+        if val is not None and val not in (0, 1):
+            errors.append(f"{prefix}.{btn_key} must be 0 or 1, got {val}")
+    
+    # Compressor threshold (0-400)
+    val = master.get("comp_threshold", 100)
+    val, warning = _coerce_int(val, f"{prefix}.comp_threshold")
+    if warning:
+        warnings.append(warning)
+    if val is not None and not (0 <= val <= 400):
+        errors.append(f"{prefix}.comp_threshold must be 0-400, got {val}")
+    
+    # Compressor makeup (0-200)
+    val = master.get("comp_makeup", 0)
+    val, warning = _coerce_int(val, f"{prefix}.comp_makeup")
+    if warning:
+        warnings.append(warning)
+    if val is not None and not (0 <= val <= 200):
+        errors.append(f"{prefix}.comp_makeup must be 0-200, got {val}")
+    
+    # Compressor ratio index (0-2)
+    val = master.get("comp_ratio", 1)
+    val, warning = _coerce_int(val, f"{prefix}.comp_ratio")
+    if warning:
+        warnings.append(warning)
+    if val is not None and not (0 <= val < COMP_RATIOS):
+        errors.append(f"{prefix}.comp_ratio must be 0-{COMP_RATIOS-1}, got {val}")
+    
+    # Compressor attack index (0-5)
+    val = master.get("comp_attack", 4)
+    val, warning = _coerce_int(val, f"{prefix}.comp_attack")
+    if warning:
+        warnings.append(warning)
+    if val is not None and not (0 <= val < COMP_ATTACKS):
+        errors.append(f"{prefix}.comp_attack must be 0-{COMP_ATTACKS-1}, got {val}")
+    
+    # Compressor release index (0-4)
+    val = master.get("comp_release", 4)
+    val, warning = _coerce_int(val, f"{prefix}.comp_release")
+    if warning:
+        warnings.append(warning)
+    if val is not None and not (0 <= val < COMP_RELEASES):
+        errors.append(f"{prefix}.comp_release must be 0-{COMP_RELEASES-1}, got {val}")
+    
+    # Compressor SC index (0-5)
+    val = master.get("comp_sc", 0)
+    val, warning = _coerce_int(val, f"{prefix}.comp_sc")
+    if warning:
+        warnings.append(warning)
+    if val is not None and not (0 <= val < COMP_SC_FREQS):
+        errors.append(f"{prefix}.comp_sc must be 0-{COMP_SC_FREQS-1}, got {val}")
+    
+    # Compressor bypass (0 or 1)
+    val = master.get("comp_bypass", 0)
+    val, warning = _coerce_int(val, f"{prefix}.comp_bypass")
+    if warning:
+        warnings.append(warning)
+    if val is not None and val not in (0, 1):
+        errors.append(f"{prefix}.comp_bypass must be 0 or 1, got {val}")
+    
+    # Limiter ceiling (0-600)
+    val = master.get("limiter_ceiling", 590)
+    val, warning = _coerce_int(val, f"{prefix}.limiter_ceiling")
+    if warning:
+        warnings.append(warning)
+    if val is not None and not (0 <= val <= 600):
+        errors.append(f"{prefix}.limiter_ceiling must be 0-600, got {val}")
+    
+    # Limiter bypass (0 or 1)
+    val = master.get("limiter_bypass", 0)
+    val, warning = _coerce_int(val, f"{prefix}.limiter_bypass")
+    if warning:
+        warnings.append(warning)
+    if val is not None and val not in (0, 1):
+        errors.append(f"{prefix}.limiter_bypass must be 0 or 1, got {val}")
     
     return errors, warnings
 
