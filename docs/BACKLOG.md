@@ -189,3 +189,27 @@ Path("supercollider/generators").exists()
    - `'mod_route_clear_all': '/noise/mod/route/clear_all'`
 3. Update `_on_mod_routes_cleared()` to send OSC clear message
 4. Call in `_apply_preset()` before loading new routes
+
+## SC: getSynchronous crash on server disconnect
+**Error:** `Server-getControlBusValue only supports local servers`
+**Location:** `mod_osc.scd` scope streaming routine, `mod_apply_v2.scd` value streaming
+**Cause:** `getSynchronous` fails when SC server connection is disrupted
+**Impact:** Mod scope display crashes, mod value streaming crashes
+**Solution:** 
+- Wrap getSynchronous calls in try/catch
+- Or use Bus.get with callback instead of getSynchronous
+- Or check server.serverRunning before calling
+**Priority:** High - causes visible errors
+
+## UI: Disable header buttons until SC connected
+**Problem:** User can load packs, presets, etc before connecting to SC, then has to reload after connecting.
+**Current behavior:** All header buttons enabled immediately
+**Desired behavior:** 
+- On startup, only CONNECT, CONSOLE, and RESTART buttons enabled
+- Other buttons (Save, Load, MATRIX, pack selector, etc) greyed out and disabled
+- After successful SC connection, enable all buttons
+**Implementation:**
+- Add `_set_header_buttons_enabled(enabled: bool)` method
+- Call with `False` on init, `True` after connection confirmed
+- Use `setEnabled(False)` and style with `color: #666` for greyed appearance
+**Priority:** Medium - UX improvement

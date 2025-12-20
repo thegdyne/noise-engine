@@ -1,0 +1,57 @@
+{
+    "name": "THRESHOLDHUM",
+    "synthdef": "thresholdhum",
+    "custom_params": [
+        {
+            "key": "standing",
+            "label": "STD",
+            "tooltip": "Standing wave",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "portal",
+            "label": "PRT",
+            "tooltip": "Doorway resonance",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "liminal",
+            "label": "LIM",
+            "tooltip": "Between-space quality",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "pulse",
+            "label": "PLS",
+            "tooltip": "Energy pulsing",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "ancient",
+            "label": "ANC",
+            "tooltip": "Age and mystery",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}
