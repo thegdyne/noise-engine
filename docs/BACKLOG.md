@@ -45,7 +45,7 @@
 ## Mopup (Small — just do it)
 - [ ] UI font audit — improve visibility across all labels
 - [ ] Empty mod state polish
-- [ ] MATRIX button on main UI — mod matrix is hidden (Ctrl+M only), needs visible button. Style: "The Matrix" film aesthetic (green rain, monospace)?
+- [x] MATRIX button on main UI + ENGINE return button (Dec 20)
 - [ ] Preset overwrite confirmation — show "Overwrite / Save As New / Cancel" when saving with existing name
 
 ---
