@@ -210,3 +210,105 @@ class ModulatorSlot(QWidget):
                 item.widget().deleteLater()
             elif item.layout():
                 self._clear_layout(item.layout())
+
+    def get_state(self) -> dict:
+        """Get modulator slot state for preset save (Phase 3)."""
+        # Get param values from sliders
+        params = {}
+        for key, widget in self.param_sliders.items():
+            if hasattr(widget, 'value'):
+                # Slider: normalize 0-1000 to 0-1
+                params[key] = widget.value() / 1000.0
+            elif hasattr(widget, 'current_index'):
+                # CycleButton: store index as normalized
+                params[key] = widget.current_index
+
+        # Get output states
+        output_wave = []
+        output_phase = []
+        output_polarity = []
+
+        for row_widgets in self.output_rows:
+            # Wave (if present)
+            if 'wave' in row_widgets:
+                output_wave.append(row_widgets['wave'].current_index)
+            else:
+                output_wave.append(0)
+
+            # Phase (if present)
+            if 'phase' in row_widgets:
+                output_phase.append(row_widgets['phase'].current_index)
+            else:
+                output_phase.append(0)
+
+            # Polarity (always present)
+            if 'polarity' in row_widgets:
+                output_polarity.append(row_widgets['polarity'].current_index)
+            else:
+                output_polarity.append(0)
+
+        # Pad to 4 outputs if fewer
+        while len(output_wave) < 4:
+            output_wave.append(0)
+        while len(output_phase) < 4:
+            output_phase.append(0)
+        while len(output_polarity) < 4:
+            output_polarity.append(0)
+
+        return {
+            "generator_name": self.generator_name,
+            "params": params,
+            "output_wave": output_wave[:4],
+            "output_phase": output_phase[:4],
+            "output_polarity": output_polarity[:4],
+        }
+
+    def set_state(self, state: dict):
+        """Apply modulator slot state from preset load (Phase 3)."""
+        # Set generator (this rebuilds params and outputs)
+        gen_name = state.get("generator_name", "Empty")
+        if gen_name != self.generator_name:
+            self.update_for_generator(gen_name)
+
+        # Restore param values
+        params = state.get("params", {})
+        for key, widget in self.param_sliders.items():
+            if key in params:
+                val = params[key]
+                if hasattr(widget, 'setValue'):
+                    # Slider: convert 0-1 to 0-1000
+                    widget.blockSignals(True)
+                    widget.setValue(int(val * 1000) if isinstance(val, float) else val)
+                    widget.blockSignals(False)
+                elif hasattr(widget, 'set_index'):
+                    # CycleButton: set index
+                    widget.blockSignals(True)
+                    widget.set_index(int(val) if isinstance(val, (int, float)) else 0)
+                    widget.blockSignals(False)
+
+        # Restore output states
+        output_wave = state.get("output_wave", [0, 0, 0, 0])
+        output_phase = state.get("output_phase", [0, 3, 5, 6])
+        output_polarity = state.get("output_polarity", [0, 0, 0, 0])
+
+        for i, row_widgets in enumerate(self.output_rows):
+            if i >= 4:
+                break
+
+            # Wave
+            if 'wave' in row_widgets and i < len(output_wave):
+                row_widgets['wave'].blockSignals(True)
+                row_widgets['wave'].set_index(output_wave[i])
+                row_widgets['wave'].blockSignals(False)
+
+            # Phase
+            if 'phase' in row_widgets and i < len(output_phase):
+                row_widgets['phase'].blockSignals(True)
+                row_widgets['phase'].set_index(output_phase[i])
+                row_widgets['phase'].blockSignals(False)
+
+            # Polarity
+            if 'polarity' in row_widgets and i < len(output_polarity):
+                row_widgets['polarity'].blockSignals(True)
+                row_widgets['polarity'].set_index(output_polarity[i])
+                row_widgets['polarity'].blockSignals(False)

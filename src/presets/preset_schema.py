@@ -2,6 +2,7 @@
 Preset schema definition and validation.
 v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 2: BPM + Master section (EQ, compressor, limiter)
+   - Phase 3: Modulation sources (4 slots × 4 outputs)
 """
 
 from dataclasses import dataclass, field
@@ -28,6 +29,13 @@ COMP_RATIOS = 3       # 0=2:1, 1=4:1, 2=10:1
 COMP_ATTACKS = 6      # 0-5: 0.1, 0.3, 1, 3, 10, 30ms
 COMP_RELEASES = 5     # 0-4: 0.1, 0.3, 0.6, 1.2, Auto
 COMP_SC_FREQS = 6     # 0-5: Off, 30, 60, 90, 120, 185Hz
+
+# Phase 3: Modulation sources constants
+NUM_MOD_SLOTS = 4
+NUM_MOD_OUTPUTS = 4
+MOD_WAVEFORMS = 5     # saw, tri, sqr, sin, s&h
+MOD_PHASES = 8        # 0°, 45°, 90°, ... 315°
+MOD_POLARITIES = 2    # 0=NORM, 1=INV
 
 
 @dataclass
@@ -219,6 +227,55 @@ class MasterState:
 
 
 @dataclass
+class ModSlotState:
+    """Modulator slot state - Phase 3."""
+    generator_name: str = "Empty"  # "Empty", "LFO", "Sloth", etc.
+    params: dict = field(default_factory=dict)  # key -> normalized 0-1 value
+    output_wave: list = field(default_factory=lambda: [0, 0, 0, 0])  # 4 outputs
+    output_phase: list = field(default_factory=lambda: [0, 3, 5, 6])  # Default phases for LFO
+    output_polarity: list = field(default_factory=lambda: [0, 0, 0, 0])  # 0=NORM, 1=INV
+    
+    def to_dict(self) -> dict:
+        return {
+            "generator_name": self.generator_name,
+            "params": dict(self.params),  # Copy
+            "output_wave": list(self.output_wave),
+            "output_phase": list(self.output_phase),
+            "output_polarity": list(self.output_polarity),
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "ModSlotState":
+        return cls(
+            generator_name=data.get("generator_name", "Empty"),
+            params=dict(data.get("params", {})),
+            output_wave=list(data.get("output_wave", [0, 0, 0, 0])),
+            output_phase=list(data.get("output_phase", [0, 3, 5, 6])),
+            output_polarity=list(data.get("output_polarity", [0, 0, 0, 0])),
+        )
+
+
+@dataclass
+class ModSourcesState:
+    """All modulator slots state - Phase 3."""
+    slots: list = field(default_factory=lambda: [ModSlotState() for _ in range(NUM_MOD_SLOTS)])
+    
+    def to_dict(self) -> dict:
+        return {
+            "slots": [slot.to_dict() for slot in self.slots],
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "ModSourcesState":
+        slots_data = data.get("slots", [{}] * NUM_MOD_SLOTS)
+        slots = [ModSlotState.from_dict(s) for s in slots_data]
+        # Pad to NUM_MOD_SLOTS if fewer
+        while len(slots) < NUM_MOD_SLOTS:
+            slots.append(ModSlotState())
+        return cls(slots=slots[:NUM_MOD_SLOTS])
+
+
+@dataclass
 class MixerState:
     channels: list = field(default_factory=lambda: [ChannelState() for _ in range(NUM_SLOTS)])
     master_volume: float = 0.8  # Kept for backward compat, but master.volume is canonical
@@ -255,6 +312,8 @@ class PresetState:
     # Phase 2 additions
     bpm: int = BPM_DEFAULT
     master: MasterState = field(default_factory=MasterState)
+    # Phase 3 additions
+    mod_sources: ModSourcesState = field(default_factory=ModSourcesState)
     
     def to_dict(self) -> dict:
         return {
@@ -266,6 +325,7 @@ class PresetState:
             "mixer": self.mixer.to_dict(),
             "bpm": self.bpm,
             "master": self.master.to_dict(),
+            "mod_sources": self.mod_sources.to_dict(),
         }
     
     @classmethod
@@ -286,6 +346,7 @@ class PresetState:
             mixer=MixerState.from_dict(data.get("mixer", {})),
             bpm=data.get("bpm", BPM_DEFAULT),
             master=MasterState.from_dict(data.get("master", {})),
+            mod_sources=ModSourcesState.from_dict(data.get("mod_sources", {})),
         )
     
     def to_json(self, indent: int = 2) -> str:
@@ -365,6 +426,15 @@ def validate_preset(data: dict, strict: bool = False) -> tuple[bool, list[str]]:
         master_errors, master_warnings = _validate_master(master, strict)
         errors.extend(master_errors)
         warnings.extend(master_warnings)
+    
+    # Check mod_sources (Phase 3)
+    mod_sources = data.get("mod_sources", {})
+    if mod_sources and not isinstance(mod_sources, dict):
+        errors.append("mod_sources must be a dict")
+    elif mod_sources:
+        mod_errors, mod_warnings = _validate_mod_sources(mod_sources, strict)
+        errors.extend(mod_errors)
+        warnings.extend(mod_warnings)
     
     if strict and (errors or warnings):
         raise PresetValidationError(errors + warnings)
@@ -606,6 +676,99 @@ def _validate_master(master: dict, strict: bool = False) -> tuple:
         warnings.append(warning)
     if val is not None and val not in (0, 1):
         errors.append(f"{prefix}.limiter_bypass must be 0 or 1, got {val}")
+    
+    return errors, warnings
+
+
+def _validate_mod_sources(mod_sources: dict, strict: bool = False) -> tuple:
+    """Validate modulation sources state (Phase 3)."""
+    errors = []
+    warnings = []
+    
+    slots = mod_sources.get("slots", [])
+    
+    # Check slot count
+    if len(slots) != NUM_MOD_SLOTS:
+        if strict:
+            errors.append(f"mod_sources.slots must have exactly {NUM_MOD_SLOTS} items, got {len(slots)}")
+        else:
+            warnings.append(f"mod_sources.slots has {len(slots)} items, expected {NUM_MOD_SLOTS}")
+    
+    for i, slot in enumerate(slots[:NUM_MOD_SLOTS]):
+        if not isinstance(slot, dict):
+            errors.append(f"mod_sources.slots[{i}] must be dict")
+            continue
+        
+        prefix = f"mod_sources.slots[{i}]"
+        
+        # generator_name must be string
+        gen_name = slot.get("generator_name", "Empty")
+        if not isinstance(gen_name, str):
+            errors.append(f"{prefix}.generator_name must be string")
+        
+        # params must be dict
+        params = slot.get("params", {})
+        if not isinstance(params, dict):
+            errors.append(f"{prefix}.params must be dict")
+        else:
+            # Validate param values are 0-1
+            for key, val in params.items():
+                val, warning = _coerce_float(val, f"{prefix}.params.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0.0 <= val <= 1.0):
+                    errors.append(f"{prefix}.params.{key} must be 0-1, got {val}")
+        
+        # output_wave must be list of 4 ints
+        output_wave = slot.get("output_wave", [0, 0, 0, 0])
+        if not isinstance(output_wave, list):
+            errors.append(f"{prefix}.output_wave must be list")
+        elif len(output_wave) != NUM_MOD_OUTPUTS:
+            if strict:
+                errors.append(f"{prefix}.output_wave must have {NUM_MOD_OUTPUTS} items, got {len(output_wave)}")
+            else:
+                warnings.append(f"{prefix}.output_wave has {len(output_wave)} items, expected {NUM_MOD_OUTPUTS}")
+        else:
+            for j, val in enumerate(output_wave):
+                val, warning = _coerce_int(val, f"{prefix}.output_wave[{j}]")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val < MOD_WAVEFORMS):
+                    errors.append(f"{prefix}.output_wave[{j}] must be 0-{MOD_WAVEFORMS-1}, got {val}")
+        
+        # output_phase must be list of 4 ints
+        output_phase = slot.get("output_phase", [0, 3, 5, 6])
+        if not isinstance(output_phase, list):
+            errors.append(f"{prefix}.output_phase must be list")
+        elif len(output_phase) != NUM_MOD_OUTPUTS:
+            if strict:
+                errors.append(f"{prefix}.output_phase must have {NUM_MOD_OUTPUTS} items, got {len(output_phase)}")
+            else:
+                warnings.append(f"{prefix}.output_phase has {len(output_phase)} items, expected {NUM_MOD_OUTPUTS}")
+        else:
+            for j, val in enumerate(output_phase):
+                val, warning = _coerce_int(val, f"{prefix}.output_phase[{j}]")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val < MOD_PHASES):
+                    errors.append(f"{prefix}.output_phase[{j}] must be 0-{MOD_PHASES-1}, got {val}")
+        
+        # output_polarity must be list of 4 ints
+        output_polarity = slot.get("output_polarity", [0, 0, 0, 0])
+        if not isinstance(output_polarity, list):
+            errors.append(f"{prefix}.output_polarity must be list")
+        elif len(output_polarity) != NUM_MOD_OUTPUTS:
+            if strict:
+                errors.append(f"{prefix}.output_polarity must have {NUM_MOD_OUTPUTS} items, got {len(output_polarity)}")
+            else:
+                warnings.append(f"{prefix}.output_polarity has {len(output_polarity)} items, expected {NUM_MOD_OUTPUTS}")
+        else:
+            for j, val in enumerate(output_polarity):
+                val, warning = _coerce_int(val, f"{prefix}.output_polarity[{j}]")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val < MOD_POLARITIES):
+                    errors.append(f"{prefix}.output_polarity[{j}] must be 0-{MOD_POLARITIES-1}, got {val}")
     
     return errors, warnings
 
