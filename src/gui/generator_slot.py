@@ -82,9 +82,9 @@ class GeneratorSlot(QWidget):
         return {
             "generator": self.generator_type if self.generator_type != "Empty" else None,
             "params": params,
-            "filter_type": self.filter_btn.current_index,
+            "filter_type": self.filter_btn.index,
             "env_source": self.env_source,
-            "clock_rate": self.rate_btn.current_index,
+            "clock_rate": self.rate_btn.index,
             "midi_channel": self.midi_channel,
         }
     
@@ -105,8 +105,9 @@ class GeneratorSlot(QWidget):
             self.generator_changed.emit(self.slot_id, gen)
         else:
             self.set_generator_type("Empty")
-            return  # Empty slot, nothing more to do
-        
+            self.generator_changed.emit(self.slot_id, "Empty")  # Stop running generator
+            return
+
         # Now override params with saved values
         params = state.get("params", {})
         
