@@ -77,12 +77,12 @@ class ModulatorGrid(QWidget):
     def get_state(self) -> dict:
         """Get all modulator slots state for preset save (Phase 3)."""
         return {
-            "slots": [slot.get_state() for slot in self.slots]
+            "slots": [slot.get_state() for slot in self.slots.values()]
         }
 
     def set_state(self, state: dict):
         """Apply modulator slots state from preset load (Phase 3)."""
         slots_data = state.get("slots", [])
-        for i, slot in enumerate(self.slots):
+        for i, slot in enumerate(self.slots.values()):
             if i < len(slots_data):
                 slot.set_state(slots_data[i])

@@ -1433,7 +1433,7 @@ class MasterSection(QWidget):
         if 0 <= comp_sc < len(self.comp_sc_btns):
             self.comp_sc_idx = comp_sc
             self._update_comp_sc_style()
-            self.comp_sc_changed.emit(comp_sc)
+            self.comp_sc_hpf_changed.emit(comp_sc)
 
         # Compressor bypass
         comp_bypass = state.get("comp_bypass", 0)

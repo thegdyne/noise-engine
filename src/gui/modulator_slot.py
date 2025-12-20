@@ -221,7 +221,7 @@ class ModulatorSlot(QWidget):
                 params[key] = widget.value() / 1000.0
             elif hasattr(widget, 'current_index'):
                 # CycleButton: store index as normalized
-                params[key] = widget.current_index
+                params[key] = widget.index
 
         # Get output states
         output_wave = []
@@ -231,19 +231,19 @@ class ModulatorSlot(QWidget):
         for row_widgets in self.output_rows:
             # Wave (if present)
             if 'wave' in row_widgets:
-                output_wave.append(row_widgets['wave'].current_index)
+                output_wave.append(row_widgets['wave'].index)
             else:
                 output_wave.append(0)
 
             # Phase (if present)
             if 'phase' in row_widgets:
-                output_phase.append(row_widgets['phase'].current_index)
+                output_phase.append(row_widgets['phase'].index)
             else:
                 output_phase.append(0)
 
             # Polarity (always present)
             if 'polarity' in row_widgets:
-                output_polarity.append(row_widgets['polarity'].current_index)
+                output_polarity.append(row_widgets['polarity'].index)
             else:
                 output_polarity.append(0)
 

@@ -94,3 +94,45 @@
 - [ ] Per-channel echo/verb send knobs in mixer strip
 - [ ] Reverb pre-delay parameter
 - [ ] FX audio tuning (adjust default values, ranges, response curves)
+
+## Preset Backward Compatibility
+**Problem:** Loading old v1 presets resets mod sources/routing to defaults, wiping current setup.
+**Solution options:**
+1. Only apply sections that were explicitly in the preset JSON (check key existence)
+2. Add `saved_sections` list to preset metadata
+3. Version-based logic: v1 presets skip mod_sources/mod_routing apply
+
+**Tests needed:**
+- [ ] Load v1 preset (no mod_sources) → mod state unchanged
+- [ ] Load v1 preset (no mod_routing) → routing unchanged  
+- [ ] Load v1 preset (no master) → master section unchanged
+- [ ] Load v2 preset with all sections → all applied
+- [ ] Round-trip: save v2, load v2 → exact match
+
+## Preset Migration System
+**Problem:** Schema changes can break or partially load old presets.
+**Solution:** Automatic preset migration on app start or first load.
+
+**Design:**
+1. Detect presets with `version < PRESET_VERSION`
+2. Backup to `presets/backup_v{old_version}/` before migration
+3. Apply sequential migrations: v1→v2→v3 etc.
+4. Each migration adds missing fields with sensible defaults
+5. Update version number after migration
+6. Log all migrations for user transparency
+
+**Migration rules:**
+- v1→v2: Add bpm=120, master={defaults}, mod_sources={empty}, mod_routing={empty}
+- Future: v2→v3 migrations as needed
+
+**User flow:**
+- On load, if preset.version < current: show "Migrating X presets..." toast
+- Backup folder preserves originals
+- Migration is non-destructive (originals in backup)
+
+**Tasks:**
+- [ ] Create `migrate_preset(data: dict, from_version: int) -> dict`
+- [ ] Create backup directory on first migration
+- [ ] Add migration log to preset metadata
+- [ ] Test v1→v2 migration
+- [ ] Consider CLI tool: `python -m presets.migrate --dry-run`
