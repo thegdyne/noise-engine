@@ -21,7 +21,7 @@ Keyboard:
 Row labels update dynamically based on mod slot types (LFO/Sloth).
 """
 
-from PyQt5.QtWidgets import (
+from PyQt5.QtWidgets import (QPushButton, 
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QFrame, QScrollArea, QSizePolicy, QApplication, QShortcut
 )
@@ -119,11 +119,43 @@ class ModMatrixWindow(QMainWindow):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(0)
         
-        # Title
+        # Header row with title and ENGINE button
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 5)
+        
         title = QLabel("MOD ROUTING MATRIX")
         title.setFont(QFont(FONT_FAMILY, FONT_SIZES['section'], QFont.Bold))
         title.setStyleSheet(f"color: {COLORS['text_bright']}; padding: 5px;")
-        layout.addWidget(title)
+        header_layout.addWidget(title)
+        
+        header_layout.addStretch()
+        
+        # ENGINE button - returns to main window (centered)
+        engine_btn = QPushButton("ENGINE")
+        engine_btn.setToolTip("Return to Engine (Ctrl+M)")
+        engine_btn.setFixedSize(70, 27)
+        engine_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: #ff6600;
+                border: 1px solid #cc5500;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #331100;
+                color: #ff6600;
+                border-color: #ff6600;
+            }}
+        """)
+        engine_btn.clicked.connect(self.hide)
+        header_layout.addWidget(engine_btn)
+        
+        header_layout.addStretch()
+        
+        layout.addLayout(header_layout)
         
         # Scroll area for the matrix
         scroll = QScrollArea()

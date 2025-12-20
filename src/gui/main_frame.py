@@ -265,6 +265,29 @@ class MainFrame(QMainWindow):
         self.load_btn.clicked.connect(self._load_preset)
         layout.addWidget(self.load_btn)
         
+        # Matrix button - opens mod matrix window
+        self.matrix_btn = QPushButton("MATRIX")
+        self.matrix_btn.setToolTip("Mod Matrix (Ctrl+M)")
+        self.matrix_btn.setFixedSize(70, 27)
+        self.matrix_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: #00ff00;
+                border: 1px solid #00aa00;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #003300;
+                color: #00ff00;
+                border-color: #00ff00;
+            }}
+        """)
+        self.matrix_btn.clicked.connect(self._open_mod_matrix)
+        layout.addWidget(self.matrix_btn)
+        
         layout.addStretch()
         
         self.connect_btn = QPushButton("Connect SuperCollider")
