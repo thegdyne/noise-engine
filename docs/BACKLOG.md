@@ -5,13 +5,10 @@
 ---
 
 ## Now
-- [x] Pack System — Phase 1: Infrastructure ✅
-- [x] Pack System — Phase 2: UI Integration ✅
-
----
+- [ ] Generator Envelope Compliance — Fix pack generators to use ~envVCA (see `docs/GENERATOR_ENVELOPE_COMPLIANCE.md`)
 
 ## Next (spec approved, ready to plan)
-- [ ] Pack System — Phase 3: Preset Integration
+- [ ] Pack System — Phase 3: Preset Integration (blocked by envelope compliance)
 
 ---
 
@@ -28,6 +25,30 @@
 
 ---
 
+## Generator Envelope Compliance (Pre-Phase 3 Blocker)
+
+**Analysis:** `docs/GENERATOR_ENVELOPE_COMPLIANCE.md`
+
+**Phase 1: Fix Pack Generators**
+- [ ] Update Electric Shepherd generators (8 files) — replace `sig * amp` with `~envVCA`
+- [ ] Update R'lyeh Collection generators (8 files) — replace `sig * amp` with `~envVCA`
+- [ ] Test each generator: OFF mode sounds identical
+- [ ] Test each generator: CLK mode triggers envelope
+- [ ] Test each generator: MIDI mode triggers envelope
+- [ ] Test ATK/DEC sliders have audible effect
+
+**Phase 2: CI Enforcement**
+- [ ] Add test to `test_generators.py`: SCD must contain `~envVCA`
+- [ ] Add test to `test_packs.py`: Pack SCD files must contain `~envVCA`
+- [ ] Verify CI passes on all existing core generators
+
+**Phase 3: Spec Update**
+- [ ] Update `GENERATOR_SPEC.md` — clarify `~envVCA` is REQUIRED
+- [ ] Add "Common Mistakes" section documenting `sig * amp` anti-pattern
+- [ ] Document future drone-only pattern (for reference, not implementing now)
+
+---
+
 ## Ideas (not committed)
 - Keyboard Mode (CMD+K)
 - Imaginarium natural language interface
@@ -41,6 +62,8 @@
 ---
 
 ## Done (recent)
+- ✅ Pack System — Phase 1: Infrastructure
+- ✅ Pack System — Phase 2: UI Integration
 - ✅ Shift + -/+ for offset control
 - ✅ FX System v1 — Inline FX strip with HEAT, ECHO, REVERB, FILTER modules
 - ✅ TURBO presets (INI/T1/T2) for all FX modules
