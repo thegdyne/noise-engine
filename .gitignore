@@ -8,40 +8,24 @@ venv/
 env/
 ENV/
 
-# IDE
+# IDE (VSCode)
 .vscode/
-.idea/
 *.swp
 *.swo
 
-# OS
-.DS_Store
-._*
-Thumbs.db
-
-# Project specific
-*.wav
-*.aif
-presets/*.json
-!presets/default.json
-
-# SuperCollider
-supercollider/recordings/
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-ENV/
-
-# IDE
-.vscode/
+# IDE (JetBrains / PyCharm)
 .idea/
-*.swp
-*.swo
+*.iml
+*.ipr
+*.iws
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/httpRequests
+.idea/**/dataSources*
+.idea/**/jdbc-drivers
 
 # OS
 .DS_Store
