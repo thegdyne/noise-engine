@@ -44,3 +44,4 @@ supercollider/recordings/
 # Packs - core packs tracked, user packs ignored
 packs/user/*
 !packs/user/.gitkeep
+packs/pizza-pup/

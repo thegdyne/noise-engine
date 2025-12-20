@@ -1,0 +1,57 @@
+{
+    "name": "ABYSSGATE",
+    "synthdef": "abyssgate",
+    "custom_params": [
+        {
+            "key": "depth",
+            "label": "DPT",
+            "tooltip": "Bottomless depth",
+            "default": 0.7,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "rumble",
+            "label": "RMB",
+            "tooltip": "Seismic movement",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "awaken",
+            "label": "AWK",
+            "tooltip": "Something stirs",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "pressure",
+            "label": "PRS",
+            "tooltip": "Crushing weight",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "void",
+            "label": "VOD",
+            "tooltip": "Empty infinity",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}
