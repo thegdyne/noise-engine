@@ -6,17 +6,16 @@
 
 ## Now
 - [x] Pack System — Phase 1: Infrastructure ✅
+- [x] Pack System — Phase 2: UI Integration ✅
 
 ---
 
 ## Next (spec approved, ready to plan)
-- [x] Pack System — Phase 2: UI Integration ✅
 - [ ] Pack System — Phase 3: Preset Integration
 
 ---
 
 ## Needs Spec (Large/Medium)
-- [ ] FX System (draft spec exists)
 - [ ] Preset System
 - [ ] MIDI Learn
 - [ ] Mod Matrix Expansion
@@ -25,9 +24,6 @@
 
 ## Mopup (Small — just do it)
 - [ ] UI font audit — improve visibility across all labels (like HI/MID/LO fix)
-- [ ] EQ labels HI/MID/LO on channel strip
-- [ ] Numeric keys work while arrows held
-- [ ] Shift + -/+ for offset control
 - [ ] Empty mod state polish
 
 ---
@@ -45,6 +41,12 @@
 ---
 
 ## Done (recent)
+- ✅ Shift + -/+ for offset control
+- ✅ FX System v1 — Inline FX strip with HEAT, ECHO, REVERB, FILTER modules
+- ✅ TURBO presets (INI/T1/T2) for all FX modules
+- ✅ Filter sync with tempo-synced LFO modulation
+- ✅ EQ labels HI/MID/LO on channel strip
+- ✅ Numeric keys work while arrows held
 - ✅ Quadrature modulation (4 outputs per mod slot)
 - ✅ NORM/INV → Invert terminology update
 - ✅ Channel strips (volume, pan, mute, solo, EQ)
@@ -52,7 +54,6 @@
 - ✅ 30+ new generators (classic synths, 808, atmospheric)
 - ✅ MIDI frequency routing fix (userParams)
 - ✅ CI/CD pipeline (207 tests)
-- [ ] Mod matrix: visual indicator for offset (arrow top/bottom of cell)
 
 ## Pack Presets
 - [ ] Save/load generator slot configurations at pack level (which generators in which slots)
@@ -83,14 +84,8 @@
 - [ ] P2: fx_window.py uses hardcoded OSC paths - refactor to use OSC_PATHS for SSOT
 - [ ] P2: master_passthrough LR4 comment doesn't match implementation - clarify or refactor EQ split
 
-## FX System UI Refinement
-- [ ] Integrate FX controls into EffectsChain banner (not just popup)
-  - Quick controls: bypass toggles, key knobs per FX
-  - Click for full popup with all params
-- [ ] Fidelity FX - already exists in effects_chain.py, needs integration with new FX
+## FX System Future
 - [ ] Per-channel echo/verb send knobs in mixer strip
-- [ ] Dropdown styling (M1/M2/SYNC/ROUTE) - increase font, width, contrast
-- [ ] Heat circuit dropdown styling
-- [ ] Consider using layout_sandbox.py for FX UI debugging
 - [ ] Reverb pre-delay parameter
 - [ ] FX audio tuning (adjust default values, ranges, response curves)
+- [ ] Fidelity FX - integrate with new FX system
