@@ -4,7 +4,7 @@
 > | | |
 > |---|---|
 > | Spec Version | v10 |
-> | Scripts Version | v6 |
+> | Scripts Version | v8 |
 > | Last Updated | 2025-12-20 |
 > | Status | **Shippable** (Phase 0 ready, Phase 1 buildable) |
 
@@ -569,10 +569,10 @@ packs/<pack_name>/
 
 | Script | Purpose |
 |--------|---------|
-| `imaginarium_verify_contract_v6.scd` | SC contract verification with bootstrap + timeout |
-| `imaginarium_determinism_test_v6.scd` | NRT render for hash comparison |
-| `imaginarium_verify_contract_v6.py` | Python wrapper + arglist parser |
-| `imaginarium_determinism_test_v6.py` | Two-part determinism proof |
+| `imaginarium_verify_contract_v8.scd` | SC contract verification with bootstrap + timeout |
+| `imaginarium_determinism_test_v8.scd` | NRT render for hash comparison |
+| `imaginarium_verify_contract_v8.py` | Python wrapper + arglist parser |
+| `imaginarium_determinism_test_v8.py` | Two-part determinism proof |
 
 **Requirements:**
 
@@ -618,14 +618,14 @@ packs/<pack_name>/
 
 ```bash
 # Copy scripts to Noise Engine
-cp imaginarium_verify_contract_v6.py   noise-engine/scripts/
-cp imaginarium_verify_contract_v6.scd  noise-engine/scripts/
-cp imaginarium_determinism_test_v6.scd noise-engine/scripts/
+cp imaginarium_verify_contract_v8.py   noise-engine/scripts/
+cp imaginarium_verify_contract_v8.scd  noise-engine/scripts/
+cp imaginarium_determinism_test_v8.scd noise-engine/scripts/
 cp IMAGINARIUM_SPEC_v10.md             noise-engine/docs/
 
 # Run verification (single command runs all Phase 0 checks)
 cd noise-engine
-python scripts/imaginarium_verify_contract_v6.py
+python scripts/imaginarium_verify_contract_v8.py
 ```
 
 ---
@@ -642,3 +642,5 @@ python scripts/imaginarium_verify_contract_v6.py
 | Spec v8 | Fixed relaxation ladder order, section numbering, clarified constrained selection |
 | Spec v9 | Renamed MAX_LADDER_STEPS, batching precedence, conditional probability note, FAMILIES versioning |
 | Spec v10 | Bootstrap flexibility + ordering, floor allocation, Jaccard k=v pairs, p_usable clamp policy, release header |
+| Scripts v7 | Fixed SC var declaration order (must be at block start) |
+| Scripts v8 | Fixed remaining var declarations in SynthDef and Routine blocks |
