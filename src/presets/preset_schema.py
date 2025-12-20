@@ -3,6 +3,7 @@ Preset schema definition and validation.
 v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 2: BPM + Master section (EQ, compressor, limiter)
    - Phase 3: Modulation sources (4 slots × 4 outputs)
+   - Phase 4: Modulation routing (connections)
 """
 
 from dataclasses import dataclass, field
@@ -36,6 +37,10 @@ NUM_MOD_OUTPUTS = 4
 MOD_WAVEFORMS = 5     # saw, tri, sqr, sin, s&h
 MOD_PHASES = 8        # 0°, 45°, 90°, ... 315°
 MOD_POLARITIES = 2    # 0=NORM, 1=INV
+
+# Phase 4: Modulation routing constants
+NUM_MOD_BUSES = 16    # 4 slots × 4 outputs
+MOD_POLARITIES_ROUTING = 3  # 0=bipolar, 1=uni+, 2=uni-
 
 
 @dataclass
@@ -314,6 +319,8 @@ class PresetState:
     master: MasterState = field(default_factory=MasterState)
     # Phase 3 additions
     mod_sources: ModSourcesState = field(default_factory=ModSourcesState)
+    # Phase 4 additions
+    mod_routing: dict = field(default_factory=lambda: {"connections": []})
     
     def to_dict(self) -> dict:
         return {
@@ -326,6 +333,7 @@ class PresetState:
             "bpm": self.bpm,
             "master": self.master.to_dict(),
             "mod_sources": self.mod_sources.to_dict(),
+            "mod_routing": self.mod_routing,
         }
     
     @classmethod
@@ -347,6 +355,7 @@ class PresetState:
             bpm=data.get("bpm", BPM_DEFAULT),
             master=MasterState.from_dict(data.get("master", {})),
             mod_sources=ModSourcesState.from_dict(data.get("mod_sources", {})),
+            mod_routing=data.get("mod_routing", {"connections": []}),
         )
     
     def to_json(self, indent: int = 2) -> str:
@@ -363,7 +372,7 @@ class PresetValidationError(Exception):
     pass
 
 
-def validate_preset(data: dict, strict: bool = False) -> tuple[bool, list[str]]:
+def validate_preset(data: dict, strict: bool = False) -> tuple:
     """
     Validate preset data structure.
     
@@ -435,6 +444,15 @@ def validate_preset(data: dict, strict: bool = False) -> tuple[bool, list[str]]:
         mod_errors, mod_warnings = _validate_mod_sources(mod_sources, strict)
         errors.extend(mod_errors)
         warnings.extend(mod_warnings)
+    
+    # Check mod_routing (Phase 4)
+    mod_routing = data.get("mod_routing", {})
+    if mod_routing and not isinstance(mod_routing, dict):
+        errors.append("mod_routing must be a dict")
+    elif mod_routing:
+        routing_errors, routing_warnings = _validate_mod_routing(mod_routing, strict)
+        errors.extend(routing_errors)
+        warnings.extend(routing_warnings)
     
     if strict and (errors or warnings):
         raise PresetValidationError(errors + warnings)
@@ -769,6 +787,92 @@ def _validate_mod_sources(mod_sources: dict, strict: bool = False) -> tuple:
                     warnings.append(warning)
                 if val is not None and not (0 <= val < MOD_POLARITIES):
                     errors.append(f"{prefix}.output_polarity[{j}] must be 0-{MOD_POLARITIES-1}, got {val}")
+    
+    return errors, warnings
+
+
+def _validate_mod_routing(mod_routing: dict, strict: bool = False) -> tuple:
+    """Validate modulation routing state (Phase 4)."""
+    errors = []
+    warnings = []
+    
+    connections = mod_routing.get("connections", [])
+    if not isinstance(connections, list):
+        errors.append("mod_routing.connections must be a list")
+        return errors, warnings
+    
+    for i, conn in enumerate(connections):
+        if not isinstance(conn, dict):
+            errors.append(f"mod_routing.connections[{i}] must be dict")
+            continue
+        
+        prefix = f"mod_routing.connections[{i}]"
+        
+        # source_bus: 0-15
+        source_bus = conn.get("source_bus")
+        if source_bus is None:
+            errors.append(f"{prefix}.source_bus is required")
+        else:
+            source_bus, warning = _coerce_int(source_bus, f"{prefix}.source_bus")
+            if warning:
+                warnings.append(warning)
+            if source_bus is not None and not (0 <= source_bus < NUM_MOD_BUSES):
+                errors.append(f"{prefix}.source_bus must be 0-{NUM_MOD_BUSES-1}, got {source_bus}")
+        
+        # target_slot: 1-8 (1-indexed)
+        target_slot = conn.get("target_slot")
+        if target_slot is None:
+            errors.append(f"{prefix}.target_slot is required")
+        else:
+            target_slot, warning = _coerce_int(target_slot, f"{prefix}.target_slot")
+            if warning:
+                warnings.append(warning)
+            if target_slot is not None and not (1 <= target_slot <= NUM_SLOTS):
+                errors.append(f"{prefix}.target_slot must be 1-{NUM_SLOTS}, got {target_slot}")
+        
+        # target_param: must be string
+        target_param = conn.get("target_param")
+        if target_param is None:
+            errors.append(f"{prefix}.target_param is required")
+        elif not isinstance(target_param, str):
+            errors.append(f"{prefix}.target_param must be string")
+        
+        # depth: 0-1 (optional, defaults to 1.0)
+        depth = conn.get("depth", 1.0)
+        depth, warning = _coerce_float(depth, f"{prefix}.depth")
+        if warning:
+            warnings.append(warning)
+        if depth is not None and not (0.0 <= depth <= 1.0):
+            errors.append(f"{prefix}.depth must be 0-1, got {depth}")
+        
+        # amount: 0-1 (optional)
+        amount = conn.get("amount", 0.5)
+        amount, warning = _coerce_float(amount, f"{prefix}.amount")
+        if warning:
+            warnings.append(warning)
+        if amount is not None and not (0.0 <= amount <= 1.0):
+            errors.append(f"{prefix}.amount must be 0-1, got {amount}")
+        
+        # offset: -1 to +1 (optional)
+        offset = conn.get("offset", 0.0)
+        offset, warning = _coerce_float(offset, f"{prefix}.offset")
+        if warning:
+            warnings.append(warning)
+        if offset is not None and not (-1.0 <= offset <= 1.0):
+            errors.append(f"{prefix}.offset must be -1 to +1, got {offset}")
+        
+        # polarity: 0-2 (optional)
+        polarity = conn.get("polarity", 0)
+        polarity, warning = _coerce_int(polarity, f"{prefix}.polarity")
+        if warning:
+            warnings.append(warning)
+        if polarity is not None and not (0 <= polarity < MOD_POLARITIES_ROUTING):
+            errors.append(f"{prefix}.polarity must be 0-{MOD_POLARITIES_ROUTING-1}, got {polarity}")
+        
+        # invert: bool (optional)
+        invert = conn.get("invert", False)
+        if not isinstance(invert, bool):
+            errors.append(f"{prefix}.invert must be bool, got {type(invert).__name__}")
     
     return errors, warnings
 
