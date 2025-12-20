@@ -122,7 +122,7 @@ SynthDef(\cthulhu, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // === PROCESSING CHAIN ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~stereoSpread.(sig, 0.08, 0.3);  // Wide but slow movement
-    sig = sig * amp;
+    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
     Out.ar(out, sig);
 }).add;
