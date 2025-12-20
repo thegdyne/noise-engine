@@ -1,0 +1,57 @@
+{
+    "name": "VOIDCHANT",
+    "synthdef": "voidchant",
+    "custom_params": [
+        {
+            "key": "choir",
+            "label": "CHR",
+            "tooltip": "Spectral voices",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "hollow",
+            "label": "HLW",
+            "tooltip": "Formant hollowness",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "drift",
+            "label": "DFT",
+            "tooltip": "Pitch wandering",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "ghost",
+            "label": "GST",
+            "tooltip": "Ethereal doubling",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "prayer",
+            "label": "PRY",
+            "tooltip": "Ritual intensity",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -3.0
+}
