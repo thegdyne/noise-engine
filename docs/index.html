@@ -66,7 +66,7 @@
         }
         .badge.ssot .pct { font-weight: 700; }
         
-        /* 🎚️ STEREO PANNING BADGE */
+        /* ðŸŽšï¸ STEREO PANNING BADGE */
         .badge.panning {
             border-color: var(--accent-cyan);
             color: var(--accent-cyan);
@@ -83,7 +83,7 @@
             50% { transform: translateX(4px); }
         }
         
-        /* 🎛️ MOD MATRIX BADGE */
+        /* ðŸŽ›ï¸ MOD MATRIX BADGE */
         .badge.matrix {
             border-color: #00ff66;
             color: #00ff66;
@@ -116,7 +116,7 @@
             50% { opacity: 1; transform: scale(1.2); }
         }
         
-        /* 🐧 DISCORD ANNOUNCEMENT 🐧 */
+        /* ðŸ§ DISCORD ANNOUNCEMENT ðŸ§ */
         .discord-banner {
             background: linear-gradient(135deg, #5865F2 0%, #3b43a8 100%);
             border: 3px solid #88ff88;
@@ -253,7 +253,7 @@
             100% { transform: translateX(-50%) rotateY(360deg); }
         }
         
-        /* 🏗️ TECH DEBT BADGE 🏗️ */
+        /* ðŸ—ï¸ TECH DEBT BADGE ðŸ—ï¸ */
         .badge.techdebt {
             border-color: var(--accent-orange);
             color: var(--accent-orange);
@@ -293,7 +293,7 @@
             50% { top: -24px; transform: translateX(-50%) rotate(5deg); }
         }
         
-        /* 🤖 TESTS BADGE 🤖 */
+        /* ðŸ¤– TESTS BADGE ðŸ¤– */
         .badge.tests {
             border-color: #44ddff;
             color: #44ddff;
@@ -335,7 +335,7 @@
             75% { top: -28px; transform: translateX(-55%) rotate(15deg) scale(1.1); }
         }
         
-        /* 🔪 UI SURGEON BADGE 🔪 */
+        /* ðŸ”ª UI SURGEON BADGE ðŸ”ª */
         .badge.surgeon {
             border-color: #ff6b6b;
             color: #ff6b6b;
@@ -365,13 +365,35 @@
             50% { transform: translateX(-50%) scale(1.3); opacity: 1; }
         }
         
+        /* 🧪 IMAGINARIUM BADGE 🧪 */
+        .badge.imaginarium {
+            border-color: #ff44ff;
+            color: #ff44ff;
+            background: linear-gradient(135deg, rgba(255, 68, 255, 0.15), rgba(68, 255, 136, 0.15));
+            position: relative;
+            overflow: hidden;
+        }
+        .badge.imaginarium .dna {
+            display: inline-block;
+            margin-right: 4px;
+            animation: dnaRotate 2s linear infinite;
+        }
+        .badge.imaginarium .phase {
+            font-weight: 700;
+            color: #44ff88;
+        }
+        @keyframes dnaRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
         
         
-        /* 🎉 FIRST USER CELEBRATION 🎉 */
+        /* ðŸŽ‰ FIRST USER CELEBRATION ðŸŽ‰ */
         .celebration-banner {
             background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%);
             border: 2px solid gold;
@@ -447,7 +469,7 @@
             100% { transform: translateY(-50%) scaleX(-1) rotate(10deg); }
         }
         
-        /* 🤖 CI/CD BANNER 🤖 */
+        /* ðŸ¤– CI/CD BANNER ðŸ¤– */
         .cicd-banner {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             border: 3px solid #00ff88;
@@ -503,7 +525,7 @@
             box-shadow: 0 0 30px rgba(0, 255, 136, 0.7);
         }
         
-        /* 📐 PROCESS BANNER 📐 */
+        /* ðŸ“ PROCESS BANNER ðŸ“ */
         .process-banner {
             background: linear-gradient(135deg, #1a1025 0%, #151520 50%, #101520 100%);
             border: 2px solid #ff8844;
@@ -699,7 +721,7 @@
         
         .feature-card ul { list-style: none; font-size: 14px; }
         .feature-card li { padding: 3px 0; padding-left: 15px; position: relative; }
-        .feature-card li::before { content: '›'; position: absolute; left: 0; color: var(--accent-green); }
+        .feature-card li::before { content: 'â€º'; position: absolute; left: 0; color: var(--accent-green); }
         
         .architecture { padding: 60px 0; border-top: 1px solid var(--border); }
         
@@ -796,7 +818,7 @@
         
         .roadmap-section ul { list-style: none; font-size: 13px; }
         .roadmap-section li { padding: 5px 0; color: var(--text); }
-        .roadmap-section li::before { content: '○ '; color: var(--text); }
+        .roadmap-section li::before { content: 'â—‹ '; color: var(--text); }
         
         .skins { padding: 60px 0; border-top: 1px solid var(--border); }
         .skins-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
@@ -829,7 +851,7 @@
         
         .trophies { padding: 60px 0; border-top: 1px solid var(--border); }
         
-        /* 🏆 TROPHY CASE - Consolidated Achievement Display */
+        /* ðŸ† TROPHY CASE - Consolidated Achievement Display */
         .trophy-case {
             background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-card) 100%);
             border: 2px solid var(--border);
@@ -1050,63 +1072,63 @@
     <div class="container">
         <header>
             <div class="logo">NOISE<span>_</span>ENGINE</div>
-            <p class="tagline">Modular noise synthesizer • Python GUI • SuperCollider audio</p>
+            <p class="tagline">Modular noise synthesizer â€¢ Python GUI â€¢ SuperCollider audio</p>
             <div class="badges">
                 <span class="badge python">Python</span>
                 <span class="badge supercollider">SuperCollider</span>
                 <span class="badge pyqt">PyQt5</span>
-                <span class="badge ssot perfect"><span class="crown">👑</span>SSOT <span class="pct">100%</span></span>
-                <span class="badge techdebt perfect"><span class="backhoe">🚜</span>DEBT <span class="pct">100%</span></span>
-                <span class="badge tests perfect"><span class="robot">🤖</span>TESTS <span class="pct">356</span></span>
-                <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">Generators</span>
+                <span class="badge ssot perfect"><span class="crown">ðŸ‘‘</span>SSOT <span class="pct">100%</span></span>
+                <span class="badge techdebt perfect"><span class="backhoe">ðŸšœ</span>DEBT <span class="pct">100%</span></span>
+                <span class="badge tests perfect"><span class="robot">ðŸ¤–</span>TESTS <span class="pct">232</span></span>
+                <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">53 Generators</span>
                 <span class="badge" style="border-color: var(--accent-magenta); color: var(--accent-magenta);">MIDI In</span>
-                <span class="badge panning"><span class="pan-icon">◀</span> STEREO PAN <span class="pan-icon">▶</span></span>
+                <span class="badge panning"><span class="pan-icon">â—€</span> STEREO PAN <span class="pan-icon">â–¶</span></span>
                 <span class="badge matrix"><span class="matrix-dots"><span class="matrix-dot"></span><span class="matrix-dot"></span><span class="matrix-dot"></span></span>MOD MATRIX</span>
-                <span class="badge" style="border-color: #ffcc00; color: #ffcc00; background: rgba(255,204,0,0.1);">💾 PRESETS</span>
-                <span class="badge surgeon"><span class="heartbeat">❤️</span><span class="scalpel">🔪</span> UI SURGEON</span>
+                <span class="badge imaginarium"><span class="dna">🧬</span>IMAGINARIUM <span class="phase">P0 ✓</span></span>
+                <span class="badge surgeon"><span class="heartbeat">â¤ï¸</span><span class="scalpel">ðŸ”ª</span> UI SURGEON</span>
             </div>
         </header>
         
         <section class="trophies" style="padding-top: 30px; border-top: none;">
-            <h2 class="section-title">🏆 Achievements</h2>
+            <h2 class="section-title">ðŸ† Achievements</h2>
             
             <div class="trophy-case">
                 <div class="trophy-case-header">
-                    <span class="trophy-case-icon">🏆</span>
+                    <span class="trophy-case-icon">ðŸ†</span>
                     <span class="trophy-case-title">Trophy Case</span>
-                    <span class="trophy-case-icon">🏆</span>
+                    <span class="trophy-case-icon">ðŸ†</span>
                 </div>
                 
                 <div class="trophy-sections">
                     <!-- MASTER SECTION -->
                     <div class="trophy-section master">
                         <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🎛️</span>
+                            <span class="trophy-section-icon">ðŸŽ›ï¸</span>
                             <span class="trophy-section-title">Master Section</span>
                         </div>
                         <div class="trophy-items">
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎚️</span>
+                                <span class="trophy-item-icon">ðŸŽšï¸</span>
                                 <span class="trophy-item-text">SSL G-Style Compressor</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">📊</span>
+                                <span class="trophy-item-icon">ðŸ“Š</span>
                                 <span class="trophy-item-text">GR Meter</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-icon">ðŸŽ›ï¸</span>
                                 <span class="trophy-item-text">DJ Isolator EQ</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">💀</span>
+                                <span class="trophy-item-icon">ðŸ’€</span>
                                 <span class="trophy-item-text">Per-Band Kill</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🧱</span>
+                                <span class="trophy-item-icon">ðŸ§±</span>
                                 <span class="trophy-item-text">Brickwall Limiter</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">📈</span>
+                                <span class="trophy-item-icon">ðŸ“ˆ</span>
                                 <span class="trophy-item-text">PRE/POST Metering</span>
                             </div>
                         </div>
@@ -1115,32 +1137,32 @@
                     <!-- MIXER -->
                     <div class="trophy-section mixer">
                         <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🎚️</span>
+                            <span class="trophy-section-icon">ðŸŽšï¸</span>
                             <span class="trophy-section-title">Mixer</span>
                         </div>
                         <div class="trophy-items">
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎚️</span>
+                                <span class="trophy-item-icon">ðŸŽšï¸</span>
                                 <span class="trophy-item-text">8 Channel Strips</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🔇</span>
+                                <span class="trophy-item-icon">ðŸ”‡</span>
                                 <span class="trophy-item-text">Mute per Channel</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🎯</span>
+                                <span class="trophy-item-icon">ðŸŽ¯</span>
                                 <span class="trophy-item-text">Solo-in-Place</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">↔️</span>
+                                <span class="trophy-item-icon">â†”ï¸</span>
                                 <span class="trophy-item-text">Stereo Panning</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">📊</span>
+                                <span class="trophy-item-icon">ðŸ“Š</span>
                                 <span class="trophy-item-text">Per-Channel Meters</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🔊</span>
+                                <span class="trophy-item-icon">ðŸ”Š</span>
                                 <span class="trophy-item-text">Gain Staging</span>
                             </div>
                         </div>
@@ -1149,40 +1171,40 @@
                     <!-- FX SYSTEM -->
                     <div class="trophy-section fx">
                         <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🔥</span>
+                            <span class="trophy-section-icon">ðŸ”¥</span>
                             <span class="trophy-section-title">FX System</span>
                         </div>
                         <div class="trophy-items">
                             <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🔥</span>
+                                <span class="trophy-item-icon">ðŸ”¥</span>
                                 <span class="trophy-item-text">Heat (4 Circuits)</span>
                             </div>
                             <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">📼</span>
+                                <span class="trophy-item-icon">ðŸ“¼</span>
                                 <span class="trophy-item-text">Tape Echo + Spring</span>
                             </div>
                             <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🌊</span>
+                                <span class="trophy-item-icon">ðŸŒŠ</span>
                                 <span class="trophy-item-text">Reverb</span>
                             </div>
                             <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🎚️</span>
+                                <span class="trophy-item-icon">ðŸŽšï¸</span>
                                 <span class="trophy-item-text">Dual Filter</span>
                             </div>
                             <div class="trophy-item new">
-                                <span class="trophy-item-icon">📤</span>
+                                <span class="trophy-item-icon">ðŸ“¤</span>
                                 <span class="trophy-item-text">Per-Channel Sends</span>
                             </div>
                             <div class="trophy-item new">
-                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-icon">ðŸŽ›ï¸</span>
                                 <span class="trophy-item-text">FX Window UI</span>
                             </div>
                             <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🔊</span>
+                                <span class="trophy-item-icon">ðŸ”Š</span>
                                 <span class="trophy-item-text">Full Stereo FX Chain</span>
                             </div>
                             <div class="trophy-item new">
-                                <span class="trophy-item-icon">↔️</span>
+                                <span class="trophy-item-icon">â†”ï¸</span>
                                 <span class="trophy-item-text">Post-Pan Sends</span>
                             </div>
                         </div>
@@ -1191,40 +1213,40 @@
                     <!-- MODULATION SOURCES -->
                     <div class="trophy-section modulation">
                         <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🌊</span>
+                            <span class="trophy-section-icon">ðŸŒŠ</span>
                             <span class="trophy-section-title">Modulation</span>
                         </div>
                         <div class="trophy-items">
                             <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🎛️</span>
-                                <span class="trophy-item-text">16×40 Mod Matrix</span>
+                                <span class="trophy-item-icon">ðŸŽ›ï¸</span>
+                                <span class="trophy-item-text">16Ã—40 Mod Matrix</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">〰️</span>
+                                <span class="trophy-item-icon">ã€°ï¸</span>
                                 <span class="trophy-item-text">LFO (TTLFO v2 style)</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🦥</span>
+                                <span class="trophy-item-icon">ðŸ¦¥</span>
                                 <span class="trophy-item-text">Sloth (NLC style)</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">📊</span>
+                                <span class="trophy-item-icon">ðŸ“Š</span>
                                 <span class="trophy-item-text">Real-time Scope</span>
                             </div>
                             <div class="trophy-item new">
-                                <span class="trophy-item-icon">🎚️</span>
+                                <span class="trophy-item-icon">ðŸŽšï¸</span>
                                 <span class="trophy-item-text">Animated Slider Viz</span>
                             </div>
                             <div class="trophy-item new">
-                                <span class="trophy-item-icon">➕</span>
+                                <span class="trophy-item-icon">âž•</span>
                                 <span class="trophy-item-text">Multi-Source (4 per dest)</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">⌨️</span>
+                                <span class="trophy-item-icon">âŒ¨ï¸</span>
                                 <span class="trophy-item-text">Full Keyboard Nav</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🚌</span>
+                                <span class="trophy-item-icon">ðŸšŒ</span>
                                 <span class="trophy-item-text">16 Mod Buses</span>
                             </div>
                         </div>
@@ -1233,32 +1255,32 @@
                     <!-- GENERATORS -->
                     <div class="trophy-section generators">
                         <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🔊</span>
+                            <span class="trophy-section-icon">ðŸ”Š</span>
                             <span class="trophy-section-title">Generators</span>
                         </div>
                         <div class="trophy-items">
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-icon">ðŸŽ›ï¸</span>
                                 <span class="trophy-item-text">53 Generator Types</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🎹</span>
+                                <span class="trophy-item-icon">ðŸŽ¹</span>
                                 <span class="trophy-item-text">MIDI Pitch & Gate</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🔄</span>
+                                <span class="trophy-item-icon">ðŸ”„</span>
                                 <span class="trophy-item-text">MIDI Retrigger</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">⏱️</span>
+                                <span class="trophy-item-icon">â±ï¸</span>
                                 <span class="trophy-item-text">13 Clock Rates</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🎛️</span>
+                                <span class="trophy-item-icon">ðŸŽ›ï¸</span>
                                 <span class="trophy-item-text">Custom Params P1-P5</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🔧</span>
+                                <span class="trophy-item-icon">ðŸ”§</span>
                                 <span class="trophy-item-text">JSON Config System</span>
                             </div>
                         </div>
@@ -1267,37 +1289,33 @@
                     <!-- SYSTEM -->
                     <div class="trophy-section system">
                         <div class="trophy-section-header">
-                            <span class="trophy-section-icon">⚙️</span>
+                            <span class="trophy-section-icon">âš™ï¸</span>
                             <span class="trophy-section-title">System</span>
                         </div>
                         <div class="trophy-items">
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🤖</span>
-                                <span class="trophy-item-text">356 Automated Tests</span>
+                                <span class="trophy-item-icon">ðŸ¤–</span>
+                                <span class="trophy-item-text">232 Automated Tests</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">👑</span>
+                                <span class="trophy-item-icon">ðŸ‘‘</span>
                                 <span class="trophy-item-text">100% SSOT Compliance</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">📋</span>
+                                <span class="trophy-item-icon">ðŸ“‹</span>
                                 <span class="trophy-item-text">In-App Console</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">💓</span>
+                                <span class="trophy-item-icon">ðŸ’“</span>
                                 <span class="trophy-item-text">SC Heartbeat Monitor</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🔌</span>
+                                <span class="trophy-item-icon">ðŸ”Œ</span>
                                 <span class="trophy-item-text">Audio Device Switching</span>
                             </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">👤</span>
+                            <div class="trophy-item new">
+                                <span class="trophy-item-icon">ðŸ‘¤</span>
                                 <span class="trophy-item-text">First External User!</span>
-                            </div>
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">💾</span>
-                                <span class="trophy-item-text">Preset Save/Load</span>
                             </div>
                         </div>
                     </div>
@@ -1305,32 +1323,32 @@
                     <!-- UI SURGERY -->
                     <div class="trophy-section uisurgery" style="border-color: #ff6b6b;">
                         <div class="trophy-section-header" style="background: rgba(255, 107, 107, 0.1); border-color: #ff6b6b;">
-                            <span class="trophy-section-icon">🔪</span>
+                            <span class="trophy-section-icon">ðŸ”ª</span>
                             <span class="trophy-section-title" style="color: #ff6b6b;">UI Surgery</span>
                         </div>
                         <div class="trophy-items">
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🔍</span>
+                                <span class="trophy-item-icon">ðŸ”</span>
                                 <span class="trophy-item-text">F9 Debug Overlay</span>
                             </div>
                             <div class="trophy-item featured">
-                                <span class="trophy-item-icon">👆</span>
+                                <span class="trophy-item-icon">ðŸ‘†</span>
                                 <span class="trophy-item-text">Click-to-Trace</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🔴</span>
+                                <span class="trophy-item-icon">ðŸ”´</span>
                                 <span class="trophy-item-text">Red Border Constraints</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🏷️</span>
+                                <span class="trophy-item-icon">ðŸ·ï¸</span>
                                 <span class="trophy-item-text">Widget Naming System</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">🧪</span>
+                                <span class="trophy-item-icon">ðŸ§ª</span>
                                 <span class="trophy-item-text">Layout Sandbox</span>
                             </div>
                             <div class="trophy-item">
-                                <span class="trophy-item-icon">😈</span>
+                                <span class="trophy-item-icon">ðŸ˜ˆ</span>
                                 <span class="trophy-item-text">Torture Testing</span>
                             </div>
                         </div>
@@ -1343,7 +1361,7 @@
                         <div class="trophy-stat-label">Generators</div>
                     </div>
                     <div class="trophy-stat">
-                        <div class="trophy-stat-value">356</div>
+                        <div class="trophy-stat-value">162</div>
                         <div class="trophy-stat-label">Tests</div>
                     </div>
                     <div class="trophy-stat">
@@ -1358,7 +1376,7 @@
             </div>
         </section>
         
-        <!-- 🎉 FIRST USER CELEBRATION 🎉 -->
+        <!-- ðŸŽ‰ FIRST USER CELEBRATION ðŸŽ‰ -->
         <div class="celebration-banner">
             <div class="firework"></div>
             <div class="firework"></div>
@@ -1366,51 +1384,51 @@
             <div class="firework"></div>
             <div class="firework"></div>
             <div class="firework"></div>
-            <span class="party-popper left">🎉</span>
-            <span class="party-popper right">🎉</span>
-            <h3>🎊 WE HAVE OUR FIRST USER! 🎊</h3>
+            <span class="party-popper left">ðŸŽ‰</span>
+            <span class="party-popper right">ðŸŽ‰</span>
+            <h3>ðŸŽŠ WE HAVE OUR FIRST USER! ðŸŽŠ</h3>
             <p>David is officially <strong>User 01</strong> of Noise Engine!</p>
             <p style="font-size: 14px; margin-top: 8px; color: var(--text);">December 12, 2025 - A historic moment</p>
-            <div class="user-badge">👑 USER 01</div>
+            <div class="user-badge">ðŸ‘‘ USER 01</div>
         </div>
         
-        <!-- 🐧 DISCORD SERVER 🐧 -->
+        <!-- ðŸ§ DISCORD SERVER ðŸ§ -->
         <div class="discord-banner">
-            <span class="sparkle">✨</span>
-            <span class="sparkle">⭐</span>
-            <span class="sparkle">✨</span>
-            <span class="sparkle">⭐</span>
-            <span class="penguin left">🐧</span>
-            <span class="penguin right">🐧</span>
-            <h3>🎛️ JOIN THE NOISE! 🎛️</h3>
+            <span class="sparkle">âœ¨</span>
+            <span class="sparkle">â­</span>
+            <span class="sparkle">âœ¨</span>
+            <span class="sparkle">â­</span>
+            <span class="penguin left">ðŸ§</span>
+            <span class="penguin right">ðŸ§</span>
+            <h3>ðŸŽ›ï¸ JOIN THE NOISE! ðŸŽ›ï¸</h3>
             <p>We have a Discord server! Chat about synths, share patches, get help.</p>
             <a href="https://discord.gg/zcQpQmbpJF" target="_blank" class="discord-btn">Join Discord Server</a>
         </div>
         
-        <!-- 🤖 CI/CD ANNOUNCEMENT 🤖 -->
+        <!-- ðŸ¤– CI/CD ANNOUNCEMENT ðŸ¤– -->
         <div class="cicd-banner">
-            <span class="robot left">🤖</span>
-            <span class="robot right">🤖</span>
-            <span class="gear gear1">⚙️</span>
-            <span class="gear gear2">⚙️</span>
-            <span class="gear gear3">⚙️</span>
-            <h3>🚀 CI/CD PIPELINE ACTIVE 🚀</h3>
-            <p>356 automated tests run on every commit. SSOT &amp; tech debt checks enforced.</p>
+            <span class="robot left">ðŸ¤–</span>
+            <span class="robot right">ðŸ¤–</span>
+            <span class="gear gear1">âš™ï¸</span>
+            <span class="gear gear2">âš™ï¸</span>
+            <span class="gear gear3">âš™ï¸</span>
+            <h3>ðŸš€ CI/CD PIPELINE ACTIVE ðŸš€</h3>
+            <p>93 automated tests run on every commit. SSOT &amp; tech debt checks enforced.</p>
             <a href="https://github.com/thegdyne/noise-engine/actions" target="_blank" class="cicd-btn">
                 <img src="https://github.com/thegdyne/noise-engine/actions/workflows/ci.yml/badge.svg" alt="CI Status" style="vertical-align: middle;">
                 View Pipeline
             </a>
         </div>
         
-        <!-- 📐 THE PROCESS 📐 -->
+        <!-- ðŸ“ THE PROCESS ðŸ“ -->
         <div class="process-banner">
-            <span class="process-icon left">📐</span>
-            <span class="process-icon right">🎯</span>
-            <h3>📖 THE PROCESS</h3>
-            <p>How do you build an SSL G-Comp in 6 days? Research → Document → SSOT → Verify.</p>
+            <span class="process-icon left">ðŸ“</span>
+            <span class="process-icon right">ðŸŽ¯</span>
+            <h3>ðŸ“– THE PROCESS</h3>
+            <p>How do you build an SSL G-Comp in 6 days? Research â†’ Document â†’ SSOT â†’ Verify.</p>
             <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                <a href="process.html" class="process-btn">SSL Compressor Case Study →</a>
-                <a href="mod-matrix-process.html" class="process-btn" style="background: var(--accent-orange);">Mod Matrix: 8 Phases →</a>
+                <a href="process.html" class="process-btn">SSL Compressor Case Study â†’</a>
+                <a href="mod-matrix-process.html" class="process-btn" style="background: var(--accent-orange);">Mod Matrix: 8 Phases â†’</a>
             </div>
         </div>
         
@@ -1429,11 +1447,11 @@
                 </div>
                 <div class="signal-flow">
                     <div class="flow-node active"><h4>GENERATORS</h4><p>8 slots</p></div>
-                    <span class="flow-arrow">→</span>
+                    <span class="flow-arrow">â†’</span>
                     <div class="flow-node"><h4>MIXER</h4><p>levels</p></div>
-                    <span class="flow-arrow">→</span>
+                    <span class="flow-arrow">â†’</span>
                     <div class="flow-node"><h4>FX CHAIN</h4><p>4 slots</p></div>
-                    <span class="flow-arrow">→</span>
+                    <span class="flow-arrow">â†’</span>
                     <div class="flow-node"><h4>OUTPUT</h4><p>master</p></div>
                 </div>
             </div>
@@ -1443,7 +1461,7 @@
             <h2 class="section-title">Current Features</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <h3><span class="feature-icon">◈</span> Generators</h3>
+                    <h3><span class="feature-icon">â—ˆ</span> Generators</h3>
                     <ul>
                         <li>8 independent slots</li>
                         <li>Per-gen: FRQ, CUT, RES, ATK, DEC</li>
@@ -1454,7 +1472,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h3><span class="feature-icon">◎</span> Modulation</h3>
+                    <h3><span class="feature-icon">â—Ž</span> Modulation</h3>
                     <ul>
                         <li>4 Mod Slots (LFO, Sloth)</li>
                         <li>8 waveforms, quadrature phase patterns</li>
@@ -1463,7 +1481,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h3><span class="feature-icon">◐</span> Effects</h3>
+                    <h3><span class="feature-icon">â—</span> Effects</h3>
                     <ul>
                         <li>4-slot serial FX chain</li>
                         <li>Fidelity (bit crush / sample rate)</li>
@@ -1471,7 +1489,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h3><span class="feature-icon">▥</span> Mixer</h3>
+                    <h3><span class="feature-icon">â–¥</span> Mixer</h3>
                     <ul>
                         <li>8 channel faders</li>
                         <li>Mute / Solo per channel</li>
@@ -1515,7 +1533,7 @@
                     <h3>Test Synth</h3>
                     <p class="gen-desc">Basic noise burst generator</p>
                     <div class="gen-params">
-                        <span class="param unused">—</span>
+                        <span class="param unused">â€”</span>
                     </div>
                 </div>
                 <div class="gen-card active">
@@ -1784,18 +1802,18 @@
             </div>
             <div style="margin-top: 25px; padding: 20px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;">
                 <h4 style="color: var(--accent-green); font-family: 'Space Mono', monospace; font-size: 13px; margin-bottom: 12px;">
-                    ◈ Single Source of Truth (100%)
+                    â—ˆ Single Source of Truth (100%)
                 </h4>
                 <p style="font-size: 13px; margin-bottom: 10px;">
                     <strong>Design principle:</strong> "Can I change X without touching Y?"
                 </p>
                 <ul style="font-size: 13px; list-style: none; color: var(--text);">
-                    <li style="padding: 3px 0;">✓ Colors, fonts, sizes → <code style="color: var(--accent-cyan);">theme.py</code></li>
-                    <li style="padding: 3px 0;">✓ Standard params → <code style="color: var(--accent-cyan);">config/GENERATOR_PARAMS</code></li>
-                    <li style="padding: 3px 0;">✓ Custom params → <code style="color: var(--accent-cyan);">generators/*.json</code></li>
-                    <li style="padding: 3px 0;">✓ OSC paths, rates → <code style="color: var(--accent-cyan);">config/__init__.py</code></li>
-                    <li style="padding: 3px 0;">✓ SC signal helpers → <code style="color: var(--accent-cyan);">~envVCA, ~multiFilter, ~stereoSpread</code></li>
-                    <li style="padding: 3px 0;">✓ Validated by <code style="color: var(--accent-cyan);">tools/check_ssot.sh</code></li>
+                    <li style="padding: 3px 0;">âœ“ Colors, fonts, sizes â†’ <code style="color: var(--accent-cyan);">theme.py</code></li>
+                    <li style="padding: 3px 0;">âœ“ Standard params â†’ <code style="color: var(--accent-cyan);">config/GENERATOR_PARAMS</code></li>
+                    <li style="padding: 3px 0;">âœ“ Custom params â†’ <code style="color: var(--accent-cyan);">generators/*.json</code></li>
+                    <li style="padding: 3px 0;">âœ“ OSC paths, rates â†’ <code style="color: var(--accent-cyan);">config/__init__.py</code></li>
+                    <li style="padding: 3px 0;">âœ“ SC signal helpers â†’ <code style="color: var(--accent-cyan);">~envVCA, ~multiFilter, ~stereoSpread</code></li>
+                    <li style="padding: 3px 0;">âœ“ Validated by <code style="color: var(--accent-cyan);">tools/check_ssot.sh</code></li>
                 </ul>
             </div>
         </section>
@@ -1814,15 +1832,15 @@
                     </ul>
                 </div>
                 <div class="roadmap-section">
-                    <h3>Modulators ✅</h3>
+                    <h3>Modulators âœ…</h3>
                     <ul>
-                        <li>✅ LFO (TTLFO v2 style) - 8 waveforms, shape, phase</li>
-                        <li>✅ Sloth (NLC Triple Sloth inspired) - Torpor/Apathy/Inertia</li>
-                        <li>✅ 4 mod slots × 4 outputs = 16 mod buses</li>
-                        <li>✅ Real-time scope display</li>
-                        <li>✅ Modulation routing matrix (16×40 grid)</li>
-                        <li>✅ Multi-source summation (4 per destination)</li>
-                        <li>✅ Animated slider visualization</li>
+                        <li>âœ… LFO (TTLFO v2 style) - 8 waveforms, shape, phase</li>
+                        <li>âœ… Sloth (NLC Triple Sloth inspired) - Torpor/Apathy/Inertia</li>
+                        <li>âœ… 4 mod slots Ã— 4 outputs = 16 mod buses</li>
+                        <li>âœ… Real-time scope display</li>
+                        <li>âœ… Modulation routing matrix (16Ã—40 grid)</li>
+                        <li>âœ… Multi-source summation (4 per destination)</li>
+                        <li>âœ… Animated slider visualization</li>
                         <li>LFO FREE mode (non-clocked)</li>
                         <li>Clockable envelope generator</li>
                     </ul>
@@ -1840,7 +1858,7 @@
                 <div class="roadmap-section">
                     <h3>System</h3>
                     <ul>
-                        <li>✅ Preset v2: Full session state</li>
+                        <li>Preset save/load</li>
                         <li>MIDI learn (CC mapping)</li>
                         <li>MIDI pitch/gate per generator</li>
                         <li>Eurorack send/return</li>
@@ -1848,19 +1866,16 @@
                     </ul>
                 </div>
             </div>
-            <p style="margin-top: 25px; text-align: center;">
-                <a href="https://github.com/thegdyne/noise-engine/blob/main/docs/BACKLOG.md" style="color: #44ddff;">📋 Full Backlog on GitHub</a>
-            </p>
         </section>
-
+        
         <section class="skins">
             <h2 class="section-title">Planned Skins</h2>
             <div class="skins-grid">
-                <div class="skin-preview retro-media"><div class="skin-icon">▶</div>90s Media Player</div>
-                <div class="skin-preview acid-orange"><div class="skin-icon">◉</div>Acid TB</div>
-                <div class="skin-preview classic-gui"><div class="skin-icon">▢</div>Classic GUI</div>
-                <div class="skin-preview dystopia"><div class="skin-icon">◈</div>Dystopia</div>
-                <div class="skin-preview neon-grid"><div class="skin-icon">◇</div>Neon Grid</div>
+                <div class="skin-preview retro-media"><div class="skin-icon">â–¶</div>90s Media Player</div>
+                <div class="skin-preview acid-orange"><div class="skin-icon">â—‰</div>Acid TB</div>
+                <div class="skin-preview classic-gui"><div class="skin-icon">â–¢</div>Classic GUI</div>
+                <div class="skin-preview dystopia"><div class="skin-icon">â—ˆ</div>Dystopia</div>
+                <div class="skin-preview neon-grid"><div class="skin-icon">â—‡</div>Neon Grid</div>
             </div>
             <p style="margin-top: 20px; font-size: 13px; color: var(--text);">
                 Also planned: FPS HUD, Cyborg, Pixel Warrior
@@ -1870,34 +1885,33 @@
         <section class="milestones">
             <h2 class="section-title">Milestones</h2>
             <ul class="milestones-list">
-                <li><span class="milestone-date">2025-12-20</span> 💾 PRESET SYSTEM! Save/Load with Ctrl+S/O, full generator + mixer state</li>
-                <li><span class="milestone-date">2025-12-20</span> 🔧 Generator envelope fix - all 16 pack generators use ~envVCA</li>
-                <li><span class="milestone-date">2025-12-19</span> 📦 PACK SYSTEM COMPLETE! Electric Shepherd + R'lyeh collections as core packs</li>
+                <li><span class="milestone-date">2025-12-20</span> 🧬 IMAGINARIUM PHASE 0 VERIFIED! SC contract + determinism testing for AI pack generator</li>
+                <li><span class="milestone-date">2025-12-19</span> ðŸ“¦ PACK SYSTEM COMPLETE! Electric Shepherd + R'lyeh collections as core packs</li>
                 <li><span class="milestone-date">2025-12-18</span> Pack selector UI, generator filtering by pack</li>
                 <li><span class="milestone-date">2025-12-18</span> Pack infrastructure: discovery, manifests, SynthDef loading</li>
-                <li><span class="milestone-date">2025-12-17</span> 🎛️ MOD MATRIX COMPLETE! 16×40 routing grid, multi-source, animated sliders</li>
+                <li><span class="milestone-date">2025-12-17</span> ðŸŽ›ï¸ MOD MATRIX COMPLETE! 16Ã—40 routing grid, multi-source, animated sliders</li>
                 <li><span class="milestone-date">2025-12-17</span> Phase 7: Slider visualization with range brackets and animated value</li>
                 <li><span class="milestone-date">2025-12-17</span> Phase 8: Multi-source summation (up to 4 sources per destination)</li>
-                <li><span class="milestone-date">2025-12-15</span> 🌊 MODULATION SOURCES LIVE! LFO + Sloth with real-time scope display</li>
-                <li><span class="milestone-date">2025-12-15</span> 🎨 Skin system Phase 1 - high contrast default, module accent colours</li>
+                <li><span class="milestone-date">2025-12-15</span> ðŸŒŠ MODULATION SOURCES LIVE! LFO + Sloth with real-time scope display</li>
+                <li><span class="milestone-date">2025-12-15</span> ðŸŽ¨ Skin system Phase 1 - high contrast default, module accent colours</li>
                 <li><span class="milestone-date">2025-12-15</span> LFO: TTLFO v2 inspired, 12 clock rates (/64 to x32), 8 waveforms</li>
                 <li><span class="milestone-date">2025-12-15</span> Sloth: NLC Triple Sloth inspired chaos (Torpor/Apathy/Inertia)</li>
-                <li><span class="milestone-date">2025-12-15</span> 🎛️ Per-channel 3-band EQ with MiniKnob UI and shared ~djIsolator helper</li>
-                <li><span class="milestone-date">2025-12-14</span> 🎛️ MASTER SECTION COMPLETE! SSL G-Comp, DJ Isolator EQ, Brickwall Limiter</li>
+                <li><span class="milestone-date">2025-12-15</span> ðŸŽ›ï¸ Per-channel 3-band EQ with MiniKnob UI and shared ~djIsolator helper</li>
+                <li><span class="milestone-date">2025-12-14</span> ðŸŽ›ï¸ MASTER SECTION COMPLETE! SSL G-Comp, DJ Isolator EQ, Brickwall Limiter</li>
                 <li><span class="milestone-date">2025-12-14</span> SSL G-Series style compressor with dominant stereo detection, auto-release, SC HPF</li>
                 <li><span class="milestone-date">2025-12-14</span> DJ-style 3-band isolator EQ with LR4 crossovers and per-band kill buttons</li>
                 <li><span class="milestone-date">2025-12-14</span> ValuePopup on all sliders showing real values (dB, Hz, %) during drag</li>
                 <li><span class="milestone-date">2025-12-14</span> Compressor GR meter with real-time feedback from SC</li>
                 <li><span class="milestone-date">2025-12-14</span> Brickwall limiter with ceiling control (-6dB to 0dB)</li>
                 <li><span class="milestone-date">2025-12-14</span> PRE/POST meter toggle for master section</li>
-                <li><span class="milestone-date">2025-12-13</span> 🎚️ STEREO PANNING! Per-channel Balance2 with double-click center</li>
+                <li><span class="milestone-date">2025-12-13</span> ðŸŽšï¸ STEREO PANNING! Per-channel Balance2 with double-click center</li>
                 <li><span class="milestone-date">2025-12-13</span> All 22 generators standardized to dual mono (stereo sampler ready)</li>
-                <li><span class="milestone-date">2025-12-13</span> 🎚️ Channel strips complete (vol/mute/solo per generator)</li>
-                <li><span class="milestone-date">2025-12-13</span> Per-generator routing through ~genBus[8] → channelStrip → ~masterBus</li>
+                <li><span class="milestone-date">2025-12-13</span> ðŸŽšï¸ Channel strips complete (vol/mute/solo per generator)</li>
+                <li><span class="milestone-date">2025-12-13</span> Per-generator routing through ~genBus[8] â†’ channelStrip â†’ ~masterBus</li>
                 <li><span class="milestone-date">2025-12-13</span> Solo-in-place logic with global soloActive bus</li>
                 <li><span class="milestone-date">2025-12-13</span> Mute/solo state persists across generator changes</li>
                 <li><span class="milestone-date">2025-12-13</span> Master section with fader + level meter (Phase 1 complete)</li>
-                <li><span class="milestone-date">2025-12-12</span> 🎉 First external user (David - User 01!)</li>
+                <li><span class="milestone-date">2025-12-12</span> ðŸŽ‰ First external user (David - User 01!)</li>
                 <li><span class="milestone-date">2025-12-12</span> MIDI retrig for Modal/Karplus (continuous strike while key held)</li>
                 <li><span class="milestone-date">2025-12-12</span> RTG param auto-disables in MIDI mode</li>
                 <li><span class="milestone-date">2025-12-12</span> WIP panels greyed out (Mod Sources, Mixer channels)</li>
@@ -1933,9 +1947,9 @@
         
         <footer>
             <p>
-                <a href="https://github.com/thegdyne/noise-engine">GitHub Repository</a> •
-                <a href="https://discord.gg/zcQpQmbpJF">Discord Server</a> •
-                <a href="https://github.com/thegdyne/noise-engine/issues">Report Bug / Request Feature</a> •
+                <a href="https://github.com/thegdyne/noise-engine">GitHub Repository</a> â€¢
+                <a href="https://discord.gg/zcQpQmbpJF">Discord Server</a> â€¢
+                <a href="https://github.com/thegdyne/noise-engine/issues">Report Bug / Request Feature</a> â€¢
                 <a href="https://github.com/thegdyne/noise-engine/blob/main/LICENSE">MIT License</a>
             </p>
             <p style="margin-top: 10px; color: var(--text);">
