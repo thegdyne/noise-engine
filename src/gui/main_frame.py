@@ -31,7 +31,7 @@ from src.config import (
     BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
 )
 from src.utils.logger import logger
-from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState
+from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState
 
 
 class MainFrame(QMainWindow):
@@ -1345,7 +1345,24 @@ class MainFrame(QMainWindow):
             master_volume=self.master_section.get_volume(),
         )
 
-        state = PresetState(slots=slots, mixer=mixer)
+        # Phase 2: BPM and master section
+        bpm = self.bpm_display.get_bpm()
+        master = MasterState.from_dict(self.master_section.get_state())
+        
+        # Phase 3: Mod sources
+        mod_sources = ModSourcesState.from_dict(self.modulator_grid.get_state())
+        
+        # Phase 4: Mod routing
+        mod_routing = self.mod_routing.to_dict()
+        
+        state = PresetState(
+            slots=slots,
+            mixer=mixer,
+            bpm=bpm,
+            master=master,
+            mod_sources=mod_sources,
+            mod_routing=mod_routing,
+        )
 
         # Get filename from user
         filepath, _ = QFileDialog.getSaveFileName(
@@ -1406,5 +1423,25 @@ class MainFrame(QMainWindow):
             if ch_id in self.mixer_panel.channels:
                 self.mixer_panel.channels[ch_id].set_state(channel_state.to_dict())
 
-        # Apply master volume
+        # Apply master volume (legacy field)
         self.master_section.set_volume(state.mixer.master_volume)
+        
+        # Phase 2: BPM (only if preset had bpm saved)
+        if state.bpm != 120:  # Non-default means it was explicitly saved
+            self.bpm_display.set_bpm(state.bpm)
+            self.on_bpm_changed(state.bpm)  # Send to SC
+        
+        # Phase 2: Master section (only if preset version >= 2)
+        if state.version >= 2 and hasattr(state, 'master'):
+            self.master_section.set_state(state.master.to_dict())
+        
+        # Phase 3: Mod sources (only if preset version >= 2)
+        if state.version >= 2 and state.mod_sources.slots[0].generator_name != "Empty" or any(s.generator_name != "Empty" for s in state.mod_sources.slots):
+            self.modulator_grid.set_state(state.mod_sources.to_dict())
+        
+        # Phase 4: Mod routing (only if has connections)
+        if state.mod_routing.get("connections"):
+            self.mod_routing.from_dict(state.mod_routing)
+            # Update mod matrix window if open
+            if self.mod_matrix_window:
+                self.mod_matrix_window.sync_from_state()

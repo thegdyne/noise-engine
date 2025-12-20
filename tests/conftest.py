@@ -1,29 +1,39 @@
-"""
-Pytest configuration and shared fixtures
-"""
+"""Pytest configuration - ensure consistent CWD and provide fixtures.
 
-import pytest
+Some code paths (OSC registration) currently resolve filesystem paths relative
+to the current working directory. Running pytest from `tests/` or elsewhere
+can therefore skip route registration.
+
+This is intentionally a test-only stabilizer; the proper fix is to make
+runtime code CWD-independent (backlog item).
+"""
+from __future__ import annotations
+
 import os
-import sys
+from pathlib import Path
+import pytest
 
-# Add project root to path for imports
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, PROJECT_ROOT)
+ROOT = Path(__file__).resolve().parents[1]
 
+def pytest_sessionstart(session):
+    os.chdir(ROOT)
+
+
+# Fixtures used by multiple test files
 
 @pytest.fixture
 def project_root():
-    """Return the project root directory."""
-    return PROJECT_ROOT
+    """Return path to project root."""
+    return ROOT
 
 
 @pytest.fixture
-def generators_dir(project_root):
-    """Return the generators directory path."""
-    return os.path.join(project_root, 'supercollider', 'generators')
+def generators_dir():
+    """Return path to supercollider/generators directory."""
+    return ROOT / "supercollider" / "generators"
 
 
 @pytest.fixture
-def supercollider_dir(project_root):
-    """Return the supercollider directory path."""
-    return os.path.join(project_root, 'supercollider')
+def supercollider_dir():
+    """Return path to supercollider directory."""
+    return ROOT / "supercollider"

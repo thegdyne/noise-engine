@@ -138,3 +138,7 @@ class BPMDisplay(QWidget):
         """Set BPM programmatically."""
         self.bpm = max(BPM_MIN, min(BPM_MAX, bpm))
         self.display.set_value(self.bpm)
+
+    def get_bpm(self) -> int:
+        """Get current BPM value."""
+        return self.bpm

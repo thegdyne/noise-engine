@@ -525,24 +525,28 @@ class ChannelStrip(QWidget):
     def get_state(self) -> dict:
         """
         Get current channel state for preset save.
-
-        Returns dict with:
-            volume: float (0-1)
-            pan: float (0-1, where 0.5 = center)
-            mute: bool
-            solo: bool
+        Returns dict with all channel strip settings (Phase 1 expanded).
         """
         return {
+            # Original fields
             "volume": self.fader.value() / 1000.0,
             "pan": (self.pan_slider.value() + 100) / 200.0,  # Convert -100..100 to 0..1
             "mute": self.muted,
             "solo": self.soloed,
+            # Phase 1 additions
+            "eq_hi": self.eq_hi.value(),
+            "eq_mid": self.eq_mid.value(),
+            "eq_lo": self.eq_lo.value(),
+            "gain": self.gain_index,
+            "echo_send": self.echo_send.value(),
+            "verb_send": self.verb_send.value(),
+            "lo_cut": self.lo_cut_active,
+            "hi_cut": self.hi_cut_active,
         }
 
     def set_state(self, state: dict):
         """
         Apply state from preset load.
-
         Args:
             state: dict from get_state() or preset file
         """
@@ -571,6 +575,62 @@ class ChannelStrip(QWidget):
         solo = state.get("solo", False)
         if solo != self.soloed:
             self.toggle_solo()
+
+        # === Phase 1 additions ===
+
+        # EQ Hi
+        eq_hi = state.get("eq_hi", 100)
+        self.eq_hi.blockSignals(True)
+        self.eq_hi.setValue(eq_hi)
+        self.eq_hi.blockSignals(False)
+        self._on_eq_changed('hi', eq_hi)
+
+        # EQ Mid
+        eq_mid = state.get("eq_mid", 100)
+        self.eq_mid.blockSignals(True)
+        self.eq_mid.setValue(eq_mid)
+        self.eq_mid.blockSignals(False)
+        self._on_eq_changed('mid', eq_mid)
+
+        # EQ Lo
+        eq_lo = state.get("eq_lo", 100)
+        self.eq_lo.blockSignals(True)
+        self.eq_lo.setValue(eq_lo)
+        self.eq_lo.blockSignals(False)
+        self._on_eq_changed('lo', eq_lo)
+
+        # Gain
+        gain = state.get("gain", 0)
+        if 0 <= gain < len(self.GAIN_STAGES):
+            self.gain_index = gain
+            db, text, style = self.GAIN_STAGES[self.gain_index]
+            self.gain_btn.setText(text)
+            self.gain_btn.setStyleSheet(button_style(style))
+            self.gain_changed.emit(self.channel_id, db)
+
+        # Echo Send
+        echo_send = state.get("echo_send", 0)
+        self.echo_send.blockSignals(True)
+        self.echo_send.setValue(echo_send)
+        self.echo_send.blockSignals(False)
+        self._on_echo_send_changed(echo_send)
+
+        # Verb Send
+        verb_send = state.get("verb_send", 0)
+        self.verb_send.blockSignals(True)
+        self.verb_send.setValue(verb_send)
+        self.verb_send.blockSignals(False)
+        self._on_verb_send_changed(verb_send)
+
+        # Lo Cut
+        lo_cut = state.get("lo_cut", False)
+        if lo_cut != self.lo_cut_active:
+            self.toggle_lo_cut()
+
+        # Hi Cut
+        hi_cut = state.get("hi_cut", False)
+        if hi_cut != self.hi_cut_active:
+            self.toggle_hi_cut()
 
 
 class MixerPanel(QWidget):
