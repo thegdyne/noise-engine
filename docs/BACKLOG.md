@@ -175,3 +175,17 @@ Path("supercollider/generators").exists()
 **Remove after fix:**
 - `os.chdir(ROOT)` from `tests/conftest.py`
 - Keep fixtures (they're still useful)
+
+## Mod Routing: Clear all on preset load
+**Problem:** Loading a preset clears mod routing in UI but SC keeps old routes active.
+**Current state:**
+- SC has: `/noise/mod/route/add`, `/noise/mod/route/set`, `/noise/mod/route/remove`
+- SC missing: `/noise/mod/route/clear_all`
+- Python has: `_on_mod_routes_cleared()` - clears UI only
+**Solution:**
+1. Add to `supercollider/core/mod_routing.scd`:
+   - `/noise/mod/route/clear_all` - clears `~modRoutes` dict
+2. Add to `src/config/__init__.py`:
+   - `'mod_route_clear_all': '/noise/mod/route/clear_all'`
+3. Update `_on_mod_routes_cleared()` to send OSC clear message
+4. Call in `_apply_preset()` before loading new routes
