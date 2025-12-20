@@ -245,8 +245,8 @@ def _validate_slot(slot: dict, index: int) -> list[str]:
         errors.append(f"{prefix}.clock_rate must be 0-{CLOCK_RATES-1}, got {cr}")
     
     mc = slot.get("midi_channel", 1)
-    if not (1 <= mc <= MIDI_CHANNELS):
-        errors.append(f"{prefix}.midi_channel must be 1-{MIDI_CHANNELS}, got {mc}")
+    if not (0 <= mc <= MIDI_CHANNELS):
+        errors.append(f"{prefix}.midi_channel must be 0-{MIDI_CHANNELS}, got {mc}")
     
     return errors
 

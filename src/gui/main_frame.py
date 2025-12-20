@@ -31,6 +31,7 @@ from src.config import (
     BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
 )
 from src.utils.logger import logger
+from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState
 
 
 class MainFrame(QMainWindow):
@@ -50,9 +51,12 @@ class MainFrame(QMainWindow):
         
         self.active_generators = {}
         self.active_effects = {}
-        
+
         self.master_bpm = BPM_DEFAULT
-        
+
+        # Preset manager
+        self.preset_manager = PresetManager()
+
         # Mod routing state
         self.mod_routing = ModRoutingState()
         self._connect_mod_routing_signals()
@@ -182,7 +186,15 @@ class MainFrame(QMainWindow):
         # Shortcut: open mod matrix window (Ctrl+M / Cmd+M)
         mod_matrix_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
         mod_matrix_shortcut.activated.connect(self._open_mod_matrix)
-        
+
+        # Shortcut: save preset (Ctrl+S / Cmd+S)
+        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_shortcut.activated.connect(self._save_preset)
+
+        # Shortcut: load preset (Ctrl+O / Cmd+O)
+        load_shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
+        load_shortcut.activated.connect(self._load_preset)
+
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
         
@@ -242,16 +254,16 @@ class MainFrame(QMainWindow):
         self.preset_name.setFont(QFont(FONT_FAMILY, FONT_SIZES['section']))
         self.preset_name.setStyleSheet(f"color: {COLORS['selected_text']};")
         layout.addWidget(self.preset_name)
-        
-        save_btn = QPushButton("Save")
-        save_btn.setStyleSheet(button_style('disabled'))
-        save_btn.setEnabled(False)
-        layout.addWidget(save_btn)
-        
-        load_btn = QPushButton("Load")
-        load_btn.setStyleSheet(button_style('disabled'))
-        load_btn.setEnabled(False)
-        layout.addWidget(load_btn)
+
+        self.save_btn = QPushButton("Save")
+        self.save_btn.setStyleSheet(button_style('submenu'))
+        self.save_btn.clicked.connect(self._save_preset)
+        layout.addWidget(self.save_btn)
+
+        self.load_btn = QPushButton("Load")
+        self.load_btn.setStyleSheet(button_style('submenu'))
+        self.load_btn.clicked.connect(self._load_preset)
+        layout.addWidget(self.load_btn)
         
         layout.addStretch()
         
@@ -1308,3 +1320,91 @@ class MainFrame(QMainWindow):
         
         # Restart the process
         os.execv(python, [python, script])
+
+    # === Preset Save/Load ===
+
+    def _save_preset(self):
+        """Save current state to preset file."""
+        from PyQt5.QtWidgets import QFileDialog, QMessageBox
+        from pathlib import Path
+
+        # Collect generator slot states
+        slots = []
+        for slot_id in range(1, 9):
+            slot_widget = self.generator_grid.slots[slot_id]
+            slots.append(SlotState.from_dict(slot_widget.get_state()))
+
+        # Collect mixer channel states
+        channels = []
+        for ch_id in range(1, 9):
+            ch_widget = self.mixer_panel.channels[ch_id]
+            channels.append(ChannelState.from_dict(ch_widget.get_state()))
+
+        mixer = MixerState(
+            channels=channels,
+            master_volume=self.master_section.get_volume(),
+        )
+
+        state = PresetState(slots=slots, mixer=mixer)
+
+        # Get filename from user
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Preset",
+            str(self.preset_manager.presets_dir),
+            "Preset Files (*.json)",
+        )
+
+        if filepath:
+            try:
+                # Ensure .json extension
+                if not filepath.endswith('.json'):
+                    filepath += '.json'
+                name = Path(filepath).stem
+                state.name = name
+                saved_path = self.preset_manager.save(state, name)
+                self.preset_name.setText(name)
+                logger.info(f"Preset saved: {saved_path}", component="PRESET")
+            except Exception as e:
+                logger.error(f"Failed to save preset: {e}", component="PRESET")
+                QMessageBox.warning(self, "Error", f"Failed to save preset:\n{e}")
+
+    def _load_preset(self):
+        """Load preset from file."""
+        from PyQt5.QtWidgets import QFileDialog, QMessageBox
+        from pathlib import Path
+
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load Preset",
+            str(self.preset_manager.presets_dir),
+            "Preset Files (*.json)",
+        )
+
+        if filepath:
+            try:
+                state = self.preset_manager.load(Path(filepath))
+                self._apply_preset(state)
+                self.preset_name.setText(state.name)
+                logger.info(f"Preset loaded: {state.name}", component="PRESET")
+            except Exception as e:
+                logger.error(f"Failed to load preset: {e}", component="PRESET")
+                QMessageBox.warning(self, "Error", f"Failed to load preset:\n{e}")
+
+    def _apply_preset(self, state: PresetState):
+        """Apply preset state to all components."""
+        # Apply to generator slots
+        for i, slot_state in enumerate(state.slots):
+            slot_id = i + 1
+            if slot_id <= 8:
+                slot_widget = self.generator_grid.slots[slot_id]
+                slot_widget.set_state(slot_state.to_dict())
+
+        # Apply to mixer channels
+        for i, channel_state in enumerate(state.mixer.channels):
+            ch_id = i + 1
+            if ch_id in self.mixer_panel.channels:
+                self.mixer_panel.channels[ch_id].set_state(channel_state.to_dict())
+
+        # Apply master volume
+        self.master_section.set_volume(state.mixer.master_volume)

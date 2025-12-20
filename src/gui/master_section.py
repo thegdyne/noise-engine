@@ -1142,6 +1142,13 @@ class MasterSection(QWidget):
     def get_volume(self):
         """Get current master volume (0.0 to 1.0)."""
         return self.master_fader.value() / 1000.0
+
+    def set_volume(self, value: float):
+        """Set master volume (0.0 to 1.0)."""
+        self.master_fader.blockSignals(True)
+        self.master_fader.setValue(int(value * 1000))
+        self.master_fader.blockSignals(False)
+        self.master_volume_changed.emit(value)
     
     # === Compressor Handlers ===
     
