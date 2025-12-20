@@ -136,3 +136,42 @@
 - [ ] Add migration log to preset metadata
 - [ ] Test v1→v2 migration
 - [ ] Consider CLI tool: `python -m presets.migrate --dry-run`
+
+## OSC: Remove CWD-dependent path resolution
+**Problem:** OSC route registration uses relative paths, breaks when pytest runs from non-root CWD.
+**Current workaround:** `tests/conftest.py` forces `os.chdir(ROOT)` at session start + provides fixtures.
+
+**Proper fix:**
+1. Create `src/utils/project_root.py`:
+```python
+import os
+from pathlib import Path
+
+def project_root() -> Path:
+    """Resolve repo root independent of CWD."""
+    env = os.getenv("NOISE_ENGINE_ROOT")
+    if env:
+        return Path(env).expanduser().resolve()
+    return Path(__file__).resolve().parents[2]
+```
+
+2. Find all CWD-relative paths:
+```bash
+rg -n 'Path\("|open\(|\.exists\(\)|\.is_file\(\)' src/osc src/config
+```
+
+3. Replace relative paths with `ROOT / "..."`:
+```python
+# Before
+Path("supercollider/generators").exists()
+# After
+(ROOT / "supercollider" / "generators").exists()
+```
+
+4. Core mixer routes (mute/solo/volume) should register unconditionally - only gate discovery/file-based routes on filesystem checks.
+
+**Acceptance criteria:** pytest passes from repo root, `tests/`, and `/tmp` WITHOUT conftest.py `os.chdir()` workaround.
+
+**Remove after fix:**
+- `os.chdir(ROOT)` from `tests/conftest.py`
+- Keep fixtures (they're still useful)
