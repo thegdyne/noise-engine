@@ -170,17 +170,89 @@ def cmd_generate(args: argparse.Namespace) -> int:
     
     print("[7/8] Selecting diverse set...")
     
-    selection = select_diverse(pool.candidates, n_select=PHASE1_CONSTRAINTS.n_select)
+    # Check if spatial selection is enabled
+    use_spatial = getattr(args, 'spatial', False)
+    spatial_analysis = None
     
-    print(f"  Selected: {len(selection.selected)}/{PHASE1_CONSTRAINTS.n_select}")
-    print(f"  Family counts: {selection.family_counts}")
-    print(f"  Pairwise distances: min={selection.pairwise_distances['min']:.3f}, mean={selection.pairwise_distances['mean']:.3f}")
+    if use_spatial:
+        from .spatial import analyze_for_spatial
+        from .selection import select_by_role, wrap_candidate
+        from PIL import Image
+        import numpy as np
+        
+        # Run spatial analysis
+        img = np.array(Image.open(input_path).convert("RGB"))
+        use_spatial_sel, slot_allocation, spatial_analysis = analyze_for_spatial(img)
+        
+        if use_spatial_sel:
+            print(f"  Spatial analysis: {slot_allocation}")
+            print(f"  Quality: {spatial_analysis.get('quality_score', 0):.3f}")
+            
+            # Wrap candidates for role selection
+            usable = [c for c in pool.candidates if c.usable]
+            wrapped = []
+            for c in usable:
+                from .selection import SelectionCandidate, CandidateFeatures as SelFeatures
+                feat = c.features
+                wrapped.append(SelectionCandidate(
+                    candidate_id=c.candidate_id,
+                    global_score=c.fit_score or 0.5,
+                    features=SelFeatures(
+                        crest=feat.crest if feat else 0.5,
+                        onset_density=feat.onset_density if feat else 0.5,
+                        noisiness=feat.flatness if feat else 0.5,
+                        harmonicity=feat.harmonicity if feat else 0.5,
+                        brightness=feat.centroid if feat else 0.5,
+                    ),
+                    tags=c.tags,
+                    family=c.family,  # For family diversity penalty
+                ))
+            
+            # Run role-based selection
+            selected_wrapped, sel_debug = select_by_role(wrapped, slot_allocation)
+            
+            # Map back to original candidates
+            id_to_cand = {c.candidate_id: c for c in usable}
+            selected_list = [id_to_cand[w.candidate_id] for w in selected_wrapped]
+            
+            # Mark as selected
+            for c in selected_list:
+                c.selected = True
+            
+            # Build result object compatible with export
+            from collections import Counter
+            family_counts = Counter(c.family for c in selected_list)
+            
+            class SpatialSelectionResult:
+                def __init__(self, selected, family_counts, slot_allocation):
+                    self.selected = selected
+                    self.family_counts = dict(family_counts)
+                    self.pairwise_distances = {"min": 0, "mean": 0, "max": 0}
+                    self.relaxations_applied = []
+                    self.deadlock = None
+                    self.slot_allocation = slot_allocation
+            
+            selection = SpatialSelectionResult(selected_list, family_counts, slot_allocation)
+            
+            print(f"  Selected: {len(selection.selected)}/8")
+            print(f"  By role: {slot_allocation}")
+            print(f"  Family counts: {selection.family_counts}")
+        else:
+            print(f"  Spatial fallback (quality={spatial_analysis.get('quality_score', 0):.3f})")
+            use_spatial = False
     
-    if selection.relaxations_applied and max(selection.relaxations_applied) > 0:
-        print(f"  Relaxations used: {selection.relaxations_applied}")
-    
-    if selection.deadlock:
-        print(f"  WARNING: {selection.deadlock.constraint_failures}")
+    if not use_spatial:
+        selection = select_diverse(pool.candidates, n_select=PHASE1_CONSTRAINTS.n_select)
+        
+        print(f"  Selected: {len(selection.selected)}/{PHASE1_CONSTRAINTS.n_select}")
+        print(f"  Family counts: {selection.family_counts}")
+        print(f"  Pairwise distances: min={selection.pairwise_distances['min']:.3f}, mean={selection.pairwise_distances['mean']:.3f}")
+        
+        if selection.relaxations_applied and max(selection.relaxations_applied) > 0:
+            print(f"  Relaxations used: {selection.relaxations_applied}")
+        
+        if selection.deadlock:
+            print(f"  WARNING: {selection.deadlock.constraint_failures}")
     print()
     
     # === STEP 8: Export pack ===
@@ -485,6 +557,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     gen_parser.add_argument("--seed", "-s", type=int, default=42, help="Run seed")
     gen_parser.add_argument("--output", "-o", type=str, help="Output directory")
     gen_parser.add_argument("--verbose", "-v", action="store_true", help="Show debug info")
+    gen_parser.add_argument("--spatial", action="store_true", help="Use spatial role-based selection")
     gen_parser.set_defaults(func=cmd_generate)
     
     # list-methods command

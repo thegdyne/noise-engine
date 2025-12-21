@@ -97,12 +97,14 @@ def wrap_pipeline_candidate(candidate: Any) -> SelectionCandidate:
         - fit_score: float (or None)
         - features: CandidateFeatures (or dict)
         - tags: dict
+        - family: str (optional)
     """
     return SelectionCandidate(
         candidate_id=getattr(candidate, "candidate_id", str(id(candidate))),
         global_score=getattr(candidate, "fit_score", 0.5) or 0.5,
         features=map_candidate_features(getattr(candidate, "features", {})),
         tags=getattr(candidate, "tags", {}) or {},
+        family=getattr(candidate, "family", ""),
     )
 
 

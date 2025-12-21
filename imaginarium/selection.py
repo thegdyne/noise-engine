@@ -44,6 +44,30 @@ class SelectionCandidate:
     global_score: float     # 0..1 fit to global SoundSpec
     features: CandidateFeatures
     tags: Dict[str, Any] = field(default_factory=dict)
+    family: str = ""        # e.g., "fm", "subtractive", "physical", "spectral"
+
+
+# -----------------------------------------------------------------------------
+# Family Diversity (Soft Constraint)
+# -----------------------------------------------------------------------------
+
+def family_penalty(count: int) -> float:
+    """
+    Penalty for selecting too many candidates from the same family.
+    
+    Args:
+        count: How many already selected from this family (before this pick)
+    
+    Returns:
+        Penalty to subtract from affinity score (0.0 - 0.25)
+    """
+    if count <= 1:
+        return 0.0
+    if count == 2:
+        return 0.08
+    if count == 3:
+        return 0.16
+    return 0.25  # 4+
 
 
 # -----------------------------------------------------------------------------
@@ -247,15 +271,26 @@ def select_by_role(
     }
     selected: List[SelectionCandidate] = []
     
+    # Track family counts globally across all roles
+    family_counts: Dict[str, int] = {}
+    
     debug: Dict[str, Any] = {
         "slot_allocation": dict(slot_allocation),
         "buckets": {},
         "fills": {},
         "feature_stats": _compute_feature_stats(candidates),
+        "family_penalties_applied": [],
     }
 
     def pop_pick(cid: str) -> SelectionCandidate:
         return remaining.pop(cid)
+    
+    def penalized_affinity(c: SelectionCandidate, role: str) -> float:
+        """Compute affinity with family penalty applied."""
+        base = role_affinity(role, c.features, c.tags)
+        fam = c.family or c.tags.get("family", "")
+        penalty = family_penalty(family_counts.get(fam, 0))
+        return max(0.0, base - penalty)
 
     for role in ROLE_ORDER:
         needed = int(slot_allocation.get(role, 0))
@@ -273,41 +308,60 @@ def select_by_role(
                 c for c in remaining.values()
                 if passes_floor(role, c.features, cfg, relax=relax)
             ]
-            
-            # Rank by affinity, then global_score, then id (deterministic)
-            bucket.sort(
-                key=lambda c: (
-                    role_affinity(role, c.features, c.tags),
-                    c.global_score,
-                    c.candidate_id,
-                ),
-                reverse=True,
-            )
 
             attempts.append({
                 "relax": relax,
                 "bucket_size": len(bucket),
             })
 
-            # Pick from bucket
+            # Pick from bucket, re-sorting after each pick to account for family penalty
             while bucket and len(picked) < needed:
+                # Sort with current family penalties
+                bucket.sort(
+                    key=lambda c: (
+                        penalized_affinity(c, role),
+                        c.global_score,
+                        c.candidate_id,
+                    ),
+                    reverse=True,
+                )
+                
                 c = bucket.pop(0)
                 if c.candidate_id in remaining:
+                    # Record penalty if applied
+                    fam = c.family or c.tags.get("family", "")
+                    penalty = family_penalty(family_counts.get(fam, 0))
+                    if penalty > 0:
+                        debug["family_penalties_applied"].append({
+                            "candidate_id": c.candidate_id,
+                            "family": fam,
+                            "count_before": family_counts.get(fam, 0),
+                            "penalty": penalty,
+                            "role": role,
+                        })
+                    
+                    # Update family count
+                    family_counts[fam] = family_counts.get(fam, 0) + 1
                     picked.append(pop_pick(c.candidate_id))
 
             if len(picked) >= needed:
                 break
 
-        # If still short, fill with best remaining by global_score
+        # If still short, fill with best remaining by global_score (with penalty)
         if len(picked) < needed:
             shortfall = needed - len(picked)
             fillers = sorted(
                 remaining.values(),
-                key=lambda c: (c.global_score, c.candidate_id),
+                key=lambda c: (
+                    c.global_score - family_penalty(family_counts.get(c.family or c.tags.get("family", ""), 0)),
+                    c.candidate_id,
+                ),
                 reverse=True,
             )[:shortfall]
             
             for c in fillers:
+                fam = c.family or c.tags.get("family", "")
+                family_counts[fam] = family_counts.get(fam, 0) + 1
                 picked.append(pop_pick(c.candidate_id))
             
             if fillers:
@@ -335,10 +389,20 @@ def select_by_role(
         )[:8]
         log.warning("Selection overshot, trimmed to 8")
 
+    # Check for family dominance
+    debug["family_counts"] = dict(family_counts)
+    for fam, count in family_counts.items():
+        if count > 4:
+            log.warning(
+                "Family dominance: %s has %d/8 generators (>50%%)",
+                fam, count,
+            )
+
     # Log summary
     log.info(
-        "Selection complete: %s",
+        "Selection complete: %s (families: %s)",
         {role: debug["fills"].get(role, {}).get("picked", 0) for role in ROLE_ORDER},
+        dict(family_counts),
     )
 
     debug["selected_ids"] = [c.candidate_id for c in selected]
