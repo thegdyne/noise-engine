@@ -184,6 +184,9 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     sig = noise;
 
+    // Boost level (noise is naturally quiet after filtering)
+    sig = sig * 2;
+
     // === FILTER ===
     // Use baked cutoff as base, modulated by filter bus
     sig = ~multiFilter.(sig, filterType, filterFreq.min({cutoff:.1f}), rq * {rq:.4f});
