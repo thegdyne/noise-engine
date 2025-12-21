@@ -16,6 +16,13 @@ __spec_version__ = "0.3.0"
 from .models import SoundSpec, Candidate, CandidateFeatures, SafetyResult
 from .seeds import GenerationContext, stable_u32, input_fingerprint
 from .extract import extract_from_image, ExtractionResult
+from .generate import generate_candidates, CandidateGenerator, GenerationPool
+from .render import render_candidates, NRTRenderer, RenderResult, BatchRenderResult
+from .safety import check_safety, check_safety_batch
+from .analyze import extract_features, extract_features_batch
+from .score import compute_fit, score_candidates, filter_by_fit
+from .select import select_diverse, candidate_distance
+from .export import export_pack
 from .config import (
     FAMILIES,
     PHASE1_CONSTRAINTS,
@@ -39,6 +46,15 @@ __all__ = [
     # Extraction
     "extract_from_image",
     "ExtractionResult",
+    # Generation
+    "generate_candidates",
+    "CandidateGenerator",
+    "GenerationPool",
+    # Rendering
+    "render_candidates",
+    "NRTRenderer",
+    "RenderResult",
+    "BatchRenderResult",
     # Config
     "FAMILIES",
     "PHASE1_CONSTRAINTS",

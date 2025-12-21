@@ -1,52 +1,90 @@
 # Noise Engine Backlog
 
-*Updated: December 20, 2025*
+*Updated: December 2025*
 
 ---
 
 ## Now
-- [ ] Cross-Platform Testing — Windows & Linux compatibility
+- [ ] Generator Envelope Compliance — Fix pack generators to use ~envVCA (see `docs/GENERATOR_ENVELOPE_COMPLIANCE.md`)
 
 ## Next (spec approved, ready to plan)
-- [ ] Integration Tests — tests that boot SuperCollider
-
----
-
-## Cross-Platform Testing
-
-**Goal:** Ensure Noise Engine runs on Windows and Linux, not just macOS.
-
-**Tasks:**
-- [ ] Recruit Windows tester (Discord?)
-- [ ] Recruit Linux tester (Discord?)
-- [ ] Document platform-specific setup (SC paths, Python env)
-- [ ] Test PyQt5 rendering on Windows
-- [ ] Test PyQt5 rendering on Linux (X11/Wayland)
-- [ ] Verify OSC communication works cross-platform
-- [ ] Check file paths (presets dir, pack loading)
-- [ ] Create Windows install guide
-- [ ] Create Linux install guide
-
-**Known Risks:**
-- SuperCollider paths differ per OS
-- Audio device APIs vary (CoreAudio vs WASAPI vs ALSA/Jack)
-- Font rendering may differ
-- Keyboard shortcuts (Cmd vs Ctrl)
+- [ ] Pack System — Phase 3: Preset Integration (blocked by envelope compliance)
+- [ ] Imaginarium Phase 2 — Text/audio input, custom params exposed
 
 ---
 
 ## Needs Spec (Large/Medium)
+- [ ] Preset System
 - [ ] MIDI Learn
 - [ ] Mod Matrix Expansion
-- [ ] SC State Sync on Restart
 
 ---
 
 ## Mopup (Small — just do it)
-- [ ] UI font audit — improve visibility across all labels
+- [ ] UI font audit — improve visibility across all labels (like HI/MID/LO fix)
 - [ ] Empty mod state polish
-- [x] MATRIX button on main UI + ENGINE return button (Dec 20)
-- [ ] Preset overwrite confirmation — show "Overwrite / Save As New / Cancel" when saving with existing name
+
+---
+
+## Generator Envelope Compliance (Pre-Phase 3 Blocker)
+
+**Analysis:** `docs/GENERATOR_ENVELOPE_COMPLIANCE.md`
+
+**Phase 1: Fix Pack Generators**
+- [ ] Update Electric Shepherd generators (8 files) — replace `sig * amp` with `~envVCA`
+- [ ] Update R'lyeh Collection generators (8 files) — replace `sig * amp` with `~envVCA`
+- [ ] Test each generator: OFF mode sounds identical
+- [ ] Test each generator: CLK mode triggers envelope
+- [ ] Test each generator: MIDI mode triggers envelope
+- [ ] Test ATK/DEC sliders have audible effect
+
+**Phase 2: CI Enforcement**
+- [ ] Add test to `test_generators.py`: SCD must contain `~envVCA`
+- [ ] Add test to `test_packs.py`: Pack SCD files must contain `~envVCA`
+- [ ] Verify CI passes on all existing core generators
+
+**Phase 3: Spec Update**
+- [ ] Update `GENERATOR_SPEC.md` — clarify `~envVCA` is REQUIRED
+- [ ] Add "Common Mistakes" section documenting `sig * amp` anti-pattern
+- [ ] Document future drone-only pattern (for reference, not implementing now)
+
+---
+
+## Imaginarium
+
+**Spec:** `imaginarium/` module + `docs/IMAGINARIUM_SPEC.md`
+
+### Phase 1: Core Pipeline ✅ COMPLETE
+- [x] Image → SoundSpec extraction (brightness, noisiness)
+- [x] Sobol quasi-random candidate generation
+- [x] NRT SuperCollider rendering
+- [x] Safety gates (silence, clipping, DC offset)
+- [x] librosa feature extraction
+- [x] Fit scoring against target SoundSpec
+- [x] Farthest-first diversity selection
+- [x] Pack export (Noise Engine-compliant)
+
+### Phase 1 Methods ✅
+- [x] subtractive/bright_saw
+- [x] subtractive/dark_pulse
+- [x] fm/simple_fm
+- [x] physical/karplus (NRT render issue)
+
+### Phase 1 Backlog
+- [ ] Fix physical/karplus NRT rendering (Pluck trigger in NRT mode)
+- [ ] Add more methods: modal, waveguide, complex_fm, noise_filtered
+- [ ] Test generated pack in Noise Engine
+
+### Phase 2: Enhanced Input
+- [ ] Text → SoundSpec (NLP keywords to parameters)
+- [ ] Audio → SoundSpec (analyze reference audio)
+- [ ] Expose custom_params in generated generators
+
+### Image Generator Backlog (lower priority)
+- [ ] Backlog A: Calibration suite (hue parameter, sat/value tiers)
+- [ ] Backlog B: Showcase suite (neutral backgrounds default)
+- [ ] Backlog C: Harmony separability (distinct colour_* presets)
+- [ ] Backlog D: Corpus health metric (hue histogram analysis)
 
 ---
 
@@ -63,20 +101,36 @@
 ---
 
 ## Done (recent)
-- ✅ Preset System v2 — Full session state including channel EQ, BPM, master, mod sources, mod routing (Dec 20)
-- ✅ Generator Envelope Compliance — All 16 pack generators fixed (Dec 20)
-- ✅ Doc Reorganization — archive/, ideas/, demos/ (Dec 20)
-- ✅ Pack System — Phase 1-3 complete
-- ✅ FX System v1 — Inline FX strip with HEAT, ECHO, REVERB, FILTER
+- ✅ **Imaginarium Phase 1** — Image → 8 diverse generators pipeline
+- ✅ Pack System — Phase 1: Infrastructure
+- ✅ Pack System — Phase 2: UI Integration
+- ✅ Shift + -/+ for offset control
+- ✅ FX System v1 — Inline FX strip with HEAT, ECHO, REVERB, FILTER modules
 - ✅ TURBO presets (INI/T1/T2) for all FX modules
+- ✅ Filter sync with tempo-synced LFO modulation
+- ✅ EQ labels HI/MID/LO on channel strip
+- ✅ Numeric keys work while arrows held
+- ✅ Quadrature modulation (4 outputs per mod slot)
+- ✅ NORM/INV → Invert terminology update
 - ✅ Channel strips (volume, pan, mute, solo, EQ)
 - ✅ Master section (fader, meters, EQ, compressor, limiter)
-- ✅ Mod Matrix — 16×40 routing grid
-- ✅ Mod Sources — LFO + Sloth
-- ✅ 53 generators total
-- ✅ CI/CD pipeline (280 tests)
+- ✅ 30+ new generators (classic synths, 808, atmospheric)
+- ✅ MIDI frequency routing fix (userParams)
+- ✅ CI/CD pipeline (207 tests)
 
----
+## Pack Presets
+- [ ] Save/load generator slot configurations at pack level (which generators in which slots)
+
+## Frontend/SC State Sync on Restart
+- [ ] Handle case where Python frontend restarts but SC still running with previous state
+- Options to develop:
+  1. **Warm restart**: Query SC state and restore frontend to match (generators, mod routes, etc.)
+  2. **Cold restart**: Full reset of both Python and SC to clean state
+- Considerations:
+  - SC could expose `/state` OSC endpoint returning current config
+  - Frontend stores last known state to disk (JSON) for recovery
+  - Startup flag: `--resume` vs `--reset`
+  - Auto-detect if SC has existing synths running
 
 ## Web-Based Manual
 - [ ] Create documentation website for Noise Engine
@@ -85,176 +139,16 @@
 - Include screenshots, audio examples
 - Auto-generate generator list from pack manifests
 
+## Housekeeping
+- [ ] Merge dev → main (tests failing in main due to new tests not pushed)
+
 ## FX System v1.1
-- [ ] P1: State sync on reconnect - create _sync_master_state() method
-- [ ] P2: fx_window.py uses hardcoded OSC paths - refactor to use OSC_PATHS
-- [ ] P2: master_passthrough LR4 comment doesn't match implementation
+- [ ] P1: State sync on reconnect - create _sync_master_state() method to push UI→SC on connect/reconnect
+- [ ] P2: fx_window.py uses hardcoded OSC paths - refactor to use OSC_PATHS for SSOT
+- [ ] P2: master_passthrough LR4 comment doesn't match implementation - clarify or refactor EQ split
 
 ## FX System Future
 - [ ] Per-channel echo/verb send knobs in mixer strip
 - [ ] Reverb pre-delay parameter
 - [ ] FX audio tuning (adjust default values, ranges, response curves)
-
-## Preset Backward Compatibility
-**Problem:** Loading old v1 presets resets mod sources/routing to defaults, wiping current setup.
-**Solution options:**
-1. Only apply sections that were explicitly in the preset JSON (check key existence)
-2. Add `saved_sections` list to preset metadata
-3. Version-based logic: v1 presets skip mod_sources/mod_routing apply
-
-**Tests needed:**
-- [ ] Load v1 preset (no mod_sources) → mod state unchanged
-- [ ] Load v1 preset (no mod_routing) → routing unchanged  
-- [ ] Load v1 preset (no master) → master section unchanged
-- [ ] Load v2 preset with all sections → all applied
-- [ ] Round-trip: save v2, load v2 → exact match
-
-## Preset Migration System
-**Problem:** Schema changes can break or partially load old presets.
-**Solution:** Automatic preset migration on app start or first load.
-
-**Design:**
-1. Detect presets with `version < PRESET_VERSION`
-2. Backup to `presets/backup_v{old_version}/` before migration
-3. Apply sequential migrations: v1→v2→v3 etc.
-4. Each migration adds missing fields with sensible defaults
-5. Update version number after migration
-6. Log all migrations for user transparency
-
-**Migration rules:**
-- v1→v2: Add bpm=120, master={defaults}, mod_sources={empty}, mod_routing={empty}
-- Future: v2→v3 migrations as needed
-
-**User flow:**
-- On load, if preset.version < current: show "Migrating X presets..." toast
-- Backup folder preserves originals
-- Migration is non-destructive (originals in backup)
-
-**Tasks:**
-- [ ] Create `migrate_preset(data: dict, from_version: int) -> dict`
-- [ ] Create backup directory on first migration
-- [ ] Add migration log to preset metadata
-- [ ] Test v1→v2 migration
-- [ ] Consider CLI tool: `python -m presets.migrate --dry-run`
-
-## OSC: Remove CWD-dependent path resolution
-**Problem:** OSC route registration uses relative paths, breaks when pytest runs from non-root CWD.
-**Current workaround:** `tests/conftest.py` forces `os.chdir(ROOT)` at session start + provides fixtures.
-
-**Proper fix:**
-1. Create `src/utils/project_root.py`:
-```python
-import os
-from pathlib import Path
-
-def project_root() -> Path:
-    """Resolve repo root independent of CWD."""
-    env = os.getenv("NOISE_ENGINE_ROOT")
-    if env:
-        return Path(env).expanduser().resolve()
-    return Path(__file__).resolve().parents[2]
-```
-
-2. Find all CWD-relative paths:
-```bash
-rg -n 'Path\("|open\(|\.exists\(\)|\.is_file\(\)' src/osc src/config
-```
-
-3. Replace relative paths with `ROOT / "..."`:
-```python
-# Before
-Path("supercollider/generators").exists()
-# After
-(ROOT / "supercollider" / "generators").exists()
-```
-
-4. Core mixer routes (mute/solo/volume) should register unconditionally - only gate discovery/file-based routes on filesystem checks.
-
-**Acceptance criteria:** pytest passes from repo root, `tests/`, and `/tmp` WITHOUT conftest.py `os.chdir()` workaround.
-
-**Remove after fix:**
-- `os.chdir(ROOT)` from `tests/conftest.py`
-- Keep fixtures (they're still useful)
-
-## Mod Routing: Clear all on preset load
-**Problem:** Loading a preset clears mod routing in UI but SC keeps old routes active.
-**Current state:**
-- SC has: `/noise/mod/route/add`, `/noise/mod/route/set`, `/noise/mod/route/remove`
-- SC missing: `/noise/mod/route/clear_all`
-- Python has: `_on_mod_routes_cleared()` - clears UI only
-**Solution:**
-1. Add to `supercollider/core/mod_routing.scd`:
-   - `/noise/mod/route/clear_all` - clears `~modRoutes` dict
-2. Add to `src/config/__init__.py`:
-   - `'mod_route_clear_all': '/noise/mod/route/clear_all'`
-3. Update `_on_mod_routes_cleared()` to send OSC clear message
-4. Call in `_apply_preset()` before loading new routes
-
-## SC: getSynchronous crash on server disconnect
-**Error:** `Server-getControlBusValue only supports local servers`
-**Location:** `mod_osc.scd` scope streaming routine, `mod_apply_v2.scd` value streaming
-**Cause:** `getSynchronous` fails when SC server connection is disrupted
-**Impact:** Mod scope display crashes, mod value streaming crashes
-**Solution:** 
-- Wrap getSynchronous calls in try/catch
-- Or use Bus.get with callback instead of getSynchronous
-- Or check server.serverRunning before calling
-**Priority:** High - causes visible errors
-
-## UI: Disable header buttons until SC connected
-**Problem:** User can load packs, presets, etc before connecting to SC, then has to reload after connecting.
-**Current behavior:** All header buttons enabled immediately
-**Desired behavior:** 
-- On startup, only CONNECT, CONSOLE, and RESTART buttons enabled
-- Other buttons (Save, Load, MATRIX, pack selector, etc) greyed out and disabled
-- After successful SC connection, enable all buttons
-**Implementation:**
-- Add `_set_header_buttons_enabled(enabled: bool)` method
-- Call with `False` on init, `True` after connection confirmed
-- Use `setEnabled(False)` and style with `color: #666` for greyed appearance
-**Priority:** Medium - UX improvement
-
-## Extraction Calibration (Post-Phase 1)
-
-**Goal:** Improve SoundSpec extraction accuracy using synthetic ground truth
-
-**Source of truth:** `imaginarium/tools/gen_test_image.py` generates images with known brightness/noisiness parameters - these serve as ground truth for calibrating extraction.
-
-**Approach:**
-- Generate calibration grid using gen_test_image (e.g., 10×10 brightness×noisiness)
-- Run extract.py on each generated image
-- Compare extracted values vs gen_test_image input parameters
-- Compute correction coefficients or regression model
-- Apply calibration in extract.py
-
-**Benefit:** Closes the loop between image generation and extraction, measurable accuracy improvement
-
-
-## Image Generator Color Improvements (Post-Phase 1)
-
-**Problem:** Purple/magenta bias from alpha blending + saturated backgrounds.
-
-### Backlog A: Calibration Suite
-- Add `hue: float | None` parameter (0-1, forces hue coverage)
-- Add saturation/value tier controls
-- Add saturation coupling rule (one vivid, one calm)
-- Add QA gate (reject if hue histogram too concentrated)
-- Add `--suite calibration` mode for evenly-binned corpus + manifest
-
-### Backlog B: Showcase Suite  
-- Neutral backgrounds default (unless colour-focused)
-- Visual diversity without strict bin balancing
-- Avoid strong hue dominance
-
-### Backlog C: Harmony Separability
-- Make `colour_*` presets compositionally distinct
-- Complementary: 50/50 split, Triadic: 3 wedges, etc.
-- Improves feature vector separation
-
-### Backlog D: Corpus Health Metric
-- Hue histogram summary
-- Saturation mean/std
-- % images with dominant hue bin > threshold
-- Run before/after to prove bias fix quantitatively
-
-**Reference:** AI2 analysis 2025-12-21
+- [ ] Fidelity FX - integrate with new FX system

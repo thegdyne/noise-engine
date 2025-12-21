@@ -21,7 +21,9 @@ def cmd_generate(args: argparse.Namespace) -> int:
     """Generate a pack from input stimulus."""
     from .seeds import GenerationContext
     from .extract import extract_from_image
-    from .methods import list_methods, get_all_methods
+    from .generate import generate_candidates
+    from .methods import list_methods
+    from .config import POOL_CONFIG, PHASE1_CONSTRAINTS
     
     print(f"Imaginarium Phase {PHASE} Generator")
     print(f"Spec: {SPEC_VERSION}")
@@ -62,25 +64,150 @@ def cmd_generate(args: argparse.Namespace) -> int:
         print(f"  - {method_id}")
     print()
     
-    # TODO: Phase 1 implementation
-    # 2. Generate candidates
-    # 3. Render previews (NRT)
-    # 4. Run safety gates
-    # 5. Analyze features
-    # 6. Score fit
-    # 7. Select diverse set
-    # 8. Export pack
-    
+    # Output directory
+    output_dir = Path(args.output) if args.output else Path("packs")
     print("Pack name:", args.name)
-    print("Output dir:", args.output or f"packs/{args.name}")
+    print("Output dir:", output_dir / args.name)
     print()
-    print("[2/8] Generate candidates - TODO")
-    print("[3/8] Render previews (NRT) - TODO")
-    print("[4/8] Run safety gates - TODO")
-    print("[5/8] Analyze features - TODO")
-    print("[6/8] Score fit - TODO")
-    print("[7/8] Select diverse set - TODO")
-    print("[8/8] Export pack - TODO")
+    
+    # === STEP 2: Generate candidates ===
+    print(f"[2/8] Generating candidates (batch_size={POOL_CONFIG.batch_size})...")
+    pool = generate_candidates(ctx, spec, max_batches=1)  # 1 batch = 32 candidates
+    
+    print(f"  Generated: {pool.total_candidates} candidates in {pool.batches_generated} batch(es)")
+    print(f"  By family: {pool.by_family}")
+    print(f"  By method: {pool.by_method}")
+    
+    if args.verbose:
+        print("\n  Candidates:")
+        for c in pool.candidates[:5]:
+            print(f"    {c.candidate_id}")
+            print(f"      seed={c.seed}, family={c.family}")
+        if len(pool.candidates) > 5:
+            print(f"    ... and {len(pool.candidates) - 5} more")
+    print()
+    
+    # === STEP 3: Render previews ===
+    from .render import NRTRenderer, find_sclang
+    
+    sclang = find_sclang()
+    if sclang is None:
+        print("[3/8] Render previews - SKIPPED (sclang not found)")
+        print("  Install SuperCollider to enable rendering")
+        print()
+        print("[4-8] Remaining steps skipped (no audio)")
+        return 0
+    
+    print(f"[3/8] Rendering previews...")
+    
+    # Render all candidates
+    renderer = NRTRenderer(sclang_path=sclang)
+    
+    def render_progress(i, total, cid):
+        print(f"  [{i+1}/{total}] {cid.split(':')[0]}...")
+    
+    render_result = renderer.render_batch(pool.candidates, progress_callback=render_progress)
+    
+    print(f"  Rendered: {render_result.successful}/{len(pool.candidates)}")
+    print()
+    
+    # === STEP 4: Safety gates ===
+    from .safety import check_safety
+    
+    print("[4/8] Running safety gates...")
+    
+    safe_count = 0
+    for c in pool.candidates:
+        if c.audio_path and c.audio_path.exists():
+            c.safety = check_safety(c.audio_path)
+            if c.safety.passed:
+                safe_count += 1
+    
+    print(f"  Passed: {safe_count}/{render_result.successful}")
+    print()
+    
+    # === STEP 5: Analyze features ===
+    from .analyze import extract_features
+    
+    print("[5/8] Extracting features...")
+    
+    feature_count = 0
+    for c in pool.candidates:
+        if c.safety and c.safety.passed and c.audio_path:
+            try:
+                c.features = extract_features(c.audio_path)
+                feature_count += 1
+            except Exception as e:
+                if args.verbose:
+                    print(f"  Warning: {c.candidate_id}: {e}")
+    
+    print(f"  Extracted: {feature_count}/{safe_count}")
+    print()
+    
+    # === STEP 6: Score fit ===
+    from .score import score_candidates
+    
+    print("[6/8] Scoring fit...")
+    
+    candidates_with_features = [c for c in pool.candidates if c.features is not None]
+    scores = score_candidates(candidates_with_features, spec)
+    
+    if scores:
+        print(f"  Scored: {len(scores)} candidates")
+        print(f"  Fit range: {min(scores):.3f} - {max(scores):.3f}")
+        print(f"  Mean fit: {sum(scores)/len(scores):.3f}")
+    print()
+    
+    # === STEP 7: Select diverse set ===
+    from .select import select_diverse
+    
+    print("[7/8] Selecting diverse set...")
+    
+    selection = select_diverse(pool.candidates, n_select=PHASE1_CONSTRAINTS.n_select)
+    
+    print(f"  Selected: {len(selection.selected)}/{PHASE1_CONSTRAINTS.n_select}")
+    print(f"  Family counts: {selection.family_counts}")
+    print(f"  Pairwise distances: min={selection.pairwise_distances['min']:.3f}, mean={selection.pairwise_distances['mean']:.3f}")
+    
+    if selection.relaxations_applied and max(selection.relaxations_applied) > 0:
+        print(f"  Relaxations used: {selection.relaxations_applied}")
+    
+    if selection.deadlock:
+        print(f"  WARNING: {selection.deadlock.constraint_failures}")
+    print()
+    
+    # === STEP 8: Export pack ===
+    from .export import export_pack
+    
+    print("[8/8] Exporting pack...")
+    
+    if not selection.selected:
+        print("  ERROR: No candidates selected, cannot export")
+        return 1
+    
+    pack_path = export_pack(
+        pack_name=args.name,
+        selected=selection.selected,
+        spec=spec,
+        context=ctx,
+        input_fingerprint=extraction.fingerprint,
+        output_dir=output_dir,
+        all_candidates=pool.candidates,
+        selection_result=selection,
+    )
+    
+    print(f"  Pack: {pack_path}")
+    print(f"  Generators: {len(selection.selected)}")
+    print()
+    
+    # Summary
+    print("=" * 50)
+    print("COMPLETE")
+    print(f"  Input:  {input_path}")
+    print(f"  Output: {pack_path}")
+    print(f"  Generators: {len(selection.selected)}")
+    for i, c in enumerate(selection.selected):
+        print(f"    [{i+1}] {c.method_id} (fit={c.fit_score:.3f})")
     
     return 0
 
@@ -220,6 +347,68 @@ def cmd_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_render_test(args: argparse.Namespace) -> int:
+    """Test NRT rendering with a single candidate."""
+    from .render import find_sclang, NRTRenderer
+    from .generate import CandidateGenerator
+    from .seeds import GenerationContext
+    from .models import SoundSpec
+    from pathlib import Path
+    
+    print("Imaginarium Render Test")
+    print("=" * 40)
+    
+    # Check for sclang
+    sclang = find_sclang()
+    if sclang is None:
+        print("ERROR: sclang not found")
+        print()
+        print("Searched locations:")
+        print("  - PATH")
+        print("  - /Applications/SuperCollider.app/Contents/MacOS/sclang")
+        print("  - /usr/bin/sclang")
+        print("  - /usr/local/bin/sclang")
+        return 1
+    
+    print(f"sclang: {sclang}")
+    print()
+    
+    # Generate a single test candidate
+    ctx = GenerationContext(run_seed=args.seed)
+    spec = SoundSpec(brightness=0.5, noisiness=0.5)
+    
+    generator = CandidateGenerator(ctx, spec)
+    batch = generator.generate_batch(0)
+    
+    if not batch.candidates:
+        print("ERROR: No candidates generated")
+        return 1
+    
+    candidate = batch.candidates[0]
+    print(f"Test candidate: {candidate.candidate_id}")
+    print(f"  seed: {candidate.seed}")
+    print(f"  params: {candidate.params}")
+    print()
+    
+    # Render
+    output_dir = Path(args.output) if args.output else None
+    renderer = NRTRenderer(sclang_path=sclang, output_dir=output_dir)
+    
+    print("Rendering...")
+    result = renderer.render_candidate(candidate)
+    
+    if result.success:
+        print(f"SUCCESS: {result.audio_path}")
+        print(f"  Duration: {result.duration_sec}s")
+        if result.audio_path:
+            print(f"  Size: {result.audio_path.stat().st_size} bytes")
+    else:
+        print(f"FAILED: {result.error}")
+        return 1
+    
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -263,6 +452,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     extract_parser.add_argument("--image", "-i", type=str, required=True, help="Input image")
     extract_parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
     extract_parser.set_defaults(func=cmd_extract)
+    
+    # render-test command
+    render_parser = subparsers.add_parser("render-test", help="Test NRT rendering")
+    render_parser.add_argument("--seed", "-s", type=int, default=42, help="Test seed")
+    render_parser.add_argument("--output", "-o", type=str, help="Output directory")
+    render_parser.set_defaults(func=cmd_render_test)
     
     args = parser.parse_args(argv)
     return args.func(args)

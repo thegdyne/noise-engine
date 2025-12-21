@@ -1,0 +1,1 @@
+"""Physical modeling synthesis methods."""

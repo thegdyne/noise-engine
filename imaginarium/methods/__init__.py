@@ -49,17 +49,14 @@ def _register_builtins():
     """Register all built-in method templates."""
     # Import here to avoid circular imports
     from .subtractive.bright_saw import BrightSawTemplate
+    from .subtractive.dark_pulse import DarkPulseTemplate
+    from .fm.simple_fm import SimpleFMTemplate
+    from .physical.karplus import KarplusTemplate
     
     register_method(BrightSawTemplate())
-    
-    # Future methods:
-    # from .subtractive.dark_pulse import DarkPulseTemplate
-    # from .subtractive.multi_osc import MultiOscTemplate
-    # from .fm.simple_fm import SimpleFMTemplate
-    # from .fm.complex_fm import ComplexFMTemplate
-    # from .physical.karplus import KarplusTemplate
-    # from .physical.modal import ModalTemplate
-    # from .physical.waveguide import WaveguideTemplate
+    register_method(DarkPulseTemplate())
+    register_method(SimpleFMTemplate())
+    register_method(KarplusTemplate())
 
 
 # Register on import
