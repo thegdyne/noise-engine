@@ -229,3 +229,32 @@ Path("supercollider/generators").exists()
 
 **Benefit:** Closes the loop between image generation and extraction, measurable accuracy improvement
 
+
+## Image Generator Color Improvements (Post-Phase 1)
+
+**Problem:** Purple/magenta bias from alpha blending + saturated backgrounds.
+
+### Backlog A: Calibration Suite
+- Add `hue: float | None` parameter (0-1, forces hue coverage)
+- Add saturation/value tier controls
+- Add saturation coupling rule (one vivid, one calm)
+- Add QA gate (reject if hue histogram too concentrated)
+- Add `--suite calibration` mode for evenly-binned corpus + manifest
+
+### Backlog B: Showcase Suite  
+- Neutral backgrounds default (unless colour-focused)
+- Visual diversity without strict bin balancing
+- Avoid strong hue dominance
+
+### Backlog C: Harmony Separability
+- Make `colour_*` presets compositionally distinct
+- Complementary: 50/50 split, Triadic: 3 wedges, etc.
+- Improves feature vector separation
+
+### Backlog D: Corpus Health Metric
+- Hue histogram summary
+- Saturation mean/std
+- % images with dominant hue bin > threshold
+- Run before/after to prove bias fix quantitatively
+
+**Reference:** AI2 analysis 2025-12-21
