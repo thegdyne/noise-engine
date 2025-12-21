@@ -51,16 +51,24 @@ def _register_builtins():
     from .subtractive.bright_saw import BrightSawTemplate
     from .subtractive.dark_pulse import DarkPulseTemplate
     from .subtractive.noise_filtered import NoiseFilteredTemplate
+    from .subtractive.supersaw import SupersawTemplate
     from .fm.simple_fm import SimpleFMTemplate
+    from .fm.feedback_fm import FeedbackFMTemplate
+    from .fm.ratio_stack import RatioStackTemplate
     from .physical.karplus import KarplusTemplate
     from .physical.modal import ModalTemplate
+    from .physical.bowed import BowedTemplate
     
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
     register_method(NoiseFilteredTemplate())
+    register_method(SupersawTemplate())
     register_method(SimpleFMTemplate())
+    register_method(FeedbackFMTemplate())
+    register_method(RatioStackTemplate())
     register_method(KarplusTemplate())
     register_method(ModalTemplate())
+    register_method(BowedTemplate())
 
 
 # Register on import
