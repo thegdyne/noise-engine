@@ -3,7 +3,7 @@ imaginarium/score.py
 Fit scoring per IMAGINARIUM_SPEC v10 §11
 
 Computes how well a candidate matches the target SoundSpec.
-Phase 1: brightness + noisiness only.
+Phase 2a: Uses expanded features + method affinity biasing.
 """
 
 from typing import List
@@ -16,9 +16,12 @@ def compute_fit(spec: SoundSpec, features: CandidateFeatures) -> float:
     """
     Compute fit score between target spec and candidate features.
     
-    Phase 1 mapping:
+    Phase 2a mapping:
     - brightness → centroid (spectral centroid)
     - noisiness → flatness (spectral flatness)
+    - warmth → harmonicity (harmonic = warm)
+    - contrast → crest (dynamic range)
+    - density → onset_density (busy = dense)
     
     Args:
         spec: Target SoundSpec from input
@@ -27,17 +30,32 @@ def compute_fit(spec: SoundSpec, features: CandidateFeatures) -> float:
     Returns:
         Fit score 0-1 (higher = better match)
     """
-    # Phase 1: only brightness and noisiness
+    weights = spec.weights
+    
+    # Phase 1 core features (always used)
     brightness_fit = 1.0 - abs(spec.brightness - features.centroid)
     noisiness_fit = 1.0 - abs(spec.noisiness - features.flatness)
     
+    # Phase 2a features
+    warmth_fit = 1.0 - abs(spec.warmth - features.harmonicity)
+    contrast_fit = 1.0 - abs(spec.contrast - features.crest)
+    density_fit = 1.0 - abs(spec.density - features.onset_density)
+    
     # Weighted average
-    weights = spec.weights
-    total_weight = weights.get("brightness", 1.0) + weights.get("noisiness", 1.0)
+    total_weight = (
+        weights.get("brightness", 1.0) +
+        weights.get("noisiness", 1.0) +
+        weights.get("warmth", 0.7) +
+        weights.get("contrast", 0.7) +
+        weights.get("density", 0.7)
+    )
     
     weighted_fit = (
         weights.get("brightness", 1.0) * brightness_fit +
-        weights.get("noisiness", 1.0) * noisiness_fit
+        weights.get("noisiness", 1.0) * noisiness_fit +
+        weights.get("warmth", 0.7) * warmth_fit +
+        weights.get("contrast", 0.7) * contrast_fit +
+        weights.get("density", 0.7) * density_fit
     ) / total_weight
     
     return float(weighted_fit)
@@ -47,6 +65,7 @@ def score_candidate(candidate: Candidate, spec: SoundSpec) -> float:
     """
     Score a single candidate against the spec.
     
+    Applies method affinity as a multiplier on the base fit score.
     Updates candidate.fit_score in place and returns the score.
     
     Args:
@@ -59,7 +78,19 @@ def score_candidate(candidate: Candidate, spec: SoundSpec) -> float:
     if candidate.features is None:
         raise ValueError(f"Candidate {candidate.candidate_id} has no features")
     
-    score = compute_fit(spec, candidate.features)
+    # Base fit from feature matching
+    base_score = compute_fit(spec, candidate.features)
+    
+    # Apply method affinity as multiplier
+    affinity = spec.method_affinity.get(candidate.method_id, 1.0)
+    
+    # Affinity is 0.5-1.5, center on 1.0
+    # Score is multiplied, then re-normalized to 0-1 range
+    # Affinity 1.5 at base 0.8 → 0.8 * 1.25 = 1.0 (clamped)
+    # Affinity 0.5 at base 0.8 → 0.8 * 0.75 = 0.6
+    affinity_boost = 0.5 + (affinity / 2)  # Maps 0.5-1.5 → 0.75-1.25
+    
+    score = min(1.0, base_score * affinity_boost)
     candidate.fit_score = score
     return score
 

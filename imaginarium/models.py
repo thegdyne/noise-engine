@@ -24,21 +24,36 @@ class SoundSpec:
     """
     Target sound characteristics extracted from input stimulus.
     
-    Phase 1: Only brightness and noisiness are used.
-    Future phases will add tonality, register, motion, etc.
+    Phase 1: brightness, noisiness
+    Phase 2a: warmth, saturation, contrast, density, movement
     """
     version: str = SPEC_VERSION
-    fields_used: List[str] = field(default_factory=lambda: ["brightness", "noisiness"])
+    fields_used: List[str] = field(default_factory=lambda: [
+        "brightness", "noisiness", "warmth", "saturation", "contrast", "density"
+    ])
     
     # Phase 1 fields (0-1 normalized)
     brightness: float = 0.5
     noisiness: float = 0.5
     
+    # Phase 2a fields (0-1 normalized)
+    warmth: float = 0.5       # Color temperature: 0=cool/blue, 1=warm/red
+    saturation: float = 0.5   # Color saturation: 0=gray, 1=vivid
+    contrast: float = 0.5     # Luminance contrast: 0=flat, 1=high
+    density: float = 0.5      # Visual density: 0=sparse, 1=dense
+    
     # Weights for scoring (default equal)
     weights: Dict[str, float] = field(default_factory=lambda: {
         "brightness": 1.0,
         "noisiness": 1.0,
+        "warmth": 0.7,
+        "saturation": 0.7,
+        "contrast": 0.7,
+        "density": 0.7,
     })
+    
+    # Method biasing derived from features
+    method_affinity: Dict[str, float] = field(default_factory=dict)
     
     def to_dict(self) -> dict:
         return {
@@ -46,7 +61,12 @@ class SoundSpec:
             "fields_used": self.fields_used,
             "brightness": self.brightness,
             "noisiness": self.noisiness,
+            "warmth": self.warmth,
+            "saturation": self.saturation,
+            "contrast": self.contrast,
+            "density": self.density,
             "weights": self.weights,
+            "method_affinity": self.method_affinity,
         }
     
     @classmethod
@@ -56,7 +76,12 @@ class SoundSpec:
             fields_used=d.get("fields_used", ["brightness", "noisiness"]),
             brightness=d.get("brightness", 0.5),
             noisiness=d.get("noisiness", 0.5),
+            warmth=d.get("warmth", 0.5),
+            saturation=d.get("saturation", 0.5),
+            contrast=d.get("contrast", 0.5),
+            density=d.get("density", 0.5),
             weights=d.get("weights", {"brightness": 1.0, "noisiness": 1.0}),
+            method_affinity=d.get("method_affinity", {}),
         )
 
 

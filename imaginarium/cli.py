@@ -54,8 +54,15 @@ def cmd_generate(args: argparse.Namespace) -> int:
     print(f"  Fingerprint: {extraction.fingerprint[:50]}...")
     print(f"  Brightness:  {spec.brightness:.3f}")
     print(f"  Noisiness:   {spec.noisiness:.3f}")
+    print(f"  Warmth:      {spec.warmth:.3f}")
+    print(f"  Saturation:  {spec.saturation:.3f}")
+    print(f"  Contrast:    {spec.contrast:.3f}")
+    print(f"  Density:     {spec.density:.3f}")
     if args.verbose:
         print(f"  Debug: {extraction.debug}")
+        print("  Method affinity:")
+        for method_id, affinity in sorted(spec.method_affinity.items(), key=lambda x: -x[1]):
+            print(f"    {method_id}: {affinity:.2f}")
     print()
     
     # List available methods

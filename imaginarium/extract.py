@@ -10,7 +10,7 @@ Noisiness: Derived from edge density (texture complexity)
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Dict, Tuple, Union
 import numpy as np
 
 from .models import SoundSpec
@@ -123,6 +123,200 @@ def _compute_contrast(gray: np.ndarray) -> float:
     return float(np.clip(std / 80.0, 0.0, 1.0))
 
 
+def _compute_warmth(rgb: np.ndarray) -> float:
+    """
+    Compute color temperature from R/B ratio.
+    
+    0 = cool (blue dominant)
+    0.5 = neutral
+    1 = warm (red/orange dominant)
+    
+    Returns:
+        Normalized warmth (0-1)
+    """
+    r_mean = np.mean(rgb[:, :, 0])
+    b_mean = np.mean(rgb[:, :, 2])
+    
+    # Avoid division by zero
+    if b_mean < 1:
+        b_mean = 1
+    
+    # R/B ratio: <1 = cool, >1 = warm
+    ratio = r_mean / b_mean
+    
+    # Map ratio to 0-1: ratio of 0.5 → 0, ratio of 1 → 0.5, ratio of 2 → 1
+    # Using sigmoid-like mapping
+    warmth = ratio / (ratio + 1)  # Maps 0→0, 1→0.5, inf→1
+    
+    return float(np.clip(warmth, 0.0, 1.0))
+
+
+def _compute_saturation(rgb: np.ndarray) -> float:
+    """
+    Compute mean color saturation.
+    
+    Uses simplified HSV saturation: (max - min) / max per pixel
+    
+    Returns:
+        Normalized saturation (0-1)
+    """
+    # Per-pixel max and min across channels
+    rgb_float = rgb.astype(np.float32)
+    max_rgb = np.max(rgb_float, axis=2)
+    min_rgb = np.min(rgb_float, axis=2)
+    
+    # Saturation = (max - min) / max, avoiding div by zero
+    with np.errstate(divide='ignore', invalid='ignore'):
+        sat = np.where(max_rgb > 0, (max_rgb - min_rgb) / max_rgb, 0)
+    
+    mean_sat = np.mean(sat)
+    return float(np.clip(mean_sat, 0.0, 1.0))
+
+
+def _compute_density(gray: np.ndarray, edge_density: float) -> float:
+    """
+    Compute visual density - how "full" or "busy" the image is.
+    
+    Combines edge density with non-empty space ratio.
+    
+    Returns:
+        Normalized density (0-1)
+    """
+    # Fill ratio: proportion of non-dark pixels
+    # Consider pixels above 20% brightness as "content"
+    fill_ratio = np.mean(gray > 51) # 51 = 20% of 255
+    
+    # Combine edge density and fill ratio
+    density = 0.6 * edge_density + 0.4 * fill_ratio
+    
+    return float(np.clip(density, 0.0, 1.0))
+
+
+def _compute_method_affinity(
+    brightness: float,
+    noisiness: float,
+    warmth: float,
+    saturation: float,
+    contrast: float,
+    density: float,
+) -> Dict[str, float]:
+    """
+    Compute affinity scores for each synthesis method based on image features.
+    
+    Higher affinity = method is more appropriate for this image.
+    Scores are multipliers (1.0 = neutral, >1 = favored, <1 = disfavored).
+    
+    Returns:
+        Dict mapping method_id to affinity score
+    """
+    affinity = {}
+    
+    # === SUBTRACTIVE METHODS ===
+    
+    # bright_saw: Favored by bright, high saturation images
+    affinity["subtractive/bright_saw"] = (
+        0.7 + 
+        0.4 * brightness +
+        0.3 * saturation -
+        0.2 * (1 - warmth)  # Penalty for cool images
+    )
+    
+    # dark_pulse: Favored by dark, low saturation, high contrast
+    affinity["subtractive/dark_pulse"] = (
+        0.7 +
+        0.4 * (1 - brightness) +
+        0.3 * contrast -
+        0.2 * saturation
+    )
+    
+    # noise_filtered: Favored by textured, noisy, low saturation
+    affinity["subtractive/noise_filtered"] = (
+        0.6 +
+        0.5 * noisiness +
+        0.2 * (1 - saturation) +
+        0.1 * density
+    )
+    
+    # supersaw: Favored by saturated, dense, warm images
+    affinity["subtractive/supersaw"] = (
+        0.6 +
+        0.3 * saturation +
+        0.3 * density +
+        0.2 * warmth
+    )
+    
+    # === FM METHODS ===
+    
+    # simple_fm: Neutral, slightly favors clean/bright images
+    affinity["fm/simple_fm"] = (
+        0.8 +
+        0.2 * brightness +
+        0.2 * (1 - noisiness)
+    )
+    
+    # feedback_fm: Favored by high contrast, noisy, tense images
+    affinity["fm/feedback_fm"] = (
+        0.6 +
+        0.4 * contrast +
+        0.3 * noisiness +
+        0.2 * (1 - warmth)  # Cool = tense
+    )
+    
+    # ratio_stack: Favored by complex, medium density
+    affinity["fm/ratio_stack"] = (
+        0.7 +
+        0.3 * density +
+        0.2 * saturation
+    )
+    
+    # ring_mod: Favored by dark, high contrast, cool images (sci-fi, metallic)
+    affinity["fm/ring_mod"] = (
+        0.5 +
+        0.4 * (1 - brightness) +
+        0.3 * contrast +
+        0.3 * (1 - warmth)
+    )
+    
+    # === PHYSICAL METHODS ===
+    
+    # karplus: Favored by clean, bright, low density (plucked strings)
+    affinity["physical/karplus"] = (
+        0.7 +
+        0.3 * (1 - noisiness) +
+        0.2 * (1 - density) +
+        0.2 * brightness
+    )
+    
+    # modal: Favored by warm, medium saturation (bells, metals)
+    affinity["physical/modal"] = (
+        0.7 +
+        0.3 * warmth +
+        0.2 * contrast
+    )
+    
+    # bowed: Favored by dark, warm, low-medium density (sustained strings)
+    affinity["physical/bowed"] = (
+        0.5 +
+        0.4 * (1 - brightness) +
+        0.3 * warmth +
+        0.2 * (1 - noisiness)
+    )
+    
+    # formant: Favored by warm, medium-high saturation (vocal, organic)
+    affinity["physical/formant"] = (
+        0.6 +
+        0.4 * warmth +
+        0.3 * saturation +
+        0.1 * (1 - contrast)
+    )
+    
+    # Normalize to 0.5-1.5 range
+    for method_id in affinity:
+        affinity[method_id] = float(np.clip(affinity[method_id], 0.5, 1.5))
+    
+    return affinity
+
+
 def extract_from_image(
     source: Union[str, Path, bytes],
     brightness_weight: float = 1.0,
@@ -131,9 +325,13 @@ def extract_from_image(
     """
     Extract SoundSpec from an image.
     
-    Phase 1 extraction:
+    Phase 2a extraction:
     - brightness: Mean luminance (light images → bright sounds)
     - noisiness: Edge density + color variance (textured images → noisy sounds)
+    - warmth: Color temperature (warm colors → warm timbres)
+    - saturation: Color vividness (saturated → harmonically rich)
+    - contrast: Luminance range (high contrast → dynamic sounds)
+    - density: Visual fullness (dense → complex sounds)
     
     Args:
         source: Image path or bytes
@@ -158,14 +356,13 @@ def extract_from_image(
     mean_lum = np.mean(gray) / 255.0
     brightness = float(mean_lum)
     
-    # === NOISINESS ===
-    # Combine edge density and color variance
+    # === INTERMEDIATE VALUES ===
     edge_density = _compute_edge_density(gray)
     color_var = _compute_color_variance(rgb)
     contrast = _compute_contrast(gray)
     
-    # Weighted combination: edges matter most, color variance secondary
-    # High contrast also suggests more "energetic" sound
+    # === NOISINESS ===
+    # Combine edge density and color variance
     noisiness = (
         0.5 * edge_density +
         0.3 * color_var +
@@ -173,14 +370,39 @@ def extract_from_image(
     )
     noisiness = float(np.clip(noisiness, 0.0, 1.0))
     
+    # === PHASE 2a FEATURES ===
+    warmth = _compute_warmth(rgb)
+    saturation = _compute_saturation(rgb)
+    density = _compute_density(gray, edge_density)
+    
+    # === METHOD AFFINITY ===
+    # Compute biases toward different synthesis methods
+    method_affinity = _compute_method_affinity(
+        brightness=brightness,
+        noisiness=noisiness,
+        warmth=warmth,
+        saturation=saturation,
+        contrast=contrast,
+        density=density,
+    )
+    
     # Build SoundSpec
     spec = SoundSpec(
         brightness=brightness,
         noisiness=noisiness,
+        warmth=warmth,
+        saturation=saturation,
+        contrast=contrast,
+        density=density,
         weights={
             "brightness": brightness_weight,
             "noisiness": noisiness_weight,
-        }
+            "warmth": 0.7,
+            "saturation": 0.7,
+            "contrast": 0.7,
+            "density": 0.7,
+        },
+        method_affinity=method_affinity,
     )
     
     # Debug info
@@ -190,8 +412,12 @@ def extract_from_image(
         "edge_density": edge_density,
         "color_variance": color_var,
         "contrast": contrast,
+        "warmth": warmth,
+        "saturation": saturation,
+        "density": density,
         "brightness_raw": brightness,
         "noisiness_raw": noisiness,
+        "method_affinity": method_affinity,
     }
     
     return ExtractionResult(
