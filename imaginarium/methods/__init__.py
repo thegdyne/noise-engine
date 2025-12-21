@@ -52,11 +52,13 @@ def _register_builtins():
     from .subtractive.dark_pulse import DarkPulseTemplate
     from .fm.simple_fm import SimpleFMTemplate
     from .physical.karplus import KarplusTemplate
+    from .physical.modal import ModalTemplate
     
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
     register_method(SimpleFMTemplate())
     register_method(KarplusTemplate())
+    register_method(ModalTemplate())
 
 
 # Register on import
