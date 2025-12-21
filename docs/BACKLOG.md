@@ -1,62 +1,25 @@
 # Noise Engine Backlog
 
-*Updated: December 2025*
+*Updated: December 21, 2025*
 
 ---
 
 ## Now
-- [ ] Generator Envelope Compliance — Fix pack generators to use ~envVCA (see `docs/GENERATOR_ENVELOPE_COMPLIANCE.md`)
+- [ ] Expand Presets — add channel EQ, BPM, master settings to preset schema
 
 ## Next (spec approved, ready to plan)
-- [ ] Pack System — Phase 3: Preset Integration (blocked by envelope compliance)
-- [ ] Imaginarium Phase 2 — Text/audio input, custom params exposed
-
----
-
-## Needs Spec (Large/Medium)
-- [ ] Preset System
-- [ ] MIDI Learn
-- [ ] Mod Matrix Expansion
-
----
-
-## Mopup (Small — just do it)
-- [ ] UI font audit — improve visibility across all labels (like HI/MID/LO fix)
-- [ ] Empty mod state polish
-
----
-
-## Generator Envelope Compliance (Pre-Phase 3 Blocker)
-
-**Analysis:** `docs/GENERATOR_ENVELOPE_COMPLIANCE.md`
-
-**Phase 1: Fix Pack Generators**
-- [ ] Update Electric Shepherd generators (8 files) — replace `sig * amp` with `~envVCA`
-- [ ] Update R'lyeh Collection generators (8 files) — replace `sig * amp` with `~envVCA`
-- [ ] Test each generator: OFF mode sounds identical
-- [ ] Test each generator: CLK mode triggers envelope
-- [ ] Test each generator: MIDI mode triggers envelope
-- [ ] Test ATK/DEC sliders have audible effect
-
-**Phase 2: CI Enforcement**
-- [ ] Add test to `test_generators.py`: SCD must contain `~envVCA`
-- [ ] Add test to `test_packs.py`: Pack SCD files must contain `~envVCA`
-- [ ] Verify CI passes on all existing core generators
-
-**Phase 3: Spec Update**
-- [ ] Update `GENERATOR_SPEC.md` — clarify `~envVCA` is REQUIRED
-- [ ] Add "Common Mistakes" section documenting `sig * amp` anti-pattern
-- [ ] Document future drone-only pattern (for reference, not implementing now)
+- [ ] Cross-Platform Testing — Windows & Linux compatibility
+- [ ] Integration Tests — tests that boot SuperCollider
 
 ---
 
 ## Imaginarium
 
-**Spec:** `imaginarium/` module + `docs/IMAGINARIUM_SPEC.md`
+**Module:** `imaginarium/`
 
 ### Phase 1: Core Pipeline ✅ COMPLETE
 - [x] Image → SoundSpec extraction (brightness, noisiness)
-- [x] Sobol quasi-random candidate generation
+- [x] Sobol quasi-random candidate generation (32 candidates)
 - [x] NRT SuperCollider rendering
 - [x] Safety gates (silence, clipping, DC offset)
 - [x] librosa feature extraction
@@ -64,33 +27,80 @@
 - [x] Farthest-first diversity selection
 - [x] Pack export (Noise Engine-compliant)
 
-### Phase 1 Methods ✅
-- [x] subtractive/bright_saw
-- [x] subtractive/dark_pulse
-- [x] fm/simple_fm
-- [x] physical/karplus (NRT render issue)
+### Phase 2a: Enhanced Analysis ✅ COMPLETE
+- [x] 6-dimensional SoundSpec (brightness, noisiness, warmth, saturation, contrast, density)
+- [x] Method affinity biasing (image characteristics → method multipliers)
+- [x] 14 synthesis methods across 4 families:
+  - Subtractive: bright_saw, dark_pulse, noise_filtered, supersaw
+  - FM: simple_fm, feedback_fm, ratio_stack, ring_mod, hard_sync
+  - Physical: karplus, modal, bowed, formant
+  - Spectral: additive
 
-### Phase 1 Backlog
-- [ ] Fix physical/karplus NRT rendering (Pluck trigger in NRT mode)
-- [ ] Add more methods: modal, waveguide, complex_fm, noise_filtered
-- [ ] Test generated pack in Noise Engine
+### Phase 2b: Spatial Analysis ✅ COMPLETE
+- [x] 4×4 tile feature extraction (edges, texture, orientation)
+- [x] Role assignment (accent/foreground/motion/bed)
+- [x] Quality gating with fallback to global selection
+- [x] Role-based candidate selection (audio features + tags)
+- [x] Soft family diversity penalty (prevents single-family dominance)
+- [x] CLI: `spatial-preview` command and `--spatial` flag
+- [x] 72 tests passing
 
-### Phase 2: Enhanced Input
+### Phase 2 Backlog
+- [ ] Make `--spatial` the default (currently opt-in)
+- [ ] A/B listening tests: spatial vs global selection
+- [ ] Quantile-based floors (replace fixed thresholds)
+- [ ] Per-role SoundSpec generation (targeted candidate pools)
+- [ ] Layer mix defaults (gain/pan/EQ hints per role)
+
+### Phase 3: Extended Input (future)
 - [ ] Text → SoundSpec (NLP keywords to parameters)
 - [ ] Audio → SoundSpec (analyze reference audio)
-- [ ] Expose custom_params in generated generators
 
-### Image Generator Backlog (lower priority)
-- [ ] Backlog A: Calibration suite (hue parameter, sat/value tiers)
-- [ ] Backlog B: Showcase suite (neutral backgrounds default)
-- [ ] Backlog C: Harmony separability (distinct colour_* presets)
-- [ ] Backlog D: Corpus health metric (hue histogram analysis)
+### Ideas
+- Foreground detection for soft-edge/painterly images
+- Adaptive pool sizing based on safety pass rate
+- Archive/novelty filtering (skip similar to previous packs)
+
+---
+
+## Cross-Platform Testing
+
+**Goal:** Ensure Noise Engine runs on Windows and Linux, not just macOS.
+
+**Tasks:**
+- [ ] Recruit Windows tester (Discord?)
+- [ ] Recruit Linux tester (Discord?)
+- [ ] Document platform-specific setup (SC paths, Python env)
+- [ ] Test PyQt5 rendering on Windows
+- [ ] Test PyQt5 rendering on Linux (X11/Wayland)
+- [ ] Verify OSC communication works cross-platform
+- [ ] Check file paths (presets dir, pack loading)
+- [ ] Create Windows install guide
+- [ ] Create Linux install guide
+
+**Known Risks:**
+- SuperCollider paths differ per OS
+- Audio device APIs vary (CoreAudio vs WASAPI vs ALSA/Jack)
+- Font rendering may differ
+- Keyboard shortcuts (Cmd vs Ctrl)
+
+---
+
+## Needs Spec (Large/Medium)
+- [ ] MIDI Learn
+- [ ] Mod Matrix Expansion
+- [ ] SC State Sync on Restart
+
+---
+
+## Mopup (Small — just do it)
+- [ ] UI font audit — improve visibility across all labels
+- [ ] Empty mod state polish
 
 ---
 
 ## Ideas (not committed)
 - Keyboard Mode (CMD+K)
-- Imaginarium natural language interface
 - Filter improvements (ladder, MS-20, etc)
 - Eurorack send/return
 - Generator waveform display
@@ -101,36 +111,23 @@
 ---
 
 ## Done (recent)
+- ✅ **Imaginarium Phase 2b** — Spatial analysis, role-based selection (Dec 21)
+- ✅ **Imaginarium Phase 2a** — 6D analysis, 14 methods, method affinity (Dec 21)
 - ✅ **Imaginarium Phase 1** — Image → 8 diverse generators pipeline
-- ✅ Pack System — Phase 1: Infrastructure
-- ✅ Pack System — Phase 2: UI Integration
-- ✅ Shift + -/+ for offset control
-- ✅ FX System v1 — Inline FX strip with HEAT, ECHO, REVERB, FILTER modules
+- ✅ Preset System — Save/Load with Ctrl+S/O (Dec 20)
+- ✅ Generator Envelope Compliance — All 16 pack generators fixed (Dec 20)
+- ✅ Doc Reorganization — archive/, ideas/, demos/ (Dec 20)
+- ✅ Pack System — Phase 1-3 complete
+- ✅ FX System v1 — Inline FX strip with HEAT, ECHO, REVERB, FILTER
 - ✅ TURBO presets (INI/T1/T2) for all FX modules
-- ✅ Filter sync with tempo-synced LFO modulation
-- ✅ EQ labels HI/MID/LO on channel strip
-- ✅ Numeric keys work while arrows held
-- ✅ Quadrature modulation (4 outputs per mod slot)
-- ✅ NORM/INV → Invert terminology update
 - ✅ Channel strips (volume, pan, mute, solo, EQ)
 - ✅ Master section (fader, meters, EQ, compressor, limiter)
-- ✅ 30+ new generators (classic synths, 808, atmospheric)
-- ✅ MIDI frequency routing fix (userParams)
-- ✅ CI/CD pipeline (207 tests)
+- ✅ Mod Matrix — 16×40 routing grid
+- ✅ Mod Sources — LFO + Sloth
+- ✅ 53 generators total
+- ✅ CI/CD pipeline (280 tests)
 
-## Pack Presets
-- [ ] Save/load generator slot configurations at pack level (which generators in which slots)
-
-## Frontend/SC State Sync on Restart
-- [ ] Handle case where Python frontend restarts but SC still running with previous state
-- Options to develop:
-  1. **Warm restart**: Query SC state and restore frontend to match (generators, mod routes, etc.)
-  2. **Cold restart**: Full reset of both Python and SC to clean state
-- Considerations:
-  - SC could expose `/state` OSC endpoint returning current config
-  - Frontend stores last known state to disk (JSON) for recovery
-  - Startup flag: `--resume` vs `--reset`
-  - Auto-detect if SC has existing synths running
+---
 
 ## Web-Based Manual
 - [ ] Create documentation website for Noise Engine
@@ -139,16 +136,13 @@
 - Include screenshots, audio examples
 - Auto-generate generator list from pack manifests
 
-## Housekeeping
-- [ ] Merge dev → main (tests failing in main due to new tests not pushed)
-
 ## FX System v1.1
-- [ ] P1: State sync on reconnect - create _sync_master_state() method to push UI→SC on connect/reconnect
-- [ ] P2: fx_window.py uses hardcoded OSC paths - refactor to use OSC_PATHS for SSOT
-- [ ] P2: master_passthrough LR4 comment doesn't match implementation - clarify or refactor EQ split
+- [ ] P1: State sync on reconnect - create _sync_master_state() method
+- [ ] P2: fx_window.py uses hardcoded OSC paths - refactor to use OSC_PATHS
+- [ ] P2: master_passthrough LR4 comment doesn't match implementation
 
 ## FX System Future
 - [ ] Per-channel echo/verb send knobs in mixer strip
 - [ ] Reverb pre-delay parameter
 - [ ] FX audio tuning (adjust default values, ranges, response curves)
-- [ ] Fidelity FX - integrate with new FX system
+
