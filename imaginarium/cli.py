@@ -416,6 +416,55 @@ def cmd_render_test(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_spatial_preview(args: argparse.Namespace) -> int:
+    """Preview spatial analysis on an image."""
+    import json
+    from .spatial import preview_spatial_analysis
+    
+    image_path = Path(args.image)
+    if not image_path.exists():
+        print(f"ERROR: Image not found: {image_path}")
+        return 1
+    
+    result = preview_spatial_analysis(image_path)
+    
+    if "error" in result:
+        print(f"ERROR: {result['error']}")
+        return 1
+    
+    if args.json:
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        print(f"Spatial Analysis: {image_path.name}")
+        print("=" * 50)
+        print(f"Use spatial: {result.get('use_spatial', False)}")
+        print(f"Quality score: {result.get('quality_score', 0):.3f}")
+        print()
+        
+        slot_alloc = result.get('slot_allocation', {})
+        print("Slot allocation:")
+        for role in ['accent', 'foreground', 'motion', 'bed']:
+            count = slot_alloc.get(role, 0)
+            print(f"  {role:12s}: {count} generators")
+        print()
+        
+        grid = result.get('role_grid', [])
+        if grid:
+            print("Role grid (4x4):")
+            for row in grid:
+                print("  " + " ".join(row))
+        print()
+        
+        checks = result.get('quality_checks', {})
+        if checks:
+            print("Quality checks:")
+            for check, passed in checks.items():
+                status = "✓" if passed else "✗"
+                print(f"  {status} {check}")
+    
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -465,6 +514,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     render_parser.add_argument("--seed", "-s", type=int, default=42, help="Test seed")
     render_parser.add_argument("--output", "-o", type=str, help="Output directory")
     render_parser.set_defaults(func=cmd_render_test)
+    
+    # Spatial preview command
+    spatial_parser = subparsers.add_parser("spatial-preview", help="Preview spatial analysis on image")
+    spatial_parser.add_argument("--image", "-i", type=str, required=True, help="Input image")
+    spatial_parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
+    spatial_parser.set_defaults(func=cmd_spatial_preview)
     
     args = parser.parse_args(argv)
     return args.func(args)
