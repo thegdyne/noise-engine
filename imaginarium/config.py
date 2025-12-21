@@ -21,7 +21,7 @@ PHASE = 1
 
 # IMPORTANT: Order is stable - append only for future phases
 # Signature vectors depend on this ordering
-FAMILIES: List[str] = ["subtractive", "fm", "physical"]
+FAMILIES: List[str] = ["subtractive", "fm", "physical", "spectral"]
 
 METHOD_PRIORS: Dict[str, float] = {
     "subtractive": 0.35,

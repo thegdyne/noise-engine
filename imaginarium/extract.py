@@ -310,6 +310,26 @@ def _compute_method_affinity(
         0.1 * (1 - contrast)
     )
     
+    # === NEW METHODS FOR GEOMETRIC/DIGITAL ===
+    
+    # hard_sync: Favored by high contrast, geometric, cool images
+    affinity["fm/hard_sync"] = (
+        0.5 +
+        0.5 * contrast +           # High contrast = angular
+        0.3 * (1 - warmth) +       # Cool = digital
+        0.2 * (1 - noisiness)      # Clean edges
+    )
+    
+    # === SPECTRAL METHODS ===
+    
+    # additive: Favored by clean, bright, geometric, mathematical images
+    affinity["spectral/additive"] = (
+        0.5 +
+        0.4 * brightness +
+        0.4 * contrast +           # High contrast = defined
+        0.2 * (1 - noisiness)      # Clean = precise
+    )
+    
     # Normalize to 0.5-1.5 range
     for method_id in affinity:
         affinity[method_id] = float(np.clip(affinity[method_id], 0.5, 1.5))

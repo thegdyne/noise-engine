@@ -56,10 +56,12 @@ def _register_builtins():
     from .fm.feedback_fm import FeedbackFMTemplate
     from .fm.ratio_stack import RatioStackTemplate
     from .fm.ring_mod import RingModTemplate
+    from .fm.hard_sync import HardSyncTemplate
     from .physical.karplus import KarplusTemplate
     from .physical.modal import ModalTemplate
     from .physical.bowed import BowedTemplate
     from .physical.formant import FormantTemplate
+    from .spectral.additive import AdditiveTemplate
     
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
@@ -69,10 +71,12 @@ def _register_builtins():
     register_method(FeedbackFMTemplate())
     register_method(RatioStackTemplate())
     register_method(RingModTemplate())
+    register_method(HardSyncTemplate())
     register_method(KarplusTemplate())
     register_method(ModalTemplate())
     register_method(BowedTemplate())
     register_method(FormantTemplate())
+    register_method(AdditiveTemplate())
 
 
 # Register on import
