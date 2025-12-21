@@ -213,3 +213,19 @@ Path("supercollider/generators").exists()
 - Call with `False` on init, `True` after connection confirmed
 - Use `setEnabled(False)` and style with `color: #666` for greyed appearance
 **Priority:** Medium - UX improvement
+
+## Extraction Calibration (Post-Phase 1)
+
+**Goal:** Improve SoundSpec extraction accuracy using synthetic ground truth
+
+**Source of truth:** `imaginarium/tools/gen_test_image.py` generates images with known brightness/noisiness parameters - these serve as ground truth for calibrating extraction.
+
+**Approach:**
+- Generate calibration grid using gen_test_image (e.g., 10×10 brightness×noisiness)
+- Run extract.py on each generated image
+- Compare extracted values vs gen_test_image input parameters
+- Compute correction coefficients or regression model
+- Apply calibration in extract.py
+
+**Benefit:** Closes the loop between image generation and extraction, measurable accuracy improvement
+
