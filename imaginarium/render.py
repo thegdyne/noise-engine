@@ -329,24 +329,38 @@ score.recordNRT(
         
         return f'''def = SynthDef(\\{name}, {{
     |out=0, gate=1|
-    var exc, sig, env, bodyRes;
+    var exc, sig, env, bodyRes, trig, sustained;
     var freq = 220;
     
-    // Exciter
-    exc = PinkNoise.ar * {0.3 + exciter * 0.7};
-    exc = exc + (Impulse.ar(0) * {1.0 - exciter * 0.5});
-    exc = LPF.ar(exc, {2000 + bright * 8000});
-    exc = exc * EnvGen.kr(Env.perc(0.001, 0.01));
+    // Triggers for plucks (3Hz for more activity)
+    trig = Impulse.ar(3);
+    
+    // Exciter: noise burst + click
+    exc = PinkNoise.ar * {0.5 + exciter * 0.5:.4f};
+    exc = exc + (trig * {0.8 - exciter * 0.3:.4f});
+    exc = LPF.ar(exc, {2000 + bright * 8000:.1f});
+    exc = exc * EnvGen.ar(Env.perc(0.001, 0.1), trig);
     
     // Karplus-Strong
-    sig = Pluck.ar(exc, Impulse.kr(0), 0.2, freq.reciprocal, {decay}, {coef});
+    sig = Pluck.ar(exc, trig, 0.2, freq.reciprocal, {max(decay, 2.5):.4f}, {coef:.4f});
+    
+    // Sustained resonant layer
+    sustained = Resonz.ar(PinkNoise.ar, freq, 0.01) * 2;
+    sustained = sustained + Resonz.ar(PinkNoise.ar, freq * 1.5, 0.02) * 1;
+    sig = sig + sustained;
+    
+    // Remove DC offset
+    sig = LeakDC.ar(sig);
     
     // Body resonance
-    bodyRes = BPF.ar(sig, freq * 1.5, 0.5) * {body * 0.3};
-    bodyRes = bodyRes + (BPF.ar(sig, freq * 2.5, 0.3) * {body * 0.2});
+    bodyRes = BPF.ar(sig, freq * 1.5, 0.5) * {body * 0.4:.4f};
+    bodyRes = bodyRes + (BPF.ar(sig, freq * 2.5, 0.3) * {body * 0.3:.4f});
     sig = sig + bodyRes;
     
-    // Gate envelope
+    // Boost output
+    sig = sig * 2;
+    
+    // Gate envelope for release
     env = EnvGen.kr(Env.asr(0.001, 1, 0.1), gate, doneAction: 2);
     sig = sig * env * 0.5;
     
