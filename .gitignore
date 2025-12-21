@@ -47,3 +47,4 @@ packs/user/*
 packs/pizza-pup/
 test_inputs/
 packs/
+spatial_debug.json
