@@ -50,12 +50,14 @@ def _register_builtins():
     # Import here to avoid circular imports
     from .subtractive.bright_saw import BrightSawTemplate
     from .subtractive.dark_pulse import DarkPulseTemplate
+    from .subtractive.noise_filtered import NoiseFilteredTemplate
     from .fm.simple_fm import SimpleFMTemplate
     from .physical.karplus import KarplusTemplate
     from .physical.modal import ModalTemplate
     
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
+    register_method(NoiseFilteredTemplate())
     register_method(SimpleFMTemplate())
     register_method(KarplusTemplate())
     register_method(ModalTemplate())
