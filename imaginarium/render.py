@@ -4,6 +4,10 @@ Non-Real-Time (NRT) rendering using SuperCollider's sclang
 
 Renders candidates to audio files for safety analysis and feature extraction.
 
+CONSOLIDATED VERSION:
+Uses method templates as single source of truth.
+Transforms the method's generate_synthdef() output for NRT compatibility.
+
 Per IMAGINARIUM_SPEC v10:
 - 3 second previews
 - 48kHz sample rate
@@ -11,6 +15,7 @@ Per IMAGINARIUM_SPEC v10:
 """
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -91,6 +96,9 @@ class NRTRenderer:
     
     Uses Score.recordNRT for clean NRT rendering without needing
     a running server.
+    
+    CONSOLIDATED: Uses method templates as single source of truth,
+    transforming them for NRT compatibility.
     """
     
     def __init__(
@@ -124,6 +132,141 @@ class NRTRenderer:
             self._temp_dir = Path(tempfile.mkdtemp(prefix="imaginarium_"))
         return self._temp_dir
     
+    def _transform_for_nrt(self, method_synthdef: str, synthdef_name: str) -> str:
+        """
+        Transform a Noise Engine SynthDef into NRT-compatible form.
+        
+        This is the key consolidation function. It takes the method's
+        generate_synthdef() output and transforms it for NRT rendering:
+        1. Replace bus reads with fixed values
+        2. Replace helper function calls with inline equivalents
+        3. Simplify the argument list
+        4. Adjust wrapper for NRT Score format
+        
+        Args:
+            method_synthdef: Output from method.generate_synthdef()
+            synthdef_name: Name for the NRT SynthDef
+            
+        Returns:
+            NRT-compatible SynthDef code
+        """
+        code = method_synthdef
+        
+        # === 1. REPLACE BUS READS WITH FIXED VALUES ===
+        # Frequency bus -> fixed pitch for preview
+        code = re.sub(r'In\.kr\(freqBus\)', '220', code)
+        
+        # Filter controls
+        code = re.sub(r'In\.kr\(cutoffBus\)', '2000', code)
+        code = re.sub(r'In\.kr\(resBus\)', '0.5', code)
+        
+        # Envelope controls  
+        code = re.sub(r'In\.kr\(attackBus\)', '0.1', code)
+        code = re.sub(r'In\.kr\(decayBus\)', '0.5', code)
+        
+        # Mode controls
+        code = re.sub(r'In\.kr\(filterTypeBus\)', '0', code)
+        code = re.sub(r'In\.kr\(envSourceBus\)', '0', code)
+        code = re.sub(r'In\.kr\(envEnabledBus\)', '1', code)
+        code = re.sub(r'In\.kr\(clockRateBus\)', '6', code)
+        
+        # Amplitude - handle the ~params dictionary access
+        code = re.sub(r'In\.kr\(~params\[\\amplitude\]\)', '0.5', code)
+        
+        # Custom param buses (not used in NRT, set to 0.5)
+        for i in range(5):
+            code = re.sub(rf'In\.kr\(customBus{i}\)', '0.5', code)
+        
+        # Trigger buses (not used in NRT OFF mode)
+        code = re.sub(r'In\.kr\(clockTrigBus\)', '0', code)
+        code = re.sub(r'In\.kr\(midiTrigBus\)', '0', code)
+        code = re.sub(r'In\.ar\(clockTrigBus,\s*\d+\)', 'DC.ar(0) ! 13', code)
+        code = re.sub(r'In\.ar\(midiTrigBus,\s*\d+\)', 'DC.ar(0) ! 8', code)
+        
+        # === 2. REPLACE HELPER FUNCTIONS WITH INLINE EQUIVALENTS ===
+        
+        # ~multiFilter.(sig, filterType, freq, rq) -> simple RLPF for NRT
+        code = re.sub(
+            r'~multiFilter\.\(\s*([^,]+)\s*,\s*[^,]+\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)',
+            r'RLPF.ar(\1, (\2).clip(20, 18000), (\3).clip(0.1, 2))',
+            code
+        )
+        
+        # ~stereoSpread.(sig, rate, width) -> simple Pan2 for NRT
+        code = re.sub(
+            r'~stereoSpread\.\(\s*([^,]+)\s*,\s*[^,]+\s*,\s*[^)]+\s*\)',
+            r'Pan2.ar(\1, 0)',
+            code
+        )
+        
+        # ~envVCA.(...) -> simple gate-based envelope for NRT
+        # This is the critical one - replaces the trigger-based VCA with a simple ADSR
+        code = re.sub(
+            r'~envVCA\.\(\s*([^,]+)\s*,\s*[^,]+\s*,\s*[^,]+\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*[^,]+\s*,\s*[^,]+\s*,\s*[^)]+\s*\)',
+            r'(\1 * EnvGen.kr(Env.adsr((\2).linexp(0,1,0.001,2), (\3).linexp(0,1,0.05,4), 0.7, 0.3), \\gate.kr(1), doneAction: 2) * \4)',
+            code
+        )
+        
+        # ~ensure2ch.(sig) -> check if already stereo, otherwise duplicate
+        # Since we use Pan2 for stereoSpread, signal is already stereo
+        # Just pass through (the ! 2 would break stereo signals)
+        code = re.sub(r'~ensure2ch\.\(\s*([^)]+)\s*\)', r'\1', code)
+        
+        # === 3. HANDLE SELECT.AR TRIGGER PATTERN ===
+        # For physical models that use Select.ar for trigger selection,
+        # replace with a continuous trigger for NRT preview
+        # This handles multi-line Select.ar blocks ending with ]);
+        code = re.sub(
+            r'trig\s*=\s*Select\.ar\(envSource[^;]+\]\);',
+            'trig = Impulse.ar(3);  // NRT: continuous trigger for preview',
+            code,
+            flags=re.DOTALL
+        )
+        
+        # Also remove any remaining slotIndex references (undefined in NRT)
+        code = re.sub(r'slotIndex', '0', code)
+        
+        # === 4. SIMPLIFY ARGUMENT LIST ===
+        # Replace full bus arg list with simple NRT args
+        code = re.sub(
+            r'\|\s*out\s*,\s*freqBus\s*,[^|]+\|',
+            '|out=0, gate=1|',
+            code
+        )
+        
+        # Also handle alternate format with line breaks
+        code = re.sub(
+            r'\{\s*\|out,\s*freqBus,\s*cutoffBus[^|]+\|',
+            '{ |out=0, gate=1|',
+            code,
+            flags=re.DOTALL
+        )
+        
+        # === 5. ADJUST SYNTHDEF WRAPPER ===
+        # Change: SynthDef(\name, { ... }).add;
+        # To: def = SynthDef(\name, { ... });
+        
+        # First, extract the original name and replace with our NRT name
+        code = re.sub(
+            r'SynthDef\(\\[^,]+,',
+            f'SynthDef(\\\\{synthdef_name},',
+            code
+        )
+        
+        # Remove .add; and wrap in def =
+        code = re.sub(r'\)\.add;', ');', code)
+        code = 'def = ' + code.strip()
+        
+        # Remove any postln lines
+        lines = code.split('\n')
+        lines = [l for l in lines if 'postln' not in l]
+        code = '\n'.join(lines)
+        
+        # === 6. REMOVE RANDSEED (not needed for NRT preview) ===
+        code = re.sub(r'RandSeed\.ir\([^;]+;\s*', '', code)
+        
+        return code
+    
     def _generate_nrt_script(
         self,
         candidate: Candidate,
@@ -133,8 +276,8 @@ class NRTRenderer:
         """
         Generate sclang script for NRT rendering.
         
-        Uses the method template to generate the SynthDef, then wraps it
-        in NRT Score recording code.
+        Uses the method's generate_synthdef() as single source of truth,
+        then transforms it for NRT compatibility.
         """
         duration = RENDER_CONFIG.duration_sec
         sample_rate = RENDER_CONFIG.sample_rate
@@ -142,15 +285,28 @@ class NRTRenderer:
         # Escape path for SC string
         output_path_str = str(output_path).replace("\\", "\\\\").replace('"', '\\"')
         
-        # Generate family-specific SynthDef
-        synthdef_code = self._generate_synthdef_for_family(candidate, synthdef_name)
+        # Get the method and generate REAL SynthDef (single source of truth!)
+        method = get_method(candidate.method_id)
+        if method is None:
+            raise ValueError(f"Unknown method: {candidate.method_id}")
+        
+        original_synthdef = method.generate_synthdef(
+            synthdef_name=f"original_{synthdef_name}",  # Placeholder name, will be replaced
+            params=candidate.params,
+            seed=candidate.seed,
+        )
+        
+        # Transform for NRT
+        synthdef_code = self._transform_for_nrt(original_synthdef, synthdef_name)
         
         return f'''
 // Imaginarium NRT Render: {candidate.candidate_id}
+// Method: {candidate.method_id}
+// Using CONSOLIDATED synthesis from method template
 (
 var def, defBytes, score, options;
 
-// Create SynthDef
+// Create SynthDef (transformed from method template)
 {synthdef_code}
 
 // Get synthdef as bytes for d_recv
@@ -182,191 +338,6 @@ score.recordNRT(
 );
 )
 '''
-    
-    def _generate_synthdef_for_family(
-        self,
-        candidate: Candidate,
-        synthdef_name: str,
-    ) -> str:
-        """Generate SynthDef code based on candidate's family."""
-        params = candidate.params
-        family = candidate.family
-        
-        if family == "subtractive":
-            return self._synthdef_subtractive(params, synthdef_name, candidate.method_id)
-        elif family == "fm":
-            return self._synthdef_fm(params, synthdef_name)
-        elif family == "physical":
-            return self._synthdef_physical(params, synthdef_name)
-        else:
-            # Fallback: simple sine
-            return f'''def = SynthDef(\\{synthdef_name}, {{
-    |out=0, gate=1|
-    var sig, env;
-    sig = SinOsc.ar(220) * 0.3;
-    env = EnvGen.kr(Env.adsr(0.01, 0.1, 0.5, 0.3), gate, doneAction: 2);
-    sig = sig * env;
-    sig = sig ! 2;
-    Out.ar(out, sig);
-}});'''
-    
-    def _synthdef_subtractive(self, params: Dict, name: str, method_id: str) -> str:
-        """Generate subtractive synthesis SynthDef."""
-        if "dark_pulse" in method_id:
-            # Dark pulse parameters
-            pw = float(params.get("pulse_width", 0.5))
-            pwm_depth = float(params.get("pwm_depth", 0.1))
-            pwm_rate = float(params.get("pwm_rate", 0.5))
-            cutoff = float(params.get("cutoff_hz", 800))
-            res = float(params.get("resonance", 0.2))
-            rq = max(0.1, 1.0 - res * 0.8)
-            
-            return f'''def = SynthDef(\\{name}, {{
-    |out=0, gate=1|
-    var sig, width, env;
-    var freq = 110;
-    
-    // PWM
-    width = {pw} + (SinOsc.kr({pwm_rate}) * {pwm_depth});
-    width = width.clip(0.1, 0.9);
-    
-    // Pulse oscillator
-    sig = Pulse.ar(freq, width);
-    
-    // Low-pass filter
-    sig = RLPF.ar(sig, {cutoff}, {rq});
-    
-    // Envelope
-    env = EnvGen.kr(Env.adsr(0.01, 0.2, 0.6, 0.5), gate, doneAction: 2);
-    sig = sig * env * 0.4;
-    
-    sig = sig ! 2;
-    Out.ar(out, sig);
-}});'''
-        else:
-            # Bright saw parameters (default)
-            cutoff_ratio = float(params.get('cutoff_ratio', 0.5))
-            resonance = float(params.get('resonance', 0.3))
-            drive = float(params.get('drive', 0.3))
-            detune = float(params.get('detune', 0.01))
-            
-            base_freq = 220.0
-            actual_cutoff = 2000.0 * cutoff_ratio
-            rq = max(0.1, 1.0 - (resonance * 0.7))
-            
-            return f'''def = SynthDef(\\{name}, {{
-    |out=0, gate=1|
-    var sig, env;
-    var freq = {base_freq};
-    
-    // Triple saw with detune
-    sig = Mix.ar([
-        Saw.ar(freq),
-        Saw.ar(freq * {1.0 + detune:.6f}),
-        Saw.ar(freq * {1.0 - detune:.6f})
-    ]) / 3;
-    
-    // Saturation
-    sig = (sig * {1.0 + drive * 3:.4f}).tanh;
-    
-    // Filter  
-    sig = RLPF.ar(sig, {actual_cutoff:.1f}, {rq:.4f});
-    
-    // Envelope
-    env = EnvGen.kr(Env.adsr(0.01, 0.1, 0.8, 0.5), gate, doneAction: 2);
-    sig = sig * env * 0.5;
-    
-    sig = sig ! 2;
-    Out.ar(out, sig);
-}});'''
-    
-    def _synthdef_fm(self, params: Dict, name: str) -> str:
-        """Generate FM synthesis SynthDef."""
-        ratio = float(params.get("ratio", 2.0))
-        index = float(params.get("index", 3.0))
-        index_decay = float(params.get("index_decay", 1.0))
-        mod_env = float(params.get("mod_env_amt", 0.5))
-        bright = float(params.get("brightness", 0.5))
-        
-        return f'''def = SynthDef(\\{name}, {{
-    |out=0, gate=1|
-    var mod, car, modEnv, carEnv, sig, idx;
-    var freq = 220;
-    
-    // Modulator envelope
-    modEnv = EnvGen.kr(Env.perc(0.01, {index_decay}));
-    modEnv = (modEnv * {mod_env}) + (1 - {mod_env});
-    
-    // Dynamic index
-    idx = {index} * modEnv;
-    
-    // Modulator
-    mod = SinOsc.ar(freq * {ratio}) * idx * freq;
-    
-    // Carrier
-    car = SinOsc.ar(freq + mod);
-    
-    // Carrier envelope
-    carEnv = EnvGen.kr(Env.adsr(0.01, 0.3, 0.5, 0.5), gate, doneAction: 2);
-    
-    // Brightness filter
-    sig = LPF.ar(car, {1000 + bright * 6000});
-    sig = sig * carEnv * 0.4;
-    
-    sig = sig ! 2;
-    Out.ar(out, sig);
-}});'''
-    
-    def _synthdef_physical(self, params: Dict, name: str) -> str:
-        """Generate physical modeling SynthDef."""
-        decay = float(params.get("decay_time", 2.0))
-        damp = float(params.get("damping", 0.3))
-        bright = float(params.get("brightness", 0.5))
-        exciter = float(params.get("exciter_color", 0.5))
-        body = float(params.get("body_size", 0.3))
-        
-        coef = 0.1 + damp * 0.4
-        
-        return f'''def = SynthDef(\\{name}, {{
-    |out=0, gate=1|
-    var exc, sig, env, bodyRes, trig, sustained;
-    var freq = 220;
-    
-    // Triggers for plucks (3Hz for more activity)
-    trig = Impulse.ar(3);
-    
-    // Exciter: noise burst + click
-    exc = PinkNoise.ar * {0.5 + exciter * 0.5:.4f};
-    exc = exc + (trig * {0.8 - exciter * 0.3:.4f});
-    exc = LPF.ar(exc, {2000 + bright * 8000:.1f});
-    exc = exc * EnvGen.ar(Env.perc(0.001, 0.1), trig);
-    
-    // Karplus-Strong
-    sig = Pluck.ar(exc, trig, 0.2, freq.reciprocal, {max(decay, 2.5):.4f}, {coef:.4f});
-    
-    // Sustained resonant layer
-    sustained = Resonz.ar(PinkNoise.ar, freq, 0.01) * 2;
-    sustained = sustained + Resonz.ar(PinkNoise.ar, freq * 1.5, 0.02) * 1;
-    sig = sig + sustained;
-    
-    // Remove DC offset
-    sig = LeakDC.ar(sig);
-    
-    // Body resonance
-    bodyRes = BPF.ar(sig, freq * 1.5, 0.5) * {body * 0.4:.4f};
-    bodyRes = bodyRes + (BPF.ar(sig, freq * 2.5, 0.3) * {body * 0.3:.4f});
-    sig = sig + bodyRes;
-    
-    // Boost output
-    sig = sig * 2;
-    
-    // Gate envelope for release
-    env = EnvGen.kr(Env.asr(0.001, 1, 0.1), gate, doneAction: 2);
-    sig = sig * env * 0.5;
-    
-    sig = sig ! 2;
-    Out.ar(out, sig);
-}});'''
     
     def render_candidate(
         self,
@@ -535,4 +506,3 @@ def render_candidates(
     finally:
         if output_dir is None:
             renderer.cleanup()
-

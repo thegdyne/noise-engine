@@ -150,14 +150,17 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     amp = In.kr(~params[\\amplitude]);
 
     // === EXCITER ===
-    // Get trigger from clock or MIDI
-    trig = In.kr(clockTrigBus) + In.kr(midiTrigBus);
+    // Standard Noise Engine trigger selection
+    trig = Select.ar(envSource.round.clip(0, 2), [
+        DC.ar(0),
+        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
+        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
+    ]);
     
-    // Exciter: mix of noise and click
-    exc = PinkNoise.ar * {0.3 + exciter * 0.7:.4f};
-    exc = exc + (Impulse.ar(0) * {1.0 - exciter * 0.5:.4f});
+    // Exciter: noise burst with trigger envelope
+    exc = PinkNoise.ar * {0.5 + exciter * 0.5:.4f};
     exc = LPF.ar(exc, filterFreq.min({2000 + bright * 8000:.1f}));
-    exc = exc * EnvGen.kr(Env.perc(0.001, 0.01), trig);
+    exc = exc * EnvGen.ar(Env.perc(0.001, 0.05), trig);
 
     // === KARPLUS-STRONG STRING ===
     sig = Pluck.ar(
@@ -168,6 +171,9 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
         {decay:.4f},
         {coef:.4f}
     );
+
+    // Boost output (Pluck is naturally quiet)
+    sig = sig * 3;
 
     // === BODY RESONANCE ===
     bodyRes = BPF.ar(sig, freq * 1.5, 0.5) * {body * 0.3:.4f};
@@ -194,6 +200,6 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
             "synthdef": synthdef_name,
             "custom_params": [],  # Phase 1: no custom params exposed
             "output_trim_db": -6.0,
-            "midi_retrig": False,
+            "midi_retrig": True,  # Plucked sounds need retrigger
             "pitch_target": None,
         }

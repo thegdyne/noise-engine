@@ -80,6 +80,7 @@ def export_pack(
     
     # Generate files for each selected candidate
     generator_entries = []
+    generator_stems = []
     
     for i, candidate in enumerate(selected):
         synthdef_name = generate_synthdef_name(pack_name, candidate, i)
@@ -124,22 +125,36 @@ def export_pack(
             "family": candidate.family,
             "fit_score": candidate.fit_score,
         })
+        generator_stems.append(synthdef_name)
     
-    # Write manifest
+    # Write manifest (Noise Engine pack format)
     manifest = {
+        "pack_format": 1,
         "name": pack_name,
         "version": "1.0.0",
-        "imaginarium_version": SPEC_VERSION,
-        "created": datetime.now().isoformat(),
-        "input_fingerprint": input_fingerprint,
-        "run_seed": context.run_seed,
-        "spec": spec.to_dict(),
-        "generators": generator_entries,
+        "author": "Imaginarium",
+        "description": f"Generated from image (brightness={spec.brightness:.2f}, noisiness={spec.noisiness:.2f})",
+        "enabled": True,
+        "generators": generator_stems,  # File stems only
     }
     
     manifest_path = pack_dir / "manifest.json"
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
+    
+    # Write Imaginarium metadata (separate file for traceability)
+    imaginarium_meta = {
+        "imaginarium_version": SPEC_VERSION,
+        "created": datetime.now().isoformat(),
+        "input_fingerprint": input_fingerprint,
+        "run_seed": context.run_seed,
+        "spec": spec.to_dict(),
+        "generator_details": generator_entries,  # Full details here
+    }
+    
+    meta_path = pack_dir / "imaginarium.json"
+    with open(meta_path, "w") as f:
+        json.dump(imaginarium_meta, f, indent=2)
     
     # Write generation report
     if all_candidates is not None:
