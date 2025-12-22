@@ -149,7 +149,18 @@ def export_pack(
             "slots": [
                 {
                     "generator": entry["name"],
-                    "params": {},
+                    "params": {
+                        "frequency": 0.5,
+                        "cutoff": 1.0,
+                        "resonance": 0.0,
+                        "attack": 0.0,
+                        "decay": 0.76,
+                        "custom_0": 0.5,
+                        "custom_1": 0.5,
+                        "custom_2": 0.5,
+                        "custom_3": 0.5,
+                        "custom_4": 0.5,
+                    },
                 }
                 for entry in generator_entries
             ],
