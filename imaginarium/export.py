@@ -33,14 +33,16 @@ def generate_synthdef_name(pack_name: str, candidate: Candidate, index: int) -> 
     return f"imaginarium_{safe_pack}_{method_short}_{index:03d}"
 
 
-def generate_display_name(candidate: Candidate, index: int) -> str:
+def generate_display_name(candidate: Candidate, index: int, pack_name: str = "") -> str:
     """Generate human-readable display name."""
     method = get_method(candidate.method_id)
     if method:
         base = method.definition.display_name
     else:
         base = candidate.method_id.split("/")[-1].replace("_", " ").title()
-    return f"{base} {index + 1}"
+    # Include pack abbreviation to avoid cross-pack collisions
+    abbrev = pack_name[:8] if pack_name else ""
+    return f"{base} {index + 1} [{abbrev}]" if abbrev else f"{base} {index + 1}"
 
 
 def export_pack(
@@ -84,7 +86,7 @@ def export_pack(
     
     for i, candidate in enumerate(selected):
         synthdef_name = generate_synthdef_name(pack_name, candidate, i)
-        display_name = generate_display_name(candidate, i)
+        display_name = generate_display_name(candidate, i, pack_name)
         
         method = get_method(candidate.method_id)
         
