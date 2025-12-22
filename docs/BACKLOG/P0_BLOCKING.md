@@ -2,21 +2,6 @@
 
 
 
-## CLEAR MOD Button
-Button to remove all modulation routes (main UI + mod matrix window).
-- Requires `/noise/mod/route/clear_all` OSC message (see below)
-
-## Mod Routing: OSC Clear All
-Loading preset or CLEAR MOD clears UI but SC keeps old routes.
-1. Add to `supercollider/core/mod_routing.scd`:
-   ```supercollider
-   OSCdef(\modRouteClearAll, { ~modRoutes.clear; }, '/noise/mod/route/clear_all');
-   ```
-2. Add to `src/config/__init__.py`: `'mod_route_clear_all': '/noise/mod/route/clear_all'`
-3. Update `_on_mod_routes_cleared()` to send OSC clear message
-
-
-
 ## SC: getSynchronous Crash on Server Disconnect
 `Server-getControlBusValue only supports local servers` error in `mod_osc.scd` and `mod_apply_v2.scd`.
 - Wrap getSynchronous calls in try/catch, or use Bus.get with callback
