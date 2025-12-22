@@ -557,7 +557,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     gen_parser.add_argument("--seed", "-s", type=int, default=42, help="Run seed")
     gen_parser.add_argument("--output", "-o", type=str, help="Output directory")
     gen_parser.add_argument("--verbose", "-v", action="store_true", help="Show debug info")
-    gen_parser.add_argument("--spatial", action="store_true", help="Use spatial role-based selection")
+    gen_parser.add_argument("--spatial", action="store_true", default=True,
+                            help="Use spatial role-based selection (default)")
+    gen_parser.add_argument("--no-spatial", action="store_false", dest="spatial",
+                            help="Use global farthest-first selection instead")
     gen_parser.set_defaults(func=cmd_generate)
     
     # list-methods command
