@@ -141,7 +141,26 @@ def export_pack(
     manifest_path = pack_dir / "manifest.json"
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
-    
+        # Write preset (auto-loads all generators into slots 1-8)
+        preset = {
+            "version": 2,
+            "name": pack_name,
+            "pack": pack_name,
+            "slots": [
+                {
+                    "generator": entry["name"],
+                    "params": {},
+                }
+                for entry in generator_entries
+            ],
+        }
+
+        presets_dir = Path.home() / "noise-engine-presets"
+        presets_dir.mkdir(parents=True, exist_ok=True)
+        preset_path = presets_dir / f"{sanitize_name(pack_name)}_preset.json"
+        with open(preset_path, "w") as f:
+            json.dump(preset, f, indent=2)
+
     # Write Imaginarium metadata (separate file for traceability)
     imaginarium_meta = {
         "imaginarium_version": SPEC_VERSION,

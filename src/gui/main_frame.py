@@ -64,6 +64,11 @@ class MainFrame(QMainWindow):
         # Mod matrix window (created on first open)
         self.mod_matrix_window = None
         
+        # MIDI mode toggle state
+        self._midi_mode_active = False
+        self._midi_mode_saved_states = [0] * 8  # env_source per slot
+        self._midi_mode_changing = False  # Guard flag for bulk changes
+        
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
         
@@ -287,6 +292,15 @@ class MainFrame(QMainWindow):
         """)
         self.matrix_btn.clicked.connect(self._open_mod_matrix)
         layout.addWidget(self.matrix_btn)
+        
+        # MIDI mode button - sets all generators to MIDI trigger mode
+        self.midi_mode_btn = QPushButton("MIDI")
+        self.midi_mode_btn.setToolTip("Set all generators to MIDI mode (toggle)")
+        self.midi_mode_btn.setFixedSize(50, 27)
+        self.midi_mode_btn.setCheckable(True)
+        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(False))
+        self.midi_mode_btn.clicked.connect(self._toggle_midi_mode)
+        layout.addWidget(self.midi_mode_btn)
         
         layout.addStretch()
         
@@ -546,6 +560,10 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_env_source'], [slot_id, source])
         logger.gen(slot_id, f"env source: {['OFF', 'CLK', 'MIDI'][source]}")
+        
+        # Detect manual change while MIDI mode is active
+        if self._midi_mode_active and not self._midi_mode_changing:
+            self._deactivate_midi_mode()
         
     def on_generator_clock_rate(self, slot_id, rate):
         """Handle generator clock rate change - send index."""
@@ -1343,6 +1361,79 @@ class MainFrame(QMainWindow):
         
         # Restart the process
         os.execv(python, [python, script])
+
+    # === MIDI Mode Toggle ===
+
+    def _midi_mode_btn_style(self, active):
+        """Return style for MIDI mode button."""
+        if active:
+            return f"""
+                QPushButton {{
+                    background-color: #660066;
+                    color: #ff00ff;
+                    border: 1px solid #ff00ff;
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                    font-size: {FONT_SIZES['small']}px;
+                    font-weight: bold;
+                }}
+            """
+        else:
+            return f"""
+                QPushButton {{
+                    background-color: {COLORS['background']};
+                    color: {COLORS['text']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                    font-size: {FONT_SIZES['small']}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #330033;
+                    color: #ff00ff;
+                    border-color: #aa00aa;
+                }}
+            """
+
+    def _toggle_midi_mode(self):
+        """Toggle all generators to/from MIDI mode."""
+        if not self._midi_mode_active:
+            # Activate: save states, set all to MIDI
+            self._midi_mode_changing = True
+            for i, slot in enumerate(self.generator_grid.slots.values()):
+                self._midi_mode_saved_states[i] = slot.env_source
+                if slot.env_source != 2:  # Not already MIDI
+                    slot.env_btn.set_index(2)  # Update visual
+                    slot.on_env_source_changed("MIDI")  # Trigger full state update
+            self._midi_mode_changing = False
+            self._midi_mode_active = True
+            logger.info("MIDI mode activated", component="APP")
+        else:
+            # Deactivate: restore saved states
+            self._restore_midi_mode_states()
+        
+        self.midi_mode_btn.setChecked(self._midi_mode_active)
+        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(self._midi_mode_active))
+
+    def _restore_midi_mode_states(self):
+        """Restore saved env_source states."""
+        from src.config import ENV_SOURCES
+        self._midi_mode_changing = True
+        for i, slot in enumerate(self.generator_grid.slots.values()):
+            saved = self._midi_mode_saved_states[i]
+            slot.env_btn.set_index(saved)  # Update visual
+            slot.on_env_source_changed(ENV_SOURCES[saved])  # Trigger full state update
+        self._midi_mode_changing = False
+        self._midi_mode_active = False
+        logger.info("MIDI mode deactivated", component="APP")
+
+    def _deactivate_midi_mode(self):
+        """Deactivate MIDI mode without restoring (user made manual change)."""
+        self._midi_mode_active = False
+        self.midi_mode_btn.setChecked(False)
+        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(False))
+        logger.info("MIDI mode cancelled (manual change)", component="APP")
 
     # === Preset Save/Load ===
 
