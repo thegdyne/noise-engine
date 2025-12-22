@@ -367,3 +367,45 @@ Increase width to ~120-140px to accommodate longer names, or use text truncation
 - pizza-spatial gen7 (Filtered Noise 7) — too quiet
 - pizza-spatial gen8 (Formant Voice 8) — too quiet
 
+
+---
+
+## OSC Shutdown Race Condition
+
+**Priority:** Low — cosmetic, only on exit
+
+### Problem
+When closing Noise Engine, OSC server thread continues receiving messages after Qt objects are deleted, causing `RuntimeError: wrapped C/C++ object of type OSCBridge has been deleted`.
+
+### Fix
+Stop OSC server before destroying Qt objects, or add guard checks in handlers:
+```python
+def _handle_mod_bus_value(self, addr, *args):
+    if self._shutdown:  # Add shutdown flag
+        return
+    ...
+```
+
+### Files
+- `src/audio/osc_bridge.py`
+
+
+---
+
+## Auto-Load Pack Preset on Pack Change
+
+**Priority:** Medium — improves Imaginarium workflow
+
+### Problem
+When switching to an Imaginarium pack, user must manually Ctrl+O and load the preset. Should auto-detect and offer to load.
+
+### Proposed Behavior
+When pack changes:
+1. Check if `{pack_name}_preset.json` exists in `~/noise-engine-presets/`
+2. If found, prompt: "Load preset for {pack}?" or auto-load
+3. Could be a setting: "Auto-load pack presets" checkbox
+
+### Files
+- `src/gui/main_frame.py` — `on_pack_changed()`
+- Look for preset in `~/noise-engine-presets/{pack_name}_preset.json`
+

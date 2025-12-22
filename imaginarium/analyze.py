@@ -114,16 +114,18 @@ def extract_features(
     duration = len(mono) / sr
     onset_rate = len(onsets) / max(duration, 0.1)
     onset_norm = normalize_value(onset_rate, "onset_density")
-    
+
     # === Crest Factor (peak/RMS ratio in dB) ===
     rms = np.sqrt(np.mean(mono ** 2))
     peak = np.max(np.abs(mono))
     if rms > 1e-10:
         crest_db = 20 * np.log10(peak / rms)
+        rms_db = 20 * np.log10(rms)
     else:
         crest_db = 0.0
+        rms_db = -60.0
     crest_norm = normalize_value(crest_db, "crest")
-    
+
     # === Stereo Width ===
     if stereo is not None and stereo.shape[1] >= 2:
         left = stereo[:, 0]
@@ -154,7 +156,7 @@ def extract_features(
         # Fallback if HPSS fails
         harmonicity = 0.5
     harmonicity_norm = normalize_value(harmonicity, "harmonicity")
-    
+
     return CandidateFeatures(
         centroid=centroid_norm,
         flatness=flatness_norm,
@@ -162,6 +164,7 @@ def extract_features(
         crest=crest_norm,
         width=width_norm,
         harmonicity=harmonicity_norm,
+        rms_db=rms_db,  # ADD THIS
     )
 
 

@@ -102,6 +102,7 @@ class CandidateFeatures:
     crest: float = 0.0         # Peak/RMS ratio (0-24 dB)
     width: float = 0.0         # Stereo correlation (0-1)
     harmonicity: float = 0.0   # Harmonic ratio (0-1)
+    rms_db: float = -20.0  # RMS loudness in dBFS (for trim calculation)
     
     def to_array(self) -> np.ndarray:
         """Return as numpy array for distance calculations."""

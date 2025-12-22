@@ -200,8 +200,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     modeAmps = [{amps_str}];
     modeDecays = [{decays_str}];
 
-    // Klank resonator bank
-    sig = Klank.ar(
+    // DynKlank for dynamic pitch response
+    sig = DynKlank.ar(
         `[modeFreqs, modeAmps, modeDecays],
         exc
     );

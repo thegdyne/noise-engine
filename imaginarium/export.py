@@ -83,13 +83,13 @@ def export_pack(
     # Generate files for each selected candidate
     generator_entries = []
     generator_stems = []
-    
+
     for i, candidate in enumerate(selected):
         synthdef_name = generate_synthdef_name(pack_name, candidate, i)
         display_name = generate_display_name(candidate, i, pack_name)
-        
+
         method = get_method(candidate.method_id)
-        
+
         # Generate SynthDef
         if method:
             scd_code = method.generate_synthdef(
@@ -108,8 +108,16 @@ def export_pack(
                 "name": display_name,
                 "synthdef": synthdef_name,
                 "custom_params": [],
+                "output_trim_db": -6.0,
             }
-        
+
+        # Calculate output trim based on measured RMS (applies to both)
+        TARGET_RMS_DB = -18.0
+        if candidate.features and candidate.features.rms_db > -60:
+            trim = TARGET_RMS_DB - candidate.features.rms_db
+            trim = max(-18.0, min(18.0, trim))  # Clamp to ±18dB
+            json_config["output_trim_db"] = round(float(trim), 1)
+
         # Write SynthDef
         scd_path = gen_dir / f"{synthdef_name}.scd"
         scd_path.write_text(scd_code)
