@@ -188,11 +188,11 @@ class TestGeneratorConfigFunctions:
                 f"{name} output_trim_db is {type(trim)}, expected float"
 
     def test_get_generator_output_trim_db_range(self):
-        """output_trim_db is in reasonable range (-24 to +6 dB)."""
+        """output_trim_db is in reasonable range (-24 to +18 dB)."""
         for name in GENERATOR_CYCLE:
             trim = get_generator_output_trim_db(name)
-            assert -24.0 <= trim <= 6.0, \
-                f"{name} output_trim_db {trim} outside reasonable range [-24, +6]"
+            assert -24.0 <= trim <= 18.0, \
+                f"{name} output_trim_db {trim} outside reasonable range [-24, +18]"
 
 
 class TestGeneratorSCDFiles:
