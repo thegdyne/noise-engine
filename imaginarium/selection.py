@@ -273,6 +273,7 @@ def select_by_role(
     
     # Track family counts globally across all roles
     family_counts: Dict[str, int] = {}
+    method_counts: Dict[str, int] = {}  # Prevent duplicate methods
     
     debug: Dict[str, Any] = {
         "slot_allocation": dict(slot_allocation),
@@ -284,13 +285,17 @@ def select_by_role(
 
     def pop_pick(cid: str) -> SelectionCandidate:
         return remaining.pop(cid)
-    
+
     def penalized_affinity(c: SelectionCandidate, role: str) -> float:
-        """Compute affinity with family penalty applied."""
+        """Compute affinity with family and method penalties applied."""
         base = role_affinity(role, c.features, c.tags)
         fam = c.family or c.tags.get("family", "")
-        penalty = family_penalty(family_counts.get(fam, 0))
-        return max(0.0, base - penalty)
+        method = c.tags.get("method", "")
+
+        fam_penalty = family_penalty(family_counts.get(fam, 0))
+        method_penalty = 1.0 if method_counts.get(method, 0) >= 1 else 0.0
+
+        return max(0.0, base - fam_penalty - method_penalty)
 
     for role in ROLE_ORDER:
         needed = int(slot_allocation.get(role, 0))
@@ -343,6 +348,8 @@ def select_by_role(
                     # Update family count
                     family_counts[fam] = family_counts.get(fam, 0) + 1
                     picked.append(pop_pick(c.candidate_id))
+                    method = c.tags.get("method", "")
+                    method_counts[method] = method_counts.get(method, 0) + 1
 
             if len(picked) >= needed:
                 break
@@ -363,6 +370,8 @@ def select_by_role(
                 fam = c.family or c.tags.get("family", "")
                 family_counts[fam] = family_counts.get(fam, 0) + 1
                 picked.append(pop_pick(c.candidate_id))
+                method = c.tags.get("method", "")
+                method_counts[method] = method_counts.get(method, 0) + 1
             
             if fillers:
                 log.info(
