@@ -1,0 +1,554 @@
+# object_concepts.yaml
+# 
+# Maps detected objects (COCO classes) to musical context concepts.
+# This is a CURATED database - unmapped classes are ignored.
+#
+# Schema per entry:
+#   scale:  intimate | room | hall | vast | cosmic | null
+#   origin: organic | natural | hybrid | mechanical | synthetic | null
+#   energy: still | breathing | flowing | rhythmic | churning | null
+#   weight: 0.5–1.5 (importance multiplier, default 1.0)
+#
+# Guidelines:
+#   - null means "no opinion on this axis" (won't influence it)
+#   - weight > 1.0 for strongly evocative objects
+#   - weight < 1.0 for ambiguous or background objects
+#   - Think: "If this object dominates the image, what mood?"
+#
+# Version: 1.0
+# Last updated: 2024-12-22
+
+---
+
+# ============================================================
+# ANIMALS - Generally organic, scale varies
+# ============================================================
+
+dog:
+  scale: room
+  origin: organic
+  energy: rhythmic
+  weight: 1.0
+
+cat:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 1.0
+
+bird:
+  scale: vast          # implies sky, openness
+  origin: organic
+  energy: flowing
+  weight: 0.9
+
+horse:
+  scale: vast
+  origin: organic
+  energy: flowing
+  weight: 1.1
+
+cow:
+  scale: vast
+  origin: organic
+  energy: breathing
+  weight: 0.9
+
+sheep:
+  scale: vast
+  origin: organic
+  energy: breathing
+  weight: 0.8
+
+elephant:
+  scale: vast
+  origin: organic
+  energy: breathing
+  weight: 1.2          # strongly evocative
+
+bear:
+  scale: vast
+  origin: organic
+  energy: breathing
+  weight: 1.1
+
+zebra:
+  scale: vast
+  origin: organic
+  energy: flowing
+  weight: 1.0
+
+giraffe:
+  scale: cosmic        # tall, reaching
+  origin: organic
+  energy: breathing
+  weight: 1.1
+
+# ============================================================
+# PEOPLE - Hybrid, energy varies by context
+# ============================================================
+
+person:
+  scale: room
+  origin: organic
+  energy: breathing
+  weight: 0.7          # common, shouldn't dominate
+
+# Note: Multiple persons detected → use "crowd" alias (see aliases.yaml)
+
+# ============================================================
+# VEHICLES - Mechanical, energetic
+# ============================================================
+
+car:
+  scale: room
+  origin: mechanical
+  energy: rhythmic
+  weight: 0.9
+
+motorcycle:
+  scale: room
+  origin: mechanical
+  energy: churning
+  weight: 1.0
+
+bicycle:
+  scale: room
+  origin: hybrid
+  energy: flowing
+  weight: 0.8
+
+bus:
+  scale: hall
+  origin: mechanical
+  energy: rhythmic
+  weight: 0.9
+
+truck:
+  scale: hall
+  origin: mechanical
+  energy: rhythmic
+  weight: 0.9
+
+train:
+  scale: vast
+  origin: mechanical
+  energy: rhythmic
+  weight: 1.2          # strongly rhythmic association
+
+boat:
+  scale: vast
+  origin: hybrid
+  energy: flowing
+  weight: 1.0
+
+airplane:
+  scale: cosmic
+  origin: mechanical
+  energy: flowing
+  weight: 1.1
+
+# ============================================================
+# OUTDOOR / NATURE
+# ============================================================
+
+tree:
+  scale: vast
+  origin: natural
+  energy: breathing
+  weight: 1.2          # strongly evocative of nature
+
+potted plant:
+  scale: intimate
+  origin: natural
+  energy: still
+  weight: 0.7
+
+flower:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 0.9
+
+# COCO doesn't have these directly, but we can map via aliases:
+# - sky: detected via color analysis, not object
+# - water: proxy via boat presence
+# - mountain: not in COCO
+
+# ============================================================
+# INDOOR OBJECTS - Generally intimate/room scale
+# ============================================================
+
+chair:
+  scale: intimate
+  origin: mechanical
+  energy: still
+  weight: 0.5          # low - very common, not evocative
+
+couch:
+  scale: room
+  origin: hybrid
+  energy: still
+  weight: 0.6
+
+bed:
+  scale: room
+  origin: hybrid
+  energy: still
+  weight: 0.7
+
+dining table:
+  scale: room
+  origin: mechanical
+  energy: still
+  weight: 0.5
+
+toilet:
+  scale: intimate
+  origin: mechanical
+  energy: still
+  weight: 0.3          # not musically evocative
+
+# ============================================================
+# ELECTRONICS - Synthetic, varied energy
+# ============================================================
+
+tv:
+  scale: room
+  origin: synthetic
+  energy: flowing      # implies moving images
+  weight: 0.6
+
+laptop:
+  scale: intimate
+  origin: synthetic
+  energy: still
+  weight: 0.6
+
+cell phone:
+  scale: intimate
+  origin: synthetic
+  energy: rhythmic     # notifications, communication
+  weight: 0.5
+
+keyboard:
+  scale: intimate
+  origin: synthetic
+  energy: rhythmic
+  weight: 0.6
+
+mouse:
+  scale: intimate
+  origin: synthetic
+  energy: still
+  weight: 0.4
+
+remote:
+  scale: intimate
+  origin: synthetic
+  energy: still
+  weight: 0.3
+
+# ============================================================
+# KITCHEN / FOOD - Intimate, organic/hybrid
+# ============================================================
+
+bottle:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.4
+
+wine glass:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.5
+
+cup:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.4
+
+fork:
+  scale: intimate
+  origin: mechanical
+  energy: still
+  weight: 0.3
+
+knife:
+  scale: intimate
+  origin: mechanical
+  energy: still
+  weight: 0.4
+
+spoon:
+  scale: intimate
+  origin: mechanical
+  energy: still
+  weight: 0.3
+
+bowl:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.4
+
+banana:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 0.5
+
+apple:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 0.5
+
+sandwich:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 0.4
+
+orange:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 0.5
+
+broccoli:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 0.4
+
+carrot:
+  scale: intimate
+  origin: organic
+  energy: still
+  weight: 0.4
+
+hot dog:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.4
+
+pizza:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.5
+
+donut:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.4
+
+cake:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.6
+
+# ============================================================
+# SPORTS / RECREATION
+# ============================================================
+
+frisbee:
+  scale: vast
+  origin: hybrid
+  energy: flowing
+  weight: 0.7
+
+skis:
+  scale: vast
+  origin: mechanical
+  energy: flowing
+  weight: 0.9
+
+snowboard:
+  scale: vast
+  origin: mechanical
+  energy: churning
+  weight: 0.9
+
+sports ball:
+  scale: room
+  origin: hybrid
+  energy: rhythmic
+  weight: 0.7
+
+kite:
+  scale: cosmic
+  origin: hybrid
+  energy: flowing
+  weight: 1.0
+
+baseball bat:
+  scale: room
+  origin: mechanical
+  energy: rhythmic
+  weight: 0.6
+
+baseball glove:
+  scale: room
+  origin: hybrid
+  energy: rhythmic
+  weight: 0.5
+
+skateboard:
+  scale: room
+  origin: mechanical
+  energy: churning
+  weight: 0.8
+
+surfboard:
+  scale: vast
+  origin: hybrid
+  energy: flowing
+  weight: 1.1
+
+tennis racket:
+  scale: room
+  origin: mechanical
+  energy: rhythmic
+  weight: 0.6
+
+# ============================================================
+# ACCESSORIES / PERSONAL ITEMS
+# ============================================================
+
+umbrella:
+  scale: room
+  origin: hybrid
+  energy: still        # or flowing if rain implied
+  weight: 0.6
+
+handbag:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.4
+
+tie:
+  scale: intimate
+  origin: mechanical
+  energy: still
+  weight: 0.4
+
+suitcase:
+  scale: room
+  origin: mechanical
+  energy: flowing      # implies travel
+  weight: 0.6
+
+backpack:
+  scale: room
+  origin: hybrid
+  energy: flowing
+  weight: 0.6
+
+# ============================================================
+# BUILDINGS / STRUCTURES
+# ============================================================
+
+traffic light:
+  scale: hall
+  origin: mechanical
+  energy: rhythmic
+  weight: 0.7
+
+fire hydrant:
+  scale: room
+  origin: mechanical
+  energy: still
+  weight: 0.4
+
+stop sign:
+  scale: room
+  origin: mechanical
+  energy: still
+  weight: 0.5
+
+parking meter:
+  scale: room
+  origin: mechanical
+  energy: still
+  weight: 0.4
+
+bench:
+  scale: hall
+  origin: mechanical
+  energy: still
+  weight: 0.5
+
+# ============================================================
+# TIME / RHYTHM OBJECTS
+# ============================================================
+
+clock:
+  scale: room
+  origin: mechanical
+  energy: rhythmic
+  weight: 1.0          # strongly rhythmic
+
+# ============================================================
+# BOOKS / KNOWLEDGE
+# ============================================================
+
+book:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.6
+
+# ============================================================
+# MISCELLANEOUS
+# ============================================================
+
+vase:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.5
+
+scissors:
+  scale: intimate
+  origin: mechanical
+  energy: still
+  weight: 0.4
+
+teddy bear:
+  scale: intimate
+  origin: hybrid
+  energy: still
+  weight: 0.7          # emotionally evocative
+
+hair drier:
+  scale: intimate
+  origin: mechanical
+  energy: churning
+  weight: 0.4
+
+toothbrush:
+  scale: intimate
+  origin: mechanical
+  energy: rhythmic
+  weight: 0.3
+
+# ============================================================
+# INTENTIONALLY UNMAPPED (too ambiguous or not evocative)
+# ============================================================
+#
+# The following COCO classes are NOT mapped:
+# - oven (too generic)
+# - toaster (too generic)
+# - sink (too generic)
+# - refrigerator (too generic)
+# - microwave (too generic)
+# - These will be ignored if detected

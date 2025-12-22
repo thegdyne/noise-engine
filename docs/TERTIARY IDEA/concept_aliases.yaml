@@ -1,0 +1,128 @@
+# concept_aliases.yaml
+#
+# Maps COCO class variations and groups to canonical concept entries.
+# Checked BEFORE object_concepts.yaml lookup.
+#
+# Use cases:
+#   1. COCO synonyms (car vs automobile)
+#   2. Group detection (multiple persons → crowd)
+#   3. Proxy detection (boat implies water)
+#
+# Version: 1.0
+# Last updated: 2024-12-22
+
+---
+
+# ============================================================
+# DIRECT SYNONYMS
+# These map directly to a single concept entry
+# ============================================================
+
+# Vehicles
+automobile: car
+motorbike: motorcycle
+aeroplane: airplane
+aircraft: airplane
+
+# Furniture
+sofa: couch
+settee: couch
+
+# Food
+doughnut: donut
+
+# ============================================================
+# GROUP CONCEPTS
+# Applied when multiple instances of a class are detected
+# ============================================================
+
+# When 3+ persons detected, treat as crowd
+# Implementation: if count(person) >= 3: use crowd_concept
+crowd:
+  _trigger: "person >= 3"
+  scale: hall
+  origin: hybrid
+  energy: churning
+  weight: 1.1
+
+# When 3+ birds detected, treat as flock
+flock:
+  _trigger: "bird >= 3"
+  scale: cosmic
+  origin: organic
+  energy: flowing
+  weight: 1.0
+
+# ============================================================
+# PROXY CONCEPTS
+# Objects that strongly imply another unmapped concept
+# ============================================================
+
+# Boat/ship implies water
+# Note: This adds water influence alongside the boat's own concepts
+water_proxy:
+  _trigger: "boat OR surfboard"
+  scale: vast
+  origin: natural
+  energy: flowing
+  weight: 0.8           # additional influence, doesn't replace boat
+
+# Skis/snowboard implies snow/mountain
+mountain_proxy:
+  _trigger: "skis OR snowboard"
+  scale: cosmic
+  origin: natural
+  energy: null          # don't override energy from the gear itself
+  weight: 0.6
+
+# Kite implies wind/sky
+sky_proxy:
+  _trigger: "kite OR airplane"
+  scale: cosmic
+  origin: natural
+  energy: flowing
+  weight: 0.5
+
+# ============================================================
+# IMPLEMENTATION NOTES
+# ============================================================
+#
+# Alias resolution order:
+#   1. Direct synonyms (string → string)
+#   2. Group concepts (count threshold → synthetic concept)
+#   3. Proxy concepts (presence → additional concept injection)
+#
+# Group and proxy concepts require special handling in code:
+#
+# def resolve_aliases(detections, aliases):
+#     resolved = []
+#     class_counts = Counter(d["class"] for d in detections)
+#     
+#     for detection in detections:
+#         cls = detection["class"]
+#         
+#         # Direct synonym
+#         if cls in aliases.synonyms:
+#             detection["class"] = aliases.synonyms[cls]
+#         
+#         resolved.append(detection)
+#     
+#     # Group concepts
+#     for group in aliases.groups:
+#         if class_counts[group.trigger_class] >= group.threshold:
+#             resolved.append({
+#                 "class": group.name,
+#                 "confidence": avg_confidence(group.trigger_class),
+#                 "synthetic": True
+#             })
+#     
+#     # Proxy concepts
+#     for proxy in aliases.proxies:
+#         if any(cls in class_counts for cls in proxy.trigger_classes):
+#             resolved.append({
+#                 "class": proxy.name,
+#                 "confidence": max_confidence(proxy.trigger_classes) * proxy.weight,
+#                 "synthetic": True
+#             })
+#     
+#     return resolved

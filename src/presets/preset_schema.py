@@ -312,6 +312,7 @@ class PresetState:
     mapping_version: int = MAPPING_VERSION
     name: str = "Untitled"
     created: str = ""
+    pack: Optional[str] = None  # None = Core, string = pack_id
     slots: list = field(default_factory=lambda: [SlotState() for _ in range(NUM_SLOTS)])
     mixer: MixerState = field(default_factory=MixerState)
     # Phase 2 additions
@@ -328,6 +329,7 @@ class PresetState:
             "mapping_version": self.mapping_version,
             "name": self.name,
             "created": self.created,
+            "pack": self.pack,
             "slots": [slot.to_dict() for slot in self.slots],
             "mixer": self.mixer.to_dict(),
             "bpm": self.bpm,
@@ -350,6 +352,7 @@ class PresetState:
             mapping_version=data.get("mapping_version", MAPPING_VERSION),
             name=data.get("name", "Untitled"),
             created=data.get("created", ""),
+            pack=data.get("pack"),  # None if not present (backward compat)
             slots=slots[:NUM_SLOTS],
             mixer=MixerState.from_dict(data.get("mixer", {})),
             bpm=data.get("bpm", BPM_DEFAULT),

@@ -1441,6 +1441,7 @@ class MainFrame(QMainWindow):
         """Save current state to preset file."""
         from PyQt5.QtWidgets import QFileDialog, QMessageBox
         from pathlib import Path
+        from src.config import get_current_pack
 
         # Collect generator slot states
         slots = []
@@ -1469,7 +1470,11 @@ class MainFrame(QMainWindow):
         # Phase 4: Mod routing
         mod_routing = self.mod_routing.to_dict()
         
+        # Get current pack
+        current_pack = get_current_pack()
+        
         state = PresetState(
+            pack=current_pack,
             slots=slots,
             mixer=mixer,
             bpm=bpm,
@@ -1524,6 +1529,16 @@ class MainFrame(QMainWindow):
 
     def _apply_preset(self, state: PresetState):
         """Apply preset state to all components."""
+        # Handle pack switching FIRST (before loading slots)
+        if state.pack is not None:
+            # Preset specifies a pack - switch to it
+            if not self.pack_selector.set_pack(state.pack):
+                logger.warning(f"Pack '{state.pack}' not found, using Core", component="PRESET")
+        else:
+            # Preset is for Core (or old preset without pack field)
+            # Don't auto-switch to Core - leave current pack as is for backward compat
+            pass
+        
         # Apply to generator slots
         for i, slot_state in enumerate(state.slots):
             slot_id = i + 1
