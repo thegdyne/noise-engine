@@ -392,23 +392,33 @@ class MainFrame(QMainWindow):
         self.master_bpm = bpm
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
-        
+
     def on_pack_changed(self, pack_id):
-        """Handle pack selection change."""
-        from src.config import get_current_generators
-        
-        # Get new generator list
-        generators = get_current_generators()
-        
-        # Update all generator slots
-        self.generator_grid.set_available_generators(generators)
-        
-        # Reset all slots to Empty
-        for slot_id in range(8):
-            self.generator_grid.set_generator_type(slot_id, "Empty")
-            self.on_generator_changed(slot_id, "Empty")
-
-
+        # Auto-load pack preset if exists
+        if pack_id:
+            from src.presets.preset_manager import PresetManager
+            from src.presets.preset_schema import PresetState
+            sanitized = pack_id.replace("-", "_").replace(" ", "_").lower()
+            preset_path = PresetManager.DEFAULT_DIR / f"{sanitized}_preset.json"
+            if preset_path.exists():
+                try:
+                    manager = PresetManager()
+                    state = manager.load(preset_path)
+                    self._apply_preset(state)
+                    self.preset_name.setText(state.name)
+                    logger.info(f"Auto-loaded preset for pack '{pack_id}'", component="PACK")
+                except Exception as e:
+                    logger.warning(f"Failed to load pack preset: {e}", component="PACK")
+                    self._apply_preset(PresetState(pack=pack_id))
+                    self.preset_name.setText("Init")
+            else:
+                self._apply_preset(PresetState(pack=pack_id))
+                self.preset_name.setText("Init")
+        else:
+            # Core - clean state
+            from src.presets.preset_schema import PresetState
+            self._apply_preset(PresetState())
+            self.preset_name.setText("Init")
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
         if not self.osc_connected:
