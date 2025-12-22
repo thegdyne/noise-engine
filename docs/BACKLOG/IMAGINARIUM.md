@@ -1,12 +1,25 @@
 # Imaginarium Backlog
 
+## Phase 3: Detail Layer (NEXT)
+Second layer system adding texture/movement to generated packs.
+
+**10 Techniques:**
+- sub, dust, drift, shimmer, beat
+- growl, ghost, swarm, breath, ping
+
+**Allocation:** SoundSpec (6D) → technique weights  
+**Budget:** Total detail capped to prevent mud  
+**Role bias:** Accent → +ping, Bed → +sub, etc.
+
+**Spec:** `DETAIL_LAYER_SPEC.md` (to create)
+
 ## Phase 2 Remaining
-- [ ] A/B listening tests: spatial vs global selection
+- [x] A/B listening tests: spatial vs global selection
 - [ ] Quantile-based floors (replace fixed thresholds)
 - [ ] Per-role SoundSpec generation (targeted candidate pools)
 - [ ] Layer mix defaults (gain/pan/EQ hints per role)
 
-## Phase 3: Extended Input (future)
+## Phase 4: Extended Input (future)
 - [ ] Text → SoundSpec (NLP keywords to parameters)
 - [ ] Audio → SoundSpec (analyze reference audio)
 
@@ -46,7 +59,7 @@ Purple/magenta bias from alpha blending + saturated backgrounds.
 - % images with dominant hue bin > threshold
 
 ## CLI Enhancement
-- [ ] Show spatial role grid in generate output when `--spatial` used
+- [x] Show spatial role grid in generate output (--spatial is now default)
 
 ## Ideas
 - Foreground detection for soft-edge/painterly images
