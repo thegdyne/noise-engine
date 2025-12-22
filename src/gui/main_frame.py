@@ -314,7 +314,35 @@ class MainFrame(QMainWindow):
         """)
         self.matrix_btn.clicked.connect(self._open_mod_matrix)
         layout.addWidget(self.matrix_btn)
-        
+
+        # Clear mod button - clears all modulation routes
+        self.clear_mod_btn = QPushButton("CLEAR")
+        self.clear_mod_btn.setToolTip("Clear all modulation routes")
+        self.clear_mod_btn.setFixedSize(55, 27)
+        self.clear_mod_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: #ff4444;
+                border: 1px solid #aa2222;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #330000;
+                color: #ff6666;
+                border-color: #ff4444;
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['background']};
+                color: #441111;
+                border-color: #331111;
+            }}
+        """)
+        self.clear_mod_btn.clicked.connect(self._clear_all_mod_routes)
+        layout.addWidget(self.clear_mod_btn)
+
         # MIDI mode button - sets all generators to MIDI trigger mode
         self.midi_mode_btn = QPushButton("MIDI")
         self.midi_mode_btn.setToolTip("Set all generators to MIDI mode (toggle)")
@@ -972,11 +1000,15 @@ class MainFrame(QMainWindow):
         
         # Pass same values for outer and inner (single bracket pair now)
         slider.set_modulation_range(range_min, range_max, range_min, range_max, color)
-    
+
     def _on_mod_routes_cleared(self):
-        """Handle all routes cleared - clear all slider brackets."""
+        """Handle all routes cleared - send OSC and clear all slider brackets."""
+        # Send OSC to SuperCollider
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_route_clear_all'], [])
+
         logger.debug("All mod routes cleared", component="MOD")
-        
+
         # Clear all slider modulation visualizations
         for slot_id in range(1, 9):
             slot = self.generator_grid.get_slot(slot_id)
@@ -1021,7 +1053,12 @@ class MainFrame(QMainWindow):
             self.mod_matrix_window.raise_()
             self.mod_matrix_window.activateWindow()
             logger.info("Mod matrix window opened", component="MOD")
-    
+
+    def _clear_all_mod_routes(self):
+        """Clear all modulation routes."""
+        self.mod_routing.clear()
+        logger.info("Cleared all mod routes", component="MOD")
+
     def _get_target_slider_value(self, slot_id: int, param: str) -> float:
         """Get normalized 0-1 value of a generator parameter slider.
         
@@ -1637,6 +1674,7 @@ class MainFrame(QMainWindow):
             self.audio_selector,  # Audio device selector
             self.midi_selector,  # MIDI device selector
             self.bpm_display,  # BPM control
+            self.clear_mod_btn # CLear matrix button
         ]
 
         for widget in sc_dependent:

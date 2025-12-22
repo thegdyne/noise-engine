@@ -59,6 +59,12 @@ Depends on: mod_apply_v2.scd (~addModRoute, ~removeModRoute, ~setModRoute)
         ("OSC: Remove route bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam).postln;
         ~removeModRoute.(sourceBus, targetSlot, targetParam.asSymbol);
     }, '/noise/mod/route/remove');
-    
+
+     // Clear all mod routes
+        OSCdef(\modRouteClearAll, { |msg|
+            "OSC: Clearing all mod routes".postln;
+            ~clearAllModRoutes.();
+        }, '/noise/mod/route/clear_all');
+
     "  ✓ Mod routing OSC handlers ready".postln;
 };

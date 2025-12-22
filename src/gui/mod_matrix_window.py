@@ -152,7 +152,35 @@ class ModMatrixWindow(QMainWindow):
         """)
         engine_btn.clicked.connect(self.hide)
         header_layout.addWidget(engine_btn)
-        
+
+        # CLEAR button - clears all mod routes (ADD HERE)
+        self.clear_btn = QPushButton("CLEAR")
+        self.clear_btn.setToolTip("Clear all modulation routes")
+        self.clear_btn.setFixedSize(55, 27)
+        self.clear_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: #ff4444;
+                border: 1px solid #aa2222;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #330000;
+                color: #ff6666;
+                border-color: #ff4444;
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['background']};
+                color: #441111;
+                border-color: #331111;
+            }}
+        """)
+        self.clear_btn.clicked.connect(self._clear_all_routes)
+        header_layout.addWidget(self.clear_btn)
+
         header_layout.addStretch()
         
         layout.addLayout(header_layout)
@@ -186,7 +214,7 @@ class ModMatrixWindow(QMainWindow):
         # Legend
         legend = self._build_legend()
         layout.addWidget(legend)
-        
+
     def _build_column_headers(self, layout: QGridLayout):
         """Build column headers: G1 CUT, G1 RES, G2 CUT, etc."""
         col = 1  # Start after row header column
@@ -343,7 +371,7 @@ class ModMatrixWindow(QMainWindow):
             cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
             if cell:
                 cell.set_connection(True, conn.amount)
-    
+
     def _on_cell_clicked(self, bus: int, slot: int, param: str):
         """Handle cell left-click: toggle connection."""
         # Update selection to clicked cell
@@ -489,7 +517,11 @@ class ModMatrixWindow(QMainWindow):
         # Close popup if open
         if hasattr(self, '_open_popup') and self._open_popup:
             self._open_popup.close()
-    
+
+    def _clear_all_routes(self):
+        """Clear all modulation routes."""
+        self.routing_state.clear()
+
     def update_mod_slot_type(self, slot: int, slot_type: str):
         """
         Update a mod slot's type (affects row labels and cell colours).

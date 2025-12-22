@@ -198,10 +198,15 @@ class ModRoutingState(QObject):
     def get_all_connections(self) -> List[ModConnection]:
         """Get all connections."""
         return list(self._connections.values())
-    
+
     def clear(self) -> None:
         """Remove all connections."""
-        self._connections.clear()
+        # Remove each connection individually to trigger OSC messages
+        keys = list(self._connections.keys())
+        for key in keys:
+            conn = self._connections[key]
+            del self._connections[key]
+            self.connection_removed.emit(conn.source_bus, conn.target_slot, conn.target_param)
         self.all_cleared.emit()
     
     def to_dict(self) -> Dict[str, Any]:
