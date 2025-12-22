@@ -285,3 +285,85 @@ When Imaginarium generates a pack, it also creates a preset file with these defa
 - 0.85 → ~4.0s
 - 0.90 → ~5.5s
 
+
+---
+
+## Pack Generator Name Collision Bug
+
+**Priority:** High — breaks Imaginarium workflow
+
+### Problem
+Pack loader deduplicates generators by **display name**, not synthdef name. If two packs both have "Supersaw 6", one gets skipped.
+
+### Current Behavior
+```
+Pack 'pizza-global': 'Supersaw 6' already loaded from 'chiaroscuro_pack', skipping
+Loaded 7 generators from pack 'pizza-global'
+```
+
+### Expected Behavior
+Each pack should load all 8 of its generators regardless of display name collisions with other packs.
+
+### Fix
+In `src/config/__init__.py` `_load_generator_configs()`:
+- Use synthdef name (unique per pack) for deduplication, not display name
+- Or namespace display names: `f"{pack_name}: {display_name}"`
+
+### Files
+- `src/config/__init__.py` — `_load_generator_configs()` function
+
+
+---
+
+## Imaginarium Loudness Normalization
+
+**Priority:** Medium — affects pack quality
+
+### Problem
+Generated packs have inconsistent loudness between generators. Formant and Supersaw were noticeably quieter despite passing safety gates.
+
+### Current Behavior
+- All generators get fixed `-6.0 dB` output trim
+- Safety gates check for silence (< -60dB) and clipping, not relative loudness
+
+### Proposed Fix
+During rendering/analysis phase:
+1. Measure RMS loudness of each candidate
+2. Calculate per-generator trim to normalize to target RMS (e.g., -18 LUFS)
+3. Store calculated trim in generator JSON instead of fixed -6.0
+
+### Files
+- `imaginarium/render.py` — measure RMS during render
+- `imaginarium/export.py` — use measured trim instead of fixed value
+
+
+---
+
+## Generator Type Button Width
+
+**Priority:** Low — cosmetic but affects usability with Imaginarium packs
+
+### Problem
+Generator type button (CycleButton) is fixed at 70x20, too narrow for pack-prefixed names like "Dark Pulse 1 [pizza-gl]".
+
+### Widget Hierarchy
+```
+gen6_type (CycleButton) 70x20 ⚠️FIXED
+  ↑ gen6_type_container (QFrame) 70x20 ⚠️FIXED
+    ↑ gen6_header (QWidget) 156x20 ⚠️FIXED
+```
+
+### Fix
+Increase width to ~120-140px to accommodate longer names, or use text truncation with tooltip.
+
+### Files
+- `src/gui/generator_slot_builder.py` — button width config
+- Possibly `src/gui/theme.py` — GENERATOR_THEME values
+
+
+### Test Cases (from pizza-pup testing)
+- pizza-global gen4 (Supersaw 4) — too quiet
+- pizza-spatial gen5 (Modal Resonator 5) — too loud  
+- pizza-spatial gen7 (Filtered Noise 7) — too quiet
+- pizza-spatial gen8 (Formant Voice 8) — too quiet
+
