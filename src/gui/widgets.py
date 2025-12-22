@@ -138,12 +138,16 @@ class DragSlider(QSlider):
     def has_modulation(self) -> bool:
         """Check if modulation is active on this slider."""
         return self._mod_range_min is not None
-    
+
     def paintEvent(self, event):
         """Draw slider with modulation overlay."""
         # Let Qt draw the standard slider first
         super().paintEvent(event)
-        
+
+        # Skip modulation overlay if disabled
+        if not self.isEnabled():
+            return
+
         # Draw modulation overlay if active
         if self._mod_range_min is not None:
             # Store values at paint time for debug comparison
@@ -627,34 +631,37 @@ class CycleButton(QPushButton):
                 self.cycle_forward()
             self.dragging = False
             self.moved_during_press = False
-    
+
     def paintEvent(self, event):
         """Custom paint with clipping and text elision to prevent overflow."""
         from PyQt5.QtGui import QPainter, QFontMetrics
         from PyQt5.QtWidgets import QStylePainter, QStyleOptionButton, QStyle
-        
+
         p = QStylePainter(self)
         p.setClipRect(self.rect())  # CRITICAL: stop spill outside widget
-        
+
         # Draw button background/frame using style
         opt = QStyleOptionButton()
         self.initStyleOption(opt)
         opt.text = ""  # We'll draw text ourselves
         p.drawControl(QStyle.CE_PushButton, opt)
-        
+
         # Draw elided text with per-instance padding
         r = self.contentsRect()
         fm = QFontMetrics(self.font())
         text = self.text()
         pad = self.text_padding_lr
         elided = fm.elidedText(text, Qt.ElideRight, max(0, r.width() - pad * 2))
-        
+
+        # Dim text color when disabled
+        if not self.isEnabled():
+            p.setPen(QColor(COLORS['border']))
+
         p.drawText(r.adjusted(pad, 0, -pad, 0), self.text_alignment, elided)
-        
+
         # Set tooltip to full text if elided
         if elided != text:
             self.setToolTip(text)
-
 
 class MiniKnob(QWidget):
     """
@@ -701,34 +708,46 @@ class MiniKnob(QWidget):
         
     def setToolTip(self, tip):
         super().setToolTip(tip)
-        
+
     def paintEvent(self, event):
         """Draw the knob as a filled arc."""
         from PyQt5.QtGui import QPainter, QColor, QPen
         from PyQt5.QtCore import QRectF
         import math
-        
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        
+
         # Knob area (slightly inset)
         rect = QRectF(2, 2, self.width() - 4, self.height() - 4)
-        
+
+        # Use dimmer colors when disabled
+        if self.isEnabled():
+            border_color = QColor(COLORS['border'])
+            bg_color = QColor(COLORS['background_dark'])
+            dot_color = QColor(COLORS['text_dim'])
+        else:
+            border_color = QColor(COLORS['border']).darker(150)
+            bg_color = QColor(COLORS['background'])
+            dot_color = QColor(COLORS['border'])
+
         # Background circle
-        painter.setPen(QPen(QColor(COLORS['border']), 1))
-        painter.setBrush(QColor(COLORS['background_dark']))
+        painter.setPen(QPen(border_color, 1))
+        painter.setBrush(bg_color)
         painter.drawEllipse(rect)
-        
+
         # Value indicator - arc from 7 o'clock to 5 o'clock (240 degrees)
         # 0 = 7 o'clock (225°), max = 5 o'clock (-45° = 315°)
         value_ratio = (self._value - self._min) / (self._max - self._min)
-        
+
         # Draw arc showing current value
         start_angle = 225 * 16  # Qt uses 1/16th degrees, 7 o'clock
         span_angle = -int(270 * value_ratio) * 16  # Clockwise
-        
-        # Determine color based on value
-        if self._value < 10:
+
+        # Determine color based on value (dimmed when disabled)
+        if not self.isEnabled():
+            arc_color = QColor(COLORS['border'])
+        elif self._value < 10:
             # Near kill - red
             arc_color = QColor(COLORS['warning_text'])
         elif self._value > 110:
@@ -737,16 +756,15 @@ class MiniKnob(QWidget):
         else:
             # Normal range - green
             arc_color = QColor(COLORS['enabled_text'])
-        
+
         painter.setPen(QPen(arc_color, 2))
         painter.drawArc(rect, start_angle, span_angle)
-        
+
         # Center dot
         center_rect = QRectF(rect.center().x() - 2, rect.center().y() - 2, 4, 4)
         painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor(COLORS['text_dim']))
+        painter.setBrush(dot_color)
         painter.drawEllipse(center_rect)
-        
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self._dragging = True

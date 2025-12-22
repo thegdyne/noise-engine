@@ -186,6 +186,10 @@ def button_style(state='disabled'):
             QPushButton:hover {{
                 background-color: {COLORS['enabled_hover']};
             }}
+            QPushButton:disabled {{
+                background-color: {COLORS['inactive']};
+                color: {COLORS['inactive_text']};
+            }}
         """
     elif state == 'submenu':
         return f"""
@@ -198,6 +202,11 @@ def button_style(state='disabled'):
             QPushButton:hover {{
                 background-color: {COLORS['submenu_hover']};
             }}
+            QPushButton:disabled {{
+                background-color: {COLORS['inactive']};
+                color: {COLORS['inactive_text']};
+                border-color: {COLORS['inactive_text']};
+            }}
         """
     elif state == 'warning':
         return f"""
@@ -208,6 +217,10 @@ def button_style(state='disabled'):
             }}
             QPushButton:hover {{
                 background-color: {COLORS['warning_hover']};
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['inactive']};
+                color: {COLORS['inactive_text']};
             }}
         """
     elif state == 'inactive':
@@ -231,32 +244,30 @@ def button_style(state='disabled'):
             }}
         """
 
-
 def slider_style():
-    """Get standard vertical slider stylesheet."""
+    """Get slider stylesheet."""
     return f"""
-        QSlider {{
-            border: none;
-            background: transparent;
-        }}
         QSlider::groove:vertical {{
-            border: 1px solid {get('slider_groove_border')};
+            background: {COLORS['background_dark']};
             width: 8px;
-            background: {COLORS['slider_groove']};
             border-radius: 4px;
         }}
         QSlider::handle:vertical {{
-            background: {COLORS['slider_handle']};
-            border: 1px solid {get('slider_handle_border')};
+            background: {COLORS['text']};
             height: 12px;
-            margin: 0 -3px;
+            margin: 0 -4px;
             border-radius: 6px;
         }}
         QSlider::handle:vertical:hover {{
-            background: {COLORS['slider_handle_hover']};
+            background: {COLORS['text_bright']};
+        }}
+        QSlider::groove:vertical:disabled {{
+            background: {COLORS['background']};
+        }}
+        QSlider::handle:vertical:disabled {{
+            background: {COLORS['border']};
         }}
     """
-
 
 def slider_style_center_notch():
     """

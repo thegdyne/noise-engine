@@ -68,12 +68,14 @@ class MainFrame(QMainWindow):
         self._midi_mode_active = False
         self._midi_mode_saved_states = [0] * 8  # env_source per slot
         self._midi_mode_changing = False  # Guard flag for bulk changes
-        
+
+
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
         
         self.setup_ui()
-        
+        self._set_header_buttons_enabled(False)  # Disable until SC connects
+
     def setup_ui(self):
         """Create the main interface layout."""
         central = QWidget()
@@ -210,7 +212,22 @@ class MainFrame(QMainWindow):
         """Create top bar."""
         bar = QFrame()
         bar.setFrameShape(QFrame.StyledPanel)
-        bar.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-bottom: 1px solid {COLORS['border_light']};")
+        bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {COLORS['background_highlight']};
+                border-bottom: 1px solid {COLORS['border_light']};
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['background']};
+                color: {COLORS['border']};
+                border-color: {COLORS['border']};
+            }}
+            QComboBox:disabled {{
+                background-color: {COLORS['background']};
+                color: {COLORS['border']};
+                border-color: {COLORS['border']};
+            }}
+        """)
         bar.setFixedHeight(60)
         
         layout = QHBoxLayout(bar)
@@ -288,6 +305,11 @@ class MainFrame(QMainWindow):
                 background-color: #003300;
                 color: #00ff00;
                 border-color: #00ff00;
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['background']};
+                color: #004400;
+                border-color: #002200;
             }}
         """)
         self.matrix_btn.clicked.connect(self._open_mod_matrix)
@@ -419,6 +441,7 @@ class MainFrame(QMainWindow):
             from src.presets.preset_schema import PresetState
             self._apply_preset(PresetState())
             self.preset_name.setText("Init")
+
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
         if not self.osc_connected:
@@ -437,6 +460,7 @@ class MainFrame(QMainWindow):
             
             if self.osc.connect():
                 self.osc_connected = True
+                self._set_header_buttons_enabled(True)
                 self.master_section.set_osc_bridge(self.osc)
                 self.inline_fx.set_osc_bridge(self.osc)
                 self.connect_btn.setText("Disconnect")
@@ -481,6 +505,7 @@ class MainFrame(QMainWindow):
                 pass  # Signals weren't connected
             self.osc.disconnect()
             self.osc_connected = False
+            self._set_header_buttons_enabled(False)
             self.connect_btn.setText("Connect SuperCollider")
             self.status_label.setText("● Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
@@ -488,6 +513,7 @@ class MainFrame(QMainWindow):
     def on_connection_lost(self):
         """Handle connection lost - show prominent warning."""
         self.osc_connected = False
+        self._set_header_buttons_enabled(False)
         self.connect_btn.setText("⚠ RECONNECT")
         self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
         self.status_label.setText("● CONNECTION LOST")
@@ -496,6 +522,7 @@ class MainFrame(QMainWindow):
     def on_connection_restored(self):
         """Handle connection restored after reconnect."""
         self.osc_connected = True
+        self._set_header_buttons_enabled(True)
         self.master_section.set_osc_bridge(self.osc)
         self.inline_fx.set_osc_bridge(self.osc)
         self.connect_btn.setText("Disconnect")
@@ -1387,6 +1414,11 @@ class MainFrame(QMainWindow):
                     font-size: {FONT_SIZES['small']}px;
                     font-weight: bold;
                 }}
+                QPushButton:disabled {{
+                    background-color: #220022;
+                    color: #440044;
+                    border-color: #330033;
+                }}
             """
         else:
             return f"""
@@ -1404,8 +1436,12 @@ class MainFrame(QMainWindow):
                     color: #ff00ff;
                     border-color: #aa00aa;
                 }}
+                QPushButton:disabled {{
+                    background-color: {COLORS['background']};
+                    color: {COLORS['border']};
+                    border-color: {COLORS['border']};
+                }}
             """
-
     def _toggle_midi_mode(self):
         """Toggle all generators to/from MIDI mode."""
         if not self._midi_mode_active:
@@ -1584,3 +1620,25 @@ class MainFrame(QMainWindow):
             # Update mod matrix window if open
             if self.mod_matrix_window:
                 self.mod_matrix_window.sync_from_state()
+
+    def _set_header_buttons_enabled(self, enabled: bool) -> None:
+        """Enable/disable header buttons that require SC connection.
+
+        On startup, only CONNECT, CONSOLE, RESTART are enabled.
+        After SC connection confirmed, all buttons become enabled.
+        """
+        # Buttons/widgets that require SC connection
+        sc_dependent = [
+            self.save_btn,  # Preset save
+            self.load_btn,  # Preset load
+            self.pack_selector,  # Pack selector
+            self.matrix_btn,  # Mod matrix
+            self.midi_mode_btn,  # MIDI mode toggle
+            self.audio_selector,  # Audio device selector
+            self.midi_selector,  # MIDI device selector
+            self.bpm_display,  # BPM control
+        ]
+
+        for widget in sc_dependent:
+            if widget is not None:
+                widget.setEnabled(enabled)

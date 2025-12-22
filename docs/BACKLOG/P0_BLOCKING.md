@@ -1,14 +1,6 @@
 # P0 Blocking
 
 
-## Preset Pack Integration ⚠️ CRITICAL
-**Impact:** Blocks Imaginarium workflow — users can't auto-load pack from preset
-
-1. Add `pack: Optional[str] = None` to `PresetState` in `preset_schema.py`
-2. Update `to_dict()` and `from_dict()` to include pack
-3. In `main_frame.py._apply_preset()`, switch pack BEFORE loading slots
-4. In `main_frame.py._save_preset()`, include current pack
-
 ## UI: Disable Header Buttons Until SC Connected
 User can load packs/presets before SC connection, causing wasted clicks.
 - Add `_set_header_buttons_enabled(enabled: bool)` method

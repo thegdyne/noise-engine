@@ -12,3 +12,5 @@ Future possibilities — no commitment, just captured.
 - Auto-load pack preset on pack change
 - Web-based manual (GitHub Pages/MkDocs)
   - Sections: Getting started, Generators, Packs, Modulation, MIDI, API reference
+  - MASTER MUTE
+  - REMOVE MASTER FX button
