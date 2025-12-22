@@ -90,7 +90,7 @@ Paths:
                     // Send 4 bus values for this slot (quadrature)
                     4.do { |out|
                         var busIdx = ~modBusIndex.(slot, out);
-                        var value = ~modBuses[busIdx].getSynchronous;
+                        var value = try { ~modBuses[busIdx].getSynchronous } { 0 };
                         netAddr.sendMsg('/noise/mod/bus/value', busIdx, value);
                     };
                 };
