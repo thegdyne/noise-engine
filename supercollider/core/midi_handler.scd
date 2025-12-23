@@ -193,10 +193,10 @@ OSC messages to Python:
 
 // One-shot trigger synth for MIDI notes
 // Writes a trigger pulse to a single audio bus channel
-SynthDef(\midiTrigger, { |trigBus=0, amp=1|
-    var trig = Trig1.ar(DC.ar(1), 0.001);  // 1ms trigger pulse
-    Out.ar(trigBus, trig * amp);
-    FreeSelf.kr(TDelay.kr(Impulse.kr(0), 0.01));
+// Uses doneAction:2 to free itself after the pulse completes
+SynthDef(\midiTrigger, { |trigBus=0, amp=1, dur=0.01|
+    var sig = EnvGen.ar(Env.perc(0.0005, dur, 1, -4), doneAction: 2) * amp;
+    Out.ar(trigBus, sig);
 }).add;
 
 // Continuous trigger synth for MIDI retrig mode
