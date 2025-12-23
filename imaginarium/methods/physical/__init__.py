@@ -9,6 +9,7 @@ from .bowed import BowedTemplate
 from .formant import FormantTemplate
 from .membrane import MembraneTemplate
 from .tube import TubeTemplate
+from .comb_resonator import CombResonatorTemplate
 
 __all__ = [
     "KarplusTemplate",
@@ -17,6 +18,7 @@ __all__ = [
     "FormantTemplate",
     "MembraneTemplate",
     "TubeTemplate",
+    "CombResonatorTemplate",
 ]
 
 # Method registry for this family
@@ -27,4 +29,5 @@ PHYSICAL_METHODS = {
     "physical/formant": FormantTemplate,
     "physical/membrane": MembraneTemplate,
     "physical/tube": TubeTemplate,
+    "physical/comb_resonator": CombResonatorTemplate,
 }

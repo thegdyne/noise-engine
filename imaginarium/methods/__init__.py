@@ -72,7 +72,13 @@ def _register_builtins():
     from .physical.tube import TubeTemplate
     from .spectral.spectral_drone import SpectralDroneTemplate
     from .texture.chaos_osc import ChaosOscTemplate
-    
+    from .spectral.wavetable import WavetableTemplate
+    from .spectral.vocoder import VocoderTemplate
+    from .spectral.harmonic_series import HarmonicSeriesTemplate
+    from .physical.comb_resonator import CombResonatorTemplate
+    from .texture.bitcrush import BitcrushTemplate
+    from .texture.noise_rhythm import NoiseRhythmTemplate
+
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
     register_method(NoiseFilteredTemplate())
@@ -97,6 +103,12 @@ def _register_builtins():
     register_method(TubeTemplate())
     register_method(SpectralDroneTemplate())
     register_method(ChaosOscTemplate())
+    register_method(WavetableTemplate())
+    register_method(VocoderTemplate())
+    register_method(HarmonicSeriesTemplate())
+    register_method(CombResonatorTemplate())
+    register_method(BitcrushTemplate())
+    register_method(NoiseRhythmTemplate())
 
 # Register on import
 _register_builtins()
