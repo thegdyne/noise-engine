@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QFrame, QShortcut)
+                             QPushButton, QLabel, QFrame, QShortcut, QApplication)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QKeySequence
 
@@ -23,6 +23,7 @@ from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
 from src.gui.mod_routing_state import ModRoutingState, ModConnection, Polarity
 from src.gui.mod_matrix_window import ModMatrixWindow
+from src.gui.keyboard_overlay import KeyboardOverlay
 from src.gui.mod_debug import install_mod_debug_hotkey
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
@@ -63,6 +64,9 @@ class MainFrame(QMainWindow):
         
         # Mod matrix window (created on first open)
         self.mod_matrix_window = None
+        
+        # Keyboard overlay (created on first open)
+        self._keyboard_overlay = None
         
         # MIDI mode toggle state
         self._midi_mode_active = False
@@ -201,6 +205,10 @@ class MainFrame(QMainWindow):
         # Shortcut: load preset (Ctrl+O / Cmd+O)
         load_shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
         load_shortcut.activated.connect(self._load_preset)
+
+        # Shortcut: keyboard mode (Ctrl+K / Cmd+K)
+        keyboard_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
+        keyboard_shortcut.activated.connect(self._toggle_keyboard_mode)
 
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
@@ -1657,6 +1665,67 @@ class MainFrame(QMainWindow):
             # Update mod matrix window if open
             if self.mod_matrix_window:
                 self.mod_matrix_window.sync_from_state()
+
+    # ── Keyboard Mode ────────────────────────────────────────────────────────
+
+    def _toggle_keyboard_mode(self):
+        """Toggle the keyboard overlay for QWERTY-to-MIDI input."""
+        # If overlay exists and is visible, just toggle it off
+        if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
+            self._keyboard_overlay.hide()
+            return
+        
+        # Don't open if focus is in a text input field
+        focus_widget = QApplication.focusWidget()
+        if focus_widget is not None:
+            from PyQt5.QtWidgets import QLineEdit, QTextEdit, QSpinBox
+            if isinstance(focus_widget, (QLineEdit, QTextEdit, QSpinBox)):
+                return
+        
+        # Create overlay on first use
+        if self._keyboard_overlay is None:
+            self._keyboard_overlay = KeyboardOverlay(
+                parent=self,
+                send_note_on=self._send_midi_note_on,
+                send_note_off=self._send_midi_note_off,
+                send_all_notes_off=self._send_all_notes_off,
+                get_focused_slot=self._get_focused_slot,
+                is_slot_midi_mode=self._is_slot_midi_mode,
+            )
+        
+        # Position at bottom-center of main window
+        overlay_width = self._keyboard_overlay.width()
+        x = self.x() + (self.width() - overlay_width) // 2
+        y = self.y() + self.height() - self._keyboard_overlay.height() - 24
+        self._keyboard_overlay.move(x, y)
+        self._keyboard_overlay.show()
+
+    def _send_midi_note_on(self, slot: int, note: int, velocity: int):
+        """Send MIDI note-on via OSC. Slot is 0-indexed."""
+        if self.osc is not None:
+            self.osc.send(f"/noise/slot/{slot}/midi/note_on", note, velocity)
+
+    def _send_midi_note_off(self, slot: int, note: int):
+        """Send MIDI note-off via OSC. Slot is 0-indexed."""
+        if self.osc is not None:
+            self.osc.send(f"/noise/slot/{slot}/midi/note_off", note)
+
+    def _send_all_notes_off(self, slot: int):
+        """Send all-notes-off via OSC. Slot is 0-indexed."""
+        if self.osc is not None:
+            self.osc.send(f"/noise/slot/{slot}/midi/all_notes_off")
+
+    def _get_focused_slot(self) -> int:
+        """Return currently focused slot (1-indexed for UI)."""
+        # TODO: Track actual focused slot when we add slot focus tracking
+        return 1
+
+    def _is_slot_midi_mode(self, slot_id: int) -> bool:
+        """Check if slot is in MIDI envelope mode. Slot is 1-indexed (UI)."""
+        if slot_id < 1 or slot_id > 8:
+            return False
+        slot = self.generator_grid.slots[slot_id - 1]
+        return slot.env_source == 2  # 2 = MIDI mode
 
     def _set_header_buttons_enabled(self, enabled: bool) -> None:
         """Enable/disable header buttons that require SC connection.
