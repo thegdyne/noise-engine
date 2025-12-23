@@ -67,6 +67,11 @@ def _register_builtins():
     from .texture.noise_drone import NoiseDroneTemplate
     from .subtractive.wavefold import WavefoldTemplate
     from .fm.phase_mod import PhaseModTemplate
+    from .fm.am_chorus import AMChorusTemplate
+    from .physical.membrane import MembraneTemplate
+    from .physical.tube import TubeTemplate
+    from .spectral.spectral_drone import SpectralDroneTemplate
+    from .texture.chaos_osc import ChaosOscTemplate
     
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
@@ -87,7 +92,11 @@ def _register_builtins():
     register_method(NoiseDroneTemplate())
     register_method(WavefoldTemplate())
     register_method(PhaseModTemplate())
-
+    register_method(AMChorusTemplate())
+    register_method(MembraneTemplate())
+    register_method(TubeTemplate())
+    register_method(SpectralDroneTemplate())
+    register_method(ChaosOscTemplate())
 
 # Register on import
 _register_builtins()
