@@ -8,6 +8,7 @@ Each method defines:
 - SynthDef template (Jinja2 or string interpolation)
 """
 
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -22,6 +23,11 @@ class ParamAxis:
     max_val: float
     default: float
     curve: str = "lin"  # "lin" or "exp"
+    
+    # Metadata for custom params (R1, R10, R11)
+    label: str = ""      # 3-char, e.g., "WID" - required for exposed axes
+    tooltip: str = ""    # Human-readable description - required for exposed axes
+    unit: str = ""       # Display unit (Hz, ms, dB, etc.) - may be empty
     
     def sample(self, t: float) -> float:
         """
@@ -39,6 +45,98 @@ class ParamAxis:
         else:
             # Linear interpolation
             return self.min_val + t * (self.max_val - self.min_val)
+    
+    def normalize(self, value: float) -> float:
+        """
+        Convert actual value to normalized 0-1 range.
+        
+        Args:
+            value: Actual parameter value in [min_val, max_val]
+        
+        Returns:
+            Normalized value in [0, 1]
+        """
+        # Clamp to valid range
+        value = max(self.min_val, min(self.max_val, value))
+        
+        if self.curve == "exp":
+            # Exponential: n = log(v/min) / log(max/min)
+            if self.min_val <= 0 or self.max_val <= 0:
+                raise ValueError(f"exp curve requires positive min/max, got {self.min_val}/{self.max_val}")
+            return math.log(value / self.min_val) / math.log(self.max_val / self.min_val)
+        else:
+            # Linear: n = (v - min) / (max - min)
+            range_val = self.max_val - self.min_val
+            if range_val == 0:
+                return 0.5
+            return (value - self.min_val) / range_val
+    
+    def denormalize(self, norm: float) -> float:
+        """
+        Convert normalized 0-1 value to actual value.
+        
+        Args:
+            norm: Normalized value in [0, 1]
+        
+        Returns:
+            Actual parameter value in [min_val, max_val]
+        """
+        # Clamp to valid range
+        norm = max(0.0, min(1.0, norm))
+        
+        if self.curve == "exp":
+            # Exponential: v = min * (max/min)^n
+            if self.min_val <= 0 or self.max_val <= 0:
+                raise ValueError(f"exp curve requires positive min/max, got {self.min_val}/{self.max_val}")
+            return self.min_val * ((self.max_val / self.min_val) ** norm)
+        else:
+            # Linear: v = min + n * (max - min)
+            return self.min_val + norm * (self.max_val - self.min_val)
+    
+    def to_custom_param(self, baked_value: float) -> dict:
+        """
+        Generate custom_param JSON entry per GENERATOR_SPEC.md.
+        
+        Args:
+            baked_value: The actual value to use as default
+        
+        Returns:
+            Dict with key, label, tooltip, default, min, max, curve, unit
+        """
+        return {
+            "key": self.name,  # R13: use axis.name directly
+            "label": self.label,
+            "tooltip": self.tooltip,
+            "default": self.normalize(baked_value),  # R4: normalized
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",  # Always lin in JSON (UI operates in normalized space)
+            "unit": self.unit,
+        }
+    
+    def sc_read_expr(self, bus_name: str, axis_index: int) -> str:
+        """
+        Generate SuperCollider expression to read and denormalize this param.
+        
+        Emits helper marker token for validation (R12).
+        
+        Args:
+            bus_name: SC bus variable name (e.g., "customBus0")
+            axis_index: Index for marker (0-4)
+        
+        Returns:
+            SC code string with marker and mapping expression
+        """
+        marker = f"/// IMAG_CUSTOMBUS:{axis_index}"
+        
+        if self.curve == "exp":
+            # linexp maps 0-1 to min-max exponentially
+            expr = f"In.kr({bus_name}).linexp(0, 1, {self.min_val}, {self.max_val})"
+        else:
+            # linlin maps 0-1 to min-max linearly
+            expr = f"In.kr({bus_name}).linlin(0, 1, {self.min_val}, {self.max_val})"
+        
+        return f"{marker}\n    {self.name} = {expr};"
 
 
 @dataclass
@@ -71,6 +169,20 @@ class MethodDefinition:
     
     # Default tags (method-level, candidates may add more)
     default_tags: Dict[str, str] = field(default_factory=dict)
+
+
+def _placeholder_custom_param(index: int) -> dict:
+    """Generate placeholder custom_param entry for unused slot."""
+    return {
+        "key": f"unused_{index}",
+        "label": "---",
+        "tooltip": "",
+        "default": 0.5,
+        "min": 0.0,
+        "max": 1.0,
+        "curve": "lin",
+        "unit": "",
+    }
 
 
 class MethodTemplate(ABC):
@@ -106,23 +218,45 @@ class MethodTemplate(ABC):
         """
         pass
     
-    @abstractmethod
     def generate_json(
         self,
         display_name: str,
         synthdef_name: str,
+        params: Optional[Dict[str, float]] = None,
     ) -> dict:
         """
-        Generate generator JSON config.
+        Generate generator JSON config with custom_params.
         
         Args:
             display_name: Human-readable name for UI
             synthdef_name: Must match SynthDef name
+            params: Optional baked parameter values for defaults
         
         Returns:
             Generator config dict (per GENERATOR_SPEC.md)
         """
-        pass
+        d = self.definition
+        custom_params = []
+        axes = d.param_axes[:5]  # Max 5 custom params
+        
+        # Build entries for exposed axes
+        for axis in axes:
+            # Use baked value if provided, otherwise axis default
+            baked = params.get(axis.name, axis.default) if params else axis.default
+            custom_params.append(axis.to_custom_param(baked))
+        
+        # Fill remaining slots with placeholders (R3: always 5 entries)
+        for i in range(len(axes), 5):
+            custom_params.append(_placeholder_custom_param(i))
+        
+        return {
+            "name": display_name,
+            "synthdef": synthdef_name,
+            "custom_params": custom_params,
+            "output_trim_db": -6.0,
+            "midi_retrig": False,
+            "pitch_target": None,
+        }
     
     def generate_candidate_id(
         self,

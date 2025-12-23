@@ -5,8 +5,7 @@ Dark pulse wave subtractive synthesizer
 Character: Dark, hollow, PWM movement
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -24,21 +23,27 @@ class DarkPulseTemplate(MethodTemplate):
             method_id="subtractive/dark_pulse",
             family="subtractive",
             display_name="Dark Pulse",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="pulse_width",
                     min_val=0.1,
                     max_val=0.9,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="WID",
+                    tooltip="Base pulse width",
+                    unit="",
                 ),
                 ParamAxis(
                     name="pwm_depth",
                     min_val=0.0,
                     max_val=0.4,
                     default=0.1,
-                    curve="linear",
+                    curve="lin",
+                    label="PWM",
+                    tooltip="Pulse width modulation depth",
+                    unit="",
                 ),
                 ParamAxis(
                     name="pwm_rate",
@@ -46,20 +51,29 @@ class DarkPulseTemplate(MethodTemplate):
                     max_val=4.0,
                     default=0.5,
                     curve="exp",
+                    label="RAT",
+                    tooltip="PWM LFO rate",
+                    unit="Hz",
                 ),
                 ParamAxis(
                     name="cutoff_hz",
-                    min_val=100,
-                    max_val=2000,
-                    default=800,
+                    min_val=100.0,
+                    max_val=2000.0,
+                    default=800.0,
                     curve="exp",
+                    label="CUT",
+                    tooltip="Filter cutoff ceiling",
+                    unit="Hz",
                 ),
                 ParamAxis(
                     name="resonance",
                     min_val=0.0,
                     max_val=0.8,
                     default=0.2,
-                    curve="linear",
+                    curve="lin",
+                    label="RES",
+                    tooltip="Filter resonance",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -111,17 +125,18 @@ class DarkPulseTemplate(MethodTemplate):
     def generate_synthdef(
         self,
         synthdef_name: str,
-        params: Dict,
+        params: Dict[str, float],
         seed: int,
     ) -> str:
-        pw = params.get("pulse_width", 0.5)
-        pwm_depth = params.get("pwm_depth", 0.1)
-        pwm_rate = params.get("pwm_rate", 0.5)
-        cutoff = params.get("cutoff_hz", 800)
-        res = params.get("resonance", 0.2)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
         
-        # Calculate RQ from resonance (higher res = lower rq)
-        rq_mult = max(0.2, 1.0 - res * 0.8)
+        # Generate custom param read expressions
+        pw_read = axes["pulse_width"].sc_read_expr("customBus0", 0)
+        pwm_depth_read = axes["pwm_depth"].sc_read_expr("customBus1", 1)
+        pwm_rate_read = axes["pwm_rate"].sc_read_expr("customBus2", 2)
+        cutoff_read = axes["cutoff_hz"].sc_read_expr("customBus3", 3)
+        res_read = axes["resonance"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -132,6 +147,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, width, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var pulse_width, pwm_depth, pwm_rate, cutoff_hz, resonance, rq_mult;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -147,14 +163,24 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {pw_read}
+    {pwm_depth_read}
+    {pwm_rate_read}
+    {cutoff_read}
+    {res_read}
+
+    // Calculate RQ from resonance (higher res = lower rq)
+    rq_mult = (1.0 - (resonance * 0.8)).max(0.2);
+
     // === PWM PULSE OSCILLATOR ===
-    width = {pw:.4f} + (SinOsc.kr({pwm_rate:.4f}) * {pwm_depth:.4f});
+    width = pulse_width + (SinOsc.kr(pwm_rate) * pwm_depth);
     width = width.clip(0.1, 0.9);
     sig = Pulse.ar(freq, width);
 
     // === FILTER ===
-    // Use baked-in cutoff ratio, modulated by filter bus
-    sig = ~multiFilter.(sig, filterType, filterFreq.min({cutoff:.1f}), rq * {rq_mult:.4f});
+    // Use custom cutoff as ceiling, modulated by filter bus
+    sig = ~multiFilter.(sig, filterType, filterFreq.min(cutoff_hz), rq * rq_mult);
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.15, 0.2);
@@ -164,15 +190,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  âœ" {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],  # Phase 1: no custom params exposed
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }
