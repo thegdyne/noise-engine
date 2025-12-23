@@ -558,18 +558,29 @@ GENERATOR_THEME = {
     'slot_border_active': get('accent_generator_dim'),
     'slot_margin': (2, 4, 2, 4),  # tighter margins
     
+    # # Header layout
+    # 'header_inset_left': 14,       # left margin for GEN label
+    # 'header_inset_right': 0,      # flush with edge
+    # 'header_type_offset_right': 4,  # extra right shift for type selector only
+    # 'header_selector_text_pad': 4, # internal text padding for selector
+    # 'header_overlay_height': 24,  # reserved space at top of content for header overlay
+    # 'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
+    # 'header_content_gap': 2,      # header-to-sliders distance inside the frame
+
+
     # Header layout
-    'header_inset_left': 14,       # left margin for GEN label
-    'header_inset_right': 0,      # flush with edge
-    'header_type_offset_right': 4,  # extra right shift for type selector only
+    'header_inset_left': 18,       # left margin for GEN label
+    'header_inset_right': 4,       # right padding
+    'header_type_offset_right': 0, # no overflow shift
     'header_selector_text_pad': 4, # internal text padding for selector
-    'header_overlay_height': 24,  # reserved space at top of content for header overlay
-    'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
-    'header_content_gap': 2,      # header-to-sliders distance inside the frame
-    
+    'header_overlay_height': 24,   # reserved space at top of content for header overlay
+    'header_frame_gap': 8,         # vertical gap between header and frame (legacy, now unused)
+    'header_content_gap': 2,       # header-to-sliders distance inside the frame
+
     # Header
     'header_spacing': 4,
-    'header_type_width': 70,      # FIXED: wider for long names like "Subtractive"
+    # 'header_type_width': 70,      # FIXED: wider for long names like "Subtractive"
+    'header_type_width': 110,      # FIXED: wider for long names like "Subtractive"
     'header_type_height': 20,     # shorter height
     
     # GeneratorFrame (inner container for sliders + buttons)
