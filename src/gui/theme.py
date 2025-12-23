@@ -581,10 +581,13 @@ GENERATOR_THEME = {
     
     # Slider section
     'slider_column_width': 22,    # width of each label+slider column
+    'slider_width': 18,           # actual slider widget width (fits inside column)
+    'slider_height': 100,          # slider height
     'slider_gap': 1,              # horizontal gap between columns
-    'slider_section_spacing': 6, # vertical gap between custom row + standard row
-    'slider_min_height': 38,      # minimum slider height (smaller = more compact)
+    'slider_section_spacing': 6,  # vertical gap between custom row + standard row
+    'slider_min_height': 40,      # minimum slider height (smaller = more compact) - can remove if not used
     'content_row_spacing': 2,     # gap between slider section and button strip
+
     
     # Button strip - order defines visual stacking (top to bottom)
     'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
