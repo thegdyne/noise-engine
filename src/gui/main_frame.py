@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLabel, QFrame, QShortcut, QApplication)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QFont, QKeySequence
 
 from src.gui.generator_grid import GeneratorGrid
@@ -79,6 +79,9 @@ class MainFrame(QMainWindow):
         
         self.setup_ui()
         self._set_header_buttons_enabled(False)  # Disable until SC connects
+
+        # Install event filter for keyboard overlay
+        self.installEventFilter(self)
 
     def setup_ui(self):
         """Create the main interface layout."""
@@ -1679,6 +1682,17 @@ class MainFrame(QMainWindow):
                 self.mod_matrix_window.sync_from_state()
 
     # ── Keyboard Mode ────────────────────────────────────────────────────────
+
+    def eventFilter(self, obj, event):
+        """Forward key events to keyboard overlay when visible."""
+        if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
+            if event.type() == QEvent.KeyPress:
+                self._keyboard_overlay.keyPressEvent(event)
+                return True
+            elif event.type() == QEvent.KeyRelease:
+                self._keyboard_overlay.keyReleaseEvent(event)
+                return True
+        return super().eventFilter(obj, event)
 
     def _toggle_keyboard_mode(self):
         print("DEBUG: _toggle_keyboard_mode called")

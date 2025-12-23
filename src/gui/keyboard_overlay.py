@@ -467,8 +467,7 @@ class KeyboardOverlay(QWidget):
         self.raise_()
         self.activateWindow()
         self.setFocus(Qt.ActiveWindowFocusReason)
-        self.grabKeyboard()
-    
+
     def _dismiss(self):
         """Hide overlay and clean up."""
         # Send all_notes_off to ALL slots (0-7 for OSC)
@@ -478,7 +477,6 @@ class KeyboardOverlay(QWidget):
         self._pressed.clear()
         
         # Release keyboard before hiding
-        self.releaseKeyboard()
         self.hide()
     
     # ─────────────────────────────────────────────────────────────────
