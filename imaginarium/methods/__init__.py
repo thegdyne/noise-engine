@@ -62,6 +62,11 @@ def _register_builtins():
     from .physical.bowed import BowedTemplate
     from .physical.formant import FormantTemplate
     from .spectral.additive import AdditiveTemplate
+    from .texture.granular_cloud import GranularCloudTemplate
+    from .texture.dust_resonator import DustResonatorTemplate
+    from .texture.noise_drone import NoiseDroneTemplate
+    from .subtractive.wavefold import WavefoldTemplate
+    from .fm.phase_mod import PhaseModTemplate
     
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
@@ -77,6 +82,11 @@ def _register_builtins():
     register_method(BowedTemplate())
     register_method(FormantTemplate())
     register_method(AdditiveTemplate())
+    register_method(GranularCloudTemplate())
+    register_method(DustResonatorTemplate())
+    register_method(NoiseDroneTemplate())
+    register_method(WavefoldTemplate())
+    register_method(PhaseModTemplate())
 
 
 # Register on import
