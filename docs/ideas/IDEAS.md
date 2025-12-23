@@ -212,7 +212,6 @@
 
 ---
 
-## 10. Keyboard Mode (CMD+K) ⬜ 5%
 
 *Computer keyboard as musical input*
 
