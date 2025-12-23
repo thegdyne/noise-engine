@@ -149,6 +149,9 @@ s.waitForBoot({
     ~setupMIDI.();
     ~setupMIDIOSC.();
     
+    // Load keyboard overlay OSC handlers
+    (~basePath +/+ "core/keyboard_osc.scd").load;
+    
     // Load audio device handler
     (~basePath +/+ "core/audio_device.scd").load;
     ~setupAudioDevice.();
