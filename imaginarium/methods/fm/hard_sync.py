@@ -6,8 +6,7 @@ Character: Angular, geometric, buzzy, sharp, precise
 Hard sync creates complex harmonic spectra by resetting slave oscillator phase
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,42 +24,57 @@ class HardSyncTemplate(MethodTemplate):
             method_id="fm/hard_sync",
             family="fm",
             display_name="Hard Sync",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="sync_ratio",
                     min_val=1.0,
                     max_val=8.0,
                     default=3.0,
-                    curve="linear",
+                    curve="lin",
+                    label="RAT",
+                    tooltip="Slave to master frequency ratio",
+                    unit="",
                 ),
                 ParamAxis(
                     name="sync_sweep",
                     min_val=0.0,
                     max_val=2.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="SWP",
+                    tooltip="Sync ratio sweep depth",
+                    unit="",
                 ),
                 ParamAxis(
                     name="sweep_rate",
                     min_val=0.1,
                     max_val=8.0,
                     default=0.3,
-                    curve="log",
+                    curve="exp",
+                    label="SPD",
+                    tooltip="Sweep LFO rate",
+                    unit="Hz",
                 ),
                 ParamAxis(
                     name="pulse_mix",
                     min_val=0.0,
                     max_val=0.5,
                     default=0.2,
-                    curve="linear",
+                    curve="lin",
+                    label="PLS",
+                    tooltip="Pulse wave mix amount",
+                    unit="",
                 ),
                 ParamAxis(
                     name="brightness",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.6,
-                    curve="linear",
+                    curve="lin",
+                    label="BRT",
+                    tooltip="Output filter brightness",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -116,11 +130,15 @@ class HardSyncTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        ratio = params.get("sync_ratio", 3.0)
-        sweep = params.get("sync_sweep", 0.5)
-        rate = params.get("sweep_rate", 0.3)
-        pulse = params.get("pulse_mix", 0.2)
-        bright = params.get("brightness", 0.6)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
+        
+        # Generate custom param read expressions
+        ratio_read = axes["sync_ratio"].sc_read_expr("customBus0", 0)
+        sweep_read = axes["sync_sweep"].sc_read_expr("customBus1", 1)
+        rate_read = axes["sweep_rate"].sc_read_expr("customBus2", 2)
+        pulse_read = axes["pulse_mix"].sc_read_expr("customBus3", 3)
+        bright_read = axes["brightness"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -132,6 +150,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var sig, syncOsc, pulseOsc, slaveFreq, ratioMod;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sync_ratio, sync_sweep, sweep_rate, pulse_mix, brightness;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -147,10 +166,17 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {ratio_read}
+    {sweep_read}
+    {rate_read}
+    {pulse_read}
+    {bright_read}
+
     // === SYNC OSCILLATOR ===
     // LFO modulates sync ratio for movement
-    ratioMod = LFTri.kr({rate:.4f}).range(1 - {sweep:.4f}, 1 + {sweep:.4f});
-    slaveFreq = freq * {ratio:.4f} * ratioMod;
+    ratioMod = LFTri.kr(sweep_rate).range(1 - sync_sweep, 1 + sync_sweep);
+    slaveFreq = freq * sync_ratio * ratioMod;
     
     // Hard sync saw - slave resets at master frequency
     syncOsc = SyncSaw.ar(freq, slaveFreq);
@@ -159,10 +185,10 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     pulseOsc = Pulse.ar(freq, 0.5);
     
     // Mix
-    sig = (syncOsc * (1 - {pulse:.4f})) + (pulseOsc * {pulse:.4f});
+    sig = (syncOsc * (1 - pulse_mix)) + (pulseOsc * pulse_mix);
 
     // === FILTER ===
-    sig = ~multiFilter.(sig, filterType, filterFreq.min({1500 + bright * 5500:.1f}), rq);
+    sig = ~multiFilter.(sig, filterType, filterFreq.min(1500 + (brightness * 5500)), rq);
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.15, 0.25);
@@ -172,15 +198,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }

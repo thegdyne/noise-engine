@@ -244,6 +244,34 @@ def validate_method(template) -> ValidationResult:
     )
 
 
+def validate_all_methods() -> Tuple[int, int, List[ValidationResult]]:
+    """
+    Validate all registered methods.
+
+    Called by generate.py for R6 validation gate.
+
+    Returns:
+        Tuple of (passed_count, failed_count, list of ValidationResults)
+    """
+    from imaginarium.methods import get_all_methods
+
+    methods = get_all_methods()
+
+    if not methods:
+        return (0, 0, [])
+
+    results: List[ValidationResult] = []
+
+    for method_id, template in sorted(methods.items()):
+        result = validate_method(template)
+        results.append(result)
+
+    passed = sum(1 for r in results if r.passed)
+    failed = len(results) - passed
+
+    return (passed, failed, results)
+
+
 def main() -> int:
     """
     Validate all registered methods.

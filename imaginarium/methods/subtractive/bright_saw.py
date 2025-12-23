@@ -31,11 +31,56 @@ class BrightSawTemplate(MethodTemplate):
             display_name="Bright Saw",
             template_version=self.TEMPLATE_VERSION,
             param_axes=[
-                ParamAxis("cutoff_ratio", 0.3, 1.0, 0.8, "lin"),   # Cutoff as ratio of max
-                ParamAxis("resonance", 0.1, 0.8, 0.3, "lin"),      # Filter Q
-                ParamAxis("drive", 0.0, 1.0, 0.2, "lin"),          # Pre-filter saturation
-                ParamAxis("detune", 0.0, 0.03, 0.005, "lin"),      # Oscillator detune
-                ParamAxis("spread", 0.0, 1.0, 0.3, "lin"),         # Stereo width
+                ParamAxis(
+                    name="cutoff_ratio",
+                    min_val=0.3,
+                    max_val=1.0,
+                    default=0.8,
+                    curve="lin",
+                    label="CUT",
+                    tooltip="Filter cutoff as ratio of maximum",
+                    unit="",
+                ),
+                ParamAxis(
+                    name="resonance",
+                    min_val=0.1,
+                    max_val=0.8,
+                    default=0.3,
+                    curve="lin",
+                    label="RES",
+                    tooltip="Filter resonance",
+                    unit="",
+                ),
+                ParamAxis(
+                    name="drive",
+                    min_val=0.0,
+                    max_val=1.0,
+                    default=0.2,
+                    curve="lin",
+                    label="DRV",
+                    tooltip="Pre-filter saturation",
+                    unit="",
+                ),
+                ParamAxis(
+                    name="detune",
+                    min_val=0.0,
+                    max_val=0.03,
+                    default=0.005,
+                    curve="lin",
+                    label="DET",
+                    tooltip="Oscillator detune spread",
+                    unit="",
+                ),
+                ParamAxis(
+                    name="spread",
+                    min_val=0.0,
+                    max_val=1.0,
+                    default=0.3,
+                    curve="lin",
+                    label="WID",
+                    tooltip="Stereo width",
+                    unit="",
+                ),
             ],
             macro_controls=[
                 MacroControl("TONE", {"cutoff_ratio": 0.8, "resonance": 0.3}),
@@ -57,15 +102,15 @@ class BrightSawTemplate(MethodTemplate):
     ) -> str:
         """Generate SuperCollider SynthDef code."""
         
-        # Extract params with defaults
-        cutoff_ratio = params.get("cutoff_ratio", 0.8)
-        resonance = params.get("resonance", 0.3)
-        drive = params.get("drive", 0.2)
-        detune = params.get("detune", 0.005)
-        spread = params.get("spread", 0.3)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self.definition.param_axes}
         
-        # RQ is inverse of resonance for SC filters
-        rq_base = 1.0 - (resonance * 0.85)  # Map 0-0.8 resonance to 1.0-0.15 rq
+        # Generate custom param read expressions
+        cutoff_read = axes["cutoff_ratio"].sc_read_expr("customBus0", 0)
+        res_read = axes["resonance"].sc_read_expr("customBus1", 1)
+        drive_read = axes["drive"].sc_read_expr("customBus2", 2)
+        detune_read = axes["detune"].sc_read_expr("customBus3", 3)
+        spread_read = axes["spread"].sc_read_expr("customBus4", 4)
         
         return f'''SynthDef(\\{synthdef_name}, {{
     |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -73,10 +118,11 @@ class BrightSawTemplate(MethodTemplate):
      clockRateBus, clockTrigBus,
      midiTrigBus=0, slotIndex=0,
      customBus0, customBus1, customBus2, customBus3, customBus4,
-     seed=0|
+     seed={seed}|
 
     var freq, filterFreq, rq, attack, decay, filterType, envSource, clockRate, amp;
     var sig, osc1, osc2, osc3, driven, cutMod;
+    var cutoff_ratio, resonance, drive, detune, spread, rq_base;
 
     // Seed MUST be first before any random UGens
     RandSeed.ir(1, seed);
@@ -92,53 +138,48 @@ class BrightSawTemplate(MethodTemplate):
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {cutoff_read}
+    {res_read}
+    {drive_read}
+    {detune_read}
+    {spread_read}
+
+    // RQ is inverse of resonance for SC filters
+    rq_base = 1.0 - (resonance * 0.85);  // Map 0-0.8 resonance to 1.0-0.15 rq
+
     // === OSCILLATORS ===
     // Main saw
     osc1 = Saw.ar(freq);
     
-    // Detuned saws for thickness (detune amount baked in)
-    osc2 = Saw.ar(freq * (1 + {detune:.6f}));
-    osc3 = Saw.ar(freq * (1 - {detune:.6f}));
+    // Detuned saws for thickness
+    osc2 = Saw.ar(freq * (1 + detune));
+    osc3 = Saw.ar(freq * (1 - detune));
     
     // Mix oscillators
     sig = (osc1 * 0.5) + (osc2 * 0.25) + (osc3 * 0.25);
 
     // === DRIVE (pre-filter saturation) ===
-    driven = sig * (1 + ({drive:.4f} * 3));
-    sig = driven.tanh * (1 - ({drive:.4f} * 0.3)) + (sig * ({drive:.4f} * 0.3));
+    driven = sig * (1 + (drive * 3));
+    sig = driven.tanh * (1 - (drive * 0.3)) + (sig * (drive * 0.3));
 
     // === FILTER ===
-    // Modulate cutoff with baked-in ratio
-    cutMod = filterFreq * {cutoff_ratio:.4f};
+    // Modulate cutoff with ratio
+    cutMod = filterFreq * cutoff_ratio;
     
     // Use helper filter with modified RQ
-    sig = ~multiFilter.(sig, filterType, cutMod, rq * {rq_base:.4f});
+    sig = ~multiFilter.(sig, filterType, cutMod, rq * rq_base);
 
     // === OUTPUT CHAIN ===
-    sig = ~stereoSpread.(sig, 0.2, {spread:.4f});
+    sig = ~stereoSpread.(sig, 0.2, spread);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(
-        self,
-        display_name: str,
-        synthdef_name: str,
-    ) -> dict:
-        """Generate generator JSON config."""
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],  # Phase 1: no custom params exposed
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }
     
     def get_tags(self, params: dict[str, float]) -> dict[str, str]:
         """Add parameter-dependent tags."""

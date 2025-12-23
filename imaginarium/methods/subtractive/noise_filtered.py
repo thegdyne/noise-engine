@@ -6,8 +6,7 @@ Character: Textures, wind, breath, static, percussion, ambience
 Uses different noise sources filtered and shaped
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,14 +24,17 @@ class NoiseFilteredTemplate(MethodTemplate):
             method_id="subtractive/noise_filtered",
             family="subtractive",
             display_name="Filtered Noise",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="noise_type",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.3,
-                    curve="linear",
+                    curve="lin",
+                    label="TYP",
+                    tooltip="Noise type (white → pink → brown → gray)",
+                    unit="",
                 ),
                 ParamAxis(
                     name="cutoff_hz",
@@ -40,27 +42,39 @@ class NoiseFilteredTemplate(MethodTemplate):
                     max_val=8000.0,
                     default=1500.0,
                     curve="exp",
+                    label="CUT",
+                    tooltip="Filter cutoff ceiling",
+                    unit="Hz",
                 ),
                 ParamAxis(
                     name="resonance",
                     min_val=0.0,
                     max_val=0.95,
                     default=0.3,
-                    curve="linear",
+                    curve="lin",
+                    label="RES",
+                    tooltip="Filter resonance",
+                    unit="",
                 ),
                 ParamAxis(
                     name="dust_density",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.0,
-                    curve="linear",
+                    curve="lin",
+                    label="DST",
+                    tooltip="Velvet-like sparse impulse density",
+                    unit="",
                 ),
                 ParamAxis(
                     name="crackle_amt",
                     min_val=0.0,
                     max_val=0.5,
                     default=0.0,
-                    curve="linear",
+                    curve="lin",
+                    label="CRK",
+                    tooltip="Chaotic crackle texture amount",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -117,31 +131,15 @@ class NoiseFilteredTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        noise_type = params.get("noise_type", 0.3)
-        cutoff = params.get("cutoff_hz", 1500.0)
-        res = params.get("resonance", 0.3)
-        dust_density = params.get("dust_density", 0.0)
-        crackle = params.get("crackle_amt", 0.0)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
         
-        # Calculate RQ from resonance
-        rq = max(0.1, 1.0 - res * 0.9)
-        
-        # Noise mix weights based on noise_type (0-1)
-        # 0.0 = white, 0.33 = pink, 0.66 = brown, 1.0 = gray
-        white_w = max(0, 1 - noise_type * 3) if noise_type < 0.33 else 0
-        pink_w = max(0, 1 - abs(noise_type - 0.33) * 3) if noise_type < 0.66 else max(0, 1 - (noise_type - 0.33) * 3)
-        brown_w = max(0, 1 - abs(noise_type - 0.66) * 3)
-        gray_w = max(0, (noise_type - 0.66) * 3) if noise_type > 0.66 else 0
-        
-        # Normalize
-        total = white_w + pink_w + brown_w + gray_w
-        if total > 0:
-            white_w /= total
-            pink_w /= total
-            brown_w /= total
-            gray_w /= total
-        else:
-            pink_w = 1.0  # Default to pink
+        # Generate custom param read expressions
+        noise_type_read = axes["noise_type"].sc_read_expr("customBus0", 0)
+        cutoff_read = axes["cutoff_hz"].sc_read_expr("customBus1", 1)
+        res_read = axes["resonance"].sc_read_expr("customBus2", 2)
+        dust_read = axes["dust_density"].sc_read_expr("customBus3", 3)
+        crackle_read = axes["crackle_amt"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -151,7 +149,9 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                customBus0, customBus1, customBus2, customBus3, customBus4,
                                seed={seed}|
 
-    var sig, noise, dust, crackle, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, noise, dustSig, crackleSig;
+    var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var noise_type, cutoff_hz, resonance, dust_density, crackle_amt, rq_scaled;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -167,20 +167,33 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {noise_type_read}
+    {cutoff_read}
+    {res_read}
+    {dust_read}
+    {crackle_read}
+
+    // Calculate RQ from resonance
+    rq_scaled = (1.0 - (resonance * 0.9)).max(0.1);
+
     // === NOISE MIX ===
-    // Blend different noise types (weights baked in)
-    noise = (WhiteNoise.ar * {white_w:.4f}) +
-            (PinkNoise.ar * {pink_w:.4f}) +
-            (BrownNoise.ar * {brown_w:.4f}) +
-            (GrayNoise.ar * {gray_w:.4f});
+    // Crossfade between 4 noise types based on noise_type (0-1)
+    // 0.0 = white, 0.33 = pink, 0.66 = brown, 1.0 = gray
+    noise = SelectX.ar(noise_type * 3, [
+        WhiteNoise.ar,
+        PinkNoise.ar,
+        BrownNoise.ar,
+        GrayNoise.ar
+    ]);
 
     // === DUST (velvet-like sparse impulses) ===
-    dust = Dust2.ar({20 + dust_density * 500:.1f}) * {dust_density:.4f};
-    noise = noise + dust;
+    dustSig = Dust2.ar(20 + (dust_density * 500)) * dust_density;
+    noise = noise + dustSig;
 
     // === CRACKLE (chaotic texture) ===
-    crackle = Crackle.ar(1.5 + ({crackle:.4f} * 0.4)) * {crackle:.4f} * 0.3;
-    noise = noise + crackle;
+    crackleSig = Crackle.ar(1.5 + (crackle_amt * 0.4)) * crackle_amt * 0.3;
+    noise = noise + crackleSig;
 
     sig = noise;
 
@@ -188,8 +201,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     sig = sig * 2;
 
     // === FILTER ===
-    // Use baked cutoff as base, modulated by filter bus
-    sig = ~multiFilter.(sig, filterType, filterFreq.min({cutoff:.1f}), rq * {rq:.4f});
+    // Use custom cutoff as ceiling, modulated by filter bus
+    sig = ~multiFilter.(sig, filterType, filterFreq.min(cutoff_hz), rq * rq_scaled);
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.1, 0.3);
@@ -199,15 +212,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],  # Phase 1: no custom params exposed
-            "output_trim_db": -6.0,
-            "midi_retrig": False,  # Noise is continuous
-            "pitch_target": None,
-        }

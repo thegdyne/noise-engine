@@ -190,5 +190,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  âœ" {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''

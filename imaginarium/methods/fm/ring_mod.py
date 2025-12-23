@@ -6,8 +6,7 @@ Character: Metallic, atonal, sci-fi, clangy, dissonant
 Multiplies two signals creating sum/difference sidebands
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,42 +24,57 @@ class RingModTemplate(MethodTemplate):
             method_id="fm/ring_mod",
             family="fm",
             display_name="Ring Mod",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="mod_ratio",
                     min_val=0.5,
                     max_val=4.0,
                     default=1.5,
-                    curve="linear",
+                    curve="lin",
+                    label="RAT",
+                    tooltip="Modulator frequency ratio",
+                    unit="",
                 ),
                 ParamAxis(
                     name="mod_detune",
                     min_val=0.0,
                     max_val=50.0,
                     default=5.0,
-                    curve="linear",
+                    curve="lin",
+                    label="DET",
+                    tooltip="Modulator detune offset",
+                    unit="Hz",
                 ),
                 ParamAxis(
                     name="mix",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.7,
-                    curve="linear",
+                    curve="lin",
+                    label="MIX",
+                    tooltip="Dry/ring-modulated mix",
+                    unit="",
                 ),
                 ParamAxis(
                     name="mod_shape",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.0,
-                    curve="linear",
+                    curve="lin",
+                    label="SHP",
+                    tooltip="Modulator waveform (sine → saw)",
+                    unit="",
                 ),
                 ParamAxis(
                     name="brightness",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="BRT",
+                    tooltip="Output filter brightness",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -111,11 +125,15 @@ class RingModTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        ratio = params.get("mod_ratio", 1.5)
-        detune = params.get("mod_detune", 5.0)
-        mix = params.get("mix", 0.7)
-        shape = params.get("mod_shape", 0.0)
-        bright = params.get("brightness", 0.5)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
+        
+        # Generate custom param read expressions
+        ratio_read = axes["mod_ratio"].sc_read_expr("customBus0", 0)
+        detune_read = axes["mod_detune"].sc_read_expr("customBus1", 1)
+        mix_read = axes["mix"].sc_read_expr("customBus2", 2)
+        shape_read = axes["mod_shape"].sc_read_expr("customBus3", 3)
+        bright_read = axes["brightness"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -127,7 +145,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var sig, carrier, modulator, ringMod, dry;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var modFreq;
+    var mod_ratio, mod_detune, mix, mod_shape, brightness, modFreq;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -143,6 +161,13 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {ratio_read}
+    {detune_read}
+    {mix_read}
+    {shape_read}
+    {bright_read}
+
     // === CARRIER ===
     // Rich carrier with slight detune for thickness
     carrier = Saw.ar(freq) * 0.7;
@@ -150,10 +175,10 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // === MODULATOR ===
     // Modulator frequency with ratio and detune
-    modFreq = (freq * {ratio:.4f}) + {detune:.4f};
+    modFreq = (freq * mod_ratio) + mod_detune;
     
     // Shape: 0 = sine (pure), 1 = saw (harsh)
-    modulator = SelectX.ar({shape:.4f}, [
+    modulator = SelectX.ar(mod_shape, [
         SinOsc.ar(modFreq),
         LFSaw.ar(modFreq)
     ]);
@@ -164,10 +189,10 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // === MIX ===
     dry = carrier;
-    sig = (dry * (1 - {mix:.4f})) + (ringMod * {mix:.4f});
+    sig = (dry * (1 - mix)) + (ringMod * mix);
 
     // === FILTER ===
-    sig = ~multiFilter.(sig, filterType, filterFreq.min({2000 + bright * 6000:.1f}), rq);
+    sig = ~multiFilter.(sig, filterType, filterFreq.min(2000 + (brightness * 6000)), rq);
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.2, 0.3);
@@ -177,15 +202,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }

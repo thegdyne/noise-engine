@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import numpy as np
+from .validate_methods import validate_all_methods
 
 from .config import (
     FAMILIES,
@@ -45,6 +46,25 @@ class GenerationPool:
     by_family: Dict[str, int] = field(default_factory=dict)
     by_method: Dict[str, int] = field(default_factory=dict)
 
+
+def run_validation_gate() -> bool:
+    """
+    Run validation gate (R6).
+
+    Returns:
+        True if all methods pass, False otherwise
+    """
+    passed, failed, results = validate_all_methods()
+
+    if failed > 0:
+        print(f"❌ VALIDATION FAILED: {failed} methods non-compliant")
+        for result in results:
+            if not result.passed:
+                print(f"  ✗ {result.method_id}")
+        print("Generation blocked. Fix method compliance first.")
+        return False
+
+    return True
 
 class CandidateGenerator:
     """
@@ -263,20 +283,13 @@ class CandidateGenerator:
 
 
 def generate_candidates(
-    context: GenerationContext,
-    spec: SoundSpec,
-    max_batches: Optional[int] = None,
+        context: GenerationContext,
+        spec: SoundSpec,
+        max_batches: Optional[int] = None,
 ) -> GenerationPool:
-    """
-    Convenience function for candidate generation.
-    
-    Args:
-        context: Generation context with run_seed
-        spec: Target SoundSpec from input
-        max_batches: Override max batches (default: from config)
-        
-    Returns:
-        GenerationPool with candidates
-    """
+    # R6: Validation gate
+    if not run_validation_gate():
+        raise RuntimeError("Validation gate failed - generation blocked")
+
     generator = CandidateGenerator(context, spec)
     return generator.generate_pool(max_batches=max_batches)

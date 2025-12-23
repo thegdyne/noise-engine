@@ -6,8 +6,7 @@ Character: Thick, lush, trance, pads, massive unison
 Classic JP-8000 style with 7 detuned oscillators
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,7 +24,7 @@ class SupersawTemplate(MethodTemplate):
             method_id="subtractive/supersaw",
             family="subtractive",
             display_name="Supersaw",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="detune",
@@ -33,34 +32,49 @@ class SupersawTemplate(MethodTemplate):
                     max_val=0.03,
                     default=0.01,
                     curve="exp",
+                    label="DET",
+                    tooltip="Oscillator detune amount",
+                    unit="",
                 ),
                 ParamAxis(
                     name="mix",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.7,
-                    curve="linear",
+                    curve="lin",
+                    label="MIX",
+                    tooltip="Center vs detuned oscillator balance",
+                    unit="",
                 ),
                 ParamAxis(
                     name="cutoff_ratio",
                     min_val=0.1,
                     max_val=1.0,
                     default=0.6,
-                    curve="linear",
+                    curve="lin",
+                    label="CUT",
+                    tooltip="Filter cutoff as ratio of maximum",
+                    unit="",
                 ),
                 ParamAxis(
                     name="resonance",
                     min_val=0.0,
                     max_val=0.8,
                     default=0.2,
-                    curve="linear",
+                    curve="lin",
+                    label="RES",
+                    tooltip="Filter resonance",
+                    unit="",
                 ),
                 ParamAxis(
                     name="stereo_spread",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.7,
-                    curve="linear",
+                    curve="lin",
+                    label="WID",
+                    tooltip="Stereo spread of detuned oscillators",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -109,16 +123,15 @@ class SupersawTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        detune = params.get("detune", 0.01)
-        mix = params.get("mix", 0.7)
-        cutoff_ratio = params.get("cutoff_ratio", 0.6)
-        res = params.get("resonance", 0.2)
-        spread = params.get("stereo_spread", 0.7)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
         
-        rq = max(0.1, 1.0 - res * 0.9)
-        
-        # Detune offsets for 7 oscillators (centered on 0)
-        offsets = [-3, -2, -1, 0, 1, 2, 3]
+        # Generate custom param read expressions
+        detune_read = axes["detune"].sc_read_expr("customBus0", 0)
+        mix_read = axes["mix"].sc_read_expr("customBus1", 1)
+        cutoff_read = axes["cutoff_ratio"].sc_read_expr("customBus2", 2)
+        res_read = axes["resonance"].sc_read_expr("customBus3", 3)
+        spread_read = axes["stereo_spread"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -130,6 +143,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var sig, saws, center, sides, panPos;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var detune, mix, cutoff_ratio, resonance, stereo_spread, rq_scaled;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -145,38 +159,48 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {detune_read}
+    {mix_read}
+    {cutoff_read}
+    {res_read}
+    {spread_read}
+
+    // Calculate RQ from resonance
+    rq_scaled = (1.0 - (resonance * 0.9)).max(0.1);
+
     // === 7-OSCILLATOR SUPERSAW ===
     // Center oscillator (full volume)
     center = Saw.ar(freq);
     
     // Side oscillators (detuned, progressively panned)
     saws = [
-        Saw.ar(freq * (1 + ({detune:.6f} * -3))),  // L3
-        Saw.ar(freq * (1 + ({detune:.6f} * -2))),  // L2
-        Saw.ar(freq * (1 + ({detune:.6f} * -1))),  // L1
-        Saw.ar(freq * (1 + ({detune:.6f} * 1))),   // R1
-        Saw.ar(freq * (1 + ({detune:.6f} * 2))),   // R2
-        Saw.ar(freq * (1 + ({detune:.6f} * 3)))    // R3
+        Saw.ar(freq * (1 + (detune * -3))),  // L3
+        Saw.ar(freq * (1 + (detune * -2))),  // L2
+        Saw.ar(freq * (1 + (detune * -1))),  // L1
+        Saw.ar(freq * (1 + (detune * 1))),   // R1
+        Saw.ar(freq * (1 + (detune * 2))),   // R2
+        Saw.ar(freq * (1 + (detune * 3)))    // R3
     ];
     
     // Pan positions for stereo spread
-    panPos = [-1, -0.66, -0.33, 0.33, 0.66, 1] * {spread:.4f};
+    panPos = [-1, -0.66, -0.33, 0.33, 0.66, 1] * stereo_spread;
     
     // Mix: center vs sides
-    sig = (center * (1 - {mix:.4f})) + (Mix.ar(saws) * {mix:.4f} / 6);
+    sig = (center * (1 - mix)) + (Mix.ar(saws) * mix / 6);
     
     // Create stereo image
     sides = Mix.ar(
         saws.collect({{ |saw, i|
             Pan2.ar(saw, panPos[i])
         }})
-    ) * {mix:.4f} / 6;
+    ) * mix / 6;
     
-    sig = Pan2.ar(center * (1 - {mix:.4f}), 0) + sides;
+    sig = Pan2.ar(center * (1 - mix), 0) + sides;
     sig = sig * 0.5;  // Normalize
 
     // === FILTER ===
-    sig = ~multiFilter.(sig, filterType, filterFreq * {cutoff_ratio:.4f}, rq * {rq:.4f});
+    sig = ~multiFilter.(sig, filterType, filterFreq * cutoff_ratio, rq * rq_scaled);
 
     // === OUTPUT CHAIN ===
     // Already stereo from panning above
@@ -186,15 +210,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }

@@ -5,8 +5,7 @@ Simple 2-operator FM synthesis
 Character: Bell-like, metallic, harmonic to inharmonic
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -24,21 +23,27 @@ class SimpleFMTemplate(MethodTemplate):
             method_id="fm/simple_fm",
             family="fm",
             display_name="Simple FM",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="ratio",
                     min_val=0.5,
                     max_val=8.0,
                     default=2.0,
-                    curve="linear",
+                    curve="lin",
+                    label="RAT",
+                    tooltip="Modulator to carrier frequency ratio",
+                    unit="",
                 ),
                 ParamAxis(
                     name="index",
                     min_val=0.0,
                     max_val=10.0,
                     default=3.0,
-                    curve="linear",
+                    curve="lin",
+                    label="IDX",
+                    tooltip="FM modulation index (brightness)",
+                    unit="",
                 ),
                 ParamAxis(
                     name="index_decay",
@@ -46,20 +51,29 @@ class SimpleFMTemplate(MethodTemplate):
                     max_val=4.0,
                     default=1.0,
                     curve="exp",
+                    label="DEC",
+                    tooltip="Modulation index decay time",
+                    unit="s",
                 ),
                 ParamAxis(
                     name="mod_env_amt",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="ENV",
+                    tooltip="Modulation envelope amount",
+                    unit="",
                 ),
                 ParamAxis(
                     name="brightness",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="BRT",
+                    tooltip="Output filter brightness",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -116,11 +130,15 @@ class SimpleFMTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        ratio = params.get("ratio", 2.0)
-        index = params.get("index", 3.0)
-        index_decay = params.get("index_decay", 1.0)
-        mod_env = params.get("mod_env_amt", 0.5)
-        bright = params.get("brightness", 0.5)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
+        
+        # Generate custom param read expressions
+        ratio_read = axes["ratio"].sc_read_expr("customBus0", 0)
+        index_read = axes["index"].sc_read_expr("customBus1", 1)
+        decay_read = axes["index_decay"].sc_read_expr("customBus2", 2)
+        env_read = axes["mod_env_amt"].sc_read_expr("customBus3", 3)
+        bright_read = axes["brightness"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -132,6 +150,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var mod, car, modEnv, sig, idx;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var ratio, index, index_decay, mod_env_amt, brightness;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -147,16 +166,23 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {ratio_read}
+    {index_read}
+    {decay_read}
+    {env_read}
+    {bright_read}
+
     // === FM SYNTHESIS ===
     // Modulator envelope (controls index over time)
-    modEnv = EnvGen.kr(Env.perc(0.01, {index_decay:.4f}));
-    modEnv = (modEnv * {mod_env:.4f}) + (1 - {mod_env:.4f});
+    modEnv = EnvGen.kr(Env.perc(0.01, index_decay));
+    modEnv = (modEnv * mod_env_amt) + (1 - mod_env_amt);
     
     // Dynamic modulation index
-    idx = {index:.4f} * modEnv;
+    idx = index * modEnv;
     
     // Modulator oscillator
-    mod = SinOsc.ar(freq * {ratio:.4f}) * idx * freq;
+    mod = SinOsc.ar(freq * ratio) * idx * freq;
     
     // Carrier oscillator (frequency modulated)
     car = SinOsc.ar(freq + mod);
@@ -165,7 +191,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // === FILTER ===
     // Apply brightness filter, modulated by filter bus
-    sig = ~multiFilter.(sig, filterType, filterFreq.min({1000 + bright * 6000:.1f}), rq);
+    sig = ~multiFilter.(sig, filterType, filterFreq.min(1000 + (brightness * 6000)), rq);
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.1, 0.15);
@@ -175,15 +201,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],  # Phase 1: no custom params exposed
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }

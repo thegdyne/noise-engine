@@ -26,6 +26,8 @@ New files I'll create:
 18. imaginarium/validate_methods.py
 19. tests/test_imaginarium_custom_params.py
 
+rm -rf ~/noise-engine-presets/pizz*
+ python3 -m imaginarium generate --image ./packs/pizza-pup/reference.jpg --name pizza-pup --seed 42
 
 
 

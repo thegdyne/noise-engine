@@ -6,8 +6,7 @@ Character: Complex, evolving, DX7-style, organ-like to metallic
 Uses 3 modulators with different ratios stacked on carrier
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,14 +24,17 @@ class RatioStackTemplate(MethodTemplate):
             method_id="fm/ratio_stack",
             family="fm",
             display_name="Ratio Stack FM",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="ratio_spread",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="SPR",
+                    tooltip="Harmonic to inharmonic ratio spread",
+                    unit="",
                 ),
                 ParamAxis(
                     name="index_1",
@@ -40,6 +42,9 @@ class RatioStackTemplate(MethodTemplate):
                     max_val=6.0,
                     default=2.0,
                     curve="exp",
+                    label="IX1",
+                    tooltip="Modulator 1 index",
+                    unit="",
                 ),
                 ParamAxis(
                     name="index_2",
@@ -47,6 +52,9 @@ class RatioStackTemplate(MethodTemplate):
                     max_val=4.0,
                     default=1.5,
                     curve="exp",
+                    label="IX2",
+                    tooltip="Modulator 2 index",
+                    unit="",
                 ),
                 ParamAxis(
                     name="index_3",
@@ -54,6 +62,9 @@ class RatioStackTemplate(MethodTemplate):
                     max_val=3.0,
                     default=0.8,
                     curve="exp",
+                    label="IX3",
+                    tooltip="Modulator 3 index",
+                    unit="",
                 ),
                 ParamAxis(
                     name="mod_decay",
@@ -61,6 +72,9 @@ class RatioStackTemplate(MethodTemplate):
                     max_val=4.0,
                     default=1.0,
                     curve="exp",
+                    label="DEC",
+                    tooltip="Modulation index decay time",
+                    unit="s",
                 ),
             ],
             macro_controls=[
@@ -109,18 +123,15 @@ class RatioStackTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        spread = params.get("ratio_spread", 0.5)
-        idx1 = params.get("index_1", 2.0)
-        idx2 = params.get("index_2", 1.5)
-        idx3 = params.get("index_3", 0.8)
-        mod_decay = params.get("mod_decay", 1.0)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
         
-        # Calculate ratios based on spread
-        # spread=0: pure harmonic (1, 2, 3)
-        # spread=1: inharmonic (1, 2.37, 4.19)
-        r1 = 1.0
-        r2 = 2.0 + (spread * 0.37)
-        r3 = 3.0 + (spread * 1.19)
+        # Generate custom param read expressions
+        spread_read = axes["ratio_spread"].sc_read_expr("customBus0", 0)
+        idx1_read = axes["index_1"].sc_read_expr("customBus1", 1)
+        idx2_read = axes["index_2"].sc_read_expr("customBus2", 2)
+        idx3_read = axes["index_3"].sc_read_expr("customBus3", 3)
+        decay_read = axes["mod_decay"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -132,6 +143,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var sig, mod1, mod2, mod3, modEnv, car;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var ratio_spread, index_1, index_2, index_3, mod_decay;
+    var r1, r2, r3;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -147,16 +160,30 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {spread_read}
+    {idx1_read}
+    {idx2_read}
+    {idx3_read}
+    {decay_read}
+
+    // Calculate ratios based on spread
+    // spread=0: pure harmonic (1, 2, 3)
+    // spread=1: inharmonic (1, 2.37, 4.19)
+    r1 = 1.0;
+    r2 = 2.0 + (ratio_spread * 0.37);
+    r3 = 3.0 + (ratio_spread * 1.19);
+
     // === MODULATOR ENVELOPE ===
     // Indices decay over time for evolving timbre
-    modEnv = EnvGen.kr(Env.perc(0.01, {mod_decay:.4f}), doneAction: 0);
+    modEnv = EnvGen.kr(Env.perc(0.01, mod_decay), doneAction: 0);
     modEnv = modEnv.linlin(0, 1, 0.3, 1);  // Never fully decay
 
     // === MODULATORS ===
     // Three stacked modulators with different ratios
-    mod1 = SinOsc.ar(freq * {r1:.4f}) * {idx1:.4f} * modEnv * freq;
-    mod2 = SinOsc.ar(freq * {r2:.4f}) * {idx2:.4f} * modEnv * freq;
-    mod3 = SinOsc.ar(freq * {r3:.4f}) * {idx3:.4f} * modEnv * freq;
+    mod1 = SinOsc.ar(freq * r1) * index_1 * modEnv * freq;
+    mod2 = SinOsc.ar(freq * r2) * index_2 * modEnv * freq;
+    mod3 = SinOsc.ar(freq * r3) * index_3 * modEnv * freq;
 
     // === CARRIER ===
     // Sum all modulators into carrier phase
@@ -174,15 +201,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }

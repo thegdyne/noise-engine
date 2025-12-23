@@ -5,8 +5,7 @@ Karplus-Strong string synthesis
 Character: Plucked string, guitar-like, bell-like at high frequencies
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -24,7 +23,7 @@ class KarplusTemplate(MethodTemplate):
             method_id="physical/karplus",
             family="physical",
             display_name="Plucked String",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="decay_time",
@@ -32,34 +31,49 @@ class KarplusTemplate(MethodTemplate):
                     max_val=8.0,
                     default=2.0,
                     curve="exp",
+                    label="DEC",
+                    tooltip="String decay time",
+                    unit="s",
                 ),
                 ParamAxis(
                     name="damping",
                     min_val=0.0,
                     max_val=0.9,
                     default=0.3,
-                    curve="linear",
+                    curve="lin",
+                    label="DMP",
+                    tooltip="String damping amount",
+                    unit="",
                 ),
                 ParamAxis(
                     name="brightness",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="BRT",
+                    tooltip="Exciter brightness",
+                    unit="",
                 ),
                 ParamAxis(
                     name="exciter_color",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="EXC",
+                    tooltip="Exciter noise color",
+                    unit="",
                 ),
                 ParamAxis(
                     name="body_size",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.3,
-                    curve="linear",
+                    curve="lin",
+                    label="BOD",
+                    tooltip="Body resonance amount",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -115,14 +129,15 @@ class KarplusTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        decay = params.get("decay_time", 2.0)
-        damp = params.get("damping", 0.3)
-        bright = params.get("brightness", 0.5)
-        exciter = params.get("exciter_color", 0.5)
-        body = params.get("body_size", 0.3)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
         
-        # Coef controls damping (higher = more damping = darker)
-        coef = 0.1 + damp * 0.4
+        # Generate custom param read expressions
+        decay_read = axes["decay_time"].sc_read_expr("customBus0", 0)
+        damp_read = axes["damping"].sc_read_expr("customBus1", 1)
+        bright_read = axes["brightness"].sc_read_expr("customBus2", 2)
+        exciter_read = axes["exciter_color"].sc_read_expr("customBus3", 3)
+        body_read = axes["body_size"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -132,8 +147,9 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                customBus0, customBus1, customBus2, customBus3, customBus4,
                                seed={seed}|
 
-    var exc, sig, bodyRes, trig;
+    var exc, sig, bodyRes, trig, coef;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var decay_time, damping, brightness, exciter_color, body_size;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -149,6 +165,13 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {decay_read}
+    {damp_read}
+    {bright_read}
+    {exciter_read}
+    {body_read}
+
     // === EXCITER ===
     // Standard Noise Engine trigger selection
     trig = Select.ar(envSource.round.clip(0, 2), [
@@ -158,26 +181,29 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     ]);
     
     // Exciter: noise burst with trigger envelope
-    exc = PinkNoise.ar * {0.5 + exciter * 0.5:.4f};
-    exc = LPF.ar(exc, filterFreq.min({2000 + bright * 8000:.1f}));
+    exc = PinkNoise.ar * (0.5 + (exciter_color * 0.5));
+    exc = LPF.ar(exc, filterFreq.min(2000 + (brightness * 8000)));
     exc = exc * EnvGen.ar(Env.perc(0.001, 0.05), trig);
 
     // === KARPLUS-STRONG STRING ===
+    // Coef controls damping (higher = more damping = darker)
+    coef = 0.1 + (damping * 0.4);
+    
     sig = Pluck.ar(
         exc,
         trig,
         0.2,
         freq.reciprocal,
-        {decay:.4f},
-        {coef:.4f}
+        decay_time,
+        coef
     );
 
     // Boost output (Pluck is naturally quiet)
     sig = sig * 3;
 
     // === BODY RESONANCE ===
-    bodyRes = BPF.ar(sig, freq * 1.5, 0.5) * {body * 0.3:.4f};
-    bodyRes = bodyRes + (BPF.ar(sig, freq * 2.5, 0.3) * {body * 0.2:.4f});
+    bodyRes = BPF.ar(sig, freq * 1.5, 0.5) * (body_size * 0.3);
+    bodyRes = bodyRes + (BPF.ar(sig, freq * 2.5, 0.3) * (body_size * 0.2));
     sig = sig + bodyRes;
 
     // === FILTER ===
@@ -191,15 +217,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],  # Phase 1: no custom params exposed
-            "output_trim_db": -6.0,
-            "midi_retrig": True,  # Plucked sounds need retrigger
-            "pitch_target": None,
-        }

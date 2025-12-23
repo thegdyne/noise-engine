@@ -6,8 +6,7 @@ Character: Gritty, aggressive, chaotic, industrial
 Single operator with feedback creates rich harmonics to noise
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,14 +24,17 @@ class FeedbackFMTemplate(MethodTemplate):
             method_id="fm/feedback_fm",
             family="fm",
             display_name="Feedback FM",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="feedback",
                     min_val=0.0,
                     max_val=1.5,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="FBK",
+                    tooltip="Self-modulation feedback amount",
+                    unit="",
                 ),
                 ParamAxis(
                     name="fb_mod_rate",
@@ -40,27 +42,39 @@ class FeedbackFMTemplate(MethodTemplate):
                     max_val=8.0,
                     default=0.5,
                     curve="exp",
+                    label="RAT",
+                    tooltip="Feedback modulation LFO rate",
+                    unit="Hz",
                 ),
                 ParamAxis(
                     name="fb_mod_depth",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.3,
-                    curve="linear",
+                    curve="lin",
+                    label="DEP",
+                    tooltip="Feedback modulation depth",
+                    unit="",
                 ),
                 ParamAxis(
                     name="brightness",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="BRT",
+                    tooltip="Output filter brightness",
+                    unit="",
                 ),
                 ParamAxis(
                     name="drive",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.2,
-                    curve="linear",
+                    curve="lin",
+                    label="DRV",
+                    tooltip="Waveshaping drive amount",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -112,11 +126,15 @@ class FeedbackFMTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        feedback = params.get("feedback", 0.5)
-        fb_mod_rate = params.get("fb_mod_rate", 0.5)
-        fb_mod_depth = params.get("fb_mod_depth", 0.3)
-        bright = params.get("brightness", 0.5)
-        drive = params.get("drive", 0.2)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
+        
+        # Generate custom param read expressions
+        fb_read = axes["feedback"].sc_read_expr("customBus0", 0)
+        rate_read = axes["fb_mod_rate"].sc_read_expr("customBus1", 1)
+        depth_read = axes["fb_mod_depth"].sc_read_expr("customBus2", 2)
+        bright_read = axes["brightness"].sc_read_expr("customBus3", 3)
+        drive_read = axes["drive"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -128,6 +146,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var sig, fbMod, fbAmount;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var feedback, fb_mod_rate, fb_mod_depth, brightness, drive;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -143,10 +162,17 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {fb_read}
+    {rate_read}
+    {depth_read}
+    {bright_read}
+    {drive_read}
+
     // === FEEDBACK FM ===
     // Modulate feedback amount for movement
-    fbMod = SinOsc.kr({fb_mod_rate:.4f}).range(1 - {fb_mod_depth:.4f}, 1);
-    fbAmount = {feedback:.4f} * fbMod;
+    fbMod = SinOsc.kr(fb_mod_rate).range(1 - fb_mod_depth, 1);
+    fbAmount = feedback * fbMod;
     
     // Self-modulating FM oscillator
     // SinOscFB has built-in feedback path
@@ -157,11 +183,11 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     sig = sig * 0.7;  // Normalize mix
 
     // === DRIVE (waveshaping) ===
-    sig = (sig * (1 + ({drive:.4f} * 4))).tanh;
-    sig = sig * (1 - ({drive:.4f} * 0.3));  // Compensate gain
+    sig = (sig * (1 + (drive * 4))).tanh;
+    sig = sig * (1 - (drive * 0.3));  // Compensate gain
 
     // === FILTER ===
-    sig = ~multiFilter.(sig, filterType, filterFreq.min({1000 + bright * 8000:.1f}), rq);
+    sig = ~multiFilter.(sig, filterType, filterFreq.min(1000 + (brightness * 8000)), rq);
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.2, 0.2);
@@ -171,15 +197,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],
-            "output_trim_db": -6.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }

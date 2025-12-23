@@ -6,8 +6,7 @@ Character: Mathematical, precise, clean, crystalline, digital
 Builds sounds from individual sine wave partials
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,42 +24,57 @@ class AdditiveTemplate(MethodTemplate):
             method_id="spectral/additive",
             family="spectral",
             display_name="Additive",
-            template_version=1,
+            template_version="2",  # Bumped for dynamic params
             param_axes=[
                 ParamAxis(
                     name="num_partials",
                     min_val=4.0,
                     max_val=16.0,
                     default=8.0,
-                    curve="linear",
+                    curve="lin",
+                    label="PRT",
+                    tooltip="Number of partials (structural)",
+                    unit="",
                 ),
                 ParamAxis(
                     name="odd_even",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="ODD",
+                    tooltip="Odd/even harmonic balance",
+                    unit="",
                 ),
                 ParamAxis(
                     name="rolloff",
                     min_val=0.5,
                     max_val=2.0,
                     default=1.0,
-                    curve="linear",
+                    curve="lin",
+                    label="ROL",
+                    tooltip="Harmonic amplitude rolloff",
+                    unit="",
                 ),
                 ParamAxis(
                     name="detune_spread",
                     min_val=0.0,
                     max_val=0.015,
                     default=0.003,
-                    curve="linear",
+                    curve="lin",
+                    label="DET",
+                    tooltip="Partial detuning spread",
+                    unit="",
                 ),
                 ParamAxis(
                     name="brightness",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.7,
-                    curve="linear",
+                    curve="lin",
+                    label="BRT",
+                    tooltip="High partial emphasis",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -124,11 +138,21 @@ class AdditiveTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
+        # num_partials is STRUCTURAL - baked at generation time
+        # (Mix.fill count must be fixed at SynthDef compile time)
         num_p = int(params.get("num_partials", 8.0))
-        odd_even = params.get("odd_even", 0.5)
-        rolloff = params.get("rolloff", 1.0)
-        detune = params.get("detune_spread", 0.003)
-        bright = params.get("brightness", 0.7)
+        
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
+        
+        # Generate custom param read expressions
+        # Note: num_partials (customBus0) is read but primarily for UI feedback
+        # The actual partial count is baked
+        partials_read = axes["num_partials"].sc_read_expr("customBus0", 0)
+        odd_even_read = axes["odd_even"].sc_read_expr("customBus1", 1)
+        rolloff_read = axes["rolloff"].sc_read_expr("customBus2", 2)
+        detune_read = axes["detune_spread"].sc_read_expr("customBus3", 3)
+        bright_read = axes["brightness"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -140,6 +164,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var sig, partials;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var num_partials, odd_even, rolloff, detune_spread, brightness;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -155,18 +180,28 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    // Note: num_partials is read for completeness but partial count is structural (baked at {num_p})
+    {partials_read}
+    {odd_even_read}
+    {rolloff_read}
+    {detune_read}
+    {bright_read}
+
     // === ADDITIVE SYNTHESIS ===
     // Build up partials from sine waves
+    // Partial count is structural ({num_p}), other params are dynamic
     partials = Mix.fill({num_p}, {{ |i|
         var harmonic = i + 1;
         var isOdd = (harmonic % 2) == 1;
-        var partialAmp = 1 / (harmonic ** {rolloff:.4f});
-        var detuneAmt = 1 + ({detune:.6f} * i * LFNoise1.kr(0.3).range(-1, 1));
+        var baseAmp = 1 / (harmonic ** rolloff);
+        var detuneAmt = 1 + (detune_spread * i * LFNoise1.kr(0.3).range(-1, 1));
+        var partialAmp;
         
-        // Odd/even control
-        partialAmp = partialAmp * (isOdd.asInteger.max({odd_even:.4f}));
+        // Odd/even control: odd partials get full amp, evens get odd_even amount
+        partialAmp = baseAmp * Select.kr(isOdd.asInteger, [odd_even, 1.0]);
         // Brightness boost for higher partials
-        partialAmp = partialAmp * (1 + ({bright:.4f} * harmonic * 0.03));
+        partialAmp = partialAmp * (1 + (brightness * harmonic * 0.03));
         
         SinOsc.ar(freq * harmonic * detuneAmt, 0, partialAmp);
     }});
@@ -174,7 +209,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     sig = partials / {num_p}.sqrt;  // Normalize
 
     // === FILTER (light touch for additive) ===
-    sig = ~multiFilter.(sig, filterType, filterFreq.min({3000 + bright * 5000:.1f}), rq);
+    sig = ~multiFilter.(sig, filterType, filterFreq.min(3000 + (brightness * 5000)), rq);
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.1, 0.2);
@@ -184,15 +219,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],
-            "output_trim_db": -3.0,
-            "midi_retrig": False,
-            "pitch_target": None,
-        }

@@ -6,8 +6,7 @@ Character: Sustained, violin-like, cello, rich harmonics
 Uses waveguide-inspired synthesis with friction exciter
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import Dict
 
 from ..base import (
     MethodTemplate,
@@ -25,42 +24,57 @@ class BowedTemplate(MethodTemplate):
             method_id="physical/bowed",
             family="physical",
             display_name="Bowed String",
-            template_version=1,
+            template_version="1",
             param_axes=[
                 ParamAxis(
                     name="bow_pressure",
                     min_val=0.2,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="PRS",
+                    tooltip="Bow pressure intensity",
+                    unit="",
                 ),
                 ParamAxis(
                     name="bow_position",
                     min_val=0.05,
                     max_val=0.2,
                     default=0.1,
-                    curve="linear",
+                    curve="lin",
+                    label="POS",
+                    tooltip="Bow position on string",
+                    unit="",
                 ),
                 ParamAxis(
                     name="vibrato_rate",
                     min_val=3.0,
                     max_val=7.0,
                     default=5.0,
-                    curve="linear",
+                    curve="lin",
+                    label="VIB",
+                    tooltip="Vibrato rate",
+                    unit="Hz",
                 ),
                 ParamAxis(
                     name="vibrato_depth",
                     min_val=0.0,
                     max_val=0.02,
                     default=0.008,
-                    curve="linear",
+                    curve="lin",
+                    label="DEP",
+                    tooltip="Vibrato depth",
+                    unit="",
                 ),
                 ParamAxis(
                     name="brightness",
                     min_val=0.0,
                     max_val=1.0,
                     default=0.5,
-                    curve="linear",
+                    curve="lin",
+                    label="BRT",
+                    tooltip="Bow friction brightness",
+                    unit="",
                 ),
             ],
             macro_controls=[
@@ -110,11 +124,15 @@ class BowedTemplate(MethodTemplate):
         params: Dict,
         seed: int,
     ) -> str:
-        pressure = params.get("bow_pressure", 0.5)
-        position = params.get("bow_position", 0.1)
-        vib_rate = params.get("vibrato_rate", 5.0)
-        vib_depth = params.get("vibrato_depth", 0.008)
-        bright = params.get("brightness", 0.5)
+        # Get axes for sc_read_expr
+        axes = {a.name: a for a in self._definition.param_axes}
+        
+        # Generate custom param read expressions
+        pressure_read = axes["bow_pressure"].sc_read_expr("customBus0", 0)
+        position_read = axes["bow_position"].sc_read_expr("customBus1", 1)
+        vib_rate_read = axes["vibrato_rate"].sc_read_expr("customBus2", 2)
+        vib_depth_read = axes["vibrato_depth"].sc_read_expr("customBus3", 3)
+        bright_read = axes["brightness"].sc_read_expr("customBus4", 4)
         
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -126,6 +144,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     var sig, vibrato, friction, delay, bowedSig;
     var freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var bow_pressure, bow_position, vibrato_rate, vibrato_depth, brightness;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -141,18 +160,25 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     clockRate = In.kr(clockRateBus);
     amp = In.kr(~params[\\amplitude]);
 
+    // === READ CUSTOM PARAMS ===
+    {pressure_read}
+    {position_read}
+    {vib_rate_read}
+    {vib_depth_read}
+    {bright_read}
+
     // === VIBRATO ===
-    vibrato = SinOsc.kr({vib_rate:.4f}).range(1 - {vib_depth:.6f}, 1 + {vib_depth:.6f});
+    vibrato = SinOsc.kr(vibrato_rate).range(1 - vibrato_depth, 1 + vibrato_depth);
     freq = freq * vibrato;
 
     // === BOW FRICTION ===
     // Friction noise shaped by bow pressure
-    friction = WhiteNoise.ar * {pressure:.4f};
-    friction = friction + (PinkNoise.ar * {pressure * 0.5:.4f});
+    friction = WhiteNoise.ar * bow_pressure;
+    friction = friction + (PinkNoise.ar * (bow_pressure * 0.5));
     
     // Bow pressure affects harmonic content
-    friction = LPF.ar(friction, {500 + bright * 3000:.1f});
-    friction = friction * (1 + ({pressure:.4f} * 2)).tanh;
+    friction = LPF.ar(friction, 500 + (brightness * 3000));
+    friction = friction * (1 + (bow_pressure * 2)).tanh;
 
     // === STRING RESONATOR ===
     // Comb filter simulates string resonance
@@ -166,8 +192,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     // Add harmonics via position-dependent filtering
     // Bow position affects which harmonics are emphasized
     bowedSig = delay;
-    bowedSig = bowedSig + (CombL.ar(friction, 0.025, (freq * 2).reciprocal, 2.0) * {position:.4f} * 2);
-    bowedSig = bowedSig + (CombL.ar(friction, 0.017, (freq * 3).reciprocal, 1.5) * {position:.4f});
+    bowedSig = bowedSig + (CombL.ar(friction, 0.025, (freq * 2).reciprocal, 2.0) * bow_position * 2);
+    bowedSig = bowedSig + (CombL.ar(friction, 0.017, (freq * 3).reciprocal, 1.5) * bow_position);
     
     sig = bowedSig * 0.4;
 
@@ -186,15 +212,5 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     Out.ar(out, sig);
 }}).add;
 
-"  ✓ {synthdef_name} loaded".postln;
+"  * {synthdef_name} loaded".postln;
 '''
-    
-    def generate_json(self, display_name: str, synthdef_name: str) -> Dict:
-        return {
-            "name": display_name,
-            "synthdef": synthdef_name,
-            "custom_params": [],
-            "output_trim_db": -6.0,
-            "midi_retrig": False,  # Sustained sound
-            "pitch_target": None,
-        }
