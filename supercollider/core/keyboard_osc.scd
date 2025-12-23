@@ -43,9 +43,6 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
                 
                 // Trigger envelope if generator exists
                 if(~generators[slot].notNil, {
-                    // Send gate to Python for LED
-                    ~pythonAddr.sendMsg('/noise/midi/gate', slot);
-                    
                     if(needsRetrig, {
                         // Continuous retrig mode
                         ~startMidiRetrig.(slot, amp);
@@ -53,6 +50,9 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
                         // Normal mode - single trigger
                         ~triggerMidiGate.(slot, amp);
                     });
+
+                    // Send gate to Python for LED (after audio trigger)
+                    ~pythonAddr.sendMsg('/noise/midi/gate', slot);
                 });
             });
         }, path);
