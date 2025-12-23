@@ -6,13 +6,13 @@ Keys map to piano notes (Logic-style layout).
 Z/X for octave shift. ESC dismisses.
 """
 
-from PyQt5.QtCore import Qt, QPoint, QEvent
+from PyQt5.QtCore import Qt, QPoint, QEvent, QTimer
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QButtonGroup, QFrame, QApplication
 )
 from PyQt5.QtGui import QFont
-
+from typing import Optional
 from .theme import COLORS, FONT_FAMILY
 
 # Key → semitone offset from C (within current octave span)
@@ -83,7 +83,7 @@ class KeyboardOverlay(QWidget):
         self._target_slots: set[int] = set()  # 1-8 (UI indexed)
         
         # Dragging state
-        self._drag_pos: QPoint | None = None
+        self._drag_pos = None
         
         # UI elements
         self._key_buttons: dict[int, QPushButton] = {}
@@ -96,9 +96,6 @@ class KeyboardOverlay(QWidget):
         
         # Start hidden
         self.hide()
-        
-        # Install event filter for window deactivation
-        QApplication.instance().installEventFilter(self)
     
     def _setup_ui(self):
         """Build the overlay UI."""
@@ -162,6 +159,14 @@ class KeyboardOverlay(QWidget):
                 btn.setChecked(True)
         
         layout.addSpacing(16)
+
+        # Close button
+        close_btn = QPushButton("CLOSE")
+        close_btn.setFixedSize(50, 24)
+        close_btn.setFont(QFont(FONT_FAMILY, 10))
+        close_btn.setObjectName("keyboard_close")
+        close_btn.clicked.connect(self._dismiss)
+        layout.addWidget(close_btn)
         
         # Octave display
         oct_title = QLabel("Oct:")
@@ -329,7 +334,7 @@ class KeyboardOverlay(QWidget):
             
             #white_key:pressed, #white_key[pressed="true"] {{
                 background: {COLORS['selected']};
-                border-color: {COLORS['selected_dim']};
+                border-color: {COLORS['border_light']};
             }}
             
             #black_key {{
@@ -341,7 +346,7 @@ class KeyboardOverlay(QWidget):
             
             #black_key:pressed, #black_key[pressed="true"] {{
                 background: {COLORS['selected']};
-                border-color: {COLORS['selected_dim']};
+                border-color: {COLORS['border_light']};
                 color: #000;
             }}
             
@@ -363,7 +368,7 @@ class KeyboardOverlay(QWidget):
             
             #keyboard_targets QPushButton:checked {{
                 background: {COLORS['selected']};
-                border-color: {COLORS['selected_dim']};
+                border-color: {COLORS['border_light']};
                 color: {COLORS['background']};
             }}
             
@@ -487,7 +492,20 @@ class KeyboardOverlay(QWidget):
             self._dismiss()
             event.accept()
             return
-        
+
+        # Cmd/Ctrl+K dismisses (toggle)
+        if event.key() == Qt.Key_K and event.modifiers() & Qt.ControlModifier:
+            self._dismiss()
+            event.accept()
+            return
+
+        # Number keys 1-8 toggle target slots
+        if Qt.Key_1 <= event.key() <= Qt.Key_8:
+            slot_index = event.key() - Qt.Key_1  # 0-7
+            self._slot_buttons[slot_index].click()
+            event.accept()
+            return
+
         # Ignore auto-repeat
         if event.isAutoRepeat():
             event.accept()
@@ -583,22 +601,8 @@ class KeyboardOverlay(QWidget):
             btn.style().polish(btn)
     
     # ─────────────────────────────────────────────────────────────────
-    # Window Deactivation Handling
+    # Cleanup
     # ─────────────────────────────────────────────────────────────────
-    
-    def eventFilter(self, obj, event):
-        """Handle app/window deactivation."""
-        if self.isVisible():
-            if event.type() in (QEvent.ApplicationDeactivate, QEvent.WindowDeactivate):
-                self._dismiss()
-        return super().eventFilter(obj, event)
-    
-    def focusOutEvent(self, event):
-        """Handle focus loss."""
-        # Only dismiss if we lost focus to something outside our window
-        if self.isVisible():
-            self._dismiss()
-        super().focusOutEvent(event)
     
     def closeEvent(self, event):
         """Ensure cleanup on close."""

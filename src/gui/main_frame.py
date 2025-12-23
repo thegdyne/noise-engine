@@ -718,11 +718,13 @@ class MainFrame(QMainWindow):
         """Push full UI state for one mod slot to SC (SSOT)."""
         if not self.osc_connected:
             return
+        print("DEBUG: creating overlay")
         from src.config import get_mod_generator_custom_params, map_value
         
         slot = self.modulator_grid.get_slot(slot_id)
         if not slot:
             return
+        print("DEBUG: creating overlay")
         
         gen_name = slot.generator_name
         
@@ -735,6 +737,7 @@ class MainFrame(QMainWindow):
         
         if gen_name == "Empty":
             return
+        print("DEBUG: creating overlay")
         
         # Sync outputs (wave/phase/polarity) from UI
         for out_idx, row in enumerate(slot.output_rows):
@@ -919,10 +922,12 @@ class MainFrame(QMainWindow):
         slot = self.generator_grid.get_slot(slot_id)
         if not slot:
             return
+        print("DEBUG: creating overlay")
         
         slider = self._get_slot_slider(slot, param)
         if not slider:
             return
+        print("DEBUG: creating overlay")
         
         # Get all connections to this param
         connections = self.mod_routing.get_connections_for_target(slot_id, param)
@@ -931,6 +936,7 @@ class MainFrame(QMainWindow):
             # No modulation - clear visualization
             slider.clear_modulation()
             return
+        print("DEBUG: creating overlay")
         
         # Get param config for this parameter
         param_config = get_param_config(param)
@@ -1033,6 +1039,7 @@ class MainFrame(QMainWindow):
         """Sync all mod routing state to SC (called on reconnect)."""
         if not self.osc_connected:
             return
+        print("DEBUG: creating overlay")
         for conn in self.mod_routing.get_all_connections():
             self.osc.client.send_message(
                 OSC_PATHS['mod_route_add'],
@@ -1141,10 +1148,12 @@ class MainFrame(QMainWindow):
         """
         if not self.osc_connected:
             return
+        print("DEBUG: creating overlay")
         
         state = self.mixer_panel.get_channel_strip_state(slot_id)
         if not state:
             return
+        print("DEBUG: creating overlay")
         
         # Re-send all strip parameters to SC
         self.osc.client.send_message(OSC_PATHS['gen_pan'], [slot_id, state['pan']])
@@ -1170,10 +1179,12 @@ class MainFrame(QMainWindow):
         """
         if not self.osc_connected:
             return
+        print("DEBUG: creating overlay")
         
         slot = self.generator_grid.get_slot(slot_id)
         if not slot:
             return
+        print("DEBUG: creating overlay")
         
         # Generator slot mute (overrides strip mute if set)
         if slot.muted:
@@ -1427,6 +1438,7 @@ class MainFrame(QMainWindow):
         
         if dialog.exec_() != QDialog.Accepted:
             return
+        print("DEBUG: creating overlay")
         
         logger.info("Restarting Noise Engine...", component="APP")
         
@@ -1669,28 +1681,32 @@ class MainFrame(QMainWindow):
     # ── Keyboard Mode ────────────────────────────────────────────────────────
 
     def _toggle_keyboard_mode(self):
+        print("DEBUG: _toggle_keyboard_mode called")
         """Toggle the keyboard overlay for QWERTY-to-MIDI input."""
         # If overlay exists and is visible, just toggle it off
         if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
-            self._keyboard_overlay.hide()
+            self._keyboard_overlay._dismiss()
             return
+        print("DEBUG: creating overlay")
         
-        # Don't open if focus is in a text input field
+        print("DEBUG: checking focus widget")
         focus_widget = QApplication.focusWidget()
         if focus_widget is not None:
             from PyQt5.QtWidgets import QLineEdit, QTextEdit, QSpinBox
             if isinstance(focus_widget, (QLineEdit, QTextEdit, QSpinBox)):
+                print(f"DEBUG: blocked by text field: {focus_widget}")
                 return
+        print("DEBUG: creating overlay")
         
         # Create overlay on first use
         if self._keyboard_overlay is None:
             self._keyboard_overlay = KeyboardOverlay(
                 parent=self,
-                send_note_on=self._send_midi_note_on,
-                send_note_off=self._send_midi_note_off,
-                send_all_notes_off=self._send_all_notes_off,
-                get_focused_slot=self._get_focused_slot,
-                is_slot_midi_mode=self._is_slot_midi_mode,
+                send_note_on_fn=self._send_midi_note_on,
+                send_note_off_fn=self._send_midi_note_off,
+                send_all_notes_off_fn=self._send_all_notes_off,
+                get_focused_slot_fn=self._get_focused_slot,
+                is_slot_midi_mode_fn=self._is_slot_midi_mode,
             )
         
         # Position at bottom-center of main window
@@ -1699,21 +1715,23 @@ class MainFrame(QMainWindow):
         y = self.y() + self.height() - self._keyboard_overlay.height() - 24
         self._keyboard_overlay.move(x, y)
         self._keyboard_overlay.show()
+        self._keyboard_overlay.raise_()
+        self._keyboard_overlay.activateWindow()
+        print(f"DEBUG: overlay shown, visible={self._keyboard_overlay.isVisible()}, geometry={self._keyboard_overlay.geometry()}")
 
     def _send_midi_note_on(self, slot: int, note: int, velocity: int):
         """Send MIDI note-on via OSC. Slot is 0-indexed."""
-        if self.osc is not None:
-            self.osc.send(f"/noise/slot/{slot}/midi/note_on", note, velocity)
+        if self.osc is not None and self.osc.client is not None:
+            self.osc.client.send_message(f"/noise/slot/{slot}/midi/note_on", [note, velocity])
 
     def _send_midi_note_off(self, slot: int, note: int):
         """Send MIDI note-off via OSC. Slot is 0-indexed."""
-        if self.osc is not None:
-            self.osc.send(f"/noise/slot/{slot}/midi/note_off", note)
+        if self.osc is not None and self.osc.client is not None:
+            self.osc.client.send_message(f"/noise/slot/{slot}/midi/note_off", [note])
 
     def _send_all_notes_off(self, slot: int):
-        """Send all-notes-off via OSC. Slot is 0-indexed."""
-        if self.osc is not None:
-            self.osc.send(f"/noise/slot/{slot}/midi/all_notes_off")
+        if self.osc is not None and self.osc.client is not None:
+            self.osc.client.send_message(f"/noise/slot/{slot}/midi/all_notes_off", [])
 
     def _get_focused_slot(self) -> int:
         """Return currently focused slot (1-indexed for UI)."""
