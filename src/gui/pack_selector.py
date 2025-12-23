@@ -93,3 +93,26 @@ class PackSelector(QWidget):
     def refresh(self):
         """Refresh pack list (call after packs change)."""
         self._populate()
+    
+    def set_pack(self, pack_id):
+        """
+        Programmatically switch to a pack.
+        
+        Args:
+            pack_id: Pack id string, or None for Core
+            
+        Returns:
+            bool: True if pack was found and selected
+        """
+        for i in range(self.combo.count()):
+            if self.combo.itemData(i) == pack_id:
+                self.combo.setCurrentIndex(i)  # Triggers _on_selection_changed
+                return True
+        
+        # Pack not found, select Core
+        self.combo.setCurrentIndex(0)
+        return False
+    
+    def get_pack(self):
+        """Get currently selected pack_id (or None for Core)."""
+        return self.combo.itemData(self.combo.currentIndex())

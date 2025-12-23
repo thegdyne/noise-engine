@@ -45,3 +45,6 @@ supercollider/recordings/
 packs/user/*
 !packs/user/.gitkeep
 packs/pizza-pup/
+test_inputs/
+packs/
+spatial_debug.json

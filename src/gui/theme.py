@@ -186,6 +186,10 @@ def button_style(state='disabled'):
             QPushButton:hover {{
                 background-color: {COLORS['enabled_hover']};
             }}
+            QPushButton:disabled {{
+                background-color: {COLORS['inactive']};
+                color: {COLORS['inactive_text']};
+            }}
         """
     elif state == 'submenu':
         return f"""
@@ -198,6 +202,11 @@ def button_style(state='disabled'):
             QPushButton:hover {{
                 background-color: {COLORS['submenu_hover']};
             }}
+            QPushButton:disabled {{
+                background-color: {COLORS['inactive']};
+                color: {COLORS['inactive_text']};
+                border-color: {COLORS['inactive_text']};
+            }}
         """
     elif state == 'warning':
         return f"""
@@ -208,6 +217,10 @@ def button_style(state='disabled'):
             }}
             QPushButton:hover {{
                 background-color: {COLORS['warning_hover']};
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['inactive']};
+                color: {COLORS['inactive_text']};
             }}
         """
     elif state == 'inactive':
@@ -231,32 +244,30 @@ def button_style(state='disabled'):
             }}
         """
 
-
 def slider_style():
-    """Get standard vertical slider stylesheet."""
+    """Get slider stylesheet."""
     return f"""
-        QSlider {{
-            border: none;
-            background: transparent;
-        }}
         QSlider::groove:vertical {{
-            border: 1px solid {get('slider_groove_border')};
+            background: {COLORS['background_dark']};
             width: 8px;
-            background: {COLORS['slider_groove']};
             border-radius: 4px;
         }}
         QSlider::handle:vertical {{
-            background: {COLORS['slider_handle']};
-            border: 1px solid {get('slider_handle_border')};
+            background: {COLORS['text']};
             height: 12px;
-            margin: 0 -3px;
+            margin: 0 -4px;
             border-radius: 6px;
         }}
         QSlider::handle:vertical:hover {{
-            background: {COLORS['slider_handle_hover']};
+            background: {COLORS['text_bright']};
+        }}
+        QSlider::groove:vertical:disabled {{
+            background: {COLORS['background']};
+        }}
+        QSlider::handle:vertical:disabled {{
+            background: {COLORS['border']};
         }}
     """
-
 
 def slider_style_center_notch():
     """
@@ -547,18 +558,29 @@ GENERATOR_THEME = {
     'slot_border_active': get('accent_generator_dim'),
     'slot_margin': (2, 4, 2, 4),  # tighter margins
     
+    # # Header layout
+    # 'header_inset_left': 14,       # left margin for GEN label
+    # 'header_inset_right': 0,      # flush with edge
+    # 'header_type_offset_right': 4,  # extra right shift for type selector only
+    # 'header_selector_text_pad': 4, # internal text padding for selector
+    # 'header_overlay_height': 24,  # reserved space at top of content for header overlay
+    # 'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
+    # 'header_content_gap': 2,      # header-to-sliders distance inside the frame
+
+
     # Header layout
-    'header_inset_left': 14,       # left margin for GEN label
-    'header_inset_right': 0,      # flush with edge
-    'header_type_offset_right': 4,  # extra right shift for type selector only
+    'header_inset_left': 18,       # left margin for GEN label
+    'header_inset_right': 4,       # right padding
+    'header_type_offset_right': 0, # no overflow shift
     'header_selector_text_pad': 4, # internal text padding for selector
-    'header_overlay_height': 24,  # reserved space at top of content for header overlay
-    'header_frame_gap': 8,        # vertical gap between header and frame (legacy, now unused)
-    'header_content_gap': 2,      # header-to-sliders distance inside the frame
-    
+    'header_overlay_height': 24,   # reserved space at top of content for header overlay
+    'header_frame_gap': 8,         # vertical gap between header and frame (legacy, now unused)
+    'header_content_gap': 2,       # header-to-sliders distance inside the frame
+
     # Header
     'header_spacing': 4,
-    'header_type_width': 70,      # FIXED: wider for long names like "Subtractive"
+    # 'header_type_width': 70,      # FIXED: wider for long names like "Subtractive"
+    'header_type_width': 110,      # FIXED: wider for long names like "Subtractive"
     'header_type_height': 20,     # shorter height
     
     # GeneratorFrame (inner container for sliders + buttons)
@@ -570,10 +592,13 @@ GENERATOR_THEME = {
     
     # Slider section
     'slider_column_width': 22,    # width of each label+slider column
+    'slider_width': 18,           # actual slider widget width (fits inside column)
+    'slider_height': 100,          # slider height
     'slider_gap': 1,              # horizontal gap between columns
-    'slider_section_spacing': 6, # vertical gap between custom row + standard row
-    'slider_min_height': 38,      # minimum slider height (smaller = more compact)
+    'slider_section_spacing': 6,  # vertical gap between custom row + standard row
+    'slider_min_height': 40,      # minimum slider height (smaller = more compact) - can remove if not used
     'content_row_spacing': 2,     # gap between slider section and button strip
+
     
     # Button strip - order defines visual stacking (top to bottom)
     'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],

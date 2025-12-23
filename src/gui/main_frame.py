@@ -64,11 +64,18 @@ class MainFrame(QMainWindow):
         # Mod matrix window (created on first open)
         self.mod_matrix_window = None
         
+        # MIDI mode toggle state
+        self._midi_mode_active = False
+        self._midi_mode_saved_states = [0] * 8  # env_source per slot
+        self._midi_mode_changing = False  # Guard flag for bulk changes
+
+
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
         
         self.setup_ui()
-        
+        self._set_header_buttons_enabled(False)  # Disable until SC connects
+
     def setup_ui(self):
         """Create the main interface layout."""
         central = QWidget()
@@ -205,7 +212,22 @@ class MainFrame(QMainWindow):
         """Create top bar."""
         bar = QFrame()
         bar.setFrameShape(QFrame.StyledPanel)
-        bar.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-bottom: 1px solid {COLORS['border_light']};")
+        bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {COLORS['background_highlight']};
+                border-bottom: 1px solid {COLORS['border_light']};
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['background']};
+                color: {COLORS['border']};
+                border-color: {COLORS['border']};
+            }}
+            QComboBox:disabled {{
+                background-color: {COLORS['background']};
+                color: {COLORS['border']};
+                border-color: {COLORS['border']};
+            }}
+        """)
         bar.setFixedHeight(60)
         
         layout = QHBoxLayout(bar)
@@ -284,9 +306,51 @@ class MainFrame(QMainWindow):
                 color: #00ff00;
                 border-color: #00ff00;
             }}
+            QPushButton:disabled {{
+                background-color: {COLORS['background']};
+                color: #004400;
+                border-color: #002200;
+            }}
         """)
         self.matrix_btn.clicked.connect(self._open_mod_matrix)
         layout.addWidget(self.matrix_btn)
+
+        # Clear mod button - clears all modulation routes
+        self.clear_mod_btn = QPushButton("CLEAR")
+        self.clear_mod_btn.setToolTip("Clear all modulation routes")
+        self.clear_mod_btn.setFixedSize(55, 27)
+        self.clear_mod_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['background']};
+                color: #ff4444;
+                border: 1px solid #aa2222;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #330000;
+                color: #ff6666;
+                border-color: #ff4444;
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['background']};
+                color: #441111;
+                border-color: #331111;
+            }}
+        """)
+        self.clear_mod_btn.clicked.connect(self._clear_all_mod_routes)
+        layout.addWidget(self.clear_mod_btn)
+
+        # MIDI mode button - sets all generators to MIDI trigger mode
+        self.midi_mode_btn = QPushButton("MIDI")
+        self.midi_mode_btn.setToolTip("Set all generators to MIDI mode (toggle)")
+        self.midi_mode_btn.setFixedSize(50, 27)
+        self.midi_mode_btn.setCheckable(True)
+        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(False))
+        self.midi_mode_btn.clicked.connect(self._toggle_midi_mode)
+        layout.addWidget(self.midi_mode_btn)
         
         layout.addStretch()
         
@@ -378,22 +442,33 @@ class MainFrame(QMainWindow):
         self.master_bpm = bpm
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
-        
-    def on_pack_changed(self, pack_id):
-        """Handle pack selection change."""
-        from src.config import get_current_generators
-        
-        # Get new generator list
-        generators = get_current_generators()
-        
-        # Update all generator slots
-        self.generator_grid.set_available_generators(generators)
-        
-        # Reset all slots to Empty
-        for slot_id in range(8):
-            self.generator_grid.set_generator_type(slot_id, "Empty")
-            self.on_generator_changed(slot_id, "Empty")
 
+    def on_pack_changed(self, pack_id):
+        # Auto-load pack preset if exists
+        if pack_id:
+            from src.presets.preset_manager import PresetManager
+            from src.presets.preset_schema import PresetState
+            sanitized = pack_id.replace("-", "_").replace(" ", "_").lower()
+            preset_path = PresetManager.DEFAULT_DIR / f"{sanitized}_preset.json"
+            if preset_path.exists():
+                try:
+                    manager = PresetManager()
+                    state = manager.load(preset_path)
+                    self._apply_preset(state)
+                    self.preset_name.setText(state.name)
+                    logger.info(f"Auto-loaded preset for pack '{pack_id}'", component="PACK")
+                except Exception as e:
+                    logger.warning(f"Failed to load pack preset: {e}", component="PACK")
+                    self._apply_preset(PresetState(pack=pack_id))
+                    self.preset_name.setText("Init")
+            else:
+                self._apply_preset(PresetState(pack=pack_id))
+                self.preset_name.setText("Init")
+        else:
+            # Core - clean state
+            from src.presets.preset_schema import PresetState
+            self._apply_preset(PresetState())
+            self.preset_name.setText("Init")
 
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""
@@ -413,6 +488,7 @@ class MainFrame(QMainWindow):
             
             if self.osc.connect():
                 self.osc_connected = True
+                self._set_header_buttons_enabled(True)
                 self.master_section.set_osc_bridge(self.osc)
                 self.inline_fx.set_osc_bridge(self.osc)
                 self.connect_btn.setText("Disconnect")
@@ -457,6 +533,7 @@ class MainFrame(QMainWindow):
                 pass  # Signals weren't connected
             self.osc.disconnect()
             self.osc_connected = False
+            self._set_header_buttons_enabled(False)
             self.connect_btn.setText("Connect SuperCollider")
             self.status_label.setText("● Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
@@ -464,6 +541,7 @@ class MainFrame(QMainWindow):
     def on_connection_lost(self):
         """Handle connection lost - show prominent warning."""
         self.osc_connected = False
+        self._set_header_buttons_enabled(False)
         self.connect_btn.setText("⚠ RECONNECT")
         self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
         self.status_label.setText("● CONNECTION LOST")
@@ -472,6 +550,7 @@ class MainFrame(QMainWindow):
     def on_connection_restored(self):
         """Handle connection restored after reconnect."""
         self.osc_connected = True
+        self._set_header_buttons_enabled(True)
         self.master_section.set_osc_bridge(self.osc)
         self.inline_fx.set_osc_bridge(self.osc)
         self.connect_btn.setText("Disconnect")
@@ -546,6 +625,10 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_env_source'], [slot_id, source])
         logger.gen(slot_id, f"env source: {['OFF', 'CLK', 'MIDI'][source]}")
+        
+        # Detect manual change while MIDI mode is active
+        if self._midi_mode_active and not self._midi_mode_changing:
+            self._deactivate_midi_mode()
         
     def on_generator_clock_rate(self, slot_id, rate):
         """Handle generator clock rate change - send index."""
@@ -917,11 +1000,15 @@ class MainFrame(QMainWindow):
         
         # Pass same values for outer and inner (single bracket pair now)
         slider.set_modulation_range(range_min, range_max, range_min, range_max, color)
-    
+
     def _on_mod_routes_cleared(self):
-        """Handle all routes cleared - clear all slider brackets."""
+        """Handle all routes cleared - send OSC and clear all slider brackets."""
+        # Send OSC to SuperCollider
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_route_clear_all'], [])
+
         logger.debug("All mod routes cleared", component="MOD")
-        
+
         # Clear all slider modulation visualizations
         for slot_id in range(1, 9):
             slot = self.generator_grid.get_slot(slot_id)
@@ -966,7 +1053,12 @@ class MainFrame(QMainWindow):
             self.mod_matrix_window.raise_()
             self.mod_matrix_window.activateWindow()
             logger.info("Mod matrix window opened", component="MOD")
-    
+
+    def _clear_all_mod_routes(self):
+        """Clear all modulation routes."""
+        self.mod_routing.clear()
+        logger.info("Cleared all mod routes", component="MOD")
+
     def _get_target_slider_value(self, slot_id: int, param: str) -> float:
         """Get normalized 0-1 value of a generator parameter slider.
         
@@ -1344,12 +1436,95 @@ class MainFrame(QMainWindow):
         # Restart the process
         os.execv(python, [python, script])
 
+    # === MIDI Mode Toggle ===
+
+    def _midi_mode_btn_style(self, active):
+        """Return style for MIDI mode button."""
+        if active:
+            return f"""
+                QPushButton {{
+                    background-color: #660066;
+                    color: #ff00ff;
+                    border: 1px solid #ff00ff;
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                    font-size: {FONT_SIZES['small']}px;
+                    font-weight: bold;
+                }}
+                QPushButton:disabled {{
+                    background-color: #220022;
+                    color: #440044;
+                    border-color: #330033;
+                }}
+            """
+        else:
+            return f"""
+                QPushButton {{
+                    background-color: {COLORS['background']};
+                    color: {COLORS['text']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                    font-size: {FONT_SIZES['small']}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #330033;
+                    color: #ff00ff;
+                    border-color: #aa00aa;
+                }}
+                QPushButton:disabled {{
+                    background-color: {COLORS['background']};
+                    color: {COLORS['border']};
+                    border-color: {COLORS['border']};
+                }}
+            """
+    def _toggle_midi_mode(self):
+        """Toggle all generators to/from MIDI mode."""
+        if not self._midi_mode_active:
+            # Activate: save states, set all to MIDI
+            self._midi_mode_changing = True
+            for i, slot in enumerate(self.generator_grid.slots.values()):
+                self._midi_mode_saved_states[i] = slot.env_source
+                if slot.env_source != 2:  # Not already MIDI
+                    slot.env_btn.set_index(2)  # Update visual
+                    slot.on_env_source_changed("MIDI")  # Trigger full state update
+            self._midi_mode_changing = False
+            self._midi_mode_active = True
+            logger.info("MIDI mode activated", component="APP")
+        else:
+            # Deactivate: restore saved states
+            self._restore_midi_mode_states()
+        
+        self.midi_mode_btn.setChecked(self._midi_mode_active)
+        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(self._midi_mode_active))
+
+    def _restore_midi_mode_states(self):
+        """Restore saved env_source states."""
+        from src.config import ENV_SOURCES
+        self._midi_mode_changing = True
+        for i, slot in enumerate(self.generator_grid.slots.values()):
+            saved = self._midi_mode_saved_states[i]
+            slot.env_btn.set_index(saved)  # Update visual
+            slot.on_env_source_changed(ENV_SOURCES[saved])  # Trigger full state update
+        self._midi_mode_changing = False
+        self._midi_mode_active = False
+        logger.info("MIDI mode deactivated", component="APP")
+
+    def _deactivate_midi_mode(self):
+        """Deactivate MIDI mode without restoring (user made manual change)."""
+        self._midi_mode_active = False
+        self.midi_mode_btn.setChecked(False)
+        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(False))
+        logger.info("MIDI mode cancelled (manual change)", component="APP")
+
     # === Preset Save/Load ===
 
     def _save_preset(self):
         """Save current state to preset file."""
         from PyQt5.QtWidgets import QFileDialog, QMessageBox
         from pathlib import Path
+        from src.config import get_current_pack
 
         # Collect generator slot states
         slots = []
@@ -1378,7 +1553,11 @@ class MainFrame(QMainWindow):
         # Phase 4: Mod routing
         mod_routing = self.mod_routing.to_dict()
         
+        # Get current pack
+        current_pack = get_current_pack()
+        
         state = PresetState(
+            pack=current_pack,
             slots=slots,
             mixer=mixer,
             bpm=bpm,
@@ -1433,6 +1612,16 @@ class MainFrame(QMainWindow):
 
     def _apply_preset(self, state: PresetState):
         """Apply preset state to all components."""
+        # Handle pack switching FIRST (before loading slots)
+        if state.pack is not None:
+            # Preset specifies a pack - switch to it
+            if not self.pack_selector.set_pack(state.pack):
+                logger.warning(f"Pack '{state.pack}' not found, using Core", component="PRESET")
+        else:
+            # Preset is for Core (or old preset without pack field)
+            # Don't auto-switch to Core - leave current pack as is for backward compat
+            pass
+        
         # Apply to generator slots
         for i, slot_state in enumerate(state.slots):
             slot_id = i + 1
@@ -1468,3 +1657,26 @@ class MainFrame(QMainWindow):
             # Update mod matrix window if open
             if self.mod_matrix_window:
                 self.mod_matrix_window.sync_from_state()
+
+    def _set_header_buttons_enabled(self, enabled: bool) -> None:
+        """Enable/disable header buttons that require SC connection.
+
+        On startup, only CONNECT, CONSOLE, RESTART are enabled.
+        After SC connection confirmed, all buttons become enabled.
+        """
+        # Buttons/widgets that require SC connection
+        sc_dependent = [
+            self.save_btn,  # Preset save
+            self.load_btn,  # Preset load
+            self.pack_selector,  # Pack selector
+            self.matrix_btn,  # Mod matrix
+            self.midi_mode_btn,  # MIDI mode toggle
+            self.audio_selector,  # Audio device selector
+            self.midi_selector,  # MIDI device selector
+            self.bpm_display,  # BPM control
+            self.clear_mod_btn # CLear matrix button
+        ]
+
+        for widget in sc_dependent:
+            if widget is not None:
+                widget.setEnabled(enabled)

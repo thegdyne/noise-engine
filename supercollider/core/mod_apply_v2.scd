@@ -349,7 +349,7 @@ Mapped-space modulation:
                             paramBus = ~getParamBus.(targetSlot, targetParam);
                             
                             if(paramBus.notNil) {
-                                currentVal = paramBus.getSynchronous;
+                                currentVal = try { paramBus.getSynchronous } { 0 };
                                 
                                 // Send raw mapped value - Python will unmap to 0-1
                                 // This keeps Python as SSOT for mapping/unmapping logic
