@@ -43,6 +43,7 @@ class ModulatorSlot(QWidget):
     
     def __init__(self, slot_id, default_generator="Empty", parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.slot_id = slot_id
         self.setObjectName(f"mod{slot_id}_slot")  # DEBUG
         self.default_generator = default_generator
