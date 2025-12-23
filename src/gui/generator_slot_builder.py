@@ -164,7 +164,8 @@ def build_param_slider(slot, param, custom_index=None):
             lambda val, p=param: slot.on_param_changed(p['key'], val / 1000.0, p)
         )
 
-    container.addWidget(slider, stretch=1, alignment=Qt.AlignCenter)
+    container.addWidget(slider, alignment=Qt.AlignHCenter)
+    container.addStretch()
 
     return col, lbl, slider
 
