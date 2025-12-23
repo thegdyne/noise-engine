@@ -431,7 +431,7 @@ class KeyboardOverlay(QWidget):
                 self._target_slots.add(slot_id)
             else:
                 btn.setChecked(False)
-        
+
         # If focused slot wasn't MIDI mode, select first available
         if not self._target_slots:
             for slot_id in range(1, 9):
@@ -439,6 +439,10 @@ class KeyboardOverlay(QWidget):
                     self._slot_buttons[slot_id - 1].setChecked(True)
                     self._target_slots.add(slot_id)
                     break
+            else:
+                # No MIDI mode slots, default to slot 1
+                self._slot_buttons[0].setChecked(True)
+                self._target_slots.add(1)
     
     # ─────────────────────────────────────────────────────────────────
     # Toggle / Show / Hide
@@ -597,7 +601,16 @@ class KeyboardOverlay(QWidget):
             btn.setProperty("pressed", "true" if pressed else "false")
             btn.style().unpolish(btn)
             btn.style().polish(btn)
-    
+
+    # ─────────────────────────────────────────────────────────────────
+    # Show / Hide
+    # ─────────────────────────────────────────────────────────────────
+
+    def showEvent(self, event):
+        """Update slot buttons when overlay becomes visible."""
+        super().showEvent(event)
+        self._update_slot_buttons()
+
     # ─────────────────────────────────────────────────────────────────
     # Cleanup
     # ─────────────────────────────────────────────────────────────────

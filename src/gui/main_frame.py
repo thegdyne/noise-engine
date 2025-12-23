@@ -1756,7 +1756,7 @@ class MainFrame(QMainWindow):
         """Check if slot is in MIDI envelope mode. Slot is 1-indexed (UI)."""
         if slot_id < 1 or slot_id > 8:
             return False
-        slot = self.generator_grid.slots[slot_id - 1]
+        slot = self.generator_grid.slots[slot_id]
         return slot.env_source == 2  # 2 = MIDI mode
 
     def _set_header_buttons_enabled(self, enabled: bool) -> None:
