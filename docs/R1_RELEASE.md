@@ -71,7 +71,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 
 | Component | Scope | R1 Status |
 |-----------|-------|-----------|
-| **Presets** | CMD+S/O save/load, generator + mixer state, file management | ⚠️ Verify mod routing |
+| **Presets** | CMD+S/O save/load, generator + mixer state, file management | ✅ Done |
 | **Clock** | BPM control (20-300), 13 divisions, audio-rate trigger buses | ✅ Done |
 
 ### System Layer
@@ -106,7 +106,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 |-----|-----------|--------|
 | ~~Move core generators to packs/core/~~ | ~~Packs~~ | ~~1-2 hr~~ ✅ |
 | 10+ CQD_Forge packs | Pack Content | 3-4 sessions |
-| Imaginarium vs Forge naming unification | Packs | 1-2 hr |
+| ~~Imaginarium vs Forge naming unification~~ | ~~Packs~~ | ~~1-2 hr~~ ✅ |
 
 ### Session Layer
 
@@ -114,7 +114,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 |-----|-----------|--------|
 | ~~Unsaved changes indicator~~ | ~~Presets~~ | ~~1 hr~~ ✅ |
 | ~~Init preset~~ | ~~Presets~~ | ~~30 min~~ ✅ |
-| Validate mod routing saved in presets | Presets | 15 min |
+| ~~Validate mod routing saved in presets~~ | ~~Presets~~ | ~~15 min~~ ✅ |
 
 ### Documentation
 
@@ -146,13 +146,13 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 | ~~Mixer gaps (FX sync)~~ | ~~1 hour~~ ✅ |
 | ~~Session gaps (unsaved indicator)~~ | ~~1 hour~~ ✅ |
 | ~~Session gaps (init preset)~~ | ~~30 min~~ ✅ |
-| Session gaps (verify mod routing) | 15 min |
+| ~~Session gaps (verify mod routing)~~ | ~~15 min~~ ✅ |
 | ~~Content gaps (core restructure)~~ | ~~1-2 hours~~ ✅ |
-| Content gaps (naming unification) | 1-2 hours |
+| ~~Content gaps (naming unification)~~ | ~~1-2 hours~~ ✅ |
 | Content gaps (CQD_Forge packs) | 3-4 sessions |
 | Documentation (manual, README, install guides) | 3.5 hours |
 | Release gates (LICENSE, CHANGELOG, index.html, Discord, tag) | 2.5 hours |
-| **Total** | **~4.5-5 sessions** |
+| **Total** | **~4 sessions** |
 
 ---
 
@@ -232,13 +232,13 @@ Not blocking R1 but should address before public release:
 - [x] Pack loading infrastructure complete
 - [ ] 10+ CQD_Forge packs shipped
 - [x] Imaginarium pipeline functional
-- [ ] Imaginarium/Forge naming conventions unified
+- [x] Imaginarium/Forge naming conventions unified
 
 **Session Layer**
 - [x] Preset save/load (CMD+S/O)
 - [x] Unsaved changes indicator
 - [x] Init preset available
-- [ ] Mod routing saved in presets (verify)
+- [x] Mod routing saved in presets (verify)
 
 **System Layer**
 - [ ] UI shell complete
@@ -279,14 +279,14 @@ Not blocking R1 but should address before public release:
 | ~~Generator gaps~~ | ~~0.5~~ | ~~Filter modes~~ ✅ |
 | ~~Presets gaps~~ | ~~0.5~~ | ~~Unsaved indicator~~ ✅ |
 | ~~Presets gaps~~ | ~~0.25~~ | ~~Init preset~~ ✅ |
-| Presets gaps | 0.1 | Verify mod routing |
+| ~~Presets gaps~~ | ~~0.1~~ | ~~Verify mod routing~~ ✅ |
 | ~~Content gaps~~ | ~~0.5~~ | ~~Core restructure~~ ✅ |
-| Content gaps | 0.5 | Naming unification |
+| ~~Content gaps~~ | ~~0.5~~ | ~~Naming unification~~ ✅ |
 | CQD_Forge | 3-4 | 10+ packs |
 | Documentation | 1 | Manual, README, install guides, IDEAS cleanup |
 | Release prep | 0.5 | LICENSE, CHANGELOG, index.html, tag |
 | Polish + Testing | 1 | Font audit, mod state, final verification |
-| **Total** | **4.5-5 sessions** | **R1 Release** |
+| **Total** | **~4 sessions** | **R1 Release** |
 
 ---
 
@@ -306,7 +306,7 @@ Not blocking R1 but should address before public release:
 
 ## 10. R1 Delivery Status
 
-### Current Completion: **63%**
+### Current Completion: **70%**
 
 | Layer | Done | Total | % |
 |-------|------|-------|---|
@@ -314,20 +314,20 @@ Not blocking R1 but should address before public release:
 | Modulation | 3 | 3 | 100% |
 | Performance | 2 | 2 | 100% |
 | Mixer | 3 | 3 | 100% |
-| Content | 3 | 5 | 60% |
-| Session | 3 | 4 | 75% |
+| Content | 4 | 5 | 80% |
+| Session | 4 | 4 | 100% |
 | System | 2 | 2 | 100% |
 | Documentation | 0.5 | 5 | 10% |
 | Release Gates | 0 | 5 | 0% |
-| **Total** | **22.5** | **35** | **64%** |
+| **Total** | **24.5** | **35** | **70%** |
 
 ### By Category
 
 | Category | Status |
 |----------|--------|
-| **Core functionality** | ~98% (almost there!) |
-| **R1 feature gaps** | ~95% (verify routing, naming remain) |
-| **Content** | ~30% (core done, packs needed) |
+| **Core functionality** | 🟢 **100%** (All layers complete!) |
+| **R1 feature gaps** | 🟢 **100%** (All features done!) |
+| **Content** | ~40% (core done, packs needed) |
 | **Documentation** | ~10% (Windows guide exists) |
 | **Release gates** | 0% (not started) |
 
@@ -337,7 +337,7 @@ Not blocking R1 but should address before public release:
 |------|--------|--------|
 | CQD_Forge packs | 3-4 sessions | High — no content = no release |
 | Documentation | 1 session | Medium — onboarding |
-| Verify + Naming + Release | 0.5 session | Medium — polish |
+| Release gates | 0.5 session | Final — ship prep |
 
 ---
 
@@ -345,9 +345,11 @@ Not blocking R1 but should address before public release:
 
 **Next session priority:**
 
-1. **CQD_Forge packs** — Biggest blocker, most effort, highest impact
+1. **CQD_Forge packs** — Critical path blocker, 3-4 sessions
 2. **Documentation** — Can parallelize with pack creation
-3. **Preset polish** — Quick wins before release
+3. **Release gates** — Final prep before ship
+
+**All feature gaps closed!** Only content, docs, and release gates remain.
 
 **Don't start until packs are done:**
 - Release gates (LICENSE, CHANGELOG, index.html, tag)
