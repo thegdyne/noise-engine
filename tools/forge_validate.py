@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
 tools/forge_validate.py
-Pack validation for CQD_Forge - contract compliance and static analysis
+Pack validation for Noise Engine - contract compliance and static analysis
+
+Validates packs against the unified naming schema:
+- pack_id:       [a-z][a-z0-9_]{2,23}  (3-24 chars)
+- generator_id:  [a-z][a-z0-9_]{0,31}  (1-32 chars)
+- synthdef:      ne_{pack_id}__{generator_id}  (max 64 chars)
 
 Usage:
     python tools/forge_validate.py packs/my_pack/
@@ -14,7 +19,58 @@ import re
 import sys
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set
+
+# Try to import naming module, fall back to inline validation if not available
+try:
+    sys.path.insert(0, str(Path(__file__).parent.parent / "imaginarium"))
+    from naming import (
+        validate_pack_id,
+        validate_generator_id,
+        make_synthdef_name,
+        parse_synthdef_name,
+        NamingError,
+        RESERVED_PACK_IDS,
+        MAX_PACK_ID_LENGTH,
+        MAX_GENERATOR_ID_LENGTH,
+        MAX_SYNTHDEF_LENGTH,
+    )
+    NAMING_MODULE_AVAILABLE = True
+except ImportError:
+    NAMING_MODULE_AVAILABLE = False
+    # Inline fallback definitions
+    RESERVED_PACK_IDS = {"core", "mod", "default", "factory", "test", "user", "tmp", "null"}
+    MAX_PACK_ID_LENGTH = 24
+    MAX_GENERATOR_ID_LENGTH = 32
+    MAX_SYNTHDEF_LENGTH = 64
+    
+    class NamingError(ValueError):
+        pass
+    
+    def validate_pack_id(pack_id: str) -> None:
+        if "__" in pack_id:
+            raise NamingError(f"pack_id '{pack_id}' may not contain '__'")
+        if pack_id in RESERVED_PACK_IDS:
+            raise NamingError(f"pack_id '{pack_id}' is reserved")
+        if not re.match(r'^[a-z][a-z0-9_]{2,23}$', pack_id):
+            raise NamingError(f"pack_id '{pack_id}' must match ^[a-z][a-z0-9_]{{2,23}}$")
+    
+    def validate_generator_id(generator_id: str) -> None:
+        if "__" in generator_id:
+            raise NamingError(f"generator_id '{generator_id}' may not contain '__'")
+        if not re.match(r'^[a-z][a-z0-9_]{0,31}$', generator_id):
+            raise NamingError(f"generator_id '{generator_id}' must match ^[a-z][a-z0-9_]{{0,31}}$")
+    
+    def make_synthdef_name(pack_id: str, generator_id: str) -> str:
+        return f"ne_{pack_id}__{generator_id}"
+    
+    def parse_synthdef_name(synthdef: str):
+        if not synthdef.startswith("ne_"):
+            raise NamingError(f"synthdef '{synthdef}' must start with 'ne_'")
+        remainder = synthdef[3:]
+        if "__" not in remainder:
+            raise NamingError(f"synthdef '{synthdef}' missing '__' separator")
+        return remainder.split("__", 1)
 
 
 # ============================================================================
@@ -43,9 +99,6 @@ POST_CHAIN_ORDER = [
 ]
 
 VALID_LABEL_PATTERN = re.compile(r'^[A-Z0-9]{3}$')
-
-MAX_PACK_ID_LENGTH = 24
-MAX_GENERATOR_ID_LENGTH = 24
 
 
 # ============================================================================
@@ -107,18 +160,26 @@ def validate_manifest(pack_path: Path) -> ValidationResult:
         return result
     
     # Required fields
-    required_fields = ["pack_id", "name", "description", "author", "version", "generators"]
-    for field in required_fields:
-        if field not in manifest:
-            result.add_error(f"manifest missing required field: {field}")
+    required_fields = ["pack_id", "name", "generators"]
+    for fld in required_fields:
+        if fld not in manifest:
+            result.add_error(f"manifest missing required field: {fld}")
     
-    # Pack ID validation
+    # Recommended fields
+    recommended_fields = ["description", "author", "version"]
+    for fld in recommended_fields:
+        if fld not in manifest:
+            result.add_warning(f"manifest missing recommended field: {fld}")
+    
+    # Pack ID validation using naming module
     pack_id = manifest.get("pack_id", "")
     if pack_id:
-        if len(pack_id) > MAX_PACK_ID_LENGTH:
-            result.add_error(f"pack_id '{pack_id}' exceeds {MAX_PACK_ID_LENGTH} chars")
-        if not re.match(r'^[a-z0-9_]+$', pack_id):
-            result.add_error(f"pack_id '{pack_id}' must be lowercase a-z, 0-9, underscores only")
+        try:
+            validate_pack_id(pack_id)
+        except NamingError as e:
+            result.add_error(str(e))
+    else:
+        result.add_error("pack_id is empty")
     
     # Generators array
     generators = manifest.get("generators", [])
@@ -127,12 +188,17 @@ def validate_manifest(pack_path: Path) -> ValidationResult:
     elif len(generators) != 8:
         result.add_warning(f"generators array has {len(generators)} entries (expected 8)")
     
-    # Check generator IDs
+    # Check generator IDs and uniqueness
+    seen_gen_ids: Set[str] = set()
     for gen_id in generators:
-        if len(gen_id) > MAX_GENERATOR_ID_LENGTH:
-            result.add_error(f"generator_id '{gen_id}' exceeds {MAX_GENERATOR_ID_LENGTH} chars")
-        if not re.match(r'^[a-z0-9_]+$', gen_id):
-            result.add_error(f"generator_id '{gen_id}' must be lowercase a-z, 0-9, underscores only")
+        try:
+            validate_generator_id(gen_id)
+        except NamingError as e:
+            result.add_error(str(e))
+        
+        if gen_id in seen_gen_ids:
+            result.add_error(f"duplicate generator_id: {gen_id}")
+        seen_gen_ids.add(gen_id)
     
     return result
 
@@ -141,7 +207,7 @@ def validate_manifest(pack_path: Path) -> ValidationResult:
 # GENERATOR JSON VALIDATION
 # ============================================================================
 
-def validate_generator_json(json_path: Path) -> ValidationResult:
+def validate_generator_json(json_path: Path, pack_id: str) -> ValidationResult:
     """Validate generator .json file"""
     result = ValidationResult(passed=True)
     
@@ -159,9 +225,9 @@ def validate_generator_json(json_path: Path) -> ValidationResult:
     # Required fields
     required_fields = ["generator_id", "name", "synthdef", "custom_params", 
                        "output_trim_db", "midi_retrig", "pitch_target"]
-    for field in required_fields:
-        if field not in gen:
-            result.add_error(f"missing required field: {field}")
+    for fld in required_fields:
+        if fld not in gen:
+            result.add_error(f"missing required field: {fld}")
     
     # Generator ID matches filename
     gen_id = gen.get("generator_id", "")
@@ -169,10 +235,27 @@ def validate_generator_json(json_path: Path) -> ValidationResult:
     if gen_id != expected_id:
         result.add_error(f"generator_id '{gen_id}' doesn't match filename '{expected_id}'")
     
-    # SynthDef name format
+    # Validate generator_id format
+    if gen_id:
+        try:
+            validate_generator_id(gen_id)
+        except NamingError as e:
+            result.add_error(str(e))
+    
+    # SynthDef name format: must be ne_{pack_id}__{generator_id}
     synthdef = gen.get("synthdef", "")
-    if synthdef and not synthdef.startswith("forge_"):
-        result.add_warning(f"synthdef '{synthdef}' doesn't follow forge_{{pack}}_{{gen}} naming")
+    if synthdef:
+        expected_synthdef = make_synthdef_name(pack_id, gen_id) if pack_id and gen_id else None
+        
+        if not synthdef.startswith("ne_"):
+            result.add_error(f"synthdef '{synthdef}' must start with 'ne_' prefix")
+        elif "__" not in synthdef[3:]:
+            result.add_error(f"synthdef '{synthdef}' missing '__' separator")
+        elif expected_synthdef and synthdef != expected_synthdef:
+            result.add_error(f"synthdef '{synthdef}' should be '{expected_synthdef}'")
+        
+        if len(synthdef) > MAX_SYNTHDEF_LENGTH:
+            result.add_error(f"synthdef '{synthdef}' exceeds {MAX_SYNTHDEF_LENGTH} chars")
     
     # Custom params validation
     custom_params = gen.get("custom_params", [])
@@ -188,16 +271,16 @@ def validate_generator_json(json_path: Path) -> ValidationResult:
 
 def validate_custom_params(params: List[dict], result: ValidationResult) -> ValidationResult:
     """Validate the 5 custom_params entries"""
-    seen_labels = set()
+    seen_labels: Set[str] = set()
     
     for i, param in enumerate(params):
         prefix = f"custom_params[{i}]"
         
         # Required fields
         required = ["key", "label", "tooltip", "default", "min", "max", "curve", "unit"]
-        for field in required:
-            if field not in param:
-                result.add_error(f"{prefix} missing field: {field}")
+        for fld in required:
+            if fld not in param:
+                result.add_error(f"{prefix} missing field: {fld}")
         
         # Label validation
         label = param.get("label", "")
@@ -240,7 +323,7 @@ def validate_custom_params(params: List[dict], result: ValidationResult) -> Vali
 # SYNTHDEF VALIDATION (Static Analysis)
 # ============================================================================
 
-def validate_synthdef(scd_path: Path) -> ValidationResult:
+def validate_synthdef(scd_path: Path, pack_id: str, generator_id: str) -> ValidationResult:
     """Validate generator .scd file (static analysis)"""
     result = ValidationResult(passed=True)
     
@@ -259,12 +342,22 @@ def validate_synthdef(scd_path: Path) -> ValidationResult:
         result.add_error("No SynthDef declaration found")
         return result
     
+    # Check SynthDef name matches expected
+    expected_synthdef = make_synthdef_name(pack_id, generator_id)
+    if expected_synthdef not in content:
+        # Try to find what name is actually used
+        synthdef_match = re.search(r'SynthDef\s*\(\s*[\\\'"]?(\w+)', content)
+        if synthdef_match:
+            actual_name = synthdef_match.group(1)
+            result.add_error(f"SynthDef name '{actual_name}' should be '{expected_synthdef}'")
+        else:
+            result.add_warning(f"Could not verify SynthDef name is '{expected_synthdef}'")
+    
     # Check required bus arguments
     for arg in REQUIRED_BUS_ARGS:
-        # Look for argument in various formats
         patterns = [
-            rf'\b{arg}\b',  # Plain identifier
-            rf'\|[^|]*\b{arg}\b',  # In arg list
+            rf'\b{arg}\b',
+            rf'\|[^|]*\b{arg}\b',
         ]
         found = any(re.search(p, content) for p in patterns)
         if not found:
@@ -293,7 +386,7 @@ def validate_synthdef(scd_path: Path) -> ValidationResult:
     if len(helper_positions) == len(POST_CHAIN_ORDER):
         positions = [helper_positions[h] for h in POST_CHAIN_ORDER]
         if positions != sorted(positions):
-            result.add_error(f"post-chain order wrong: must be ~multiFilter → ~envVCA → ~ensure2ch")
+            result.add_error("post-chain order wrong: must be ~multiFilter → ~envVCA → ~ensure2ch")
     
     # Check Out.ar
     if "Out.ar" not in content:
@@ -345,11 +438,11 @@ def validate_pack(pack_path: Path, verbose: bool = False) -> PackValidation:
             scd_path = generators_dir / f"{gen_id}.scd"
             
             # JSON validation
-            json_result = validate_generator_json(json_path)
+            json_result = validate_generator_json(json_path, validation.pack_id)
             validation.results[f"{gen_id}.json"] = json_result
             
             # SynthDef validation
-            scd_result = validate_synthdef(scd_path)
+            scd_result = validate_synthdef(scd_path, validation.pack_id, gen_id)
             validation.results[f"{gen_id}.scd"] = scd_result
     
     return validation
@@ -363,6 +456,9 @@ def print_validation_report(validation: PackValidation, verbose: bool = False):
     """Print formatted validation report"""
     print(f"\n{'='*60}")
     print(f"Pack: {validation.pack_id or validation.pack_path.name}")
+    print(f"Path: {validation.pack_path}")
+    if not NAMING_MODULE_AVAILABLE:
+        print(f"Note: Using inline validation (naming module not found)")
     print(f"{'='*60}\n")
     
     for name, result in validation.results.items():
@@ -404,7 +500,7 @@ def print_validation_report(validation: PackValidation, verbose: bool = False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Validate CQD_Forge packs for Noise Engine"
+        description="Validate Noise Engine packs (unified naming schema)"
     )
     parser.add_argument(
         "pack_path",
@@ -414,7 +510,7 @@ def main():
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
-        help="Show all checks including passed ones"
+        help="Show all checks including passed ones and warnings"
     )
     
     args = parser.parse_args()
