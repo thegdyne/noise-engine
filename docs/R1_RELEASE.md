@@ -120,7 +120,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 
 | Gap | Component | Effort |
 |-----|-----------|--------|
-| Update manual for new filter modes | Manual | 1 hr |
+| ~~Update manual for new filter modes~~ | ~~Manual~~ | ~~1 hr~~ ✅ |
 | Update IDEAS.md (remove done items) | Docs | 5 min |
 | Update README.md for R1 | Docs | 1 hr |
 | macOS install guide | Docs | 1 hr |
@@ -130,7 +130,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 
 | Gap | Component | Effort |
 |-----|-----------|--------|
-| LICENSE file (MIT) | Release | 5 min |
+| ~~LICENSE file (MIT)~~ | ~~Release~~ | ~~5 min~~ ✅ |
 | CHANGELOG.md | Release | 30 min |
 | index.html update (R1 summary) | Marketing | 1 hr |
 | Discord announcement ready | Marketing | 30 min |
@@ -150,8 +150,8 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 | ~~Content gaps (core restructure)~~ | ~~1-2 hours~~ ✅ |
 | ~~Content gaps (naming unification)~~ | ~~1-2 hours~~ ✅ |
 | Content gaps (CQD_Forge packs) | 3-4 sessions |
-| Documentation (manual, README, install guides) | 3.5 hours |
-| Release gates (LICENSE, CHANGELOG, index.html, Discord, tag) | 2.5 hours |
+| Documentation (~~manual~~, README, install guides) | ~2.5 hours |
+| Release gates (~~LICENSE~~, CHANGELOG, index.html, Discord, tag) | ~2.4 hours |
 | **Total** | **~4 sessions** |
 
 ---
@@ -245,14 +245,14 @@ Not blocking R1 but should address before public release:
 - [ ] SC connection management working
 
 **Documentation**
-- [ ] Manual updated for new filter modes
+- [x] Manual updated for new filter modes
 - [ ] IDEAS.md cleaned up (remove done items)
 - [ ] README.md updated for R1
 - [ ] macOS install guide
 - [ ] Linux install guide (basic)
 
 **Release Gates**
-- [ ] LICENSE file (MIT)
+- [x] LICENSE file (MIT)
 - [ ] CHANGELOG.md
 - [ ] index.html updated (R1 summary)
 - [ ] Discord announcement ready
@@ -306,7 +306,7 @@ Not blocking R1 but should address before public release:
 
 ## 10. R1 Delivery Status
 
-### Current Completion: **70%**
+### Current Completion: **74%**
 
 | Layer | Done | Total | % |
 |-------|------|-------|---|
@@ -317,9 +317,9 @@ Not blocking R1 but should address before public release:
 | Content | 4 | 5 | 80% |
 | Session | 4 | 4 | 100% |
 | System | 2 | 2 | 100% |
-| Documentation | 0.5 | 5 | 10% |
-| Release Gates | 0 | 5 | 0% |
-| **Total** | **24.5** | **35** | **70%** |
+| Documentation | 1.5 | 5 | 30% |
+| Release Gates | 1 | 5 | 20% |
+| **Total** | **26.5** | **35** | **76%** |
 
 ### By Category
 
@@ -328,8 +328,8 @@ Not blocking R1 but should address before public release:
 | **Core functionality** | 🟢 **100%** (All layers complete!) |
 | **R1 feature gaps** | 🟢 **100%** (All features done!) |
 | **Content** | ~40% (core done, packs needed) |
-| **Documentation** | ~10% (Windows guide exists) |
-| **Release gates** | 0% (not started) |
+| **Documentation** | ~30% (Windows guide + manual done) |
+| **Release gates** | 20% (LICENSE done) |
 
 ### Remaining Work
 
