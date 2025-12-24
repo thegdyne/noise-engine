@@ -73,6 +73,10 @@ class MainFrame(QMainWindow):
         self._midi_mode_saved_states = [0] * 8  # env_source per slot
         self._midi_mode_changing = False  # Guard flag for bulk changes
 
+        # Dirty state tracking (unsaved changes indicator)
+        self._dirty = False
+        self._current_preset_name = None
+
 
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
@@ -82,6 +86,29 @@ class MainFrame(QMainWindow):
 
         # Install event filter for keyboard overlay
         self.installEventFilter(self)
+
+    # ── Dirty State Tracking ────────────────────────────────────────────────
+
+    def _mark_dirty(self):
+        """Mark session as having unsaved changes."""
+        if not self._dirty:
+            self._dirty = True
+            self._update_window_title()
+
+    def _clear_dirty(self, preset_name: str = None):
+        """Clear dirty flag after save/load."""
+        self._dirty = False
+        self._current_preset_name = preset_name
+        self._update_window_title()
+
+    def _update_window_title(self):
+        """Update window title with preset name and dirty indicator."""
+        base = "Noise Engine"
+        if self._current_preset_name:
+            base = f"Noise Engine — {self._current_preset_name}"
+        if self._dirty:
+            base = f"• {base}"
+        self.setWindowTitle(base)
 
     def setup_ui(self):
         """Create the main interface layout."""
@@ -455,6 +482,7 @@ class MainFrame(QMainWindow):
         self.master_bpm = bpm
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
+        self._mark_dirty()
 
     def on_pack_changed(self, pack_id):
         # Auto-load pack preset if exists
@@ -616,6 +644,7 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             path = OSC_PATHS.get(f'gen_{param_name}', f'/noise/gen/{param_name}')
             self.osc.client.send_message(path, [slot_id, value])
+        self._mark_dirty()
     
     def on_generator_custom_param_changed(self, slot_id, param_index, value):
         """Handle per-generator custom parameter change."""
@@ -624,12 +653,14 @@ class MainFrame(QMainWindow):
             value = max(-1e30, min(1e30, float(value)))
             path = f"{OSC_PATHS['gen_custom']}/{slot_id}/{param_index}"
             self.osc.client.send_message(path, [value])
-        
+        self._mark_dirty()
+
     def on_generator_filter_changed(self, slot_id, filter_type):
         """Handle generator filter type change."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
-        
+        self._mark_dirty()
+
     def on_generator_clock_enabled(self, slot_id, enabled):
         """Handle generator envelope ON/OFF (legacy)."""
         if self.osc_connected:
@@ -639,6 +670,7 @@ class MainFrame(QMainWindow):
         """Send transpose to SuperCollider."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_transpose'], [slot_id, semitones])
+        self._mark_dirty()
 
     def on_generator_env_source(self, slot_id, source):
         """Handle generator ENV source change (0=OFF, 1=CLK, 2=MIDI)."""
@@ -649,14 +681,16 @@ class MainFrame(QMainWindow):
         # Detect manual change while MIDI mode is active
         if self._midi_mode_active and not self._midi_mode_changing:
             self._deactivate_midi_mode()
-        
+        self._mark_dirty()
+
     def on_generator_clock_rate(self, slot_id, rate):
         """Handle generator clock rate change - send index."""
         rate_index = CLOCK_RATE_INDEX.get(rate, 3)  # Default to CLK
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
         logger.gen(slot_id, f"rate: {rate} (index {rate_index})")
-    
+        self._mark_dirty()
+
     def on_generator_mute(self, slot_id, muted):
         """Handle generator mute from slot button."""
         if self.osc_connected:
@@ -674,6 +708,7 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_portamento'], [slot_id, value])
         logger.gen(slot_id, f"portamento: {value:.3f}")
+        self._mark_dirty()
 
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection (legacy click handler)."""
@@ -727,7 +762,8 @@ class MainFrame(QMainWindow):
             
             # Update mixer channel active state
             self.mixer_panel.set_channel_active(slot_id, False)
-                
+        self._mark_dirty()
+
     # -------------------------------------------------------------------------
     # Mod Source Handlers
     # -------------------------------------------------------------------------
@@ -794,7 +830,8 @@ class MainFrame(QMainWindow):
             # Full push to SC so UI is SSOT after rebuild
             self._sync_mod_slot_state(slot_id, send_generator=True)
         logger.debug(f"Mod {slot_id} generator: {gen_name}", component="OSC")
-        
+        self._mark_dirty()
+
     def on_mod_param_changed(self, slot_id, key, value):
         """Handle mod source parameter change."""
         if self.osc_connected:
@@ -875,7 +912,8 @@ class MainFrame(QMainWindow):
         
         # Update slider visualization
         self._update_slider_mod_range(conn.target_slot, conn.target_param)
-    
+        self._mark_dirty()
+
     def _on_mod_route_removed(self, source_bus, target_slot, target_param):
         """Send mod route removal to SC and update slider visualization."""
         if self.osc_connected:
@@ -887,7 +925,8 @@ class MainFrame(QMainWindow):
         
         # Update slider visualization (may clear if no more routes)
         self._update_slider_mod_range(target_slot, target_param)
-    
+        self._mark_dirty()
+
     def _on_mod_route_changed(self, conn):
         """Send mod route parameter change to SC."""
         if self.osc_connected:
@@ -1107,7 +1146,8 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_volume'], [gen_id, volume])
         logger.debug(f"Gen {gen_id} volume: {volume:.2f}", component="OSC")
-        
+        self._mark_dirty()
+
     def on_generator_muted(self, gen_id, muted):
         """Handle generator mute from mixer."""
         if self.osc_connected:
@@ -1131,14 +1171,16 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_pan'], [gen_id, pan])
         logger.debug(f"Gen {gen_id} pan: {pan:.2f}", component="OSC")
-    
+        self._mark_dirty()
+
     def on_generator_eq_changed(self, gen_id, band, value):
         """Handle generator EQ change from mixer. band: 'lo'/'mid'/'hi', value: 0-2 linear."""
         if self.osc_connected:
             osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
             self.osc.client.send_message(osc_path, [gen_id, value])
         logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
-    
+        self._mark_dirty()
+
     def on_generator_echo_send(self, gen_id, value):
         """Handle generator echo send change from mixer. value: 0-1."""
         if self.osc_connected:
@@ -1223,7 +1265,8 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_volume'], [volume])
         logger.info(f"Master volume: {volume:.2f}", component="OSC")
-    
+        self._mark_dirty()
+
     def on_meter_mode_changed(self, mode):
         """Handle meter mode toggle (PRE=0, POST=1)."""
         if self.osc_connected:
@@ -1610,6 +1653,7 @@ class MainFrame(QMainWindow):
                 saved_path = self.preset_manager.save(state, name)
                 self.preset_name.setText(name)
                 logger.info(f"Preset saved: {saved_path}", component="PRESET")
+                self._clear_dirty(name)
             except Exception as e:
                 logger.error(f"Failed to save preset: {e}", component="PRESET")
                 QMessageBox.warning(self, "Error", f"Failed to save preset:\n{e}")
@@ -1632,6 +1676,7 @@ class MainFrame(QMainWindow):
                 self._apply_preset(state)
                 self.preset_name.setText(state.name)
                 logger.info(f"Preset loaded: {state.name}", component="PRESET")
+                self._clear_dirty(state.name)
             except Exception as e:
                 logger.error(f"Failed to load preset: {e}", component="PRESET")
                 QMessageBox.warning(self, "Error", f"Failed to load preset:\n{e}")
