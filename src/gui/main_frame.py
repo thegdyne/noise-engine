@@ -504,6 +504,7 @@ class MainFrame(QMainWindow):
                 self._set_header_buttons_enabled(True)
                 self.master_section.set_osc_bridge(self.osc)
                 self.inline_fx.set_osc_bridge(self.osc)
+                self.inline_fx.sync_state()
                 self.connect_btn.setText("Disconnect")
                 self.status_label.setText("● Connected")
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
@@ -566,6 +567,7 @@ class MainFrame(QMainWindow):
         self._set_header_buttons_enabled(True)
         self.master_section.set_osc_bridge(self.osc)
         self.inline_fx.set_osc_bridge(self.osc)
+        self.inline_fx.sync_state()
         self.connect_btn.setText("Disconnect")
         self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
         self.status_label.setText("● Connected")

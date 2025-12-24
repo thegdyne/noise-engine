@@ -230,6 +230,10 @@ class FXModule(QFrame):
         """Send OSC message if connected."""
         if self.osc_bridge and self.osc_bridge.client:
             self.osc_bridge.client.send_message(path, [value])
+    
+    def sync_state(self):
+        """Override in subclass to sync all state to SC on reconnect."""
+        pass
 
 
 class HeatModule(FXModule):
@@ -296,6 +300,13 @@ class HeatModule(FXModule):
             self._send_osc(OSC_PATHS['heat_circuit'], 3)
             self.drive_knob.setValue(160)
             self.mix_knob.setValue(200)  # 100%
+    
+    def sync_state(self):
+        """Sync all Heat state to SC on reconnect."""
+        self._send_osc(OSC_PATHS['heat_bypass'], 1 if self.bypassed else 0)
+        self._send_osc(OSC_PATHS['heat_circuit'], self.circuit_index)
+        self._send_osc(OSC_PATHS['heat_drive'], self.drive_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['heat_mix'], self.mix_knob.value() / 200.0)
 
 
 class EchoModule(FXModule):
@@ -304,6 +315,7 @@ class EchoModule(FXModule):
     def __init__(self, parent=None):
         super().__init__("ECHO", has_bypass=False, has_turbo=True, parent=parent)
         self.verb_send_on = False
+        self._echo_tone = 0.5  # Track tone value (set via turbo)
         self.setup_controls()
         
     def setup_controls(self):
@@ -375,7 +387,8 @@ class EchoModule(FXModule):
         """Apply turbo presets for Echo. 50% → 75% → 100%."""
         if self.turbo_state == self.TURBO_OFF:
             # INI: Clean echo - 50%
-            self._send_osc(OSC_PATHS['echo_tone'], 0.5)
+            self._echo_tone = 0.5
+            self._send_osc(OSC_PATHS['echo_tone'], self._echo_tone)
             self.wow_knob.setValue(0)
             self.spring_knob.setValue(0)
             self.verb_send_on = False
@@ -386,7 +399,8 @@ class EchoModule(FXModule):
             self.return_knob.setValue(100)  # 50%
         elif self.turbo_state == self.TURBO_T1:
             # T1: Warm tape - 75%
-            self._send_osc(OSC_PATHS['echo_tone'], 0.35)
+            self._echo_tone = 0.35
+            self._send_osc(OSC_PATHS['echo_tone'], self._echo_tone)
             self.wow_knob.setValue(60)
             self.spring_knob.setValue(50)
             self.verb_send_on = False
@@ -397,7 +411,8 @@ class EchoModule(FXModule):
             self.return_knob.setValue(150)  # 75%
         else:  # T2
             # T2: Drippy madness - 100%
-            self._send_osc(OSC_PATHS['echo_tone'], 0.2)
+            self._echo_tone = 0.2
+            self._send_osc(OSC_PATHS['echo_tone'], self._echo_tone)
             self.wow_knob.setValue(120)
             self.spring_knob.setValue(140)
             self.verb_send_on = True
@@ -406,6 +421,16 @@ class EchoModule(FXModule):
             self.time_knob.setValue(160)
             self.feedback_knob.setValue(170)
             self.return_knob.setValue(200)  # 100%
+    
+    def sync_state(self):
+        """Sync all Echo state to SC on reconnect."""
+        self._send_osc(OSC_PATHS['echo_time'], self.time_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['echo_feedback'], self.feedback_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['echo_wow'], self.wow_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['echo_spring'], self.spring_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['master_echo_return'], self.return_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['echo_verb_send'], 0.5 if self.verb_send_on else 0.0)
+        self._send_osc(OSC_PATHS['echo_tone'], self._echo_tone)
 
 
 class ReverbModule(FXModule):
@@ -453,6 +478,13 @@ class ReverbModule(FXModule):
             self.decay_knob.setValue(200)  # 100%
             self.tone_knob.setValue(130)   # shimmer bright
             self.return_knob.setValue(200) # 100%
+    
+    def sync_state(self):
+        """Sync all Reverb state to SC on reconnect."""
+        self._send_osc(OSC_PATHS['verb_size'], self.size_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['verb_decay'], self.decay_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['verb_tone'], self.tone_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['master_verb_return'], self.return_knob.value() / 200.0)
 
 
 class FilterModule(FXModule):
@@ -468,6 +500,9 @@ class FilterModule(FXModule):
         self.f2_mode_index = 0  # LP default
         self.f1_prev_sync = 0   # Track previous sync index
         self.f2_prev_sync = 0
+        # Track turbo-only params
+        self._drive_value = 0.0
+        self._harmonics_value = 0
         self.setup_controls()
     
     def _add_filter_knob(self, name, default, mode_index, tooltip):
@@ -661,8 +696,10 @@ class FilterModule(FXModule):
         """Apply turbo presets for Filter. Scaled from INI: 60%/30%/50% → 75%/50%/75% → 90%/70%/100%."""
         if self.turbo_state == self.TURBO_OFF:
             # INI: LP SER, 60% freq, 30% reso, 50% mix, no sync depth
-            self._send_osc(OSC_PATHS['fb_drive'], 0.0)
-            self._send_osc(OSC_PATHS['fb_harmonics'], 0)
+            self._drive_value = 0.0
+            self._harmonics_value = 0
+            self._send_osc(OSC_PATHS['fb_drive'], self._drive_value)
+            self._send_osc(OSC_PATHS['fb_harmonics'], self._harmonics_value)
             self.f1_knob.setValue(120)  # 60%
             self.f2_knob.setValue(120)
             self.r1_knob.setValue(60)   # 30%
@@ -671,8 +708,10 @@ class FilterModule(FXModule):
             self.amt_knob.setValue(0)    # No sync effect
         elif self.turbo_state == self.TURBO_T1:
             # T1: 75% freq, 50% reso, 75% mix, 50% sync depth
-            self._send_osc(OSC_PATHS['fb_drive'], 0.2)
-            self._send_osc(OSC_PATHS['fb_harmonics'], 0)
+            self._drive_value = 0.2
+            self._harmonics_value = 0
+            self._send_osc(OSC_PATHS['fb_drive'], self._drive_value)
+            self._send_osc(OSC_PATHS['fb_harmonics'], self._harmonics_value)
             self.f1_knob.setValue(150)  # 75%
             self.f2_knob.setValue(150)
             self.r1_knob.setValue(100)  # 50%
@@ -681,14 +720,44 @@ class FilterModule(FXModule):
             self.amt_knob.setValue(100)  # 50% sync
         else:  # T2
             # T2: 90% freq, 70% reso, 100% mix, full sync depth
-            self._send_osc(OSC_PATHS['fb_drive'], 0.5)
-            self._send_osc(OSC_PATHS['fb_harmonics'], 1)
+            self._drive_value = 0.5
+            self._harmonics_value = 1
+            self._send_osc(OSC_PATHS['fb_drive'], self._drive_value)
+            self._send_osc(OSC_PATHS['fb_harmonics'], self._harmonics_value)
             self.f1_knob.setValue(180)  # 90%
             self.f2_knob.setValue(180)
             self.r1_knob.setValue(140)  # 70%
             self.r2_knob.setValue(140)
             self.mix_knob.setValue(200)  # 100%
             self.amt_knob.setValue(200)  # Full sync
+    
+    def sync_state(self):
+        """Sync all Filter state to SC on reconnect."""
+        # Bypass
+        self._send_osc(OSC_PATHS['fb_bypass'], 1 if self.bypassed else 0)
+        
+        # Knobs
+        self._send_osc(OSC_PATHS['fb_freq1'], self.f1_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['fb_reso1'], self.r1_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['fb_freq2'], self.f2_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['fb_reso2'], self.r2_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['fb_mix'], self.mix_knob.value() / 200.0)
+        self._send_osc(OSC_PATHS['fb_sync_amt'], self.amt_knob.value() / 200.0)
+        
+        # Mode/routing
+        self._send_osc(OSC_PATHS['fb_mode1'], self.f1_mode_index)
+        self._send_osc(OSC_PATHS['fb_mode2'], self.f2_mode_index)
+        self._send_osc(OSC_PATHS['fb_routing'], self.routing_index)
+        
+        # Sync rates
+        rate1 = FILTER_SYNC_MODES[self.f1_sync_btn.index]
+        rate2 = FILTER_SYNC_MODES[self.f2_sync_btn.index]
+        self._send_osc(OSC_PATHS['fb_sync1'], "" if rate1 == "FREE" else rate1)
+        self._send_osc(OSC_PATHS['fb_sync2'], "" if rate2 == "FREE" else rate2)
+        
+        # Turbo-only params (drive, harmonics)
+        self._send_osc(OSC_PATHS['fb_drive'], self._drive_value)
+        self._send_osc(OSC_PATHS['fb_harmonics'], self._harmonics_value)
 
 
 class InlineFXStrip(QWidget):
@@ -754,3 +823,8 @@ class InlineFXStrip(QWidget):
         self.osc_bridge = osc_bridge
         for module in self.modules.values():
             module.set_osc_bridge(osc_bridge)
+    
+    def sync_state(self):
+        """Sync all FX module state to SC on reconnect."""
+        for module in self.modules.values():
+            module.sync_state()
