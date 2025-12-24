@@ -238,6 +238,10 @@ class MainFrame(QMainWindow):
         load_shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
         load_shortcut.activated.connect(self._load_preset)
 
+        # Shortcut: init preset (Ctrl+N / Cmd+N)
+        init_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
+        init_shortcut.activated.connect(self._init_preset)
+
         # Shortcut: keyboard mode (Ctrl+K / Cmd+K)
         keyboard_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
         keyboard_shortcut.activated.connect(self._toggle_keyboard_mode)
@@ -1728,6 +1732,32 @@ class MainFrame(QMainWindow):
             # Update mod matrix window if open
             if self.mod_matrix_window:
                 self.mod_matrix_window.sync_from_state()
+
+    def _init_preset(self):
+        """Reset to default empty state (Cmd+N / Ctrl+N)."""
+        # Create fresh default state
+        state = PresetState()
+
+        # Apply to all components
+        self._apply_preset(state)
+
+        # Clear mod routing
+        self.mod_routing.clear()
+
+        # Update mod matrix window if open
+        if self.mod_matrix_window:
+            self.mod_matrix_window.sync_from_state()
+
+        # Reset pack selector to Core (empty string = Core)
+        self.pack_selector.set_pack("")
+
+        # Update preset name display
+        self.preset_name.setText("Init")
+
+        # Clear dirty flag
+        self._clear_dirty("Init")
+
+        logger.info("Preset initialized to defaults", component="PRESET")
 
     # ── Keyboard Mode ────────────────────────────────────────────────────────
 
