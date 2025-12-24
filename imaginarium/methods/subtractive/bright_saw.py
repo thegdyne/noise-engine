@@ -118,9 +118,9 @@ class BrightSawTemplate(MethodTemplate):
      clockRateBus, clockTrigBus,
      midiTrigBus=0, slotIndex=0,
      customBus0, customBus1, customBus2, customBus3, customBus4,
-     seed={seed}|
+     seed={seed}, portamentoBus|
 
-    var freq, filterFreq, rq, attack, decay, filterType, envSource, clockRate, amp;
+    var freq, filterFreq, rq, attack, decay, filterType, envSource, clockRate, amp, portamento;
     var sig, osc1, osc2, osc3, driven, cutMod;
     var cutoff_ratio, resonance, drive, detune, spread, rq_base;
 
@@ -129,6 +129,8 @@ class BrightSawTemplate(MethodTemplate):
 
     // Read standard params from buses
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);

@@ -140,9 +140,9 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                clockRateBus, clockTrigBus,
                                midiTrigBus=0, slotIndex=0,
                                customBus0, customBus1, customBus2, customBus3, customBus4,
-                               seed={seed}|
+                               seed={seed}, portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var bands, resonance, shift, noise_mix, bandAttack;
     var carrier, modulator, numBands, bandFreqs, bandQ;
     var band1, band2, band3, band4, band5, band6, band7, band8;
@@ -153,6 +153,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // Read standard params
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);

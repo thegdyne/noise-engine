@@ -146,9 +146,9 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                clockRateBus, clockTrigBus,
                                midiTrigBus=0, slotIndex=0,
                                customBus0, customBus1, customBus2, customBus3, customBus4,
-                               seed={seed}|
+                               seed={seed}, portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var density, grain_size, pitch_scatter, position_jitter, shimmer;
     var grainTrig, grainFreq, grainEnv, grainSig, grainPan;
     var shimmerSig, cloudL, cloudR;
@@ -158,6 +158,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // Read standard params from buses
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);

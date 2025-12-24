@@ -142,9 +142,9 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                clockRateBus, clockTrigBus,
                                midiTrigBus=0, slotIndex=0,
                                customBus0, customBus1, customBus2, customBus3, customBus4,
-                               seed={seed}|
+                               seed={seed}, portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var position, morph_rate, morph_depth, harmonics, detune;
     var morphLFO, pos, wave1, wave2, wave3, wave4;
     var osc1, osc2, osc3, detuneAmt;
@@ -154,6 +154,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // Read standard params
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
