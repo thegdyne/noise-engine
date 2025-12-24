@@ -112,7 +112,8 @@ Reusable functions for generator management
                 \customBus1, customBuses[1].index,
                 \customBus2, customBuses[2].index,
                 \customBus3, customBuses[3].index,
-                \customBus4, customBuses[4].index
+                \customBus4, customBuses[4].index,
+                \portamentoBus, params[\portamento].index
             ], ~genGroup, \addToHead);
         }, {
             "ERROR: genGroup is nil!".postln;

@@ -24,7 +24,7 @@ SynthDef(\tether, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                      midiTrigBus=0, slotIndex=0,
                      customBus0, customBus1, customBus2, customBus3, customBus4|
     
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var flow, pressure, pulse, flex, data;
     var trig;
     var flowSig, pressureSig, pulseSig, flexSig, dataSig;
@@ -36,6 +36,8 @@ SynthDef(\tether, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     
     // Standard params
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
