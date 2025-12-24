@@ -1,0 +1,57 @@
+{
+    "name": "Karplus",
+    "synthdef": "karplusStrong",
+    "midi_retrig": true,
+    "custom_params": [
+        {
+            "key": "excitation_color",
+            "label": "EXC",
+            "tooltip": "Excitation Color (dark <-> bright)",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "lowpass_coeff",
+            "label": "LPF",
+            "tooltip": "Loop Lowpass Coefficient",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "feedback_gain",
+            "label": "FBK",
+            "tooltip": "Feedback Gain (decay time)",
+            "default": 0.98,
+            "min": 0.9,
+            "max": 0.999,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "stretch_factor",
+            "label": "STR",
+            "tooltip": "Stretch Factor (inharmonicity)",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "retrig_rate",
+            "label": "RTG",
+            "tooltip": "Re-trigger Rate (plucks per second)",
+            "default": 0.3,
+            "min": 0.1,
+            "max": 50.0,
+            "curve": "exp",
+            "unit": "Hz"
+        }
+    ]
+}

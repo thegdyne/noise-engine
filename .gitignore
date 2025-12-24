@@ -45,7 +45,7 @@ supercollider/recordings/
 packs/*
 !packs/core/
 !packs/rlyeh/
-!packs/electric_shepherd/
+!packs/electric-shepherd/
 !packs/user/
 packs/user/*
 !packs/user/.gitkeep

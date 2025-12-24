@@ -1,0 +1,60 @@
+{
+    "name": "Geiger",
+    "synthdef": "geiger",
+    "custom_params": [
+        {
+            "key": "count_rate",
+            "label": "RAT",
+            "tooltip": "Count Rate (clicks/sec, Poisson)",
+            "default": 5.0,
+            "min": 0.1,
+            "max": 100.0,
+            "curve": "exp",
+            "unit": "Hz"
+        },
+        {
+            "key": "dead_time",
+            "label": "DED",
+            "tooltip": "Dead Time (tube recovery, click clustering)",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "click_brightness",
+            "label": "BRT",
+            "tooltip": "Click Brightness (soft thud <-> sharp crack)",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "click_decay",
+            "label": "DCY",
+            "tooltip": "Click Decay (tube/speaker resonance)",
+            "default": 0.4,
+            "min": 0.01,
+            "max": 1.0,
+            "curve": "exp",
+            "unit": ""
+        },
+        {
+            "key": "background_noise",
+            "label": "NOI",
+            "tooltip": "Background Noise (tube hiss/crackle)",
+            "default": 0.1,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "reference": {
+        "source": "Physics model",
+        "notes": "Based on Geiger-Müller tube behavior: Poisson-distributed random clicks, dead time recovery causing clustering at high rates, discharge transients"
+    }
+}
