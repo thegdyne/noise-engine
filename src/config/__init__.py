@@ -213,13 +213,16 @@ ENV_SOURCES = ["OFF", "CLK", "MIDI"]
 ENV_SOURCE_INDEX = {source: i for i, source in enumerate(ENV_SOURCES)}
 
 # === FILTER ===
-FILTER_TYPES = ["LP", "HP", "BP"]
+FILTER_TYPES = ["LP", "HP", "BP", "NOT", "LP2", "OFF"]
 
 # Filter name -> SuperCollider index
 FILTER_TYPE_INDEX = {
     "LP": 0,
     "HP": 1,
-    "BP": 2
+    "BP": 2,
+    "NOT": 3,
+    "LP2": 4,
+    "OFF": 5
 }
 
 # === BPM ===
