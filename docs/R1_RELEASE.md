@@ -33,7 +33,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 |-----------|-------|-----------|
 | **Generators** | 8 slots, FRQ control, generator type selector, MIDI channel, transpose, portamento | ✅ Done |
 | **Synthesis Methods** | DSP topology, P1-P5 custom params, 30 methods across 5 families | ✅ Done |
-| **Filter System** | CUT, RES, filter type (LP/HP/BP/Notch/LP2/OFF), `~multiFilter` helper | ⚠️ Needs 3 modes |
+| **Filter System** | CUT, RES, filter type (LP/HP/BP/Notch/LP2/OFF), `~multiFilter` helper | ✅ Done |
 | **Envelope System** | ATK, DEC, ENV source (OFF/CLK/MIDI), clock rate (13 divisions), `~envVCA` helper | ✅ Done |
 
 ### Modulation Layer
@@ -57,7 +57,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 |-----------|-------|-----------|
 | **Channel Strip** | ×8: fader, pan, 3-band EQ, mute/solo, echo/verb sends, lo/hi cut, gain (+0/+6/+12) | ✅ Done |
 | **Master Section** | Fader, 3-band EQ with kills, compressor, limiter | ✅ Done |
-| **FX System** | Echo, Reverb, state sync | ⚠️ Needs state sync fix |
+| **FX System** | Echo, Reverb, state sync | ✅ Done |
 
 ### Content Layer
 
@@ -90,15 +90,15 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 |-----|-----------|--------|
 | ~~Transpose (±2 octaves)~~ | ~~Generators~~ | ~~1-2 hr~~ ✅ |
 | ~~Portamento (OFF/SHORT/LONG)~~ | ~~Generators~~ | ~~1-2 hr~~ ✅ |
-| Notch filter mode | Filter System | 1 hr |
-| LP2 (12dB) filter mode | Filter System | 1 hr |
-| OFF (bypass) filter mode | Filter System | 30 min |
+| ~~Notch filter mode~~ | ~~Filter System~~ | ~~1 hr~~ ✅ |
+| ~~LP2 (12dB) filter mode~~ | ~~Filter System~~ | ~~1 hr~~ ✅ |
+| ~~OFF (bypass) filter mode~~ | ~~Filter System~~ | ~~30 min~~ ✅ |
 
 ### Mixer Layer
 
 | Gap | Component | Effort |
 |-----|-----------|--------|
-| State sync on reconnect | FX System | 1 hr |
+| ~~State sync on reconnect~~ | ~~FX System~~ | ~~1 hr~~ ✅ |
 
 ### Content Layer
 
@@ -142,14 +142,14 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 
 | Category | Effort |
 |----------|--------|
-| Generator gaps (filters) | 2.5 hours |
-| Mixer gaps (FX sync) | 1 hour |
+| ~~Generator gaps (filters)~~ | ~~2.5 hours~~ ✅ |
+| ~~Mixer gaps (FX sync)~~ | ~~1 hour~~ ✅ |
 | Session gaps (presets + validation) | 1.75 hours |
 | Content gaps (core restructure, naming unification) | 2-4 hours |
 | Content gaps (CQD_Forge packs) | 3-4 sessions |
 | Documentation (manual, README, install guides) | 3.5 hours |
 | Release gates (LICENSE, CHANGELOG, index.html, Discord, tag) | 2.5 hours |
-| **Total** | **~6-7 sessions** |
+| **Total** | **~5-6 sessions** |
 
 ---
 
@@ -203,10 +203,10 @@ Not blocking R1 but should address before public release:
 ### R1 is complete when:
 
 **Generator Layer**
-- [ ] 8 slots functional with all core params
+- [x] 8 slots functional with all core params
 - [x] Transpose selector (±2 octaves)
 - [x] Portamento selector (OFF/SHORT/LONG)
-- [ ] Filter modes: LP, HP, BP, Notch, LP2, OFF
+- [x] Filter modes: LP, HP, BP, Notch, LP2, OFF
 - [ ] 30 synthesis methods passing validation
 - [ ] P1-P5 functional with labels and tooltips
 
@@ -220,9 +220,9 @@ Not blocking R1 but should address before public release:
 - [ ] MIDI input with per-slot channel assignment
 
 **Mixer Layer**
-- [ ] 8 channel strips with full controls
-- [ ] Master section with EQ/comp/limiter
-- [ ] FX (Echo/Reverb) with state sync working
+- [x] 8 channel strips with full controls
+- [x] Master section with EQ/comp/limiter
+- [x] FX (Echo/Reverb) with state sync working
 
 **Content Layer**
 - [ ] Core generators moved to packs/core/
@@ -273,14 +273,14 @@ Not blocking R1 but should address before public release:
 
 | Phase | Sessions | Deliverable |
 |-------|----------|-------------|
-| Generator gaps | 0.5 | Filter modes |
-| FX + Presets gaps | 1 | State sync, unsaved indicator, init, verify mod routing |
+| ~~Generator gaps~~ | ~~0.5~~ | ~~Filter modes~~ ✅ |
+| Presets gaps | 0.5 | Unsaved indicator, init, verify mod routing |
 | Content gaps | 0.5 | Naming unification |
 | CQD_Forge | 3-4 | 10+ packs |
 | Documentation | 1 | Manual, README, install guides, IDEAS cleanup |
 | Release prep | 0.5 | LICENSE, CHANGELOG, index.html, tag |
 | Polish + Testing | 1 | Font audit, mod state, final verification |
-| **Total** | **6-7 sessions** | **R1 Release** |
+| **Total** | **5-6 sessions** | **R1 Release** |
 
 ---
 
@@ -300,27 +300,27 @@ Not blocking R1 but should address before public release:
 
 ## 10. R1 Delivery Status
 
-### Current Completion: **50%**
+### Current Completion: **56%**
 
 | Layer | Done | Total | % |
 |-------|------|-------|---|
-| Generator | 4.5 | 6 | 75% |
+| Generator | 6 | 6 | 100% |
 | Modulation | 3 | 3 | 100% |
 | Performance | 2 | 2 | 100% |
-| Mixer | 2.5 | 3 | 83% |
+| Mixer | 3 | 3 | 100% |
 | Content | 2 | 5 | 40% |
 | Session | 1 | 4 | 25% |
 | System | 2 | 2 | 100% |
 | Documentation | 0.5 | 5 | 10% |
 | Release Gates | 0 | 5 | 0% |
-| **Total** | **17.5** | **35** | **50%** |
+| **Total** | **19.5** | **35** | **56%** |
 
 ### By Category
 
 | Category | Status |
 |----------|--------|
-| **Core functionality** | ~75% (most components working) |
-| **R1 feature gaps** | ~40% (transpose, porta, filters, presets) |
+| **Core functionality** | ~95% (Generator + Mixer complete!) |
+| **R1 feature gaps** | ~80% (presets remain) |
 | **Content** | ~20% (packs not yet created) |
 | **Documentation** | ~10% (Windows guide exists) |
 | **Release gates** | 0% (not started) |
@@ -330,9 +330,9 @@ Not blocking R1 but should address before public release:
 | Item | Effort | Impact |
 |------|--------|--------|
 | CQD_Forge packs | 3-4 sessions | High — no content = no release |
-| Generator gaps (filters) | 2.5 hours | Medium — playability |
 | Documentation | 1 session | Medium — onboarding |
-| Everything else | 1-2 sessions | Low-Medium |
+| Content restructure | 0.5 session | Medium — architecture |
+| Presets + Release | 0.5 session | Medium — polish |
 
 ---
 
@@ -341,7 +341,7 @@ Not blocking R1 but should address before public release:
 **Next session priority:**
 
 1. **CQD_Forge packs** — Biggest blocker, most effort, highest impact
-2. **Generator gaps** — Quick wins (filter modes)
+2. **Core pack restructure** — Clean architecture before more packs
 3. **Documentation** — Can parallelize with pack creation
 
 **Don't start until packs are done:**
