@@ -30,8 +30,14 @@ def project_root():
 
 @pytest.fixture
 def generators_dir():
-    """Return path to core generators directory (packs/core/generators)."""
-    return ROOT / "packs" / "core" / "generators"
+    """Return path to core generators directory (packs/core/generators).
+    
+    Skips tests if the directory doesn't exist (e.g., in CI where packs may not be present).
+    """
+    path = ROOT / "packs" / "core" / "generators"
+    if not path.exists():
+        pytest.skip("packs/core/generators not present (likely CI environment)")
+    return path
 
 
 @pytest.fixture
