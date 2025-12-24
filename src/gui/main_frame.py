@@ -1778,3 +1778,12 @@ class MainFrame(QMainWindow):
         for widget in sc_dependent:
             if widget is not None:
                 widget.setEnabled(enabled)
+
+    def closeEvent(self, event):
+        """Handle window close - cleanup OSC to prevent signal spam."""
+        # Stop OSC bridge first to prevent signals on deleted objects
+        if hasattr(self, 'osc') and self.osc:
+            self.osc.shutdown()
+
+        # Accept the close event
+        event.accept()
