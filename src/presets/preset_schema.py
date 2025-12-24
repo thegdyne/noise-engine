@@ -60,6 +60,7 @@ class SlotState:
     env_source: int = 0
     clock_rate: int = 4
     midi_channel: int = 1
+    transpose: int = 2  # Index into TRANSPOSE_OPTIONS (0-4), default 2 = 0 semitones
     
     def to_dict(self) -> dict:
         return {
@@ -80,6 +81,7 @@ class SlotState:
             "env_source": self.env_source,
             "clock_rate": self.clock_rate,
             "midi_channel": self.midi_channel,
+            "transpose": self.transpose,
         }
     
     @classmethod
@@ -101,6 +103,7 @@ class SlotState:
             env_source=data.get("env_source", 0),
             clock_rate=data.get("clock_rate", 4),
             midi_channel=data.get("midi_channel", 1),
+            transpose=data.get("transpose", 2),
         )
 
 

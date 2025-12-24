@@ -39,7 +39,10 @@ OSC messages to Python:
     ~genMuted = Array.fill(8, { false });
     ~genMidiRetrig = Array.fill(8, { false });  // true = continuous retrig while key held
     ~genRetrigSynths = Array.fill(8, { nil });  // Active retrig synths per slot
-    
+
+    // Per-generator transpose (semitones, -24 to +24)
+    ~genTranspose = Array.fill(8, { 0 });
+
     // MIDI connection state
     ~midiConnected = false;
     ~midiPortIndex = -1;
@@ -116,7 +119,8 @@ OSC messages to Python:
         var needsRetrig = ~genMidiRetrig[i];
         
         if(genChannel == midiChannel && isMuted.not, {
-            var freq = note.midicps;
+            var transpose = ~genTranspose[i];
+            var freq = (note + transpose).midicps;
             var amp = vel / 127.0;
             
             // Set frequency from note - use userParams so modApply doesn't overwrite

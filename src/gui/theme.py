@@ -601,7 +601,7 @@ GENERATOR_THEME = {
 
     
     # Button strip - order defines visual stacking (top to bottom)
-    'button_strip_order': ['filter', 'env', 'rate', 'midi', 'mute', 'gate'],
+    'button_strip_order': ['filter', 'env', 'rate', 'transpose', 'midi', 'mute', 'gate'],
     'button_strip_width': 40,
     'button_strip_spacing': 2,
     
@@ -631,6 +631,15 @@ GENERATOR_THEME = {
             'font_bold': False,
             'style': 'inactive',
             'tooltip': 'Clock rate\n↑ faster: x8, x4, x2\n↓ slower: /2, /4, /8, /16',
+            'width': 36,
+            'height': 24,
+        },
+        'transpose': {
+            'font': MONO_FONT,
+            'font_size': FONT_SIZES['tiny'],
+            'font_bold': True,
+            'style': 'inactive',
+            'tooltip': 'Transpose: -2 to +2 octaves',
             'width': 36,
             'height': 24,
         },

@@ -20,7 +20,7 @@ from .widgets import DragSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
     GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE,
-    ENV_SOURCES
+    ENV_SOURCES, TRANSPOSE_OPTIONS, TRANSPOSE_DEFAULT_INDEX
 )
 
 # MIDI channels - OFF plus 1-16
@@ -255,6 +255,17 @@ def build_generator_button_strip(slot):
             btn.setStyleSheet(button_style(cfg['style']))
             btn.wrap = False
             btn.value_changed.connect(slot.on_rate_changed)
+            btn.setEnabled(False)
+
+        elif btn_key == 'transpose':
+            slot.transpose_btn = CycleButton(TRANSPOSE_OPTIONS, initial_index=TRANSPOSE_DEFAULT_INDEX)
+            slot.transpose_btn.setObjectName(f"gen{slot.slot_id}_transpose")
+            btn = slot.transpose_btn
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
+            btn.setStyleSheet(button_style(cfg['style']))
+            btn.wrap = True
+            btn.value_changed.connect(slot.on_transpose_changed)
             btn.setEnabled(False)
 
         elif btn_key == 'midi':

@@ -133,6 +133,7 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_clock_enabled_changed.connect(self.on_generator_clock_enabled)
         self.generator_grid.generator_env_source_changed.connect(self.on_generator_env_source)
         self.generator_grid.generator_clock_rate_changed.connect(self.on_generator_clock_rate)
+        self.generator_grid.generator_transpose_changed.connect(self.on_generator_transpose)
         self.generator_grid.generator_mute_changed.connect(self.on_generator_mute)
         self.generator_grid.generator_midi_channel_changed.connect(self.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
@@ -630,7 +631,12 @@ class MainFrame(QMainWindow):
         """Handle generator envelope ON/OFF (legacy)."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_env_enabled'], [slot_id, 1 if enabled else 0])
-    
+
+    def on_generator_transpose(self, slot_id, semitones):
+        """Send transpose to SuperCollider."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_transpose'], [slot_id, semitones])
+
     def on_generator_env_source(self, slot_id, source):
         """Handle generator ENV source change (0=OFF, 1=CLK, 2=MIDI)."""
         if self.osc_connected:

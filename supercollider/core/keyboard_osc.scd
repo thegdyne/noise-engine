@@ -27,7 +27,8 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
             var slot = i + 1;  // Convert 0-indexed to 1-indexed
             var note = msg[1].asInteger;
             var velocity = msg[2].asInteger;
-            var freq = note.midicps;
+            var transpose = ~genTranspose[i];
+            var freq = (note + transpose).midicps;
             var amp = velocity / 127.0;
             var isMuted = ~genMuted[i];
             var needsRetrig = ~genMidiRetrig[i];
