@@ -298,6 +298,19 @@ def build_generator_button_strip(slot):
         btn.setToolTip(cfg['tooltip'])
         layout.addWidget(btn, alignment=Qt.AlignCenter)
 
+        # Portamento knob  # ADD FROM HERE
+    slot.portamento_knob = DragSlider()
+    slot.portamento_knob.setObjectName(f"gen{slot.slot_id}_portamento")
+    slot.portamento_knob.setFixedWidth(gt.get('slider_width', 25))
+    slot.portamento_knob.setFixedHeight(gt.get('slider_height', 60))
+    slot.portamento_knob.setValue(0)  # Default 0 (no glide)
+    slot.portamento_knob.setToolTip("Portamento glide time (0=off, 1=full)")
+    slot.portamento_knob.setEnabled(False)  # Enable when generator loads
+    slot.portamento_knob.valueChanged.connect(
+        lambda val: slot.on_portamento_changed(val / 1000.0)
+    )
+    layout.addWidget(slot.portamento_knob, alignment=Qt.AlignCenter)  # TO HERE
+
     layout.addStretch()
 
     return strip

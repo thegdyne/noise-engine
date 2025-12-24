@@ -999,6 +999,7 @@ OSC_PATHS = {
     'gen_env_source': '/noise/gen/envSource',  # 0=OFF, 1=CLK, 2=MIDI
     'gen_clock_rate': '/noise/gen/clockRate',
     'gen_transpose': '/noise/gen/transpose',
+    'gen_portamento': '/noise/gen/portamento',
     'gen_mute': '/noise/gen/mute',
     'gen_midi_channel': '/noise/gen/midiChannel',
     'gen_custom': '/noise/gen/custom',  # /noise/gen/custom/{slot}/{param_index}

@@ -99,6 +99,14 @@ All OSC message routing
         ("Gen " ++ slot ++ " transpose: " ++ semitones ++ " semitones").postln;
     }, '/noise/gen/transpose');
 
+    // Portamento per-slot
+    OSCdef(\genPortamento, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat;
+        ~genParams[slot][\portamento].set(value);
+        ("Gen " ++ slot ++ " portamento: " ++ (value * 1000).round(1) ++ "ms").postln;
+    }, '/noise/gen/portamento');
+
     // Per-generator custom parameters
     // Path format: /noise/gen/custom/{slot}/{param_index}
     // Write to both genParams (output) and genUserParams (base for relative modulation)

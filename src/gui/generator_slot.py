@@ -34,6 +34,7 @@ class GeneratorSlot(QWidget):
     mute_changed = pyqtSignal(int, bool)  # slot_id, muted
     midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel (0=OFF, 1-16)
     transpose_changed = pyqtSignal(int, int)  # slot_id, semitones
+    portamento_changed = pyqtSignal(int, float)  # slot_id, value (0-1)
     
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
@@ -89,7 +90,8 @@ class GeneratorSlot(QWidget):
             "env_source": self.env_source,
             "clock_rate": self.rate_btn.index,
             "midi_channel": self.midi_channel,
-            "transpose": self.transpose_btn.index,  # ADD THIS LINE
+            "transpose": self.transpose_btn.index,
+            "portamento": self.portamento,
         }
 
     def set_state(self, state: dict):
@@ -182,6 +184,15 @@ class GeneratorSlot(QWidget):
         self.transpose_btn.blockSignals(False)
         self.transpose = TRANSPOSE_SEMITONES[tr]
         self.transpose_changed.emit(self.slot_id, self.transpose)
+
+        # Portamento restoration
+        port = state.get("portamento", 0.0)
+        self.portamento = port
+        if hasattr(self, 'portamento_knob'):
+            self.portamento_knob.blockSignals(True)
+            self.portamento_knob.setValue(port)
+            self.portamento_knob.blockSignals(False)
+        self.portamento_changed.emit(self.slot_id, self.portamento)
 
     # -------------------------------------------------------------------------
     # Style Updates
@@ -297,6 +308,7 @@ class GeneratorSlot(QWidget):
         
         self.filter_btn.setEnabled(enabled)
         self.transpose_btn.setEnabled(enabled)
+        self.portamento_knob.setEnabled(enabled)
         self.env_btn.setEnabled(enabled)
         self.update_env_style()
         self.update_style()
@@ -429,6 +441,12 @@ class GeneratorSlot(QWidget):
             if freq_param:
                 freq_real = map_value(freq_normalized, freq_param)
                 self.parameter_changed.emit(self.slot_id, 'frequency', freq_real)
+
+    def on_portamento_changed(self, value):
+        """Handle portamento knob change."""
+        self.portamento = value
+        logger.gen(self.slot_id, f"portamento: {value:.3f}")
+        self.portamento_changed.emit(self.slot_id, self.portamento)
         
     def on_param_changed(self, param_key, normalized, param_config):
         """Handle parameter change - emit real mapped value."""

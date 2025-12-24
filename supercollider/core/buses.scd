@@ -47,6 +47,7 @@ Default values are real values (not normalized):
         ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);          // Legacy, kept for compat
         ~genParams[slot][\envSource] = Bus.control(s, 1).set(0);           // 0=OFF, 1=CLK, 2=MIDI
         ~genParams[slot][\clockRate] = Bus.control(s, 1).set(6);  // 6 = CLK (quarter notes)
+        ~genParams[slot][\portamento] = Bus.control(s, 1).set(0.0);
         
         // Custom params (5 per slot) - defaults based on generator JSON
         ~genParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });
