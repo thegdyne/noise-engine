@@ -1,6 +1,6 @@
 """
 Tests for generator JSON configuration files
-Validates all generators in supercollider/generators/
+Validates all generators in packs/core/generators/
 """
 
 import pytest
@@ -146,9 +146,16 @@ class TestGeneratorConfigFunctions:
     
     def test_get_generator_synthdef_valid(self):
         """Valid generator returns synthdef name."""
-        # Test a known generator
-        synthdef = get_generator_synthdef("Subtractive")
-        assert synthdef is not None
+        # Find first valid generator from GENERATOR_CYCLE
+        valid_gen = None
+        for name in GENERATOR_CYCLE:
+            if name != "Empty" and not name.startswith("────"):
+                valid_gen = name
+                break
+        
+        assert valid_gen is not None, "No valid generators in GENERATOR_CYCLE"
+        synthdef = get_generator_synthdef(valid_gen)
+        assert synthdef is not None, f"Generator '{valid_gen}' has no synthdef"
         assert isinstance(synthdef, str)
     
     def test_get_generator_synthdef_unknown(self):
