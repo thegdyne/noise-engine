@@ -37,7 +37,7 @@ class MembraneTemplate(MethodTemplate):
                     unit="",
                 ),
                 ParamAxis(
-                    name="decay",
+                    name="ring_decay",  # FIXED: renamed from 'decay' to avoid collision
                     min_val=0.05,
                     max_val=3.0,
                     default=0.5,
@@ -88,7 +88,7 @@ class MembraneTemplate(MethodTemplate):
                 MacroControl(
                     name="sustain",
                     param_weights={
-                        "decay": 1.0,
+                        "ring_decay": 1.0,  # FIXED: updated param name
                         "size": 0.5,
                     },
                 ),
@@ -132,7 +132,7 @@ class MembraneTemplate(MethodTemplate):
         axes = {a.name: a for a in self._definition.param_axes}
         
         tension_read = axes["tension"].sc_read_expr("customBus0", 0)
-        decay_read = axes["decay"].sc_read_expr("customBus1", 1)
+        ring_decay_read = axes["ring_decay"].sc_read_expr("customBus1", 1)  # FIXED
         strike_read = axes["strike"].sc_read_expr("customBus2", 2)
         metallic_read = axes["metallic"].sc_read_expr("customBus3", 3)
         size_read = axes["size"].sc_read_expr("customBus4", 4)
@@ -146,7 +146,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var tension, memDecay, strike, metallic, size;
+    var tension, ring_decay, strike, metallic, size;  // FIXED: renamed memDecay to ring_decay
     var trig, exciter, membrane, modes, modeFreqs, modeAmps;
     var bodyRes, fundFreq;
 
@@ -166,7 +166,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // === READ CUSTOM PARAMS ===
     {tension_read}
-    {decay_read}
+    {ring_decay_read}
     {strike_read}
     {metallic_read}
     {size_read}
@@ -201,14 +201,14 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     
     modeAmps = [1, 0.6, 0.4, 0.3, 0.2, 0.15];
     
-    // Ring each mode (unrolled to avoid f-string brace issues)
+    // Ring each mode - FIXED: now uses ring_decay which is properly assigned
     modes = [
-        Ringz.ar(exciter, modeFreqs[0].clip(50, 12000), memDecay * 1.0) * modeAmps[0],
-        Ringz.ar(exciter, modeFreqs[1].clip(50, 12000), memDecay * 0.9) * modeAmps[1],
-        Ringz.ar(exciter, modeFreqs[2].clip(50, 12000), memDecay * 0.8) * modeAmps[2],
-        Ringz.ar(exciter, modeFreqs[3].clip(50, 12000), memDecay * 0.7) * modeAmps[3],
-        Ringz.ar(exciter, modeFreqs[4].clip(50, 12000), memDecay * 0.6) * modeAmps[4],
-        Ringz.ar(exciter, modeFreqs[5].clip(50, 12000), memDecay * 0.5) * modeAmps[5]
+        Ringz.ar(exciter, modeFreqs[0].clip(50, 12000), ring_decay * 1.0) * modeAmps[0],
+        Ringz.ar(exciter, modeFreqs[1].clip(50, 12000), ring_decay * 0.9) * modeAmps[1],
+        Ringz.ar(exciter, modeFreqs[2].clip(50, 12000), ring_decay * 0.8) * modeAmps[2],
+        Ringz.ar(exciter, modeFreqs[3].clip(50, 12000), ring_decay * 0.7) * modeAmps[3],
+        Ringz.ar(exciter, modeFreqs[4].clip(50, 12000), ring_decay * 0.6) * modeAmps[4],
+        Ringz.ar(exciter, modeFreqs[5].clip(50, 12000), ring_decay * 0.5) * modeAmps[5]
     ];
     
     membrane = modes.sum * 0.3;

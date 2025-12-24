@@ -146,7 +146,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var tone, snap, body, color, pitchEnv;
+    var tone, snap, body, color, pitch_env;
     var trig, noise, pitchMod, ampEnv, filterEnv;
     var baseFreq, noiseFiltered;
 
@@ -183,7 +183,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     filterEnv = EnvGen.ar(Env.perc(snap * 0.5, body * 0.5), trig);
     
     // Pitch envelope (drops from high to base)
-    pitchMod = EnvGen.ar(Env.perc(0.001, snap * 2), trig).range(1, 1 + (pitchEnv * 3));
+    pitchMod = EnvGen.ar(Env.perc(0.001, snap * 2), trig).range(1, 1 + (pitch_env * 3));
     
     // === NOISE SOURCE ===
     baseFreq = freq * (0.5 + tone);

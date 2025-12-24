@@ -143,6 +143,8 @@ class WavefoldTemplate(MethodTemplate):
         stages_read = axes["stages"].sc_read_expr("customBus3", 3)
         mix_read = axes["mix"].sc_read_expr("customBus4", 4)
         
+        # FIXED: Simplified implementation with defensive clipping
+        # Avoid nested Select.ar which may cause NRT issues
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                filterTypeBus, envEnabledBus, envSourceBus=0,
@@ -154,6 +156,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     var sig, dry, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
     var fold_amount, symmetry, drive, stages, mix;
     var folded, foldGain, offset;
+    var stage1, stage2, stage3, stage4, stageSelect;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -176,6 +179,13 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     {stages_read}
     {mix_read}
 
+    // FIXED: Defensive clipping on parameters
+    fold_amount = fold_amount.clip(0, 1);
+    symmetry = symmetry.clip(0, 1);
+    drive = drive.clip(1, 8);
+    stages = stages.clip(1, 4);
+    mix = mix.clip(0, 1);
+
     // === SOURCE OSCILLATOR ===
     // Start with a simple waveform to fold
     sig = SinOsc.ar(freq);
@@ -186,34 +196,31 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     dry = sig;
 
     // === WAVEFOLDING ===
-    // Apply drive
+    // Apply drive with clipping to prevent numerical explosion
     foldGain = drive * (1 + (fold_amount * 4));
-    sig = sig * foldGain;
+    sig = (sig * foldGain).clip(-10, 10);  // FIXED: clip before folding
     
     // Asymmetry offset
     offset = (1 - symmetry) * 0.5 * fold_amount;
     sig = sig + offset;
     
-    // Fold function - using sine waveshaping for smooth folds
-    // Stage 1 (always active)
-    folded = sig.fold(-1, 1);
+    // FIXED: Compute all stages, then blend based on stages param
+    // This avoids nested Select.ar which may cause NRT issues
+    stage1 = sig.fold(-1, 1);
+    stage2 = (stage1 * 1.5).fold(-1, 1);
+    stage3 = (stage2 * 1.3).fold(-1, 1);
+    stage4 = (stage3 * 1.2).fold(-1, 1);
     
-    // Stage 2
-    folded = Select.ar(stages > 1.5, [
-        folded,
-        (folded * 1.5).fold(-1, 1)
-    ]);
-    
-    // Stage 3
-    folded = Select.ar(stages > 2.5, [
-        folded,
-        (folded * 1.3).fold(-1, 1)
-    ]);
-    
-    // Stage 4
-    folded = Select.ar(stages > 3.5, [
-        folded,
-        (folded * 1.2).fold(-1, 1)
+    // Crossfade between stages based on stages parameter
+    // stages 1-2: blend stage1 and stage2
+    // stages 2-3: blend stage2 and stage3
+    // stages 3-4: blend stage3 and stage4
+    stageSelect = stages - 1;  // 0-3 range
+    folded = Select.ar(stageSelect.floor.clip(0, 3), [
+        stage1.blend(stage2, stageSelect.frac),  // 1-2
+        stage2.blend(stage3, stageSelect.frac),  // 2-3
+        stage3.blend(stage4, stageSelect.frac),  // 3-4
+        stage4  // 4+
     ]);
     
     // Normalize output

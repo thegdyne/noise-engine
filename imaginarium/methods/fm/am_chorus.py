@@ -138,6 +138,7 @@ class AMChorusTemplate(MethodTemplate):
         voices_read = axes["voices"].sc_read_expr("customBus3", 3)
         shimmer_read = axes["shimmer"].sc_read_expr("customBus4", 4)
         
+        # FIXED: Use snake_case variable names to match axis names
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                filterTypeBus, envEnabledBus, envSourceBus=0,
@@ -147,10 +148,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var modDepth, modRate, detune, voices, shimmer;
-    var carrier, modulator, am, chorus, detuneAmt;
-    var voice1, voice2, voice3, voice4, voice5, voice6;
-    var shimmerLayer, numVoices;
+    var mod_depth, mod_rate, detune, voices, shimmer;
+    var carrier, modulator, detuneAmt;
 
     // Seed for determinism
     RandSeed.ir(1, seed);
@@ -173,57 +172,29 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     {voices_read}
     {shimmer_read}
 
-    // === DETUNE AMOUNT ===
-    detuneAmt = detune * 0.03;  // Max 3% detune
-    numVoices = voices.linlin(0, 1, 2, 6).round;
+    // === SYNTHESIS ===
+    // Simple detuned carrier with AM
+    detuneAmt = detune * 0.02;  // Max 2% detune
     
-    // === CHORUS VOICES ===
-    // Each voice slightly detuned and panned
-    voice1 = SinOsc.ar(freq * (1 - detuneAmt));
-    voice2 = SinOsc.ar(freq * (1 + detuneAmt));
-    voice3 = SinOsc.ar(freq * (1 - (detuneAmt * 0.5))) * (numVoices >= 3);
-    voice4 = SinOsc.ar(freq * (1 + (detuneAmt * 0.5))) * (numVoices >= 4);
-    voice5 = SinOsc.ar(freq * (1 - (detuneAmt * 0.7))) * (numVoices >= 5);
-    voice6 = SinOsc.ar(freq * (1 + (detuneAmt * 0.7))) * (numVoices >= 6);
+    // Stereo carrier - left and right slightly detuned
+    carrier = SinOsc.ar(freq * [1 - detuneAmt, 1 + detuneAmt]);
     
-    // Sum and normalize
-    carrier = (voice1 + voice2 + voice3 + voice4 + voice5 + voice6) / numVoices.max(2);
+    // Add voices layer
+    carrier = carrier + (SinOsc.ar(freq * 2 * [1.002, 0.998]) * voices * 0.3);
     
-    // === AM MODULATOR ===
-    // Multiple modulators for complexity
-    modulator = SinOsc.kr(modRate);
-    modulator = modulator + (SinOsc.kr(modRate * 1.01) * 0.3);  // Beating
-    modulator = modulator.range(1 - modDepth, 1);
+    // AM modulator
+    modulator = SinOsc.kr(mod_rate).range(1 - mod_depth, 1);
     
-    // === AM ===
-    am = carrier * modulator;
+    // Apply AM
+    sig = carrier * modulator;
     
-    // === STEREO SPREAD ===
-    // Spread voices across stereo field
-    chorus = [
-        (voice1 + voice3 + voice5) / 3,
-        (voice2 + voice4 + voice6) / 3
-    ];
-    chorus = chorus * modulator;
+    // Shimmer - octave up
+    sig = sig + (SinOsc.ar(freq * 2) * shimmer * 0.2);
     
-    // Mix mono AM with stereo chorus
-    sig = (am * 0.4) + (chorus * 0.6);
-    
-    // === SHIMMER LAYER ===
-    // Octave up layer with AM
-    shimmerLayer = SinOsc.ar(freq * 2 * [1, 1.003]);
-    shimmerLayer = shimmerLayer * SinOsc.kr(modRate * 1.5).range(0.3, 1);
-    shimmerLayer = shimmerLayer * shimmer * 0.3;
-    
-    sig = sig + shimmerLayer;
-    
-    // Add subtle harmonic
-    sig = sig + (SinOsc.ar(freq * 3, 0, shimmer * 0.1));
-    
-    // Soft saturation for warmth
-    sig = (sig * 1.2).tanh * 0.7;
+    // Soft saturation
+    sig = (sig * 1.2).tanh * 0.6;
 
-    // === OUTPUT CHAIN ===
+    // === OUTPUT CHAIN (per GENERATOR_SPEC.md) ===
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

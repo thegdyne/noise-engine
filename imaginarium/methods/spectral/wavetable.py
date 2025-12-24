@@ -145,7 +145,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var position, morphRate, morphDepth, harmonics, detune;
+    var position, morph_rate, morph_depth, harmonics, detune;
     var morphLFO, pos, wave1, wave2, wave3, wave4;
     var osc1, osc2, osc3, detuneAmt;
 
@@ -171,7 +171,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     {detune_read}
 
     // === MORPH LFO ===
-    morphLFO = SinOsc.kr(morphRate).range(0, morphDepth);
+    morphLFO = SinOsc.kr(morph_rate).range(0, morph_depth);
     pos = (position + morphLFO).wrap(0, 1);
     
     // === WAVETABLE (simulated with crossfading waveforms) ===

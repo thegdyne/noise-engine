@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imaginarium — System Mind Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            color: #e8e8e8;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+        
+        h1 {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 1.5rem;
+            color: #ff8c00;
+            border-bottom: 1px solid #333;
+        }
+        
+        .container {
+            padding: 2rem;
+            min-width: 1400px;
+        }
+        
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+        
+        /* Node styles */
+        .node {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .node:hover {
+            transform: scale(1.05);
+        }
+        
+        .node-box {
+            rx: 8;
+            ry: 8;
+            stroke-width: 2;
+        }
+        
+        .node-text {
+            font-size: 12px;
+            font-weight: 600;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+        }
+        
+        .node-subtext {
+            font-size: 9px;
+            font-weight: 400;
+            fill: #888;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+        }
+        
+        /* Category colors */
+        .cat-input .node-box { fill: #1a3a2a; stroke: #4ade80; }
+        .cat-input .node-text { fill: #4ade80; }
+        
+        .cat-extract .node-box { fill: #2a2a1a; stroke: #fbbf24; }
+        .cat-extract .node-text { fill: #fbbf24; }
+        
+        .cat-generate .node-box { fill: #1a2a3a; stroke: #60a5fa; }
+        .cat-generate .node-text { fill: #60a5fa; }
+        
+        .cat-analyze .node-box { fill: #2a1a3a; stroke: #c084fc; }
+        .cat-analyze .node-text { fill: #c084fc; }
+        
+        .cat-select .node-box { fill: #3a1a1a; stroke: #f87171; }
+        .cat-select .node-text { fill: #f87171; }
+        
+        .cat-output .node-box { fill: #3a2a1a; stroke: #ff8c00; }
+        .cat-output .node-text { fill: #ff8c00; }
+        
+        .cat-core .node-box { fill: #1a1a1a; stroke: #e8e8e8; }
+        .cat-core .node-text { fill: #e8e8e8; }
+        
+        /* Connection lines */
+        .connection {
+            fill: none;
+            stroke-width: 2;
+            opacity: 0.6;
+        }
+        
+        .connection-input { stroke: #4ade80; }
+        .connection-extract { stroke: #fbbf24; }
+        .connection-generate { stroke: #60a5fa; }
+        .connection-analyze { stroke: #c084fc; }
+        .connection-select { stroke: #f87171; }
+        .connection-output { stroke: #ff8c00; }
+        
+        /* Legend */
+        .legend {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: #141414;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 11px;
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #888;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.3rem 0;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            font-size: 12px;
+            max-width: 280px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            line-height: 1.5;
+        }
+        
+        .tooltip.visible {
+            opacity: 1;
+        }
+        
+        .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: #ff8c00;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎛️ Imaginarium — Sound Palette Generation System</h1>
+    
+    <div class="container">
+        <svg width="1350" height="900" viewBox="0 0 1350 900">
+            <defs>
+                <marker id="arrow-input" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#4ade80" opacity="0.6"/>
+                </marker>
+                <marker id="arrow-extract" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#fbbf24" opacity="0.6"/>
+                </marker>
+                <marker id="arrow-generate" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#60a5fa" opacity="0.6"/>
+                </marker>
+                <marker id="arrow-analyze" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#c084fc" opacity="0.6"/>
+                </marker>
+                <marker id="arrow-select" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#f87171" opacity="0.6"/>
+                </marker>
+                <marker id="arrow-output" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#ff8c00" opacity="0.6"/>
+                </marker>
+            </defs>
+            
+            <!-- ===== CONNECTIONS (draw first, behind nodes) ===== -->
+            
+            <!-- Input to SoundSpec -->
+            <path class="connection connection-input" d="M150,150 Q200,200 250,250" marker-end="url(#arrow-input)"/>
+            
+            <!-- SoundSpec to Scoring -->
+            <path class="connection connection-extract" d="M330,280 Q500,280 670,400" marker-end="url(#arrow-extract)"/>
+            
+            <!-- Run Seed branches -->
+            <path class="connection connection-generate" d="M200,450 L300,380" marker-end="url(#arrow-generate)"/>
+            <path class="connection connection-generate" d="M200,450 L300,520" marker-end="url(#arrow-generate)"/>
+            
+            <!-- Sobol to Parameter Space -->
+            <path class="connection connection-generate" d="M420,370 L520,370" marker-end="url(#arrow-generate)"/>
+            
+            <!-- Method Catalog connections -->
+            <path class="connection connection-generate" d="M420,530 L520,450" marker-end="url(#arrow-generate)"/>
+            
+            <!-- Parameter Space to Candidates -->
+            <path class="connection connection-generate" d="M620,400 L720,400" marker-end="url(#arrow-generate)"/>
+            
+            <!-- Candidates to NRT Render -->
+            <path class="connection connection-analyze" d="M820,400 L900,320" marker-end="url(#arrow-analyze)"/>
+            
+            <!-- NRT Render to Audio Analysis -->
+            <path class="connection connection-analyze" d="M1000,300 L1080,300" marker-end="url(#arrow-analyze)"/>
+            
+            <!-- Audio Analysis to Feature Space -->
+            <path class="connection connection-analyze" d="M1130,330 L1130,400" marker-end="url(#arrow-analyze)"/>
+            
+            <!-- Feature Space to Safety Gates -->
+            <path class="connection connection-analyze" d="M1080,450 L1000,500" marker-end="url(#arrow-analyze)"/>
+            
+            <!-- Safety Gates to Scoring -->
+            <path class="connection connection-select" d="M900,520 L780,520" marker-end="url(#arrow-select)"/>
+            
+            <!-- Scoring to Selection -->
+            <path class="connection connection-select" d="M680,560 L680,620" marker-end="url(#arrow-select)"/>
+            
+            <!-- Selection constraints -->
+            <path class="connection connection-select" d="M580,700 L620,680" marker-end="url(#arrow-select)"/>
+            <path class="connection connection-select" d="M580,780 L620,720" marker-end="url(#arrow-select)"/>
+            
+            <!-- Selection to Export -->
+            <path class="connection connection-output" d="M740,680 L850,680" marker-end="url(#arrow-output)"/>
+            
+            <!-- Export branches -->
+            <path class="connection connection-output" d="M950,660 L1050,600" marker-end="url(#arrow-output)"/>
+            <path class="connection connection-output" d="M950,700 L1050,760" marker-end="url(#arrow-output)"/>
+            
+            <!-- To Noise Engine -->
+            <path class="connection connection-output" d="M1150,620 L1230,680" marker-end="url(#arrow-output)"/>
+            <path class="connection connection-output" d="M1150,780 L1230,720" marker-end="url(#arrow-output)"/>
+            
+            
+            <!-- ===== PHASE LABELS ===== -->
+            <text x="100" y="60" fill="#4ade80" font-size="14" font-weight="600">INPUT</text>
+            <text x="280" y="180" fill="#fbbf24" font-size="14" font-weight="600">EXTRACTION</text>
+            <text x="400" y="280" fill="#60a5fa" font-size="14" font-weight="600">GENERATION</text>
+            <text x="1000" y="200" fill="#c084fc" font-size="14" font-weight="600">ANALYSIS</text>
+            <text x="600" y="580" fill="#f87171" font-size="14" font-weight="600">SELECTION</text>
+            <text x="1000" y="580" fill="#ff8c00" font-size="14" font-weight="600">OUTPUT</text>
+            
+            
+            <!-- ===== INPUT SECTION ===== -->
+            <g class="node cat-input" data-info="Source image that drives the entire generation. Brightness and texture are extracted to guide sound selection.">
+                <rect class="node-box" x="60" y="100" width="120" height="50"/>
+                <text class="node-text" x="120" y="120">IMAGE</text>
+                <text class="node-subtext" x="120" y="135">source stimulus</text>
+            </g>
+            
+            
+            <!-- ===== EXTRACTION SECTION ===== -->
+            <g class="node cat-extract" data-info="Target sound characteristics derived from image analysis. Currently brightness (luminance) and noisiness (texture/edges). Used to score how well candidates match the image.">
+                <rect class="node-box" x="250" y="230" width="140" height="60"/>
+                <text class="node-text" x="320" y="250">SOUNDSPEC</text>
+                <text class="node-subtext" x="320" y="268">brightness: 0.65</text>
+                <text class="node-subtext" x="320" y="280">noisiness: 0.30</text>
+            </g>
+            
+            
+            <!-- ===== GENERATION SECTION ===== -->
+            <g class="node cat-core" data-info="Master seed for reproducibility. Same run_seed + same image = identical pack output. Different seeds explore different regions of the parameter space.">
+                <rect class="node-box" x="100" y="420" width="120" height="60"/>
+                <text class="node-text" x="160" y="445">RUN SEED</text>
+                <text class="node-subtext" x="160" y="462">determinism</text>
+            </g>
+            
+            <g class="node cat-generate" data-info="Quasi-random sequence that efficiently explores the parameter space. Unlike pure random, Sobol ensures even coverage — no clustering, no gaps. Seeded from run_seed for reproducibility.">
+                <rect class="node-box" x="300" y="340" width="140" height="60"/>
+                <text class="node-text" x="370" y="360">SOBOL SEQUENCE</text>
+                <text class="node-subtext" x="370" y="378">quasi-random</text>
+                <text class="node-subtext" x="370" y="390">space-filling</text>
+            </g>
+            
+            <g class="node cat-generate" data-info="30 synthesis methods across 5 families: FM (7), Physical (7), Texture (6), Subtractive (5), Spectral (5). Each method defines its own P1-P5 parameter axes with ranges and curves.">
+                <rect class="node-box" x="300" y="490" width="140" height="70"/>
+                <text class="node-text" x="370" y="510">METHOD</text>
+                <text class="node-text" x="370" y="525">CATALOG</text>
+                <text class="node-subtext" x="370" y="545">30 methods</text>
+            </g>
+            
+            <g class="node cat-generate" data-info="5-dimensional space defined by P1-P5 parameters. Each method has different axes (e.g., pulse_width, mod_depth, decay). Sobol samples points throughout this space.">
+                <rect class="node-box" x="500" y="340" width="140" height="70"/>
+                <text class="node-text" x="570" y="360">PARAMETER</text>
+                <text class="node-text" x="570" y="375">SPACE (5D)</text>
+                <text class="node-subtext" x="570" y="395">P1, P2, P3, P4, P5</text>
+            </g>
+            
+            <g class="node cat-generate" data-info="Each candidate = one method + one Sobol sample. Hundreds generated across all methods. Each has unique params and a deterministic seed for its random UGens.">
+                <rect class="node-box" x="700" y="360" width="140" height="70"/>
+                <text class="node-text" x="770" y="385">CANDIDATES</text>
+                <text class="node-subtext" x="770" y="405">method + params</text>
+            </g>
+            
+            
+            <!-- ===== ANALYSIS SECTION ===== -->
+            <g class="node cat-analyze" data-info="Non-realtime SuperCollider render. Each candidate is rendered to 3 seconds of audio for analysis. Deterministic: same seed = identical audio.">
+                <rect class="node-box" x="880" y="270" width="130" height="50"/>
+                <text class="node-text" x="945" y="290">NRT RENDER</text>
+                <text class="node-subtext" x="945" y="305">3s audio</text>
+            </g>
+            
+            <g class="node cat-analyze" data-info="Spectral and temporal analysis of rendered audio. Extracts: centroid (brightness), flatness (noise), onset density, crest factor, stereo width, harmonicity.">
+                <rect class="node-box" x="1050" y="260" width="140" height="60"/>
+                <text class="node-text" x="1120" y="280">AUDIO</text>
+                <text class="node-text" x="1120" y="295">ANALYSIS</text>
+                <text class="node-subtext" x="1120" y="312">librosa/scipy</text>
+            </g>
+            
+            <g class="node cat-analyze" data-info="6-dimensional feature vector measured from audio. Used for scoring (does it match the image?) and diversity selection (are candidates different enough?).">
+                <rect class="node-box" x="1050" y="410" width="140" height="80"/>
+                <text class="node-text" x="1120" y="430">FEATURE</text>
+                <text class="node-text" x="1120" y="445">SPACE (6D)</text>
+                <text class="node-subtext" x="1120" y="462">centroid</text>
+                <text class="node-subtext" x="1120" y="474">flatness, crest...</text>
+            </g>
+            
+            <g class="node cat-analyze" data-info="Reject bad candidates: silence (<-60dB), clipping, DC offset, runaway growth. Only safe candidates proceed to scoring.">
+                <rect class="node-box" x="880" y="490" width="130" height="60"/>
+                <text class="node-text" x="945" y="510">SAFETY</text>
+                <text class="node-text" x="945" y="525">GATES</text>
+                <text class="node-subtext" x="945" y="542">reject unsafe</text>
+            </g>
+            
+            
+            <!-- ===== SELECTION SECTION ===== -->
+            <g class="node cat-select" data-info="Compare candidate features to SoundSpec. Bright image → prefer high centroid. Noisy image → prefer high flatness. Score = weighted distance.">
+                <rect class="node-box" x="620" y="490" width="140" height="60"/>
+                <text class="node-text" x="690" y="510">SCORING</text>
+                <text class="node-subtext" x="690" y="528">fit to image</text>
+                <text class="node-subtext" x="690" y="540">0.0 → 1.0</text>
+            </g>
+            
+            <g class="node cat-select" data-info="Farthest-first algorithm: start with best scorer, then iteratively add the candidate most different from those already selected. Ensures variety.">
+                <rect class="node-box" x="620" y="640" width="140" height="70"/>
+                <text class="node-text" x="690" y="660">DIVERSITY</text>
+                <text class="node-text" x="690" y="675">SELECTION</text>
+                <text class="node-subtext" x="690" y="695">farthest-first</text>
+            </g>
+            
+            <g class="node cat-select" data-info="Family diversity: at least 3 families, max 3 per family. Ensures spectral variety across the pack.">
+                <rect class="node-box" x="450" y="670" width="130" height="50"/>
+                <text class="node-text" x="515" y="690">FAMILY</text>
+                <text class="node-subtext" x="515" y="705">min 3 families</text>
+            </g>
+            
+            <g class="node cat-select" data-info="Minimum distance between any selected pair in feature space. Prevents similar-sounding generators.">
+                <rect class="node-box" x="450" y="750" width="130" height="50"/>
+                <text class="node-text" x="515" y="770">DISTANCE</text>
+                <text class="node-subtext" x="515" y="785">min 0.15</text>
+            </g>
+            
+            
+            <!-- ===== OUTPUT SECTION ===== -->
+            <g class="node cat-output" data-info="8 winning candidates are exported as a complete Noise Engine pack. Each gets a .json (UI config) and .scd (SynthDef) file.">
+                <rect class="node-box" x="850" y="640" width="130" height="70"/>
+                <text class="node-text" x="915" y="665">EXPORT</text>
+                <text class="node-subtext" x="915" y="685">8 generators</text>
+            </g>
+            
+            <g class="node cat-output" data-info="UI configuration: display name, custom_params array (P1-P5 with labels, tooltips, defaults), output trim, MIDI settings.">
+                <rect class="node-box" x="1030" y="570" width="140" height="60"/>
+                <text class="node-text" x="1100" y="590">JSON CONFIG</text>
+                <text class="node-subtext" x="1100" y="608">custom_params[5]</text>
+                <text class="node-subtext" x="1100" y="620">labels, defaults</text>
+            </g>
+            
+            <g class="node cat-output" data-info="SuperCollider SynthDef code. Reads P1-P5 from customBus0-4, maps normalized 0-1 to actual ranges. Includes seed for deterministic random UGens.">
+                <rect class="node-box" x="1030" y="730" width="140" height="60"/>
+                <text class="node-text" x="1100" y="750">SYNTHDEF</text>
+                <text class="node-subtext" x="1100" y="768">customBus0-4</text>
+                <text class="node-subtext" x="1100" y="780">sc_read_expr()</text>
+            </g>
+            
+            <g class="node cat-output" data-info="The final destination. Pack loads into Noise Engine, P1-P5 sliders control sound in real-time. Defaults reproduce the generated sound.">
+                <rect class="node-box" x="1210" y="660" width="120" height="70"/>
+                <text class="node-text" x="1270" y="685">NOISE</text>
+                <text class="node-text" x="1270" y="700">ENGINE</text>
+                <text class="node-subtext" x="1270" y="718">P1-P5 sliders</text>
+            </g>
+            
+        </svg>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-title">PHASES</div>
+        <div class="legend-item"><div class="legend-color" style="background:#4ade80"></div> Input</div>
+        <div class="legend-item"><div class="legend-color" style="background:#fbbf24"></div> Extraction</div>
+        <div class="legend-item"><div class="legend-color" style="background:#60a5fa"></div> Generation</div>
+        <div class="legend-item"><div class="legend-color" style="background:#c084fc"></div> Analysis</div>
+        <div class="legend-item"><div class="legend-color" style="background:#f87171"></div> Selection</div>
+        <div class="legend-item"><div class="legend-color" style="background:#ff8c00"></div> Output</div>
+    </div>
+    
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-title"></div>
+        <div class="tooltip-content"></div>
+    </div>
+    
+    <script>
+        const tooltip = document.getElementById('tooltip');
+        const tooltipTitle = tooltip.querySelector('.tooltip-title');
+        const tooltipContent = tooltip.querySelector('.tooltip-content');
+        
+        document.querySelectorAll('.node').forEach(node => {
+            const info = node.dataset.info;
+            const title = node.querySelector('.node-text').textContent;
+            
+            node.addEventListener('mouseenter', (e) => {
+                tooltipTitle.textContent = title;
+                tooltipContent.textContent = info;
+                tooltip.classList.add('visible');
+            });
+            
+            node.addEventListener('mousemove', (e) => {
+                const x = Math.min(e.clientX + 15, window.innerWidth - 300);
+                const y = Math.min(e.clientY + 15, window.innerHeight - 150);
+                tooltip.style.left = x + 'px';
+                tooltip.style.top = y + 'px';
+            });
+            
+            node.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('visible');
+            });
+        });
+    </script>
+</body>
+</html>

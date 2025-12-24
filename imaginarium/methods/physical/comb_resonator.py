@@ -136,6 +136,7 @@ class CombResonatorTemplate(MethodTemplate):
         excite_read = axes["excite"].sc_read_expr("customBus3", 3)
         mod_rate_read = axes["mod_rate"].sc_read_expr("customBus4", 4)
         
+        # FIXED: Use snake_case mod_rate to match axis name
         return f'''
 SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                filterTypeBus, envEnabledBus, envSourceBus=0,
@@ -145,7 +146,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var feedback, damping, detune, excite, modRate;
+    var feedback, damping, detune, excite, mod_rate;  // FIXED: mod_rate not modRate
     var exciter, delayTime, delayMod, dampFreq;
     var comb1, comb2, comb3, comb4;
 
@@ -172,15 +173,15 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     // === EXCITER ===
     exciter = PinkNoise.ar * 0.5;
-    exciter = exciter + (Impulse.ar(0) * 0.5);
+    // Note: Impulse.ar(0) never fires - removed
     exciter = HPF.ar(exciter, 100 + (excite * 4000));
     exciter = LPF.ar(exciter, 2000 + (excite * 10000));
     
-    // Base delay time from frequency
-    delayTime = 1 / freq;
+    // Base delay time from frequency (with protection against div by zero)
+    delayTime = 1 / freq.max(20);  // FIXED: protect against freq=0
     
-    // Modulation
-    delayMod = SinOsc.kr(modRate).range(0.98, 1.02);
+    // Modulation - FIXED: use mod_rate not modRate
+    delayMod = SinOsc.kr(mod_rate).range(0.98, 1.02);
     
     // Damping frequency
     dampFreq = (1 - damping).linexp(0, 1, 500, 15000);

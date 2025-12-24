@@ -143,7 +143,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var bands, resonance, shift, noiseMix, bandAttack;
+    var bands, resonance, shift, noise_mix, bandAttack;
     var carrier, modulator, numBands, bandFreqs, bandQ;
     var band1, band2, band3, band4, band5, band6, band7, band8;
     var env1, env2, env3, env4, env5, env6, env7, env8;
@@ -170,8 +170,8 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     {attack_read}
 
     // === CARRIER (osc + noise mix) ===
-    carrier = Saw.ar(freq) * (1 - noiseMix);
-    carrier = carrier + (PinkNoise.ar * noiseMix);
+    carrier = Saw.ar(freq) * (1 - noise_mix);
+    carrier = carrier + (PinkNoise.ar * noise_mix);
     
     // === MODULATOR (internal oscillator for envelope follower sim) ===
     modulator = LFSaw.ar(freq * 0.5) + (SinOsc.ar(freq) * 0.5);

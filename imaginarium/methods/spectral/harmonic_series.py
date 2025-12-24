@@ -145,7 +145,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var partials, slope, oddEven, stretch, shimmer;
+    var partials, slope, odd_even, stretch, shimmer;
     var numPartials, partial, partialFreq, partialAmp, isOdd, vibrato;
     var p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16;
 
@@ -183,47 +183,47 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     // Partial 2
     vibrato = SinOsc.kr(4.1 + LFNoise1.kr(0.5).range(-0.5, 0.5), Rand(0, 2pi));
     p2 = SinOsc.ar(freq * (2 ** stretch) * (1 + (vibrato * shimmer * 0.01)));
-    p2 = p2 * slope.dbamp * (1 - oddEven) * (numPartials >= 2);  // Even
+    p2 = p2 * slope.dbamp * (1 - odd_even) * (numPartials >= 2);  // Even
     
     // Partial 3
     vibrato = SinOsc.kr(4.2 + LFNoise1.kr(0.5).range(-0.5, 0.5), Rand(0, 2pi));
     p3 = SinOsc.ar(freq * (3 ** stretch) * (1 + (vibrato * shimmer * 0.01)));
-    p3 = p3 * (slope * 2).dbamp * oddEven * (numPartials >= 3);  // Odd
+    p3 = p3 * (slope * 2).dbamp * odd_even * (numPartials >= 3);  // Odd
     
     // Partial 4
     vibrato = SinOsc.kr(4.3 + LFNoise1.kr(0.5).range(-0.5, 0.5), Rand(0, 2pi));
     p4 = SinOsc.ar(freq * (4 ** stretch) * (1 + (vibrato * shimmer * 0.01)));
-    p4 = p4 * (slope * 3).dbamp * (1 - oddEven) * (numPartials >= 4);
+    p4 = p4 * (slope * 3).dbamp * (1 - odd_even) * (numPartials >= 4);
     
     // Partial 5
     vibrato = SinOsc.kr(4.4 + LFNoise1.kr(0.5).range(-0.5, 0.5), Rand(0, 2pi));
     p5 = SinOsc.ar(freq * (5 ** stretch) * (1 + (vibrato * shimmer * 0.01)));
-    p5 = p5 * (slope * 4).dbamp * oddEven * (numPartials >= 5);
+    p5 = p5 * (slope * 4).dbamp * odd_even * (numPartials >= 5);
     
     // Partial 6
     vibrato = SinOsc.kr(4.5 + LFNoise1.kr(0.5).range(-0.5, 0.5), Rand(0, 2pi));
     p6 = SinOsc.ar(freq * (6 ** stretch) * (1 + (vibrato * shimmer * 0.01)));
-    p6 = p6 * (slope * 5).dbamp * (1 - oddEven) * (numPartials >= 6);
+    p6 = p6 * (slope * 5).dbamp * (1 - odd_even) * (numPartials >= 6);
     
     // Partial 7
     vibrato = SinOsc.kr(4.6 + LFNoise1.kr(0.5).range(-0.5, 0.5), Rand(0, 2pi));
     p7 = SinOsc.ar(freq * (7 ** stretch) * (1 + (vibrato * shimmer * 0.01)));
-    p7 = p7 * (slope * 6).dbamp * oddEven * (numPartials >= 7);
+    p7 = p7 * (slope * 6).dbamp * odd_even * (numPartials >= 7);
     
     // Partial 8
     vibrato = SinOsc.kr(4.7 + LFNoise1.kr(0.5).range(-0.5, 0.5), Rand(0, 2pi));
     p8 = SinOsc.ar(freq * (8 ** stretch) * (1 + (vibrato * shimmer * 0.01)));
-    p8 = p8 * (slope * 7).dbamp * (1 - oddEven) * (numPartials >= 8);
+    p8 = p8 * (slope * 7).dbamp * (1 - odd_even) * (numPartials >= 8);
     
     // Higher partials (simplified)
-    p9 = SinOsc.ar(freq * (9 ** stretch)) * (slope * 8).dbamp * oddEven * (numPartials >= 9);
-    p10 = SinOsc.ar(freq * (10 ** stretch)) * (slope * 9).dbamp * (1 - oddEven) * (numPartials >= 10);
-    p11 = SinOsc.ar(freq * (11 ** stretch)) * (slope * 10).dbamp * oddEven * (numPartials >= 11);
-    p12 = SinOsc.ar(freq * (12 ** stretch)) * (slope * 11).dbamp * (1 - oddEven) * (numPartials >= 12);
-    p13 = SinOsc.ar(freq * (13 ** stretch)) * (slope * 12).dbamp * oddEven * (numPartials >= 13);
-    p14 = SinOsc.ar(freq * (14 ** stretch)) * (slope * 13).dbamp * (1 - oddEven) * (numPartials >= 14);
-    p15 = SinOsc.ar(freq * (15 ** stretch)) * (slope * 14).dbamp * oddEven * (numPartials >= 15);
-    p16 = SinOsc.ar(freq * (16 ** stretch)) * (slope * 15).dbamp * (1 - oddEven) * (numPartials >= 16);
+    p9 = SinOsc.ar(freq * (9 ** stretch)) * (slope * 8).dbamp * odd_even * (numPartials >= 9);
+    p10 = SinOsc.ar(freq * (10 ** stretch)) * (slope * 9).dbamp * (1 - odd_even) * (numPartials >= 10);
+    p11 = SinOsc.ar(freq * (11 ** stretch)) * (slope * 10).dbamp * odd_even * (numPartials >= 11);
+    p12 = SinOsc.ar(freq * (12 ** stretch)) * (slope * 11).dbamp * (1 - odd_even) * (numPartials >= 12);
+    p13 = SinOsc.ar(freq * (13 ** stretch)) * (slope * 12).dbamp * odd_even * (numPartials >= 13);
+    p14 = SinOsc.ar(freq * (14 ** stretch)) * (slope * 13).dbamp * (1 - odd_even) * (numPartials >= 14);
+    p15 = SinOsc.ar(freq * (15 ** stretch)) * (slope * 14).dbamp * odd_even * (numPartials >= 15);
+    p16 = SinOsc.ar(freq * (16 ** stretch)) * (slope * 15).dbamp * (1 - odd_even) * (numPartials >= 16);
     
     // Sum all partials
     sig = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + p15 + p16;

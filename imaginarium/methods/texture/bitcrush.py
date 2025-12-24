@@ -147,7 +147,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
                                seed={seed}|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
-    var bits, sampleRate, source, fold, drive;
+    var bits, sample_rate, source, fold, drive;
     var tone, noise, crushed, downsampleRate, bitDepth;
 
     // Seed for determinism
@@ -198,7 +198,7 @@ SynthDef(\\{synthdef_name}, {{ |out, freqBus, cutoffBus, resBus, attackBus, deca
     sig = (sig * bitDepth).round / bitDepth;
     
     // Sample rate reduction
-    downsampleRate = sampleRate.linexp(0, 1, 48000, 1000);
+    downsampleRate = sample_rate.linexp(0, 1, 48000, 1000);
     sig = Latch.ar(sig, Impulse.ar(downsampleRate));
     
     // === POST-PROCESSING ===
