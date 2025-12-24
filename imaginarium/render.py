@@ -169,6 +169,9 @@ class NRTRenderer:
         code = re.sub(r'In\.kr\(envSourceBus\)', '0', code)
         code = re.sub(r'In\.kr\(envEnabledBus\)', '1', code)
         code = re.sub(r'In\.kr\(clockRateBus\)', '6', code)
+
+        # Portamento bus (not used in NRT, set to 0)
+        code = re.sub(r'In\.kr\(portamentoBus\)', '0', code)
         
         # Amplitude - handle the ~params dictionary access
         code = re.sub(r'In\.kr\(~params\[\\amplitude\]\)', '0.5', code)
