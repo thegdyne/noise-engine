@@ -30,7 +30,7 @@ from src.gui.keyboard_overlay import KeyboardOverlay
 from src.gui.theme import COLORS
 
 
-class TestWindow(QMainWindow):
+class DemoWindow(QMainWindow):
     """Test harness for KeyboardOverlay."""
     
     def __init__(self):
@@ -115,7 +115,7 @@ def main():
     # Dark theme for app
     app.setStyle("Fusion")
     
-    window = TestWindow()
+    window = DemoWindow()
     window.show()
     
     print("\n" + "=" * 60)
