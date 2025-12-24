@@ -104,7 +104,7 @@ class ModMatrixWindow(QMainWindow):
         
         self._setup_ui()
         self._connect_signals()
-        self._sync_from_state()
+        self.sync_from_state()
         
         # Cmd+M to close (toggle) when this window has focus
         close_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
@@ -365,7 +365,7 @@ class ModMatrixWindow(QMainWindow):
         self.routing_state.connection_changed.connect(self._on_connection_changed)
         self.routing_state.all_cleared.connect(self._on_all_cleared)
     
-    def _sync_from_state(self):
+    def sync_from_state(self):
         """Sync cell states from routing state."""
         for conn in self.routing_state.get_all_connections():
             cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
