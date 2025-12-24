@@ -225,9 +225,9 @@ class TestValidator:
         
         passed, failed, results = validate_all_methods()
         
-        assert len(results) == 14, f"Expected 14 methods, found {len(results)}"
+        assert len(results) == 30, f"Expected 30 methods, found {len(results)}"
         assert failed == 0, f"{failed} methods failed validation"
-        assert passed == 14
+        assert passed == 30
     
     def test_validator_checks_label_format(self):
         """R10: Validator pattern rejects invalid label format."""
