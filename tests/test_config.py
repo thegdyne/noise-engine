@@ -123,7 +123,7 @@ class TestFilterTypes:
     
     def test_filter_types_count(self):
         """3 filter types: LP, HP, BP."""
-        assert len(FILTER_TYPES) == 3
+        assert len(FILTER_TYPES) == 6
     
     def test_filter_type_index_values(self):
         """Filter indices match SC convention."""
