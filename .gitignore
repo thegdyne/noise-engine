@@ -41,10 +41,16 @@ presets/*.json
 # SuperCollider
 supercollider/recordings/
 
-# Packs - core packs tracked, user packs ignored
+# Packs - track shipped, ignore user-created
+packs/*
+!packs/core/
+!packs/rlyeh/
+!packs/electric_shepherd/
+!packs/user/
 packs/user/*
 !packs/user/.gitkeep
-packs/pizza-pup/
+
+# Test artifacts
 test_inputs/
-packs/
+
 spatial_debug.json
