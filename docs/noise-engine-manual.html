@@ -730,15 +730,27 @@
                     </tr>
                     <tr>
                         <td><code>LP</code></td>
-                        <td>Low-pass — removes high frequencies, classic warm sound</td>
+                        <td>Low-pass (24dB) — removes high frequencies, classic warm sound</td>
                     </tr>
                     <tr>
                         <td><code>HP</code></td>
-                        <td>High-pass — removes low frequencies, thin/airy sound</td>
+                        <td>High-pass (24dB) — removes low frequencies, thin/airy sound</td>
                     </tr>
                     <tr>
                         <td><code>BP</code></td>
                         <td>Band-pass — isolates a frequency band, vocal/resonant</td>
+                    </tr>
+                    <tr>
+                        <td><code>NOT</code></td>
+                        <td>Notch — removes frequencies at cutoff, phase-y/flanging character</td>
+                    </tr>
+                    <tr>
+                        <td><code>LP2</code></td>
+                        <td>Low-pass (12dB) — gentler rolloff than LP, more harmonics pass through</td>
+                    </tr>
+                    <tr>
+                        <td><code>OFF</code></td>
+                        <td>Bypass — no filtering, full spectrum passes through</td>
                     </tr>
                 </table>
 
@@ -2065,7 +2077,7 @@
                 <ol>
                     <li><strong>Source</strong> — Oscillator, noise, or other sound generation</li>
                     <li><strong>ensure2ch</strong> — Force stereo (mono sources duplicated)</li>
-                    <li><strong>multiFilter</strong> — LP/HP/BP filtering with resonance</li>
+                    <li><strong>multiFilter</strong> — LP/HP/BP/NOT/LP2/OFF filtering</li>
                     <li><strong>envVCA</strong> — Amplitude envelope with clock/MIDI triggering</li>
                 </ol>
             </section>
