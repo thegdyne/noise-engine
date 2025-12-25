@@ -12,7 +12,6 @@ from imaginarium.naming import (
     validate_generator_id,
     make_synthdef_name,
     make_generator_ref,
-    parse_synthdef_name,
     parse_generator_ref,
     NamingError,
     RESERVED_PACK_IDS,
@@ -153,34 +152,6 @@ class TestMakeGeneratorRef:
         assert result.count(":") == 1
 
 
-class TestParseSynthdefName:
-    """Tests for parse_synthdef_name function"""
-    
-    def test_forge_prefix(self):
-        prefix, pack_id, gen_id = parse_synthdef_name("forge_abyssal_depths_pressure_wave")
-        assert prefix == "forge"
-        assert pack_id == "abyssal_depths"
-        assert gen_id == "pressure_wave"
-    
-    def test_imaginarium_prefix(self):
-        prefix, pack_id, gen_id = parse_synthdef_name("imaginarium_test_pack_simple_fm_000")
-        assert prefix == "imaginarium"
-        assert pack_id == "test_pack"
-        assert gen_id == "simple_fm_000"
-    
-    def test_invalid_no_prefix(self):
-        with pytest.raises(NamingError, match="Cannot parse"):
-            parse_synthdef_name("abyssal_depths_pressure_wave")
-    
-    def test_roundtrip(self):
-        original_pack = "test_pack"
-        original_gen = "my_generator"
-        synthdef = make_synthdef_name(original_pack, original_gen)
-        prefix, pack_id, gen_id = parse_synthdef_name(synthdef)
-        assert prefix == "forge"
-        assert pack_id == original_pack
-        assert gen_id == original_gen
-
 
 class TestParseGeneratorRef:
     """Tests for parse_generator_ref function"""
@@ -227,11 +198,6 @@ class TestIntegration:
         ref = make_generator_ref(pack_id, generator_id)
         assert ref == "abyssal_depths:pressure_wave"
         
-        # Parse back
-        prefix, parsed_pack, parsed_gen = parse_synthdef_name(synthdef)
-        assert prefix == "forge"
-        assert parsed_pack == pack_id
-        assert parsed_gen == generator_id
     
     def test_length_budget(self):
         """Verify length constraints work together"""

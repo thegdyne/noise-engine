@@ -174,29 +174,28 @@ def parse_generator_ref(ref: str) -> Tuple[str, str]:
     return pack_id, generator_id
 
 
-def parse_synthdef_name(synthdef: str) -> Tuple[str, str, str]:
+def make_generator_id_from_method(method_id: str, index: int) -> str:
     """
-    Parse synthdef name into (prefix, pack_id, generator_id).
-    
-    Handles:
-    - forge_{pack}_{gen}
-    - imaginarium_{pack}_{gen}
-    
-    Returns (prefix, pack_id, generator_id)
-    Raises NamingError if format is invalid.
+    Generate generator_id from method_id and slot index.
+
+    Args:
+        method_id: Method identifier like "fm/basic_fm"
+        index: Slot index (0-7)
+
+    Returns:
+        Valid generator_id like "basic_fm_0"
     """
-    # Try forge_ prefix
-    if synthdef.startswith("forge_"):
-        remainder = synthdef[6:]  # Remove "forge_"
-        parts = remainder.split("_", 1)
-        if len(parts) == 2:
-            return "forge", parts[0], parts[1]
-    
-    # Try imaginarium_ prefix
-    if synthdef.startswith("imaginarium_"):
-        remainder = synthdef[12:]  # Remove "imaginarium_"
-        parts = remainder.split("_", 1)
-        if len(parts) >= 2:
-            return "imaginarium", parts[0], "_".join(parts[1:])
-    
-    raise NamingError(f"Cannot parse synthdef name '{synthdef}'")
+    # Extract method name from "family/method_name"
+    if "/" in method_id:
+        method_name = method_id.split("/")[-1]
+    else:
+        method_name = method_id
+
+    # Build generator_id with index suffix (leave room for "_N")
+    base = sanitize_to_slug(method_name, max_length=MAX_GENERATOR_ID_LENGTH - 2)
+    generator_id = f"{base}_{index}"
+
+    validate_generator_id(generator_id)
+    return generator_id
+
+
