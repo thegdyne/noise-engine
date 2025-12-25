@@ -186,7 +186,7 @@ class TapeEchoSection(FXSection):
         self.spring_knob = self.add_knob("SPRING", 0, 100, 0)
         self.spring_knob.valueChanged.connect(lambda v: self.spring_changed.emit(v / 100.0))
         
-        self.verb_send_knob = self.add_knob("→VRB", 0, 100, 0)
+        self.verb_send_knob = self.add_knob("â†’VRB", 0, 100, 0)
         self.verb_send_knob.valueChanged.connect(lambda v: self.verb_send_changed.emit(v / 100.0))
         
         self.return_knob = self.add_knob("RTN", 0, 100, 50)
@@ -389,6 +389,14 @@ class FXWindow(QMainWindow):
         if self.osc_bridge and self.osc_bridge.client:
             self.osc_bridge.client.send_message(path, [value])
     
+    def set_osc_bridge(self, osc_bridge):
+        """Set OSC bridge for communication with SuperCollider."""
+        self.osc_bridge = osc_bridge
+        # Signals are already connected via lambdas that check osc_bridge
+        # Sync current state to SC
+        if osc_bridge:
+            self._sync_to_sc()
+    
     def _connect_signals(self):
         """Connect UI signals to OSC."""
         if not self.osc_bridge:
@@ -453,3 +461,174 @@ class FXWindow(QMainWindow):
             lambda v: self._send_osc(OSC_PATHS['fb_routing'], v))
         self.dual_filter.mix_changed.connect(
             lambda v: self._send_osc(OSC_PATHS['fb_mix'], v))
+
+    # â”€â”€ Preset State Methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def get_state(self):
+        """Collect current FX state from all sections.
+        
+        Returns:
+            FXState: Current state of all FX controls
+        """
+        from src.presets.preset_schema import FXState, HeatState, EchoState, ReverbState, DualFilterState
+        
+        return FXState(
+            heat=HeatState(
+                bypass=self.heat._bypassed,
+                circuit=self.heat.circuit_combo.currentIndex(),
+                drive=self.heat.drive_knob.value(),
+                mix=self.heat.mix_knob.value()
+            ),
+            echo=EchoState(
+                time=self.tape_echo.time_knob.value(),
+                feedback=self.tape_echo.feedback_knob.value(),
+                tone=self.tape_echo.tone_knob.value(),
+                wow=self.tape_echo.wow_knob.value(),
+                spring=self.tape_echo.spring_knob.value(),
+                verb_send=self.tape_echo.verb_send_knob.value(),
+                return_level=self.tape_echo.return_knob.value()
+            ),
+            reverb=ReverbState(
+                size=self.reverb.size_knob.value(),
+                decay=self.reverb.decay_knob.value(),
+                tone=self.reverb.tone_knob.value(),
+                return_level=self.reverb.return_knob.value()
+            ),
+            dual_filter=DualFilterState(
+                bypass=self.dual_filter._bypassed,
+                drive=self.dual_filter.drive_knob.value(),
+                freq1=self.dual_filter.freq1_knob.value(),
+                reso1=self.dual_filter.reso1_knob.value(),
+                mode1=self.dual_filter.mode1_combo.currentIndex(),
+                freq2=self.dual_filter.freq2_knob.value(),
+                reso2=self.dual_filter.reso2_knob.value(),
+                mode2=self.dual_filter.mode2_combo.currentIndex(),
+                harmonics=self.dual_filter.harmonics_combo.currentIndex(),
+                routing=self.dual_filter.routing_combo.currentIndex(),
+                mix=self.dual_filter.mix_knob.value()
+            )
+        )
+
+    def set_state(self, fx):
+        """Apply FX state to all sections.
+        
+        Args:
+            fx: FXState dataclass with heat, echo, reverb, dual_filter
+        """
+        # Block signals during state restore to avoid triggering OSC
+        self._block_all_signals(True)
+        
+        try:
+            # Heat
+            self.heat._bypassed = fx.heat.bypass
+            self.heat._update_bypass_style()
+            self.heat.circuit_combo.setCurrentIndex(fx.heat.circuit)
+            self.heat.drive_knob.setValue(fx.heat.drive)
+            self.heat.mix_knob.setValue(fx.heat.mix)
+            
+            # Echo
+            self.tape_echo.time_knob.setValue(fx.echo.time)
+            self.tape_echo.feedback_knob.setValue(fx.echo.feedback)
+            self.tape_echo.tone_knob.setValue(fx.echo.tone)
+            self.tape_echo.wow_knob.setValue(fx.echo.wow)
+            self.tape_echo.spring_knob.setValue(fx.echo.spring)
+            self.tape_echo.verb_send_knob.setValue(fx.echo.verb_send)
+            self.tape_echo.return_knob.setValue(fx.echo.return_level)
+            
+            # Reverb
+            self.reverb.size_knob.setValue(fx.reverb.size)
+            self.reverb.decay_knob.setValue(fx.reverb.decay)
+            self.reverb.tone_knob.setValue(fx.reverb.tone)
+            self.reverb.return_knob.setValue(fx.reverb.return_level)
+            
+            # Dual Filter
+            self.dual_filter._bypassed = fx.dual_filter.bypass
+            self.dual_filter._update_bypass_style()
+            self.dual_filter.drive_knob.setValue(fx.dual_filter.drive)
+            self.dual_filter.freq1_knob.setValue(fx.dual_filter.freq1)
+            self.dual_filter.reso1_knob.setValue(fx.dual_filter.reso1)
+            self.dual_filter.mode1_combo.setCurrentIndex(fx.dual_filter.mode1)
+            self.dual_filter.freq2_knob.setValue(fx.dual_filter.freq2)
+            self.dual_filter.reso2_knob.setValue(fx.dual_filter.reso2)
+            self.dual_filter.mode2_combo.setCurrentIndex(fx.dual_filter.mode2)
+            self.dual_filter.harmonics_combo.setCurrentIndex(fx.dual_filter.harmonics)
+            self.dual_filter.routing_combo.setCurrentIndex(fx.dual_filter.routing)
+            self.dual_filter.mix_knob.setValue(fx.dual_filter.mix)
+        finally:
+            self._block_all_signals(False)
+        
+        # Now send all values to SuperCollider
+        self._sync_to_sc()
+
+    def _block_all_signals(self, block):
+        """Block/unblock signals on all controls."""
+        # Heat
+        self.heat.circuit_combo.blockSignals(block)
+        self.heat.drive_knob.blockSignals(block)
+        self.heat.mix_knob.blockSignals(block)
+        
+        # Echo
+        self.tape_echo.time_knob.blockSignals(block)
+        self.tape_echo.feedback_knob.blockSignals(block)
+        self.tape_echo.tone_knob.blockSignals(block)
+        self.tape_echo.wow_knob.blockSignals(block)
+        self.tape_echo.spring_knob.blockSignals(block)
+        self.tape_echo.verb_send_knob.blockSignals(block)
+        self.tape_echo.return_knob.blockSignals(block)
+        
+        # Reverb
+        self.reverb.size_knob.blockSignals(block)
+        self.reverb.decay_knob.blockSignals(block)
+        self.reverb.tone_knob.blockSignals(block)
+        self.reverb.return_knob.blockSignals(block)
+        
+        # Dual Filter
+        self.dual_filter.drive_knob.blockSignals(block)
+        self.dual_filter.freq1_knob.blockSignals(block)
+        self.dual_filter.reso1_knob.blockSignals(block)
+        self.dual_filter.mode1_combo.blockSignals(block)
+        self.dual_filter.freq2_knob.blockSignals(block)
+        self.dual_filter.reso2_knob.blockSignals(block)
+        self.dual_filter.mode2_combo.blockSignals(block)
+        self.dual_filter.harmonics_combo.blockSignals(block)
+        self.dual_filter.routing_combo.blockSignals(block)
+        self.dual_filter.mix_knob.blockSignals(block)
+
+    def _sync_to_sc(self):
+        """Send all current FX values to SuperCollider."""
+        if not self.osc_bridge or not self.osc_bridge.client:
+            return
+        
+        # Heat
+        self._send_osc(OSC_PATHS['heat_bypass'], 1 if self.heat._bypassed else 0)
+        self._send_osc(OSC_PATHS['heat_circuit'], self.heat.circuit_combo.currentIndex())
+        self._send_osc(OSC_PATHS['heat_drive'], self.heat.drive_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['heat_mix'], self.heat.mix_knob.value() / 100.0)
+        
+        # Echo
+        self._send_osc(OSC_PATHS['echo_time'], self.tape_echo.time_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['echo_feedback'], self.tape_echo.feedback_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['echo_tone'], self.tape_echo.tone_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['echo_wow'], self.tape_echo.wow_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['echo_spring'], self.tape_echo.spring_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['echo_verb_send'], self.tape_echo.verb_send_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['master_echo_return'], self.tape_echo.return_knob.value() / 100.0)
+        
+        # Reverb
+        self._send_osc(OSC_PATHS['verb_size'], self.reverb.size_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['verb_decay'], self.reverb.decay_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['verb_tone'], self.reverb.tone_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['master_verb_return'], self.reverb.return_knob.value() / 100.0)
+        
+        # Dual Filter
+        self._send_osc(OSC_PATHS['fb_bypass'], 1 if self.dual_filter._bypassed else 0)
+        self._send_osc(OSC_PATHS['fb_drive'], self.dual_filter.drive_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['fb_freq1'], self.dual_filter.freq1_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['fb_reso1'], self.dual_filter.reso1_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['fb_mode1'], self.dual_filter.mode1_combo.currentIndex())
+        self._send_osc(OSC_PATHS['fb_freq2'], self.dual_filter.freq2_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['fb_reso2'], self.dual_filter.reso2_knob.value() / 100.0)
+        self._send_osc(OSC_PATHS['fb_mode2'], self.dual_filter.mode2_combo.currentIndex())
+        self._send_osc(OSC_PATHS['fb_harmonics'], self.dual_filter.harmonics_combo.currentIndex())
+        self._send_osc(OSC_PATHS['fb_routing'], self.dual_filter.routing_combo.currentIndex())
+        self._send_osc(OSC_PATHS['fb_mix'], self.dual_filter.mix_knob.value() / 100.0)

@@ -16,6 +16,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
 from src.gui.inline_fx_strip import InlineFXStrip
+from src.gui.fx_window import FXWindow
 from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
 from src.gui.pack_selector import PackSelector
@@ -32,7 +33,7 @@ from src.config import (
     BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
 )
 from src.utils.logger import logger
-from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState
+from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
 
 
 class MainFrame(QMainWindow):
@@ -65,6 +66,9 @@ class MainFrame(QMainWindow):
         # Mod matrix window (created on first open)
         self.mod_matrix_window = None
         
+        # FX window (created on first open)
+        self.fx_window = None
+        
         # Keyboard overlay (created on first open)
         self._keyboard_overlay = None
         
@@ -87,7 +91,7 @@ class MainFrame(QMainWindow):
         # Install event filter for keyboard overlay
         self.installEventFilter(self)
 
-    # ── Dirty State Tracking ────────────────────────────────────────────────
+    # â”€â”€ Dirty State Tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _mark_dirty(self):
         """Mark session as having unsaved changes."""
@@ -105,9 +109,9 @@ class MainFrame(QMainWindow):
         """Update window title with preset name and dirty indicator."""
         base = "Noise Engine"
         if self._current_preset_name:
-            base = f"Noise Engine — {self._current_preset_name}"
+            base = f"Noise Engine â€” {self._current_preset_name}"
         if self._dirty:
-            base = f"• {base}"
+            base = f"â€¢ {base}"
         self.setWindowTitle(base)
 
     def setup_ui(self):
@@ -245,6 +249,10 @@ class MainFrame(QMainWindow):
         # Shortcut: keyboard mode (Ctrl+K / Cmd+K)
         keyboard_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
         keyboard_shortcut.activated.connect(self._toggle_keyboard_mode)
+
+        # Shortcut: FX window (Ctrl+F / Cmd+F)
+        fx_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
+        fx_shortcut.activated.connect(self._open_fx_window)
 
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
@@ -404,8 +412,8 @@ class MainFrame(QMainWindow):
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
         
-        self.status_label = QLabel("● Disconnected")
-        self.status_label.setFixedWidth(130)  # FIXED: fits "● CONNECTION LOST"
+        self.status_label = QLabel("â— Disconnected")
+        self.status_label.setFixedWidth(130)  # FIXED: fits "â— CONNECTION LOST"
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
         
@@ -439,7 +447,7 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.console_btn)
         
         # Restart button
-        self.restart_btn = QPushButton("↻")
+        self.restart_btn = QPushButton("â†»")
         self.restart_btn.setToolTip("Restart Noise Engine")
         self.restart_btn.setFixedSize(30, 30)
         self.restart_btn.setStyleSheet(f"""
@@ -537,8 +545,10 @@ class MainFrame(QMainWindow):
                 self.master_section.set_osc_bridge(self.osc)
                 self.inline_fx.set_osc_bridge(self.osc)
                 self.inline_fx.sync_state()
+                if self.fx_window:
+                    self.fx_window.set_osc_bridge(self.osc)
                 self.connect_btn.setText("Disconnect")
-                self.status_label.setText("● Connected")
+                self.status_label.setText("â— Connected")
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
@@ -559,7 +569,7 @@ class MainFrame(QMainWindow):
                 # Send initial mod source state
                 self._sync_mod_sources()
             else:
-                self.status_label.setText("● Connection Failed")
+                self.status_label.setText("â— Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
             try:
@@ -581,16 +591,16 @@ class MainFrame(QMainWindow):
             self.osc_connected = False
             self._set_header_buttons_enabled(False)
             self.connect_btn.setText("Connect SuperCollider")
-            self.status_label.setText("● Disconnected")
+            self.status_label.setText("â— Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
     
     def on_connection_lost(self):
         """Handle connection lost - show prominent warning."""
         self.osc_connected = False
         self._set_header_buttons_enabled(False)
-        self.connect_btn.setText("⚠ RECONNECT")
+        self.connect_btn.setText("âš  RECONNECT")
         self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
-        self.status_label.setText("● CONNECTION LOST")
+        self.status_label.setText("â— CONNECTION LOST")
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: bold;")
     
     def on_connection_restored(self):
@@ -600,9 +610,11 @@ class MainFrame(QMainWindow):
         self.master_section.set_osc_bridge(self.osc)
         self.inline_fx.set_osc_bridge(self.osc)
         self.inline_fx.sync_state()
+        if self.fx_window:
+            self.fx_window.set_osc_bridge(self.osc)
         self.connect_btn.setText("Disconnect")
         self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
-        self.status_label.setText("● Connected")
+        self.status_label.setText("â— Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         
         # Resend current state
@@ -862,7 +874,7 @@ class MainFrame(QMainWindow):
         
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""
-        # Calculate slot from bus index: bus 0-3 → slot 1, bus 4-7 → slot 2, etc.
+        # Calculate slot from bus index: bus 0-3 â†’ slot 1, bus 4-7 â†’ slot 2, etc.
         slot_id = (bus_idx // 4) + 1
         output_idx = bus_idx % 4
         
@@ -911,7 +923,7 @@ class MainFrame(QMainWindow):
                 [conn.source_bus, conn.target_slot, conn.target_param,
                  conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
             )
-            logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} "
+            logger.debug(f"Mod route added: bus {conn.source_bus} â†’ slot {conn.target_slot}.{conn.target_param} "
                         f"(d={conn.depth}, a={conn.amount}, o={conn.offset}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
         
         # Update slider visualization
@@ -925,7 +937,7 @@ class MainFrame(QMainWindow):
                 OSC_PATHS['mod_route_remove'],
                 [source_bus, target_slot, target_param]
             )
-            logger.debug(f"Mod route removed: bus {source_bus} → slot {target_slot}.{target_param}", component="MOD")
+            logger.debug(f"Mod route removed: bus {source_bus} â†’ slot {target_slot}.{target_param}", component="MOD")
         
         # Update slider visualization (may clear if no more routes)
         self._update_slider_mod_range(target_slot, target_param)
@@ -1122,6 +1134,21 @@ class MainFrame(QMainWindow):
             self.mod_matrix_window.raise_()
             self.mod_matrix_window.activateWindow()
             logger.info("Mod matrix window opened", component="MOD")
+
+    def _open_fx_window(self):
+        """Toggle the FX controls window (Cmd+F)."""
+        if self.fx_window is None:
+            self.fx_window = FXWindow(self.osc if self.osc_connected else None, parent=self)
+        
+        # Toggle visibility
+        if self.fx_window.isVisible():
+            self.fx_window.hide()
+            logger.info("FX window closed", component="FX")
+        else:
+            self.fx_window.show()
+            self.fx_window.raise_()
+            self.fx_window.activateWindow()
+            logger.info("FX window opened", component="FX")
 
     def _clear_all_mod_routes(self):
         """Clear all modulation routes."""
@@ -1400,13 +1427,13 @@ class MainFrame(QMainWindow):
     def on_audio_device_changing(self, device_name):
         """Handle notification that SC is changing audio device."""
         logger.info(f"Audio device changing to: {device_name}...", component="OSC")
-        self.status_label.setText("● Switching...")
+        self.status_label.setText("â— Switching...")
         self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
     
     def on_audio_device_ready(self, device_name):
         """Handle notification that SC finished changing device."""
         logger.info(f"Audio device ready: {device_name}", component="OSC")
-        self.status_label.setText("● Connected")
+        self.status_label.setText("â— Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         self.audio_selector.set_enabled(True)
         # Re-query to confirm
@@ -1626,6 +1653,9 @@ class MainFrame(QMainWindow):
         # Phase 4: Mod routing
         mod_routing = self.mod_routing.to_dict()
         
+        # Phase 5: FX state
+        fx = self.fx_window.get_state() if self.fx_window else FXState()
+        
         # Get current pack
         current_pack = get_current_pack()
         
@@ -1637,6 +1667,7 @@ class MainFrame(QMainWindow):
             master=master,
             mod_sources=mod_sources,
             mod_routing=mod_routing,
+            fx=fx,
         )
 
         # Get filename from user
@@ -1732,6 +1763,10 @@ class MainFrame(QMainWindow):
             # Update mod matrix window if open
             if self.mod_matrix_window:
                 self.mod_matrix_window.sync_from_state()
+        
+        # Phase 5: FX state
+        if self.fx_window:
+            self.fx_window.set_state(state.fx)
 
     def _init_preset(self):
         """Reset to default empty state (Cmd+N / Ctrl+N)."""
@@ -1748,6 +1783,10 @@ class MainFrame(QMainWindow):
         if self.mod_matrix_window:
             self.mod_matrix_window.sync_from_state()
 
+        # Reset FX to defaults
+        if self.fx_window:
+            self.fx_window.set_state(FXState())
+
         # Reset pack selector to Core (empty string = Core)
         self.pack_selector.set_pack("")
 
@@ -1759,7 +1798,7 @@ class MainFrame(QMainWindow):
 
         logger.info("Preset initialized to defaults", component="PRESET")
 
-    # ── Keyboard Mode ────────────────────────────────────────────────────────
+    # â”€â”€ Keyboard Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def eventFilter(self, obj, event):
         """Forward key events to keyboard overlay when visible."""
