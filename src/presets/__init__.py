@@ -3,6 +3,7 @@ Presets module - save/load patch state.
 """
 
 from .preset_schema import (
+    FXState,
     MasterState,
     ModSourcesState,
     ModSlotState,
@@ -29,6 +30,7 @@ __all__ = [
     "MasterState",
     "ModSourcesState",
     "ModSlotState",
+    "FXState",
     "validate_preset",
     "PRESET_VERSION",
     "PresetManager",

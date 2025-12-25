@@ -378,7 +378,7 @@ python tools/forge_audio_validate.py packs/{pack_id}/ --render --env-mode clocke
 python tools/forge_audio_validate.py packs/{pack_id}/ --render -v
 ```
 
-### Safety Gates (from Imaginarium Ã‚Â§9)
+### Safety Gates (from Imaginarium 9)
 | Gate | Threshold | Catches |
 |------|-----------|---------|
 | Silence | RMS > -40 dB | Dead/broken generators |
@@ -392,28 +392,28 @@ Generators with high crest factor (peak - RMS > 15 dB) are detected as **impulsi
 - RMS: -55 dB (vs -40 dB)
 - Active frames: 5% (vs 30%)
 
-Impulsive generators show `~` suffix in output: `Ã¢Å“â€œ PASS~`
+Impulsive generators show `~` suffix in output: ` PASS~`
 
 ### Example Output
 ```
 nerve_glow: Rendering 8 generators (drone + clocked)...
 
 Generator         Peak     RMS  Crest  Trim Adj  Active Status
-Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-nervespk         -22.6  -45.2   23dB  +19.6 dB     31% Ã¢Å“â€œ PASS~
-myofiber         -19.8  -26.7    7dB   +8.7 dB    100% Ã¢Å“â€œ PASS
-cartglow         -23.5  -45.2   22dB  +20.5 dB     22% Ã¢Å“â€œ PASS~
-...
-Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-Ã¢Å“â€œ All 8 generators passed (3 impulsive~)
 
-Ã¢Å¡Â  Trim recommendations (adjust output_trim_db):
+nervespk         -22.6  -45.2   23dB  +19.6 dB     31%  PASS~
+myofiber         -19.8  -26.7    7dB   +8.7 dB    100%  PASS
+cartglow         -23.5  -45.2   22dB  +20.5 dB     22%  PASS~
+...
+
+ All 8 generators passed (3 impulsive~)
+
+ Trim recommendations (adjust output_trim_db):
   nervespk: +19.6 dB
   cartglow: +20.5 dB
 ```
 
 ### Trim Recommendations
-The tool reports loudness vs target (-18 dBFS RMS). Large adjustments are informational Ã¢â‚¬â€œ generators may be designed quiet or the NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's sweet spot.
+The tool reports loudness vs target (-18 dBFS RMS). Large adjustments are informational —œ generators may be designed quiet or the NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's sweet spot.
 
 ### Requirements
 - SuperCollider installed (sclang in PATH or standard location)
@@ -489,7 +489,7 @@ sig = ~multiFilter.(sig, filterType, filterFreq, rq);
 ```
 
 ### Audio validation: Large trim recommendations
-**Informational only** Ã¢â‚¬â€œ not failures. NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's intended use. Verify perceived loudness in-app before adjusting `output_trim_db`.
+**Informational only** —œ not failures. NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's intended use. Verify perceived loudness in-app before adjusting `output_trim_db`.
 
 ---
 

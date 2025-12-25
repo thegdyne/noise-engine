@@ -109,9 +109,9 @@ class MainFrame(QMainWindow):
         """Update window title with preset name and dirty indicator."""
         base = "Noise Engine"
         if self._current_preset_name:
-            base = f"Noise Engine â€” {self._current_preset_name}"
+            base = f"Noise Engine - {self._current_preset_name}"
         if self._dirty:
-            base = f"â€¢ {base}"
+            base = f"• {base}"
         self.setWindowTitle(base)
 
     def setup_ui(self):
