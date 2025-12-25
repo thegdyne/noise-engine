@@ -1,0 +1,10 @@
+{
+  "pack_format": 1,
+  "pack_id": "glacialis",
+  "name": "Glacialis",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Ice caves and aurora borealis. Crystalline resonances, frozen textures, and slowly shifting spectral light.",
+  "enabled": true,
+  "generators": ["deepice", "aurora", "icebell", "shatter", "cavebrth", "glaclead", "icedust", "borealis"]
+}

@@ -1,0 +1,15 @@
+{
+  "generator_id": "aurora",
+  "name": "AURORA",
+  "synthdef": "forge_glacialis_aurora",
+  "custom_params": [
+    {"key": "bands", "label": "BND", "tooltip": "Spectral band density", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drift", "label": "DFT", "tooltip": "Phase drift rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "glow", "label": "GLO", "tooltip": "Brightness/harmonic rolloff", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shift", "label": "SHF", "tooltip": "Spectral shift amount", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "veil", "label": "VEL", "tooltip": "Diffusion/chorus depth", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

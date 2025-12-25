@@ -1,0 +1,15 @@
+{
+  "generator_id": "cavebrth",
+  "name": "CAVEBRTH",
+  "synthdef": "forge_glacialis_cavebrth",
+  "custom_params": [
+    {"key": "blow", "label": "BLW", "tooltip": "Breath intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tube", "label": "TUB", "tooltip": "Tube resonance tracking", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "turbulence", "label": "TRB", "tooltip": "Air turbulence", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "voice", "label": "VOX", "tooltip": "Vocal formant presence", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cave", "label": "CAV", "tooltip": "Cave resonance depth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": 1.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
