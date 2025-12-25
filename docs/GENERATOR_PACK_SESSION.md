@@ -31,6 +31,7 @@ SynthDef(\forge_{pack}_{name}, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // DSP here...
 
     // MANDATORY output chain (this order):
+    sig = LeakDC.ar(sig);  // Prevent DC offset (always include)
     sig = ~stereoSpread.(sig, rate, width);  // optional
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
@@ -77,6 +78,88 @@ packs/{pack_id}/
     "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
  ], "output_trim_db": -6.0, "midi_retrig": false, "pitch_target": null}
 ```
+
+### Batch Processing with CSV Output
+```bash
+# Output only failures in CSV format (for scripting)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render --fail-csv
+
+# Run all Forge packs, collect failures
+for pack in packs/*/; do
+  if grep -q '"author": "CQD_Forge"' "$pack/manifest.json" 2>/dev/null; then
+    python tools/forge_audio_validate.py "$pack" --render --fail-csv
+  fi
+done
+```
+
+### Debugging Timeouts
+When a generator times out (sclang hangs), preserve the work directory to inspect the generated NRT script:
+```bash
+FORGE_VALIDATE_KEEP_WORKDIR=1 python tools/forge_audio_validate.py packs/{pack_id}/ --render -v
+```
+
+This prints the temp directory path. Then manually run the failing script:
+```bash
+cat /var/folders/.../forge_validate_xxx/GENERATOR_drone_render.scd
+sclang /var/folders/.../forge_validate_xxx/GENERATOR_drone_render.scd
+```
+
+Common timeout causes:
+- SC syntax error → sclang waits for input
+- Infinite loop in DSP (e.g., `Mix.fill` with runtime UGen count)
+- Missing variable declaration
+- 
+## pitch_target Field
+
+**Type:** `null` or `int` (0-4)
+
+| Value | Meaning |
+|-------|---------|
+| `null` | No pitch target — generator uses standard `freqBus` for pitch |
+| `0-4` | Index of custom param that should receive pitch CV (for keyboard control) |
+
+**WRONG:**
+```json
+"pitch_target": "frequency"    // ❌ String not allowed
+"pitch_target": "custom_0"     // ❌ String not allowed
+```
+
+**CORRECT:**
+```json
+"pitch_target": null           // ✓ Standard pitch from freqBus
+"pitch_target": 0              // ✓ P1 receives pitch
+"pitch_target": 2              // ✓ P3 receives pitch
+```
+
+## pitch_target Rules
+
+**Type:** `null` or `int` (0-4) — **NEVER a string**
+
+| Value | Meaning |
+|-------|---------|
+| `null` | Standard pitch from freqBus (most generators) |
+| `0` | P1 receives pitch CV |
+| `1` | P2 receives pitch CV |
+| `2` | P3 receives pitch CV |
+| `3` | P4 receives pitch CV |
+| `4` | P5 receives pitch CV |
+
+**WRONG — will fail tests:**
+```json
+"pitch_target": "frequency"    // ❌ String
+"pitch_target": "drone"        // ❌ String  
+"pitch_target": "rate"         // ❌ String
+```
+
+**CORRECT:**
+```json
+"pitch_target": null           // ✓ Most generators
+"pitch_target": 0              // ✓ Only if P1 needs pitch CV
+```
+
+Use `null` for 99% of generators. Only use an integer if a custom param specifically controls pitch and needs keyboard/MIDI note input.
+
+Most generators should use `"pitch_target": null` — only use an integer if one of your P1-P5 params specifically needs to receive pitch CV instead of the standard frequency bus.
 
 ## Role Balance
 Each pack needs: 1-2 **bed** (foundation), 1-2 **accent** (hits/stabs), 1-2 **foreground** (melodic), 1-2 **motion** (movement/texture)
@@ -242,6 +325,51 @@ sig = SinOsc.ar(freq);
 extra = 0.5;
 ```
 
+### 5. DC Offset Sources -- use LeakDC.ar()
+```supercollider
+// Common DC offset sources:
+// - Impulse.ar, Dust.ar (unipolar by default)
+// - LFNoise0/1/2 used additively (bipolar but can drift)
+// - Asymmetric waveshaping/folding
+// - Unbalanced ring modulation
+// - Resonant filters with high feedback
+
+// ALWAYS include LeakDC before output chain:
+sig = LeakDC.ar(sig);
+sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+sig = ~envVCA.(...);
+```
+
+### Audio validation: CLIPPING
+**Cause:** Peak >= 0.999 (digital overs).
+
+**Fix options:**
+1. Reduce `output_trim_db` in JSON by 6-12dB
+2. Add limiter in SynthDef before output:
+```supercollider
+sig = Limiter.ar(sig, 0.95);
+sig = ~ensure2ch.(sig);
+```
+
+### Audio validation: SILENCE (both modes)
+**Cause:** Generator output too quiet at test defaults.
+
+**Fix:** Boost gain in SynthDef before filter:
+```supercollider
+sig = sig * 4;  // +12dB boost
+sig = LeakDC.ar(sig);
+sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+```
+
+Note: `output_trim_db` in JSON only affects live playback, not NRT validation.
+
+### Audio validation: RENDER_FAILED (timeout)
+**Cause:** SynthDef takes >30s to render. Usually:
+- Infinite loop in DSP
+- Runtime-dependent UGen count (use fixed max with amplitude control)
+- Expensive operations (too many voices in `Mix.fill`)
+
+**Debug:** Check SC console for errors, simplify DSP, ensure UGen graph is compile-time determinable.
 ### General Rule
 The UGen graph must be **compile-time determinable**. You cannot use runtime values (UGens, bus reads) to control:
 - Number of oscillators/filters
@@ -470,6 +598,30 @@ for manifest_path in Path("packs").glob("*/manifest.json"):
 print("Done!")
 EOF
 ```
+## Audio Validation Expectations
+
+Generators are tested in two modes:
+- **drone** - sustained gate (for pads, drones, textures)
+- **clocked** - rhythmic triggers at 3Hz (for percussive, plucks, hits)
+
+| Generator Type | Expected Pass Mode | `midi_retrig` |
+|----------------|-------------------|---------------|
+| Pad/Drone | drone | `false` |
+| Percussive/Hit | clocked | `true` |
+| Hybrid | both | depends |
+
+**Common failures:**
+
+| Status | Cause | Fix |
+|--------|-------|-----|
+| `sparse` | Generator needs triggers, tested in drone | Set `midi_retrig: true`, ensure it passes clocked mode |
+| `silence` | No audio output | Check DSP, ensure oscillators are running |
+| `runaway` | Level grows >6dB over duration | Add `Limiter.ar(sig, 0.95)` before output, or reduce feedback/resonance |
+| `render_failed` | SC compilation error | Fix SynthDef syntax |
+| `clipping` | Peak >= 0.999 | Add `Limiter.ar(sig, 0.95)` before output, or reduce `output_trim_db` by 6-12dB |
+| `dc_offset` | Asymmetric waveform | Add `LeakDC.ar(sig)` before `~multiFilter` |
+| `render_failed` | SC timeout (30s) | Usually infinite loop or expensive operation - check `Mix.fill`, `LocalBuf`, runtime UGen counts |
+If a generator is **intentionally percussive**, `sparse` in drone mode is acceptable as long as it passes in clocked mode. The validator uses `--env-mode both` by default and passes if either mode works.
 
 ### Validation warnings about seed/RandSeed
 **Expected** for CQD_Forge packs. These are Imaginarium determinism requirements -- hand-crafted packs don't need them unless using random UGens.
@@ -487,6 +639,20 @@ EOF
 sig = LeakDC.ar(sig);  // Remove DC offset
 sig = ~multiFilter.(sig, filterType, filterFreq, rq);
 ```
+
+**Borderline runaway (<1dB over threshold):**
+Generators with slight level growth (6.0-7.0dB) may be acceptable. Common causes:
+- Filter resonance building up
+- Feedback in delays/comb filters
+- LFO modulating amplitude
+
+Quick fix - add limiter before `~ensure2ch`:
+```supercollider
+sig = Limiter.ar(sig, 0.95);  // Prevent runaway
+sig = ~ensure2ch.(sig);
+```
+
+
 
 ### Audio validation: Large trim recommendations
 **Informational only** —œ not failures. NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's intended use. Verify perceived loudness in-app before adjusting `output_trim_db`.
