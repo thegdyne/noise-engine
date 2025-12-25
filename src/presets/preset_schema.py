@@ -469,9 +469,11 @@ class FXState:
             "reverb": self.reverb.to_dict(),
             "dual_filter": self.dual_filter.to_dict(),
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "FXState":
+        if not isinstance(data, dict):
+            data = {}
         return cls(
             heat=HeatState.from_dict(data.get("heat", {})),
             echo=EchoState.from_dict(data.get("echo", {})),
