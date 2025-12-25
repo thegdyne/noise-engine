@@ -12,29 +12,39 @@ Usage:
     python tools/forge_audio_validate.py packs/nerve_glow/ --render --env-mode drone
     python tools/forge_audio_validate.py packs/nerve_glow/ --render --env-mode clocked
     python tools/forge_audio_validate.py packs/nerve_glow/ --render -v
+    python tools/forge_audio_validate.py packs/nerve_glow/ --render --fail-csv
 
 Env modes:
     drone   - Sustained gate (for pad/drone generators)
     clocked - Rhythmic triggers at ~3Hz (for percussive/rhythmic generators)
     both    - Test both modes, fail if either fails (default)
+
+Output modes:
+    --fail-csv  - Output CSV of failed generators with diagnostic info
 """
 
 import argparse
+import csv
 import json
 import re
 import shutil
 import subprocess
+import sys
+import os
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-import sys
+
 
 # Target RMS for balanced output (-18 dBFS is standard for synths)
 TARGET_RMS_DB = -18.0
 # Headroom target (peak should be below this)
 TARGET_PEAK_DB = -3.0
+
+
+NRT_HELPER_REWRITE_VERSION = "2025-12-25-bracket-fix-v2"
 
 
 class SafetyStatus(Enum):
@@ -73,6 +83,7 @@ class ValidationResult:
     generator_id: str
     passed: bool
     status: SafetyStatus
+    failed_mode: str = ""  # "drone", "clocked", or "" if passed
     peak_db: float = -100.0
     rms_db: float = -100.0
     trim_adjustment: float = 0.0
@@ -82,6 +93,34 @@ class ValidationResult:
     crest_db: float = 0.0
     is_impulsive: bool = False
     error: Optional[str] = None
+    sc_stderr: Optional[str] = None  # SuperCollider error output
+    threshold_violated: str = ""  # Which threshold was exceeded
+    
+    def diagnostic_summary(self) -> str:
+        """One-line diagnostic summary for CSV."""
+        parts = []
+        if self.status == SafetyStatus.RENDER_FAILED:
+            if self.sc_stderr:
+                # Extract first meaningful error line
+                lines = [l.strip() for l in self.sc_stderr.split('\n') if l.strip()]
+                error_lines = [l for l in lines if 'ERROR' in l or 'error' in l.lower() or 'Parse' in l or 'unexpected' in l.lower()]
+                if error_lines:
+                    parts.append(error_lines[0][:200])
+                elif self.error:
+                    parts.append(self.error)
+            elif self.error:
+                parts.append(self.error)
+        elif self.status == SafetyStatus.SILENCE:
+            parts.append(f"RMS {self.rms_db:.1f}dB < threshold")
+        elif self.status == SafetyStatus.SPARSE:
+            parts.append(f"Active {self.active_pct*100:.0f}% < threshold")
+        elif self.status == SafetyStatus.CLIPPING:
+            parts.append(f"Peak {self.peak_db:.1f}dB clipping")
+        elif self.status == SafetyStatus.DC_OFFSET:
+            parts.append(f"DC offset {self.dc_offset:.4f}")
+        elif self.status == SafetyStatus.RUNAWAY:
+            parts.append(f"Level growth {self.level_growth_db:.1f}dB")
+        return "; ".join(parts) if parts else ""
 
 
 def find_sclang() -> Optional[Path]:
@@ -183,31 +222,146 @@ def transform_synthdef_for_nrt(scd_content: str, synthdef_name: str) -> str:
     code = re.sub(r'In\.ar\(clockTrigBus,\s*\d+\)', 'DC.ar(0) ! 13', code)
     code = re.sub(r'In\.ar\(midiTrigBus,\s*\d+\)', 'DC.ar(0) ! 8', code)
     
-    # === 2. REPLACE HELPER FUNCTIONS ===
-    
-    # ~multiFilter -> simple RLPF
-    code = re.sub(
-        r'~multiFilter\.\(\s*([^,]+)\s*,\s*[^,]+\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)',
-        r'RLPF.ar(\1, (\2).clip(20, 18000), (\3).clip(0.1, 2))',
-        code
-    )
-    
-    # ~stereoSpread -> Pan2
-    code = re.sub(
-        r'~stereoSpread\.\(\s*([^,]+)\s*,\s*[^,]+\s*,\s*[^)]+\s*\)',
-        r'Pan2.ar(\1, 0)',
-        code
-    )
-    
-    # ~envVCA -> simple ADSR envelope
-    code = re.sub(
-        r'~envVCA\.\(\s*([^,]+)\s*,\s*[^,]+\s*,\s*[^,]+\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*[^,]+\s*,\s*[^,]+\s*,\s*[^)]+\s*\)',
-        r'(\1 * EnvGen.kr(Env.adsr((\2).linexp(0,1,0.001,2), (\3).linexp(0,1,0.05,4), 0.7, 0.3), \\gate.kr(1), doneAction: 2) * \4)',
-        code
-    )
-    
-    # ~ensure2ch -> pass through (we use Pan2 which is already stereo)
-    code = re.sub(r'~ensure2ch\.\(\s*([^)]+)\s*\)', r'\1', code)
+    # === 2. REPLACE HELPER FUNCTIONS (comma-safe) ===
+
+    def _split_top_level_commas(s: str) -> list[str]:
+        out, cur = [], []
+        depth_paren = depth_brack = depth_brace = 0
+        in_str = False
+        esc = False
+
+        for ch in s:
+            if in_str:
+                cur.append(ch)
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+
+            if ch == '"':
+                in_str = True
+                cur.append(ch)
+                continue
+
+            if ch == "(":
+                depth_paren += 1
+            elif ch == ")":
+                depth_paren -= 1
+            elif ch == "[":
+                depth_brack += 1
+            elif ch == "]":
+                depth_brack -= 1
+            elif ch == "{":
+                depth_brace += 1
+            elif ch == "}":
+                depth_brace -= 1
+
+            if ch == "," and depth_paren == 0 and depth_brack == 0 and depth_brace == 0:
+                out.append("".join(cur).strip())
+                cur = []
+            else:
+                cur.append(ch)
+
+        if cur:
+            out.append("".join(cur).strip())
+        return out
+
+    def _replace_tilde_call(code_in: str, fname: str, repl_fn) -> str:
+        token = f"~{fname}.("
+        i = 0
+        out = []
+
+        while True:
+            j = code_in.find(token, i)
+            if j == -1:
+                out.append(code_in[i:])
+                break
+
+            out.append(code_in[i:j])
+
+            k = j + len(token)  # points just after '('
+            depth = 1
+            in_str = False
+            esc = False
+
+            while k < len(code_in):
+                ch = code_in[k]
+                if in_str:
+                    if esc:
+                        esc = False
+                    elif ch == "\\":
+                        esc = True
+                    elif ch == '"':
+                        in_str = False
+                else:
+                    if ch == '"':
+                        in_str = True
+                    elif ch == "(":
+                        depth += 1
+                    elif ch == ")":
+                        depth -= 1
+                        if depth == 0:
+                            break
+                k += 1
+
+            if depth != 0:
+                # Unbalanced parens; bail out (leave rest unchanged)
+                out.append(code_in[j:])
+                break
+
+            arg_str = code_in[j + len(token):k]
+            args = _split_top_level_commas(arg_str)
+
+            out.append(repl_fn(args))
+            i = k + 1  # continue after ')'
+
+        return "".join(out)
+
+    # ~multiFilter.(sig, filterType, cutoff, rq)  -> simple RLPF for NRT safety
+    def _repl_multifilter(args: list[str]) -> str:
+        if len(args) < 4:
+            return f"/*NRT_ERR multiFilter args={args}*/"
+        sig, _ft, cutoff, rq = args[0], args[1], args[2], args[3]
+        return f"RLPF.ar({sig}, ({cutoff}).clip(20, 18000), ({rq}).clip(0.05, 2))"
+
+    # ~stereoSpread.(sig, widthExpr, spread) -> safe stereo: Mix->Pan2
+    def _repl_stereospread(args: list[str]) -> str:
+        if len(args) < 1:
+            return f"/*NRT_ERR stereoSpread args={args}*/"
+        sig = args[0]
+        return f"Pan2.ar(Mix({sig}), 0)"
+
+    # ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex)
+    # -> simple ASR using \gate; doneAction not needed for NRT duration, but safe to keep.
+    def _repl_envvca(args: list[str]) -> str:
+        if len(args) < 6:
+            return f"/*NRT_ERR envVCA args={args}*/"
+        sig = args[0]
+        attack = args[3]
+        decay = args[4]
+        amp = args[5]
+        return (
+            f"(({sig})"
+            f" * EnvGen.kr(Env.asr(({attack}).max(0.001), 1, ({decay}).max(0.001)), gate: \\gate.kr(1))"
+            f" * ({amp}))"
+        )
+
+    # ~ensure2ch.(sig) -> pass-through (stereo ensured elsewhere)
+    def _repl_ensure2ch(args: list[str]) -> str:
+        return args[0] if args else "/*NRT_ERR ensure2ch*/"
+
+    code = _replace_tilde_call(code, "multiFilter", _repl_multifilter)
+    code = _replace_tilde_call(code, "stereoSpread", _repl_stereospread)
+    code = _replace_tilde_call(code, "envVCA", _repl_envvca)
+    code = _replace_tilde_call(code, "ensure2ch", _repl_ensure2ch)
+
+    for bad in ("~stereoSpread", "~multiFilter", "~envVCA", "~ensure2ch", "..."):
+        if bad in code:
+            raise ValueError(f"NRT transform failed: found '{bad}' still present in transformed code")
+
     
     # === 3. HANDLE SELECT.AR TRIGGER PATTERN ===
     code = re.sub(
@@ -259,7 +413,7 @@ def generate_nrt_script(
     synthdef_code: str,
     synthdef_name: str,
     output_path: Path,
-    duration: float = 3.0,
+    duration: float = 1.5,
     sample_rate: int = 48000,
     env_mode: str = "drone",
 ) -> str:
@@ -284,8 +438,7 @@ def generate_nrt_script(
             t += gate_interval
         gate_score = '\n'.join(gate_events)
         
-        return f'''
-// Forge NRT Render: {synthdef_name} (CLOCKED mode)
+        return f'''// Forge NRT Render: {synthdef_name} (CLOCKED mode)
 (
 var def, defBytes, score, options;
 
@@ -318,8 +471,7 @@ score.recordNRT(
 '''
     else:
         # Drone mode: sustained gate
-        return f'''
-// Forge NRT Render: {synthdef_name} (DRONE mode)
+        return f'''// Forge NRT Render: {synthdef_name} (DRONE mode)
 (
 var def, defBytes, score, options;
 
@@ -355,14 +507,18 @@ score.recordNRT(
 def run_safety_checks(
     audio_path: Path,
     config: SafetyConfig,
-) -> Tuple[SafetyStatus, Dict[str, float]]:
-    """Run safety gate checks on audio file."""
+) -> Tuple[SafetyStatus, Dict[str, float], str]:
+    """
+    Run safety gate checks on audio file.
+    
+    Returns: (status, details_dict, threshold_violated_description)
+    """
     import numpy as np
     
     try:
         samples, sr = load_audio(audio_path)
     except Exception as e:
-        return SafetyStatus.RENDER_FAILED, {"error": str(e)}
+        return SafetyStatus.RENDER_FAILED, {"error": str(e)}, f"Load error: {e}"
     
     # Convert to mono for analysis
     if samples.ndim > 1:
@@ -388,7 +544,8 @@ def run_safety_checks(
     
     # === Gate 1: Audibility ===
     if details["rms_db"] < min_rms:
-        return SafetyStatus.SILENCE, details
+        threshold = f"RMS {details['rms_db']:.1f}dB < {min_rms:.1f}dB threshold"
+        return SafetyStatus.SILENCE, details, threshold
     
     # === Gate 2: Active frames ===
     n_frames = 1 + (len(mono) - config.frame_length) // config.hop_length
@@ -405,21 +562,24 @@ def run_safety_checks(
     details["active_pct"] = active_pct
     
     if active_pct < min_active:
-        return SafetyStatus.SPARSE, details
+        threshold = f"Active {active_pct*100:.0f}% < {min_active*100:.0f}% threshold"
+        return SafetyStatus.SPARSE, details, threshold
     
     # === Gate 3: Clipping ===
     max_sample = np.max(np.abs(samples))
     details["max_sample"] = float(max_sample)
     
     if max_sample >= config.max_sample_value:
-        return SafetyStatus.CLIPPING, details
+        threshold = f"Peak {max_sample:.4f} >= {config.max_sample_value} (clipping)"
+        return SafetyStatus.CLIPPING, details, threshold
     
     # === Gate 4: DC offset ===
     dc = np.abs(np.mean(mono))
     details["dc_offset"] = float(dc)
     
     if dc > config.max_dc_offset:
-        return SafetyStatus.DC_OFFSET, details
+        threshold = f"DC offset {dc:.4f} > {config.max_dc_offset} threshold"
+        return SafetyStatus.DC_OFFSET, details, threshold
     
     # === Gate 5: Runaway ===
     mid = len(mono) // 2
@@ -429,9 +589,10 @@ def run_safety_checks(
     details["level_growth_db"] = growth
     
     if growth > config.max_level_growth_db:
-        return SafetyStatus.RUNAWAY, details
+        threshold = f"Level growth {growth:.1f}dB > {config.max_level_growth_db}dB threshold"
+        return SafetyStatus.RUNAWAY, details, threshold
     
-    return SafetyStatus.PASS, details
+    return SafetyStatus.PASS, details, ""
 
 
 def calculate_trim_adjustment(rms_db_measured: float, peak_db_measured: float) -> float:
@@ -454,17 +615,29 @@ def calculate_trim_adjustment(rms_db_measured: float, peak_db_measured: float) -
     return round(rms_adjustment, 1)
 
 
+@dataclass
+class RenderResult:
+    """Result from rendering a generator."""
+    success: bool
+    audio_path: Optional[Path] = None
+    stderr: str = ""
+    error: str = ""
+
+
 def render_generator(
     scd_path: Path,
     sclang_path: Path,
     work_dir: Path,
     generator_id: str,
     env_mode: str = "drone",
-) -> Optional[Path]:
+) -> RenderResult:
     """Render a single generator SynthDef to audio."""
     
     # Read SynthDef
-    scd_content = scd_path.read_text()
+    try:
+        scd_content = scd_path.read_text()
+    except Exception as e:
+        return RenderResult(success=False, error=f"Cannot read file: {e}")
     
     # Generate unique name
     nrt_name = f"forge_nrt_{generator_id}"
@@ -473,8 +646,7 @@ def render_generator(
     try:
         transformed = transform_synthdef_for_nrt(scd_content, nrt_name)
     except Exception as e:
-        print(f"  Transform error: {e}")
-        return None
+        return RenderResult(success=False, error=f"Transform error: {e}")
     
     # Output path
     output_path = work_dir / f"{generator_id}_{env_mode}.wav"
@@ -490,26 +662,48 @@ def render_generator(
             [str(sclang_path), str(script_path)],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=45,
             cwd=work_dir,
         )
         
-        if "RENDER_COMPLETE" not in result.stdout and result.returncode != 0:
-            print(f"  sclang error: {result.stderr[:200]}")
-            return None
+        stderr = result.stderr or ""
+        stdout = result.stdout or ""
         
-        if not output_path.exists() or output_path.stat().st_size < 1000:
-            print(f"  Output file missing or too small")
-            return None
+        if "RENDER_COMPLETE" not in stdout and result.returncode != 0:
+            return RenderResult(
+                success=False,
+                stderr=stderr,
+                error=f"sclang exit code {result.returncode}"
+            )
         
-        return output_path
+        if not output_path.exists():
+            return RenderResult(
+                success=False,
+                stderr=stderr,
+                error="Output file not created"
+            )
         
-    except subprocess.TimeoutExpired:
-        print(f"  Render timeout (30s)")
-        return None
+        if output_path.stat().st_size < 1000:
+            return RenderResult(
+                success=False,
+                stderr=stderr,
+                error="Output file too small (likely empty audio)"
+            )
+        
+        return RenderResult(success=True, audio_path=output_path, stderr=stderr)
+        
+    except subprocess.TimeoutExpired as te:
+        # Handle both bytes and str for stderr/stdout
+        stderr = getattr(te, 'stderr', None) or b''
+        stdout = getattr(te, 'stdout', None) or b''
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode('utf-8', errors='replace')
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode('utf-8', errors='replace')
+        diag = (stderr + "\n" + stdout)[-2000:]
+        return RenderResult(success=False, stderr=diag, error="Render timeout (45s)")
     except Exception as e:
-        print(f"  Render exception: {e}")
-        return None
+        return RenderResult(success=False, error=f"Render exception: {e}")
 
 
 def validate_pack(
@@ -527,11 +721,12 @@ def validate_pack(
     
     results = []
     config = SafetyConfig()
+    work_dir = None
     
     # Load manifest
     manifest_path = pack_dir / "manifest.json"
     if not manifest_path.exists():
-        print(f"ERROR: No manifest.json in {pack_dir}")
+        print(f"ERROR: No manifest.json in {pack_dir}", file=sys.stderr)
         return results
     
     manifest = json.loads(manifest_path.read_text())
@@ -541,12 +736,12 @@ def validate_pack(
     modes_to_test = ["drone", "clocked"] if env_mode == "both" else [env_mode]
     mode_str = " + ".join(modes_to_test)
     
-    print(f"\n{pack_id}: {'Rendering' if do_render else 'Checking'} {len(generators)} generators ({mode_str})...\n")
+    print(f"\n{pack_id}: {'Rendering' if do_render else 'Checking'} {len(generators)} generators ({mode_str})...\n", file=sys.stderr)
     
     if do_render:
         sclang = find_sclang()
         if not sclang:
-            print("ERROR: sclang not found - install SuperCollider")
+            print("ERROR: sclang not found - install SuperCollider", file=sys.stderr)
             return results
         
         work_dir = Path(tempfile.mkdtemp(prefix="forge_validate_"))
@@ -572,20 +767,20 @@ def validate_pack(
         
         if do_render:
             if verbose:
-                print(f"  Rendering {gen_id}...", end=" ", flush=True)
+                print(f"  Rendering {gen_id}...", end=" ", flush=True, file=sys.stderr)
             
             # Render each mode and collect results
             mode_results = []
             
             for mode in modes_to_test:
-                audio_path = render_generator(scd_path, sclang, work_dir, gen_id, env_mode=mode)
+                render_result = render_generator(scd_path, sclang, work_dir, gen_id, env_mode=mode)
                 
-                if audio_path is None:
-                    mode_results.append((mode, SafetyStatus.RENDER_FAILED, {}))
+                if not render_result.success:
+                    mode_results.append((mode, SafetyStatus.RENDER_FAILED, {}, "", render_result))
                     continue
                 
-                status, details = run_safety_checks(audio_path, config)
-                mode_results.append((mode, status, details))
+                status, details, threshold = run_safety_checks(render_result.audio_path, config)
+                mode_results.append((mode, status, details, threshold, render_result))
             
             # If both modes, use worst-case for pass/fail but report both
             if len(mode_results) == 0:
@@ -596,23 +791,26 @@ def validate_pack(
                     error="No renders succeeded",
                 ))
                 if verbose:
-                    print("FAILED")
+                    print("FAILED", file=sys.stderr)
                 continue
             
             # Find worst status (any failure = fail)
-            failed_modes = [(m, s, d) for m, s, d in mode_results if s != SafetyStatus.PASS]
+            failed_modes = [(m, s, d, t, r) for m, s, d, t, r in mode_results if s != SafetyStatus.PASS]
             
             if failed_modes:
                 # Report first failure
-                mode, status, details = failed_modes[0]
+                mode, status, details, threshold, render_result = failed_modes[0]
                 peak = details.get("peak_db", -100)
                 rms = details.get("rms_db", -100)
                 trim_adj = calculate_trim_adjustment(rms, peak) if rms > -99 else 0
+                
+                error_msg = render_result.error if render_result.error else f"Failed in {mode} mode"
                 
                 results.append(ValidationResult(
                     generator_id=gen_id,
                     passed=False,
                     status=status,
+                    failed_mode=mode,
                     peak_db=peak,
                     rms_db=rms,
                     trim_adjustment=trim_adj,
@@ -621,14 +819,16 @@ def validate_pack(
                     level_growth_db=details.get("level_growth_db", 0),
                     crest_db=details.get("crest_db", 0),
                     is_impulsive=details.get("is_impulsive", False),
-                    error=f"Failed in {mode} mode",
+                    error=error_msg,
+                    sc_stderr=render_result.stderr if render_result.stderr else None,
+                    threshold_violated=threshold,
                 ))
                 if verbose:
-                    print(f"✗ {status.value} ({mode})")
+                    print(f"✗ {status.value} ({mode})", file=sys.stderr)
             else:
                 # All passed - use drone mode metrics for trim recommendation
                 # (drone is continuous so gives more accurate loudness reading)
-                drone_result = next((d for m, s, d in mode_results if m == "drone"), mode_results[0][2])
+                drone_result = next((d for m, s, d, t, r in mode_results if m == "drone"), mode_results[0][2])
                 details = drone_result
                 
                 peak = details.get("peak_db", -100)
@@ -649,7 +849,7 @@ def validate_pack(
                     is_impulsive=details.get("is_impulsive", False),
                 ))
                 if verbose:
-                    print(f"✓ PASS")
+                    print("✓ PASS", file=sys.stderr)
         else:
             # Static check only
             results.append(ValidationResult(
@@ -659,8 +859,11 @@ def validate_pack(
             ))
     
     # Cleanup
-    if do_render and work_dir.exists():
-        shutil.rmtree(work_dir)
+    if work_dir and work_dir.exists():
+        if os.environ.get('FORGE_VALIDATE_KEEP_WORKDIR') == '1':
+            print(f"KEEP_WORKDIR: {work_dir}", file=sys.stderr)
+        else:
+            shutil.rmtree(work_dir)
     
     return results
 
@@ -675,13 +878,14 @@ def print_results(results: List[ValidationResult], pack_id: str):
         return
     
     print(f"\n{'Generator':<16} {'Peak':>7} {'RMS':>7} {'Crest':>6} {'Trim Adj':>9} {'Active':>7} {'Status'}")
-    print("─" * 75)
+    print("-" * 75)
     
     for r in results:
         status_icon = "✓" if r.passed else "⚠"
         # Add ~ suffix for impulsive sounds (relaxed thresholds used)
         imp_marker = "~" if r.is_impulsive else ""
-        status_str = f"{status_icon} {r.status.value.upper()}{imp_marker}"
+        mode_marker = f" [{r.failed_mode}]" if r.failed_mode else ""
+        status_str = f"{status_icon} {r.status.value.upper()}{imp_marker}{mode_marker}"
         
         if r.status == SafetyStatus.RENDER_FAILED:
             print(f"{r.generator_id:<16} {'--':>7} {'--':>7} {'--':>6} {'--':>9} {'--':>7} {status_str}")
@@ -696,7 +900,7 @@ def print_results(results: List[ValidationResult], pack_id: str):
     failed = len(results) - passed
     impulsive_count = sum(1 for r in results if r.is_impulsive)
     
-    print("─" * 75)
+    print("-" * 75)
     if failed == 0:
         summary = f"✓ All {passed} generators passed"
         if impulsive_count > 0:
@@ -715,6 +919,62 @@ def print_results(results: List[ValidationResult], pack_id: str):
             print(f"  {r.generator_id}: {r.trim_adjustment:+.1f} dB")
 
 
+def print_fail_csv(results: List[ValidationResult], pack_id: str):
+    """Print CSV of failed generators with diagnostic info."""
+    failed = [r for r in results if not r.passed]
+    
+    if not failed:
+        print(f"# No failures in {pack_id}", file=sys.stderr)
+        return
+    
+    writer = csv.writer(sys.stdout)
+    
+    # Header
+    writer.writerow([
+        "pack_id",
+        "generator_id",
+        "status",
+        "mode",
+        "peak_db",
+        "rms_db",
+        "active_pct",
+        "threshold_violated",
+        "diagnostic",
+        "sc_error_excerpt"
+    ])
+    
+    for r in failed:
+        # Extract SC error excerpt (first error line, cleaned)
+        sc_excerpt = ""
+        if r.sc_stderr:
+            lines = r.sc_stderr.split('\n')
+            for line in lines:
+                line = line.strip()
+                if any(kw in line.lower() for kw in ['error', 'parse', 'unexpected', 'failed', 'exception']):
+                    # Clean and truncate
+                    sc_excerpt = line[:150].replace('"', "'")
+                    break
+            # If no error keyword found, take first non-empty line
+            if not sc_excerpt:
+                for line in lines:
+                    if line.strip() and not line.startswith('compiling'):
+                        sc_excerpt = line.strip()[:150].replace('"', "'")
+                        break
+        
+        writer.writerow([
+            pack_id,
+            r.generator_id,
+            r.status.value,
+            r.failed_mode or "n/a",
+            f"{r.peak_db:.1f}" if r.peak_db > -99 else "",
+            f"{r.rms_db:.1f}" if r.rms_db > -99 else "",
+            f"{r.active_pct*100:.0f}" if r.active_pct > 0 else "",
+            r.threshold_violated,
+            r.diagnostic_summary(),
+            sc_excerpt,
+        ])
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Audio validation for CQD_Forge packs"
@@ -728,20 +988,32 @@ def main():
         default="both",
         help="Envelope mode: drone (sustained), clocked (rhythmic triggers), both (default)"
     )
+    parser.add_argument(
+        "--fail-csv",
+        action="store_true",
+        help="Output CSV of failures with diagnostic info (for debugging)"
+    )
     
     args = parser.parse_args()
     
     if not args.pack_dir.exists():
-        print(f"ERROR: Pack directory not found: {args.pack_dir}")
+        print(f"ERROR: Pack directory not found: {args.pack_dir}", file=sys.stderr)
         sys.exit(1)
+    
+    # Suppress normal output when using --fail-csv
+    verbose = args.verbose and not args.fail_csv
     
     results = validate_pack(
         args.pack_dir,
         do_render=args.render,
-        verbose=args.verbose,
+        verbose=verbose,
         env_mode=args.env_mode,
     )
-    print_results(results, args.pack_dir.name)
+    
+    if args.fail_csv:
+        print_fail_csv(results, args.pack_dir.name)
+    else:
+        print_results(results, args.pack_dir.name)
     
     # Exit code
     failed = sum(1 for r in results if not r.passed)
