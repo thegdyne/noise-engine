@@ -3,14 +3,14 @@
 tools/forge_validate.py
 Pack validation for Noise Engine - contract compliance and static analysis
 
-Validates packs against the unified naming schema:
-- pack_id:       [a-z][a-z0-9_]{2,23}  (3-24 chars)
-- generator_id:  [a-z][a-z0-9_]{0,31}  (1-32 chars)
-- synthdef:      ne_{pack_id}__{generator_id}  (max 64 chars)
+Validates packs against CQD_FORGE_SPEC.md (frozen 2025-12-23):
+- pack_id:       slug, max 24 chars
+- generator_id:  slug, max 24 chars  
+- synthdef:      forge_{pack_id}_{generator_id}
 
 Usage:
-    python tools/forge_validate.py packs/my_pack/
-    python tools/forge_validate.py packs/my_pack/ --verbose
+    python tools/forge_validate.py packs/leviathan/
+    python tools/forge_validate.py packs/leviathan/ --verbose
 """
 
 import argparse
@@ -19,70 +19,66 @@ import re
 import sys
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Optional, Set
-
-# Try to import naming module, fall back to inline validation if not available
-try:
-    sys.path.insert(0, str(Path(__file__).parent.parent / "imaginarium"))
-    from naming import (
-        validate_pack_id,
-        validate_generator_id,
-        make_synthdef_name,
-        parse_synthdef_name,
-        NamingError,
-        RESERVED_PACK_IDS,
-        MAX_PACK_ID_LENGTH,
-        MAX_GENERATOR_ID_LENGTH,
-        MAX_SYNTHDEF_LENGTH,
-    )
-    NAMING_MODULE_AVAILABLE = True
-except ImportError:
-    NAMING_MODULE_AVAILABLE = False
-    # Inline fallback definitions
-    RESERVED_PACK_IDS = {"core", "mod", "default", "factory", "test", "user", "tmp", "null"}
-    MAX_PACK_ID_LENGTH = 24
-    MAX_GENERATOR_ID_LENGTH = 32
-    MAX_SYNTHDEF_LENGTH = 64
-    
-    class NamingError(ValueError):
-        pass
-    
-    def validate_pack_id(pack_id: str) -> None:
-        if "__" in pack_id:
-            raise NamingError(f"pack_id '{pack_id}' may not contain '__'")
-        if pack_id in RESERVED_PACK_IDS:
-            raise NamingError(f"pack_id '{pack_id}' is reserved")
-        if not re.match(r'^[a-z][a-z0-9_]{2,23}$', pack_id):
-            raise NamingError(f"pack_id '{pack_id}' must match ^[a-z][a-z0-9_]{{2,23}}$")
-    
-    def validate_generator_id(generator_id: str) -> None:
-        if "__" in generator_id:
-            raise NamingError(f"generator_id '{generator_id}' may not contain '__'")
-        if not re.match(r'^[a-z][a-z0-9_]{0,31}$', generator_id):
-            raise NamingError(f"generator_id '{generator_id}' must match ^[a-z][a-z0-9_]{{0,31}}$")
-    
-    def make_synthdef_name(pack_id: str, generator_id: str) -> str:
-        return f"ne_{pack_id}__{generator_id}"
-    
-    def parse_synthdef_name(synthdef: str):
-        if not synthdef.startswith("ne_"):
-            raise NamingError(f"synthdef '{synthdef}' must start with 'ne_'")
-        remainder = synthdef[3:]
-        if "__" not in remainder:
-            raise NamingError(f"synthdef '{synthdef}' missing '__' separator")
-        return remainder.split("__", 1)
+from typing import List, Set
 
 
 # ============================================================================
-# CONSTANTS
+# NAMING CONVENTION (from CQD_FORGE_SPEC.md)
 # ============================================================================
 
+# Slug pattern: lowercase, digits, underscores, starts with letter
+SLUG_PATTERN = re.compile(r'^[a-z][a-z0-9_]*$')
+
+MAX_PACK_ID_LENGTH = 24
+MAX_GENERATOR_ID_LENGTH = 24
+MAX_SYNTHDEF_LENGTH = 56  # forge_ + 24 + _ + 24 = 55
+
+RESERVED_PACK_IDS = {"core", "mod", "test"}
+
+
+def validate_pack_id(pack_id: str) -> List[str]:
+    """Validate pack_id, return list of errors."""
+    errors = []
+    if not pack_id:
+        errors.append("pack_id is empty")
+    elif not SLUG_PATTERN.match(pack_id):
+        errors.append(f"pack_id '{pack_id}' must be lowercase slug (a-z, 0-9, _)")
+    elif len(pack_id) > MAX_PACK_ID_LENGTH:
+        errors.append(f"pack_id '{pack_id}' exceeds {MAX_PACK_ID_LENGTH} chars")
+    elif pack_id in RESERVED_PACK_IDS:
+        errors.append(f"pack_id '{pack_id}' is reserved")
+    return errors
+
+
+def validate_generator_id(gen_id: str) -> List[str]:
+    """Validate generator_id, return list of errors."""
+    errors = []
+    if not gen_id:
+        errors.append("generator_id is empty")
+    elif not SLUG_PATTERN.match(gen_id):
+        errors.append(f"generator_id '{gen_id}' must be lowercase slug")
+    elif len(gen_id) > MAX_GENERATOR_ID_LENGTH:
+        errors.append(f"generator_id '{gen_id}' exceeds {MAX_GENERATOR_ID_LENGTH} chars")
+    return errors
+
+
+def make_synthdef_name(pack_id: str, generator_id: str) -> str:
+    """Generate synthdef name per spec: forge_{pack}_{gen}"""
+    return f"forge_{pack_id}_{generator_id}"
+
+
+# ============================================================================
+# GENERATOR CONTRACT
+# ============================================================================
+
+# Required bus arguments for all generators
 REQUIRED_BUS_ARGS = [
     "out", "freqBus", "cutoffBus", "resBus", "attackBus", "decayBus",
     "filterTypeBus", "envEnabledBus", "envSourceBus",
     "clockRateBus", "clockTrigBus",
     "midiTrigBus", "slotIndex",
     "customBus0", "customBus1", "customBus2", "customBus3", "customBus4",
+    "portamentoBus",
 ]
 
 REQUIRED_HELPERS = [
@@ -91,7 +87,7 @@ REQUIRED_HELPERS = [
     "~envVCA",
 ]
 
-# Order matters - this is the required post-chain order
+# Order matters - required post-chain order
 POST_CHAIN_ORDER = [
     "~multiFilter",
     "~envVCA", 
@@ -171,15 +167,10 @@ def validate_manifest(pack_path: Path) -> ValidationResult:
         if fld not in manifest:
             result.add_warning(f"manifest missing recommended field: {fld}")
     
-    # Pack ID validation using naming module
+    # Pack ID validation
     pack_id = manifest.get("pack_id", "")
-    if pack_id:
-        try:
-            validate_pack_id(pack_id)
-        except NamingError as e:
-            result.add_error(str(e))
-    else:
-        result.add_error("pack_id is empty")
+    for err in validate_pack_id(pack_id):
+        result.add_error(err)
     
     # Generators array
     generators = manifest.get("generators", [])
@@ -188,13 +179,11 @@ def validate_manifest(pack_path: Path) -> ValidationResult:
     elif len(generators) != 8:
         result.add_warning(f"generators array has {len(generators)} entries (expected 8)")
     
-    # Check generator IDs and uniqueness
+    # Check generator IDs
     seen_gen_ids: Set[str] = set()
     for gen_id in generators:
-        try:
-            validate_generator_id(gen_id)
-        except NamingError as e:
-            result.add_error(str(e))
+        for err in validate_generator_id(gen_id):
+            result.add_error(err)
         
         if gen_id in seen_gen_ids:
             result.add_error(f"duplicate generator_id: {gen_id}")
@@ -236,22 +225,17 @@ def validate_generator_json(json_path: Path, pack_id: str) -> ValidationResult:
         result.add_error(f"generator_id '{gen_id}' doesn't match filename '{expected_id}'")
     
     # Validate generator_id format
-    if gen_id:
-        try:
-            validate_generator_id(gen_id)
-        except NamingError as e:
-            result.add_error(str(e))
+    for err in validate_generator_id(gen_id):
+        result.add_error(err)
     
-    # SynthDef name format: must be ne_{pack_id}__{generator_id}
+    # SynthDef name format: forge_{pack_id}_{generator_id}
     synthdef = gen.get("synthdef", "")
     if synthdef:
-        expected_synthdef = make_synthdef_name(pack_id, gen_id) if pack_id and gen_id else None
+        expected_synthdef = make_synthdef_name(pack_id, gen_id)
         
-        if not synthdef.startswith("ne_"):
-            result.add_error(f"synthdef '{synthdef}' must start with 'ne_' prefix")
-        elif "__" not in synthdef[3:]:
-            result.add_error(f"synthdef '{synthdef}' missing '__' separator")
-        elif expected_synthdef and synthdef != expected_synthdef:
+        if not synthdef.startswith("forge_"):
+            result.add_error(f"synthdef '{synthdef}' must start with 'forge_' prefix")
+        elif synthdef != expected_synthdef:
             result.add_error(f"synthdef '{synthdef}' should be '{expected_synthdef}'")
         
         if len(synthdef) > MAX_SYNTHDEF_LENGTH:
@@ -363,7 +347,7 @@ def validate_synthdef(scd_path: Path, pack_id: str, generator_id: str) -> Valida
         if not found:
             result.add_error(f"missing required argument: {arg}")
     
-    # Check for seed argument (Imaginarium requirement)
+    # Check for seed argument (optional for hand-crafted, required for Imaginarium)
     if "seed" not in content:
         result.add_warning("no 'seed' argument found (required for Imaginarium determinism)")
     
@@ -397,10 +381,13 @@ def validate_synthdef(scd_path: Path, pack_id: str, generator_id: str) -> Valida
     if len(custom_bus_reads) < 1:
         result.add_warning("no customBus reads found (P1-P5 won't work)")
     
-    # Check for IMAG_CUSTOMBUS markers (validation compliance)
-    markers_found = len(re.findall(r'IMAG_CUSTOMBUS:\d', content))
-    if markers_found == 0:
-        result.add_warning("no IMAG_CUSTOMBUS markers (may not pass method validation)")
+    # Check portamento is read
+    if "In.kr(portamentoBus)" not in content:
+        result.add_warning("portamentoBus not read with In.kr (portamento won't work)")
+    
+    # Check for Lag.kr on freq
+    if "Lag.kr" not in content:
+        result.add_warning("no Lag.kr found (portamento may not be implemented)")
     
     return result
 
@@ -457,8 +444,7 @@ def print_validation_report(validation: PackValidation, verbose: bool = False):
     print(f"\n{'='*60}")
     print(f"Pack: {validation.pack_id or validation.pack_path.name}")
     print(f"Path: {validation.pack_path}")
-    if not NAMING_MODULE_AVAILABLE:
-        print(f"Note: Using inline validation (naming module not found)")
+    print(f"Convention: forge_{{pack}}_{{gen}} (CQD_FORGE_SPEC.md)")
     print(f"{'='*60}\n")
     
     for name, result in validation.results.items():
@@ -500,7 +486,7 @@ def print_validation_report(validation: PackValidation, verbose: bool = False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Validate Noise Engine packs (unified naming schema)"
+        description="Validate Noise Engine packs (CQD_FORGE_SPEC convention)"
     )
     parser.add_argument(
         "pack_path",

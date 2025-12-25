@@ -2,34 +2,32 @@
 imaginarium/naming.py
 Centralized naming schema for Noise Engine packs
 
-Naming Convention:
-- pack_id:       [a-z][a-z0-9_]{2,23}  (3-24 chars, slug)
-- generator_id:  [a-z][a-z0-9_]{0,31}  (1-32 chars, slug)
-- synthdef:      ne_{pack_id}__{generator_id}  (max 64 chars)
+Naming Convention (per CQD_FORGE_SPEC.md v1.0):
+- pack_id:       [a-z][a-z0-9_]*  (max 24 chars, slug)
+- generator_id:  [a-z][a-z0-9_]*  (max 24 chars, slug)
+- synthdef:      forge_{pack_id}_{generator_id}  (max 56 chars)
 - generator_ref: {pack_id}:{generator_id}
 
-Rules:
-- '__' (double underscore) forbidden in IDs (reserved as separator)
-- pack_id is immutable once published
-- synthdef names are derived, never authored
+For Imaginarium-generated packs:
+- synthdef:      imaginarium_{pack_id}_{method}_{index}
 """
 
 import re
 from typing import Tuple
 
 # Validation patterns
-PACK_ID_REGEX = re.compile(r"^[a-z][a-z0-9_]{2,23}$")
-GENERATOR_ID_REGEX = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+PACK_ID_REGEX = re.compile(r"^[a-z][a-z0-9_]*$")
+GENERATOR_ID_REGEX = re.compile(r"^[a-z][a-z0-9_]*$")
 
 # Reserved pack IDs (would collide with core namespaces)
 RESERVED_PACK_IDS = frozenset({
-    "core", "mod", "default", "factory", "test", "user", "tmp", "null",
+    "core", "mod", "test",
 })
 
 # Length limits
 MAX_PACK_ID_LENGTH = 24
-MAX_GENERATOR_ID_LENGTH = 32
-MAX_SYNTHDEF_LENGTH = 64
+MAX_GENERATOR_ID_LENGTH = 24
+MAX_SYNTHDEF_LENGTH = 56
 
 
 class NamingError(ValueError):
@@ -70,194 +68,135 @@ def sanitize_to_slug(name: str, max_length: int = 24) -> str:
     if len(slug) < 1:
         slug = "unnamed"
     
-    # Ensure minimum 3 chars for pack_id compatibility
-    while len(slug) < 3:
-        slug = slug + "x"
-    
     return slug
 
 
 def validate_pack_id(pack_id: str) -> None:
     """
-    Validate pack_id against schema rules.
+    Validate pack_id or raise NamingError.
     
-    Raises:
-        NamingError: If validation fails
+    Rules:
+    - Lowercase letters, digits, underscores only
+    - Must start with letter
+    - Max 24 characters
+    - Not a reserved name
     """
-    if "__" in pack_id:
-        raise NamingError(f"pack_id '{pack_id}' may not contain '__' (reserved separator)")
+    if not pack_id:
+        raise NamingError("pack_id cannot be empty")
+    
+    if not PACK_ID_REGEX.match(pack_id):
+        raise NamingError(
+            f"pack_id '{pack_id}' must be lowercase slug "
+            "(letters, digits, underscores; start with letter)"
+        )
+    
+    if len(pack_id) > MAX_PACK_ID_LENGTH:
+        raise NamingError(
+            f"pack_id '{pack_id}' exceeds {MAX_PACK_ID_LENGTH} characters"
+        )
     
     if pack_id in RESERVED_PACK_IDS:
         raise NamingError(f"pack_id '{pack_id}' is reserved")
-    
-    if not PACK_ID_REGEX.fullmatch(pack_id):
-        raise NamingError(
-            f"pack_id '{pack_id}' must match ^[a-z][a-z0-9_]{{2,23}}$ "
-            f"(3-24 chars, lowercase, start with letter)"
-        )
 
 
 def validate_generator_id(generator_id: str) -> None:
     """
-    Validate generator_id against schema rules.
+    Validate generator_id or raise NamingError.
     
-    Raises:
-        NamingError: If validation fails
+    Rules:
+    - Lowercase letters, digits, underscores only
+    - Must start with letter
+    - Max 24 characters
     """
-    if "__" in generator_id:
-        raise NamingError(f"generator_id '{generator_id}' may not contain '__' (reserved separator)")
+    if not generator_id:
+        raise NamingError("generator_id cannot be empty")
     
-    if not GENERATOR_ID_REGEX.fullmatch(generator_id):
+    if not GENERATOR_ID_REGEX.match(generator_id):
         raise NamingError(
-            f"generator_id '{generator_id}' must match ^[a-z][a-z0-9_]{{0,31}}$ "
-            f"(1-32 chars, lowercase, start with letter)"
+            f"generator_id '{generator_id}' must be lowercase slug "
+            "(letters, digits, underscores; start with letter)"
+        )
+    
+    if len(generator_id) > MAX_GENERATOR_ID_LENGTH:
+        raise NamingError(
+            f"generator_id '{generator_id}' exceeds {MAX_GENERATOR_ID_LENGTH} characters"
         )
 
 
-def make_synthdef_name(pack_id: str, generator_id: str) -> str:
+def make_synthdef_name(pack_id: str, generator_id: str, prefix: str = "forge") -> str:
     """
-    Generate SynthDef name from pack_id and generator_id.
+    Generate synthdef name: {prefix}_{pack_id}_{generator_id}
     
-    Format: ne_{pack_id}__{generator_id}
-    
-    Args:
-        pack_id: Validated pack ID
-        generator_id: Validated generator ID
-        
-    Returns:
-        SynthDef name string
-        
-    Raises:
-        NamingError: If inputs invalid or result exceeds 64 chars
+    Default prefix is 'forge' for CQD_Forge packs.
+    Use 'imaginarium' for auto-generated packs.
     """
     validate_pack_id(pack_id)
     validate_generator_id(generator_id)
     
-    name = f"ne_{pack_id}__{generator_id}"
+    synthdef = f"{prefix}_{pack_id}_{generator_id}"
     
-    if len(name) > MAX_SYNTHDEF_LENGTH:
+    if len(synthdef) > MAX_SYNTHDEF_LENGTH:
         raise NamingError(
-            f"synthdef '{name}' is {len(name)} chars (max {MAX_SYNTHDEF_LENGTH})"
+            f"synthdef name '{synthdef}' exceeds {MAX_SYNTHDEF_LENGTH} characters"
         )
     
-    return name
+    return synthdef
 
 
 def make_generator_ref(pack_id: str, generator_id: str) -> str:
     """
-    Generate generator reference string for presets.
+    Generate generator reference: {pack_id}:{generator_id}
     
-    Format: {pack_id}:{generator_id}
-    
-    Args:
-        pack_id: Validated pack ID
-        generator_id: Validated generator ID
-        
-    Returns:
-        Generator reference string
+    Used in preset files to reference generators.
     """
     validate_pack_id(pack_id)
     validate_generator_id(generator_id)
     return f"{pack_id}:{generator_id}"
 
 
-def parse_synthdef_name(synthdef: str) -> Tuple[str, str]:
-    """
-    Parse SynthDef name back to pack_id and generator_id.
-    
-    Args:
-        synthdef: SynthDef name in ne_{pack_id}__{generator_id} format
-        
-    Returns:
-        Tuple of (pack_id, generator_id)
-        
-    Raises:
-        NamingError: If format invalid
-    """
-    if not synthdef.startswith("ne_"):
-        raise NamingError(f"synthdef '{synthdef}' must start with 'ne_'")
-    
-    remainder = synthdef[3:]  # Strip "ne_"
-    
-    if "__" not in remainder:
-        raise NamingError(f"synthdef '{synthdef}' missing '__' separator")
-    
-    pack_id, generator_id = remainder.split("__", 1)
-    
-    validate_pack_id(pack_id)
-    validate_generator_id(generator_id)
-    
-    return pack_id, generator_id
-
-
 def parse_generator_ref(ref: str) -> Tuple[str, str]:
     """
-    Parse generator reference back to pack_id and generator_id.
+    Parse generator reference into (pack_id, generator_id).
     
-    Args:
-        ref: Reference in {pack_id}:{generator_id} format
-        
-    Returns:
-        Tuple of (pack_id, generator_id)
-        
-    Raises:
-        NamingError: If format invalid
+    Raises NamingError if format is invalid.
     """
     if ":" not in ref:
-        raise NamingError(f"generator_ref '{ref}' missing ':' separator")
+        raise NamingError(f"Invalid generator_ref '{ref}': missing ':'")
     
-    pack_id, generator_id = ref.split(":", 1)
+    parts = ref.split(":", 1)
+    if len(parts) != 2:
+        raise NamingError(f"Invalid generator_ref '{ref}': expected 'pack:gen'")
     
+    pack_id, generator_id = parts
     validate_pack_id(pack_id)
     validate_generator_id(generator_id)
     
     return pack_id, generator_id
 
 
-def make_generator_id_from_method(method_id: str, index: int) -> str:
+def parse_synthdef_name(synthdef: str) -> Tuple[str, str, str]:
     """
-    Generate a generator_id from method name and slot index.
+    Parse synthdef name into (prefix, pack_id, generator_id).
     
-    Used by Imaginarium to create generator IDs for auto-generated packs.
+    Handles:
+    - forge_{pack}_{gen}
+    - imaginarium_{pack}_{gen}
     
-    Args:
-        method_id: Method ID like "subtractive/bright_saw"
-        index: Slot index (0-7)
-        
-    Returns:
-        Valid generator_id like "bright_saw_0"
+    Returns (prefix, pack_id, generator_id)
+    Raises NamingError if format is invalid.
     """
-    # Extract method name from path
-    method_name = method_id.split("/")[-1] if "/" in method_id else method_id
+    # Try forge_ prefix
+    if synthdef.startswith("forge_"):
+        remainder = synthdef[6:]  # Remove "forge_"
+        parts = remainder.split("_", 1)
+        if len(parts) == 2:
+            return "forge", parts[0], parts[1]
     
-    # Sanitize (leave room for _N suffix)
-    base = sanitize_to_slug(method_name, max_length=28)
+    # Try imaginarium_ prefix
+    if synthdef.startswith("imaginarium_"):
+        remainder = synthdef[12:]  # Remove "imaginarium_"
+        parts = remainder.split("_", 1)
+        if len(parts) >= 2:
+            return "imaginarium", parts[0], "_".join(parts[1:])
     
-    # Ensure base is at least 1 char
-    if not base or len(base) < 1:
-        base = "gen"
-    
-    generator_id = f"{base}_{index}"
-    
-    # Validate (should always pass given sanitize logic, but belt-and-suspenders)
-    validate_generator_id(generator_id)
-    
-    return generator_id
-
-
-def is_valid_pack_id(pack_id: str) -> bool:
-    """Check if pack_id is valid without raising."""
-    try:
-        validate_pack_id(pack_id)
-        return True
-    except NamingError:
-        return False
-
-
-def is_valid_generator_id(generator_id: str) -> bool:
-    """Check if generator_id is valid without raising."""
-    try:
-        validate_generator_id(generator_id)
-        return True
-    except NamingError:
-        return False
+    raise NamingError(f"Cannot parse synthdef name '{synthdef}'")

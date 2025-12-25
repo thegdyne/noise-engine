@@ -14,7 +14,7 @@ PRESET_VERSION = 2
 MAPPING_VERSION = 1  # For future UI→value curve changes
 
 # Valid ranges
-FILTER_TYPES = 3      # 0=LP, 1=HP, 2=BP
+FILTER_TYPES = 6      # 0=LP, 1=HP, 2=BP, 3=Notch, 4=LP2, 5=OFF
 ENV_SOURCES = 3       # 0=OFF, 1=CLK, 2=MIDI  
 CLOCK_RATES = 13      # 0-12
 MIDI_CHANNELS = 16    # 0-16 (0=OFF)
