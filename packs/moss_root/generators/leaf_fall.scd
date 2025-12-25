@@ -33,18 +33,18 @@ SynthDef(\forge_moss_root_leaf_fall, { |out, freqBus, cutoffBus, resBus, attackB
     leaves = Mix(Array.fill(4, { |i|
         var rate = wind.linexp(0, 1, 2, 20) * (1 + (i * 0.3));
         var noiseFreq = freq * (2 + i);
-        var ampMod = LFNoise2.kr(rate).range(0, 1);
+        var ampMod = LFNoise2.kr(rate).range(0.3, 1);
         var layer = BPF.ar(
             WhiteNoise.ar,
             noiseFreq.clip(100, 10000),
             curl.linexp(0, 1, 0.5, 0.1)
         ) * ampMod;
-        layer * (rustle / 4)
+        layer * (rustle * 0.5)
     }));
 
     // Crunch: high-frequency crackle
     crunch = HPF.ar(
-        Dust2.ar(wind.linexp(0, 1, 50, 500) * rustle) * 0.3,
+        Dust2.ar(wind.linexp(0, 1, 50, 500) * rustle) * 0.8,
         curl.linexp(0, 1, 3000, 6000)
     ) * curl;
 
@@ -60,7 +60,7 @@ SynthDef(\forge_moss_root_leaf_fall, { |out, freqBus, cutoffBus, resBus, attackB
         DelayL.ar(sig, 0.1, 0.05) * 0.2,
         DelayL.ar(sig, 0.1, 0.08) * 0.15
     ]) * pile;
-    sig = sig + pileDelay;
+    sig = (sig + pileDelay) * 8;  // Boost quiet texture
 
     // Stereo scatter
     sig = Pan2.ar(Mix(sig), SinOsc.kr(wind.linexp(0, 1, 0.2, 0.8).max(0.001)) * rustle.linlin(0, 1, 0.3, 0.8));

@@ -6,7 +6,7 @@ SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, cutoffBus, resBus, attac
                                      portamentoBus|
 
     var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
-    var crack, wood, echo, size, dry;
+    var crack, wood, echo, size, dry, localTrig;
     var noise, crackEnv, woodBody, bodyFreq, delayedSig;
 
     // Standard reads
@@ -22,6 +22,7 @@ SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, cutoffBus, resBus, attac
     clockRate = In.kr(clockRateBus);
     amp = 0.2;
 
+    localTrig = Impulse.ar(4);  // Self-trigger for percussive envelopes
     // Custom params
     crack = In.kr(customBus0);
     wood = In.kr(customBus1);
@@ -33,7 +34,7 @@ SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, cutoffBus, resBus, attac
     bodyFreq = freq * size.linexp(0, 1, 2, 0.5);
 
     // Crack: bright noise burst with fast envelope
-    crackEnv = EnvGen.ar(Env.perc(0.001, dry.linexp(0, 1, 0.08, 0.02)));
+    crackEnv = EnvGen.ar(Env.perc(0.001, dry.linexp(0, 1, 0.08, 0.02)), localTrig);
     noise = HPF.ar(WhiteNoise.ar, crack.linexp(0, 1, 2000, 8000)) * crackEnv * crack;
 
     // Wood body resonance: multiple modes
@@ -47,7 +48,7 @@ SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, cutoffBus, resBus, attac
     sig = (noise * 0.6) + woodBody;
 
     // Add subtle pitched click
-    sig = sig + (SinOsc.ar(bodyFreq * EnvGen.ar(Env.perc(0.001, 0.02))) * EnvGen.ar(Env.perc(0.001, 0.03)) * 0.3);
+    sig = sig + (SinOsc.ar(bodyFreq * EnvGen.ar(Env.perc(0.001, 0.02), localTrig)) * EnvGen.ar(Env.perc(0.001, 0.03), localTrig) * 0.3);
 
     // Forest echo: short delay with feedback
     delayedSig = CombL.ar(sig, 0.3, size.linlin(0, 1, 0.08, 0.2), echo.linlin(0, 1, 0.1, 1.5));
