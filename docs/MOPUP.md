@@ -1,0 +1,1 @@
+- [ ] FX section knob naming: Add section prefix to leaf names (e.g., echo_tone_knob, verb_tone_knob) to avoid duplicate names across sections
