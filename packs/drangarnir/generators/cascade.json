@@ -1,0 +1,60 @@
+{
+  "generator_id": "cascade",
+  "name": "Cascade",
+  "synthdef": "forge_drangarnir_cascade",
+  "custom_params": [
+    {
+      "key": "flow",
+      "label": "FLW",
+      "tooltip": "Flow rate - volume of water moving",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drop",
+      "label": "DRP",
+      "tooltip": "Drop height - vertical distance of falls",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "stone",
+      "label": "STN",
+      "tooltip": "Stone smoothness - texture of the rock bed",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spatial",
+      "label": "SPA",
+      "tooltip": "Spatial spread - width of the cascade",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "shimmer",
+      "label": "SHM",
+      "tooltip": "Shimmer - light catching on water droplets",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

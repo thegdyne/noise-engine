@@ -1,0 +1,60 @@
+{
+  "generator_id": "eye_gleam",
+  "name": "Eye Gleam",
+  "synthdef": "forge_maratus_eye_gleam",
+  "custom_params": [
+    {
+      "key": "focus",
+      "label": "FOC",
+      "tooltip": "Focus – spectral tightness and clarity",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "gleam",
+      "label": "GLM",
+      "tooltip": "Gleam – high frequency sparkle",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "eye_size",
+      "label": "SZE",
+      "tooltip": "Eye size – resonance body tuning",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "reflect",
+      "label": "RFL",
+      "tooltip": "Reflect – metallic reflection quality",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "stare",
+      "label": "STR",
+      "tooltip": "Stare – sustain intensity",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": true,
+  "pitch_target": null
+}

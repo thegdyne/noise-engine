@@ -1,0 +1,60 @@
+{
+  "generator_id": "breach",
+  "name": "Breach",
+  "synthdef": "forge_leviathan_breach",
+  "custom_params": [
+    {
+      "key": "mass",
+      "label": "MAS",
+      "tooltip": "Mass - creature weight, adds lower octave layers",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "surge",
+      "label": "SRG",
+      "tooltip": "Surge - upward pitch rise intensity during breach",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spray",
+      "label": "SPR",
+      "tooltip": "Spray - water splash and explosion noise",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "air",
+      "label": "AIR",
+      "tooltip": "Air - exposure brightness, high frequency content",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drop",
+      "label": "DRP",
+      "tooltip": "Drop - gravity's pull, pitch fall after peak",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

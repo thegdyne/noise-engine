@@ -1,0 +1,15 @@
+{
+  "generator_id": "grass_sway",
+  "name": "Grass Sway",
+  "synthdef": "forge_seagrass_bay_grass_sway",
+  "custom_params": [
+    {"key": "sway", "label": "SWY", "tooltip": "Sway - undulation rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "density", "label": "DEN", "tooltip": "Density - thickness of grass bed", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "green", "label": "GRN", "tooltip": "Green - brightness/presence", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "current", "label": "CUR", "tooltip": "Current - water flow modulation", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "root", "label": "ROT", "tooltip": "Root - low-end anchor", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

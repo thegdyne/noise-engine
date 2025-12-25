@@ -1,0 +1,101 @@
+// ============================================================================
+// LEVIATHAN: Surface Shimmer  
+// Role: Foreground - light dancing on the surface, hope and air
+// 
+// SUN (Sun)      - Sunlight intensity, high harmonic brightness
+// RIP (Ripple)   - Surface wave movement, modulation rate
+// AIR (Air)      - Above-water clarity, presence
+// RAY (Ray)      - Light ray penetration, filtered beams
+// SPA (Sparkle)  - Dancing light points, granular brightness
+// ============================================================================
+
+SynthDef(\forge_leviathan_surface_shimmer, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                                              filterTypeBus, envEnabledBus, envSourceBus=0,
+                                              clockRateBus, clockTrigBus,
+                                              midiTrigBus=0, slotIndex=0,
+                                              customBus0, customBus1, customBus2, customBus3, customBus4,
+                                              portamentoBus|
+
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sun, ripple, air, ray, sparkle;
+    var shimmerOsc, rippleMod, airPresence;
+    var rayBeams, sparkleGrains;
+    var stereoMod;
+
+    // Read standard params
+    freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envSource = In.kr(envSourceBus);
+    clockRate = In.kr(clockRateBus);
+    amp = In.kr(~params[\amplitude]);
+
+    // === THEMED PARAMS ===
+    sun = In.kr(customBus0).linlin(0, 1, 0.0, 1.0);
+    ripple = In.kr(customBus1).linexp(0, 1, 0.5, 8.0);
+    air = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
+    ray = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
+    sparkle = In.kr(customBus4).linexp(0, 1, 1, 50);
+
+    // === RIPPLE MODULATION ===
+    rippleMod = SinOsc.kr(ripple).range(0.95, 1.05);
+    rippleMod = rippleMod * SinOsc.kr(ripple * 1.3).range(0.98, 1.02);
+
+    // === SHIMMER OSCILLATORS (bright, clean) ===
+    shimmerOsc = SinOsc.ar(freq * 2 * rippleMod) * 0.4;
+    shimmerOsc = shimmerOsc + (SinOsc.ar(freq * 3 * rippleMod) * 0.3);
+    shimmerOsc = shimmerOsc + (SinOsc.ar(freq * 4 * rippleMod) * sun * 0.3);
+    shimmerOsc = shimmerOsc + (SinOsc.ar(freq * 5 * rippleMod) * sun * 0.2);
+    shimmerOsc = shimmerOsc + (SinOsc.ar(freq * 6 * rippleMod) * sun * 0.15);
+    
+    // Fundamental for body
+    shimmerOsc = shimmerOsc + (SinOsc.ar(freq * rippleMod) * 0.3);
+
+    // === AIR PRESENCE (high frequency content) ===
+    airPresence = WhiteNoise.ar * air * 0.1;
+    airPresence = HPF.ar(airPresence, 5000);
+    airPresence = airPresence + (SinOsc.ar(freq * 8) * air * 0.1);
+
+    // === RAY BEAMS (filtered sweeping light) ===
+    rayBeams = Saw.ar(freq * 2 * rippleMod) * ray * 0.2;
+    rayBeams = rayBeams + (Pulse.ar(freq * 3 * rippleMod, 0.3) * ray * 0.15);
+    // Sweeping filter like light through water
+    rayBeams = RLPF.ar(rayBeams, 
+        SinOsc.kr(ripple * 0.5).range(freq * 2, freq * 8), 
+        0.3);
+    rayBeams = rayBeams * SinOsc.kr(ripple * 0.7).range(0.3, 1);
+
+    // === SPARKLE GRAINS ===
+    sparkleGrains = Dust.ar(sparkle) * 0.4;
+    sparkleGrains = Ringz.ar(sparkleGrains, freq * 4 * LFNoise0.kr(10).range(0.8, 1.5), 0.05);
+    sparkleGrains = sparkleGrains + Ringz.ar(Dust.ar(sparkle * 0.7), freq * 6 * LFNoise0.kr(8).range(0.9, 1.2), 0.04) * 0.6;
+    sparkleGrains = sparkleGrains + Ringz.ar(Dust.ar(sparkle * 0.5), freq * 8, 0.03) * 0.4;
+    sparkleGrains = HPF.ar(sparkleGrains, 2000);
+
+    // === MIX ===
+    sig = shimmerOsc + airPresence + rayBeams + sparkleGrains;
+
+    // Gentle high shelf boost for brightness
+    sig = sig + (HPF.ar(sig, 3000) * sun * 0.3);
+
+    // Stereo movement like light on waves
+    stereoMod = SinOsc.kr(ripple * 0.3).range(-0.4, 0.4);
+    sig = Balance2.ar(sig, sig, stereoMod);
+
+    // Soft clip
+    sig = (sig * 1.5).tanh * 0.6;
+
+    // === OUTPUT CHAIN ===
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
+    sig = ~ensure2ch.(sig);
+
+    Out.ar(out, sig);
+}).add;
+
+"  * forge_leviathan_surface_shimmer loaded".postln;

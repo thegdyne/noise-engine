@@ -1,0 +1,60 @@
+{
+    "generator_id": "freefall",
+    "name": "Freefall",
+    "synthdef": "forge_icarus_freefall",
+    "custom_params": [
+        {
+            "key": "tumble",
+            "label": "TMB",
+            "tooltip": "Tumble rate — rotational spin during fall",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "rush",
+            "label": "RSH",
+            "tooltip": "Wind rush — air turbulence intensity",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "void",
+            "label": "VOD",
+            "tooltip": "Void — emptiness beneath, low frequency weight",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "spin",
+            "label": "SPN",
+            "tooltip": "Spin — stereo rotation speed",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "drag",
+            "label": "DRG",
+            "tooltip": "Drag — air resistance filtering",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
+}

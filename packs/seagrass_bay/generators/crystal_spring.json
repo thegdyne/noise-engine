@@ -1,0 +1,15 @@
+{
+  "generator_id": "crystal_spring",
+  "name": "Crystal Spring",
+  "synthdef": "forge_seagrass_bay_crystal_spring",
+  "custom_params": [
+    {"key": "clarity", "label": "CLR", "tooltip": "Clarity - purity of tone", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shimmer", "label": "SHM", "tooltip": "Shimmer - sparkle harmonics", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "flow", "label": "FLW", "tooltip": "Flow - water movement modulation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cold", "label": "COL", "tooltip": "Cold - cool/bright character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "light", "label": "LGT", "tooltip": "Light - sunlight refraction sparkle", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

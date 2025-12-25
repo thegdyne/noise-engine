@@ -1,0 +1,60 @@
+{
+    "generator_id": "last_breath",
+    "name": "Last Breath",
+    "synthdef": "forge_icarus_last_breath",
+    "custom_params": [
+        {
+            "key": "heart",
+            "label": "HRT",
+            "tooltip": "Heart — pulse rate, racing toward the end",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "breath",
+            "label": "BTH",
+            "tooltip": "Breath — inhalation depth and frequency",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "fear",
+            "label": "FER",
+            "tooltip": "Fear — trembling instability",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "flesh",
+            "label": "FLS",
+            "tooltip": "Flesh — organic body resonance",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "final",
+            "label": "FNL",
+            "tooltip": "Final — acceptance, fading out",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
+}

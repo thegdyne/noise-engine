@@ -1,0 +1,60 @@
+{
+  "generator_id": "fan_display",
+  "name": "Fan Display",
+  "synthdef": "forge_maratus_fan_display",
+  "custom_params": [
+    {
+      "key": "iridescence",
+      "label": "IRI",
+      "tooltip": "Iridescence – shimmering pitch modulation depth",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "fan_width",
+      "label": "FAN",
+      "tooltip": "Fan width – stereo spread of the display",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hue",
+      "label": "HUE",
+      "tooltip": "Hue shift – spectral color/formant position",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "vibration",
+      "label": "VIB",
+      "tooltip": "Vibration – display tremolo rate",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glow",
+      "label": "GLO",
+      "tooltip": "Glow – high harmonic brightness",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

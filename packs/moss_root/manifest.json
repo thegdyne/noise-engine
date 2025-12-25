@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "moss_root",
+  "name": "Moss Root",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Ancient woodland textures \u2014 twisted roots, soft moss, fallen leaves, and light through the canopy. Organic, patient, primordial.",
+  "enabled": true,
+  "generators": [
+    "root_drone",
+    "moss_pad",
+    "branch_snap",
+    "leaf_fall",
+    "canopy_tone",
+    "lichen_bell",
+    "root_creep",
+    "spore_drift"
+  ]
+}

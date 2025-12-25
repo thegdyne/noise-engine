@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "fuego_celeste",
+  "name": "Fuego Celeste",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Volcanic fire beneath starlight \u2014 primordial earth energy meets cosmic infinity. Deep magma drones, stellar voids, explosive lava bursts, and shimmering cosmic dust.",
+  "enabled": true,
+  "generators": [
+    "magma_drone",
+    "stellar_void",
+    "lava_burst",
+    "star_ping",
+    "ash_rise",
+    "galactic_core",
+    "ember_trail",
+    "cosmic_dust"
+  ]
+}

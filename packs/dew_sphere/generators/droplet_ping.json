@@ -1,0 +1,15 @@
+{
+  "generator_id": "droplet_ping",
+  "name": "Droplet Ping",
+  "synthdef": "forge_dew_sphere_droplet_ping",
+  "custom_params": [
+    {"key": "sphere", "label": "SPH", "tooltip": "Sphericity - rounder droplet = purer tone", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "glisten", "label": "GLI", "tooltip": "Initial brightness as light hits the drop", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ring", "label": "RNG", "tooltip": "How long the droplet rings", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "prism", "label": "PRS", "tooltip": "Prismatic inharmonic color", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "clarity", "label": "CLR", "tooltip": "Crystal clarity of the water", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

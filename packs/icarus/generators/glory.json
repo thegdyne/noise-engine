@@ -1,0 +1,60 @@
+{
+    "generator_id": "glory",
+    "name": "Glory",
+    "synthdef": "forge_icarus_glory",
+    "custom_params": [
+        {
+            "key": "blind",
+            "label": "BLD",
+            "tooltip": "Blinding — overwhelming brightness",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "awe",
+            "label": "AWE",
+            "tooltip": "Awe — harmonic transcendence",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "rays",
+            "label": "RAY",
+            "tooltip": "Rays — light beam count",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "divine",
+            "label": "DVN",
+            "tooltip": "Divine — ethereal overtone shimmer",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "moment",
+            "label": "MNT",
+            "tooltip": "Moment — frozen time dilation",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
+}

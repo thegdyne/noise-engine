@@ -1,0 +1,60 @@
+{
+  "generator_id": "cosmic_dust",
+  "name": "Cosmic Dust",
+  "synthdef": "forge_fuego_celeste_cosmic_dust",
+  "custom_params": [
+    {
+      "key": "cloud",
+      "label": "CLO",
+      "tooltip": "Dust cloud density \u2014 particle concentration",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "shimmer",
+      "label": "SHI",
+      "tooltip": "Shimmer amount \u2014 light scattering and glisten",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "fine",
+      "label": "FIN",
+      "tooltip": "Particle fineness \u2014 size of dust grains",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drift",
+      "label": "DRI",
+      "tooltip": "Movement rate \u2014 how fast dust drifts through space",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glitter",
+      "label": "GLI",
+      "tooltip": "Glitter sparkle \u2014 bright point highlights",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

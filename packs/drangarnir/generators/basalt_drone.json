@@ -1,0 +1,60 @@
+{
+  "generator_id": "basalt_drone",
+  "name": "Basalt Drone",
+  "synthdef": "forge_drangarnir_basalt_drone",
+  "custom_params": [
+    {
+      "key": "depth",
+      "label": "DPT",
+      "tooltip": "Tonal depth - how far into the earth",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "layers",
+      "label": "LAY",
+      "tooltip": "Geological layers - stacked harmonic richness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cracks",
+      "label": "CRK",
+      "tooltip": "Cracks in the stone - inharmonic content",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "rumble",
+      "label": "RMB",
+      "tooltip": "Seismic rumble - sub-bass movement",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "stillness",
+      "label": "STL",
+      "tooltip": "Ancient stillness - how static and eternal",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

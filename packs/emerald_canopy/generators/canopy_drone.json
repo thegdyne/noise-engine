@@ -1,0 +1,60 @@
+{
+  "generator_id": "canopy_drone",
+  "name": "Canopy Drone",
+  "synthdef": "forge_emerald_canopy_canopy_drone",
+  "custom_params": [
+    {
+      "key": "vegetation",
+      "label": "VEG",
+      "tooltip": "Vegetation density - layers of overlapping leaves",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sunlight",
+      "label": "SUN",
+      "tooltip": "Sunlight filtering through - opens brightness",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sway",
+      "label": "SWY",
+      "tooltip": "Gentle sway - slow pitch drift in breeze",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "depth",
+      "label": "DEP",
+      "tooltip": "Canopy depth - stereo layer spread",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mist",
+      "label": "MIS",
+      "tooltip": "Morning mist - soft noise layer",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

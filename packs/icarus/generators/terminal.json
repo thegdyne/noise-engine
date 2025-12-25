@@ -1,0 +1,60 @@
+{
+    "generator_id": "terminal",
+    "name": "Terminal",
+    "synthdef": "forge_icarus_terminal",
+    "custom_params": [
+        {
+            "key": "velocity",
+            "label": "VEL",
+            "tooltip": "Velocity — terminal speed intensity",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "blur",
+            "label": "BLR",
+            "tooltip": "Blur — motion smear, chorus depth",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "mach",
+            "label": "MCH",
+            "tooltip": "Mach — approaching sound barrier edge",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "wake",
+            "label": "WAK",
+            "tooltip": "Wake — turbulent trail behind",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "doppler",
+            "label": "DOP",
+            "tooltip": "Doppler — frequency shift from motion",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
+}

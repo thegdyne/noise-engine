@@ -1,0 +1,60 @@
+{
+  "generator_id": "diaspora",
+  "name": "Diaspora",
+  "synthdef": "forge_beacon_vigil_diaspora",
+  "custom_params": [
+    {
+      "key": "sctr",
+      "label": "SCT",
+      "tooltip": "Scatter density - particle rate",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "voic",
+      "label": "VOC",
+      "tooltip": "Voice count - simultaneous grains",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "disp",
+      "label": "DSP",
+      "tooltip": "Dispersion spread - pitch scatter",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "root",
+      "label": "ROT",
+      "tooltip": "Root connection - tonal anchor strength",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "memo",
+      "label": "MEM",
+      "tooltip": "Memory - echo trails of origin",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0,
+  "midi_retrig": true,
+  "pitch_target": "frequency"
+}

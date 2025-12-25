@@ -1,0 +1,60 @@
+{
+    "generator_id": "wild_mane",
+    "name": "Wild Mane",
+    "synthdef": "forge_rakshasa_wild_mane",
+    "custom_params": [
+        {
+            "key": "wild",
+            "label": "WLD",
+            "tooltip": "Wildness — chaos and unpredictability amount",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "frizz",
+            "label": "FRZ",
+            "tooltip": "Frizziness — density of hair strands/grains",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "tangle",
+            "label": "TNG",
+            "tooltip": "Tangle — complexity and interweaving of texture",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "whip",
+            "label": "WHP",
+            "tooltip": "Whipping speed — rate of chaotic movement",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "static",
+            "label": "STC",
+            "tooltip": "Static — high frequency crackling content",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
+}

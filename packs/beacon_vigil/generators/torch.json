@@ -1,0 +1,60 @@
+{
+  "generator_id": "torch",
+  "name": "Torch",
+  "synthdef": "forge_beacon_vigil_torch",
+  "custom_params": [
+    {
+      "key": "flkr",
+      "label": "FLK",
+      "tooltip": "Flame flicker rate - modulates brightness",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "heat",
+      "label": "HET",
+      "tooltip": "Harmonic heat - wavefold saturation",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glow",
+      "label": "GLO",
+      "tooltip": "Sustain body glow",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wind",
+      "label": "WND",
+      "tooltip": "Breath modulation depth",
+      "default": 0.25,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "lift",
+      "label": "LFT",
+      "tooltip": "Upper harmonic lift",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": "frequency"
+}

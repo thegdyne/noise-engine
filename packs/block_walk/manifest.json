@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "block_walk",
+  "name": "Block Walk",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "The confident stride of community. 1970s urban soul \u2013 warm analog textures, walking rhythms, neighborhood atmosphere.",
+  "enabled": true,
+  "generators": [
+    "stride_bass",
+    "rhodes_sun",
+    "street_hum",
+    "kid_shout",
+    "leather_creak",
+    "porch_organ",
+    "sunset_pad",
+    "snap_clap"
+  ]
+}

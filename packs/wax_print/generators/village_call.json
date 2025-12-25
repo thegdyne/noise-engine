@@ -1,0 +1,15 @@
+{
+  "generator_id": "village_call",
+  "name": "Village Call",
+  "synthdef": "forge_wax_print_village_call",
+  "custom_params": [
+    {"key": "vowel", "label": "VOW", "tooltip": "Vowel - shape morphing A-E-I-O-U", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chant", "label": "CHT", "tooltip": "Chant - rhythmic modulation rate", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "choir", "label": "CHR", "tooltip": "Choir - multiple voices, unison spread", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "breath", "label": "BRT", "tooltip": "Breath - breathiness, air in voice", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cry", "label": "CRY", "tooltip": "Cry - emotional intensity, vibrato depth", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

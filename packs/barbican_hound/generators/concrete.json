@@ -1,0 +1,15 @@
+{
+  "generator_id": "concrete",
+  "name": "CONCRETE",
+  "synthdef": "forge_barbican_hound_concrete",
+  "custom_params": [
+    {"key": "dust", "label": "DST", "tooltip": "Particle density", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "echo", "label": "ECH", "tooltip": "Reverberant quality — urban space", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "grain", "label": "GRN", "tooltip": "Particle size — fine to coarse", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "aged", "label": "AGD", "tooltip": "Wear and weathering character", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "patter", "label": "PAT", "tooltip": "Rhythmic quality — rain pattern", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

@@ -1,0 +1,15 @@
+{
+  "generator_id": "axonweb",
+  "name": "AXONWEB",
+  "synthdef": "forge_nerve_glow_axonweb",
+  "custom_params": [
+    {"key": "network", "label": "NET", "tooltip": "Network density — grain density", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "spread", "label": "SPR", "tooltip": "Spread — stereo nerve width", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pulse", "label": "PLS", "tooltip": "Pulse — amplitude modulation", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "branch", "label": "BRC", "tooltip": "Branch rate — pitch variation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shimmer", "label": "SHM", "tooltip": "Shimmer — high frequency sparkle", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

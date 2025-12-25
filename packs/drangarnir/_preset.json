@@ -1,0 +1,187 @@
+{
+  "version": 2,
+  "name": "Drangarnir",
+  "slots": [
+    {
+      "generator_id": "drangarnir:stone_arch",
+      "params": {
+        "frequency": 0.3,
+        "cutoff": 0.6,
+        "resonance": 0.2,
+        "attack": 0.3,
+        "decay": 0.85,
+        "custom_0": 0.6,
+        "custom_1": 0.7,
+        "custom_2": 0.3,
+        "custom_3": 0.4,
+        "custom_4": 0.2
+      },
+      "filter_type": 0,
+      "env_source": 1,
+      "clock_rate": 2,
+      "midi_channel": 1,
+      "transpose": 1,
+      "portamento": 0.0
+    },
+    {
+      "generator_id": "drangarnir:wave_crash",
+      "params": {
+        "frequency": 0.4,
+        "cutoff": 0.8,
+        "resonance": 0.1,
+        "attack": 0.0,
+        "decay": 0.6,
+        "custom_0": 0.7,
+        "custom_1": 0.5,
+        "custom_2": 0.6,
+        "custom_3": 0.4,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 1,
+      "clock_rate": 4,
+      "midi_channel": 2,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator_id": "drangarnir:tide_swell",
+      "params": {
+        "frequency": 0.35,
+        "cutoff": 0.7,
+        "resonance": 0.15,
+        "attack": 0.4,
+        "decay": 0.8,
+        "custom_0": 0.6,
+        "custom_1": 0.4,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.3
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 3,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator_id": "drangarnir:basalt_drone",
+      "params": {
+        "frequency": 0.2,
+        "cutoff": 0.5,
+        "resonance": 0.1,
+        "attack": 0.5,
+        "decay": 0.9,
+        "custom_0": 0.7,
+        "custom_1": 0.5,
+        "custom_2": 0.3,
+        "custom_3": 0.4,
+        "custom_4": 0.6
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 4,
+      "transpose": 0,
+      "portamento": 0.0
+    },
+    {
+      "generator_id": "drangarnir:storm_cloud",
+      "params": {
+        "frequency": 0.45,
+        "cutoff": 0.65,
+        "resonance": 0.1,
+        "attack": 0.3,
+        "decay": 0.85,
+        "custom_0": 0.6,
+        "custom_1": 0.4,
+        "custom_2": 0.5,
+        "custom_3": 0.2,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 5,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator_id": "drangarnir:cascade",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 0.85,
+        "resonance": 0.1,
+        "attack": 0.2,
+        "decay": 0.7,
+        "custom_0": 0.6,
+        "custom_1": 0.5,
+        "custom_2": 0.4,
+        "custom_3": 0.6,
+        "custom_4": 0.4
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 6,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator_id": "drangarnir:moss_whisper",
+      "params": {
+        "frequency": 0.55,
+        "cutoff": 0.6,
+        "resonance": 0.05,
+        "attack": 0.4,
+        "decay": 0.8,
+        "custom_0": 0.5,
+        "custom_1": 0.6,
+        "custom_2": 0.4,
+        "custom_3": 0.5,
+        "custom_4": 0.7
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 7,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator_id": "drangarnir:horizon_glow",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 0.9,
+        "resonance": 0.1,
+        "attack": 0.2,
+        "decay": 0.75,
+        "custom_0": 0.6,
+        "custom_1": 0.7,
+        "custom_2": 0.4,
+        "custom_3": 0.5,
+        "custom_4": 0.3
+      },
+      "filter_type": 0,
+      "env_source": 1,
+      "clock_rate": 5,
+      "midi_channel": 8,
+      "transpose": 3,
+      "portamento": 0.3
+    }
+  ],
+  "mixer": {
+    "channels": [
+      {"volume": 0.7, "pan": 0.4, "mute": false, "solo": false},
+      {"volume": 0.6, "pan": 0.6, "mute": false, "solo": false},
+      {"volume": 0.65, "pan": 0.5, "mute": false, "solo": false},
+      {"volume": 0.75, "pan": 0.5, "mute": false, "solo": false},
+      {"volume": 0.55, "pan": 0.3, "mute": false, "solo": false},
+      {"volume": 0.6, "pan": 0.7, "mute": false, "solo": false},
+      {"volume": 0.5, "pan": 0.45, "mute": false, "solo": false},
+      {"volume": 0.55, "pan": 0.55, "mute": false, "solo": false}
+    ]
+  },
+  "bpm": 72
+}

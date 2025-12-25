@@ -1,0 +1,60 @@
+{
+  "generator_id": "moss_whisper",
+  "name": "Moss Whisper",
+  "synthdef": "forge_drangarnir_moss_whisper",
+  "custom_params": [
+    {
+      "key": "growth",
+      "label": "GRW",
+      "tooltip": "Growth density - thickness of moss coverage",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wetness",
+      "label": "WET",
+      "tooltip": "Moisture content - how saturated with water",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "breath",
+      "label": "BRE",
+      "tooltip": "Breathing - subtle organic movement",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "texture",
+      "label": "TEX",
+      "tooltip": "Surface texture - fine detail of the moss",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "softness",
+      "label": "SFT",
+      "tooltip": "Softness - how gentle and yielding",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

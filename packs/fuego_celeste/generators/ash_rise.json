@@ -1,0 +1,60 @@
+{
+  "generator_id": "ash_rise",
+  "name": "Ash Rise",
+  "synthdef": "forge_fuego_celeste_ash_rise",
+  "custom_params": [
+    {
+      "key": "rise",
+      "label": "RIS",
+      "tooltip": "Upward drift rate \u2014 how fast the ash column rises",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "billow",
+      "label": "BIL",
+      "tooltip": "Turbulence amount \u2014 chaotic billowing motion",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "choke",
+      "label": "CHO",
+      "tooltip": "Ash density \u2014 thickness and opacity of the plume",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "grey",
+      "label": "GRE",
+      "tooltip": "Tonal greyness \u2014 neutral, ashen timbre",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "curl",
+      "label": "CUR",
+      "tooltip": "Swirl motion \u2014 vortex and curl patterns",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

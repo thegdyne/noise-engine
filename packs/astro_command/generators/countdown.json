@@ -1,0 +1,60 @@
+{
+  "generator_id": "countdown",
+  "name": "Countdown",
+  "synthdef": "forge_astro_command_countdown",
+  "custom_params": [
+    {
+      "key": "seq",
+      "label": "SEQ",
+      "tooltip": "Sequence rate - countdown speed",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ten",
+      "label": "TEN",
+      "tooltip": "Tension - rising pitch urgency",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "zro",
+      "label": "ZRO",
+      "tooltip": "Zero-point - final moment intensity",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "vox",
+      "label": "VOX",
+      "tooltip": "Vocoder character - voice-like quality",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drm",
+      "label": "DRM",
+      "tooltip": "Drama level - cinematic intensity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

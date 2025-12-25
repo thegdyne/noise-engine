@@ -1,0 +1,60 @@
+{
+    "generator_id": "wax_wings",
+    "name": "Wax Wings",
+    "synthdef": "forge_icarus_wax_wings",
+    "custom_params": [
+        {
+            "key": "melt",
+            "label": "MLT",
+            "tooltip": "Melt — how much the wings are dissolving",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "drip",
+            "label": "DRP",
+            "tooltip": "Drip — falling wax droplet rate",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "feather",
+            "label": "FTH",
+            "tooltip": "Feather — delicate flutter texture",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "fail",
+            "label": "FAL",
+            "tooltip": "Fail — structural collapse instability",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "shimmer",
+            "label": "SHM",
+            "tooltip": "Shimmer — light catching on remaining wax",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
+}

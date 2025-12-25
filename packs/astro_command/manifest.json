@@ -1,0 +1,20 @@
+{
+  "pack_format": 1,
+  "pack_id": "astro_command",
+  "name": "Astro Command",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Retro-futuristic mission control sounds - analog consoles, radio links, tape computers, urgent alerts. Inspired by 1960s Japanese sci-fi aesthetics.",
+  "enabled": true,
+  "created": "2025-12-25T12:00:00Z",
+  "generators": [
+    "console_hum",
+    "alert_pulse",
+    "tape_brain",
+    "radio_link",
+    "switch_bank",
+    "scope_trace",
+    "data_stream",
+    "countdown"
+  ]
+}

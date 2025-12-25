@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "maratus",
+  "name": "Maratus",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Peacock spider courtship display \u2013 iridescent fans, hypnotic dance rhythms, tiny alien textures",
+  "enabled": true,
+  "generators": [
+    "fan_display",
+    "silk_thread",
+    "dance_step",
+    "eye_gleam",
+    "fuzzy_legs",
+    "courtship_pulse",
+    "rainbow_stripe",
+    "tiny_alien"
+  ]
+}

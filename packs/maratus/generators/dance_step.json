@@ -1,0 +1,60 @@
+{
+  "generator_id": "dance_step",
+  "name": "Dance Step",
+  "synthdef": "forge_maratus_dance_step",
+  "custom_params": [
+    {
+      "key": "step",
+      "label": "STP",
+      "tooltip": "Step – attack sharpness and snap",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "floor",
+      "label": "FLR",
+      "tooltip": "Floor – body resonance and low thump",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tap",
+      "label": "TAP",
+      "tooltip": "Tap – click transient presence",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "bounce",
+      "label": "BNC",
+      "tooltip": "Bounce – pitch envelope amount",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "groove",
+      "label": "GRV",
+      "tooltip": "Groove – subtle timing humanization",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": true,
+  "pitch_target": null
+}

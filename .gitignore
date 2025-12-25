@@ -43,12 +43,32 @@ supercollider/recordings/
 
 # Packs - track shipped, ignore user-created
 packs/*
+_example
 !packs/core/
 !packs/rlyeh/
 !packs/electric-shepherd/
+!packs/wax_print/
+!packs/sunken-temple/
+!packs/summer_of_love/
+!packs/seagrass_bay/
+!packs/rakshasa/
+!packs/nerve_glow/
+!packs/moss_root/
+!packs/maratus/
+!packs/leviathan/
+!packs/icarus/
+!packs/fuego_celeste/
+!packs/emerald_canopy/
+!packs/drangarnir/
+!packs/dew_sphere/
+!packs/boneyard/
+!packs/block_walk/
+!packs/beacon_vigil/
+!packs/barbican_hound/
+!packs/astro_command/
+!packs/arctic_henge/
+!packs/amber-threshold/
 !packs/user/
-packs/user/*
-!packs/user/.gitkeep
 
 # Test artifacts
 test_inputs/

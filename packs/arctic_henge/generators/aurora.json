@@ -1,0 +1,15 @@
+{
+  "generator_id": "aurora",
+  "name": "AURORA",
+  "synthdef": "forge_arctic_henge_aurora",
+  "custom_params": [
+    {"key": "curtain", "label": "CRT", "tooltip": "Harmonic curtain layers", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shimmer", "label": "SHM", "tooltip": "Phase modulation shimmer rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drift", "label": "DRF", "tooltip": "Slow pitch wandering", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "green", "label": "GRN", "tooltip": "Lower harmonic emphasis (green band)", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "red", "label": "RED", "tooltip": "Upper harmonic emphasis (red band)", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

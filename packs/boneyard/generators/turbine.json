@@ -1,0 +1,60 @@
+{
+  "generator_id": "turbine",
+  "name": "TURBINE",
+  "synthdef": "forge_boneyard_turbine",
+  "custom_params": [
+    {
+      "key": "blades",
+      "label": "BLD",
+      "tooltip": "Blade count - harmonic density",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wear",
+      "label": "WER",
+      "tooltip": "Bearing wear - detune and noise",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "catch",
+      "label": "CTH",
+      "tooltip": "Wind catch - external modulation",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "inertia",
+      "label": "INR",
+      "tooltip": "Rotational inertia - spin momentum",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "rattle",
+      "label": "RTL",
+      "tooltip": "Hub rattle - high frequency jitter",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": "rate"
+}

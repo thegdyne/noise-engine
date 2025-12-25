@@ -1,0 +1,60 @@
+{
+  "generator_id": "vigil",
+  "name": "Vigil",
+  "synthdef": "forge_beacon_vigil_vigil",
+  "custom_params": [
+    {
+      "key": "brth",
+      "label": "BRT",
+      "tooltip": "Breath rate - pulse speed",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hope",
+      "label": "HOP",
+      "tooltip": "Hope - brightness/lift quality",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wait",
+      "label": "WAT",
+      "tooltip": "Wait - sustain between pulses",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "flck",
+      "label": "FLK",
+      "tooltip": "Flicker - candle light tremolo",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wrmt",
+      "label": "WRM",
+      "tooltip": "Warmth - harmonic density",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": "frequency"
+}

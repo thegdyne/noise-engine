@@ -1,0 +1,20 @@
+{
+  "pack_format": 1,
+  "pack_id": "leviathan",
+  "name": "Leviathan",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Abyssal depths, massive creatures, emergence from the deep. Inspired by aerial whale imagery \u2014 sounds of impossible scale, underwater pressure, bioluminescence, and breach.",
+  "enabled": true,
+  "created": "2025-12-25T00:00:00Z",
+  "generators": [
+    "abyss_drone",
+    "breach",
+    "tidal_breath",
+    "whale_song",
+    "pressure_wave",
+    "biolume_ping",
+    "current_drift",
+    "surface_shimmer"
+  ]
+}

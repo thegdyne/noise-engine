@@ -1,0 +1,60 @@
+{
+  "generator_id": "harbor",
+  "name": "Harbor",
+  "synthdef": "forge_beacon_vigil_harbor",
+  "custom_params": [
+    {
+      "key": "dist",
+      "label": "DST",
+      "tooltip": "Distance - reverb/diffusion amount",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "horn",
+      "label": "HRN",
+      "tooltip": "Foghorn character - FM depth",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wave",
+      "label": "WAV",
+      "tooltip": "Water movement rate",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "deep",
+      "label": "DEP",
+      "tooltip": "Sub bass presence",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mist",
+      "label": "MST",
+      "tooltip": "High frequency haze",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": "frequency"
+}

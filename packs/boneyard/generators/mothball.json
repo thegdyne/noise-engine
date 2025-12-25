@@ -1,0 +1,60 @@
+{
+  "generator_id": "mothball",
+  "name": "MOTHBALL",
+  "synthdef": "forge_boneyard_mothball",
+  "custom_params": [
+    {
+      "key": "tension",
+      "label": "TEN",
+      "tooltip": "Wrap tension - harmonic brightness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pocket",
+      "label": "PKT",
+      "tooltip": "Air pocket resonance bubbling",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "seal",
+      "label": "SEL",
+      "tooltip": "Seal integrity - air leakage",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "humid",
+      "label": "HMD",
+      "tooltip": "Humidity - detuning and chorus",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "age",
+      "label": "AGE",
+      "tooltip": "Material age - degradation",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": "drone"
+}

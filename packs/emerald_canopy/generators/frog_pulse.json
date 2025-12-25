@@ -1,0 +1,60 @@
+{
+  "generator_id": "frog_pulse",
+  "name": "Frog Pulse",
+  "synthdef": "forge_emerald_canopy_frog_pulse",
+  "custom_params": [
+    {
+      "key": "croak",
+      "label": "CRK",
+      "tooltip": "Croak - FM throat wobble depth",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "throat",
+      "label": "THR",
+      "tooltip": "Throat - vocal resonance size",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wet",
+      "label": "WET",
+      "tooltip": "Wetness - aquatic formant character",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "inflate",
+      "label": "INF",
+      "tooltip": "Inflate - sub bass emphasis",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hop",
+      "label": "HOP",
+      "tooltip": "Hop - pitch envelope snap",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": true,
+  "pitch_target": null
+}

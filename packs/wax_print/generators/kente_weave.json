@@ -1,0 +1,15 @@
+{
+  "generator_id": "kente_weave",
+  "name": "Kente Weave",
+  "synthdef": "forge_wax_print_kente_weave",
+  "custom_params": [
+    {"key": "warp", "label": "WRP", "tooltip": "Warp - vertical thread density, base pulse rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "weft", "label": "WFT", "tooltip": "Weft - horizontal crossing, counter-rhythm intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dye", "label": "DYE", "tooltip": "Dye - color saturation, harmonic richness", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tight", "label": "TGT", "tooltip": "Tight - weave tightness, envelope snap", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "gold", "label": "GLO", "tooltip": "Gold - metallic thread highlights", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

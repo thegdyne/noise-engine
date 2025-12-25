@@ -1,0 +1,15 @@
+{
+  "generator_id": "redflash",
+  "name": "REDFLASH",
+  "synthdef": "forge_barbican_hound_redflash",
+  "custom_params": [
+    {"key": "gloss", "label": "GLS", "tooltip": "Brightness — paint sheen", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "bold", "label": "BLD", "tooltip": "Intensity — how striking", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "flash", "label": "FLH", "tooltip": "Attack sharpness", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "fade", "label": "FAD", "tooltip": "Decay character", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hue", "label": "HUE", "tooltip": "Harmonic color — ring mod ratio", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": 0.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

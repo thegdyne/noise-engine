@@ -1,0 +1,60 @@
+{
+  "generator_id": "branch_snap",
+  "name": "Branch Snap",
+  "synthdef": "forge_moss_root_branch_snap",
+  "custom_params": [
+    {
+      "key": "crack",
+      "label": "CRK",
+      "tooltip": "Crack sharpness — initial transient brightness",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wood",
+      "label": "WOD",
+      "tooltip": "Wood resonance — body tone after the snap",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "echo",
+      "label": "ECH",
+      "tooltip": "Forest echo — internal delay feedback",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "size",
+      "label": "SIZ",
+      "tooltip": "Branch size — from twig to limb",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "dry",
+      "label": "DRY",
+      "tooltip": "Dryness — brittle vs green wood character",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

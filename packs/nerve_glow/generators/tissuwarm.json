@@ -1,0 +1,15 @@
+{
+  "generator_id": "tissuwarm",
+  "name": "TISSUWARM",
+  "synthdef": "forge_nerve_glow_tissuwarm",
+  "custom_params": [
+    {"key": "cellular", "label": "CEL", "tooltip": "Cellular structure — formant character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "blood", "label": "BLD", "tooltip": "Blood flow — modulation rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "organic", "label": "ORG", "tooltip": "Organic shift — formant movement", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hum", "label": "HUM", "tooltip": "Hum — fundamental strength", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "glow", "label": "GLW", "tooltip": "Glow — brightness/air", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

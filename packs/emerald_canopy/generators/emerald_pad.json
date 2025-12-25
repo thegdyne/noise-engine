@@ -1,0 +1,60 @@
+{
+  "generator_id": "emerald_pad",
+  "name": "Emerald Pad",
+  "synthdef": "forge_emerald_canopy_emerald_pad",
+  "custom_params": [
+    {
+      "key": "gem",
+      "label": "GEM",
+      "tooltip": "Gem quality - harmonic structure",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "facets",
+      "label": "FAC",
+      "tooltip": "Facets - detuned unison voices",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glow",
+      "label": "GLW",
+      "tooltip": "Inner glow - soft saturation warmth",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drift",
+      "label": "DRF",
+      "tooltip": "Drift - slow organic movement",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "thickness",
+      "label": "THK",
+      "tooltip": "Thickness - sub octave blend",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

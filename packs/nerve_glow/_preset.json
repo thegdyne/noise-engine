@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "mapping_version": 1,
+  "name": "Nerve Glow",
+  "pack": "nerve_glow",
+  "slots": [
+    {"generator": "NERVESPK", "params": {"frequency": 0.4, "cutoff": 0.8, "resonance": 0.2, "attack": 0.0, "decay": 0.76, "custom_0": 0.4, "custom_1": 0.6, "custom_2": 0.5, "custom_3": 0.3, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
+    {"generator": "MYOFIBER", "params": {"frequency": 0.35, "cutoff": 0.7, "resonance": 0.15, "attack": 0.1, "decay": 0.8, "custom_0": 0.5, "custom_1": 0.4, "custom_2": 0.6, "custom_3": 0.5, "custom_4": 0.3}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.2},
+    {"generator": "CARTGLOW", "params": {"frequency": 0.55, "cutoff": 0.9, "resonance": 0.1, "attack": 0.0, "decay": 0.73, "custom_0": 0.6, "custom_1": 0.3, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.4}, "filter_type": 0, "env_source": 0, "clock_rate": 7, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
+    {"generator": "VOIDBED", "params": {"frequency": 0.25, "cutoff": 0.4, "resonance": 0.3, "attack": 0.2, "decay": 0.85, "custom_0": 0.7, "custom_1": 0.3, "custom_2": 0.6, "custom_3": 0.4, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 1, "portamento": 0.0},
+    {"generator": "AXONWEB", "params": {"frequency": 0.5, "cutoff": 0.85, "resonance": 0.1, "attack": 0.0, "decay": 0.76, "custom_0": 0.5, "custom_1": 0.6, "custom_2": 0.3, "custom_3": 0.4, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
+    {"generator": "TISSUWARM", "params": {"frequency": 0.4, "cutoff": 0.75, "resonance": 0.15, "attack": 0.15, "decay": 0.8, "custom_0": 0.5, "custom_1": 0.4, "custom_2": 0.3, "custom_3": 0.6, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.15},
+    {"generator": "STRIATE", "params": {"frequency": 0.45, "cutoff": 0.7, "resonance": 0.2, "attack": 0.0, "decay": 0.7, "custom_0": 0.5, "custom_1": 0.4, "custom_2": 0.3, "custom_3": 0.5, "custom_4": 0.4}, "filter_type": 0, "env_source": 1, "clock_rate": 7, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
+    {"generator": "FLUORBED", "params": {"frequency": 0.38, "cutoff": 1.0, "resonance": 0.0, "attack": 0.2, "decay": 0.85, "custom_0": 0.5, "custom_1": 0.3, "custom_2": 0.5, "custom_3": 0.4, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 1, "portamento": 0.0}
+  ],
+  "mixer": {
+    "channels": [
+      {"volume": 0.6, "pan": 0.4, "mute": false, "solo": false, "eq_hi": 110, "eq_mid": 100, "eq_lo": 90, "gain": 0, "echo_send": 30, "verb_send": 40, "lo_cut": true, "hi_cut": false},
+      {"volume": 0.7, "pan": 0.55, "mute": false, "solo": false, "eq_hi": 95, "eq_mid": 105, "eq_lo": 100, "gain": 0, "echo_send": 20, "verb_send": 50, "lo_cut": false, "hi_cut": false},
+      {"volume": 0.55, "pan": 0.65, "mute": false, "solo": false, "eq_hi": 115, "eq_mid": 100, "eq_lo": 85, "gain": 0, "echo_send": 50, "verb_send": 60, "lo_cut": true, "hi_cut": false},
+      {"volume": 0.75, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 85, "eq_mid": 95, "eq_lo": 110, "gain": 0, "echo_send": 10, "verb_send": 30, "lo_cut": false, "hi_cut": false},
+      {"volume": 0.5, "pan": 0.35, "mute": false, "solo": false, "eq_hi": 120, "eq_mid": 100, "eq_lo": 90, "gain": 0, "echo_send": 40, "verb_send": 70, "lo_cut": true, "hi_cut": false},
+      {"volume": 0.65, "pan": 0.6, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 110, "eq_lo": 105, "gain": 0, "echo_send": 25, "verb_send": 45, "lo_cut": false, "hi_cut": false},
+      {"volume": 0.55, "pan": 0.45, "mute": false, "solo": false, "eq_hi": 105, "eq_mid": 100, "eq_lo": 95, "gain": 0, "echo_send": 35, "verb_send": 25, "lo_cut": true, "hi_cut": false},
+      {"volume": 0.7, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 115, "gain": 0, "echo_send": 15, "verb_send": 55, "lo_cut": false, "hi_cut": false}
+    ],
+    "master_volume": 0.8
+  },
+  "bpm": 72,
+  "master": {
+    "volume": 0.8,
+    "eq_hi": 110, "eq_mid": 105, "eq_lo": 115,
+    "eq_hi_kill": 0, "eq_mid_kill": 0, "eq_lo_kill": 0,
+    "eq_locut": 0, "eq_bypass": 0,
+    "comp_threshold": 120, "comp_makeup": 20, "comp_ratio": 1,
+    "comp_attack": 4, "comp_release": 4, "comp_sc": 0, "comp_bypass": 0,
+    "limiter_ceiling": 580, "limiter_bypass": 0
+  },
+  "mod_sources": {
+    "slots": [
+      {"generator_name": "LFO", "params": {"rate": 0.25, "shape": 0.5, "pattern": 0.0, "rotate": 0.0}, "output_wave": [0,0,0,0], "output_phase": [0,1,2,3], "output_polarity": [0,0,0,0]},
+      {"generator_name": "Sloth", "params": {"bias": 0.5}, "output_wave": [0,0,0,0], "output_phase": [0,0,0,0], "output_polarity": [0,0,0,0]},
+      {"generator_name": "LFO", "params": {"rate": 0.15, "shape": 0.3, "pattern": 0.0, "rotate": 0.0}, "output_wave": [0,0,0,0], "output_phase": [0,0,0,0], "output_polarity": [0,0,0,0]},
+      {"generator_name": "Sloth", "params": {"bias": 0.6}, "output_wave": [0,0,0,0], "output_phase": [0,0,0,0], "output_polarity": [0,0,0,0]}
+    ]
+  },
+  "mod_routing": {"connections": []}
+}

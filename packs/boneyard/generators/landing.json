@@ -1,0 +1,60 @@
+{
+  "generator_id": "landing",
+  "name": "LANDING",
+  "synthdef": "forge_boneyard_landing",
+  "custom_params": [
+    {
+      "key": "weight",
+      "label": "WGT",
+      "tooltip": "Aircraft weight class - impact depth",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "leak",
+      "label": "LEK",
+      "tooltip": "Hydraulic leak - hiss character",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "bounce",
+      "label": "BNC",
+      "tooltip": "Strut bounce - secondary impacts",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "rubber",
+      "label": "RBR",
+      "tooltip": "Tire deflation squeal",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "lock",
+      "label": "LOK",
+      "tooltip": "Lock mechanism failure click",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": true,
+  "pitch_target": "frequency"
+}

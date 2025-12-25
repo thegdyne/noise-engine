@@ -1,0 +1,15 @@
+{
+  "generator_id": "crystal_tone",
+  "name": "Crystal Tone",
+  "synthdef": "forge_dew_sphere_crystal_tone",
+  "custom_params": [
+    {"key": "pure", "label": "PUR", "tooltip": "Harmonic purity - perfect crystal structure", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "glow", "label": "GLW", "tooltip": "Inner glow - warmth radiating from within", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "round", "label": "RND", "tooltip": "Roundness of the crystal facets", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shine", "label": "SHN", "tooltip": "Surface shine and sparkle", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "warm", "label": "WRM", "tooltip": "Warmth in the lower harmonics", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
