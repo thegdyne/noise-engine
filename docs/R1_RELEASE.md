@@ -71,7 +71,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 
 | Component | Scope | R1 Status |
 |-----------|-------|-----------|
-| **Presets** | CMD+S/O save/load, generator + mixer state, file management | ✅ Done |
+| **Presets** | CMD+S/O save/load, generator + mixer state, file management | ⏳ FX save in progress |
 | **Clock** | BPM control (20-300), 13 divisions, audio-rate trigger buses | ✅ Done |
 
 ### System Layer
@@ -115,6 +115,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 | ~~Unsaved changes indicator~~ | ~~Presets~~ | ~~1 hr~~ ✅ |
 | ~~Init preset~~ | ~~Presets~~ | ~~30 min~~ ✅ |
 | ~~Validate mod routing saved in presets~~ | ~~Presets~~ | ~~15 min~~ ✅ |
+| FX state saved in presets | Presets | 1-2 hr ⏳ |
 
 ### Documentation
 
@@ -147,6 +148,7 @@ Not competing with Pigments/Vital/Phase Plant. The best generative texture rack 
 | ~~Session gaps (unsaved indicator)~~ | ~~1 hour~~ ✅ |
 | ~~Session gaps (init preset)~~ | ~~30 min~~ ✅ |
 | ~~Session gaps (verify mod routing)~~ | ~~15 min~~ ✅ |
+| Session gaps (FX save in presets) | 1-2 hr ⏳ |
 | ~~Content gaps (core restructure)~~ | ~~1-2 hours~~ ✅ |
 | ~~Content gaps (naming unification)~~ | ~~1-2 hours~~ ✅ |
 | Content gaps (CQD_Forge packs) | 3-4 sessions |
@@ -239,6 +241,7 @@ Not blocking R1 but should address before public release:
 - [x] Unsaved changes indicator
 - [x] Init preset available
 - [x] Mod routing saved in presets (verify)
+- [ ] FX state saved in presets ⏳
 
 **System Layer**
 - [ ] UI shell complete
@@ -280,6 +283,7 @@ Not blocking R1 but should address before public release:
 | ~~Presets gaps~~ | ~~0.5~~ | ~~Unsaved indicator~~ ✅ |
 | ~~Presets gaps~~ | ~~0.25~~ | ~~Init preset~~ ✅ |
 | ~~Presets gaps~~ | ~~0.1~~ | ~~Verify mod routing~~ ✅ |
+| Presets gaps | 0.5 | FX save in presets ⏳ |
 | ~~Content gaps~~ | ~~0.5~~ | ~~Core restructure~~ ✅ |
 | ~~Content gaps~~ | ~~0.5~~ | ~~Naming unification~~ ✅ |
 | CQD_Forge | 3-4 | 10+ packs |
@@ -315,18 +319,18 @@ Not blocking R1 but should address before public release:
 | Performance | 2 | 2 | 100% |
 | Mixer | 3 | 3 | 100% |
 | Content | 4 | 5 | 80% |
-| Session | 4 | 4 | 100% |
+| Session | 4 | 5 | 80% |
 | System | 2 | 2 | 100% |
 | Documentation | 1.5 | 5 | 30% |
 | Release Gates | 1 | 5 | 20% |
-| **Total** | **26.5** | **35** | **76%** |
+| **Total** | **26.5** | **36** | **74%** |
 
 ### By Category
 
 | Category | Status |
 |----------|--------|
 | **Core functionality** | 🟢 **100%** (All layers complete!) |
-| **R1 feature gaps** | 🟢 **100%** (All features done!) |
+| **R1 feature gaps** | 🟡 ~95% (FX save in progress) |
 | **Content** | ~40% (core done, packs needed) |
 | **Documentation** | ~30% (Windows guide + manual done) |
 | **Release gates** | 20% (LICENSE done) |
@@ -335,6 +339,7 @@ Not blocking R1 but should address before public release:
 
 | Item | Effort | Impact |
 |------|--------|--------|
+| FX save in presets | 1-2 hr ⏳ | High — complete preset system |
 | CQD_Forge packs | 3-4 sessions | High — no content = no release |
 | Documentation | 1 session | Medium — onboarding |
 | Release gates | 0.5 session | Final — ship prep |
@@ -345,11 +350,12 @@ Not blocking R1 but should address before public release:
 
 **Next session priority:**
 
-1. **CQD_Forge packs** — Critical path blocker, 3-4 sessions
-2. **Documentation** — Can parallelize with pack creation
-3. **Release gates** — Final prep before ship
+1. **FX save in presets** — In progress ⏳
+2. **CQD_Forge packs** — Critical path blocker, 3-4 sessions
+3. **Documentation** — Can parallelize with pack creation
+4. **Release gates** — Final prep before ship
 
-**All feature gaps closed!** Only content, docs, and release gates remain.
+**One feature gap remaining (FX save) — in progress!**
 
 **Don't start until packs are done:**
 - Release gates (LICENSE, CHANGELOG, index.html, tag)
