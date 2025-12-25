@@ -2,7 +2,7 @@
 Preset schema definition and validation.
 v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 2: BPM + Master section (EQ, compressor, limiter)
-   - Phase 3: Modulation sources (4 slots × 4 outputs)
+   - Phase 3: Modulation sources (4 slots Ã— 4 outputs)
    - Phase 4: Modulation routing (connections)
    - Phase 5: FX state (Heat, Echo, Reverb, Dual Filter)
 """
@@ -12,7 +12,7 @@ from typing import Optional
 import json
 
 PRESET_VERSION = 2
-MAPPING_VERSION = 1  # For future UI→value curve changes
+MAPPING_VERSION = 1  # For future UIâ†’value curve changes
 
 # Valid ranges
 FILTER_TYPES = 6      # 0=LP, 1=HP, 2=BP, 3=Notch, 4=LP2, 5=OFF
@@ -36,11 +36,11 @@ COMP_SC_FREQS = 6     # 0-5: Off, 30, 60, 90, 120, 185Hz
 NUM_MOD_SLOTS = 4
 NUM_MOD_OUTPUTS = 4
 MOD_WAVEFORMS = 5     # saw, tri, sqr, sin, s&h
-MOD_PHASES = 8        # 0°, 45°, 90°, ... 315°
+MOD_PHASES = 8        # 0Â°, 45Â°, 90Â°, ... 315Â°
 MOD_POLARITIES = 2    # 0=NORM, 1=INV
 
 # Phase 4: Modulation routing constants
-NUM_MOD_BUSES = 16    # 4 slots × 4 outputs
+NUM_MOD_BUSES = 16    # 4 slots Ã— 4 outputs
 MOD_POLARITIES_ROUTING = 3  # 0=bipolar, 1=uni+, 2=uni-
 
 # Phase 5: FX constants
@@ -469,11 +469,9 @@ class FXState:
             "reverb": self.reverb.to_dict(),
             "dual_filter": self.dual_filter.to_dict(),
         }
-
+    
     @classmethod
     def from_dict(cls, data: dict) -> "FXState":
-        if not isinstance(data, dict):
-            data = {}
         return cls(
             heat=HeatState.from_dict(data.get("heat", {})),
             echo=EchoState.from_dict(data.get("echo", {})),
@@ -570,9 +568,13 @@ def validate_preset(data: dict, strict: bool = False) -> tuple:
     warnings = []
     
     # Version check
-    version = data.get("version", 1)
-    if version > PRESET_VERSION:
-        warnings.append(f"Preset version {version} is newer than supported {PRESET_VERSION}")
+    if "version" not in data:
+        errors.append("version is required")
+        version = 1  # Default for remaining validation
+    else:
+        version = data["version"]
+        if version > PRESET_VERSION:
+            errors.append(f"Preset version {version} is newer than supported {PRESET_VERSION}")
     
     # Slots validation
     slots = data.get("slots", [])
