@@ -5,6 +5,8 @@ This detects UTF-8 characters that have been incorrectly decoded as Windows-1252
 Common patterns include:
 - Ã¢ sequences (from multi-byte UTF-8 chars)
 - Ã© Ã¨ Ã¼ etc (from accented characters)
+- Zero-width and invisible characters
+- Smart quotes in code files
 """
 
 import os
@@ -25,6 +27,9 @@ MOJIBAKE_PATTERNS = [
     (r'â€™', 'Corrupted apostrophe/arrow'),
     (r'â€œ', 'Corrupted quote'),
     (r'â€', 'Corrupted special char'),
+    # Additional mojibake patterns (different terminal/encoding display)
+    (r'√¢', 'UTF-8 mojibake variant (alternate display)'),
+    (r'√M-', 'UTF-8 mojibake with control chars'),
     # Common single-byte corruptions
     (r'Ã©', 'Corrupted é'),
     (r'Ã¨', 'Corrupted è'),
@@ -32,10 +37,38 @@ MOJIBAKE_PATTERNS = [
     (r'Ã¶', 'Corrupted ö'),
     (r'Ã¤', 'Corrupted ä'),
     (r'Ã±', 'Corrupted ñ'),
+    # Standalone  - very common mojibake artifact (non-breaking space becomes Â)
+    (r'Â(?=\s|[^\w]|$)', 'Standalone Â (corrupted non-breaking space)'),
+    (r'Â ', 'Â followed by space (mojibake artifact)'),
+]
+
+# Invisible/problematic characters (checked separately - not regex patterns)
+INVISIBLE_CHARS = [
+    ('\u200b', 'Zero-width space (U+200B)'),
+    ('\u200c', 'Zero-width non-joiner (U+200C)'),
+    ('\u200d', 'Zero-width joiner (U+200D)'),
+    ('\ufeff', 'BOM / Zero-width no-break space (U+FEFF)'),
+    ('\u00a0', 'Non-breaking space (U+00A0)'),
+    ('\ufffd', 'Replacement character (U+FFFD) - indicates prior decode error'),
+    ('\u2028', 'Line separator (U+2028)'),
+    ('\u2029', 'Paragraph separator (U+2029)'),
+]
+
+# Smart quotes - problematic in code files (.py, .scd)
+SMART_QUOTE_CHARS = [
+    ('"', 'Left double quote (U+201C)'),
+    ('"', 'Right double quote (U+201D)'),
+    (''', 'Left single quote (U+2018)'),
+    (''', 'Right single quote (U+2019)'),
+    ('«', 'Left guillemet (U+00AB)'),
+    ('»', 'Right guillemet (U+00BB)'),
 ]
 
 # File extensions to check
 CHECK_EXTENSIONS = {'.py', '.scd', '.md'}
+
+# Extensions where smart quotes are errors (not allowed in code)
+CODE_EXTENSIONS = {'.py', '.scd'}
 
 # Directories to skip
 SKIP_DIRS = {'__pycache__', '.git', 'venv', 'env', '.venv', 'node_modules', 'build', 'dist'}
@@ -73,14 +106,36 @@ def find_source_files(root_dir: Path):
 
 
 def check_file_for_mojibake(filepath: Path):
-    """Check a single file for mojibake patterns. Returns list of (line_num, pattern, description)."""
+    """Check a single file for mojibake patterns. Returns list of (line_num, pattern, description, preview)."""
     issues = []
+    ext = filepath.suffix.lower()
+    is_code_file = ext in CODE_EXTENSIONS
+    
     try:
         content = filepath.read_text(encoding='utf-8')
-        for line_num, line in enumerate(content.splitlines(), 1):
+        lines = content.splitlines()
+        
+        for line_num, line in enumerate(lines, 1):
+            # Check regex mojibake patterns
             for pattern, description in MOJIBAKE_PATTERNS:
                 if re.search(pattern, line):
                     issues.append((line_num, pattern, description, line.strip()[:80]))
+            
+            # Check invisible characters
+            for char, description in INVISIBLE_CHARS:
+                if char in line:
+                    # For BOM, only flag if not first char of first line
+                    if char == '\ufeff' and line_num == 1 and line.startswith(char):
+                        issues.append((line_num, repr(char), f'{description} at file start', line.strip()[:80]))
+                    elif char != '\ufeff':
+                        issues.append((line_num, repr(char), description, line.strip()[:80]))
+            
+            # Check smart quotes (only in code files)
+            if is_code_file:
+                for char, description in SMART_QUOTE_CHARS:
+                    if char in line:
+                        issues.append((line_num, repr(char), f'{description} in code file', line.strip()[:80]))
+                        
     except UnicodeDecodeError:
         issues.append((0, 'UnicodeDecodeError', 'File is not valid UTF-8', ''))
     except Exception as e:
@@ -161,6 +216,22 @@ class TestEncoding:
         for pattern, msg in expected_patterns:
             if pattern not in content:
                 pytest.fail(f"Missing expected pattern: {msg}")
+
+    def test_no_bom_in_files(self, source_files, project_root):
+        """Check that no files start with a BOM marker."""
+        bom_files = []
+        for filepath in source_files:
+            try:
+                with open(filepath, 'rb') as f:
+                    first_bytes = f.read(3)
+                    if first_bytes == b'\xef\xbb\xbf':
+                        bom_files.append(filepath.relative_to(project_root))
+            except Exception:
+                pass
+        
+        if bom_files:
+            pytest.fail(f"Files with BOM marker (remove with dos2unix or similar):\n" +
+                       "\n".join(f"  - {f}" for f in bom_files))
 
 
 if __name__ == '__main__':

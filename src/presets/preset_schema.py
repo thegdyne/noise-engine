@@ -2,7 +2,7 @@
 Preset schema definition and validation.
 v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 2: BPM + Master section (EQ, compressor, limiter)
-   - Phase 3: Modulation sources (4 slots Ã— 4 outputs)
+   - Phase 3: Modulation sources (4 slots × 4 outputs)
    - Phase 4: Modulation routing (connections)
    - Phase 5: FX state (Heat, Echo, Reverb, Dual Filter)
 """
@@ -40,7 +40,7 @@ MOD_PHASES = 8        # 0Â°, 45Â°, 90Â°, ... 315Â°
 MOD_POLARITIES = 2    # 0=NORM, 1=INV
 
 # Phase 4: Modulation routing constants
-NUM_MOD_BUSES = 16    # 4 slots Ã— 4 outputs
+NUM_MOD_BUSES = 16    # 4 slots × 4 outputs
 MOD_POLARITIES_ROUTING = 3  # 0=bipolar, 1=uni+, 2=uni-
 
 # Phase 5: FX constants

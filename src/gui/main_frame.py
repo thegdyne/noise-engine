@@ -412,8 +412,8 @@ class MainFrame(QMainWindow):
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
         
-        self.status_label = QLabel("â— Disconnected")
-        self.status_label.setFixedWidth(130)  # FIXED: fits "â— CONNECTION LOST"
+        self.status_label = QLabel("Disconnected")
+        self.status_label.setFixedWidth(130)  # FIXED: fits "CONNECTION LOST"
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
         
@@ -548,7 +548,7 @@ class MainFrame(QMainWindow):
                 if self.fx_window:
                     self.fx_window.set_osc_bridge(self.osc)
                 self.connect_btn.setText("Disconnect")
-                self.status_label.setText("â— Connected")
+                self.status_label.setText("Connected")
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
@@ -569,7 +569,7 @@ class MainFrame(QMainWindow):
                 # Send initial mod source state
                 self._sync_mod_sources()
             else:
-                self.status_label.setText("â— Connection Failed")
+                self.status_label.setText("Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
             try:
@@ -591,16 +591,16 @@ class MainFrame(QMainWindow):
             self.osc_connected = False
             self._set_header_buttons_enabled(False)
             self.connect_btn.setText("Connect SuperCollider")
-            self.status_label.setText("â— Disconnected")
+            self.status_label.setText("Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
     
     def on_connection_lost(self):
         """Handle connection lost - show prominent warning."""
         self.osc_connected = False
         self._set_header_buttons_enabled(False)
-        self.connect_btn.setText("âš  RECONNECT")
+        self.connect_btn.setText("RECONNECT")
         self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
-        self.status_label.setText("â— CONNECTION LOST")
+        self.status_label.setText("CONNECTION LOST")
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: bold;")
     
     def on_connection_restored(self):
@@ -614,7 +614,7 @@ class MainFrame(QMainWindow):
             self.fx_window.set_osc_bridge(self.osc)
         self.connect_btn.setText("Disconnect")
         self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
-        self.status_label.setText("â— Connected")
+        self.status_label.setText("Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         
         # Resend current state
@@ -1427,13 +1427,13 @@ class MainFrame(QMainWindow):
     def on_audio_device_changing(self, device_name):
         """Handle notification that SC is changing audio device."""
         logger.info(f"Audio device changing to: {device_name}...", component="OSC")
-        self.status_label.setText("â— Switching...")
+        self.status_label.setText("Switching...")
         self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
     
     def on_audio_device_ready(self, device_name):
         """Handle notification that SC finished changing device."""
         logger.info(f"Audio device ready: {device_name}", component="OSC")
-        self.status_label.setText("â— Connected")
+        self.status_label.setText("Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         self.audio_selector.set_enabled(True)
         # Re-query to confirm
