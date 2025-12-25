@@ -69,6 +69,7 @@ SynthDef(\forge_emerald_canopy_frog_pulse, { |out, freqBus, cutoffBus, resBus, a
     sig = Pan2.ar(sig, croakLfo * 0.2);
 
     // Output chain
+    sig = LeakDC.ar(sig);
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

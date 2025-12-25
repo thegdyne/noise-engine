@@ -60,6 +60,7 @@ SynthDef(\forge_fuego_celeste_ash_rise, { |out, freqBus, cutoffBus, resBus, atta
     sig = Pan2.ar(sig, curlPan);
 
     // Standard post-chain
+    sig = sig * 8;  // gain boost
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

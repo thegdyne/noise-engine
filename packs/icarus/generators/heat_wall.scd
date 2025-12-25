@@ -58,6 +58,7 @@ SynthDef(\forge_icarus_heat_wall, { |out, freqBus, cutoffBus, resBus, attackBus,
     sig = ~stereoSpread.(sig, 0.15, 0.35);
 
     // Output chain
+    sig = LeakDC.ar(sig);
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

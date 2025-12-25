@@ -62,6 +62,8 @@ SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, cutoffBus, resBus, attackBu
     sig = Pan2.ar(sig, panMod);
 
     // Output chain
+    sig = sig * 4;  // gain boost
+    sig = sig * 8;
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp,
                    clockTrigBus, midiTrigBus, slotIndex);

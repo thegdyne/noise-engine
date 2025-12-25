@@ -65,6 +65,7 @@ SynthDef(\forge_arctic_henge_stonebreath, { |out, freqBus, cutoffBus, resBus, at
     sig = wind + archRes + iceOvertones;
 
     // Output chain
+    sig = LeakDC.ar(sig);
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

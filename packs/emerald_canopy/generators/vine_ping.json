@@ -54,7 +54,7 @@
       "unit": ""
     }
   ],
-  "output_trim_db": -6.0,
+  "output_trim_db": -12.0,
   "midi_retrig": true,
   "pitch_target": null
 }

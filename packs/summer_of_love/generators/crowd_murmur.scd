@@ -70,6 +70,7 @@ SynthDef(\forge_summer_of_love_crowd_murmur, { |out, freqBus, cutoffBus, resBus,
     sig = ~stereoSpread.(sig, 0.15 + (movement * 0.2), space * 0.8);
 
     // Apply standard processing chain
+    sig = sig * 4;  // gain boost
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

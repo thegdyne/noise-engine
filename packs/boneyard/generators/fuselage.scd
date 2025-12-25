@@ -76,6 +76,7 @@ SynthDef(\forge_boneyard_fuselage, { |out, freqBus, cutoffBus, resBus, attackBus
     sig = LPF.ar(sig, material.linexp(0, 1, 3000, 8000));
 
     // Output chain
+    sig = sig * 8;
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

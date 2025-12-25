@@ -67,6 +67,7 @@ SynthDef(\forge_astro_command_alert_pulse, { |out, freqBus, cutoffBus, resBus, a
 
     // Output chain
     sig = Pan2.ar(sig, panPos);
+    sig = sig * 4;
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

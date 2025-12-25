@@ -56,5 +56,5 @@
   ],
   "output_trim_db": -3.0,
   "midi_retrig": true,
-  "pitch_target": "frequency"
+  "pitch_target": null
 }

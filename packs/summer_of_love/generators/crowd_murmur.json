@@ -9,7 +9,7 @@
     {"key": "movement", "label": "MVT", "tooltip": "Crowd movement - still gathering to bustling", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
     {"key": "space", "label": "SPC", "tooltip": "Open air ambience - park acoustic width", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
   ],
-  "output_trim_db": -6.0,
+  "output_trim_db": 6.0,
   "midi_retrig": false,
   "pitch_target": null
 }

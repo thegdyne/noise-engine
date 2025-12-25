@@ -61,6 +61,7 @@ SynthDef(\forge_maratus_dance_step, { |out, freqBus, cutoffBus, resBus, attackBu
     sig = ~stereoSpread.(sig, 0.5, 0.2);
 
     // Mandatory output chain
+    sig = sig * 4;  // gain boost
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);

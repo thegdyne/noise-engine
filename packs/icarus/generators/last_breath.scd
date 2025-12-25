@@ -58,6 +58,7 @@ SynthDef(\forge_icarus_last_breath, { |out, freqBus, cutoffBus, resBus, attackBu
     // Output chain
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
+    sig = Limiter.ar(sig, 0.9);
     sig = ~ensure2ch.(sig);
     Out.ar(out, sig);
 }).add;
