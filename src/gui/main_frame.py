@@ -447,7 +447,7 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.console_btn)
         
         # Restart button
-        self.restart_btn = QPushButton("Restart")
+        self.restart_btn = QPushButton("↻")
         self.restart_btn.setToolTip("Restart Noise Engine")
         self.restart_btn.setFixedSize(30, 30)
         self.restart_btn.setStyleSheet(f"""
