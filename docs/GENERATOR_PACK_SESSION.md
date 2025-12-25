@@ -44,6 +44,7 @@ SynthDef(\forge_{pack}_{name}, { |out, freqBus, cutoffBus, resBus, attackBus, de
 ```
 packs/{pack_id}/
     manifest.json
+    {pack_id}.json          <- init preset (loads all 8 generators)
     generators/
         {gen_id}.json
         {gen_id}.scd
@@ -252,7 +253,13 @@ Create all files:
 1. `packs/{pack_id}/manifest.json`
 2. `packs/{pack_id}/generators/{gen_id}.json` x 8
 3. `packs/{pack_id}/generators/{gen_id}.scd` x 8  
-4. `{pack_id}_preset.json` - loads all 8 generators into slots
+4. `packs/{pack_id}/{pack_id}.json` - init preset (loads all 8 generators)
+
+Or generate presets with tool:
+```bash
+python tools/forge_gen_preset.py packs/{pack_id}/
+python tools/forge_gen_preset.py --all --install  # All Forge packs
+```
 
 Deliver as downloadable archive.
 
@@ -340,18 +347,84 @@ tar -xzf {pack_id}.tar.gz -C packs/
 # Validate pack (check contract compliance)
 python tools/forge_validate.py packs/{pack_id}/ --verbose
 
-# Move preset to presets directory  
-mv packs/{pack_id}/_preset.json ~/noise-engine-presets/{pack_id}_preset.json
+# Audio validation (renders and checks safety gates)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render
+
+# Generate preset if missing (optional - archive should include it)
+python tools/forge_gen_preset.py packs/{pack_id}/
+
+# Install preset to presets directory  
+cp packs/{pack_id}/{pack_id}.json ~/noise-engine-presets/
 
 # Restart Noise Engine, select pack from dropdown
 ```
+
+## Audio Validation
+
+**`forge_audio_validate.py`** renders each generator via NRT and checks for audio issues.
+
+### Usage
+```bash
+# Full validation (both drone and clocked envelope modes)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render
+
+# Drone only (for pad/ambient packs)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render --env-mode drone
+
+# Clocked only (for rhythmic/percussive packs)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render --env-mode clocked
+
+# Verbose (shows render progress)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render -v
+```
+
+### Safety Gates (from Imaginarium Ã‚Â§9)
+| Gate | Threshold | Catches |
+|------|-----------|---------|
+| Silence | RMS > -40 dB | Dead/broken generators |
+| Sparse | >30% active frames | Extremely intermittent output |
+| Clipping | peak < 0.999 | Digital overs |
+| DC Offset | abs(mean) < 0.01 | Asymmetric waveforms |
+| Runaway | growth < +6 dB | Unstable feedback |
+
+### Impulsive Detection
+Generators with high crest factor (peak - RMS > 15 dB) are detected as **impulsive** (sparse/percussive). These use relaxed thresholds:
+- RMS: -55 dB (vs -40 dB)
+- Active frames: 5% (vs 30%)
+
+Impulsive generators show `~` suffix in output: `Ã¢Å“â€œ PASS~`
+
+### Example Output
+```
+nerve_glow: Rendering 8 generators (drone + clocked)...
+
+Generator         Peak     RMS  Crest  Trim Adj  Active Status
+Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+nervespk         -22.6  -45.2   23dB  +19.6 dB     31% Ã¢Å“â€œ PASS~
+myofiber         -19.8  -26.7    7dB   +8.7 dB    100% Ã¢Å“â€œ PASS
+cartglow         -23.5  -45.2   22dB  +20.5 dB     22% Ã¢Å“â€œ PASS~
+...
+Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+Ã¢Å“â€œ All 8 generators passed (3 impulsive~)
+
+Ã¢Å¡Â  Trim recommendations (adjust output_trim_db):
+  nervespk: +19.6 dB
+  cartglow: +20.5 dB
+```
+
+### Trim Recommendations
+The tool reports loudness vs target (-18 dBFS RMS). Large adjustments are informational Ã¢â‚¬â€œ generators may be designed quiet or the NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's sweet spot.
+
+### Requirements
+- SuperCollider installed (sclang in PATH or standard location)
+- `pip install soundfile` (or librosa)
 
 ## Archive Structure
 ```
 {pack_id}.tar.gz
     {pack_id}/
         manifest.json
-        _preset.json          <- moved to ~/noise-engine-presets/ after install
+        {pack_id}.json            <- init preset (cp to ~/noise-engine-presets/)
         generators/
             gen1.json
             gen1.scd
@@ -400,6 +473,23 @@ EOF
 
 ### Validation warnings about seed/RandSeed
 **Expected** for CQD_Forge packs. These are Imaginarium determinism requirements -- hand-crafted packs don't need them unless using random UGens.
+
+### Audio validation: SILENCE on impulsive generators
+**Expected** if crest factor is high. Tool auto-detects impulsive sounds (crest > 15 dB) and uses relaxed thresholds. If still failing:
+- Check generator produces output at default params
+- Try `--env-mode clocked` to test with rhythmic triggers
+
+### Audio validation: DC_OFFSET
+**Cause:** Asymmetric waveforms, often from unipolar sources like `Impulse.ar`.
+
+**Fix:** Add `LeakDC.ar(sig)` before the output chain:
+```supercollider
+sig = LeakDC.ar(sig);  // Remove DC offset
+sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+```
+
+### Audio validation: Large trim recommendations
+**Informational only** Ã¢â‚¬â€œ not failures. NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's intended use. Verify perceived loudness in-app before adjusting `output_trim_db`.
 
 ---
 
