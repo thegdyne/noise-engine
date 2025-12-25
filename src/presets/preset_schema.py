@@ -1065,9 +1065,13 @@ def _validate_fx(fx: dict, strict: bool = False) -> tuple:
     """Validate FX state (Phase 5)."""
     errors = []
     warnings = []
-    
+
+    # FX section is optional for backward compatibility, BUT if present it must be a dict.
+    if fx is None:
+        return errors, warnings
     if not isinstance(fx, dict):
-        # FX section is optional for backward compatibility
+        msg = f"fx must be dict, got {type(fx).__name__}"
+        (errors if strict else warnings).append(msg)
         return errors, warnings
     
     # Heat validation

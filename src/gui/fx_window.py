@@ -335,6 +335,7 @@ class FXWindow(QMainWindow):
     def __init__(self, osc_bridge=None, parent=None):
         super().__init__(parent)
         self.osc_bridge = osc_bridge
+        self._signals_connected = False
         
         self.setWindowTitle("Master FX")
         self.setMinimumSize(500, 400)
@@ -399,8 +400,9 @@ class FXWindow(QMainWindow):
     
     def _connect_signals(self):
         """Connect UI signals to OSC."""
-        if not self.osc_bridge:
+        if self._signals_connected:
             return
+        self._signals_connected = True
         
         # Heat
         self.heat.bypass_changed.connect(
