@@ -91,7 +91,7 @@ class MainFrame(QMainWindow):
         # Install event filter for keyboard overlay
         self.installEventFilter(self)
 
-    # â”€â”€ Dirty State Tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Dirty State Tracking â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _mark_dirty(self):
         """Mark session as having unsaved changes."""
@@ -447,7 +447,7 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.console_btn)
         
         # Restart button
-        self.restart_btn = QPushButton("â†»")
+        self.restart_btn = QPushButton("Restart")
         self.restart_btn.setToolTip("Restart Noise Engine")
         self.restart_btn.setFixedSize(30, 30)
         self.restart_btn.setStyleSheet(f"""
@@ -874,7 +874,7 @@ class MainFrame(QMainWindow):
         
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""
-        # Calculate slot from bus index: bus 0-3 â†’ slot 1, bus 4-7 â†’ slot 2, etc.
+        # Calculate slot from bus index: bus 0-3 â†' slot 1, bus 4-7 â†' slot 2, etc.
         slot_id = (bus_idx // 4) + 1
         output_idx = bus_idx % 4
         
@@ -923,7 +923,7 @@ class MainFrame(QMainWindow):
                 [conn.source_bus, conn.target_slot, conn.target_param,
                  conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
             )
-            logger.debug(f"Mod route added: bus {conn.source_bus} â†’ slot {conn.target_slot}.{conn.target_param} "
+            logger.debug(f"Mod route added: bus {conn.source_bus} â†' slot {conn.target_slot}.{conn.target_param} "
                         f"(d={conn.depth}, a={conn.amount}, o={conn.offset}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
         
         # Update slider visualization
@@ -937,7 +937,7 @@ class MainFrame(QMainWindow):
                 OSC_PATHS['mod_route_remove'],
                 [source_bus, target_slot, target_param]
             )
-            logger.debug(f"Mod route removed: bus {source_bus} â†’ slot {target_slot}.{target_param}", component="MOD")
+            logger.debug(f"Mod route removed: bus {source_bus} â†' slot {target_slot}.{target_param}", component="MOD")
         
         # Update slider visualization (may clear if no more routes)
         self._update_slider_mod_range(target_slot, target_param)
@@ -1798,7 +1798,7 @@ class MainFrame(QMainWindow):
 
         logger.info("Preset initialized to defaults", component="PRESET")
 
-    # â”€â”€ Keyboard Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Keyboard Mode â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def eventFilter(self, obj, event):
         """Forward key events to keyboard overlay when visible."""

@@ -12,7 +12,7 @@ from typing import Optional
 import json
 
 PRESET_VERSION = 2
-MAPPING_VERSION = 1  # For future UIâ†’value curve changes
+MAPPING_VERSION = 1  # For future UIâ†'value curve changes
 
 # Valid ranges
 FILTER_TYPES = 6      # 0=LP, 1=HP, 2=BP, 3=Notch, 4=LP2, 5=OFF
@@ -36,7 +36,7 @@ COMP_SC_FREQS = 6     # 0-5: Off, 30, 60, 90, 120, 185Hz
 NUM_MOD_SLOTS = 4
 NUM_MOD_OUTPUTS = 4
 MOD_WAVEFORMS = 5     # saw, tri, sqr, sin, s&h
-MOD_PHASES = 8        # 0Â°, 45Â°, 90Â°, ... 315Â°
+MOD_PHASES = 8        # 0°, 45°, 90°, ... 315°
 MOD_POLARITIES = 2    # 0=NORM, 1=INV
 
 # Phase 4: Modulation routing constants

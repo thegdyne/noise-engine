@@ -56,12 +56,12 @@ INVISIBLE_CHARS = [
 
 # Smart quotes - problematic in code files (.py, .scd)
 SMART_QUOTE_CHARS = [
-    ('"', 'Left double quote (U+201C)'),
-    ('"', 'Right double quote (U+201D)'),
-    (''', 'Left single quote (U+2018)'),
-    (''', 'Right single quote (U+2019)'),
-    ('«', 'Left guillemet (U+00AB)'),
-    ('»', 'Right guillemet (U+00BB)'),
+    ('\u201c', 'Left double quote (U+201C)'),
+    ('\u201d', 'Right double quote (U+201D)'),
+    ('\u2018', 'Left single quote (U+2018)'),
+    ('\u2019', 'Right single quote (U+2019)'),
+    ('\u00ab', 'Left guillemet (U+00AB)'),
+    ('\u00bb', 'Right guillemet (U+00BB)'),
 ]
 
 # File extensions to check
