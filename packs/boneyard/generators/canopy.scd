@@ -57,20 +57,8 @@ SynthDef(\forge_boneyard_canopy, { |out, freqBus, cutoffBus, resBus, attackBus, 
     crackResonance = crackResonance * cracks;
 
     // Shatter spray - burst of micro-impulses after main hit
-    shatterSpray = TGrains.ar(
-        2,
-        Dust.ar(shatter.linexp(0, 1, 10, 200)) * EnvGen.ar(Env.perc(0.001, 0.15)),
-        LocalBuf(SampleRate.ir * 0.01).collect({ |buf|
-            BufWr.ar(WhiteNoise.ar(1), buf, Phasor.ar(0, 1, 0, BufFrames.ir(buf)));
-            buf
-        }),
-        1,
-        LFNoise0.kr(50).range(0, 0.01),
-        LFNoise2.kr(30).range(0.002, 0.01),
-        0,
-        LFNoise2.kr(20).range(-1, 1),
-        2
-    );
+    shatterSpray = Dust.ar(shatter.linexp(0, 1, 50, 500)) * WhiteNoise.ar(0.3);
+    shatterSpray = shatterSpray * EnvGen.ar(Env.perc(0.001, 0.15), exciter);
     shatterSpray = HPF.ar(shatterSpray, 2000) * shatter * 0.5;
 
     // Frame thunk - low sub-harmonic
