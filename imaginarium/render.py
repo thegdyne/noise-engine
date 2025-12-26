@@ -105,7 +105,7 @@ class NRTRenderer:
         self,
         sclang_path: Optional[Path] = None,
         output_dir: Optional[Path] = None,
-        timeout_s: int = 45,
+        timeout_s: int = RENDER_CONFIG.timeout_sec,
     ):
         """
         Initialize renderer.

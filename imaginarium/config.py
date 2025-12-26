@@ -5,6 +5,7 @@ Configuration constants for Imaginarium Phase 1
 All values from IMAGINARIUM_SPEC v10
 """
 
+import os
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -138,6 +139,7 @@ class RenderConfig:
     channels: int = 2
     format: str = "WAV"
     sample_format: str = "int16"
+    timeout_sec: int = int(os.environ.get('NE_RENDER_TIMEOUT', 45))
 
 
 RENDER_CONFIG = RenderConfig()
