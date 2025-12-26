@@ -42,13 +42,14 @@ SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, cutoffBus, resBus, attackBu
     strands = RLPF.ar(strands, freq * (1 + (chaosLFO * 2)).clip(0.5, 4), 0.3);
 
     // Tangled complexity -- multiple detuned layers
-    layers = Mix.fill(tangle.round, { |i|
-        var detune, rate, strand;
+    layers = Mix.fill(8, { |i|
+        var detune, rate, strand, ampScale;
+        ampScale = ((tangle * 8) > i).asInteger;
         detune = LFNoise1.kr(whipRate * 0.3).range(0.8, 1.2);
         rate = frizz * LFNoise0.kr(2).range(0.5, 1.5);
         strand = Dust.ar(rate) * BrownNoise.ar;
-        RLPF.ar(strand, freq * detune * (1 + (i * 0.2)), 0.4 + (i * 0.1));
-    }) / tangle.max(1);
+        RLPF.ar(strand, freq * detune * (1 + (i * 0.2)), 0.4 + (i * 0.1)) * ampScale
+    }) / 8;
 
     // High frequency static/crackle
     crackle = Dust2.ar(frizz * 3) * 0.3;

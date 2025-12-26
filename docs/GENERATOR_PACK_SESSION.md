@@ -3,7 +3,10 @@
 ## Task
 Generate a themed 8-generator pack for Noise Engine synthesizer. Each generator has custom DSP where P1-P5 parameters implement thematic concepts (not just relabeled generic params).
 
+---
+
 ## Generator Contract (CRITICAL)
+
 ```supercollider
 SynthDef(\forge_{pack}_{name}, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                   filterTypeBus, envEnabledBus, envSourceBus=0,
@@ -31,64 +34,63 @@ SynthDef(\forge_{pack}_{name}, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // DSP here...
 
     // MANDATORY output chain (this order):
-    sig = LeakDC.ar(sig);  // ALWAYS — prevents DC offset (see DSP Safety Patterns)
-    sig = ~stereoSpread.(sig, rate, width);  // optional
+    sig = LeakDC.ar(sig);  // ALWAYS — prevents DC offset
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    // sig = Limiter.ar(sig, 0.95);  // ADD if using feedback/resonance/wavefold (see DSP Safety Patterns)
+    // sig = Limiter.ar(sig, 0.95);  // ADD if using feedback/resonance/wavefold
     sig = ~ensure2ch.(sig);
     Out.ar(out, sig);
 }).add;
 "  * forge_{pack}_{name} loaded".postln;
 ```
-## DSP Safety Patterns
 
-Empirical data from pack validation shows certain synthesis patterns consistently cause issues. Apply these preventively during design, not as post-hoc fixes.
+---
 
-### LeakDC — Required for These Patterns
+## SC Syntax Rules (NRT Compatibility)
 
-| Pattern | Why DC Builds | Examples |
-|---------|---------------|----------|
-| Impulse/trigger sources | Unipolar signals | `Impulse.ar`, `Dust.ar`, `Trig.ar` |
-| Asymmetric waveshaping | Clips one polarity more | `tanh`, `clip2`, `fold2` with bias |
-| Comb/delay feedback | DC accumulates in loop | `CombL`, `CombC` with high feedback |
-| Subharmonic generation | Dividers produce offset | `PulseDivider`, `Demand` rate tricks |
-| Physical models | Friction/bow excitation | `DWGBowed`, membrane models |
+These patterns break NRT rendering. **Never generate them:**
 
-**Always include `LeakDC.ar(sig)` as first step of output chain.**
+| DON'T | DO | Why |
+|-------|-----|-----|
+| `-panWidth` | `panWidth.neg` | Unary minus before variable fails NRT parse |
+| `-(0.6).clip(0,1)` | `(-0.6).clip(0,1)` | Unary minus before parens fails NRT parse |
+| `(count > 2) * 0.5` | `(count > 2).asInteger * 0.5` | Boolean in arithmetic evaluates to `true * 0.5` |
+| `var gate;` | `var gateVal;` | `gate` reserved by NRT wrapper |
+| `var amp;` | `var ampVal;` | Can conflict with NRT amp handling |
+| `TGrains` + `LocalBuf.collect` | Avoid or accept failure | Complex buffer patterns hang NRT |
 
-Generators that shipped without LeakDC and needed patching: `maratus/eye_gleam`, `leviathan/abyss_drone`, `leviathan/whale_song`, `rlyeh/RLYEH`, `rakshasa/fang_strike`, `seagrass_bay/current_drift`
+**Variable declarations:** Must appear at **beginning of code blocks** only.
 
-### Limiter — Required for These Patterns
+---
 
-| Pattern | Why Runaway Occurs | Examples |
-|---------|-------------------|----------|
-| Resonant filters near self-osc | Q amplifies signal | `RLPF` with rq < 0.1 |
-| Feedback FM | Index modulates itself | `SinOscFB`, feedback loops |
-| Delay feedback > 0.7 | Energy accumulates | `CombL.ar(sig, ..., fb: 0.9)` |
-| Additive with many partials | Summed amplitude grows | `Mix.fill(32, ...)` |
-| Wavefolder cascades | Each stage adds gain | Multiple `fold2` in series |
-| Ring mod with feedback | Cross-modulation amplifies | `sig * sig.delay(...)` |
+## DSP Pre-Check
 
-**Add `Limiter.ar(sig, 0.95)` before `~ensure2ch` when using these patterns:**
+**Before generating code, identify which safety patterns are required:**
+
+| If the generator uses... | Required |
+|--------------------------|----------|
+| `Impulse`, `Dust`, `Trig` | LeakDC |
+| Waveshaping (`tanh`, `clip2`, `fold2`) | LeakDC |
+| Physical models (`DWGBowed`, membranes) | LeakDC |
+| Subharmonic generation (`PulseDivider`) | LeakDC |
+| Comb/delay feedback > 0.5 | LeakDC + Limiter |
+| Resonant filter (rq < 0.3) | Limiter |
+| Feedback FM (`SinOscFB`) | Limiter |
+| Ring mod with feedback | Limiter |
+| Additive with >16 partials | Limiter |
+| Wavefolder cascades | Limiter |
+
+**Default:** Always include `LeakDC.ar(sig)`. Add `Limiter.ar(sig, 0.95)` when any Limiter pattern applies.
+
+---
+
+## Output Chain Variants
+
+**Minimal (simple oscillators, no feedback):**
 ```supercollider
 sig = LeakDC.ar(sig);
 sig = ~multiFilter.(sig, filterType, filterFreq, rq);
 sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-sig = Limiter.ar(sig, 0.95);  // <- Add for risky patterns
-sig = ~ensure2ch.(sig);
-Out.ar(out, sig);
-```
-
-Generators that shipped without Limiter and needed patching: `astro_command/alert_pulse`, `barbican_hound/routemaster`, `arctic_henge/aurora`, `arctic_henge/icebell`, `beacon_vigil/crown`, `rlyeh/VESSEL`, `rakshasa/gold_ring`, `summer_of_love/golden_haze`, `amber-threshold/StonePath`, `seagrass_bay/submerged_drone`
-
-### Quick Reference: Output Chain Variants
-
-**Minimal (safe sources like simple oscillators):**
-```supercollider
-sig = LeakDC.ar(sig);
-sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-sig = ~envVCA.(sig, ...);
 sig = ~ensure2ch.(sig);
 Out.ar(out, sig);
 ```
@@ -97,46 +99,108 @@ Out.ar(out, sig);
 ```supercollider
 sig = LeakDC.ar(sig);
 sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-sig = ~envVCA.(sig, ...);
+sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
 sig = Limiter.ar(sig, 0.95);
 sig = ~ensure2ch.(sig);
 Out.ar(out, sig);
 ```
-## Inline Post-Chain Pattern
 
-Some generators implement the filter/envelope chain inline rather than using the shared helpers (`~multiFilter`, `~envVCA`, `~ensure2ch`). This is valid when the generator needs custom behavior (e.g., acid-style filter envelope, custom stereo handling).
+---
 
-### Directive
+## Validation Pipeline
 
-Add this comment after the `var` declarations to opt out of helper requirements:
-```supercollider
-SynthDef(\forge_pack_name, { |out, freqBus, cutoffBus, ...|
-    var sig, freq, filterFreq, rq, ...;
-    var myCustomVars;
-    // @forge: inline_post_chain
-    
-    // ... rest of generator
+**Run in order. Stop at first failure.**
+
+### 1. UTF-8 Check (instant)
+Catches copy-paste corruption from AI context switching.
+```bash
+python tools/utf8_fix.py --report packs/{pack_id}/
+```
+If issues found: `python tools/utf8_fix.py --fix packs/{pack_id}/`
+
+### 2. SC Syntax Lint (5s)
+Catches NRT-breaking patterns before render attempt.
+```bash
+# Check for problematic patterns
+grep -rn '\-[a-z][a-zA-Z]*[^a-zA-Z0-9]' packs/{pack_id}/generators/*.scd   # unary minus
+grep -rn '\-([^)]*)\\.' packs/{pack_id}/generators/*.scd                    # minus-paren
+grep -rn 'var.*\bgate\b' packs/{pack_id}/generators/*.scd                   # reserved name
 ```
 
-### What the Directive Does
+### 3. Contract Check (10s)
+Ensures helper usage, arg signature, manifest validity.
+```bash
+python tools/forge_validate.py packs/{pack_id}/
+```
 
-- `forge_validate.py` skips helper call checks
-- Instead validates minimal contract:
-  - `Out.ar` present
-  - Some stereo handling detected
-  - Some envelope/amplitude control detected
-  - Some filter implementation detected (warning if missing)
+### 4. Audio Render (2-3 min)
+Full safety gates — silence, clipping, DC offset, runaway.
+```bash
+python tools/forge_audio_validate.py packs/{pack_id}/ --render
+```
 
-### When to Use Inline
+### Quick Single-Generator Test
+```bash
+python tools/forge_audio_validate.py packs/{pack_id}/generators/{gen}.scd --render -v
+```
 
-| Use Case | Example |
-|----------|---------|
-| Custom filter envelope | Acid 303-style squelch with per-note filter sweep |
-| Non-standard envelope | Complex multi-stage or triggered differently |
-| Specialized stereo | Width tied to a parameter, not LFO |
-| Performance optimization | Avoiding helper overhead in CPU-heavy generators |
+### Full Gate (All Checks)
+```bash
+python tools/forge_gate.py packs/{pack_id}/
+```
 
-### Inline Implementation Pattern
+---
+
+## Safety Gates
+
+| Gate | Threshold | Catches |
+|------|-----------|---------|
+| Silence | RMS > -40 dB (-55 dB impulsive) | Dead/broken generators |
+| Sparse | >30% active (>5% impulsive) | Extremely intermittent output |
+| Clipping | peak < 0.999 | Digital overs |
+| DC Offset | abs(mean) < 0.01 | Asymmetric waveforms |
+| Runaway | growth < +6 dB | Unstable feedback |
+
+**Impulsive detection:** Generators with crest factor > 15 dB auto-detected, use relaxed thresholds.
+
+---
+
+## Known NRT Limitations
+
+These patterns work live but may fail NRT validation:
+
+| Pattern | NRT Behavior | Action |
+|---------|--------------|--------|
+| `TGrains` + `LocalBuf.collect` | Hangs (timeout) | Accept, document |
+| Percussive without sustained gate | SILENCE in drone mode | Accept if `midi_retrig: true` |
+| Squelch/gate logic at 0.5 defaults | SILENCE | Accept if JSON defaults work |
+| Demand-rate complex triggers | May timeout | Case-by-case |
+| Borderline quiet (-40 to -42 dB) | SILENCE | Accept |
+| Marginal runaway (6-7 dB) | RUNAWAY | Accept with Limiter added |
+
+Document accepted issues in `docs/KNOWN_AUDIO_ISSUES.md`.
+
+---
+
+## Inline Post-Chain Pattern
+
+For generators needing custom filter/envelope behavior (e.g., acid-style filter sweep).
+
+### Directive
+Add after `var` declarations to opt out of helper requirements:
+```supercollider
+var sig, freq, filterFreq, rq, ...;
+var myCustomVars;
+// @forge: inline_post_chain
+```
+
+### When to Use
+- Custom filter envelope (303-style squelch)
+- Non-standard envelope (multi-stage, custom triggers)
+- Specialized stereo (width tied to parameter)
+- Performance optimization
+
+### Inline Implementation
 ```supercollider
     // Standard bus reads (same as always)
     freq = In.kr(freqBus);
@@ -147,7 +211,7 @@ SynthDef(\forge_pack_name, { |out, freqBus, cutoffBus, ...|
     filterType = In.kr(filterTypeBus);
     envSource = In.kr(envSourceBus);
     clockRate = In.kr(clockRateBus);
-    amp = 0.2;  // or read from bus
+    amp = 0.2;
 
     // ... DSP here ...
 
@@ -158,7 +222,7 @@ SynthDef(\forge_pack_name, { |out, freqBus, cutoffBus, ...|
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
 
-    // Inline filter (Select across all types)
+    // Inline filter
     ne_cut = filterFreq.clip(20, 18000);
     ne_rq = rq.clip(0.05, 2);
     ne_lp = RLPF.ar(sig, ne_cut, ne_rq);
@@ -190,574 +254,73 @@ SynthDef(\forge_pack_name, { |out, freqBus, cutoffBus, ...|
     Out.ar(out, sig);
 ```
 
-### NRT Validation Notes
-
-The `forge_audio_validate.py` NRT transform handles both helper-based and inline generators:
-
-| Pattern | Transform |
-|---------|-----------|
-| `In.ar(clockTrigBus, N)` | → `DC.ar(0) ! N` |
-| `In.kr(clockTrigBus, N)` | → `DC.kr(0) ! N` |
-| `In.ar(midiTrigBus, N)` | → `DC.ar(0) ! N` |
-| `In.kr(midiTrigBus, N)` | → `DC.kr(0) ! N` |
-| `ampBus` references | Kept in arg list as `ampBus=(-1)` |
-| Complex amp selection | Neutralized to constant `0.5` |
-
-If an inline generator fails NRT render with undefined variable errors, check that:
-1. Trigger bus reads use standard pattern (`In.kr(clockTrigBus, 13)`)
-2. No custom arguments beyond the standard contract
-
-### Batch Adding Directive
-
-To add the directive to multiple generators:
-```bash
-# Create list of files
-cat << 'EOF' > /tmp/inline_generators.txt
-packs/pack_name/generators/gen1.scd
-packs/pack_name/generators/gen2.scd
-EOF
-
-# Batch insert after last var line
-while read -r file; do
-  if [ -f "$file" ]; then
-    last_var=$(grep -n "^    var " "$file" | tail -1 | cut -d: -f1)
-    sed -i '' "${last_var}a\\
-    // @forge: inline_post_chain
-" "$file"
-    echo "✓ $(basename $file)"
-  fi
-done < /tmp/inline_generators.txt
-```
-
-### Generators Using Inline Pattern
-
-These generators use inline post-chain (directive added Dec 2025):
-
-- `aurora_cave`: aurora, boreal
-- `beacon_vigil`: threshold
-- `block_walk`: stride_bass, leather_creak, sunset_pad, snap_clap
-- `boneyard`: canopy
-- `dew_sphere`: surface_tension, filament_bed, droplet_ping
-- `drangarnir`: wave_crash
-- `fuego_celeste`: magma_drone, star_ping
-- `icarus`: glory
-- `moss_root`: root_drone, branch_snap, leaf_fall, canopy_tone, lichen_bell
-- `seagrass_bay`: crystal_spring
-- `summer_of_love`: acid_bloom
-- `wax_print`: bold_motif
-
-## Pack Structure
-```
-packs/{pack_id}/
-    manifest.json
-    {pack_id}.json          <- init preset (loads all 8 generators)
-    generators/
-        {gen_id}.json
-        {gen_id}.scd
-```
-
-## Manifest Schema
-```json
-{
-  "pack_id": "slug_24char_max",
-  "pack_format": 1,
-  "enabled": true,
-  "name": "Display Name",
-  "description": "...", 
-  "author": "CQD_Forge",
-  "version": "1.0.0",
-  "generators": ["gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8"]
-}
-```
-
-**CRITICAL: Manifest MUST include:**
-- `"pack_format": 1` -- Required for pack loader
-- `"enabled": true` -- Pack won't appear in UI without this
-- `"generators"` array with exactly 8 entries
+---
 
 ## Generator JSON Schema
-```json
-{"generator_id": "slug", "name": "Display", "synthdef": "forge_pack_name",
- "custom_params": [
-   {"key": "x", "label": "XXX", "tooltip": "Description", "default": 0.5, 
-    "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
- ], "output_trim_db": -6.0, "midi_retrig": false, "pitch_target": null}
-```
-
-### Batch Processing with CSV Output
-```bash
-# Output only failures in CSV format (for scripting)
-python tools/forge_audio_validate.py packs/{pack_id}/ --render --fail-csv
-
-# Run all Forge packs, collect failures
-for pack in packs/*/; do
-  if grep -q '"author": "CQD_Forge"' "$pack/manifest.json" 2>/dev/null; then
-    python tools/forge_audio_validate.py "$pack" --render --fail-csv
-  fi
-done
-```
-
-### Debugging Timeouts
-When a generator times out (sclang hangs), preserve the work directory to inspect the generated NRT script:
-```bash
-FORGE_VALIDATE_KEEP_WORKDIR=1 python tools/forge_audio_validate.py packs/{pack_id}/ --render -v
-```
-
-This prints the temp directory path. Then manually run the failing script:
-```bash
-cat /var/folders/.../forge_validate_xxx/GENERATOR_drone_render.scd
-sclang /var/folders/.../forge_validate_xxx/GENERATOR_drone_render.scd
-```
-
-Common timeout causes:
-- SC syntax error → sclang waits for input
-- Infinite loop in DSP (e.g., `Mix.fill` with runtime UGen count)
-- Missing variable declaration
-- 
-## pitch_target Field
-
-**Type:** `null` or `int` (0-4)
-
-| Value | Meaning |
-|-------|---------|
-| `null` | No pitch target — generator uses standard `freqBus` for pitch |
-| `0-4` | Index of custom param that should receive pitch CV (for keyboard control) |
-
-**WRONG:**
-```json
-"pitch_target": "frequency"    // ❌ String not allowed
-"pitch_target": "custom_0"     // ❌ String not allowed
-```
-
-**CORRECT:**
-```json
-"pitch_target": null           // ✓ Standard pitch from freqBus
-"pitch_target": 0              // ✓ P1 receives pitch
-"pitch_target": 2              // ✓ P3 receives pitch
-```
-
-## pitch_target Rules
-
-**Type:** `null` or `int` (0-4) — **NEVER a string**
-
-| Value | Meaning |
-|-------|---------|
-| `null` | Standard pitch from freqBus (most generators) |
-| `0` | P1 receives pitch CV |
-| `1` | P2 receives pitch CV |
-| `2` | P3 receives pitch CV |
-| `3` | P4 receives pitch CV |
-| `4` | P5 receives pitch CV |
-
-**WRONG — will fail tests:**
-```json
-"pitch_target": "frequency"    // ❌ String
-"pitch_target": "drone"        // ❌ String  
-"pitch_target": "rate"         // ❌ String
-```
-
-**CORRECT:**
-```json
-"pitch_target": null           // ✓ Most generators
-"pitch_target": 0              // ✓ Only if P1 needs pitch CV
-```
-
-Use `null` for 99% of generators. Only use an integer if a custom param specifically controls pitch and needs keyboard/MIDI note input.
-
-Most generators should use `"pitch_target": null` — only use an integer if one of your P1-P5 params specifically needs to receive pitch CV instead of the standard frequency bus.
-
-## Role Balance
-Each pack needs: 1-2 **bed** (foundation), 1-2 **accent** (hits/stabs), 1-2 **foreground** (melodic), 1-2 **motion** (movement/texture)
-
-## Labels
-- 3 chars uppercase A-Z/0-9
-- Thematic and evocative
-- Unique within generator
-
-## Synthesis Methods Catalog
-
-Reference: `GENERATOR_SPEC.md` for contract details, `imaginarium/methods/` for implementation patterns.
-
-### Family Overview (30 methods)
-
-| Family | Count | Character |
-|--------|-------|-----------|
-| **subtractive** | 5 | Warm, analog, filter-focused |
-| **fm** | 7 | Metallic, bells, digital |
-| **physical** | 7 | Organic, acoustic, plucked/bowed |
-| **texture** | 6 | Noise, granular, atmospheric |
-| **spectral** | 5 | Additive, harmonic, evolving |
-
-### Subtractive Methods
-| Method | Character | Typical P1-P5 |
-|--------|-----------|---------------|
-| `bright_saw` | Classic detuned saws, warm/rich | Detune, Mix, Spread, Bright, Sub |
-| `dark_pulse` | Hollow PWM, dark/moving | Width, PWM, Rate, Cut, Res |
-| `noise_filtered` | Filtered noise, windy/airy | Color, Reso, Sweep, Mod, Mix |
-| `supersaw` | Massive unison, huge/thick | Voices, Detune, Mix, Width, Fat |
-| `wavefold` | West coast, metallic/complex | Fold, Sym, Drive, Harm, Thick |
-
-### FM Methods
-| Method | Character | Typical P1-P5 |
-|--------|-----------|---------------|
-| `simple_fm` | Classic 2-op, bell-like | Ratio, Index, Decay, Bright, Harm |
-| `feedback_fm` | Harsh self-mod, aggressive | Feed, Drive, Tone, Chaos, Edge |
-| `ratio_stack` | Complex harmonics, rich | R1, R2, R3, Index, Blend |
-| `ring_mod` | Inharmonic, metallic/sci-fi | Ratio, Depth, Shape, Detune, Mix |
-| `hard_sync` | Aggressive sweep, lead/bass | Slave, Sweep, Hard, Tone, Punch |
-| `phase_mod` | CZ-style, digital/clean | Phase, Depth, Shape, Bright, Mod |
-| `am_chorus` | AM with motion, shimmery | Depth, Rate, Voices, Spread, Warm |
-
-### Physical Methods
-| Method | Character | Typical P1-P5 |
-|--------|-----------|---------------|
-| `karplus` | Plucked string, guitar/harp | Decay, Damp, Bright, Excite, Body |
-| `modal` | Resonant body, bells/marimba | Modes, Decay, Bright, Spread, Ring |
-| `bowed` | Friction string, cello/drone | Bow, Press, Pos, Bright, Body |
-| `formant` | Vocal/choir, breathy/human | Vowel, Breath, Track, Shift, Chorus |
-| `membrane` | Drum/percussion, thud/punch | Tens, Decay, Strike, Tone, Size |
-| `tube` | Pipe/flute, airy/blown | Length, Breath, Tone, Turb, Vib |
-| `comb_resonator` | Tuned delay, metallic/ringing | Feed, Damp, Bright, Mix, Mod |
-
-### Texture Methods
-| Method | Character | Typical P1-P5 |
-|--------|-----------|---------------|
-| `granular_cloud` | Diffuse particles, ambient | Dens, Size, Pitch, Jitter, Shimmer |
-| `dust_resonator` | Crackle/rain, organic | Dens, Decay, Bright, Spread, Pitch |
-| `noise_drone` | Filtered drone, dark/deep | Color, Move, Reso, Mod, Width |
-| `chaos_osc` | Unpredictable, glitchy | Chaos, Rate, Fold, Mix, Smooth |
-| `bitcrush` | Lo-fi, crunchy/retro | Bits, Rate, Mix, Tone, Alias |
-| `noise_rhythm` | Rhythmic noise, percussive | Shape, Decay, Dens, Tone, Swing |
-
-### Spectral Methods
-| Method | Character | Typical P1-P5 |
-|--------|-----------|---------------|
-| `additive` | Organ-like, pure/harmonic | Partials, Roll, Stretch, Bright, Odd |
-| `harmonic_series` | Natural overtones, rich | Num, Decay, Bright, Spread, Fund |
-| `spectral_drone` | FFT-based, evolving | Freeze, Blur, Shift, Feedback, Mix |
-| `vocoder` | Robotic, processed | Bands, Q, Mod, Carrier, Breath |
-| `wavetable` | Morphing, animated | Pos, Morph, Warp, Spread, Bright |
-
-### Choosing Methods for Image Themes
-
-| Image Mood | Best Methods |
-|------------|--------------|
-| **Dark/ominous** | dark_pulse, noise_drone, bowed, tube |
-| **Bright/airy** | bright_saw, additive, granular_cloud |
-| **Metallic/industrial** | ring_mod, wavefold, comb_resonator |
-| **Organic/natural** | karplus, formant, dust_resonator |
-| **Digital/sci-fi** | bitcrush, chaos_osc, phase_mod |
-| **Warm/analog** | supersaw, simple_fm, dark_pulse |
-| **Percussion** | membrane, noise_rhythm, modal |
-| **Ambient/evolving** | granular_cloud, spectral_drone, bowed |
-| **Aggressive/harsh** | feedback_fm, hard_sync, wavefold |
-
-### DSP Pattern Reference
-
-```supercollider
-// === Subtractive core ===
-sig = Saw.ar(freq) + Pulse.ar(freq * 1.01, width);
-sig = RLPF.ar(sig, cutoff, rq);
-
-// === FM core ===
-var mod = SinOsc.ar(freq * ratio) * index * freq;
-sig = SinOsc.ar(freq + mod);
-
-// === Karplus-Strong ===
-sig = Pluck.ar(noise, trig, freq.reciprocal, freq.reciprocal, decay, coef);
-
-// === Modal resonators ===
-sig = Ringz.ar(exciter, [freq, freq*2.3, freq*4.1], decays).sum;
-
-// === Granular ===
-sig = GrainBuf.ar(2, Dust.ar(density), grainDur, bufnum, rate, pos);
-
-// === Wavefold ===
-sig = sig.fold2(threshold);
-sig = (sig * drive).tanh;
-
-// === Trigger selection (for non-envVCA methods) ===
-trig = Select.ar(envSource.round.clip(0, 2), [
-    DC.ar(0),
-    Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-    Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-]);
-```
-
-## SuperCollider Syntax Pitfalls (AVOID THESE)
-
-### 1. Mix.fill(ugen, ...) -- UGen count not allowed
-```supercollider
-// WRONG - prayer is a UGen, count must be compile-time constant
-harmonics = Mix.fill(prayer.round, { |i| ... });
-
-// CORRECT - fixed count with amplitude crossfade
-harmonics = Mix.fill(6, { |i|
-    var amp = (prayer * 6 - i).clip(0, 1);  // Fades in layers
-    SinOsc.ar(freq * (i + 1)) * amp
-});
-```
-
-### 2. LocalBuf.collect -- LocalBuf is not an array
-```supercollider
-// WRONG - LocalBuf returns a buffer ref, not an array
-spray = LocalBuf(1024).collect({ |buf| ... });
-
-// CORRECT - create buffer, fill separately
-buf = LocalBuf(SampleRate.ir * 0.01, 1);
-BufWr.ar(WhiteNoise.ar(1), buf, Phasor.ar(0, 1, 0, BufFrames.ir(buf)));
-spray = TGrains.ar(2, trig, buf, ...);
-```
-
-### 3. -variable * n -- Parser rejects leading minus
-```supercollider
-// WRONG - parser error
-sig = sig + (-contrast * 0.3);
-
-// CORRECT - multiply by negative
-sig = sig + (contrast * -0.3);
-```
-
-### 4. Mid-block var -- All vars must be at block start
-```supercollider
-// WRONG
-sig = SinOsc.ar(freq);
-var extra = 0.5;  // ERROR: var after statement
-
-// CORRECT
-var sig, extra;
-sig = SinOsc.ar(freq);
-extra = 0.5;
-```
-
-### 5. DC Offset Sources -- use LeakDC.ar()
-```supercollider
-// Common DC offset sources:
-// - Impulse.ar, Dust.ar (unipolar by default)
-// - LFNoise0/1/2 used additively (bipolar but can drift)
-// - Asymmetric waveshaping/folding
-// - Unbalanced ring modulation
-// - Resonant filters with high feedback
-
-// ALWAYS include LeakDC before output chain:
-sig = LeakDC.ar(sig);
-sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-sig = ~envVCA.(...);
-```
-
-### Audio validation: CLIPPING
-**Cause:** Peak >= 0.999 (digital overs).
-
-**Fix options:**
-1. Reduce `output_trim_db` in JSON by 6-12dB
-2. Add limiter in SynthDef before output:
-```supercollider
-sig = Limiter.ar(sig, 0.95);
-sig = ~ensure2ch.(sig);
-```
-
-### Audio validation: SILENCE (both modes)
-**Cause:** Generator output too quiet at test defaults.
-
-**Fix:** Boost gain in SynthDef before filter:
-```supercollider
-sig = sig * 4;  // +12dB boost
-sig = LeakDC.ar(sig);
-sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-```
-
-Note: `output_trim_db` in JSON only affects live playback, not NRT validation.
-
-### Audio validation: RENDER_FAILED (timeout)
-**Cause:** SynthDef takes >30s to render. Usually:
-- Infinite loop in DSP
-- Runtime-dependent UGen count (use fixed max with amplitude control)
-- Expensive operations (too many voices in `Mix.fill`)
-
-**Debug:** Check SC console for errors, simplify DSP, ensure UGen graph is compile-time determinable.
-### General Rule
-The UGen graph must be **compile-time determinable**. You cannot use runtime values (UGens, bus reads) to control:
-- Number of oscillators/filters
-- Array sizes
-- Loop counts
-
-## Output
-Create all files:
-1. `packs/{pack_id}/manifest.json`
-2. `packs/{pack_id}/generators/{gen_id}.json` x 8
-3. `packs/{pack_id}/generators/{gen_id}.scd` x 8  
-4. `packs/{pack_id}/{pack_id}.json` - init preset (loads all 8 generators)
-
-Or generate presets with tool:
-```bash
-python tools/forge_gen_preset.py packs/{pack_id}/
-python tools/forge_gen_preset.py --all --install  # All Forge packs
-```
-
-Deliver as downloadable archive.
-
-## Preset Schema (Full)
-
-**CRITICAL FORMAT RULES:**
-- Use `"generator"` (NOT `"generator_id"`) with the display name from JSON
-- Add `"pack"` at top level to specify which pack
-- Generator names are typically UPPERCASE (match the `"name"` field in generator JSON)
-- `midi_channel`: 0 (not 1)
-- `env_source`: 0 = OFF/drone, 1 = CLK, 2 = MIDI
 
 ```json
 {
-  "version": 2,
-  "mapping_version": 1,
-  "name": "{pack_display_name}",
-  "pack": "{pack_id}",
-  "slots": [
-    {"generator": "GEN1_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
-    {"generator": "GEN2_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
-    {"generator": "GEN3_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
-    {"generator": "GEN4_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
-    {"generator": "GEN5_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
-    {"generator": "GEN6_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
-    {"generator": "GEN7_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0},
-    {"generator": "GEN8_NAME", "params": {"frequency": 0.5, "cutoff": 1.0, "resonance": 0.0, "attack": 0.0, "decay": 0.73, "custom_0": 0.5, "custom_1": 0.5, "custom_2": 0.5, "custom_3": 0.5, "custom_4": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 6, "midi_channel": 0, "transpose": 2, "portamento": 0.0}
+  "generator_id": "my_gen",
+  "name": "Display Name",
+  "synthdef": "forge_{pack}_{name}",
+  "custom_params": [
+    {"label": "P1", "tooltip": "Thematic description", "default": 0.5},
+    {"label": "P2", "tooltip": "Thematic description", "default": 0.5},
+    {"label": "P3", "tooltip": "Thematic description", "default": 0.5},
+    {"label": "P4", "tooltip": "Thematic description", "default": 0.5},
+    {"label": "P5", "tooltip": "Thematic description", "default": 0.5}
   ],
-  "mixer": {
-    "channels": [
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false},
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false},
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false},
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false},
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false},
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false},
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false},
-      {"volume": 0.8, "pan": 0.5, "mute": false, "solo": false, "eq_hi": 100, "eq_mid": 100, "eq_lo": 100, "gain": 0, "echo_send": 0, "verb_send": 0, "lo_cut": false, "hi_cut": false}
-    ],
-    "master_volume": 0.8
-  },
-  "bpm": 120,
-  "master": {
-    "volume": 0.8,
-    "eq_hi": 120, "eq_mid": 120, "eq_lo": 120,
-    "eq_hi_kill": 0, "eq_mid_kill": 0, "eq_lo_kill": 0,
-    "eq_locut": 0, "eq_bypass": 0,
-    "comp_threshold": 100, "comp_makeup": 0, "comp_ratio": 1,
-    "comp_attack": 4, "comp_release": 4, "comp_sc": 0, "comp_bypass": 0,
-    "limiter_ceiling": 590, "limiter_bypass": 0
-  },
-  "mod_sources": {
-    "slots": [
-      {"generator_name": "LFO", "params": {"rate": 0.5, "shape": 0.5, "pattern": 0.0, "rotate": 0.0}, "output_wave": [0,0,0,0], "output_phase": [0,0,0,0], "output_polarity": [0,0,0,0]},
-      {"generator_name": "Sloth", "params": {"bias": 0.5}, "output_wave": [0,0,0,0], "output_phase": [0,0,0,0], "output_polarity": [0,0,0,0]},
-      {"generator_name": "LFO", "params": {"rate": 0.5, "shape": 0.5, "pattern": 0.0, "rotate": 0.0}, "output_wave": [0,0,0,0], "output_phase": [0,0,0,0], "output_polarity": [0,0,0,0]},
-      {"generator_name": "Sloth", "params": {"bias": 0.5}, "output_wave": [0,0,0,0], "output_phase": [0,0,0,0], "output_polarity": [0,0,0,0]}
-    ]
-  },
-  "mod_routing": {"connections": []}
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }
 ```
 
-**Key field mappings:**
-- `"generator"` = the `"name"` value from generator JSON (e.g., `"DROWNEDBELL"`)
-- `"pack"` = the `"pack_id"` from manifest (e.g., `"rlyeh"`)
-- `custom_0` through `custom_4` = use defaults from each generator's JSON `custom_params[].default`
+**Rules:**
+- `pitch_target`: `null` or integer (never string)
+- `midi_retrig`: `true` for percussive, `false` for pads/drones
+- `output_trim_db`: typically -6.0, adjust per validation trim recommendations
+- Forbidden P1-P5 labels: `FRQ`, `CUT`, `RES`, `ATK`, `DEC`, `PRT`
 
-**Preset defaults:**
-- `cutoff`: 1.0 (filter open)
-- `decay`: 0.73 (~1.5 seconds)
-- `env_source`: 0 (OFF/drone mode -- change to 1 for CLK rhythmic)
-- `clock_rate`: 6 (1/6 division)
-- `transpose`: 2 (index for 0 semitones)
-- `midi_channel`: 0 (not 1!)
-- `custom_0-4`: Use each generator's JSON `default` values
+---
 
-## Install Commands
-```bash
-cd ~/repos/noise-engine
+## Manifest Schema
 
-# Extract pack
-tar -xzf {pack_id}.tar.gz -C packs/
-
-# Validate pack (check contract compliance)
-python tools/forge_validate.py packs/{pack_id}/ --verbose
-
-# Audio validation (renders and checks safety gates)
-python tools/forge_audio_validate.py packs/{pack_id}/ --render
-
-# Generate preset if missing (optional - archive should include it)
-python tools/forge_gen_preset.py packs/{pack_id}/
-
-# Install preset to presets directory  
-cp packs/{pack_id}/{pack_id}.json ~/noise-engine-presets/
-
-# Restart Noise Engine, select pack from dropdown
+```json
+{
+  "pack_format": 1,
+  "pack_id": "my_pack",
+  "name": "Display Name",
+  "version": "1.0.0",
+  "author": "Author Name",
+  "description": "Pack description",
+  "enabled": true
+}
 ```
 
-## Audio Validation
+---
 
-**`forge_audio_validate.py`** renders each generator via NRT and checks for audio issues.
+## Pack Structure
 
-### Usage
-```bash
-# Full validation (both drone and clocked envelope modes)
-python tools/forge_audio_validate.py packs/{pack_id}/ --render
-
-# Drone only (for pad/ambient packs)
-python tools/forge_audio_validate.py packs/{pack_id}/ --render --env-mode drone
-
-# Clocked only (for rhythmic/percussive packs)
-python tools/forge_audio_validate.py packs/{pack_id}/ --render --env-mode clocked
-
-# Verbose (shows render progress)
-python tools/forge_audio_validate.py packs/{pack_id}/ --render -v
+```
+packs/{pack_id}/
+├── manifest.json
+├── {pack_id}.json          <- init preset
+└── generators/
+    ├── gen1.json
+    ├── gen1.scd
+    └── ... (8 generators)
 ```
 
-### Safety Gates (from Imaginarium 9)
-| Gate | Threshold | Catches |
-|------|-----------|---------|
-| Silence | RMS > -40 dB | Dead/broken generators |
-| Sparse | >30% active frames | Extremely intermittent output |
-| Clipping | peak < 0.999 | Digital overs |
-| DC Offset | abs(mean) < 0.01 | Asymmetric waveforms |
-| Runaway | growth < +6 dB | Unstable feedback |
-
-### Impulsive Detection
-Generators with high crest factor (peak - RMS > 15 dB) are detected as **impulsive** (sparse/percussive). These use relaxed thresholds:
-- RMS: -55 dB (vs -40 dB)
-- Active frames: 5% (vs 30%)
-
-Impulsive generators show `~` suffix in output: ` PASS~`
-
-### Example Output
-```
-nerve_glow: Rendering 8 generators (drone + clocked)...
-
-Generator         Peak     RMS  Crest  Trim Adj  Active Status
-
-nervespk         -22.6  -45.2   23dB  +19.6 dB     31%  PASS~
-myofiber         -19.8  -26.7    7dB   +8.7 dB    100%  PASS
-cartglow         -23.5  -45.2   22dB  +20.5 dB     22%  PASS~
-...
-
- All 8 generators passed (3 impulsive~)
-
- Trim recommendations (adjust output_trim_db):
-  nervespk: +19.6 dB
-  cartglow: +20.5 dB
-```
-
-### Trim Recommendations
-The tool reports loudness vs target (-18 dBFS RMS). Large adjustments are informational —œ generators may be designed quiet or the NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's sweet spot.
-
-### Requirements
-- SuperCollider installed (sclang in PATH or standard location)
-- `pip install soundfile` (or librosa)
+---
 
 ## Archive Structure
+
 ```
 {pack_id}.tar.gz
     {pack_id}/
         manifest.json
-        {pack_id}.json            <- init preset (cp to ~/noise-engine-presets/)
+        {pack_id}.json
         generators/
             gen1.json
             gen1.scd
@@ -766,34 +329,36 @@ The tool reports loudness vs target (-18 dBFS RMS). Large adjustments are inform
 
 ---
 
-## Troubleshooting
+## Quick Fixes
 
-### Batch fixing DC offset and clipping
-
-If multiple generators need LeakDC or Limiter, use the patch script:
+### Batch LeakDC/Limiter
 ```bash
-# Edit patch_out_inserts.sh to add generators to arrays:
+# Edit patch_out_inserts.sh arrays:
 # - limiters=(...) for clipping/runaway
 # - leakdcs=(...) for DC offset
 
-# Dry run first
-DRY_RUN=1 bash patch_out_inserts.sh
-
-# Apply patches
-bash patch_out_inserts.sh
-
-# Re-validate
-python tools/forge_audio_validate.py packs/{pack_id}/ --render
+DRY_RUN=1 bash patch_out_inserts.sh   # Preview
+bash patch_out_inserts.sh              # Apply
+python tools/forge_audio_validate.py packs/{pack_id}/ --render  # Re-validate
 ```
 
-The script handles both `Out.ar(out, sig)` and `Out.ar(out, <expr>)` patterns.
-
-### Pack doesn't appear in dropdown
-**Cause:** Missing `pack_format` or `enabled` in manifest.json
-
-**Fix all broken manifests:**
+### Fix Unary Minus
 ```bash
-cd ~/repos/noise-engine
+sed -i '' 's/-varName/varName.neg/g' packs/{pack_id}/generators/*.scd
+```
+
+### Fix Boolean Arithmetic
+```bash
+sed -i '' 's/(count > 2)/(count > 2).asInteger/g' packs/{pack_id}/generators/*.scd
+```
+
+### Fix UTF-8 Corruption
+```bash
+python tools/utf8_fix.py --fix packs/{pack_id}/
+```
+
+### Fix Missing Manifest Fields
+```bash
 python3 << 'EOF'
 import json
 from pathlib import Path
@@ -823,11 +388,26 @@ for manifest_path in Path("packs").glob("*/manifest.json"):
 print("Done!")
 EOF
 ```
-## Audio Validation Expectations
 
-Generators are tested in two modes:
-- **drone** - sustained gate (for pads, drones, textures)
-- **clocked** - rhythmic triggers at 3Hz (for percussive, plucks, hits)
+---
+
+## Pre-Flight Checklist
+
+Before archiving a pack:
+
+- [ ] `python tools/utf8_fix.py --report packs/{pack_id}/` — no corruption
+- [ ] `python tools/forge_validate.py packs/{pack_id}/` — contract PASS
+- [ ] `python tools/forge_audio_validate.py packs/{pack_id}/ --render` — all 8 PASS
+- [ ] All generators have `LeakDC.ar(sig)` in output chain
+- [ ] Generators with feedback/resonance have `Limiter.ar(sig, 0.95)`
+- [ ] `manifest.json` has `"pack_format": 1` and `"enabled": true`
+- [ ] Init preset `{pack_id}.json` exists and loads all 8 generators
+- [ ] `pitch_target` is `null` or integer (never string)
+- [ ] `midi_retrig` matches generator type (percussive=true, pad=false)
+
+---
+
+## Audio Validation Modes
 
 | Generator Type | Expected Pass Mode | `midi_retrig` |
 |----------------|-------------------|---------------|
@@ -835,63 +415,86 @@ Generators are tested in two modes:
 | Percussive/Hit | clocked | `true` |
 | Hybrid | both | depends |
 
-**Common failures:**
+```bash
+# Full (both modes, passes if either works)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render
 
-| Status | Cause | Fix |
-|--------|-------|-----|
-| `sparse` | Generator needs triggers, tested in drone | Set `midi_retrig: true`, ensure it passes clocked mode |
-| `silence` | No audio output | Check DSP, ensure oscillators are running |
-| `runaway` | Level grows >6dB over duration | Add `Limiter.ar(sig, 0.95)` before output, or reduce feedback/resonance |
-| `render_failed` | SC compilation error | Fix SynthDef syntax |
-| `clipping` | Peak >= 0.999 | Add `Limiter.ar(sig, 0.95)` before output, or reduce `output_trim_db` by 6-12dB |
-| `dc_offset` | Asymmetric waveform | Add `LeakDC.ar(sig)` before `~multiFilter` |
-| `render_failed` | SC timeout (30s) | Usually infinite loop or expensive operation - check `Mix.fill`, `LocalBuf`, runtime UGen counts |
-If a generator is **intentionally percussive**, `sparse` in drone mode is acceptable as long as it passes in clocked mode. The validator uses `--env-mode both` by default and passes if either mode works.
+# Drone only (pads/ambient)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render --env-mode drone
 
-### Validation warnings about seed/RandSeed
-**Expected** for CQD_Forge packs. These are Imaginarium determinism requirements -- hand-crafted packs don't need them unless using random UGens.
+# Clocked only (percussive)
+python tools/forge_audio_validate.py packs/{pack_id}/ --render --env-mode clocked
 
-### Audio validation: SILENCE on impulsive generators
-**Expected** if crest factor is high. Tool auto-detects impulsive sounds (crest > 15 dB) and uses relaxed thresholds. If still failing:
-- Check generator produces output at default params
-- Try `--env-mode clocked` to test with rhythmic triggers
-
-### Audio validation: DC_OFFSET
-**Cause:** Asymmetric waveforms, often from unipolar sources like `Impulse.ar`.
-
-**Fix:** Add `LeakDC.ar(sig)` before the output chain:
-```supercollider
-sig = LeakDC.ar(sig);  // Remove DC offset
-sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+# Verbose
+python tools/forge_audio_validate.py packs/{pack_id}/ --render -v
 ```
 
-**Borderline runaway (<1dB over threshold):**
-Generators with slight level growth (6.0-7.0dB) may be acceptable. Common causes:
-- Filter resonance building up
-- Feedback in delays/comb filters
-- LFO modulating amplitude
+---
 
-Quick fix - add limiter before `~ensure2ch`:
-```supercollider
-sig = Limiter.ar(sig, 0.95);  // Prevent runaway
-sig = ~ensure2ch.(sig);
+## Debugging Single Generator
+
+```bash
+PACK=my_pack
+GEN=my_generator
+
+# 1. Generate NRT script
+python -c "
+import sys
+sys.path.insert(0, 'tools')
+from forge_audio_validate import transform_synthdef_for_nrt, generate_nrt_script
+from pathlib import Path
+scd = Path('packs/${PACK}/generators/${GEN}.scd')
+transformed = transform_synthdef_for_nrt(scd.read_text(), 'test')
+script = generate_nrt_script(transformed, 'test', Path('/tmp/test.wav'))
+Path('/tmp/test_nrt.scd').write_text(script)
+print('Script written to /tmp/test_nrt.scd')
+"
+
+# 2. Try to render
+timeout 15 sclang /tmp/test_nrt.scd 2>&1
+
+# 3. If timeout, inspect script
+head -80 /tmp/test_nrt.scd
+
+# 4. If renders, analyze audio
+python -c "
+import soundfile as sf
+import numpy as np
+data, sr = sf.read('/tmp/test.wav')
+peak = np.max(np.abs(data))
+rms = np.sqrt(np.mean(data**2))
+print(f'Peak: {20*np.log10(peak+1e-10):.1f} dB')
+print(f'RMS: {20*np.log10(rms+1e-10):.1f} dB')
+"
 ```
 
+---
 
+## Historical Issues Reference
 
-### Audio validation: Large trim recommendations
-**Informational only** —œ not failures. NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's intended use. Verify perceived loudness in-app before adjusting `output_trim_db`.
+Generators that needed post-hoc LeakDC:
+`maratus/eye_gleam`, `leviathan/abyss_drone`, `leviathan/whale_song`, `rlyeh/RLYEH`, `rakshasa/fang_strike`, `seagrass_bay/current_drift`
 
-## Pre-Flight Checklist
+Generators that needed post-hoc Limiter:
+`astro_command/alert_pulse`, `barbican_hound/routemaster`, `arctic_henge/aurora`, `arctic_henge/icebell`, `beacon_vigil/crown`, `rlyeh/VESSEL`, `rakshasa/gold_ring`, `summer_of_love/golden_haze`, `amber-threshold/StonePath`, `seagrass_bay/submerged_drone`
 
-Before archiving a pack, verify:
+---
 
-- [ ] All 8 generators pass `forge_audio_validate.py --render`
-- [ ] Generators with feedback/resonance have `Limiter.ar(sig, 0.95)`
-- [ ] All generators have `LeakDC.ar(sig)` in output chain
-- [ ] `manifest.json` has `"pack_format": 1` and `"enabled": true`
-- [ ] Init preset `{pack_id}.json` exists and loads all 8 generators
-- [ ] `pitch_target` is `null` or integer (never string)
+## Troubleshooting Reference
+
+For detailed diagnosis and fix commands, see `PACK_TROUBLESHOOTING.md`.
+
+| Symptom | Quick Reference |
+|---------|-----------------|
+| RENDER_FAILED (timeout) | Check unary minus, boolean arithmetic, `gate` variable |
+| SILENCE | Check `midi_retrig`, squelch logic, borderline levels |
+| SPARSE | Percussive in drone mode — usually acceptable |
+| CLIPPING | Add `Limiter.ar(sig, 0.95)` |
+| DC_OFFSET | Add `LeakDC.ar(sig)` |
+| RUNAWAY | Add `Limiter.ar(sig, 0.95)` |
+| CONTRACT_FAILED | Check manifest fields, variable declarations |
+| UTF-8 errors | Run `utf8_fix.py --fix` |
+
 ---
 
 Ready to forge. What's the pack theme/image?

@@ -46,10 +46,11 @@ SynthDef(\forge_rakshasa_ritual_chant, { |out, freqBus, cutoffBus, resBus, attac
     source = Pulse.ar(freq, 0.3 + (LFNoise1.kr(1) * 0.1));
 
     // Add harmonics for prayer complexity
-    harmonics = Mix.fill(prayer.round, { |i|
-        var harm;
+    harmonics = Mix.fill(8, { |i|
+        var harm, ampScale;
+        ampScale = ((prayer * 8) > i).asInteger;
         harm = Pulse.ar(freq * (i + 1), 0.5 - (i * 0.05).clip(0, 0.4));
-        harm * (1 / ((i + 1) * 2))
+        harm * (1 / ((i + 1) * 2)) * ampScale
     });
     source = source + (harmonics * 0.3);
 
