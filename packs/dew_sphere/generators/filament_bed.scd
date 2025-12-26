@@ -12,6 +12,7 @@ SynthDef(\forge_dew_sphere_filament_bed, { |out, freqBus, cutoffBus, resBus, att
     var density, fineness, web, sway, silk;
     var exciter, combs, swayMod, delays, decayTimes;
     var comb1, comb2, comb3, comb4;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

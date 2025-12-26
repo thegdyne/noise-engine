@@ -12,6 +12,7 @@ SynthDef(\forge_dew_sphere_surface_tension, { |out, freqBus, cutoffBus, resBus, 
     var tension, cohesion, size, drift, air;
     var osc1, osc2, osc3, bindMod, driftMod, breath;
     var detune, phaseLink;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

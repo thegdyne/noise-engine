@@ -9,6 +9,7 @@ SynthDef(\forge_block_walk_snap_clap, { |out, freqBus, cutoffBus, resBus, attack
     var snap, clap, ring, crowd, room;
     var noise, snapEnv, clapEnv, clapDelay1, clapDelay2, clapDelay3;
     var toneBody, roomVerb, envTrig, crowdLayer;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

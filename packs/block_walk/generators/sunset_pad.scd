@@ -9,6 +9,7 @@ SynthDef(\forge_block_walk_sunset_pad, { |out, freqBus, cutoffBus, resBus, attac
     var glow, haze, depth, shift, air;
     var pulse1, pulse2, pulse3, pwm1, pwm2, pwm3, detune;
     var chorus, airNoise;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

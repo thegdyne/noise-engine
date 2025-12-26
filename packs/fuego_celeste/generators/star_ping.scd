@@ -8,6 +8,7 @@ SynthDef(\forge_fuego_celeste_star_ping, { |out, freqBus, cutoffBus, resBus, att
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var twinkle, distance, color, size, echo;
     var modRatio, modIndex, carrier, modulator, twinkleLFO, echoSig;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

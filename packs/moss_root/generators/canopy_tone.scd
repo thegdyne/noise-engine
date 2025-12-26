@@ -8,6 +8,7 @@ SynthDef(\forge_moss_root_canopy_tone, { |out, freqBus, cutoffBus, resBus, attac
     var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var glow, flutter, gaps, hue, air;
     var fmCarrier, fmMod, tremolo, gapMod, airNoise, warmth;
+    // @forge: inline_post_chain
 
     // Standard reads
     freq = In.kr(freqBus);

@@ -8,6 +8,7 @@ SynthDef(\forge_block_walk_stride_bass, { |out, freqBus, cutoffBus, resBus, atta
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var glide, thick, grit, bounce, warmth;
     var sub, saw1, saw2, saw3, detune, pitchEnv, envTrig;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

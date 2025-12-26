@@ -9,6 +9,7 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, cutoffBus, resBus, attac
     var stone, ring, crust, age, spot;
     var exciter, modes, crustNoise, spotPartial;
     var modeRatios, modeAmps, ringTime;
+    // @forge: inline_post_chain
 
     // Standard reads
     freq = In.kr(freqBus);

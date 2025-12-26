@@ -12,6 +12,7 @@ SynthDef(\forge_dew_sphere_droplet_ping, { |out, freqBus, cutoffBus, resBus, att
     var sphere, glisten, ring, prism, clarity;
     var exciter, pluck, delay, decayTime, coef;
     var shimmer, prismOsc;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

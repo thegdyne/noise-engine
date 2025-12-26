@@ -11,6 +11,7 @@ SynthDef(\forge_beacon_vigil_threshold, { |out, freqBus, cutoffBus, resBus, atta
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var gate, echo, edge, pass, dusk;
     var stateA, stateB, morph, doorway, reflections;
+    // @forge: inline_post_chain
 
     // Custom params
     gate = In.kr(customBus0);  // Morph position
