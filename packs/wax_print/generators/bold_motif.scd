@@ -61,14 +61,14 @@ SynthDef(\forge_wax_print_bold_motif, { |out, freqBus, cutoffBus, resBus, attack
     sig = sig + (Saw.ar(freq * 3) * ink * 0.1);
 
     // Contrast dynamics
-    sig = sig * (1 + (LFPulse.kr(repeat).range(-contrast * 0.3, contrast * 0.3)));
+    sig = sig * (1 + (LFPulse.kr(repeat).range(contrast.neg * 0.3, contrast * 0.3)));
 
     sig = (sig * 1.5).tanh * 0.5;
     // Output chain (inlined; avoids global helpers for NRT stability)
     sig = LeakDC.ar(sig);
     ne_panRate = (0.1).max(0.001);
     ne_panWidth = (0.2).clip(0, 1);
-    ne_pan = SinOsc.kr(ne_panRate).range(-ne_panWidth, ne_panWidth);
+    ne_pan = SinOsc.kr(ne_panRate).range(ne_panWidth.neg, ne_panWidth);
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = Pan2.ar(neArr[0], ne_pan) }, { sig = neArr });
 

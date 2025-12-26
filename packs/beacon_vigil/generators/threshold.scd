@@ -9,12 +9,12 @@ SynthDef(\forge_beacon_vigil_threshold, { |out, freqBus, cutoffBus, resBus, atta
                                      customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
     var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
-    var gate, echo, edge, pass, dusk;
+    var gpos, echo, edge, pass, dusk;
     var stateA, stateB, morph, doorway, reflections;
     // @forge: inline_post_chain
 
     // Custom params
-    gate = In.kr(customBus0);  // Morph position
+    gpos = In.kr(customBus0);  // Morph position
     echo = In.kr(customBus1);  // Reflection
     edge = In.kr(customBus2);  // Sharpness
     pass = In.kr(customBus3);  // Passage width
@@ -50,10 +50,10 @@ SynthDef(\forge_beacon_vigil_threshold, { |out, freqBus, cutoffBus, resBus, atta
 
     // Morph with edge sharpness
     // Sharp edge = more sudden transition, soft = gradual
-    morph = gate.pow(1 / (0.5 + (edge * 2)));
+    morph = gpos.pow(1 / (0.5 + (edge * 2)));
 
     // Doorway resonance: at threshold center, both states interfere
-    doorway = (gate - 0.5).abs;
+    doorway = (gpos - 0.5).abs;
     doorway = 1 - (doorway * 2);  // Peaks at 0.5
     doorway = doorway.clip(0, 1).pow(0.5);
 
@@ -80,8 +80,8 @@ SynthDef(\forge_beacon_vigil_threshold, { |out, freqBus, cutoffBus, resBus, atta
 
     // Gentle stereo spread based on morph position
     sig = [
-        sig * (1 + ((gate - 0.5) * 0.2)),
-        sig * (1 - ((gate - 0.5) * 0.2))
+        sig * (1 + ((gpos - 0.5) * 0.2)),
+        sig * (1 - ((gpos - 0.5) * 0.2))
     ];
 
     // Soft clip

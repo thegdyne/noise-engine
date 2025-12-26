@@ -210,7 +210,7 @@ def transform_synthdef_for_nrt(scd_content: str, synthdef_name: str) -> str:
     
     # ~ensure2ch -> pass through (we use Pan2 which is already stereo)
     code = re.sub(r'~ensure2ch\.\(\s*([^)]+)\s*\)', r'\1', code)
-    
+
     # === 3. HANDLE SELECT.AR TRIGGER PATTERN ===
     code = re.sub(
         r'trig\s*=\s*Select\.ar\(envSource[^;]+\]\);',
@@ -218,7 +218,15 @@ def transform_synthdef_for_nrt(scd_content: str, synthdef_name: str) -> str:
         code,
         flags=re.DOTALL
     )
-    
+
+    # Also handle envTrig = Select.ar(envSource...) pattern
+    code = re.sub(
+        r'envTrig\s*=\s*Select\.ar\(envSource[^;]+\]\);',
+        'envTrig = Impulse.ar(3);  // NRT: continuous trigger',
+        code,
+        flags=re.DOTALL
+    )
+
     # Replace slotIndex
     code = re.sub(r'slotIndex', '0', code)
     
