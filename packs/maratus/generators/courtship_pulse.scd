@@ -45,33 +45,38 @@ SynthDef(\forge_maratus_courtship_pulse, { |out, freqBus, cutoffBus, resBus, att
     // Filter sweep LFO
     filterLFO = SinOsc.kr(pulseRate * 0.99).range(0, display);
 
-    // Main pulse oscillator
-    sig = Pulse.ar(freq, pw.clip(0.1, 0.9));
+// Main pulse oscillator
+    sig = Pulse.ar(freq, pw.clip(0.1, 0.9)) * 0.7;
 
     // Add sub oscillator for heartbeat thump
-    subOsc = SinOsc.ar(freq * 0.5) * heartbeat;
+    subOsc = SinOsc.ar(freq * 0.5) * heartbeat * 0.5;
     sig = sig + subOsc;
 
     // Add saw layer for fervor/intensity
-    sig = sig + (Saw.ar(freq * 1.003) * fervor * 0.3);
+    sig = sig + (Saw.ar(freq * 1.003) * fervor * 0.25);
 
     // Apply amplitude tremolo
     sig = sig * ampLFO;
 
     // Display filter sweep - modulate the filter frequency
-    filterFreq = filterFreq * (1 + (filterLFO * 2));
+    filterFreq = filterFreq * (1 + (filterLFO * 1.0));
 
     // Soft saturation for drive
-    sig = (sig * (1 + fervor)).tanh * 0.7;
+    sig = (sig * (1 + (fervor * 0.7))).tanh;
+
+    // Tame before filter
+    sig = LeakDC.ar(sig);
+    sig = Limiter.ar(sig, 0.85);
 
     // Medium stereo spread
     sig = ~stereoSpread.(sig, pulseRate * 0.1, 0.4);
 
     // Mandatory output chain
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    sig = Limiter.ar(sig, 0.9);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
+    sig = Limiter.ar(sig, 0.95);
     sig = ~ensure2ch.(sig);
-
     Out.ar(out, sig);
 }).add;
 

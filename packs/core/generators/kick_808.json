@@ -51,7 +51,11 @@
             "max": 1.0,
             "curve": "lin",
             "unit": ""
-        }
+        ,
+  "midi_retrig": true
+}
     ],
     "output_trim_db": -3.0
+,
+  "midi_retrig": true
 }

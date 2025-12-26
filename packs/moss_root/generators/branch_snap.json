@@ -55,6 +55,6 @@
     }
   ],
   "output_trim_db": -6.0,
-  "midi_retrig": false,
+  "midi_retrig": true,
   "pitch_target": null
 }

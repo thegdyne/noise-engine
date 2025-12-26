@@ -10,6 +10,6 @@
     {"key": "peace", "label": "PCE", "tooltip": "Harmonic purity - complex to pure", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
   ],
   "output_trim_db": -6.0,
-  "midi_retrig": false,
+  "midi_retrig": true,
   "pitch_target": null
 }

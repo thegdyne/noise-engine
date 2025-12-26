@@ -51,7 +51,11 @@
             "max": 0.6,
             "curve": "exp",
             "unit": "s"
-        }
+        ,
+  "midi_retrig": true
+}
     ],
     "output_trim_db": -3.0
+,
+  "midi_retrig": true
 }
