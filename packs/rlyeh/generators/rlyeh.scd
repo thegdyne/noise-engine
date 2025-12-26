@@ -126,6 +126,7 @@ SynthDef(\rlyeh, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~stereoSpread.(sig, 0.2, 0.25);  // Wide shifting
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
+    sig = LeakDC.ar(sig);
     Out.ar(out, sig);
 }).add;
 

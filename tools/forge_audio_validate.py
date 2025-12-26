@@ -37,6 +37,25 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+def warm_sclang_once(timeout_s: int = 120) -> None:
+    """
+    Pre-warm SuperCollider so class library compilation cost is paid once.
+    Safe to call; failures should not crash validation unless you want them to.
+    """
+    try:
+        subprocess.run(
+            ["sclang", "-i", "none", "-"],
+            input="0.exit;\n",
+            text=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=timeout_s,
+            check=False,
+        )
+    except Exception:
+        # Don't hard-fail the validator on warmup issues
+        return
+
 
 # Target RMS for balanced output (-18 dBFS is standard for synths)
 TARGET_RMS_DB = -18.0
@@ -776,9 +795,27 @@ def validate_pack(
                 render_result = render_generator(scd_path, sclang, work_dir, gen_id, env_mode=mode)
                 
                 if not render_result.success:
-                    mode_results.append((mode, SafetyStatus.RENDER_FAILED, {}, "", render_result))
+                    # DEBUG: surface render failure reason (validator normally swallows it)
+                    try:
+                        _gid = gen_id
+                        _mode = mode
+
+                        rr = render_result
+                        rr_err = str(getattr(rr, "error", "") or "")
+                        rr_stderr = str(getattr(rr, "stderr", "") or "")
+
+                        print(f"[RENDER_FAILED_RAW] {_gid} mode={_mode} err={rr_err[:500]}", file=sys.stderr)
+                        if rr_stderr:
+                            print(f"[RENDER_FAILED_STDERR] {_gid} {rr_stderr[:1200]}", file=sys.stderr)
+                        else:
+                            # fall back: at least show repr if error/stderr attrs aren't populated
+                            print(f"[RENDER_FAILED_REPR] {_gid} {rr!r}", file=sys.stderr)
+                    except Exception as _e:
+                        print(f"[RENDER_FAILED_DEBUG_ERROR] {_e}", file=sys.stderr)
+
+                    mode_results.append((mode, SafetyStatus.RENDER_FAILED, {"error": getattr(render_result, "error", "")}, "", render_result))
                     continue
-                
+
                 status, details, threshold = run_safety_checks(render_result.audio_path, config)
                 mode_results.append((mode, status, details, threshold, render_result))
             
@@ -888,6 +925,14 @@ def print_results(results: List[ValidationResult], pack_id: str):
         status_str = f"{status_icon} {r.status.value.upper()}{imp_marker}{mode_marker}"
         
         if r.status == SafetyStatus.RENDER_FAILED:
+            err = ""
+            for k in ("details", "info", "meta", "data", "extra", "context", "attrs"):
+                v = getattr(r, k, None)
+                if isinstance(v, dict) and v.get("error"):
+                    err = v.get("error", "")
+                    break
+            print(f"  [RENDER_FAILED] {r.generator_id} ({getattr(r, 'mode', '?')}): {err}", file=sys.stderr)
+
             print(f"{r.generator_id:<16} {'--':>7} {'--':>7} {'--':>6} {'--':>9} {'--':>7} {status_str}")
         else:
             trim_str = f"{r.trim_adjustment:+.1f} dB" if r.trim_adjustment != 0 else "OK"
@@ -999,7 +1044,10 @@ def main():
     if not args.pack_dir.exists():
         print(f"ERROR: Pack directory not found: {args.pack_dir}", file=sys.stderr)
         sys.exit(1)
-    
+
+    if args.render:
+        warm_sclang_once(timeout_s=120)
+
     # Suppress normal output when using --fail-csv
     verbose = args.verbose and not args.fail_csv
     

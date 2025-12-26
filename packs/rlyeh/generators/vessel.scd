@@ -134,6 +134,7 @@ SynthDef(\vessel, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sig = ~stereoSpread.(sig, 0.15, 0.2);  // Moderate rocking movement
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
+    sig = Limiter.ar(sig, 0.95);
     Out.ar(out, sig);
 }).add;
 

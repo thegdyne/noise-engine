@@ -69,6 +69,7 @@ SynthDef(\forge_rakshasa_fang_strike, { |out, freqBus, cutoffBus, resBus, attack
                    clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
+    sig = LeakDC.ar(sig);
     Out.ar(out, sig);
 }).add;
 

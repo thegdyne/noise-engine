@@ -99,6 +99,7 @@ SynthDef(\forge_leviathan_abyss_drone, { |out, freqBus, cutoffBus, resBus, attac
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
+    sig = LeakDC.ar(sig);
     Out.ar(out, sig);
 }).add;
 

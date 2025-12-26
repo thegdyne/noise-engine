@@ -67,6 +67,7 @@ SynthDef(\forge_barbican_hound_routemaster, { |out, freqBus, cutoffBus, resBus, 
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
+    sig = Limiter.ar(sig, 0.95);
     Out.ar(out, sig);
 }).add;
 

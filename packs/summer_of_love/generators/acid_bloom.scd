@@ -3,11 +3,13 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, a
                                                clockRateBus, clockTrigBus,
                                                midiTrigBus=0, slotIndex=0,
                                                customBus0, customBus1, customBus2, customBus3, customBus4,
-                                               portamentoBus|
+                                               portamentoBus,
+                                               ampBus=(-1)|
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var squelch, bloom, trip, dose, sub;
     var osc, subOsc, filtEnv, envTrig, filtFreqMod, saturated;
+    var fallbackAmpBus, envSel, clockIdx, midiIdx, ampEnv;
 
     // Standard reads
     freq = In.kr(freqBus);
@@ -15,13 +17,16 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, a
     freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
+    // Safety clamp: rq=0 (or negative) can break RLPF / render
+    rq = rq.clip(0.05, 1.0);
     attack = In.kr(attackBus);
     decay = In.kr(decayBus);
     filterType = In.kr(filterTypeBus);
     envSource = In.kr(envSourceBus);
     clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-
+    // amp: prefer explicit ampBus if provided; otherwise fall back to ~params safely
+    fallbackAmpBus = ((~params ? IdentityDictionary.new)[\amplitude] ? 0);
+    amp = In.kr(Select.kr((ampBus >= 0), [fallbackAmpBus, ampBus]));
     // Theme params
     squelch = In.kr(customBus0);   // Filter env amount
     bloom = In.kr(customBus1);     // Filter env decay
@@ -40,13 +45,16 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, a
 
     // Create trigger for filter envelope from same sources as amp env
     // This reads the audio-rate trigger buses
-    envTrig = Select.ar(envSource, [
-        DC.ar(0),                                                        // OFF - no trigger
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),            // CLK
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))                     // MIDI
-    ]);
+        envSel = envSource.round.clip(0, 2);
+    clockIdx = clockRate.round.clip(0, 12);
+    midiIdx = slotIndex.round.clip(0, 7);
 
-    // Filter envelope - this is the "acid" character
+    envTrig = Select.ar(envSel, [
+        DC.ar(0),                                                        // OFF - no trigger
+        Select.ar(clockIdx, In.ar(clockTrigBus, 13)),                   // CLK
+        Select.ar(midiIdx, In.ar(midiTrigBus, 8))                       // MIDI
+    ]);
+// Filter envelope - this is the "acid" character
     filtEnv = EnvGen.ar(
         Env.perc(0.001, bloom.linexp(0, 1, 0.05, 0.8)),
         envTrig
@@ -66,11 +74,16 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, a
     // Compensate for resonance volume loss
     sig = sig * (1 + (trip * 0.5));
 
-    // Note: We skip ~multiFilter here since we're doing our own acid filter
-    // But we still use ~envVCA for amplitude
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-
+    // Note: We skip multiFilter here since we're doing our own acid filter
+    // Inline envVCA + ensure2ch (renderer-safe)
+    ampEnv = Select.ar(envSel, [
+        DC.ar(1),
+        EnvGen.ar(Env.perc(attack.max(0.001), decay.max(0.001)), envTrig),
+        EnvGen.ar(Env.perc(attack.max(0.001), decay.max(0.001)), envTrig)
+    ]);
+    sig = sig * amp * ampEnv;
+    sig = sig.asArray;
+    sig = (sig.size == 1).if({ [sig[0], sig[0]] }, { sig });
     Out.ar(out, sig);
 }).add;
 "  * forge_summer_of_love_acid_bloom loaded".postln;

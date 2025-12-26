@@ -55,7 +55,6 @@ SynthDef(\forge_block_walk_stride_bass, { |out, freqBus, cutoffBus, resBus, atta
     // Warm saturation/grit
     sig = (sig + sub).tanh;
     sig = sig + (sig.clip2(0.3) * grit.linlin(0, 1, 0, 2));
-    sig = LeakDC.ar(sig);
     // Output chain (inlined; avoids global helpers for NRT stability)
     sig = LeakDC.ar(sig);
     neArr = sig.asArray;

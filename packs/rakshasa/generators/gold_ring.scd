@@ -66,6 +66,7 @@ SynthDef(\forge_rakshasa_gold_ring, { |out, freqBus, cutoffBus, resBus, attackBu
                    clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
+    sig = Limiter.ar(sig, 0.95);
     Out.ar(out, sig);
 }).add;
 

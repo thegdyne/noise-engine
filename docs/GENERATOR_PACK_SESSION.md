@@ -31,14 +31,76 @@ SynthDef(\forge_{pack}_{name}, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // DSP here...
 
     // MANDATORY output chain (this order):
-    sig = LeakDC.ar(sig);  // Prevent DC offset (always include)
+    sig = LeakDC.ar(sig);  // ALWAYS — prevents DC offset (see DSP Safety Patterns)
     sig = ~stereoSpread.(sig, rate, width);  // optional
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
+    // sig = Limiter.ar(sig, 0.95);  // ADD if using feedback/resonance/wavefold (see DSP Safety Patterns)
     sig = ~ensure2ch.(sig);
     Out.ar(out, sig);
 }).add;
 "  * forge_{pack}_{name} loaded".postln;
+```
+## DSP Safety Patterns
+
+Empirical data from pack validation shows certain synthesis patterns consistently cause issues. Apply these preventively during design, not as post-hoc fixes.
+
+### LeakDC — Required for These Patterns
+
+| Pattern | Why DC Builds | Examples |
+|---------|---------------|----------|
+| Impulse/trigger sources | Unipolar signals | `Impulse.ar`, `Dust.ar`, `Trig.ar` |
+| Asymmetric waveshaping | Clips one polarity more | `tanh`, `clip2`, `fold2` with bias |
+| Comb/delay feedback | DC accumulates in loop | `CombL`, `CombC` with high feedback |
+| Subharmonic generation | Dividers produce offset | `PulseDivider`, `Demand` rate tricks |
+| Physical models | Friction/bow excitation | `DWGBowed`, membrane models |
+
+**Always include `LeakDC.ar(sig)` as first step of output chain.**
+
+Generators that shipped without LeakDC and needed patching: `maratus/eye_gleam`, `leviathan/abyss_drone`, `leviathan/whale_song`, `rlyeh/RLYEH`, `rakshasa/fang_strike`, `seagrass_bay/current_drift`
+
+### Limiter — Required for These Patterns
+
+| Pattern | Why Runaway Occurs | Examples |
+|---------|-------------------|----------|
+| Resonant filters near self-osc | Q amplifies signal | `RLPF` with rq < 0.1 |
+| Feedback FM | Index modulates itself | `SinOscFB`, feedback loops |
+| Delay feedback > 0.7 | Energy accumulates | `CombL.ar(sig, ..., fb: 0.9)` |
+| Additive with many partials | Summed amplitude grows | `Mix.fill(32, ...)` |
+| Wavefolder cascades | Each stage adds gain | Multiple `fold2` in series |
+| Ring mod with feedback | Cross-modulation amplifies | `sig * sig.delay(...)` |
+
+**Add `Limiter.ar(sig, 0.95)` before `~ensure2ch` when using these patterns:**
+```supercollider
+sig = LeakDC.ar(sig);
+sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
+sig = Limiter.ar(sig, 0.95);  // <- Add for risky patterns
+sig = ~ensure2ch.(sig);
+Out.ar(out, sig);
+```
+
+Generators that shipped without Limiter and needed patching: `astro_command/alert_pulse`, `barbican_hound/routemaster`, `arctic_henge/aurora`, `arctic_henge/icebell`, `beacon_vigil/crown`, `rlyeh/VESSEL`, `rakshasa/gold_ring`, `summer_of_love/golden_haze`, `amber-threshold/StonePath`, `seagrass_bay/submerged_drone`
+
+### Quick Reference: Output Chain Variants
+
+**Minimal (safe sources like simple oscillators):**
+```supercollider
+sig = LeakDC.ar(sig);
+sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+sig = ~envVCA.(sig, ...);
+sig = ~ensure2ch.(sig);
+Out.ar(out, sig);
+```
+
+**Full (feedback, resonance, physical models):**
+```supercollider
+sig = LeakDC.ar(sig);
+sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+sig = ~envVCA.(sig, ...);
+sig = Limiter.ar(sig, 0.95);
+sig = ~ensure2ch.(sig);
+Out.ar(out, sig);
 ```
 
 ## Pack Structure
@@ -563,6 +625,26 @@ The tool reports loudness vs target (-18 dBFS RMS). Large adjustments are inform
 
 ## Troubleshooting
 
+### Batch fixing DC offset and clipping
+
+If multiple generators need LeakDC or Limiter, use the patch script:
+```bash
+# Edit patch_out_inserts.sh to add generators to arrays:
+# - limiters=(...) for clipping/runaway
+# - leakdcs=(...) for DC offset
+
+# Dry run first
+DRY_RUN=1 bash patch_out_inserts.sh
+
+# Apply patches
+bash patch_out_inserts.sh
+
+# Re-validate
+python tools/forge_audio_validate.py packs/{pack_id}/ --render
+```
+
+The script handles both `Out.ar(out, sig)` and `Out.ar(out, <expr>)` patterns.
+
 ### Pack doesn't appear in dropdown
 **Cause:** Missing `pack_format` or `enabled` in manifest.json
 
@@ -657,6 +739,16 @@ sig = ~ensure2ch.(sig);
 ### Audio validation: Large trim recommendations
 **Informational only** —œ not failures. NRT test defaults (freq=220, cutoff=2000, customs=0.5) may not match the generator's intended use. Verify perceived loudness in-app before adjusting `output_trim_db`.
 
+## Pre-Flight Checklist
+
+Before archiving a pack, verify:
+
+- [ ] All 8 generators pass `forge_audio_validate.py --render`
+- [ ] Generators with feedback/resonance have `Limiter.ar(sig, 0.95)`
+- [ ] All generators have `LeakDC.ar(sig)` in output chain
+- [ ] `manifest.json` has `"pack_format": 1` and `"enabled": true`
+- [ ] Init preset `{pack_id}.json` exists and loads all 8 generators
+- [ ] `pitch_target` is `null` or integer (never string)
 ---
 
 Ready to forge. What's the pack theme/image?

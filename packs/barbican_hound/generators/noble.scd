@@ -71,6 +71,7 @@ SynthDef(\forge_barbican_hound_noble, { |out, freqBus, cutoffBus, resBus, attack
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
+    sig = LeakDC.ar(sig);
     Out.ar(out, sig);
 }).add;
 

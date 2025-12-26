@@ -4,8 +4,7 @@ SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, cutoffBus, resBus,
                                   midiTrigBus=0, slotIndex=0,
                                   customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
-
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var clarity, shimmer, flow, cold, light;
     var fundamental, partials, flowMod, lightSparkle;
 
@@ -58,9 +57,10 @@ SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, cutoffBus, resBus,
 
     // Cold = high shelf boost
     sig = BHiShelf.ar(sig, 3000, 1, cold * 6);
-
     // Shimmer stereo spread
-    sig = Pan2.ar(Mix(sig), SinOsc.kr((shimmer.linlin(0).max(0.001)).range(-(1, 0.2, 0.8).clip(0,1), (1, 0.2, 0.8).clip(0,1))), 0.4);
+    ne_panRate  = shimmer.linexp(0, 1, 0.05, 0.8);
+    ne_panWidth = shimmer.linlin(0, 1, 0.2, 0.8);
+    sig = Pan2.ar(Mix(sig), SinOsc.kr(ne_panRate).range(ne_panWidth.neg, ne_panWidth), 0.4);
 
     // Standard output chain
     // Output chain (inlined; avoids global helpers for NRT stability)
@@ -82,15 +82,15 @@ SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, cutoffBus, resBus,
     // Env VCA (drone / clock / midi)
     ne_atkT = attack.linexp(0, 1, 0.001, 2);
     ne_relT = decay.linexp(0, 1, 0.05, 4);
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
+    trig = Select.kr(envSource.round.clip(0, 2), [
+        0,
+        Select.kr(clockRate.round.clip(0, 12), In.kr(clockTrigBus, 13)),
+        Select.kr(slotIndex.clip(0, 7), In.kr(midiTrigBus, 8))
     ]);
     ne_env = Select.kr(envSource.round.clip(0, 2), [
         1.0,
-        Decay2.kr(A2K.kr(trig), ne_atkT, ne_relT),
-        Decay2.kr(A2K.kr(trig), ne_atkT, ne_relT)
+        Decay2.kr(trig, ne_atkT, ne_relT),
+        Decay2.kr(trig, ne_atkT, ne_relT)
     ]);
     sig = sig * ne_env * amp;
 

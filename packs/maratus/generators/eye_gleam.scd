@@ -67,6 +67,7 @@ SynthDef(\forge_maratus_eye_gleam, { |out, freqBus, cutoffBus, resBus, attackBus
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
+    sig = LeakDC.ar(sig);
     Out.ar(out, sig);
 }).add;
 

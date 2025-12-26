@@ -105,6 +105,7 @@ class NRTRenderer:
         self,
         sclang_path: Optional[Path] = None,
         output_dir: Optional[Path] = None,
+        timeout_s: int = 45,
     ):
         """
         Initialize renderer.
@@ -115,6 +116,7 @@ class NRTRenderer:
         """
         self.sclang_path = sclang_path or find_sclang()
         self.output_dir = output_dir
+        self.timeout_s = timeout_s
         self._temp_dir: Optional[Path] = None
     
     @property
@@ -387,7 +389,7 @@ score.recordNRT(
                 [str(self.sclang_path), str(script_path)],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=self.timeout_s,
                 cwd=work_dir,
             )
             
@@ -427,7 +429,7 @@ score.recordNRT(
             return RenderResult(
                 candidate_id=candidate.candidate_id,
                 success=False,
-                error="Render timed out (30s)",
+                error=f"Render timeout ({self.timeout_s}s)"
             )
         except Exception as e:
             return RenderResult(

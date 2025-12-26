@@ -63,6 +63,7 @@ SynthDef(\forge_summer_of_love_golden_haze, { |out, freqBus, cutoffBus, resBus, 
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
 
+    sig = Limiter.ar(sig, 0.95);
     Out.ar(out, sig);
 }).add;
 "  * forge_summer_of_love_golden_haze loaded".postln;
