@@ -62,6 +62,21 @@ DEFAULT_MASTER = {
     "limiter": True,
 }
 
+DEFAULT_MOD_SLOT_LFO = {
+    "generator_name": "LFO",
+    "params": {"mode": 0, "rate": 0.5, "shape": 0.0},
+    "output_wave": [0, 0, 0, 0],
+    "output_phase": [0, 3, 5, 6],
+    "output_polarity": [0, 0, 0, 0],
+}
+
+DEFAULT_MOD_SLOT_SLOTH = {
+    "generator_name": "Sloth",
+    "params": {"rate": 0.5},
+    "output_wave": [0, 0, 0, 0],
+    "output_phase": [0, 0, 0, 0],
+    "output_polarity": [0, 0, 0, 0],
+}
 
 def get_generator_names(pack_path: Path) -> list[str]:
     """Read generator display names from pack."""
@@ -120,6 +135,15 @@ def generate_preset(pack_path: Path) -> dict:
         },
         "bpm": 120,
         "master": DEFAULT_MASTER.copy(),
+        "mod_sources": {
+            "slots": [
+                DEFAULT_MOD_SLOT_LFO.copy(),
+                DEFAULT_MOD_SLOT_SLOTH.copy(),
+                DEFAULT_MOD_SLOT_LFO.copy(),
+                DEFAULT_MOD_SLOT_SLOTH.copy(),
+            ]
+        },
+        "mod_routing": {"connections": []},
     }
 
     return preset

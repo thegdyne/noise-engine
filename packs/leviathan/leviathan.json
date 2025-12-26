@@ -299,5 +299,112 @@
     "comp_threshold": 0.8,
     "comp_ratio": 2.0,
     "limiter": true
+  },
+  "mod_sources": {
+    "slots": [
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "mod_routing": {
+    "connections": []
   }
 }

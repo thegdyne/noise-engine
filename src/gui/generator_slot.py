@@ -48,7 +48,8 @@ class GeneratorSlot(QWidget):
         self.muted = False
         self.midi_channel = 0  # 0 = OFF, 1-16 = channels
         self.transpose = 0  # Semitones (-24 to +24)
-        
+        self.portamento = 0  # Portamento time (0-1)
+
         # Gate indicator flash timer
         self.gate_timer = QTimer()
         self.gate_timer.timeout.connect(self._gate_off)
@@ -57,7 +58,7 @@ class GeneratorSlot(QWidget):
         self.setMinimumSize(200, 220)
         build_generator_slot_ui(self)  # UI construction delegated to builder
         self.update_style()
-    
+
     # -------------------------------------------------------------------------
     # Preset State (Save/Load)
     # -------------------------------------------------------------------------
