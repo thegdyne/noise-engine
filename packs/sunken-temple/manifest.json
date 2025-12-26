@@ -1,18 +1,19 @@
 {
-    "pack_format": 1,
-    "name": "Sunken Temple",
-    "version": "1.0.0",
-    "author": "Noise Engine",
-    "description": "Ancient flooded ruins. Drowned bells, stone resonance, dark water. Something stirs in the depths.",
-    "enabled": true,
-    "generators": [
-        "DrownedBell",
-        "RuinDrone",
-        "DarkWater",
-        "VoidChant",
-        "StoneRain",
-        "PilgrimStep",
-        "AbyssGate",
-        "ForgottenBreath"
-    ]
+  "pack_format": 1,
+  "pack_id": "sunken_temple",
+  "name": "Sunken Temple",
+  "version": "1.0.0",
+  "author": "Noise Engine",
+  "description": "Ancient flooded ruins. Drowned bells, stone resonance, dark water. Something stirs in the depths.",
+  "enabled": true,
+  "generators": [
+    "DrownedBell",
+    "RuinDrone",
+    "DarkWater",
+    "VoidChant",
+    "StoneRain",
+    "PilgrimStep",
+    "AbyssGate",
+    "ForgottenBreath"
+  ]
 }

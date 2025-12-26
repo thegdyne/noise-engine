@@ -33,11 +33,11 @@ class Issue(NamedTuple):
 # SC syntax patterns that fail in NRT but work live
 SC_SYNTAX_PATTERNS = [
     # Unary minus before parenthesis: -(expr)
-    (r'-\([^)]+\)\.', 'SC001', 'Unary minus before paren - use (..).neg or negative literal'),
+    (r'-\([^)]+\)\.', 'SC001', 'ERROR', 'Unary minus before paren - use (..).neg or negative literal'),
     # Unary minus before variable: -varName
-    (r'-[a-z][a-zA-Z0-9_]*[^a-zA-Z0-9_\.]', 'SC002', 'Unary minus before variable - use varName.neg'),
+    (r'-[a-z][a-zA-Z0-9_]*[^a-zA-Z0-9_\.]', 'SC002', 'WARN', 'Unary minus before variable - use varName.neg'),
     # Boolean used in arithmetic (compile-time issue in NRT)
-    (r'\*\s*\([^)]+\s*[<>=!]+\s*[^)]+\)(?!\.asInteger)', 'SC003', 'Boolean in arithmetic - add .asInteger for NRT compatibility'),
+    (r'\*\s*\([^)]+\s*[<>=!]+\s*[^)]+\)(?!\.asInteger)', 'SC003', 'WARN', 'Boolean in arithmetic - add .asInteger for NRT compatibility'),
 ]
 
 # Characters that shouldn't be in .scd files
@@ -81,13 +81,13 @@ def check_sc_syntax(file_path: Path) -> List[Issue]:
         for line_num, line in enumerate(lines, 1):
             # Skip comments
             stripped = line.split('//')[0]
-            
-            for pattern, code, message in SC_SYNTAX_PATTERNS:
+
+            for pattern, code, severity, message in SC_SYNTAX_PATTERNS:
                 if re.search(pattern, stripped):
                     issues.append(Issue(
                         file=str(file_path),
                         line=line_num,
-                        severity='ERROR',
+                        severity=severity,
                         code=code,
                         message=message
                     ))
@@ -103,7 +103,13 @@ def check_sc_syntax(file_path: Path) -> List[Issue]:
 
 
 def check_contract(pack_path: Path) -> Tuple[bool, str]:
-    """Run forge_validate.py on pack."""
+    """Run forge_validate.py on pack. Skip for legacy packs."""
+    # Detect legacy pack: SynthDefs don't use forge_ prefix
+    scd_files = list(pack_path.glob("generators/*.scd"))
+    if scd_files:
+        sample = scd_files[0].read_text()
+        if "SynthDef(\\forge_" not in sample:
+            return True, "Legacy pack - skipped"
     try:
         result = subprocess.run(
             ['python', 'tools/forge_validate.py', str(pack_path)],

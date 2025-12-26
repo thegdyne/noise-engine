@@ -7,7 +7,7 @@ SynthDef(\forge_summer_of_love_park_bell, { |out, freqBus, cutoffBus, resBus, at
 
     var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var chime, breeze, jewelry, sustain, peace;
-    var exciter, modes, modeRatios, modeDecays, breezeWobble, jangle, trig;
+    var exciter, gain, modes, modeRatios, modeDecays, breezeWobble, jangle, trig;
 
     // Standard reads
     freq = In.kr(freqBus);

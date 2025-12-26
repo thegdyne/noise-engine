@@ -62,7 +62,7 @@ SynthDef(\forge_drangarnir_wave_crash, { |out, freqBus, cutoffBus, resBus, attac
     sig = sig + (SinOsc.ar(freq * 0.5) * EnvGen.ar(Env.perc(0.001, 0.1)) * force * 0.3);
 
     // Stereo spread
-    sig = Pan2.ar(Mix(sig), SinOsc.kr((0.3).max(0.001)).range(-(spray.linlin(0, 1, 0.2, 0.8).clip(0,1), (spray.linlin(0, 1, 0.2, 0.8).clip(0,1))));
+    sig = Pan2.ar(Mix(sig), SinOsc.kr((0.3).max(0.001)).range(spray.linlin(0, 1, 0.2, 0.8).clip(0,1).neg, (spray.linlin(0, 1, 0.2, 0.8).clip(0,1))));
 
     // Standard output chain
     // Output chain (inlined; avoids global helpers for NRT stability)
