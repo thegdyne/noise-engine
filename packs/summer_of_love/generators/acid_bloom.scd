@@ -83,8 +83,10 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, a
         EnvGen.ar(Env.perc(attack.max(0.001), decay.max(0.001)), envTrig)
     ]);
     sig = sig * amp * ampEnv;
+    sig = LeakDC.ar(sig);
     sig = sig.asArray;
     sig = (sig.size == 1).if({ [sig[0], sig[0]] }, { sig });
+    sig = Limiter.ar(sig, 0.95);
     Out.ar(out, sig);
 }).add;
 "  * forge_summer_of_love_acid_bloom loaded".postln;
