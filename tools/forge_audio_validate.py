@@ -37,6 +37,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+RENDER_TIMEOUT = int(os.environ.get("NE_RENDER_TIMEOUT", 45))
+
 def warm_sclang_once(timeout_s: int = 120) -> None:
     """
     Pre-warm SuperCollider so class library compilation cost is paid once.
@@ -681,7 +683,7 @@ def render_generator(
             [str(sclang_path), str(script_path)],
             capture_output=True,
             text=True,
-            timeout=45,
+            timeout=RENDER_TIMEOUT,
             cwd=work_dir,
         )
         
