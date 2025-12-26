@@ -12,6 +12,7 @@ SynthDef(\forge_dew_sphere_droplet_ping, { |out, freqBus, cutoffBus, resBus, att
     var sphere, glisten, ring, prism, clarity;
     var exciter, pluck, delay, decayTime, coef;
     var shimmer, prismOsc;
+    var trigExciter, droneExciter;
 
     // Standard bus reads (guarded)
     freq = In.kr(freqBus).clip(20, 20000);
@@ -24,7 +25,7 @@ SynthDef(\forge_dew_sphere_droplet_ping, { |out, freqBus, cutoffBus, resBus, att
     filterType = In.kr(filterTypeBus);
     envSource = In.kr(envSourceBus).clip(0, 2);
     clockRate = In.kr(clockRateBus).clip(0, 12);
-    amp = 0.2;
+    amp = 0.5;
 
     // Theme params (guarded 0-1)
     sphere = In.kr(customBus0).clip(0, 1);
@@ -33,13 +34,13 @@ SynthDef(\forge_dew_sphere_droplet_ping, { |out, freqBus, cutoffBus, resBus, att
     prism = In.kr(customBus3).clip(0, 1);
     clarity = In.kr(customBus4).clip(0, 1);
 
-    // Trigger for Pluck excitation (FIXED)
+    // Trigger for Pluck excitation
     // envSource: 0=DRONE(start impulse), 1=CLOCK, 2=MIDI
-    startTrig = Impulse.kr(0); // one-sample trigger at synth start
-    clkTrig   = Select.kr(clockRate.round.clip(0, 12), In.kr(clockTrigBus, 13));
-    midiTrig  = Select.kr(slotIndex.clip(0, 7), In.kr(midiTrigBus, 8));
-    trig = Select.kr(envSource.round.clip(0, 2), [startTrig, clkTrig, midiTrig]);
-    trig = Trig1.kr(trig, 0.001); // enforce short impulse
+    startTrig = Impulse.ar(0.5); // Slow periodic pings in drone mode
+    clkTrig   = Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13));
+    midiTrig  = Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8));
+    trig = Select.ar(envSource.round.clip(0, 2), [startTrig, clkTrig, midiTrig]);
+    trig = Trig1.ar(trig, 0.001); // enforce short impulse
 
     // Exciter - short bright burst (triggered)
     exciter = WhiteNoise.ar(1) * EnvGen.ar(Env.perc(0.001, 0.01), trig);
