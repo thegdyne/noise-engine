@@ -1870,7 +1870,7 @@ class MainFrame(QMainWindow):
         if slot_id < 1 or slot_id > 8:
             return False
         slot = self.generator_grid.slots[slot_id]
-        return slot.env_source == 2  # 2 = MIDI mode
+        return slot.env_source == 2 or slot.env_source == "MIDI"
 
     def _set_header_buttons_enabled(self, enabled: bool) -> None:
         """Enable/disable header buttons that require SC connection.
