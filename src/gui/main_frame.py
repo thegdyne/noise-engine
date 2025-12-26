@@ -1755,8 +1755,8 @@ class MainFrame(QMainWindow):
         if state.version >= 2 and hasattr(state, 'master'):
             self.master_section.set_state(state.master.to_dict())
         
-        # Phase 3: Mod sources (only if preset version >= 2)
-        if state.version >= 2 and any(s.generator_name != "Empty" for s in state.mod_sources.slots):
+        # Phase 3: Mod sources
+        if state.version >= 2:
             self.modulator_grid.set_state(state.mod_sources.to_dict())
 
         # Phase 4: Mod routing (only if has connections)

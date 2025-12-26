@@ -313,3 +313,34 @@ class ModulatorSlot(QWidget):
                 row_widgets['polarity'].blockSignals(True)
                 row_widgets['polarity'].set_index(output_polarity[i])
                 row_widgets['polarity'].blockSignals(False)
+
+        # Send all state to SC
+        self._send_all_state_to_osc()
+
+    def _send_all_state_to_osc(self):
+        """Send all current state to SC after preset load."""
+        # Emit generator change
+        self.generator_changed.emit(self.slot_id, self.generator_name)
+
+        # Emit all param values
+        for key, widget in self.param_sliders.items():
+            if hasattr(widget, 'value'):
+                normalized = widget.value() / 1000.0
+                from src.config import get_mod_generator_custom_params, map_value
+                # Find param config to get real value
+                for param in get_mod_generator_custom_params(self.generator_name):
+                    if param.get('key') == key:
+                        real_value = map_value(normalized, param)
+                        self.parameter_changed.emit(self.slot_id, key, real_value)
+                        break
+            elif hasattr(widget, 'index'):
+                self.parameter_changed.emit(self.slot_id, key, float(widget.index))
+
+        # Emit output states
+        for i, row_widgets in enumerate(self.output_rows):
+            if 'wave' in row_widgets:
+                self.output_wave_changed.emit(self.slot_id, i, row_widgets['wave'].index)
+            if 'phase' in row_widgets:
+                self.output_phase_changed.emit(self.slot_id, i, row_widgets['phase'].index)
+            if 'polarity' in row_widgets:
+                self.output_polarity_changed.emit(self.slot_id, i, row_widgets['polarity'].index)
