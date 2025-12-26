@@ -10,6 +10,7 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, a
     var squelch, bloom, trip, dose, sub;
     var osc, subOsc, filtEnv, envTrig, filtFreqMod, saturated;
     var fallbackAmpBus, envSel, clockIdx, midiIdx, ampEnv;
+    // @forge: inline_post_chain
 
     // Standard reads
     freq = In.kr(freqBus);

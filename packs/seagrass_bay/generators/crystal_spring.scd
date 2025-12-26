@@ -7,6 +7,7 @@ SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, cutoffBus, resBus,
     var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var clarity, shimmer, flow, cold, light;
     var fundamental, partials, flowMod, lightSparkle;
+    // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);

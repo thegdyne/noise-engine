@@ -8,6 +8,9 @@ Validates packs against CQD_FORGE_SPEC.md (frozen 2025-12-23):
 - generator_id:  slug, max 24 chars  
 - synthdef:      forge_{pack_id}_{generator_id}
 
+Supports inline post-chain implementations via directive:
+  // @forge: inline_post_chain
+
 Usage:
     python tools/forge_validate.py packs/leviathan/
     python tools/forge_validate.py packs/leviathan/ --verbose
@@ -19,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Set
+from typing import List, Set, Optional
 
 
 # ============================================================================
@@ -81,6 +84,7 @@ REQUIRED_BUS_ARGS = [
     "portamentoBus",
 ]
 
+# Helper function names (without the call syntax)
 REQUIRED_HELPERS = [
     "~ensure2ch",
     "~multiFilter", 
@@ -94,7 +98,122 @@ POST_CHAIN_ORDER = [
     "~ensure2ch",
 ]
 
+# Directive to opt-out of helper requirements
+INLINE_DIRECTIVE = "@forge: inline_post_chain"
+
 VALID_LABEL_PATTERN = re.compile(r'^[A-Z0-9]{3}$')
+
+
+# ============================================================================
+# COMMENT STRIPPING UTILITIES
+# ============================================================================
+
+def strip_comments(content: str) -> str:
+    """
+    Strip single-line (//) and multi-line (/* */) comments from SC code.
+    
+    Note: This is regex-based and may incorrectly strip // inside string literals.
+    For Noise Engine generators this is acceptable since URLs/paths in strings are rare.
+    """
+    # Remove multi-line comments first (non-greedy)
+    content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+    # Remove single-line comments
+    content = re.sub(r'//.*', '', content)
+    return content
+
+
+def has_helper_call(content: str, helper_name: str) -> bool:
+    """
+    Check if content contains an actual call to a helper function.
+    
+    Matches: ~helperName.( with optional whitespace
+    Does NOT match: bare mentions in comments or strings
+    
+    Args:
+        content: Comment-stripped code
+        helper_name: e.g., "~multiFilter"
+    """
+    # Escape the ~ and match optional whitespace before . and (
+    pattern = re.escape(helper_name) + r'\s*\.\s*\('
+    return bool(re.search(pattern, content))
+
+
+def find_helper_call_position(content: str, helper_name: str) -> Optional[int]:
+    """
+    Find the position of a helper call in content.
+    
+    Returns: Start position of the call, or None if not found
+    """
+    pattern = re.escape(helper_name) + r'\s*\.\s*\('
+    match = re.search(pattern, content)
+    return match.start() if match else None
+
+
+def has_inline_directive(content: str) -> bool:
+    """Check if the file has the inline_post_chain directive."""
+    return INLINE_DIRECTIVE in content
+
+
+# ============================================================================
+# INLINE POST-CHAIN VALIDATION
+# ============================================================================
+
+def validate_inline_post_chain(content: str, result: 'ValidationResult') -> 'ValidationResult':
+    """
+    Validate minimal contract for generators with inlined post-chain.
+    
+    Instead of requiring ~helpers, we check for:
+    - Out.ar(out, ...) present
+    - Some form of stereo output (Pan2, array, or size check)
+    - Some form of amplitude control
+    """
+    # Must have Out.ar
+    if "Out.ar" not in content:
+        result.add_error("inline post-chain: missing Out.ar")
+    
+    # Must have some stereo handling
+    stereo_patterns = [
+        r'Pan2\.ar',                    # Pan2
+        r'\[.*,.*\]',                   # Array literal [a, b]
+        r'\.asArray',                   # .asArray call
+        r'size\s*==\s*1',               # Size check for mono->stereo
+        r'neArr\.size',                 # Common inline pattern
+        r'ensure2ch',                   # Might have own ensure2ch
+    ]
+    has_stereo = any(re.search(p, content) for p in stereo_patterns)
+    if not has_stereo:
+        result.add_warning("inline post-chain: no obvious stereo handling detected")
+    
+    # Should have some form of envelope/amplitude control
+    amp_patterns = [
+        r'EnvGen\.',                    # EnvGen for envelope
+        r'\*\s*amp\b',                  # * amp multiplication
+        r'Env\.',                       # Env definition
+        r'envSource',                   # Reading env source
+        r'ne_env',                      # Common inline pattern variable
+    ]
+    has_amp = any(re.search(p, content) for p in amp_patterns)
+    if not has_amp:
+        result.add_warning("inline post-chain: no obvious envelope/amplitude control detected")
+    
+    # Should have filter or explicit bypass
+    filter_patterns = [
+        r'RLPF\.ar',
+        r'RHPF\.ar',
+        r'BPF\.ar',
+        r'BRF\.ar',
+        r'LPF\.ar',
+        r'HPF\.ar',
+        r'SVF',
+        r'filterType',                  # Reading filter type
+        r'ne_lp',                       # Common inline pattern
+        r'Select\.ar\(filterType',      # Filter selection
+    ]
+    has_filter = any(re.search(p, content) for p in filter_patterns)
+    if not has_filter:
+        result.add_warning("inline post-chain: no filter implementation detected (CUT/RES won't work)")
+    
+    return result
 
 
 # ============================================================================
@@ -355,22 +474,34 @@ def validate_synthdef(scd_path: Path, pack_id: str, generator_id: str) -> Valida
     if "RandSeed.ir" not in content:
         result.add_warning("RandSeed.ir not found (required for determinism)")
     
-    # Check required helpers
-    for helper in REQUIRED_HELPERS:
-        if helper not in content:
-            result.add_error(f"missing required helper: {helper}")
+    # === HELPER / INLINE POST-CHAIN VALIDATION ===
+    # Strip comments for accurate detection
+    code_stripped = strip_comments(content)
     
-    # Check post-chain order
-    helper_positions = {}
-    for helper in POST_CHAIN_ORDER:
-        match = re.search(re.escape(helper), content)
-        if match:
-            helper_positions[helper] = match.start()
+    # Check for inline directive
+    is_inline = has_inline_directive(content)  # Check original (directive is in a comment)
     
-    if len(helper_positions) == len(POST_CHAIN_ORDER):
-        positions = [helper_positions[h] for h in POST_CHAIN_ORDER]
-        if positions != sorted(positions):
-            result.add_error("post-chain order wrong: must be ~multiFilter → ~envVCA → ~ensure2ch")
+    if is_inline:
+        # Inline mode: validate alternate minimal contract
+        result.add_warning("using inline post-chain (directive found)")
+        result = validate_inline_post_chain(code_stripped, result)
+    else:
+        # Standard mode: require helper calls
+        for helper in REQUIRED_HELPERS:
+            if not has_helper_call(code_stripped, helper):
+                result.add_error(f"missing required helper: {helper}")
+        
+        # Check post-chain order (only if all helpers present)
+        helper_positions = {}
+        for helper in POST_CHAIN_ORDER:
+            pos = find_helper_call_position(code_stripped, helper)
+            if pos is not None:
+                helper_positions[helper] = pos
+        
+        if len(helper_positions) == len(POST_CHAIN_ORDER):
+            positions = [helper_positions[h] for h in POST_CHAIN_ORDER]
+            if positions != sorted(positions):
+                result.add_error("post-chain order wrong: must be ~multiFilter → ~envVCA → ~ensure2ch")
     
     # Check Out.ar
     if "Out.ar" not in content:

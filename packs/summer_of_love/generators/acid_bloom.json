@@ -9,7 +9,7 @@
     {"key": "dose", "label": "DOS", "tooltip": "Distortion amount - clean to overdriven", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
     {"key": "sub", "label": "SUB", "tooltip": "Sub oscillator level - bottom weight", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
   ],
-  "output_trim_db": -6.0,
+  "output_trim_db": -15.0,
   "midi_retrig": false,
   "pitch_target": null
 }
