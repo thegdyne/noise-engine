@@ -1709,6 +1709,8 @@ class MainFrame(QMainWindow):
             try:
                 state = self.preset_manager.load(Path(filepath))
                 self._apply_preset(state)
+                # Safety: reset master to 0 so presets don't blast audio
+                self.master_section.set_volume(0.0)
                 self.preset_name.setText(state.name)
                 logger.info(f"Preset loaded: {state.name}", component="PRESET")
                 self._clear_dirty(state.name)
@@ -1798,7 +1800,7 @@ class MainFrame(QMainWindow):
 
         logger.info("Preset initialized to defaults", component="PRESET")
 
-    # â"€â"€ Keyboard Mode â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # Keyboard Mode
 
     def eventFilter(self, obj, event):
         """Forward key events to keyboard overlay when visible."""
