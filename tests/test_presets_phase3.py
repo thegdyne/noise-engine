@@ -136,7 +136,7 @@ class TestModSourcesState:
         m = ModSourcesState.from_dict(d)
         assert len(m.slots) == NUM_MOD_SLOTS
         assert m.slots[0].generator_name == "LFO"
-        assert m.slots[1].generator_name == "Empty"
+        assert m.slots[1].generator_name == "Sloth"
 
     def test_round_trip(self):
         """Full round-trip preserves all values."""
@@ -193,7 +193,7 @@ class TestPresetStateModSources:
         """mod_sources defaults when missing (v1 compat)."""
         preset = PresetState.from_dict({})
         assert len(preset.mod_sources.slots) == NUM_MOD_SLOTS
-        assert preset.mod_sources.slots[0].generator_name == "Empty"
+        assert preset.mod_sources.slots[0].generator_name == "LFO"
 
 
 class TestValidationPhase3:
