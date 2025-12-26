@@ -1,0 +1,60 @@
+{
+  "generator_id": "root_creep",
+  "name": "Root Creep",
+  "synthdef": "forge_moss_root_root_creep",
+  "custom_params": [
+    {
+      "key": "twist",
+      "label": "TWT",
+      "tooltip": "Twist rate -- speed of creeping movement",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "reach",
+      "label": "RCH",
+      "tooltip": "Reach -- how far the pitch bends and stretches",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tangle",
+      "label": "TNG",
+      "tooltip": "Tangle -- voice complexity and interweaving",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "earth",
+      "label": "ERT",
+      "tooltip": "Earth -- low-end rootedness and depth",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sky",
+      "label": "SKY",
+      "tooltip": "Sky reach -- upper harmonic content reaching up",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

@@ -40,7 +40,10 @@ All OSC message routing
     OSCdef(\genFrequency, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat;
-        ~genUserParams[slot][\frequency].set(value);
+        var transpose = ~genTranspose[slot - 1];
+        var ratio = 2 ** (transpose / 12);
+        var transposed = value * ratio;
+        ~genUserParams[slot][\frequency].set(transposed);
     }, '/noise/gen/frequency');
     
     OSCdef(\genCutoff, { |msg|
@@ -87,7 +90,23 @@ All OSC message routing
         // Rate index: 0=/32 ... 6=CLK ... 12=x32
         ~genParams[msg[1].asInteger][\clockRate].set(msg[2].asInteger);
     }, '/noise/gen/clockRate');
-    
+
+   // Per-generator transpose (semitones)
+    OSCdef(\genTranspose, { |msg|
+        var slot = msg[1].asInteger;
+        var semitones = msg[2].asInteger;
+        ~genTranspose[slot - 1] = semitones;
+        ("Gen " ++ slot ++ " transpose: " ++ semitones ++ " semitones").postln;
+    }, '/noise/gen/transpose');
+
+    // Portamento per-slot
+    OSCdef(\genPortamento, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat;
+        ~genParams[slot][\portamento].set(value);
+        ("Gen " ++ slot ++ " portamento: " ++ (value * 1000).round(1) ++ "ms").postln;
+    }, '/noise/gen/portamento');
+
     // Per-generator custom parameters
     // Path format: /noise/gen/custom/{slot}/{param_index}
     // Write to both genParams (output) and genUserParams (base for relative modulation)

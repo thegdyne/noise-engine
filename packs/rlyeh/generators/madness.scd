@@ -22,9 +22,9 @@ The sound of losing your mind to cosmic truth.
 SynthDef(\madness, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
                       midiTrigBus=0, slotIndex=0,
-                      customBus0, customBus1, customBus2, customBus3, customBus4|
+                      customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
     
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var fracture, whisper, spiral, glimpse, unravel;
     var trig;
     var fractureSig, whisperSig, spiralSig, glimpseSig, unravelSig;
@@ -36,6 +36,8 @@ SynthDef(\madness, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     
     // Standard params
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
@@ -67,7 +69,7 @@ SynthDef(\madness, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     fractureMod = LFNoise2.kr(0.5).range(0.98, 1.02);
     fractureOsc = SinOsc.ar(freq * fractureMod);
     // Tritone (the devil's interval)
-    fractureOsc = fractureOsc + (SinOsc.ar(freq * 1.414 * fractureMod) * 0.5);  // sqrt(2) ≈ tritone
+    fractureOsc = fractureOsc + (SinOsc.ar(freq * 1.414 * fractureMod) * 0.5);  // sqrt(2) ~= tritone
     // Minor second cluster
     fractureOsc = fractureOsc + (SinOsc.ar(freq * 1.059 * fractureMod) * 0.4);  // Minor 2nd
     fractureOsc = fractureOsc + (SinOsc.ar(freq * 0.944 * fractureMod) * 0.4);  // Minor 2nd down
@@ -135,4 +137,4 @@ SynthDef(\madness, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ madness loaded".postln;
+"  [x] madness loaded".postln;

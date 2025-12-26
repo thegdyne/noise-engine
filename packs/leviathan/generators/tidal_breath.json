@@ -1,0 +1,60 @@
+{
+  "generator_id": "tidal_breath",
+  "name": "Tidal Breath",
+  "synthdef": "forge_leviathan_tidal_breath",
+  "custom_params": [
+    {
+      "key": "lung",
+      "label": "LNG",
+      "tooltip": "Lung - breath depth, fullness of inhalation",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "rhythm",
+      "label": "RHY",
+      "tooltip": "Rhythm - breathing rate, tidal cycle speed",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wet",
+      "label": "WET",
+      "tooltip": "Wet - water in the breath, filtered noise amount",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cavity",
+      "label": "CAV",
+      "tooltip": "Cavity - body resonance size, larger = deeper",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "exhale",
+      "label": "EXH",
+      "tooltip": "Exhale - release intensity and length",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

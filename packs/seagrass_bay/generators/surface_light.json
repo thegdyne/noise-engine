@@ -1,0 +1,15 @@
+{
+  "generator_id": "surface_light",
+  "name": "Surface Light",
+  "synthdef": "forge_seagrass_bay_surface_light",
+  "custom_params": [
+    {"key": "ripple", "label": "RIP", "tooltip": "Ripple - surface wave rate", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sun", "label": "SUN", "tooltip": "Sun - brightness intensity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dance", "label": "DNC", "tooltip": "Dance - light pattern movement", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sparkle", "label": "SPK", "tooltip": "Sparkle - high frequency glints", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wave", "label": "WAV", "tooltip": "Wave - modulation depth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

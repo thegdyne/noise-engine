@@ -1,0 +1,2 @@
+- [ ] FX section knob naming: Add section prefix to leaf names (e.g., echo_tone_knob, verb_tone_knob) to avoid duplicate names across sections
+- [ ] Preset save UX — "Save" overwrites current, rename to "Save As" for new-name prompt

@@ -72,6 +72,11 @@ class OSCBridge(QObject):
         
         # Flag to prevent signal emission after deletion
         self._deleted = False
+        self._shutdown = False
+
+    def shutdown(self):
+        """Mark bridge as shutting down to prevent signal emission."""
+        self._shutdown = True
         
     def connect(self, host=None, port=None):
         """Connect to SuperCollider with verification."""
@@ -267,6 +272,8 @@ class OSCBridge(QObject):
     
     def _handle_comp_gr(self, address, *args):
         """Handle compressor gain reduction from SC."""
+        if self._shutdown:
+            return
         if self._deleted:
             return
         if len(args) >= 1:
@@ -275,6 +282,8 @@ class OSCBridge(QObject):
     
     def _handle_mod_bus_value(self, address, *args):
         """Handle mod bus value from SC (for scope display)."""
+        if self._shutdown:
+            return
         if self._deleted:
             return
         if len(args) >= 2:

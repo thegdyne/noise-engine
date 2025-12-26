@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "wax_print",
+  "name": "Wax Print",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "African textile patterns as sound - Kente weaving rhythms, talking drums, thumb pianos, village calls. Bold geometric motifs translated into layered polyrhythmic textures.",
+  "enabled": true,
+  "generators": [
+    "kente_weave",
+    "palm_strike",
+    "thumb_piano",
+    "village_call",
+    "dust_rattle",
+    "bold_motif",
+    "talking_skin",
+    "root_pulse"
+  ]
+}

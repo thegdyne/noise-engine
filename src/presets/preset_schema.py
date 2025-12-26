@@ -4,6 +4,7 @@ v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 2: BPM + Master section (EQ, compressor, limiter)
    - Phase 3: Modulation sources (4 slots × 4 outputs)
    - Phase 4: Modulation routing (connections)
+   - Phase 5: FX state (Heat, Echo, Reverb, Dual Filter)
 """
 
 from dataclasses import dataclass, field
@@ -11,10 +12,10 @@ from typing import Optional
 import json
 
 PRESET_VERSION = 2
-MAPPING_VERSION = 1  # For future UI→value curve changes
+MAPPING_VERSION = 1  # For future UIâ†'value curve changes
 
 # Valid ranges
-FILTER_TYPES = 3      # 0=LP, 1=HP, 2=BP
+FILTER_TYPES = 6      # 0=LP, 1=HP, 2=BP, 3=Notch, 4=LP2, 5=OFF
 ENV_SOURCES = 3       # 0=OFF, 1=CLK, 2=MIDI  
 CLOCK_RATES = 13      # 0-12
 MIDI_CHANNELS = 16    # 0-16 (0=OFF)
@@ -42,6 +43,12 @@ MOD_POLARITIES = 2    # 0=NORM, 1=INV
 NUM_MOD_BUSES = 16    # 4 slots × 4 outputs
 MOD_POLARITIES_ROUTING = 3  # 0=bipolar, 1=uni+, 2=uni-
 
+# Phase 5: FX constants
+HEAT_CIRCUITS = 4     # 0=CLEAN, 1=TAPE, 2=TUBE, 3=CRUNCH
+FILTER_MODES = 3      # 0=LP, 1=BP, 2=HP
+HARMONICS_OPTIONS = 8 # Free, 1, 2, 3, 4, 5, 8, 16
+ROUTING_OPTIONS = 2   # 0=SER, 1=PAR
+
 
 @dataclass
 class SlotState:
@@ -60,6 +67,8 @@ class SlotState:
     env_source: int = 0
     clock_rate: int = 4
     midi_channel: int = 1
+    transpose: int = 2  # Index into TRANSPOSE_OPTIONS (0-4), default 2 = 0 semitones
+    portamento: float = 0.0  # 0-1 normalized glide time
     
     def to_dict(self) -> dict:
         return {
@@ -80,6 +89,8 @@ class SlotState:
             "env_source": self.env_source,
             "clock_rate": self.clock_rate,
             "midi_channel": self.midi_channel,
+            "transpose": self.transpose,
+            "portamento": self.portamento,
         }
     
     @classmethod
@@ -101,6 +112,8 @@ class SlotState:
             env_source=data.get("env_source", 0),
             clock_rate=data.get("clock_rate", 4),
             midi_channel=data.get("midi_channel", 1),
+            transpose=data.get("transpose", 2),
+            portamento=data.get("portamento", 0.0),
         )
 
 
@@ -232,8 +245,34 @@ class MasterState:
 
 
 @dataclass
+class MixerState:
+    """Mixer state."""
+    channels: list = field(default_factory=lambda: [ChannelState() for _ in range(NUM_SLOTS)])
+    master_volume: float = 0.8
+    
+    def to_dict(self) -> dict:
+        return {
+            "channels": [ch.to_dict() for ch in self.channels],
+            "master_volume": self.master_volume,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "MixerState":
+        channels = [
+            ChannelState.from_dict(ch) 
+            for ch in data.get("channels", [{}] * NUM_SLOTS)
+        ]
+        while len(channels) < NUM_SLOTS:
+            channels.append(ChannelState())
+        return cls(
+            channels=channels[:NUM_SLOTS],
+            master_volume=data.get("master_volume", 0.8),
+        )
+
+
+@dataclass
 class ModSlotState:
-    """Modulator slot state - Phase 3."""
+    """Modulation source slot state - Phase 3."""
     generator_name: str = "Empty"  # "Empty", "LFO", "Sloth", etc.
     params: dict = field(default_factory=dict)  # key -> normalized 0-1 value
     output_wave: list = field(default_factory=lambda: [0, 0, 0, 0])  # 4 outputs
@@ -243,7 +282,7 @@ class ModSlotState:
     def to_dict(self) -> dict:
         return {
             "generator_name": self.generator_name,
-            "params": dict(self.params),  # Copy
+            "params": dict(self.params),
             "output_wave": list(self.output_wave),
             "output_phase": list(self.output_phase),
             "output_polarity": list(self.output_polarity),
@@ -262,47 +301,190 @@ class ModSlotState:
 
 @dataclass
 class ModSourcesState:
-    """All modulator slots state - Phase 3."""
-    slots: list = field(default_factory=lambda: [ModSlotState() for _ in range(NUM_MOD_SLOTS)])
-    
+    """All modulation sources - Phase 3."""
+    slots: list = field(default_factory=lambda: [
+        ModSlotState(generator_name="LFO"),
+        ModSlotState(generator_name="Sloth"),
+        ModSlotState(generator_name="LFO"),
+        ModSlotState(generator_name="Sloth"),
+    ])
+
     def to_dict(self) -> dict:
         return {
-            "slots": [slot.to_dict() for slot in self.slots],
+            "slots": [slot.to_dict() for slot in self.slots]
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "ModSourcesState":
-        slots_data = data.get("slots", [{}] * NUM_MOD_SLOTS)
+        # Default slots match ModulatorGrid defaults
+        default_gens = ["LFO", "Sloth", "LFO", "Sloth"]
+        slots_data = data.get("slots", [])
         slots = [ModSlotState.from_dict(s) for s in slots_data]
-        # Pad to NUM_MOD_SLOTS if fewer
+        # Pad with proper defaults if missing
         while len(slots) < NUM_MOD_SLOTS:
-            slots.append(ModSlotState())
+            slots.append(ModSlotState(generator_name=default_gens[len(slots)]))
         return cls(slots=slots[:NUM_MOD_SLOTS])
 
 
+# Phase 5: FX State dataclasses
+
 @dataclass
-class MixerState:
-    channels: list = field(default_factory=lambda: [ChannelState() for _ in range(NUM_SLOTS)])
-    master_volume: float = 0.8  # Kept for backward compat, but master.volume is canonical
+class HeatState:
+    """Heat saturation state."""
+    bypass: bool = True  # True = bypassed, False = active
+    circuit: int = 0     # 0=CLEAN, 1=TAPE, 2=TUBE, 3=CRUNCH
+    drive: int = 0       # 0-100
+    mix: int = 100       # 0-100
     
     def to_dict(self) -> dict:
         return {
-            "channels": [ch.to_dict() for ch in self.channels],
-            "master_volume": self.master_volume,
+            "bypass": self.bypass,
+            "circuit": self.circuit,
+            "drive": self.drive,
+            "mix": self.mix,
         }
     
     @classmethod
-    def from_dict(cls, data: dict) -> "MixerState":
-        channels = [
-            ChannelState.from_dict(ch) 
-            for ch in data.get("channels", [{}] * NUM_SLOTS)
-        ]
-        # Pad to NUM_SLOTS if fewer channels saved
-        while len(channels) < NUM_SLOTS:
-            channels.append(ChannelState())
+    def from_dict(cls, data: dict) -> "HeatState":
         return cls(
-            channels=channels[:NUM_SLOTS],
-            master_volume=data.get("master_volume", 0.8),
+            bypass=data.get("bypass", True),
+            circuit=data.get("circuit", 0),
+            drive=data.get("drive", 0),
+            mix=data.get("mix", 100),
+        )
+
+
+@dataclass
+class EchoState:
+    """Tape echo state."""
+    time: int = 40       # 0-100
+    feedback: int = 30   # 0-100
+    tone: int = 70       # 0-100
+    wow: int = 10        # 0-100
+    spring: int = 0      # 0-100
+    verb_send: int = 0   # 0-100
+    return_level: int = 50  # 0-100
+    
+    def to_dict(self) -> dict:
+        return {
+            "time": self.time,
+            "feedback": self.feedback,
+            "tone": self.tone,
+            "wow": self.wow,
+            "spring": self.spring,
+            "verb_send": self.verb_send,
+            "return_level": self.return_level,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "EchoState":
+        return cls(
+            time=data.get("time", 40),
+            feedback=data.get("feedback", 30),
+            tone=data.get("tone", 70),
+            wow=data.get("wow", 10),
+            spring=data.get("spring", 0),
+            verb_send=data.get("verb_send", 0),
+            return_level=data.get("return_level", 50),
+        )
+
+
+@dataclass
+class ReverbState:
+    """Reverb state."""
+    size: int = 50       # 0-100
+    decay: int = 50      # 0-100
+    tone: int = 70       # 0-100
+    return_level: int = 30  # 0-100
+    
+    def to_dict(self) -> dict:
+        return {
+            "size": self.size,
+            "decay": self.decay,
+            "tone": self.tone,
+            "return_level": self.return_level,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "ReverbState":
+        return cls(
+            size=data.get("size", 50),
+            decay=data.get("decay", 50),
+            tone=data.get("tone", 70),
+            return_level=data.get("return_level", 30),
+        )
+
+
+@dataclass
+class DualFilterState:
+    """Dual filter state."""
+    bypass: bool = True  # True = bypassed, False = active
+    drive: int = 0       # 0-100
+    freq1: int = 50      # 0-100
+    reso1: int = 0       # 0-100
+    mode1: int = 1       # 0=LP, 1=BP, 2=HP
+    freq2: int = 35      # 0-100
+    reso2: int = 0       # 0-100
+    mode2: int = 1       # 0=LP, 1=BP, 2=HP
+    harmonics: int = 0   # 0-7 (Free, 1, 2, 3, 4, 5, 8, 16)
+    routing: int = 0     # 0=SER, 1=PAR
+    mix: int = 100       # 0-100
+    
+    def to_dict(self) -> dict:
+        return {
+            "bypass": self.bypass,
+            "drive": self.drive,
+            "freq1": self.freq1,
+            "reso1": self.reso1,
+            "mode1": self.mode1,
+            "freq2": self.freq2,
+            "reso2": self.reso2,
+            "mode2": self.mode2,
+            "harmonics": self.harmonics,
+            "routing": self.routing,
+            "mix": self.mix,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "DualFilterState":
+        return cls(
+            bypass=data.get("bypass", True),
+            drive=data.get("drive", 0),
+            freq1=data.get("freq1", 50),
+            reso1=data.get("reso1", 0),
+            mode1=data.get("mode1", 1),
+            freq2=data.get("freq2", 35),
+            reso2=data.get("reso2", 0),
+            mode2=data.get("mode2", 1),
+            harmonics=data.get("harmonics", 0),
+            routing=data.get("routing", 0),
+            mix=data.get("mix", 100),
+        )
+
+
+@dataclass
+class FXState:
+    """Master FX state - Phase 5."""
+    heat: HeatState = field(default_factory=HeatState)
+    echo: EchoState = field(default_factory=EchoState)
+    reverb: ReverbState = field(default_factory=ReverbState)
+    dual_filter: DualFilterState = field(default_factory=DualFilterState)
+    
+    def to_dict(self) -> dict:
+        return {
+            "heat": self.heat.to_dict(),
+            "echo": self.echo.to_dict(),
+            "reverb": self.reverb.to_dict(),
+            "dual_filter": self.dual_filter.to_dict(),
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "FXState":
+        return cls(
+            heat=HeatState.from_dict(data.get("heat", {})),
+            echo=EchoState.from_dict(data.get("echo", {})),
+            reverb=ReverbState.from_dict(data.get("reverb", {})),
+            dual_filter=DualFilterState.from_dict(data.get("dual_filter", {})),
         )
 
 
@@ -322,6 +504,8 @@ class PresetState:
     mod_sources: ModSourcesState = field(default_factory=ModSourcesState)
     # Phase 4 additions
     mod_routing: dict = field(default_factory=lambda: {"connections": []})
+    # Phase 5 additions
+    fx: FXState = field(default_factory=FXState)
     
     def to_dict(self) -> dict:
         return {
@@ -336,6 +520,7 @@ class PresetState:
             "master": self.master.to_dict(),
             "mod_sources": self.mod_sources.to_dict(),
             "mod_routing": self.mod_routing,
+            "fx": self.fx.to_dict(),
         }
     
     @classmethod
@@ -359,6 +544,7 @@ class PresetState:
             master=MasterState.from_dict(data.get("master", {})),
             mod_sources=ModSourcesState.from_dict(data.get("mod_sources", {})),
             mod_routing=data.get("mod_routing", {"connections": []}),
+            fx=FXState.from_dict(data.get("fx", {})),
         )
     
     def to_json(self, indent: int = 2) -> str:
@@ -377,52 +563,47 @@ class PresetValidationError(Exception):
 
 def validate_preset(data: dict, strict: bool = False) -> tuple:
     """
-    Validate preset data structure.
+    Validate preset data.
     
     Args:
-        data: Preset data dict
-        strict: If True, raise PresetValidationError on any issue.
-                If False, return errors/warnings list (best-effort mode).
-    
+        data: Preset dictionary
+        strict: If True, raise PresetValidationError on any issue
+        
     Returns:
-        (is_valid, list_of_errors)
+        (is_valid, errors_and_warnings)
     """
     errors = []
     warnings = []
     
-    # Check version
-    version = data.get("version")
-    if version is None:
-        errors.append("Missing version field")
-    elif version > PRESET_VERSION:
-        errors.append(f"Preset version {version} is newer than supported {PRESET_VERSION}")
+    # Version check
+    if "version" not in data:
+        errors.append("version is required")
+        version = 1  # Default for remaining validation
+    else:
+        version = data["version"]
+        if version > PRESET_VERSION:
+            errors.append(f"Preset version {version} is newer than supported {PRESET_VERSION}")
     
-    # Check slots
+    # Slots validation
     slots = data.get("slots", [])
-    if not isinstance(slots, list):
-        errors.append("slots must be a list")
-    elif len(slots) != NUM_SLOTS:
+    if len(slots) != NUM_SLOTS:
         if strict:
             errors.append(f"slots must have exactly {NUM_SLOTS} items, got {len(slots)}")
         else:
             warnings.append(f"slots has {len(slots)} items, expected {NUM_SLOTS}")
     
-    if isinstance(slots, list):
-        for i, slot in enumerate(slots[:NUM_SLOTS]):
-            slot_errors, slot_warnings = _validate_slot(slot, i, strict)
-            errors.extend(slot_errors)
-            warnings.extend(slot_warnings)
+    for i, slot in enumerate(slots[:NUM_SLOTS]):
+        slot_errors, slot_warnings = _validate_slot(slot, f"slots[{i}]", strict)
+        errors.extend(slot_errors)
+        warnings.extend(slot_warnings)
     
-    # Check mixer
+    # Mixer validation
     mixer = data.get("mixer", {})
-    if not isinstance(mixer, dict):
-        errors.append("mixer must be a dict")
-    else:
-        mixer_errors, mixer_warnings = _validate_mixer(mixer, strict)
-        errors.extend(mixer_errors)
-        warnings.extend(mixer_warnings)
+    mixer_errors, mixer_warnings = _validate_mixer(mixer, strict)
+    errors.extend(mixer_errors)
+    warnings.extend(mixer_warnings)
     
-    # Check BPM (Phase 2)
+    # BPM validation
     bpm = data.get("bpm", BPM_DEFAULT)
     bpm, warning = _coerce_int(bpm, "bpm")
     if warning:
@@ -430,106 +611,123 @@ def validate_preset(data: dict, strict: bool = False) -> tuple:
     if bpm is not None and not (BPM_MIN <= bpm <= BPM_MAX):
         errors.append(f"bpm must be {BPM_MIN}-{BPM_MAX}, got {bpm}")
     
-    # Check master (Phase 2)
+    # Master validation
     master = data.get("master", {})
-    if master and not isinstance(master, dict):
-        errors.append("master must be a dict")
-    elif master:
-        master_errors, master_warnings = _validate_master(master, strict)
-        errors.extend(master_errors)
-        warnings.extend(master_warnings)
+    master_errors, master_warnings = _validate_master(master, strict)
+    errors.extend(master_errors)
+    warnings.extend(master_warnings)
     
-    # Check mod_sources (Phase 3)
+    # Mod sources validation
     mod_sources = data.get("mod_sources", {})
-    if mod_sources and not isinstance(mod_sources, dict):
-        errors.append("mod_sources must be a dict")
-    elif mod_sources:
-        mod_errors, mod_warnings = _validate_mod_sources(mod_sources, strict)
-        errors.extend(mod_errors)
-        warnings.extend(mod_warnings)
+    mod_sources_errors, mod_sources_warnings = _validate_mod_sources(mod_sources, strict)
+    errors.extend(mod_sources_errors)
+    warnings.extend(mod_sources_warnings)
     
-    # Check mod_routing (Phase 4)
+    # Mod routing validation
     mod_routing = data.get("mod_routing", {})
-    if mod_routing and not isinstance(mod_routing, dict):
-        errors.append("mod_routing must be a dict")
-    elif mod_routing:
-        routing_errors, routing_warnings = _validate_mod_routing(mod_routing, strict)
-        errors.extend(routing_errors)
-        warnings.extend(routing_warnings)
+    mod_routing_errors, mod_routing_warnings = _validate_mod_routing(mod_routing, strict)
+    errors.extend(mod_routing_errors)
+    warnings.extend(mod_routing_warnings)
     
-    if strict and (errors or warnings):
-        raise PresetValidationError(errors + warnings)
+    # FX validation
+    fx = data.get("fx", {})
+    fx_errors, fx_warnings = _validate_fx(fx, strict)
+    errors.extend(fx_errors)
+    warnings.extend(fx_warnings)
     
-    return len(errors) == 0, errors + warnings
+    is_valid = len(errors) == 0
+    
+    if strict and not is_valid:
+        raise PresetValidationError(f"Invalid preset: {'; '.join(errors)}")
+    
+    return is_valid, errors + warnings
 
 
-def _validate_slot(slot: dict, index: int, strict: bool = False) -> tuple:
+def _validate_slot(slot: dict, prefix: str, strict: bool = False) -> tuple:
     """Validate a single slot."""
     errors = []
     warnings = []
-    prefix = f"slots[{index}]"
     
-    # Generator can be None or string
-    gen = slot.get("generator")
-    if gen is not None and not isinstance(gen, str):
-        errors.append(f"{prefix}.generator must be string or null")
+    if not isinstance(slot, dict):
+        errors.append(f"{prefix} must be dict")
+        return errors, warnings
     
-    # Params
+    # Params validation
     params = slot.get("params", {})
-    for key in ["frequency", "cutoff", "resonance", "attack", "decay"]:
-        val = params.get(key)
-        if val is not None:
-            val, warning = _coerce_float(val, f"{prefix}.params.{key}")
-            if warning:
-                warnings.append(warning)
-            if val is not None and not (0.0 <= val <= 1.0):
-                errors.append(f"{prefix}.params.{key} must be 0-1, got {val}")
+    if not isinstance(params, dict):
+        errors.append(f"{prefix}.params must be dict")
+    else:
+        for key in ["frequency", "cutoff", "resonance", "attack", "decay",
+                    "custom_0", "custom_1", "custom_2", "custom_3", "custom_4"]:
+            val = params.get(key)
+            if val is not None:
+                val, warning = _coerce_float(val, f"{prefix}.params.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0.0 <= val <= 1.0):
+                    errors.append(f"{prefix}.params.{key} must be 0-1, got {val}")
     
-    for i in range(NUM_CUSTOM_PARAMS):
-        key = f"custom_{i}"
-        val = params.get(key)
-        if val is not None:
-            val, warning = _coerce_float(val, f"{prefix}.params.{key}")
-            if warning:
-                warnings.append(warning)
-            if val is not None and not (0.0 <= val <= 1.0):
-                errors.append(f"{prefix}.params.{key} must be 0-1, got {val}")
-    
-    # Indices
+    # Filter type
     ft = slot.get("filter_type", 0)
-    if not (0 <= ft < FILTER_TYPES):
+    ft, warning = _coerce_int(ft, f"{prefix}.filter_type")
+    if warning:
+        warnings.append(warning)
+    if ft is not None and not (0 <= ft < FILTER_TYPES):
         errors.append(f"{prefix}.filter_type must be 0-{FILTER_TYPES-1}, got {ft}")
     
+    # Env source
     es = slot.get("env_source", 0)
-    if not (0 <= es < ENV_SOURCES):
+    es, warning = _coerce_int(es, f"{prefix}.env_source")
+    if warning:
+        warnings.append(warning)
+    if es is not None and not (0 <= es < ENV_SOURCES):
         errors.append(f"{prefix}.env_source must be 0-{ENV_SOURCES-1}, got {es}")
     
-    cr = slot.get("clock_rate", 0)
-    if not (0 <= cr < CLOCK_RATES):
+    # Clock rate
+    cr = slot.get("clock_rate", 4)
+    cr, warning = _coerce_int(cr, f"{prefix}.clock_rate")
+    if warning:
+        warnings.append(warning)
+    if cr is not None and not (0 <= cr < CLOCK_RATES):
         errors.append(f"{prefix}.clock_rate must be 0-{CLOCK_RATES-1}, got {cr}")
     
+    # MIDI channel
     mc = slot.get("midi_channel", 1)
-    if not (0 <= mc <= MIDI_CHANNELS):
+    mc, warning = _coerce_int(mc, f"{prefix}.midi_channel")
+    if warning:
+        warnings.append(warning)
+    if mc is not None and not (0 <= mc <= MIDI_CHANNELS):
         errors.append(f"{prefix}.midi_channel must be 0-{MIDI_CHANNELS}, got {mc}")
+    
+    # Transpose
+    tr = slot.get("transpose", 2)
+    tr, warning = _coerce_int(tr, f"{prefix}.transpose")
+    if warning:
+        warnings.append(warning)
+    if tr is not None and not (0 <= tr <= 4):
+        errors.append(f"{prefix}.transpose must be 0-4, got {tr}")
+    
+    # Portamento
+    port = slot.get("portamento", 0.0)
+    port, warning = _coerce_float(port, f"{prefix}.portamento")
+    if warning:
+        warnings.append(warning)
+    if port is not None and not (0.0 <= port <= 1.0):
+        errors.append(f"{prefix}.portamento must be 0-1, got {port}")
     
     return errors, warnings
 
 
 def _validate_mixer(mixer: dict, strict: bool = False) -> tuple:
-    """Validate mixer state including Phase 1 channel strip fields."""
+    """Validate mixer state."""
     errors = []
     warnings = []
     
-    mv = mixer.get("master_volume", 0.8)
-    mv, warning = _coerce_float(mv, "mixer.master_volume")
-    if warning:
-        warnings.append(warning)
-    if mv is not None and not (0.0 <= mv <= 1.0):
-        errors.append(f"mixer.master_volume must be 0-1, got {mv}")
+    if not isinstance(mixer, dict):
+        errors.append("mixer must be dict")
+        return errors, warnings
     
     channels = mixer.get("channels", [])
-    
-    # Check channel count
     if len(channels) != NUM_SLOTS:
         if strict:
             errors.append(f"mixer.channels must have exactly {NUM_SLOTS} items, got {len(channels)}")
@@ -537,166 +735,159 @@ def _validate_mixer(mixer: dict, strict: bool = False) -> tuple:
             warnings.append(f"mixer.channels has {len(channels)} items, expected {NUM_SLOTS}")
     
     for i, ch in enumerate(channels[:NUM_SLOTS]):
-        if not isinstance(ch, dict):
-            errors.append(f"mixer.channels[{i}] must be dict")
-            continue
-        
-        prefix = f"mixer.channels[{i}]"
-        
-        # Volume (0-1)
-        vol = ch.get("volume", 0.8)
-        vol, warning = _coerce_float(vol, f"{prefix}.volume")
-        if warning:
-            warnings.append(warning)
-        if vol is not None and not (0.0 <= vol <= 1.0):
-            errors.append(f"{prefix}.volume must be 0-1, got {vol}")
-        
-        # Pan (0-1)
-        pan = ch.get("pan", 0.5)
-        pan, warning = _coerce_float(pan, f"{prefix}.pan")
-        if warning:
-            warnings.append(warning)
-        if pan is not None and not (0.0 <= pan <= 1.0):
-            errors.append(f"{prefix}.pan must be 0-1, got {pan}")
-        
-        # EQ bands (0-200)
-        for eq_key in ["eq_hi", "eq_mid", "eq_lo"]:
-            val = ch.get(eq_key, 100)
-            val, warning = _coerce_int(val, f"{prefix}.{eq_key}")
+        ch_errors, ch_warnings = _validate_channel(ch, f"mixer.channels[{i}]", strict)
+        errors.extend(ch_errors)
+        warnings.extend(ch_warnings)
+    
+    # Master volume
+    mv = mixer.get("master_volume", 0.8)
+    mv, warning = _coerce_float(mv, "mixer.master_volume")
+    if warning:
+        warnings.append(warning)
+    if mv is not None and not (0.0 <= mv <= 1.0):
+        errors.append(f"mixer.master_volume must be 0-1, got {mv}")
+    
+    return errors, warnings
+
+
+def _validate_channel(channel: dict, prefix: str, strict: bool = False) -> tuple:
+    """Validate a single channel."""
+    errors = []
+    warnings = []
+    
+    if not isinstance(channel, dict):
+        errors.append(f"{prefix} must be dict")
+        return errors, warnings
+    
+    # Volume and pan
+    for key in ["volume", "pan"]:
+        val = channel.get(key)
+        if val is not None:
+            val, warning = _coerce_float(val, f"{prefix}.{key}")
+            if warning:
+                warnings.append(warning)
+            if val is not None and not (0.0 <= val <= 1.0):
+                errors.append(f"{prefix}.{key} must be 0-1, got {val}")
+    
+    # Booleans
+    for key in ["mute", "solo", "lo_cut", "hi_cut"]:
+        val = channel.get(key)
+        if val is not None and not isinstance(val, bool):
+            errors.append(f"{prefix}.{key} must be bool, got {type(val).__name__}")
+    
+    # EQ values (0-200)
+    for key in ["eq_hi", "eq_mid", "eq_lo", "echo_send", "verb_send"]:
+        val = channel.get(key)
+        if val is not None:
+            val, warning = _coerce_int(val, f"{prefix}.{key}")
             if warning:
                 warnings.append(warning)
             if val is not None and not (0 <= val <= 200):
-                errors.append(f"{prefix}.{eq_key} must be 0-200, got {val}")
-        
-        # Gain index (0-2)
-        gain = ch.get("gain", 0)
-        gain, warning = _coerce_int(gain, f"{prefix}.gain")
-        if warning:
-            warnings.append(warning)
-        if gain is not None and not (0 <= gain < GAIN_STAGES):
-            errors.append(f"{prefix}.gain must be 0-{GAIN_STAGES-1}, got {gain}")
-        
-        # Sends (0-200)
-        for send_key in ["echo_send", "verb_send"]:
-            val = ch.get(send_key, 0)
-            val, warning = _coerce_int(val, f"{prefix}.{send_key}")
-            if warning:
-                warnings.append(warning)
-            if val is not None and not (0 <= val <= 200):
-                errors.append(f"{prefix}.{send_key} must be 0-200, got {val}")
-        
-        # Cuts (bool)
-        for cut_key in ["lo_cut", "hi_cut"]:
-            val = ch.get(cut_key, False)
-            if not isinstance(val, bool):
-                errors.append(f"{prefix}.{cut_key} must be bool, got {type(val).__name__}")
+                errors.append(f"{prefix}.{key} must be 0-200, got {val}")
+    
+    # Gain (0-2)
+    gain = channel.get("gain", 0)
+    gain, warning = _coerce_int(gain, f"{prefix}.gain")
+    if warning:
+        warnings.append(warning)
+    if gain is not None and not (0 <= gain < GAIN_STAGES):
+        errors.append(f"{prefix}.gain must be 0-{GAIN_STAGES-1}, got {gain}")
     
     return errors, warnings
 
 
 def _validate_master(master: dict, strict: bool = False) -> tuple:
-    """Validate master section state (Phase 2)."""
+    """Validate master section state."""
     errors = []
     warnings = []
-    prefix = "master"
+    
+    if not isinstance(master, dict):
+        errors.append("master must be dict")
+        return errors, warnings
     
     # Volume (0-1)
     vol = master.get("volume", 0.8)
-    vol, warning = _coerce_float(vol, f"{prefix}.volume")
+    vol, warning = _coerce_float(vol, "master.volume")
     if warning:
         warnings.append(warning)
     if vol is not None and not (0.0 <= vol <= 1.0):
-        errors.append(f"{prefix}.volume must be 0-1, got {vol}")
+        errors.append(f"master.volume must be 0-1, got {vol}")
     
     # EQ sliders (0-240)
-    for eq_key in ["eq_hi", "eq_mid", "eq_lo"]:
-        val = master.get(eq_key, 120)
-        val, warning = _coerce_int(val, f"{prefix}.{eq_key}")
-        if warning:
-            warnings.append(warning)
-        if val is not None and not (0 <= val <= 240):
-            errors.append(f"{prefix}.{eq_key} must be 0-240, got {val}")
+    for key in ["eq_hi", "eq_mid", "eq_lo"]:
+        val = master.get(key)
+        if val is not None:
+            val, warning = _coerce_int(val, f"master.{key}")
+            if warning:
+                warnings.append(warning)
+            if val is not None and not (0 <= val <= 240):
+                errors.append(f"master.{key} must be 0-240, got {val}")
     
-    # EQ kills/buttons (0 or 1)
-    for btn_key in ["eq_hi_kill", "eq_mid_kill", "eq_lo_kill", "eq_locut", "eq_bypass"]:
-        val = master.get(btn_key, 0)
-        val, warning = _coerce_int(val, f"{prefix}.{btn_key}")
-        if warning:
-            warnings.append(warning)
-        if val is not None and val not in (0, 1):
-            errors.append(f"{prefix}.{btn_key} must be 0 or 1, got {val}")
+    # EQ buttons (0-1)
+    for key in ["eq_hi_kill", "eq_mid_kill", "eq_lo_kill", "eq_locut", "eq_bypass"]:
+        val = master.get(key)
+        if val is not None:
+            val, warning = _coerce_int(val, f"master.{key}")
+            if warning:
+                warnings.append(warning)
+            if val is not None and not (0 <= val <= 1):
+                errors.append(f"master.{key} must be 0-1, got {val}")
     
     # Compressor threshold (0-400)
-    val = master.get("comp_threshold", 100)
-    val, warning = _coerce_int(val, f"{prefix}.comp_threshold")
-    if warning:
-        warnings.append(warning)
-    if val is not None and not (0 <= val <= 400):
-        errors.append(f"{prefix}.comp_threshold must be 0-400, got {val}")
+    ct = master.get("comp_threshold")
+    if ct is not None:
+        ct, warning = _coerce_int(ct, "master.comp_threshold")
+        if warning:
+            warnings.append(warning)
+        if ct is not None and not (0 <= ct <= 400):
+            errors.append(f"master.comp_threshold must be 0-400, got {ct}")
     
     # Compressor makeup (0-200)
-    val = master.get("comp_makeup", 0)
-    val, warning = _coerce_int(val, f"{prefix}.comp_makeup")
-    if warning:
-        warnings.append(warning)
-    if val is not None and not (0 <= val <= 200):
-        errors.append(f"{prefix}.comp_makeup must be 0-200, got {val}")
+    cm = master.get("comp_makeup")
+    if cm is not None:
+        cm, warning = _coerce_int(cm, "master.comp_makeup")
+        if warning:
+            warnings.append(warning)
+        if cm is not None and not (0 <= cm <= 200):
+            errors.append(f"master.comp_makeup must be 0-200, got {cm}")
     
-    # Compressor ratio index (0-2)
-    val = master.get("comp_ratio", 1)
-    val, warning = _coerce_int(val, f"{prefix}.comp_ratio")
-    if warning:
-        warnings.append(warning)
-    if val is not None and not (0 <= val < COMP_RATIOS):
-        errors.append(f"{prefix}.comp_ratio must be 0-{COMP_RATIOS-1}, got {val}")
+    # Compressor indices
+    for key, max_val in [("comp_ratio", COMP_RATIOS), ("comp_attack", COMP_ATTACKS),
+                          ("comp_release", COMP_RELEASES), ("comp_sc", COMP_SC_FREQS)]:
+        val = master.get(key)
+        if val is not None:
+            val, warning = _coerce_int(val, f"master.{key}")
+            if warning:
+                warnings.append(warning)
+            if val is not None and not (0 <= val < max_val):
+                errors.append(f"master.{key} must be 0-{max_val-1}, got {val}")
     
-    # Compressor attack index (0-5)
-    val = master.get("comp_attack", 4)
-    val, warning = _coerce_int(val, f"{prefix}.comp_attack")
-    if warning:
-        warnings.append(warning)
-    if val is not None and not (0 <= val < COMP_ATTACKS):
-        errors.append(f"{prefix}.comp_attack must be 0-{COMP_ATTACKS-1}, got {val}")
-    
-    # Compressor release index (0-4)
-    val = master.get("comp_release", 4)
-    val, warning = _coerce_int(val, f"{prefix}.comp_release")
-    if warning:
-        warnings.append(warning)
-    if val is not None and not (0 <= val < COMP_RELEASES):
-        errors.append(f"{prefix}.comp_release must be 0-{COMP_RELEASES-1}, got {val}")
-    
-    # Compressor SC index (0-5)
-    val = master.get("comp_sc", 0)
-    val, warning = _coerce_int(val, f"{prefix}.comp_sc")
-    if warning:
-        warnings.append(warning)
-    if val is not None and not (0 <= val < COMP_SC_FREQS):
-        errors.append(f"{prefix}.comp_sc must be 0-{COMP_SC_FREQS-1}, got {val}")
-    
-    # Compressor bypass (0 or 1)
-    val = master.get("comp_bypass", 0)
-    val, warning = _coerce_int(val, f"{prefix}.comp_bypass")
-    if warning:
-        warnings.append(warning)
-    if val is not None and val not in (0, 1):
-        errors.append(f"{prefix}.comp_bypass must be 0 or 1, got {val}")
+    # Compressor bypass
+    cb = master.get("comp_bypass")
+    if cb is not None:
+        cb, warning = _coerce_int(cb, "master.comp_bypass")
+        if warning:
+            warnings.append(warning)
+        if cb is not None and not (0 <= cb <= 1):
+            errors.append(f"master.comp_bypass must be 0-1, got {cb}")
     
     # Limiter ceiling (0-600)
-    val = master.get("limiter_ceiling", 590)
-    val, warning = _coerce_int(val, f"{prefix}.limiter_ceiling")
-    if warning:
-        warnings.append(warning)
-    if val is not None and not (0 <= val <= 600):
-        errors.append(f"{prefix}.limiter_ceiling must be 0-600, got {val}")
+    lc = master.get("limiter_ceiling")
+    if lc is not None:
+        lc, warning = _coerce_int(lc, "master.limiter_ceiling")
+        if warning:
+            warnings.append(warning)
+        if lc is not None and not (0 <= lc <= 600):
+            errors.append(f"master.limiter_ceiling must be 0-600, got {lc}")
     
-    # Limiter bypass (0 or 1)
-    val = master.get("limiter_bypass", 0)
-    val, warning = _coerce_int(val, f"{prefix}.limiter_bypass")
-    if warning:
-        warnings.append(warning)
-    if val is not None and val not in (0, 1):
-        errors.append(f"{prefix}.limiter_bypass must be 0 or 1, got {val}")
+    # Limiter bypass
+    lb = master.get("limiter_bypass")
+    if lb is not None:
+        lb, warning = _coerce_int(lb, "master.limiter_bypass")
+        if warning:
+            warnings.append(warning)
+        if lb is not None and not (0 <= lb <= 1):
+            errors.append(f"master.limiter_bypass must be 0-1, got {lb}")
     
     return errors, warnings
 
@@ -706,9 +897,11 @@ def _validate_mod_sources(mod_sources: dict, strict: bool = False) -> tuple:
     errors = []
     warnings = []
     
-    slots = mod_sources.get("slots", [])
+    if not isinstance(mod_sources, dict):
+        errors.append("mod_sources must be dict")
+        return errors, warnings
     
-    # Check slot count
+    slots = mod_sources.get("slots", [])
     if len(slots) != NUM_MOD_SLOTS:
         if strict:
             errors.append(f"mod_sources.slots must have exactly {NUM_MOD_SLOTS} items, got {len(slots)}")
@@ -876,6 +1069,119 @@ def _validate_mod_routing(mod_routing: dict, strict: bool = False) -> tuple:
         invert = conn.get("invert", False)
         if not isinstance(invert, bool):
             errors.append(f"{prefix}.invert must be bool, got {type(invert).__name__}")
+    
+    return errors, warnings
+
+
+def _validate_fx(fx: dict, strict: bool = False) -> tuple:
+    """Validate FX state (Phase 5)."""
+    errors = []
+    warnings = []
+
+    # FX section is optional for backward compatibility, BUT if present it must be a dict.
+    if fx is None:
+        return errors, warnings
+    if not isinstance(fx, dict):
+        msg = f"fx must be dict, got {type(fx).__name__}"
+        (errors if strict else warnings).append(msg)
+        return errors, warnings
+    
+    # Heat validation
+    heat = fx.get("heat", {})
+    if isinstance(heat, dict):
+        # bypass
+        bypass = heat.get("bypass")
+        if bypass is not None and not isinstance(bypass, bool):
+            errors.append(f"fx.heat.bypass must be bool")
+        
+        # circuit (0-3)
+        circuit = heat.get("circuit")
+        if circuit is not None:
+            circuit, warning = _coerce_int(circuit, "fx.heat.circuit")
+            if warning:
+                warnings.append(warning)
+            if circuit is not None and not (0 <= circuit < HEAT_CIRCUITS):
+                errors.append(f"fx.heat.circuit must be 0-{HEAT_CIRCUITS-1}, got {circuit}")
+        
+        # drive, mix (0-100)
+        for key in ["drive", "mix"]:
+            val = heat.get(key)
+            if val is not None:
+                val, warning = _coerce_int(val, f"fx.heat.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val <= 100):
+                    errors.append(f"fx.heat.{key} must be 0-100, got {val}")
+    
+    # Echo validation
+    echo = fx.get("echo", {})
+    if isinstance(echo, dict):
+        for key in ["time", "feedback", "tone", "wow", "spring", "verb_send", "return_level"]:
+            val = echo.get(key)
+            if val is not None:
+                val, warning = _coerce_int(val, f"fx.echo.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val <= 100):
+                    errors.append(f"fx.echo.{key} must be 0-100, got {val}")
+    
+    # Reverb validation
+    reverb = fx.get("reverb", {})
+    if isinstance(reverb, dict):
+        for key in ["size", "decay", "tone", "return_level"]:
+            val = reverb.get(key)
+            if val is not None:
+                val, warning = _coerce_int(val, f"fx.reverb.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val <= 100):
+                    errors.append(f"fx.reverb.{key} must be 0-100, got {val}")
+    
+    # Dual filter validation
+    df = fx.get("dual_filter", {})
+    if isinstance(df, dict):
+        # bypass
+        bypass = df.get("bypass")
+        if bypass is not None and not isinstance(bypass, bool):
+            errors.append(f"fx.dual_filter.bypass must be bool")
+        
+        # knobs (0-100)
+        for key in ["drive", "freq1", "reso1", "freq2", "reso2", "mix"]:
+            val = df.get(key)
+            if val is not None:
+                val, warning = _coerce_int(val, f"fx.dual_filter.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val <= 100):
+                    errors.append(f"fx.dual_filter.{key} must be 0-100, got {val}")
+        
+        # mode1, mode2 (0-2)
+        for key in ["mode1", "mode2"]:
+            val = df.get(key)
+            if val is not None:
+                val, warning = _coerce_int(val, f"fx.dual_filter.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0 <= val < FILTER_MODES):
+                    errors.append(f"fx.dual_filter.{key} must be 0-{FILTER_MODES-1}, got {val}")
+        
+        # harmonics (0-7)
+        harmonics = df.get("harmonics")
+        if harmonics is not None:
+            harmonics, warning = _coerce_int(harmonics, "fx.dual_filter.harmonics")
+            if warning:
+                warnings.append(warning)
+            if harmonics is not None and not (0 <= harmonics < HARMONICS_OPTIONS):
+                errors.append(f"fx.dual_filter.harmonics must be 0-{HARMONICS_OPTIONS-1}, got {harmonics}")
+        
+        # routing (0-1)
+        routing = df.get("routing")
+        if routing is not None:
+            routing, warning = _coerce_int(routing, "fx.dual_filter.routing")
+            if warning:
+                warnings.append(warning)
+            if routing is not None and not (0 <= routing < ROUTING_OPTIONS):
+                errors.append(f"fx.dual_filter.routing must be 0-{ROUTING_OPTIONS-1}, got {routing}")
     
     return errors, warnings
 

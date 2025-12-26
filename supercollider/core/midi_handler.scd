@@ -39,7 +39,10 @@ OSC messages to Python:
     ~genMuted = Array.fill(8, { false });
     ~genMidiRetrig = Array.fill(8, { false });  // true = continuous retrig while key held
     ~genRetrigSynths = Array.fill(8, { nil });  // Active retrig synths per slot
-    
+
+    // Per-generator transpose (semitones, -24 to +24)
+    ~genTranspose = Array.fill(8, { 0 });
+
     // MIDI connection state
     ~midiConnected = false;
     ~midiPortIndex = -1;
@@ -116,7 +119,8 @@ OSC messages to Python:
         var needsRetrig = ~genMidiRetrig[i];
         
         if(genChannel == midiChannel && isMuted.not, {
-            var freq = note.midicps;
+            var transpose = ~genTranspose[i];
+            var freq = (note + transpose).midicps;
             var amp = vel / 127.0;
             
             // Set frequency from note - use userParams so modApply doesn't overwrite
@@ -193,10 +197,10 @@ OSC messages to Python:
 
 // One-shot trigger synth for MIDI notes
 // Writes a trigger pulse to a single audio bus channel
-SynthDef(\midiTrigger, { |trigBus=0, amp=1|
-    var trig = Trig1.ar(DC.ar(1), 0.001);  // 1ms trigger pulse
-    Out.ar(trigBus, trig * amp);
-    FreeSelf.kr(TDelay.kr(Impulse.kr(0), 0.01));
+// Uses doneAction:2 to free itself after the pulse completes
+SynthDef(\midiTrigger, { |trigBus=0, amp=1, dur=0.01|
+    var sig = EnvGen.ar(Env.perc(0.0005, dur, 1, -4), doneAction: 2) * amp;
+    Out.ar(trigBus, sig);
 }).add;
 
 // Continuous trigger synth for MIDI retrig mode

@@ -105,6 +105,7 @@ class NRTRenderer:
         self,
         sclang_path: Optional[Path] = None,
         output_dir: Optional[Path] = None,
+        timeout_s: int = RENDER_CONFIG.timeout_sec,
     ):
         """
         Initialize renderer.
@@ -115,6 +116,7 @@ class NRTRenderer:
         """
         self.sclang_path = sclang_path or find_sclang()
         self.output_dir = output_dir
+        self.timeout_s = timeout_s
         self._temp_dir: Optional[Path] = None
     
     @property
@@ -169,6 +171,9 @@ class NRTRenderer:
         code = re.sub(r'In\.kr\(envSourceBus\)', '0', code)
         code = re.sub(r'In\.kr\(envEnabledBus\)', '1', code)
         code = re.sub(r'In\.kr\(clockRateBus\)', '6', code)
+
+        # Portamento bus (not used in NRT, set to 0)
+        code = re.sub(r'In\.kr\(portamentoBus\)', '0', code)
         
         # Amplitude - handle the ~params dictionary access
         code = re.sub(r'In\.kr\(~params\[\\amplitude\]\)', '0.5', code)
@@ -384,7 +389,7 @@ score.recordNRT(
                 [str(self.sclang_path), str(script_path)],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=self.timeout_s,
                 cwd=work_dir,
             )
             
@@ -424,7 +429,7 @@ score.recordNRT(
             return RenderResult(
                 candidate_id=candidate.candidate_id,
                 success=False,
-                error="Render timed out (30s)",
+                error=f"Render timeout ({self.timeout_s}s)"
             )
         except Exception as e:
             return RenderResult(

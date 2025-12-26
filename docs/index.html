@@ -3,20 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noise Engine - Modular Noise Synthesizer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Noise Engine R1 — 8-Slot Modular Texture Synthesizer</title>
+    <meta name="description" content="Performance-oriented drone and ambient synthesizer. 8 generator slots, quadrature modulation, SSL-inspired mixer. Python + SuperCollider.">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-dark: #0a0a0f;
             --bg-panel: #12121a;
             --bg-card: #1a1a25;
             --border: #2a2a3a;
+            --text-dim: #666677;
             --text: #888899;
             --text-bright: #ccccdd;
+            --white: #eeeeff;
             --accent-green: #44ff88;
+            --accent-cyan: #44ddff;
             --accent-orange: #ff8844;
             --accent-magenta: #ff44aa;
-            --accent-cyan: #44ddff;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -24,1933 +27,640 @@
         body {
             background: var(--bg-dark);
             color: var(--text);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             line-height: 1.6;
         }
         
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
         
+        /* Header */
         header {
-            padding: 60px 0 40px;
+            padding: 80px 0 60px;
+            text-align: center;
             border-bottom: 1px solid var(--border);
+        }
+        
+        .release-tag {
+            display: inline-block;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: rgba(68, 255, 136, 0.15);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            margin-bottom: 24px;
+            letter-spacing: 1px;
         }
         
         .logo {
             font-family: 'Space Mono', monospace;
-            font-size: 48px;
+            font-size: 56px;
             font-weight: 700;
-            color: var(--text-bright);
-            letter-spacing: -2px;
+            color: var(--white);
+            letter-spacing: -3px;
+            margin-bottom: 16px;
         }
         
-        .logo span { color: var(--accent-green); text-shadow: 0 0 20px var(--accent-green); }
-        .tagline { font-size: 20px; color: var(--text); margin-top: 10px; }
+        .logo span { 
+            color: var(--accent-green); 
+            text-shadow: 0 0 30px var(--accent-green);
+        }
         
-        .badges { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .tagline {
+            font-size: 22px;
+            color: var(--text-bright);
+            margin-bottom: 12px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: var(--text);
+            margin-bottom: 32px;
+        }
+        
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        
         .badge {
             font-family: 'Space Mono', monospace;
             font-size: 12px;
-            padding: 5px 12px;
-            border-radius: 3px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-        }
-        .badge.python { border-color: #3776ab; color: #3776ab; }
-        .badge.supercollider { border-color: #bb2222; color: #bb2222; }
-        .badge.pyqt { border-color: #41cd52; color: #41cd52; }
-        .badge.ssot { 
-            border-color: var(--accent-green); 
-            color: var(--accent-green);
-            background: rgba(68, 255, 136, 0.1);
-            position: relative;
-        }
-        .badge.ssot .pct { font-weight: 700; }
-        
-        /* 🎚️ STEREO PANNING BADGE */
-        .badge.panning {
-            border-color: var(--accent-cyan);
-            color: var(--accent-cyan);
-            background: rgba(68, 221, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        .badge.panning .pan-icon {
-            display: inline-block;
-            animation: panSweep 1.5s ease-in-out infinite;
-        }
-        @keyframes panSweep {
-            0%, 100% { transform: translateX(-4px); }
-            50% { transform: translateX(4px); }
-        }
-        
-        /* 🎛️ MOD MATRIX BADGE */
-        .badge.matrix {
-            border-color: #00ff66;
-            color: #00ff66;
-            background: linear-gradient(135deg, rgba(0, 255, 102, 0.15), rgba(255, 136, 0, 0.15));
-            position: relative;
-            overflow: hidden;
-        }
-        .badge.matrix .matrix-dots {
-            display: inline-flex;
-            gap: 2px;
-            margin: 0 4px;
-        }
-        .badge.matrix .matrix-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: #00ff66;
-            animation: matrixPulse 1.5s ease-in-out infinite;
-        }
-        .badge.matrix .matrix-dot:nth-child(2) { 
-            background: #ff8800; 
-            animation-delay: 0.3s; 
-        }
-        .badge.matrix .matrix-dot:nth-child(3) { 
-            background: #00cccc; 
-            animation-delay: 0.6s; 
-        }
-
-        @keyframes matrixPulse {
-            0%, 100% { opacity: 0.4; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-        
-        /* 🐧 DISCORD ANNOUNCEMENT 🐧 */
-        .discord-banner {
-            background: linear-gradient(135deg, #5865F2 0%, #3b43a8 100%);
-            border: 3px solid #88ff88;
-            border-radius: 16px;
-            padding: 25px 30px;
-            margin: 30px 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 40px rgba(88, 101, 242, 0.5), 0 0 60px rgba(136, 255, 136, 0.3);
-            animation: discordPulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes discordPulse {
-            0%, 100% { box-shadow: 0 0 40px rgba(88, 101, 242, 0.5), 0 0 60px rgba(136, 255, 136, 0.3); }
-            50% { box-shadow: 0 0 60px rgba(88, 101, 242, 0.7), 0 0 80px rgba(136, 255, 136, 0.5); }
-        }
-        
-        .discord-banner h3 {
-            font-family: 'Space Mono', monospace;
-            font-size: 28px;
-            color: #ffffff;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(255,255,255,0.5);
-        }
-        
-        .discord-banner p {
-            color: #e0e0ff;
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-        
-        .discord-btn {
-            display: inline-block;
-            background: #88ff88;
-            color: #1a1a2e;
-            padding: 12px 30px;
-            border-radius: 30px;
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            font-size: 16px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(136, 255, 136, 0.5);
-        }
-        
-        .discord-btn:hover {
-            background: #aaffaa;
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(136, 255, 136, 0.8);
-        }
-        
-        /* Dancing Penguin */
-        .penguin {
-            font-size: 60px;
-            display: inline-block;
-            animation: penguinDance 0.5s ease-in-out infinite;
-            cursor: pointer;
-        }
-        
-        .penguin.left {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        
-        .penguin.right {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            animation: penguinDanceReverse 0.5s ease-in-out infinite;
-        }
-        
-        @keyframes penguinDance {
-            0%, 100% { transform: translateY(-50%) rotate(-10deg) translateY(0); }
-            25% { transform: translateY(-50%) rotate(10deg) translateY(-10px); }
-            50% { transform: translateY(-50%) rotate(-10deg) translateY(0); }
-            75% { transform: translateY(-50%) rotate(10deg) translateY(-10px); }
-        }
-        
-        @keyframes penguinDanceReverse {
-            0%, 100% { transform: translateY(-50%) rotate(10deg) translateY(0); }
-            25% { transform: translateY(-50%) rotate(-10deg) translateY(-10px); }
-            50% { transform: translateY(-50%) rotate(10deg) translateY(0); }
-            75% { transform: translateY(-50%) rotate(-10deg) translateY(-10px); }
-        }
-        
-        /* Sparkles around banner */
-        .sparkle {
-            position: absolute;
-            font-size: 20px;
-            animation: sparkleFloat 2s ease-in-out infinite;
-        }
-        .sparkle:nth-child(1) { left: 5%; top: 10%; animation-delay: 0s; }
-        .sparkle:nth-child(2) { left: 15%; top: 80%; animation-delay: 0.3s; }
-        .sparkle:nth-child(3) { right: 5%; top: 15%; animation-delay: 0.6s; }
-        .sparkle:nth-child(4) { right: 15%; top: 75%; animation-delay: 0.9s; }
-        
-        @keyframes sparkleFloat {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.5); }
-        }
-        
-        /* First User Celebration Banner - added after badges */
-        
-        /* Princess Peach style crown for 100% SSOT */
-        .crown {
-            display: none;
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 20px;
-            animation: crownBounce 1s ease-in-out infinite, crownSpin 3s linear infinite;
-            filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
-        }
-        .badge.ssot.perfect .crown { display: block; }
-        .badge.ssot.perfect {
-            border-color: gold;
-            color: gold;
-            background: rgba(255, 215, 0, 0.15);
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-        }
-        
-        @keyframes crownBounce {
-            0%, 100% { top: -20px; }
-            50% { top: -28px; }
-        }
-        
-        @keyframes crownSpin {
-            0% { transform: translateX(-50%) rotateY(0deg); }
-            100% { transform: translateX(-50%) rotateY(360deg); }
-        }
-        
-        /* 🏗️ TECH DEBT BADGE 🏗️ */
-        .badge.techdebt {
-            border-color: var(--accent-orange);
-            color: var(--accent-orange);
-            background: rgba(255, 136, 68, 0.1);
-            position: relative;
-        }
-        .badge.techdebt .pct { font-weight: 700; }
-        .badge.techdebt .backhoe {
-            display: none;
-            position: absolute;
-            top: -18px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 16px;
-            z-index: 10;
-        }
-        .badge.techdebt.perfect .backhoe { display: block; }
-        .badge.techdebt.perfect {
-            border-color: gold;
-            color: gold;
-            background: rgba(255, 215, 0, 0.15);
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-            animation: techdebtPulse 2s ease-in-out infinite;
-        }
-        .badge.techdebt.perfect .backhoe {
-            animation: backhoeBounce 1s ease-in-out infinite;
-            filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
-        }
-        
-        @keyframes techdebtPulse {
-            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-            50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3); }
-        }
-        
-        @keyframes backhoeBounce {
-            0%, 100% { top: -18px; transform: translateX(-50%) rotate(-5deg); }
-            50% { top: -24px; transform: translateX(-50%) rotate(5deg); }
-        }
-        
-        /* 🤖 TESTS BADGE 🤖 */
-        .badge.tests {
-            border-color: #44ddff;
-            color: #44ddff;
-            background: rgba(68, 221, 255, 0.1);
-            position: relative;
-        }
-        .badge.tests .pct { font-weight: 700; }
-        .badge.tests .robot {
-            display: none;
-            position: absolute;
-            top: -22px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 18px;
-            z-index: 10;
-        }
-        .badge.tests.perfect .robot { display: block; }
-        .badge.tests.perfect {
-            border-color: gold;
-            color: gold;
-            background: rgba(255, 215, 0, 0.15);
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-            animation: testsPulse 2s ease-in-out infinite;
-        }
-        .badge.tests.perfect .robot {
-            animation: robotDance 0.4s ease-in-out infinite;
-            filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
-        }
-        
-        @keyframes testsPulse {
-            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-            50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3); }
-        }
-        
-        @keyframes robotDance {
-            0%, 100% { top: -22px; transform: translateX(-50%) rotate(-15deg) scale(1); }
-            25% { top: -28px; transform: translateX(-45%) rotate(15deg) scale(1.1); }
-            50% { top: -22px; transform: translateX(-50%) rotate(-15deg) scale(1); }
-            75% { top: -28px; transform: translateX(-55%) rotate(15deg) scale(1.1); }
-        }
-        
-        /* 🔪 UI SURGEON BADGE 🔪 */
-        .badge.surgeon {
-            border-color: #ff6b6b;
-            color: #ff6b6b;
-            background: rgba(255, 107, 107, 0.1);
-            position: relative;
-            overflow: visible;
-        }
-        .badge.surgeon .scalpel {
-            display: inline-block;
-            animation: scalpelCut 1.2s ease-in-out infinite;
-        }
-        .badge.surgeon .heartbeat {
-            position: absolute;
-            top: -18px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 14px;
-            animation: heartPulse 0.8s ease-in-out infinite;
-            filter: drop-shadow(0 0 6px #ff6b6b);
-        }
-        @keyframes scalpelCut {
-            0%, 100% { transform: rotate(-10deg); }
-            50% { transform: rotate(10deg); }
-        }
-        @keyframes heartPulse {
-            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.7; }
-            50% { transform: translateX(-50%) scale(1.3); opacity: 1; }
-        }
-       /* IMAGINARIUM BADGE */
-        .badge.imaginarium {
-            border-color: #ff44ff;
-            color: #ff44ff;
-            background: linear-gradient(135deg, rgba(255, 68, 255, 0.15), rgba(68, 255, 136, 0.15));
-        }
-        .badge.imaginarium .phase { font-weight: 700; color: #44ff88; }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        
-        /* 🎉 FIRST USER CELEBRATION 🎉 */
-        .celebration-banner {
-            background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%);
-            border: 2px solid gold;
-            border-radius: 12px;
-            padding: 20px 30px;
-            margin: 30px 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
-        }
-        .celebration-banner h3 {
-            font-family: 'Space Mono', monospace;
-            font-size: 24px;
-            color: gold;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px gold;
-        }
-        .celebration-banner p {
-            color: var(--text-bright);
-            font-size: 16px;
-        }
-        .celebration-banner .user-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #ff6b6b, #feca57);
-            color: #1a1a2e;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        
-        /* Fireworks */
-        .firework {
-            position: absolute;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            animation: fireworkBurst 1.5s ease-out infinite;
-        }
-        .firework:nth-child(1) { left: 10%; top: 20%; background: #ff6b6b; animation-delay: 0s; }
-        .firework:nth-child(2) { left: 20%; top: 60%; background: #feca57; animation-delay: 0.3s; }
-        .firework:nth-child(3) { left: 80%; top: 30%; background: #48dbfb; animation-delay: 0.6s; }
-        .firework:nth-child(4) { left: 90%; top: 70%; background: #ff9ff3; animation-delay: 0.9s; }
-        .firework:nth-child(5) { left: 50%; top: 10%; background: #54a0ff; animation-delay: 0.2s; }
-        .firework:nth-child(6) { left: 70%; top: 80%; background: #5f27cd; animation-delay: 0.5s; }
-        
-        @keyframes fireworkBurst {
-            0% { transform: scale(0); opacity: 1; box-shadow: 0 0 0 0 currentColor; }
-            50% { transform: scale(1); opacity: 1; box-shadow: 0 0 20px 10px currentColor; }
-            100% { transform: scale(1.5); opacity: 0; box-shadow: 0 0 40px 20px transparent; }
-        }
-        
-        /* Party poppers on sides */
-        .party-popper {
-            font-size: 40px;
-            animation: popperBounce 0.5s ease-in-out infinite alternate;
-        }
-        .party-popper.left { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); }
-        .party-popper.right { position: absolute; right: 15px; top: 50%; transform: translateY(-50%) scaleX(-1); }
-        
-        @keyframes popperBounce {
-            0% { transform: translateY(-50%) rotate(-10deg); }
-            100% { transform: translateY(-50%) rotate(10deg); }
-        }
-        .party-popper.right {
-            animation: popperBounceRight 0.5s ease-in-out infinite alternate;
-        }
-        @keyframes popperBounceRight {
-            0% { transform: translateY(-50%) scaleX(-1) rotate(-10deg); }
-            100% { transform: translateY(-50%) scaleX(-1) rotate(10deg); }
-        }
-        
-        /* 🤖 CI/CD BANNER 🤖 */
-        .cicd-banner {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            border: 3px solid #00ff88;
-            border-radius: 16px;
-            padding: 25px 30px;
-            margin: 20px 0 30px 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 40px rgba(0, 255, 136, 0.3), 0 0 60px rgba(0, 200, 255, 0.2);
-            animation: cicdPulse 3s ease-in-out infinite;
-        }
-        
-        @keyframes cicdPulse {
-            0%, 100% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.3), 0 0 60px rgba(0, 200, 255, 0.2); }
-            50% { box-shadow: 0 0 60px rgba(0, 255, 136, 0.5), 0 0 80px rgba(0, 200, 255, 0.4); }
-        }
-        
-        .cicd-banner h3 {
-            font-family: 'Space Mono', monospace;
-            font-size: 24px;
-            color: #00ff88;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
-            letter-spacing: 2px;
-        }
-        
-        .cicd-banner p {
-            color: #88ddff;
-            font-size: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .cicd-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, #00ff88 0%, #00cc88 100%);
-            color: #0a0a0f;
-            padding: 10px 25px;
-            border-radius: 25px;
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            font-size: 14px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-        }
-        
-        .cicd-btn:hover {
-            background: linear-gradient(135deg, #44ffaa 0%, #00ff88 100%);
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.7);
-        }
-        
-        /* 📐 PROCESS BANNER 📐 */
-        .process-banner {
-            background: linear-gradient(135deg, #1a1025 0%, #151520 50%, #101520 100%);
-            border: 2px solid #ff8844;
-            border-radius: 16px;
-            padding: 25px 30px;
-            margin: 30px 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 40px rgba(255, 136, 68, 0.3), 0 0 60px rgba(255, 204, 68, 0.2);
-        }
-        
-        .process-banner h3 {
-            font-family: 'Space Mono', monospace;
-            font-size: 22px;
-            color: #ff8844;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(255, 136, 68, 0.8);
-            letter-spacing: 2px;
-        }
-        
-        .process-banner p {
-            color: #ccaa88;
-            font-size: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .process-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, #ff8844 0%, #ff6622 100%);
-            color: #0a0a0f;
-            padding: 10px 25px;
-            border-radius: 25px;
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            font-size: 14px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(255, 136, 68, 0.4);
-        }
-        
-        .process-btn:hover {
-            background: linear-gradient(135deg, #ffaa66 0%, #ff8844 100%);
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(255, 136, 68, 0.7);
-        }
-        
-        .process-icon {
-            font-size: 24px;
-            position: absolute;
-            animation: processFloat 3s ease-in-out infinite;
-        }
-        
-        .process-icon.left { left: 20px; top: 50%; transform: translateY(-50%); }
-        .process-icon.right { right: 20px; top: 50%; transform: translateY(-50%); animation-delay: 1.5s; }
-        
-        @keyframes processFloat {
-            0%, 100% { transform: translateY(-50%) rotate(0deg); }
-            50% { transform: translateY(-60%) rotate(10deg); }
-        }
-        
-        /* Dancing Robots */
-        .robot {
-            font-size: 50px;
-            position: absolute;
-            top: 50%;
-            animation: robotDance 0.6s ease-in-out infinite;
-        }
-        
-        .robot.left {
-            left: 20px;
-            transform: translateY(-50%);
-        }
-        
-        .robot.right {
-            right: 20px;
-            transform: translateY(-50%) scaleX(-1);
-            animation: robotDanceRight 0.6s ease-in-out infinite;
-        }
-        
-        @keyframes robotDance {
-            0%, 100% { transform: translateY(-50%) rotate(-5deg); }
-            25% { transform: translateY(-60%) rotate(5deg); }
-            50% { transform: translateY(-50%) rotate(-5deg); }
-            75% { transform: translateY(-40%) rotate(5deg); }
-        }
-        
-        @keyframes robotDanceRight {
-            0%, 100% { transform: translateY(-50%) scaleX(-1) rotate(5deg); }
-            25% { transform: translateY(-60%) scaleX(-1) rotate(-5deg); }
-            50% { transform: translateY(-50%) scaleX(-1) rotate(5deg); }
-            75% { transform: translateY(-40%) scaleX(-1) rotate(-5deg); }
-        }
-        
-        /* Spinning Gears */
-        .gear {
-            position: absolute;
-            font-size: 24px;
-            opacity: 0.6;
-            animation: gearSpin 4s linear infinite;
-        }
-        
-        .gear1 { left: 70px; top: 15px; animation-duration: 3s; }
-        .gear2 { right: 70px; top: 15px; animation-duration: 4s; animation-direction: reverse; }
-        .gear3 { right: 50%; bottom: 10px; transform: translateX(50%); animation-duration: 5s; font-size: 18px; }
-        
-        @keyframes gearSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .hero {
-            padding: 60px 0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            align-items: center;
-        }
-        
-        .hero-text h2 { font-size: 28px; color: var(--text-bright); margin-bottom: 20px; }
-        .hero-text p { margin-bottom: 15px; }
-        
-        .hero-visual {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px;
-            font-family: 'Space Mono', monospace;
-        }
-        
-        .signal-flow {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        
-        .flow-node {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 15px;
+            padding: 6px 14px;
             border-radius: 4px;
-            text-align: center;
-            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
         }
         
-        .flow-node.active { border-color: var(--accent-green); box-shadow: 0 0 15px rgba(68, 255, 136, 0.2); }
-        .flow-node h4 { color: var(--accent-green); font-size: 12px; margin-bottom: 5px; }
-        .flow-node p { font-size: 10px; color: var(--text); }
-        .flow-arrow { color: var(--text); font-size: 20px; }
+        .badge.python { border-color: #3776ab; color: #3776ab; }
+        .badge.sc { border-color: #cc3333; color: #cc3333; }
+        .badge.mit { border-color: var(--accent-green); color: var(--accent-green); }
+        
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 14px 28px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: var(--accent-green);
+            color: var(--bg-dark);
+        }
+        
+        .btn-primary:hover {
+            background: #66ffaa;
+            box-shadow: 0 0 20px rgba(68, 255, 136, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-bright);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--text-bright);
+            background: var(--bg-card);
+        }
+        
+        /* Sections */
+        section {
+            padding: 80px 0;
+            border-bottom: 1px solid var(--border);
+        }
         
         .section-title {
             font-family: 'Space Mono', monospace;
             font-size: 14px;
-            color: var(--accent-orange);
-            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--accent-cyan);
             letter-spacing: 2px;
-            margin-bottom: 30px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
         }
         
-        .features { padding: 60px 0; border-top: 1px solid var(--border); }
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .section-heading {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--white);
+            margin-bottom: 40px;
+        }
+        
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
         
         .feature-card {
             background: var(--bg-panel);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 25px;
+            border-radius: 8px;
+            padding: 28px;
         }
         
         .feature-card h3 {
+            font-size: 18px;
+            font-weight: 600;
             color: var(--text-bright);
-            font-size: 16px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .feature-icon {
-            width: 24px;
-            height: 24px;
-            background: var(--bg-card);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-        }
-        
-        .feature-card ul { list-style: none; font-size: 14px; }
-        .feature-card li { padding: 3px 0; padding-left: 15px; position: relative; }
-        .feature-card li::before { content: '›'; position: absolute; left: 0; color: var(--accent-green); }
-        
-        .architecture { padding: 60px 0; border-top: 1px solid var(--border); }
-        
-        .arch-diagram {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 30px;
-            font-family: 'Space Mono', monospace;
-            font-size: 13px;
-            overflow-x: auto;
-        }
-        
-        .arch-layer { display: flex; align-items: center; margin: 10px 0; gap: 20px; }
-        .arch-label { width: 120px; color: var(--text); text-align: right; }
-        .arch-boxes { display: flex; gap: 10px; flex-wrap: wrap; }
-        .arch-box { background: var(--bg-card); border: 1px solid var(--border); padding: 8px 15px; border-radius: 3px; }
-        .arch-box.config { border-left: 3px solid var(--accent-cyan); }
-        .arch-box.theme { border-left: 3px solid var(--accent-magenta); }
-        .arch-box.widgets { border-left: 3px solid var(--accent-orange); }
-        .arch-box.components { border-left: 3px solid var(--accent-green); }
-        
-        .generators { padding: 60px 0; border-top: 1px solid var(--border); }
-        .gen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        
-        .gen-card {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 18px;
-            opacity: 0.5;
-        }
-        
-        .gen-card.active {
-            opacity: 1;
-            border-color: var(--accent-green);
-            box-shadow: 0 0 15px rgba(68, 255, 136, 0.1);
-        }
-        
-        .gen-card h3 {
-            font-family: 'Space Mono', monospace;
-            font-size: 14px;
-            color: var(--text-bright);
-            margin-bottom: 5px;
-        }
-        
-        .gen-card.active h3 { color: var(--accent-green); }
-        
-        .gen-card .gen-desc {
-            font-size: 12px;
-            color: var(--text);
             margin-bottom: 12px;
         }
         
-        .gen-params {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
+        .feature-card ul {
+            list-style: none;
         }
         
-        .gen-params .param {
-            font-family: 'Space Mono', monospace;
-            font-size: 10px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 3px 8px;
-            border-radius: 3px;
-            color: var(--accent-cyan);
-        }
-        
-        .gen-params .param.unused {
-            color: var(--text);
-            opacity: 0.5;
-        }
-        
-        .future { padding: 60px 0; border-top: 1px solid var(--border); }
-        .roadmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        
-        .roadmap-section {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 20px;
-        }
-        
-        .roadmap-section h3 {
-            font-family: 'Space Mono', monospace;
-            font-size: 13px;
-            color: var(--accent-cyan);
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .roadmap-section ul { list-style: none; font-size: 13px; }
-        .roadmap-section li { padding: 5px 0; color: var(--text); }
-        .roadmap-section li::before { content: '○ '; color: var(--text); }
-        
-        .skins { padding: 60px 0; border-top: 1px solid var(--border); }
-        .skins-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
-        
-        .skin-preview {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 15px;
-            text-align: center;
-            font-size: 12px;
-        }
-        
-        .skin-preview .skin-icon { font-size: 24px; margin-bottom: 10px; }
-        .skin-preview.retro-media { border-color: #00ff00; color: #00ff00; }
-        .skin-preview.acid-orange { border-color: #ff6600; color: #ff6600; }
-        .skin-preview.classic-gui { border-color: #c0c0c0; color: #c0c0c0; }
-        .skin-preview.dystopia { border-color: #ff4444; color: #ff4444; }
-        .skin-preview.neon-grid { border-color: #00ffff; color: #00ffff; }
-        
-        .milestones { padding: 60px 0; border-top: 1px solid var(--border); }
-        .milestones-list { list-style: none; max-width: 600px; }
-        .milestones-list li { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-        .milestone-date {
-            font-family: 'Space Mono', monospace;
-            font-size: 12px;
-            color: var(--accent-green);
-            margin-right: 15px;
-        }
-        
-        .trophies { padding: 60px 0; border-top: 1px solid var(--border); }
-        
-        /* 🏆 TROPHY CASE - Consolidated Achievement Display */
-        .trophy-case {
-            background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-card) 100%);
-            border: 2px solid var(--border);
-            border-radius: 16px;
-            padding: 30px;
-            margin-top: 30px;
+        .feature-card li {
+            padding: 6px 0;
+            padding-left: 20px;
             position: relative;
-            overflow: hidden;
+            font-size: 14px;
         }
-        .trophy-case::before {
-            content: '';
+        
+        .feature-card li::before {
+            content: "›";
             position: absolute;
-            top: 0;
             left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, 
-                var(--accent-green), 
-                var(--accent-cyan), 
-                var(--accent-magenta), 
-                var(--accent-orange),
-                var(--accent-green));
-            background-size: 200% 100%;
-            animation: rainbowSlide 3s linear infinite;
-        }
-        @keyframes rainbowSlide {
-            0% { background-position: 0% 0; }
-            100% { background-position: 200% 0; }
+            color: var(--accent-green);
+            font-weight: bold;
         }
         
-        .trophy-case-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        .trophy-case-title {
-            font-family: 'Space Mono', monospace;
-            font-size: 24px;
-            color: var(--text-bright);
-            text-transform: uppercase;
-            letter-spacing: 4px;
-        }
-        .trophy-case-icon {
-            font-size: 32px;
-            animation: trophyGlow 2s ease-in-out infinite;
-        }
-        @keyframes trophyGlow {
-            0%, 100% { filter: drop-shadow(0 0 5px gold); }
-            50% { filter: drop-shadow(0 0 20px gold) drop-shadow(0 0 30px orange); }
-        }
-        
-        .trophy-sections {
+        /* Packs */
+        .packs-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-        }
-        @media (max-width: 900px) {
-            .trophy-sections { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 500px) {
-            .trophy-sections { grid-template-columns: 1fr; }
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
         }
         
-        .trophy-section {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            padding: 20px;
+        .pack-card {
+            background: var(--bg-panel);
             border: 1px solid var(--border);
-            transition: all 0.3s ease;
-        }
-        .trophy-section:hover {
-            border-color: var(--section-color, var(--accent-green));
-            box-shadow: 0 0 25px rgba(var(--section-rgb, 68, 255, 136), 0.3);
-            transform: translateY(-3px);
-        }
-        .trophy-section.master { --section-color: #44ff88; --section-rgb: 68, 255, 136; }
-        .trophy-section.mixer { --section-color: #ff44aa; --section-rgb: 255, 68, 170; }
-        .trophy-section.generators { --section-color: #44ddff; --section-rgb: 68, 221, 255; }
-        .trophy-section.system { --section-color: #ff8844; --section-rgb: 255, 136, 68; }
-        .trophy-section.modulation { --section-color: #00ff66; --section-rgb: 0, 255, 102; }
-        .trophy-section.fx { --section-color: #ffaa00; --section-rgb: 255, 170, 0; }
-        
-        .trophy-section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-        }
-        .trophy-section-icon {
-            font-size: 24px;
-        }
-        .trophy-section-title {
-            font-family: 'Space Mono', monospace;
-            font-size: 12px;
-            color: var(--section-color, var(--text-bright));
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        
-        .trophy-items {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .trophy-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            color: var(--text);
-            padding: 6px 10px;
             border-radius: 6px;
-            background: rgba(255, 255, 255, 0.02);
+            padding: 16px;
+            text-align: center;
             transition: all 0.2s ease;
         }
-        .trophy-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+        
+        .pack-card:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-2px);
+        }
+        
+        .pack-name {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
             color: var(--text-bright);
-        }
-        .trophy-item-icon {
-            font-size: 16px;
-            width: 24px;
-            text-align: center;
-        }
-        .trophy-item-text {
-            flex: 1;
-        }
-        .trophy-item-badge {
-            font-family: 'Space Mono', monospace;
-            font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 3px;
-            background: var(--section-color, var(--accent-green));
-            color: var(--bg-dark);
-            font-weight: 700;
+            margin-bottom: 4px;
         }
         
-        /* Special animated items */
-        .trophy-item.featured {
-            background: linear-gradient(90deg, rgba(68, 255, 136, 0.1), transparent);
-            border-left: 2px solid var(--accent-green);
-        }
-        .trophy-item.new::after {
-            content: 'NEW';
-            font-family: 'Space Mono', monospace;
-            font-size: 8px;
-            padding: 2px 5px;
-            border-radius: 3px;
-            background: var(--accent-orange);
-            color: var(--bg-dark);
-            font-weight: 700;
-            margin-left: auto;
-            animation: pulse 1s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+        .pack-desc {
+            font-size: 12px;
+            color: var(--text-dim);
         }
         
-        /* Stats bar at bottom */
-        .trophy-stats {
+        /* Install */
+        .install-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        
+        .install-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 28px;
+        }
+        
+        .install-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 8px;
+        }
+        
+        .install-card .tested {
+            font-size: 12px;
+            color: var(--accent-green);
+            margin-bottom: 16px;
+        }
+        
+        .install-card code {
+            display: block;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--text-bright);
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+        
+        .install-card a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .install-card a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Requirements */
+        .requirements {
             display: flex;
             justify-content: center;
             gap: 40px;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+            padding: 24px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border);
         }
-        .trophy-stat {
+        
+        .requirement {
             text-align: center;
         }
-        .trophy-stat-value {
-            font-family: 'Space Mono', monospace;
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--accent-green);
-            text-shadow: 0 0 10px rgba(68, 255, 136, 0.5);
-        }
-        .trophy-stat-label {
-            font-size: 11px;
-            color: var(--text);
+        
+        .requirement .label {
+            font-size: 12px;
+            color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-top: 5px;
+            margin-bottom: 4px;
         }
         
-        footer { padding: 40px 0; border-top: 1px solid var(--border); text-align: center; font-size: 13px; }
-        footer a { color: var(--accent-green); text-decoration: none; }
-        footer a:hover { text-decoration: underline; }
-        
-        .led-display {
+        .requirement .value {
             font-family: 'Space Mono', monospace;
-            font-size: 32px;
-            color: #ff3333;
-            text-shadow: 0 0 10px #ff3333;
-            letter-spacing: 3px;
-            background: #0a0a0a;
-            padding: 10px 20px;
-            border-radius: 4px;
-            display: inline-block;
+            font-size: 16px;
+            color: var(--text-bright);
         }
         
+        /* Architecture */
+        .architecture {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 32px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            overflow-x: auto;
+        }
+        
+        .architecture pre {
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .architecture .highlight {
+            color: var(--accent-green);
+        }
+        
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--accent-green);
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--text);
+            margin-top: 8px;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 60px 0;
+            text-align: center;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        
+        .footer-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent-green);
+        }
+        
+        .footer-note {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        
+        /* Responsive */
         @media (max-width: 768px) {
-            .hero { grid-template-columns: 1fr; }
-            .logo { font-size: 32px; }
-            .signal-flow { flex-direction: column; }
-            .flow-arrow { transform: rotate(90deg); }
-            .arch-layer { flex-direction: column; align-items: flex-start; }
-            .arch-label { text-align: left; width: auto; }
+            .logo { font-size: 40px; }
+            .tagline { font-size: 18px; }
+            .section-heading { font-size: 26px; }
+            .stats { gap: 40px; }
+            .stat-value { font-size: 36px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">NOISE<span>_</span>ENGINE</div>
-            <p class="tagline">Modular noise synthesizer • Python GUI • SuperCollider audio</p>
+            <div class="release-tag">R1 RELEASE</div>
+            <h1 class="logo">NOISE<span>_</span>ENGINE</h1>
+            <p class="tagline">8-Slot Modular Texture Synthesizer</p>
+            <p class="subtitle">Performance-oriented drone and ambient instrument — Python + SuperCollider</p>
+            
             <div class="badges">
-                <span class="badge python">Python</span>
-                <span class="badge supercollider">SuperCollider</span>
-                <span class="badge pyqt">PyQt5</span>
-                <span class="badge ssot perfect"><span class="crown">👑</span>SSOT <span class="pct">100%</span></span>
-                <span class="badge techdebt perfect"><span class="backhoe">🚜</span>DEBT <span class="pct">100%</span></span>
-                <span class="badge tests perfect"><span class="robot">🤖</span>TESTS <span class="pct">356</span></span>
-                <span class="badge" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">Generators</span>
-                <span class="badge" style="border-color: var(--accent-magenta); color: var(--accent-magenta);">MIDI In</span>
-                <span class="badge panning"><span class="pan-icon">◀</span> STEREO PAN <span class="pan-icon">▶</span></span>
-                <span class="badge matrix"><span class="matrix-dots"><span class="matrix-dot"></span><span class="matrix-dot"></span><span class="matrix-dot"></span></span>MOD MATRIX</span>
-                <span class="badge imaginarium">🧬 IMAGINARIUM <span class="phase">P0 ✓</span></span>
-                <span class="badge" style="border-color: #ffcc00; color: #ffcc00; background: rgba(255,204,0,0.1);">💾 PRESETS</span>
-                <span class="badge surgeon"><span class="heartbeat">❤️</span><span class="scalpel">🔪</span> UI SURGEON</span>
+                <span class="badge python">Python 3.11+</span>
+                <span class="badge sc">SuperCollider 3.13+</span>
+                <span class="badge mit">MIT License</span>
+            </div>
+            
+            <div class="cta-buttons">
+                <a href="https://github.com/thegdyne/noise-engine" class="btn btn-primary">View on GitHub</a>
+                <a href="https://discord.gg/zcQpQmbpJF" class="btn btn-secondary">Join Discord</a>
             </div>
         </header>
         
-        <section class="trophies" style="padding-top: 30px; border-top: none;">
-            <h2 class="section-title">🏆 Achievements</h2>
+        <section>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">8</div>
+                    <div class="stat-label">Generator Slots</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">30</div>
+                    <div class="stat-label">Synthesis Methods</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">19</div>
+                    <div class="stat-label">Sound Packs</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">16</div>
+                    <div class="stat-label">Mod Outputs</div>
+                </div>
+            </div>
             
-            <div class="trophy-case">
-                <div class="trophy-case-header">
-                    <span class="trophy-case-icon">🏆</span>
-                    <span class="trophy-case-title">Trophy Case</span>
-                    <span class="trophy-case-icon">🏆</span>
-                </div>
-                <div class="trophy-sections">
-                    <!-- MASTER SECTION -->
-                    <div class="trophy-section master">
-                        <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🎛️</span>
-                            <span class="trophy-section-title">Master Section</span>
-                        </div>
-                        <div class="trophy-items">
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎚️</span>
-                                <span class="trophy-item-text">SSL G-Style Compressor</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">📊</span>
-                                <span class="trophy-item-text">GR Meter</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎛️</span>
-                                <span class="trophy-item-text">DJ Isolator EQ</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">💀</span>
-                                <span class="trophy-item-text">Per-Band Kill</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🧱</span>
-                                <span class="trophy-item-text">Brickwall Limiter</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">📈</span>
-                                <span class="trophy-item-text">PRE/POST Metering</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- MIXER -->
-                    <div class="trophy-section mixer">
-                        <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🎚️</span>
-                            <span class="trophy-section-title">Mixer</span>
-                        </div>
-                        <div class="trophy-items">
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎚️</span>
-                                <span class="trophy-item-text">8 Channel Strips</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🔇</span>
-                                <span class="trophy-item-text">Mute per Channel</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🎯</span>
-                                <span class="trophy-item-text">Solo-in-Place</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">↔️</span>
-                                <span class="trophy-item-text">Stereo Panning</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">📊</span>
-                                <span class="trophy-item-text">Per-Channel Meters</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🔊</span>
-                                <span class="trophy-item-text">Gain Staging</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- FX SYSTEM -->
-                    <div class="trophy-section fx">
-                        <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🔥</span>
-                            <span class="trophy-section-title">FX System</span>
-                        </div>
-                        <div class="trophy-items">
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🔥</span>
-                                <span class="trophy-item-text">Heat (4 Circuits)</span>
-                            </div>
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">📼</span>
-                                <span class="trophy-item-text">Tape Echo + Spring</span>
-                            </div>
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🌊</span>
-                                <span class="trophy-item-text">Reverb</span>
-                            </div>
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🎚️</span>
-                                <span class="trophy-item-text">Dual Filter</span>
-                            </div>
-                            <div class="trophy-item new">
-                                <span class="trophy-item-icon">📤</span>
-                                <span class="trophy-item-text">Per-Channel Sends</span>
-                            </div>
-                            <div class="trophy-item new">
-                                <span class="trophy-item-icon">🎛️</span>
-                                <span class="trophy-item-text">FX Window UI</span>
-                            </div>
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🔊</span>
-                                <span class="trophy-item-text">Full Stereo FX Chain</span>
-                            </div>
-                            <div class="trophy-item new">
-                                <span class="trophy-item-icon">↔️</span>
-                                <span class="trophy-item-text">Post-Pan Sends</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- MODULATION SOURCES -->
-                    <div class="trophy-section modulation">
-                        <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🌊</span>
-                            <span class="trophy-section-title">Modulation</span>
-                        </div>
-                        <div class="trophy-items">
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">🎛️</span>
-                                <span class="trophy-item-text">16×40 Mod Matrix</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">〰️</span>
-                                <span class="trophy-item-text">LFO (TTLFO v2 style)</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🦥</span>
-                                <span class="trophy-item-text">Sloth (NLC style)</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">📊</span>
-                                <span class="trophy-item-text">Real-time Scope</span>
-                            </div>
-                            <div class="trophy-item new">
-                                <span class="trophy-item-icon">🎚️</span>
-                                <span class="trophy-item-text">Animated Slider Viz</span>
-                            </div>
-                            <div class="trophy-item new">
-                                <span class="trophy-item-icon">➕</span>
-                                <span class="trophy-item-text">Multi-Source (4 per dest)</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">⌨️</span>
-                                <span class="trophy-item-text">Full Keyboard Nav</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🚌</span>
-                                <span class="trophy-item-text">16 Mod Buses</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- GENERATORS -->
-                    <div class="trophy-section generators">
-                        <div class="trophy-section-header">
-                            <span class="trophy-section-icon">🔊</span>
-                            <span class="trophy-section-title">Generators</span>
-                        </div>
-                        <div class="trophy-items">
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🎛️</span>
-                                <span class="trophy-item-text">53 Generator Types</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🎹</span>
-                                <span class="trophy-item-text">MIDI Pitch & Gate</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🔄</span>
-                                <span class="trophy-item-text">MIDI Retrigger</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">⏱️</span>
-                                <span class="trophy-item-text">13 Clock Rates</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🎛️</span>
-                                <span class="trophy-item-text">Custom Params P1-P5</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🔧</span>
-                                <span class="trophy-item-text">JSON Config System</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- SYSTEM -->
-                    <div class="trophy-section system">
-                        <div class="trophy-section-header">
-                            <span class="trophy-section-icon">⚙️</span>
-                            <span class="trophy-section-title">System</span>
-                        </div>
-                        <div class="trophy-items">
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🤖</span>
-                                <span class="trophy-item-text">356 Automated Tests</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">👑</span>
-                                <span class="trophy-item-text">100% SSOT Compliance</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">📋</span>
-                                <span class="trophy-item-text">In-App Console</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">💓</span>
-                                <span class="trophy-item-text">SC Heartbeat Monitor</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🔌</span>
-                                <span class="trophy-item-text">Audio Device Switching</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">👤</span>
-                                <span class="trophy-item-text">First External User!</span>
-                            </div>
-                            <div class="trophy-item featured new">
-                                <span class="trophy-item-icon">💾</span>
-                                <span class="trophy-item-text">Preset Save/Load</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- UI SURGERY -->
-                    <div class="trophy-section uisurgery" style="border-color: #ff6b6b;">
-                        <div class="trophy-section-header" style="background: rgba(255, 107, 107, 0.1); border-color: #ff6b6b;">
-                            <span class="trophy-section-icon">🔪</span>
-                            <span class="trophy-section-title" style="color: #ff6b6b;">UI Surgery</span>
-                        </div>
-                        <div class="trophy-items">
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">🔍</span>
-                                <span class="trophy-item-text">F9 Debug Overlay</span>
-                            </div>
-                            <div class="trophy-item featured">
-                                <span class="trophy-item-icon">👆</span>
-                                <span class="trophy-item-text">Click-to-Trace</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🔴</span>
-                                <span class="trophy-item-text">Red Border Constraints</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🏷️</span>
-                                <span class="trophy-item-text">Widget Naming System</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">🧪</span>
-                                <span class="trophy-item-text">Layout Sandbox</span>
-                            </div>
-                            <div class="trophy-item">
-                                <span class="trophy-item-icon">😈</span>
-                                <span class="trophy-item-text">Torture Testing</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="trophy-stats">
-                    <div class="trophy-stat">
-                        <div class="trophy-stat-value">22</div>
-                        <div class="trophy-stat-label">Generators</div>
-                    </div>
-                    <div class="trophy-stat">
-                        <div class="trophy-stat-value">356</div>
-                        <div class="trophy-stat-label">Tests</div>
-                    </div>
-                    <div class="trophy-stat">
-                        <div class="trophy-stat-value">100%</div>
-                        <div class="trophy-stat-label">SSOT</div>
-                    </div>
-                    <div class="trophy-stat">
-                        <div class="trophy-stat-value">7</div>
-                        <div class="trophy-stat-label">Days Dev</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- 🎉 FIRST USER CELEBRATION 🎉 -->
-        <div class="celebration-banner">
-            <div class="firework"></div>
-            <div class="firework"></div>
-            <div class="firework"></div>
-            <div class="firework"></div>
-            <div class="firework"></div>
-            <div class="firework"></div>
-            <span class="party-popper left">🎉</span>
-            <span class="party-popper right">🎉</span>
-            <h3>🎊 WE HAVE OUR FIRST USER! 🎊</h3>
-            <p>David is officially <strong>User 01</strong> of Noise Engine!</p>
-            <p style="font-size: 14px; margin-top: 8px; color: var(--text);">December 12, 2025 - A historic moment</p>
-            <div class="user-badge">👑 USER 01</div>
-        </div>
-        
-        <!-- 🐧 DISCORD SERVER 🐧 -->
-        <div class="discord-banner">
-            <span class="sparkle">✨</span>
-            <span class="sparkle">⭐</span>
-            <span class="sparkle">✨</span>
-            <span class="sparkle">⭐</span>
-            <span class="penguin left">🐧</span>
-            <span class="penguin right">🐧</span>
-            <h3>🎛️ JOIN THE NOISE! 🎛️</h3>
-            <p>We have a Discord server! Chat about synths, share patches, get help.</p>
-            <a href="https://discord.gg/zcQpQmbpJF" target="_blank" class="discord-btn">Join Discord Server</a>
-        </div>
-        
-        <!-- 🤖 CI/CD ANNOUNCEMENT 🤖 -->
-        <div class="cicd-banner">
-            <span class="robot left">🤖</span>
-            <span class="robot right">🤖</span>
-            <span class="gear gear1">⚙️</span>
-            <span class="gear gear2">⚙️</span>
-            <span class="gear gear3">⚙️</span>
-            <h3>🚀 CI/CD PIPELINE ACTIVE 🚀</h3>
-            <p>356 automated tests run on every commit. SSOT &amp; tech debt checks enforced.</p>
-            <a href="https://github.com/thegdyne/noise-engine/actions" target="_blank" class="cicd-btn">
-                <img src="https://github.com/thegdyne/noise-engine/actions/workflows/ci.yml/badge.svg" alt="CI Status" style="vertical-align: middle;">
-                View Pipeline
-            </a>
-        </div>
-        
-        <!-- 📐 THE PROCESS 📐 -->
-        <div class="process-banner">
-            <span class="process-icon left">📐</span>
-            <span class="process-icon right">🎯</span>
-            <h3>📖 THE PROCESS</h3>
-            <p>How do you build an SSL G-Comp in 6 days? Research → Document → SSOT → Verify.</p>
-            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                <a href="process.html" class="process-btn">SSL Compressor Case Study →</a>
-                <a href="mod-matrix-process.html" class="process-btn" style="background: var(--accent-orange);">Mod Matrix: 8 Phases →</a>
-            </div>
-        </div>
-        
-        
-        <section class="hero">
-            <div class="hero-text">
-                <h2>8-slot noise generator with modular architecture</h2>
-                <p>Run different noise synths simultaneously. Each generator has 5 standard params plus up to 5 custom params, multimode filter (LP/BP/HP), and clock-synced envelope.</p>
-                <p>4 mod slots with clock sync. 4-slot FX chain. Central BPM control.</p>
-                <p>Python frontend talks to SuperCollider backend via OSC. Adding a new generator = one .scd file + one .json config.</p>
-            </div>
-            <div class="hero-visual">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <span class="led-display">120</span>
-                    <div style="font-size: 11px; color: #666; margin-top: 5px;">BPM</div>
-                </div>
-                <div class="signal-flow">
-                    <div class="flow-node active"><h4>GENERATORS</h4><p>8 slots</p></div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-node"><h4>MIXER</h4><p>levels</p></div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-node"><h4>FX CHAIN</h4><p>4 slots</p></div>
-                    <span class="flow-arrow">→</span>
-                    <div class="flow-node"><h4>OUTPUT</h4><p>master</p></div>
-                </div>
-            </div>
-        </section>
-        
-        <section class="features">
-            <h2 class="section-title">Current Features</h2>
+            <p class="section-title">What is it?</p>
+            <h2 class="section-heading">A texture instrument for drones, ambience, and evolving soundscapes</h2>
+            
             <div class="features-grid">
                 <div class="feature-card">
-                    <h3><span class="feature-icon">◈</span> Generators</h3>
+                    <h3>Synthesis</h3>
                     <ul>
-                        <li>8 independent slots</li>
-                        <li>Per-gen: FRQ, CUT, RES, ATK, DEC</li>
-                        <li>5 custom params per type (P1-P5)</li>
-                        <li>Multimode filter (LP/BP/HP)</li>
-                        <li>Clock-synced envelope</li>
-                        <li>8 clock rates (x8 to /16)</li>
+                        <li>30 generators across 5 families</li>
+                        <li>Custom parameters (P1-P5) per generator</li>
+                        <li>Transpose ±2 octaves, portamento</li>
+                        <li>6 filter modes: LP, HP, BP, Notch, LP2, OFF</li>
+                        <li>Clock-synced envelopes (13 divisions)</li>
                     </ul>
                 </div>
+                
                 <div class="feature-card">
-                    <h3><span class="feature-icon">◎</span> Modulation</h3>
+                    <h3>Modulation</h3>
                     <ul>
-                        <li>4 Mod Slots (LFO, Sloth)</li>
-                        <li>8 waveforms, quadrature phase patterns</li>
-                        <li>Free running or clock sync</li>
-                        <li>Separate clock division per LFO</li>
+                        <li>4 slots × 4 outputs = 16 mod buses</li>
+                        <li>LFO: SIN/SAW/SQR/S&H + 6 phase presets</li>
+                        <li>Sloth chaos: Torpor/Apathy/Inertia</li>
+                        <li>Full routing matrix with amount/offset</li>
+                        <li>Real-time scope visualization</li>
                     </ul>
                 </div>
+                
                 <div class="feature-card">
-                    <h3><span class="feature-icon">◐</span> Effects</h3>
+                    <h3>Mixer</h3>
                     <ul>
-                        <li>4-slot serial FX chain</li>
-                        <li>Fidelity (bit crush / sample rate)</li>
-                        <li>Per-effect amount control</li>
+                        <li>8 channel strips with 3-band EQ</li>
+                        <li>Fader, pan, mute, solo per channel</li>
+                        <li>Echo and Reverb sends</li>
+                        <li>Master EQ, compressor, limiter</li>
+                        <li>Lo/Hi cut filters per channel</li>
                     </ul>
                 </div>
+                
                 <div class="feature-card">
-                    <h3><span class="feature-icon">▥</span> Mixer</h3>
+                    <h3>Performance</h3>
                     <ul>
-                        <li>8 channel faders</li>
-                        <li>Mute / Solo per channel</li>
-                        <li>Master output</li>
-                        <li>Audio/MIDI status</li>
+                        <li>MIDI input with per-slot channel</li>
+                        <li>Trigger modes: OFF / CLK / MIDI</li>
+                        <li>Keyboard mode for computer input</li>
+                        <li>BPM control 20-300 with tap tempo</li>
+                        <li>Full preset save/load</li>
                     </ul>
                 </div>
             </div>
         </section>
         
-        <section class="generators">
-            <h2 class="section-title">Generator Types</h2>
-            <p style="margin-bottom: 25px; font-size: 14px;">
-                Each generator has 5 standard params (FRQ, CUT, RES, ATK, DEC) plus up to 5 custom params defined in JSON configs.
-                Custom params appear in the top row - greyed out when unused.
-            </p>
-            <div class="gen-grid">
-                <div class="gen-card active">
-                    <h3>PT2399</h3>
-                    <p class="gen-desc">Pitched noise through lo-fi delay - the musical version</p>
-                    <div class="gen-params">
-                        <span class="param">DLY</span>
-                        <span class="param">FBK</span>
-                        <span class="param">BW</span>
-                        <span class="param">TNE</span>
-                        <span class="param">GRT</span>
-                    </div>
+        <section>
+            <p class="section-title">Sound Packs</p>
+            <h2 class="section-heading">19 CQD_Forge packs — each with 8 themed generators</h2>
+            
+            <div class="packs-grid">
+                <div class="pack-card">
+                    <div class="pack-name">Arctic Henge</div>
+                    <div class="pack-desc">Frozen crystalline</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>PT Chaos</h3>
-                    <p class="gen-desc">Dying chip simulation with MADNESS macro - the unhinged version</p>
-                    <div class="gen-params">
-                        <span class="param">DLY</span>
-                        <span class="param">FBK</span>
-                        <span class="param">RTG</span>
-                        <span class="param">MAD</span>
-                        <span class="param">MIX</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Astro Command</div>
+                    <div class="pack-desc">Retro sci-fi</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Test Synth</h3>
-                    <p class="gen-desc">Basic noise burst generator</p>
-                    <div class="gen-params">
-                        <span class="param unused">—</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Barbican Hound</div>
+                    <div class="pack-desc">Brutalist concrete</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Subtractive</h3>
-                    <p class="gen-desc">Classic oscillator + filter</p>
-                    <div class="gen-params">
-                        <span class="param">WAV</span>
-                        <span class="param">SUB</span>
-                        <span class="param">MIX</span>
-                        <span class="param">NOI</span>
-                        <span class="param">DRV</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Beacon Vigil</div>
+                    <div class="pack-desc">Coastal signals</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Additive</h3>
-                    <p class="gen-desc">Harmonic partial synthesis</p>
-                    <div class="gen-params">
-                        <span class="param">RAT</span>
-                        <span class="param">CRV</span>
-                        <span class="param">NUM</span>
-                        <span class="param">ENV</span>
-                        <span class="param">TLT</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Block Walk</div>
+                    <div class="pack-desc">Urban textures</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Granular</h3>
-                    <p class="gen-desc">Micro-sample clouds</p>
-                    <div class="gen-params">
-                        <span class="param">PIT</span>
-                        <span class="param">SIZ</span>
-                        <span class="param">DEN</span>
-                        <span class="param">JIT</span>
-                        <span class="param">SPR</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Boneyard</div>
+                    <div class="pack-desc">Skeletal decay</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>FM</h3>
-                    <p class="gen-desc">Frequency modulation synthesis</p>
-                    <div class="gen-params">
-                        <span class="param">RAT</span>
-                        <span class="param">IDX</span>
-                        <span class="param">IEN</span>
-                        <span class="param">ALG</span>
-                        <span class="param">FBK</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Dew Sphere</div>
+                    <div class="pack-desc">Morning droplets</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Wavetable</h3>
-                    <p class="gen-desc">Morphing waveform scanning</p>
-                    <div class="gen-params">
-                        <span class="param">TBL</span>
-                        <span class="param">SCN</span>
-                        <span class="param">DTN</span>
-                        <span class="param">UNI</span>
-                        <span class="param">INT</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Drangarnir</div>
+                    <div class="pack-desc">Nordic sea stacks</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Karplus</h3>
-                    <p class="gen-desc">Plucked string physical model</p>
-                    <div class="gen-params">
-                        <span class="param">EXC</span>
-                        <span class="param">LPF</span>
-                        <span class="param">FBK</span>
-                        <span class="param">STR</span>
-                        <span class="param">DMP</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Emerald Canopy</div>
+                    <div class="pack-desc">Rainforest layers</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Modal</h3>
-                    <p class="gen-desc">Resonant body simulation</p>
-                    <div class="gen-params">
-                        <span class="param">MAT</span>
-                        <span class="param">BRT</span>
-                        <span class="param">DCS</span>
-                        <span class="param">DNS</span>
-                        <span class="param">INH</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Fuego Celeste</div>
+                    <div class="pack-desc">Volcanic heat</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>VCO Relax</h3>
-                    <p class="gen-desc">XR2206/MAX038 style VCO</p>
-                    <div class="gen-params">
-                        <span class="param">CUR</span>
-                        <span class="param">CAP</span>
-                        <span class="param">VCO</span>
-                        <span class="param">WAV</span>
-                        <span class="param">SYM</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Icarus</div>
+                    <div class="pack-desc">Solar winds</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>CapSense</h3>
-                    <p class="gen-desc">Charge-time capacitive sense</p>
-                    <div class="gen-params">
-                        <span class="param">CAP</span>
-                        <span class="param">DAC</span>
-                        <span class="param">THR</span>
-                        <span class="param">CYC</span>
-                        <span class="param">FLT</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Leviathan</div>
+                    <div class="pack-desc">Deep ocean</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>UJT Relax</h3>
-                    <p class="gen-desc">NPN/UJT/PUT relaxation</p>
-                    <div class="gen-params">
-                        <span class="param">RC</span>
-                        <span class="param">THR</span>
-                        <span class="param">VCC</span>
-                        <span class="param">FBK</span>
-                        <span class="param">NEG</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Maratus</div>
+                    <div class="pack-desc">Iridescent chirps</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Neon</h3>
-                    <p class="gen-desc">Neon bulb RC oscillator</p>
-                    <div class="gen-params">
-                        <span class="param">RC</span>
-                        <span class="param">Vb</span>
-                        <span class="param">Vd</span>
-                        <span class="param">V0</span>
-                        <span class="param">HYS</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Moss Root</div>
+                    <div class="pack-desc">Forest floor</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>4060 Siren</h3>
-                    <p class="gen-desc">Counter + mux wailing siren</p>
-                    <div class="gen-params">
-                        <span class="param">RES</span>
-                        <span class="param">PAT</span>
-                        <span class="param">CAP</span>
-                        <span class="param">BIT</span>
-                        <span class="param">DRV</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Nerve Glow</div>
+                    <div class="pack-desc">Bioluminescent</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>FBI Siren</h3>
-                    <p class="gen-desc">NE556 dual-timer wail</p>
-                    <div class="gen-params">
-                        <span class="param">PIT</span>
-                        <span class="param">LFO</span>
-                        <span class="param">MOD</span>
-                        <span class="param">CRV</span>
-                        <span class="param">DRV</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Rakshasa</div>
+                    <div class="pack-desc">Shape-shifting</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>FBI Doppler</h3>
-                    <p class="gen-desc">Passing siren with Doppler</p>
-                    <div class="gen-params">
-                        <span class="param">PIT</span>
-                        <span class="param">LFO</span>
-                        <span class="param">MOD</span>
-                        <span class="param">PAS</span>
-                        <span class="param">DOP</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Seagrass Bay</div>
+                    <div class="pack-desc">Underwater meadow</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>Diode Ring</h3>
-                    <p class="gen-desc">Passive balanced modulator</p>
-                    <div class="gen-params">
-                        <span class="param">CAR</span>
-                        <span class="param">MOD</span>
-                        <span class="param">LVL</span>
-                        <span class="param">BAL</span>
-                        <span class="param">LEK</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Summer of Love</div>
+                    <div class="pack-desc">Psychedelic warmth</div>
                 </div>
-                <div class="gen-card active">
-                    <h3>4-Quad Ring</h3>
-                    <p class="gen-desc">MC1496/AD633 multiplier</p>
-                    <div class="gen-params">
-                        <span class="param">CAR</span>
-                        <span class="param">MOD</span>
-                        <span class="param">GAN</span>
-                        <span class="param">LIN</span>
-                        <span class="param">NUL</span>
-                    </div>
-                </div>
-                <div class="gen-card active">
-                    <h3>VCA Ring</h3>
-                    <p class="gen-desc">OTA/Dual-VCA topology</p>
-                    <div class="gen-params">
-                        <span class="param">CAR</span>
-                        <span class="param">AUD</span>
-                        <span class="param">DEP</span>
-                        <span class="param">TOP</span>
-                        <span class="param">DRV</span>
-                    </div>
-                </div>
-                <div class="gen-card active">
-                    <h3>Geiger</h3>
-                    <p class="gen-desc">Radioactive click generator</p>
-                    <div class="gen-params">
-                        <span class="param">RAT</span>
-                        <span class="param">DED</span>
-                        <span class="param">BRT</span>
-                        <span class="param">DCY</span>
-                        <span class="param">NOI</span>
-                    </div>
-                </div>
-                <div class="gen-card active">
-                    <h3>Giant B0N0</h3>
-                    <p class="gen-desc">NLC chaotic PLL + delay</p>
-                    <div class="gen-params">
-                        <span class="param">CRC</span>
-                        <span class="param">P>D</span>
-                        <span class="param">DFB</span>
-                        <span class="param">DLY</span>
-                        <span class="param">CHR</span>
-                    </div>
+                <div class="pack-card">
+                    <div class="pack-name">Wax Print</div>
+                    <div class="pack-desc">African textiles</div>
                 </div>
             </div>
         </section>
         
-        <section class="architecture">
-            <h2 class="section-title">Architecture</h2>
-            <div class="arch-diagram">
-                <div class="arch-layer">
-                    <span class="arch-label">Config</span>
-                    <div class="arch-boxes">
-                        <span class="arch-box config">constants</span>
-                        <span class="arch-box config">mappings</span>
-                        <span class="arch-box config">sizes</span>
-                        <span class="arch-box config">OSC paths</span>
-                        <span class="arch-box config">GENERATOR_PARAMS</span>
-                    </div>
-                </div>
-                <div class="arch-layer">
-                    <span class="arch-label">Generator JSON</span>
-                    <div class="arch-boxes">
-                        <span class="arch-box config">name</span>
-                        <span class="arch-box config">synthdef</span>
-                        <span class="arch-box config">custom_params[]</span>
-                        <span class="arch-box config">steps (discrete)</span>
-                    </div>
-                </div>
-                <div class="arch-layer">
-                    <span class="arch-label">Theme</span>
-                    <div class="arch-boxes">
-                        <span class="arch-box theme">colors</span>
-                        <span class="arch-box theme">fonts</span>
-                        <span class="arch-box theme">font sizes</span>
-                        <span class="arch-box theme">styles</span>
-                        <span class="arch-box theme">sensitivity</span>
-                    </div>
-                </div>
-                <div class="arch-layer">
-                    <span class="arch-label">Widgets</span>
-                    <div class="arch-boxes">
-                        <span class="arch-box widgets">DragSlider</span>
-                        <span class="arch-box widgets">MiniSlider</span>
-                        <span class="arch-box widgets">CycleButton</span>
-                        <span class="arch-box widgets">DragValue</span>
-                        <span class="arch-box widgets">ValuePopup</span>
-                    </div>
-                </div>
-                <div class="arch-layer">
-                    <span class="arch-label">Components</span>
-                    <div class="arch-boxes">
-                        <span class="arch-box components">GeneratorSlot</span>
-                        <span class="arch-box components">MixerPanel</span>
-                        <span class="arch-box components">EffectsChain</span>
-                        <span class="arch-box components">LFOWidget</span>
-                    </div>
-                </div>
-            </div>
-            <div style="margin-top: 25px; padding: 20px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;">
-                <h4 style="color: var(--accent-green); font-family: 'Space Mono', monospace; font-size: 13px; margin-bottom: 12px;">
-                    ◈ Single Source of Truth (100%)
-                </h4>
-                <p style="font-size: 13px; margin-bottom: 10px;">
-                    <strong>Design principle:</strong> "Can I change X without touching Y?"
-                </p>
-                <ul style="font-size: 13px; list-style: none; color: var(--text);">
-                    <li style="padding: 3px 0;">✓ Colors, fonts, sizes → <code style="color: var(--accent-cyan);">theme.py</code></li>
-                    <li style="padding: 3px 0;">✓ Standard params → <code style="color: var(--accent-cyan);">config/GENERATOR_PARAMS</code></li>
-                    <li style="padding: 3px 0;">✓ Custom params → <code style="color: var(--accent-cyan);">generators/*.json</code></li>
-                    <li style="padding: 3px 0;">✓ OSC paths, rates → <code style="color: var(--accent-cyan);">config/__init__.py</code></li>
-                    <li style="padding: 3px 0;">✓ SC signal helpers → <code style="color: var(--accent-cyan);">~envVCA, ~multiFilter, ~stereoSpread</code></li>
-                    <li style="padding: 3px 0;">✓ Validated by <code style="color: var(--accent-cyan);">tools/check_ssot.sh</code></li>
-                </ul>
+        <section>
+            <p class="section-title">Architecture</p>
+            <h2 class="section-heading">Python GUI + SuperCollider audio engine</h2>
+            
+            <div class="architecture">
+<pre>
+┌─────────────────────────────────────────────────────────────────────┐
+│                         <span class="highlight">Python / PyQt5</span>                             │
+│                                                                     │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│   │ Gen 1-8  │  │ Mod 1-4  │  │  Mixer   │  │  Master  │           │
+│   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘           │
+└────────┼─────────────┼─────────────┼─────────────┼──────────────────┘
+         │     <span class="highlight">OSC</span>     │             │             │
+         ▼             ▼             ▼             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       <span class="highlight">SuperCollider</span>                               │
+│                                                                     │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│   │ SynthDef │  │ Mod Bus  │  │ Ch Strip │  │  Master  │           │
+│   └──────────┘  └──────────┘  └──────────┘  └──────────┘           │
+└─────────────────────────────────────────────────────────────────────┘
+</pre>
             </div>
         </section>
         
-        <section class="future">
-            <h2 class="section-title">Future Plans</h2>
-            <div class="roadmap">
-                <div class="roadmap-section">
-                    <h3>More Generators</h3>
-                    <ul>
-                        <li>Phase Distortion</li>
-                        <li>Formant/Speech</li>
-                        <li>Sample Playback</li>
-                        <li>Noise Generators (colored)</li>
-                        <li>Feedback/No-Input Mixer</li>
-                    </ul>
+        <section>
+            <p class="section-title">Installation</p>
+            <h2 class="section-heading">Get started in minutes</h2>
+            
+            <div class="requirements">
+                <div class="requirement">
+                    <div class="label">Python</div>
+                    <div class="value">3.11+</div>
                 </div>
-                <div class="roadmap-section">
-                    <h3>Modulators ✅</h3>
-                    <ul>
-                        <li>✅ LFO (TTLFO v2 style) - 8 waveforms, shape, phase</li>
-                        <li>✅ Sloth (NLC Triple Sloth inspired) - Torpor/Apathy/Inertia</li>
-                        <li>✅ 4 mod slots × 4 outputs = 16 mod buses</li>
-                        <li>✅ Real-time scope display</li>
-                        <li>✅ Modulation routing matrix (16×40 grid)</li>
-                        <li>✅ Multi-source summation (4 per destination)</li>
-                        <li>✅ Animated slider visualization</li>
-                        <li>LFO FREE mode (non-clocked)</li>
-                        <li>Clockable envelope generator</li>
-                    </ul>
+                <div class="requirement">
+                    <div class="label">SuperCollider</div>
+                    <div class="value">3.13+ (3.14 recommended)</div>
                 </div>
-                <div class="roadmap-section">
-                    <h3>Effects</h3>
-                    <ul>
-                        <li>Tape delay (clock synced)</li>
-                        <li>Spring reverb</li>
-                        <li>Digital reverb</li>
-                        <li>90s chorus/flanger</li>
-                        <li>Saturation</li>
-                    </ul>
-                </div>
-                <div class="roadmap-section">
-                    <h3>System</h3>
-                    <ul>
-                        <li>✅ Preset v2: Full session state</li>
-                        <li>MIDI learn (CC mapping)</li>
-                        <li>MIDI pitch/gate per generator</li>
-                        <li>Eurorack send/return</li>
-                        <li>Oscilloscope display</li>
-                    </ul>
+                <div class="requirement">
+                    <div class="label">Platforms</div>
+                    <div class="value">macOS · Linux · Windows</div>
                 </div>
             </div>
-            <p style="margin-top: 25px; text-align: center;">
-                <a href="https://github.com/thegdyne/noise-engine/blob/main/docs/BACKLOG.md" style="color: #44ddff;">📋 Full Backlog on GitHub</a>
-            </p>
-        </section>
-
-        <section class="skins">
-            <h2 class="section-title">Planned Skins</h2>
-            <div class="skins-grid">
-                <div class="skin-preview retro-media"><div class="skin-icon">▶</div>90s Media Player</div>
-                <div class="skin-preview acid-orange"><div class="skin-icon">◉</div>Acid TB</div>
-                <div class="skin-preview classic-gui"><div class="skin-icon">▢</div>Classic GUI</div>
-                <div class="skin-preview dystopia"><div class="skin-icon">◈</div>Dystopia</div>
-                <div class="skin-preview neon-grid"><div class="skin-icon">◇</div>Neon Grid</div>
+            
+            <div class="install-grid">
+                <div class="install-card">
+                    <h3>macOS</h3>
+                    <div class="tested">✓ Tested on Sonoma/Ventura</div>
+                    <code>brew install --cask supercollider<br>brew install python@3.11<br>git clone https://github.com/thegdyne/noise-engine.git<br>cd noise-engine<br>python3 -m venv venv && source venv/bin/activate<br>pip install -r requirements.txt<br>python main.py</code>
+                    <a href="https://github.com/thegdyne/noise-engine/blob/main/docs/MACOS_INSTALL.md">Full macOS guide →</a>
+                </div>
+                
+                <div class="install-card">
+                    <h3>Linux (Fedora)</h3>
+                    <div class="tested">✓ Tested on Fedora 39/40</div>
+                    <code>sudo dnf install supercollider python3-pip python3-virtualenv<br>git clone https://github.com/thegdyne/noise-engine.git<br>cd noise-engine<br>python3 -m venv venv && source venv/bin/activate<br>pip install -r requirements.txt<br>python main.py</code>
+                    <a href="https://github.com/thegdyne/noise-engine/blob/main/docs/LINUX_INSTALL.md">Full Linux guide →</a>
+                </div>
+                
+                <div class="install-card">
+                    <h3>Windows</h3>
+                    <div class="tested">✓ Tested on Windows 10/11</div>
+                    <code>Download SuperCollider from supercollider.github.io<br>Download Python from python.org<br>git clone https://github.com/thegdyne/noise-engine.git<br>cd noise-engine<br>python -m venv venv && venv\Scripts\activate<br>pip install -r requirements.txt<br>python main.py</code>
+                    <a href="https://github.com/thegdyne/noise-engine/blob/main/docs/WINDOWS_INSTALL.md">Full Windows guide →</a>
+                </div>
             </div>
-            <p style="margin-top: 20px; font-size: 13px; color: var(--text);">
-                Also planned: FPS HUD, Cyborg, Pixel Warrior
-            </p>
-        </section>
-        
-        <section class="milestones">
-            <h2 class="section-title">Milestones</h2>
-            <ul class="milestones-list">
-                <li><span class="milestone-date">2025-12-20</span> 💾 PRESET SYSTEM! Save/Load with Ctrl+S/O, full generator + mixer state</li>
-                <li><span class="milestone-date">2025-12-20</span> 🔧 Generator envelope fix - all 16 pack generators use ~envVCA</li>
-                <li><span class="milestone-date">2025-12-20</span> 🧬 IMAGINARIUM PHASE 0 VERIFIED! SC contract + determinism testing for AI pack generator</li>
-                <li><span class="milestone-date">2025-12-19</span> 📦 PACK SYSTEM COMPLETE! Electric Shepherd + R'lyeh collections as core packs</li>
-                <li><span class="milestone-date">2025-12-18</span> Pack selector UI, generator filtering by pack</li>
-                <li><span class="milestone-date">2025-12-18</span> Pack infrastructure: discovery, manifests, SynthDef loading</li>
-                <li><span class="milestone-date">2025-12-17</span> 🎛️ MOD MATRIX COMPLETE! 16×40 routing grid, multi-source, animated sliders</li>
-                <li><span class="milestone-date">2025-12-17</span> Phase 7: Slider visualization with range brackets and animated value</li>
-                <li><span class="milestone-date">2025-12-17</span> Phase 8: Multi-source summation (up to 4 sources per destination)</li>
-                <li><span class="milestone-date">2025-12-15</span> 🌊 MODULATION SOURCES LIVE! LFO + Sloth with real-time scope display</li>
-                <li><span class="milestone-date">2025-12-15</span> 🎨 Skin system Phase 1 - high contrast default, module accent colours</li>
-                <li><span class="milestone-date">2025-12-15</span> LFO: TTLFO v2 inspired, 12 clock rates (/64 to x32), 8 waveforms</li>
-                <li><span class="milestone-date">2025-12-15</span> Sloth: NLC Triple Sloth inspired chaos (Torpor/Apathy/Inertia)</li>
-                <li><span class="milestone-date">2025-12-15</span> 🎛️ Per-channel 3-band EQ with MiniKnob UI and shared ~djIsolator helper</li>
-                <li><span class="milestone-date">2025-12-14</span> 🎛️ MASTER SECTION COMPLETE! SSL G-Comp, DJ Isolator EQ, Brickwall Limiter</li>
-                <li><span class="milestone-date">2025-12-14</span> SSL G-Series style compressor with dominant stereo detection, auto-release, SC HPF</li>
-                <li><span class="milestone-date">2025-12-14</span> DJ-style 3-band isolator EQ with LR4 crossovers and per-band kill buttons</li>
-                <li><span class="milestone-date">2025-12-14</span> ValuePopup on all sliders showing real values (dB, Hz, %) during drag</li>
-                <li><span class="milestone-date">2025-12-14</span> Compressor GR meter with real-time feedback from SC</li>
-                <li><span class="milestone-date">2025-12-14</span> Brickwall limiter with ceiling control (-6dB to 0dB)</li>
-                <li><span class="milestone-date">2025-12-14</span> PRE/POST meter toggle for master section</li>
-                <li><span class="milestone-date">2025-12-13</span> 🎚️ STEREO PANNING! Per-channel Balance2 with double-click center</li>
-                <li><span class="milestone-date">2025-12-13</span> All 22 generators standardized to dual mono (stereo sampler ready)</li>
-                <li><span class="milestone-date">2025-12-13</span> 🎚️ Channel strips complete (vol/mute/solo per generator)</li>
-                <li><span class="milestone-date">2025-12-13</span> Per-generator routing through ~genBus[8] → channelStrip → ~masterBus</li>
-                <li><span class="milestone-date">2025-12-13</span> Solo-in-place logic with global soloActive bus</li>
-                <li><span class="milestone-date">2025-12-13</span> Mute/solo state persists across generator changes</li>
-                <li><span class="milestone-date">2025-12-13</span> Master section with fader + level meter (Phase 1 complete)</li>
-                <li><span class="milestone-date">2025-12-12</span> 🎉 First external user (David - User 01!)</li>
-                <li><span class="milestone-date">2025-12-12</span> MIDI retrig for Modal/Karplus (continuous strike while key held)</li>
-                <li><span class="milestone-date">2025-12-12</span> RTG param auto-disables in MIDI mode</li>
-                <li><span class="milestone-date">2025-12-12</span> WIP panels greyed out (Mod Sources, Mixer channels)</li>
-                <li><span class="milestone-date">2025-12-12</span> Dev/main branch workflow with ssot.sh wrapper</li>
-                <li><span class="milestone-date">2025-12-12</span> Green generator name when active</li>
-                <li><span class="milestone-date">2025-12-12</span> Major refactor: ~envVCA and ~stereoSpread helpers (50% code reduction)</li>
-                <li><span class="milestone-date">2025-12-12</span> MIDI envelope triggering (envSource: OFF/CLK/MIDI)</li>
-                <li><span class="milestone-date">2025-12-12</span> Sticky slot settings (ENV, clock rate, MIDI channel preserved on generator change)</li>
-                <li><span class="milestone-date">2025-12-12</span> SSOT compliance 100%</li>
-                <li><span class="milestone-date">2025-12-11</span> All 22 generators implemented with standard signal flow</li>
-                <li><span class="milestone-date">2025-12-11</span> 20 generator types (+ NLC Giant B0N0)</li>
-                <li><span class="milestone-date">2025-12-11</span> PT2399 Chaos generator with MADNESS macro</li>
-                <li><span class="milestone-date">2025-12-11</span> PT2399 reworked as musical pitched delay</li>
-                <li><span class="milestone-date">2025-12-11</span> RTG retrigger rate for Karplus-Strong and Modal</li>
-                <li><span class="milestone-date">2025-12-11</span> All 22 generators implemented</li>
-                <li><span class="milestone-date">2025-12-11</span> 2 siren circuit configs</li>
-                <li><span class="milestone-date">2025-12-11</span> 4 relaxation oscillator configs</li>
-                <li><span class="milestone-date">2025-12-11</span> Per-generator custom parameters (P1-P5)</li>
-                <li><span class="milestone-date">2025-12-11</span> Shared ~multiFilter helper (LP/BP/HP)</li>
-                <li><span class="milestone-date">2025-12-11</span> SSOT validation tool + 95% compliance</li>
-                <li><span class="milestone-date">2025-12-11</span> Added milestone update tool</li>
-                <li><span class="milestone-date">2025-12-11</span> GitHub Pages landing page</li>
-                <li><span class="milestone-date">2025-12-11</span> 90s media player skin mockup</li>
-                <li><span class="milestone-date">2025-12-11</span> LFO sync + clock division</li>
-                <li><span class="milestone-date">2025-12-11</span> Centralized config + theme system</li>
-                <li><span class="milestone-date">2025-12-11</span> DragSlider / CycleButton widgets</li>
-                <li><span class="milestone-date">2025-12-11</span> Effects chain UI</li>
-                <li><span class="milestone-date">2025-12-10</span> 8 clock rates (x8 to /16)</li>
-                <li><span class="milestone-date">2025-12-10</span> 8-slot generator system</li>
-                <li><span class="milestone-date">2025-12-10</span> SuperCollider OSC integration</li>
-            </ul>
         </section>
         
         <footer>
-            <p>
-                <a href="https://github.com/thegdyne/noise-engine">GitHub Repository</a> •
-                <a href="https://discord.gg/zcQpQmbpJF">Discord Server</a> •
-                <a href="https://github.com/thegdyne/noise-engine/issues">Report Bug / Request Feature</a> •
+            <div class="footer-links">
+                <a href="https://github.com/thegdyne/noise-engine">GitHub</a>
+                <a href="https://discord.gg/zcQpQmbpJF">Discord</a>
+                <a href="https://github.com/thegdyne/noise-engine/blob/main/CHANGELOG.md">Changelog</a>
+                <a href="https://github.com/thegdyne/noise-engine/blob/main/docs/IDEAS.md">Roadmap</a>
+                <a href="https://github.com/thegdyne/noise-engine/issues">Report Issue</a>
                 <a href="https://github.com/thegdyne/noise-engine/blob/main/LICENSE">MIT License</a>
-            </p>
-            <p style="margin-top: 10px; color: var(--text);">
-                A modular noise instrument for experimental sound design
-            </p>
-            <p style="margin-top: 5px; font-size: 0.8em; color: var(--text-dim);">
-                Generator concepts from Elektor Magazine, Nonlinear Circuits (Andrew F), and physics models
+            </div>
+            <p class="footer-note">
+                A modular texture instrument for experimental sound design<br>
+                Built with Python, PyQt5, and SuperCollider
             </p>
         </footer>
     </div>

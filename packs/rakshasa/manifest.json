@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "rakshasa",
+  "name": "Rakshasa",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Ceremonial demon mask \u2014 fierce ritual energy, primal darkness, ancient power. Forked tongues, bone fangs, wild manes, and the void that watches.",
+  "enabled": true,
+  "generators": [
+    "tongue_lash",
+    "fang_strike",
+    "wild_mane",
+    "demon_breath",
+    "third_eye",
+    "gold_ring",
+    "ritual_chant",
+    "dark_presence"
+  ]
+}

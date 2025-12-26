@@ -1,0 +1,15 @@
+{
+  "generator_id": "glaclead",
+  "name": "GLACLEAD",
+  "synthdef": "forge_glacialis_glaclead",
+  "custom_params": [
+    {"key": "ice", "label": "ICE", "tooltip": "Icy brightness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "facet", "label": "FCT", "tooltip": "Crystal facet detuning", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "prism", "label": "PRM", "tooltip": "Prismatic phase mod depth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "melt", "label": "MLT", "tooltip": "Filter envelope amount", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "glass", "label": "GLS", "tooltip": "Glassy harmonic emphasis", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": true,
+  "pitch_target": null
+}

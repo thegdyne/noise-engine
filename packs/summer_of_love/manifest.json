@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "summer_of_love",
+  "name": "Summer of Love",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Warm analog psychedelia inspired by late-60s San Francisco. Sun-drenched textures, human warmth, altered states, and communal energy.",
+  "enabled": true,
+  "generators": [
+    "golden_haze",
+    "body_paint",
+    "crowd_murmur",
+    "tribal_pulse",
+    "acid_bloom",
+    "cosmic_choir",
+    "park_bell",
+    "psyche_swirl"
+  ]
+}

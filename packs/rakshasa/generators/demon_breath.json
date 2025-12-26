@@ -1,0 +1,60 @@
+{
+    "generator_id": "demon_breath",
+    "name": "Demon Breath",
+    "synthdef": "forge_rakshasa_demon_breath",
+    "custom_params": [
+        {
+            "key": "heat",
+            "label": "HET",
+            "tooltip": "Heat -- spectral temperature, cold to burning",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "foul",
+            "label": "FOL",
+            "tooltip": "Foulness -- distortion and corruption of the breath",
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "hiss",
+            "label": "HSS",
+            "tooltip": "Hissing -- amount of high frequency air noise",
+            "default": 0.4,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "depth",
+            "label": "DPT",
+            "tooltip": "Depth -- low frequency rumble from within",
+            "default": 0.6,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        },
+        {
+            "key": "growl",
+            "label": "GRL",
+            "tooltip": "Growl -- threatening modulation and rumble",
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "curve": "lin",
+            "unit": ""
+        }
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
+}

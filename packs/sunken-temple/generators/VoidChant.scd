@@ -19,14 +19,16 @@ Custom params:
 SynthDef(\voidchant, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                         filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
                         midiTrigBus=0, slotIndex=0,
-                        customBus0, customBus1, customBus2, customBus3, customBus4|
+                        customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
     
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var choir, hollow, drift, ghost, prayer;
     var trig, voiceSig, formants, driftMod, ghostSig, prayerMod;
     
     // Standard params
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
@@ -102,4 +104,4 @@ SynthDef(\voidchant, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ voidchant loaded".postln;
+"  [x] voidchant loaded".postln;

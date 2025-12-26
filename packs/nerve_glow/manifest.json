@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "nerve_glow",
+  "name": "Nerve Glow",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Fluorescent microscopy of embryonic tissue -- cyan nerve fibers branching through warm amber muscle, yellow cartilage glowing against void",
+  "enabled": true,
+  "generators": [
+    "nervespk",
+    "myofiber",
+    "cartglow",
+    "voidbed",
+    "axonweb",
+    "tissuwarm",
+    "striate",
+    "fluorbed"
+  ]
+}

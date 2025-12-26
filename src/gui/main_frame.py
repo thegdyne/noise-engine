@@ -16,6 +16,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
 from src.gui.inline_fx_strip import InlineFXStrip
+from src.gui.fx_window import FXWindow
 from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
 from src.gui.pack_selector import PackSelector
@@ -32,7 +33,7 @@ from src.config import (
     BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
 )
 from src.utils.logger import logger
-from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState
+from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
 
 
 class MainFrame(QMainWindow):
@@ -65,6 +66,9 @@ class MainFrame(QMainWindow):
         # Mod matrix window (created on first open)
         self.mod_matrix_window = None
         
+        # FX window (created on first open)
+        self.fx_window = None
+        
         # Keyboard overlay (created on first open)
         self._keyboard_overlay = None
         
@@ -72,6 +76,10 @@ class MainFrame(QMainWindow):
         self._midi_mode_active = False
         self._midi_mode_saved_states = [0] * 8  # env_source per slot
         self._midi_mode_changing = False  # Guard flag for bulk changes
+
+        # Dirty state tracking (unsaved changes indicator)
+        self._dirty = False
+        self._current_preset_name = None
 
 
         # Scope repaint throttling (~30fps instead of per-message)
@@ -82,6 +90,29 @@ class MainFrame(QMainWindow):
 
         # Install event filter for keyboard overlay
         self.installEventFilter(self)
+
+    # â"€â"€ Dirty State Tracking â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+
+    def _mark_dirty(self):
+        """Mark session as having unsaved changes."""
+        if not self._dirty:
+            self._dirty = True
+            self._update_window_title()
+
+    def _clear_dirty(self, preset_name: str = None):
+        """Clear dirty flag after save/load."""
+        self._dirty = False
+        self._current_preset_name = preset_name
+        self._update_window_title()
+
+    def _update_window_title(self):
+        """Update window title with preset name and dirty indicator."""
+        base = "Noise Engine"
+        if self._current_preset_name:
+            base = f"Noise Engine - {self._current_preset_name}"
+        if self._dirty:
+            base = f"• {base}"
+        self.setWindowTitle(base)
 
     def setup_ui(self):
         """Create the main interface layout."""
@@ -133,6 +164,8 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_clock_enabled_changed.connect(self.on_generator_clock_enabled)
         self.generator_grid.generator_env_source_changed.connect(self.on_generator_env_source)
         self.generator_grid.generator_clock_rate_changed.connect(self.on_generator_clock_rate)
+        self.generator_grid.generator_transpose_changed.connect(self.on_generator_transpose)
+        self.generator_grid.generator_portamento_changed.connect(self.on_generator_portamento)  # ADD THIS
         self.generator_grid.generator_mute_changed.connect(self.on_generator_mute)
         self.generator_grid.generator_midi_channel_changed.connect(self.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
@@ -209,9 +242,17 @@ class MainFrame(QMainWindow):
         load_shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
         load_shortcut.activated.connect(self._load_preset)
 
+        # Shortcut: init preset (Ctrl+N / Cmd+N)
+        init_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
+        init_shortcut.activated.connect(self._init_preset)
+
         # Shortcut: keyboard mode (Ctrl+K / Cmd+K)
         keyboard_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
         keyboard_shortcut.activated.connect(self._toggle_keyboard_mode)
+
+        # Shortcut: FX window (Ctrl+F / Cmd+F)
+        fx_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
+        fx_shortcut.activated.connect(self._open_fx_window)
 
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
@@ -371,8 +412,8 @@ class MainFrame(QMainWindow):
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
         
-        self.status_label = QLabel("● Disconnected")
-        self.status_label.setFixedWidth(130)  # FIXED: fits "● CONNECTION LOST"
+        self.status_label = QLabel("Disconnected")
+        self.status_label.setFixedWidth(130)  # FIXED: fits "CONNECTION LOST"
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
         
@@ -453,6 +494,7 @@ class MainFrame(QMainWindow):
         self.master_bpm = bpm
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['clock_bpm'], [bpm])
+        self._mark_dirty()
 
     def on_pack_changed(self, pack_id):
         # Auto-load pack preset if exists
@@ -502,8 +544,11 @@ class MainFrame(QMainWindow):
                 self._set_header_buttons_enabled(True)
                 self.master_section.set_osc_bridge(self.osc)
                 self.inline_fx.set_osc_bridge(self.osc)
+                self.inline_fx.sync_state()
+                if self.fx_window:
+                    self.fx_window.set_osc_bridge(self.osc)
                 self.connect_btn.setText("Disconnect")
-                self.status_label.setText("● Connected")
+                self.status_label.setText("Connected")
                 self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 
                 self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
@@ -524,7 +569,7 @@ class MainFrame(QMainWindow):
                 # Send initial mod source state
                 self._sync_mod_sources()
             else:
-                self.status_label.setText("● Connection Failed")
+                self.status_label.setText("Connection Failed")
                 self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
             try:
@@ -546,16 +591,16 @@ class MainFrame(QMainWindow):
             self.osc_connected = False
             self._set_header_buttons_enabled(False)
             self.connect_btn.setText("Connect SuperCollider")
-            self.status_label.setText("● Disconnected")
+            self.status_label.setText("Disconnected")
             self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
     
     def on_connection_lost(self):
         """Handle connection lost - show prominent warning."""
         self.osc_connected = False
         self._set_header_buttons_enabled(False)
-        self.connect_btn.setText("⚠ RECONNECT")
+        self.connect_btn.setText("RECONNECT")
         self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
-        self.status_label.setText("● CONNECTION LOST")
+        self.status_label.setText("CONNECTION LOST")
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: bold;")
     
     def on_connection_restored(self):
@@ -564,9 +609,12 @@ class MainFrame(QMainWindow):
         self._set_header_buttons_enabled(True)
         self.master_section.set_osc_bridge(self.osc)
         self.inline_fx.set_osc_bridge(self.osc)
+        self.inline_fx.sync_state()
+        if self.fx_window:
+            self.fx_window.set_osc_bridge(self.osc)
         self.connect_btn.setText("Disconnect")
         self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
-        self.status_label.setText("● Connected")
+        self.status_label.setText("Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         
         # Resend current state
@@ -612,6 +660,7 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             path = OSC_PATHS.get(f'gen_{param_name}', f'/noise/gen/{param_name}')
             self.osc.client.send_message(path, [slot_id, value])
+        self._mark_dirty()
     
     def on_generator_custom_param_changed(self, slot_id, param_index, value):
         """Handle per-generator custom parameter change."""
@@ -620,17 +669,25 @@ class MainFrame(QMainWindow):
             value = max(-1e30, min(1e30, float(value)))
             path = f"{OSC_PATHS['gen_custom']}/{slot_id}/{param_index}"
             self.osc.client.send_message(path, [value])
-        
+        self._mark_dirty()
+
     def on_generator_filter_changed(self, slot_id, filter_type):
         """Handle generator filter type change."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
-        
+        self._mark_dirty()
+
     def on_generator_clock_enabled(self, slot_id, enabled):
         """Handle generator envelope ON/OFF (legacy)."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_env_enabled'], [slot_id, 1 if enabled else 0])
-    
+
+    def on_generator_transpose(self, slot_id, semitones):
+        """Send transpose to SuperCollider."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_transpose'], [slot_id, semitones])
+        self._mark_dirty()
+
     def on_generator_env_source(self, slot_id, source):
         """Handle generator ENV source change (0=OFF, 1=CLK, 2=MIDI)."""
         if self.osc_connected:
@@ -640,14 +697,16 @@ class MainFrame(QMainWindow):
         # Detect manual change while MIDI mode is active
         if self._midi_mode_active and not self._midi_mode_changing:
             self._deactivate_midi_mode()
-        
+        self._mark_dirty()
+
     def on_generator_clock_rate(self, slot_id, rate):
         """Handle generator clock rate change - send index."""
         rate_index = CLOCK_RATE_INDEX.get(rate, 3)  # Default to CLK
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
         logger.gen(slot_id, f"rate: {rate} (index {rate_index})")
-    
+        self._mark_dirty()
+
     def on_generator_mute(self, slot_id, muted):
         """Handle generator mute from slot button."""
         if self.osc_connected:
@@ -659,7 +718,14 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_midi_channel'], [slot_id, channel])
         logger.gen(slot_id, f"MIDI channel: {channel}")
-        
+
+    def on_generator_portamento(self, slot_id, value):  # ADD FROM HERE
+        """Handle portamento knob change - send normalized value via OSC."""
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['gen_portamento'], [slot_id, value])
+        logger.gen(slot_id, f"portamento: {value:.3f}")
+        self._mark_dirty()
+
     def on_generator_selected(self, slot_id):
         """Handle generator slot selection (legacy click handler)."""
         # Legacy - cycles through generators on click
@@ -712,7 +778,8 @@ class MainFrame(QMainWindow):
             
             # Update mixer channel active state
             self.mixer_panel.set_channel_active(slot_id, False)
-                
+        self._mark_dirty()
+
     # -------------------------------------------------------------------------
     # Mod Source Handlers
     # -------------------------------------------------------------------------
@@ -779,7 +846,8 @@ class MainFrame(QMainWindow):
             # Full push to SC so UI is SSOT after rebuild
             self._sync_mod_slot_state(slot_id, send_generator=True)
         logger.debug(f"Mod {slot_id} generator: {gen_name}", component="OSC")
-        
+        self._mark_dirty()
+
     def on_mod_param_changed(self, slot_id, key, value):
         """Handle mod source parameter change."""
         if self.osc_connected:
@@ -806,7 +874,7 @@ class MainFrame(QMainWindow):
         
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""
-        # Calculate slot from bus index: bus 0-3 → slot 1, bus 4-7 → slot 2, etc.
+        # Calculate slot from bus index: bus 0-3 â†' slot 1, bus 4-7 â†' slot 2, etc.
         slot_id = (bus_idx // 4) + 1
         output_idx = bus_idx % 4
         
@@ -855,12 +923,13 @@ class MainFrame(QMainWindow):
                 [conn.source_bus, conn.target_slot, conn.target_param,
                  conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
             )
-            logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} "
+            logger.debug(f"Mod route added: bus {conn.source_bus} â†' slot {conn.target_slot}.{conn.target_param} "
                         f"(d={conn.depth}, a={conn.amount}, o={conn.offset}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
         
         # Update slider visualization
         self._update_slider_mod_range(conn.target_slot, conn.target_param)
-    
+        self._mark_dirty()
+
     def _on_mod_route_removed(self, source_bus, target_slot, target_param):
         """Send mod route removal to SC and update slider visualization."""
         if self.osc_connected:
@@ -868,11 +937,12 @@ class MainFrame(QMainWindow):
                 OSC_PATHS['mod_route_remove'],
                 [source_bus, target_slot, target_param]
             )
-            logger.debug(f"Mod route removed: bus {source_bus} → slot {target_slot}.{target_param}", component="MOD")
+            logger.debug(f"Mod route removed: bus {source_bus} â†' slot {target_slot}.{target_param}", component="MOD")
         
         # Update slider visualization (may clear if no more routes)
         self._update_slider_mod_range(target_slot, target_param)
-    
+        self._mark_dirty()
+
     def _on_mod_route_changed(self, conn):
         """Send mod route parameter change to SC."""
         if self.osc_connected:
@@ -1065,6 +1135,21 @@ class MainFrame(QMainWindow):
             self.mod_matrix_window.activateWindow()
             logger.info("Mod matrix window opened", component="MOD")
 
+    def _open_fx_window(self):
+        """Toggle the FX controls window (Cmd+F)."""
+        if self.fx_window is None:
+            self.fx_window = FXWindow(self.osc if self.osc_connected else None, parent=self)
+        
+        # Toggle visibility
+        if self.fx_window.isVisible():
+            self.fx_window.hide()
+            logger.info("FX window closed", component="FX")
+        else:
+            self.fx_window.show()
+            self.fx_window.raise_()
+            self.fx_window.activateWindow()
+            logger.info("FX window opened", component="FX")
+
     def _clear_all_mod_routes(self):
         """Clear all modulation routes."""
         self.mod_routing.clear()
@@ -1092,7 +1177,8 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_volume'], [gen_id, volume])
         logger.debug(f"Gen {gen_id} volume: {volume:.2f}", component="OSC")
-        
+        self._mark_dirty()
+
     def on_generator_muted(self, gen_id, muted):
         """Handle generator mute from mixer."""
         if self.osc_connected:
@@ -1116,14 +1202,16 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['gen_pan'], [gen_id, pan])
         logger.debug(f"Gen {gen_id} pan: {pan:.2f}", component="OSC")
-    
+        self._mark_dirty()
+
     def on_generator_eq_changed(self, gen_id, band, value):
         """Handle generator EQ change from mixer. band: 'lo'/'mid'/'hi', value: 0-2 linear."""
         if self.osc_connected:
             osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
             self.osc.client.send_message(osc_path, [gen_id, value])
         logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
-    
+        self._mark_dirty()
+
     def on_generator_echo_send(self, gen_id, value):
         """Handle generator echo send change from mixer. value: 0-1."""
         if self.osc_connected:
@@ -1208,7 +1296,8 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['master_volume'], [volume])
         logger.info(f"Master volume: {volume:.2f}", component="OSC")
-    
+        self._mark_dirty()
+
     def on_meter_mode_changed(self, mode):
         """Handle meter mode toggle (PRE=0, POST=1)."""
         if self.osc_connected:
@@ -1338,13 +1427,13 @@ class MainFrame(QMainWindow):
     def on_audio_device_changing(self, device_name):
         """Handle notification that SC is changing audio device."""
         logger.info(f"Audio device changing to: {device_name}...", component="OSC")
-        self.status_label.setText("● Switching...")
+        self.status_label.setText("Switching...")
         self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
     
     def on_audio_device_ready(self, device_name):
         """Handle notification that SC finished changing device."""
         logger.info(f"Audio device ready: {device_name}", component="OSC")
-        self.status_label.setText("● Connected")
+        self.status_label.setText("Connected")
         self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         self.audio_selector.set_enabled(True)
         # Re-query to confirm
@@ -1499,7 +1588,7 @@ class MainFrame(QMainWindow):
                 self._midi_mode_saved_states[i] = slot.env_source
                 if slot.env_source != 2:  # Not already MIDI
                     slot.env_btn.set_index(2)  # Update visual
-                    slot.on_env_source_changed("MIDI")  # Trigger full state update
+                    slot.on_env_source_changed("MIDI")   # Trigger full state update
             self._midi_mode_changing = False
             self._midi_mode_active = True
             logger.info("MIDI mode activated", component="APP")
@@ -1564,6 +1653,9 @@ class MainFrame(QMainWindow):
         # Phase 4: Mod routing
         mod_routing = self.mod_routing.to_dict()
         
+        # Phase 5: FX state
+        fx = self.fx_window.get_state() if self.fx_window else FXState()
+        
         # Get current pack
         current_pack = get_current_pack()
         
@@ -1575,6 +1667,7 @@ class MainFrame(QMainWindow):
             master=master,
             mod_sources=mod_sources,
             mod_routing=mod_routing,
+            fx=fx,
         )
 
         # Get filename from user
@@ -1595,6 +1688,7 @@ class MainFrame(QMainWindow):
                 saved_path = self.preset_manager.save(state, name)
                 self.preset_name.setText(name)
                 logger.info(f"Preset saved: {saved_path}", component="PRESET")
+                self._clear_dirty(name)
             except Exception as e:
                 logger.error(f"Failed to save preset: {e}", component="PRESET")
                 QMessageBox.warning(self, "Error", f"Failed to save preset:\n{e}")
@@ -1615,8 +1709,11 @@ class MainFrame(QMainWindow):
             try:
                 state = self.preset_manager.load(Path(filepath))
                 self._apply_preset(state)
+                # Safety: reset master to 0 so presets don't blast audio
+                self.master_section.set_volume(0.0)
                 self.preset_name.setText(state.name)
                 logger.info(f"Preset loaded: {state.name}", component="PRESET")
+                self._clear_dirty(state.name)
             except Exception as e:
                 logger.error(f"Failed to load preset: {e}", component="PRESET")
                 QMessageBox.warning(self, "Error", f"Failed to load preset:\n{e}")
@@ -1658,18 +1755,52 @@ class MainFrame(QMainWindow):
         if state.version >= 2 and hasattr(state, 'master'):
             self.master_section.set_state(state.master.to_dict())
         
-        # Phase 3: Mod sources (only if preset version >= 2)
-        if state.version >= 2 and state.mod_sources.slots[0].generator_name != "Empty" or any(s.generator_name != "Empty" for s in state.mod_sources.slots):
+        # Phase 3: Mod sources
+        if state.version >= 2:
             self.modulator_grid.set_state(state.mod_sources.to_dict())
-        
+
         # Phase 4: Mod routing (only if has connections)
         if state.mod_routing.get("connections"):
             self.mod_routing.from_dict(state.mod_routing)
             # Update mod matrix window if open
             if self.mod_matrix_window:
                 self.mod_matrix_window.sync_from_state()
+        
+        # Phase 5: FX state
+        if self.fx_window:
+            self.fx_window.set_state(state.fx)
 
-    # ── Keyboard Mode ────────────────────────────────────────────────────────
+    def _init_preset(self):
+        """Reset to default empty state (Cmd+N / Ctrl+N)."""
+        # Create fresh default state
+        state = PresetState()
+
+        # Apply to all components
+        self._apply_preset(state)
+
+        # Clear mod routing
+        self.mod_routing.clear()
+
+        # Update mod matrix window if open
+        if self.mod_matrix_window:
+            self.mod_matrix_window.sync_from_state()
+
+        # Reset FX to defaults
+        if self.fx_window:
+            self.fx_window.set_state(FXState())
+
+        # Reset pack selector to Core (empty string = Core)
+        self.pack_selector.set_pack("")
+
+        # Update preset name display
+        self.preset_name.setText("Init")
+
+        # Clear dirty flag
+        self._clear_dirty("Init")
+
+        logger.info("Preset initialized to defaults", component="PRESET")
+
+    # Keyboard Mode
 
     def eventFilter(self, obj, event):
         """Forward key events to keyboard overlay when visible."""
@@ -1739,7 +1870,7 @@ class MainFrame(QMainWindow):
         if slot_id < 1 or slot_id > 8:
             return False
         slot = self.generator_grid.slots[slot_id]
-        return slot.env_source == 2  # 2 = MIDI mode
+        return slot.env_source == 2 or slot.env_source == "MIDI"
 
     def _set_header_buttons_enabled(self, enabled: bool) -> None:
         """Enable/disable header buttons that require SC connection.
@@ -1763,3 +1894,12 @@ class MainFrame(QMainWindow):
         for widget in sc_dependent:
             if widget is not None:
                 widget.setEnabled(enabled)
+
+    def closeEvent(self, event):
+        """Handle window close - cleanup OSC to prevent signal spam."""
+        # Stop OSC bridge first to prevent signals on deleted objects
+        if hasattr(self, 'osc') and self.osc:
+            self.osc.shutdown()
+
+        # Accept the close event
+        event.accept()

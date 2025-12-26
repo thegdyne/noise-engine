@@ -200,6 +200,11 @@ def format_value(value, param):
 CLOCK_RATES = ["/32", "/16", "/12", "/8", "/4", "/2", "CLK", "x2", "x4", "x8", "x12", "x16", "x32"]
 CLOCK_DEFAULT_INDEX = 6  # CLK
 
+# === TRANSPOSE ===
+TRANSPOSE_OPTIONS = ["-2", "-1", "0", "+1", "+2"]  # Display strings (octaves)
+TRANSPOSE_SEMITONES = [-24, -12, 0, 12, 24]  # Actual semitone values
+TRANSPOSE_DEFAULT_INDEX = 2  # Middle = 0 semitones
+
 # Rate name -> SuperCollider index (auto-generated from CLOCK_RATES for SSOT)
 CLOCK_RATE_INDEX = {rate: i for i, rate in enumerate(CLOCK_RATES)}
 
@@ -208,13 +213,16 @@ ENV_SOURCES = ["OFF", "CLK", "MIDI"]
 ENV_SOURCE_INDEX = {source: i for i, source in enumerate(ENV_SOURCES)}
 
 # === FILTER ===
-FILTER_TYPES = ["LP", "HP", "BP"]
+FILTER_TYPES = ["LP", "HP", "BP", "NOT", "LP2", "OFF"]
 
 # Filter name -> SuperCollider index
 FILTER_TYPE_INDEX = {
     "LP": 0,
     "HP": 1,
-    "BP": 2
+    "BP": 2,
+    "NOT": 3,
+    "LP2": 4,
+    "OFF": 5
 }
 
 # === BPM ===
@@ -993,6 +1001,8 @@ OSC_PATHS = {
     'gen_env_enabled': '/noise/gen/envEnabled',
     'gen_env_source': '/noise/gen/envSource',  # 0=OFF, 1=CLK, 2=MIDI
     'gen_clock_rate': '/noise/gen/clockRate',
+    'gen_transpose': '/noise/gen/transpose',
+    'gen_portamento': '/noise/gen/portamento',
     'gen_mute': '/noise/gen/mute',
     'gen_midi_channel': '/noise/gen/midiChannel',
     'gen_custom': '/noise/gen/custom',  # /noise/gen/custom/{slot}/{param_index}

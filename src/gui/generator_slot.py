@@ -14,7 +14,7 @@ from src.config import (
     GENERATOR_PARAMS, map_value,
     get_generator_custom_params, get_generator_pitch_target,
     get_generator_midi_retrig, get_generator_retrig_param_index,
-    ENV_SOURCE_INDEX, MAX_CUSTOM_PARAMS
+    ENV_SOURCE_INDEX, MAX_CUSTOM_PARAMS, TRANSPOSE_SEMITONES
 )
 from src.utils.logger import logger
 
@@ -33,6 +33,8 @@ class GeneratorSlot(QWidget):
     clock_rate_changed = pyqtSignal(int, str)
     mute_changed = pyqtSignal(int, bool)  # slot_id, muted
     midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel (0=OFF, 1-16)
+    transpose_changed = pyqtSignal(int, int)  # slot_id, semitones
+    portamento_changed = pyqtSignal(int, float)  # slot_id, value (0-1)
     
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
@@ -45,7 +47,9 @@ class GeneratorSlot(QWidget):
         self.env_source = 0  # 0=OFF, 1=CLK, 2=MIDI
         self.muted = False
         self.midi_channel = 0  # 0 = OFF, 1-16 = channels
-        
+        self.transpose = 0  # Semitones (-24 to +24)
+        self.portamento = 0  # Portamento time (0-1)
+
         # Gate indicator flash timer
         self.gate_timer = QTimer()
         self.gate_timer.timeout.connect(self._gate_off)
@@ -54,7 +58,7 @@ class GeneratorSlot(QWidget):
         self.setMinimumSize(200, 220)
         build_generator_slot_ui(self)  # UI construction delegated to builder
         self.update_style()
-    
+
     # -------------------------------------------------------------------------
     # Preset State (Save/Load)
     # -------------------------------------------------------------------------
@@ -79,7 +83,7 @@ class GeneratorSlot(QWidget):
         # Custom params
         for i in range(MAX_CUSTOM_PARAMS):
             params[f"custom_{i}"] = self.custom_sliders[i].value() / 1000.0
-        
+
         return {
             "generator": self.generator_type if self.generator_type != "Empty" else None,
             "params": params,
@@ -87,8 +91,10 @@ class GeneratorSlot(QWidget):
             "env_source": self.env_source,
             "clock_rate": self.rate_btn.index,
             "midi_channel": self.midi_channel,
+            "transpose": self.transpose_btn.index,
+            "portamento": self.portamento,
         }
-    
+
     def set_state(self, state: dict):
         """
         Apply state from preset load.
@@ -171,7 +177,24 @@ class GeneratorSlot(QWidget):
         self.midi_btn.blockSignals(False)
         self.midi_btn.setStyleSheet(midi_channel_style(mc > 0))
         self.midi_channel_changed.emit(self.slot_id, self.midi_channel)
-    
+
+        # Transpose
+        tr = state.get("transpose", 2)  # Default to middle (0 semitones)
+        self.transpose_btn.blockSignals(True)
+        self.transpose_btn.set_index(tr)
+        self.transpose_btn.blockSignals(False)
+        self.transpose = TRANSPOSE_SEMITONES[tr]
+        self.transpose_changed.emit(self.slot_id, self.transpose)
+
+        # Portamento restoration
+        port = state.get("portamento", 0.0)
+        self.portamento = port
+        if hasattr(self, 'portamento_knob'):
+            self.portamento_knob.blockSignals(True)
+            self.portamento_knob.setValue(port)
+            self.portamento_knob.blockSignals(False)
+        self.portamento_changed.emit(self.slot_id, self.portamento)
+
     # -------------------------------------------------------------------------
     # Style Updates
     # -------------------------------------------------------------------------
@@ -285,6 +308,8 @@ class GeneratorSlot(QWidget):
                 self.slider_labels['frequency'].setStyleSheet(f"color: {COLORS['text']};")
         
         self.filter_btn.setEnabled(enabled)
+        self.transpose_btn.setEnabled(enabled)
+        self.portamento_knob.setEnabled(enabled)
         self.env_btn.setEnabled(enabled)
         self.update_env_style()
         self.update_style()
@@ -401,6 +426,28 @@ class GeneratorSlot(QWidget):
     def on_rate_changed(self, rate):
         """Handle rate button change."""
         self.clock_rate_changed.emit(self.slot_id, rate)
+
+    def on_transpose_changed(self, transpose_str):
+        """Handle transpose button change."""
+        index = self.transpose_btn.index
+        self.transpose = TRANSPOSE_SEMITONES[index]
+        logger.gen(self.slot_id, f"transpose: {transpose_str} ({self.transpose} semitones)")
+        self.transpose_changed.emit(self.slot_id, self.transpose)
+
+        # Re-send frequency so transpose takes effect immediately
+        if 'frequency' in self.sliders:
+            freq_slider = self.sliders['frequency']
+            freq_normalized = freq_slider.value() / 1000.0
+            freq_param = next((p for p in GENERATOR_PARAMS if p['key'] == 'frequency'), None)
+            if freq_param:
+                freq_real = map_value(freq_normalized, freq_param)
+                self.parameter_changed.emit(self.slot_id, 'frequency', freq_real)
+
+    def on_portamento_changed(self, value):
+        """Handle portamento knob change."""
+        self.portamento = value
+        logger.gen(self.slot_id, f"portamento: {value:.3f}")
+        self.portamento_changed.emit(self.slot_id, self.portamento)
         
     def on_param_changed(self, param_key, normalized, param_config):
         """Handle parameter change - emit real mapped value."""

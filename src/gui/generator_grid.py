@@ -23,9 +23,11 @@ class GeneratorGrid(QWidget):
     generator_clock_enabled_changed = pyqtSignal(int, bool)  # Legacy
     generator_env_source_changed = pyqtSignal(int, int)  # slot_id, source (0=OFF, 1=CLK, 2=MIDI)
     generator_clock_rate_changed = pyqtSignal(int, str)
-    generator_mute_changed = pyqtSignal(int, bool)  # slot_id, muted
     generator_midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel
-    
+    generator_transpose_changed = pyqtSignal(int, int)  # slot_id, semitones
+    generator_portamento_changed = pyqtSignal(int, float)  # ADD THIS - slot_id, value
+    generator_mute_changed = pyqtSignal(int, bool)  # slot_id, muted
+
     def __init__(self, rows=2, cols=4, parent=None):
         super().__init__(parent)
         self.rows = rows
@@ -59,6 +61,8 @@ class GeneratorGrid(QWidget):
                 slot.clock_enabled_changed.connect(self.on_clock_enabled_changed)
                 slot.env_source_changed.connect(self.on_env_source_changed)
                 slot.clock_rate_changed.connect(self.on_clock_rate_changed)
+                slot.transpose_changed.connect(self.on_transpose_changed)
+                slot.portamento_changed.connect(self.on_portamento_changed)
                 slot.mute_changed.connect(self.on_mute_changed)
                 slot.midi_channel_changed.connect(self.on_midi_channel_changed)
                 grid.addWidget(slot, row, col)
@@ -98,7 +102,15 @@ class GeneratorGrid(QWidget):
     def on_clock_rate_changed(self, slot_id, rate):
         """Handle clock rate change."""
         self.generator_clock_rate_changed.emit(slot_id, rate)
-    
+
+    def on_transpose_changed(self, slot_id, semitones):
+        """Re-emit transpose change from slot."""
+        self.generator_transpose_changed.emit(slot_id, semitones)
+
+    def on_portamento_changed(self, slot_id, value):  # ADD FROM HERE
+        """Forward portamento change from slot to main frame."""
+        self.generator_portamento_changed.emit(slot_id, value)  # TO HERE
+
     def on_mute_changed(self, slot_id, muted):
         """Handle mute toggle."""
         self.generator_mute_changed.emit(slot_id, muted)

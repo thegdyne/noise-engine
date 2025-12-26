@@ -1,0 +1,60 @@
+{
+  "generator_id": "biolume_ping",
+  "name": "Biolume Ping",
+  "synthdef": "forge_leviathan_biolume_ping",
+  "custom_params": [
+    {
+      "key": "glow",
+      "label": "GLW",
+      "tooltip": "Glow - luminescence intensity, harmonic brightness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "flicker",
+      "label": "FLK",
+      "tooltip": "Flicker - signal instability, organic variation",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "swarm",
+      "label": "SWM",
+      "tooltip": "Swarm - multiple creatures, density of surrounding pings",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "dim",
+      "label": "DIM",
+      "tooltip": "Dim - fade distance, how far the light travels",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spark",
+      "label": "SPK",
+      "tooltip": "Spark - initial flash intensity, attack brightness",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": true,
+  "pitch_target": null
+}

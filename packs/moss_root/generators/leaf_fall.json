@@ -1,0 +1,60 @@
+{
+  "generator_id": "leaf_fall",
+  "name": "Leaf Fall",
+  "synthdef": "forge_moss_root_leaf_fall",
+  "custom_params": [
+    {
+      "key": "rustle",
+      "label": "RST",
+      "tooltip": "Rustle density -- how many leaves are moving",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wind",
+      "label": "WND",
+      "tooltip": "Wind speed -- rate of movement and chaos",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wet",
+      "label": "WET",
+      "tooltip": "Wetness -- damp leaves are quieter, muffled",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pile",
+      "label": "PIL",
+      "tooltip": "Pile depth -- layered rustling echoes",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "curl",
+      "label": "CRL",
+      "tooltip": "Curl and crunch -- crispy dried leaf character",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

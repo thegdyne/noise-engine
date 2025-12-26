@@ -41,10 +41,37 @@ presets/*.json
 # SuperCollider
 supercollider/recordings/
 
-# Packs - core packs tracked, user packs ignored
-packs/user/*
-!packs/user/.gitkeep
-packs/pizza-pup/
+# Packs - track shipped, ignore user-created
+packs/*
+_example
+!packs/core/
+!packs/rlyeh/
+!packs/electric-shepherd/
+!packs/wax_print/
+!packs/sunken-temple/
+!packs/summer_of_love/
+!packs/seagrass_bay/
+!packs/rakshasa/
+!packs/nerve_glow/
+!packs/moss_root/
+!packs/maratus/
+!packs/leviathan/
+!packs/icarus/
+!packs/fuego_celeste/
+!packs/emerald_canopy/
+!packs/drangarnir/
+!packs/dew_sphere/
+!packs/boneyard/
+!packs/block_walk/
+!packs/beacon_vigil/
+!packs/barbican_hound/
+!packs/astro_command/
+!packs/arctic_henge/
+!packs/amber-threshold/
+!packs/user/
+!packs/glacialis/
+
+# Test artifacts
 test_inputs/
-packs/
+
 spatial_debug.json

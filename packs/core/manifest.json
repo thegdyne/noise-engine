@@ -1,0 +1,11 @@
+{
+  "pack_format": 1,
+  "pack_id": "core",
+  "name": "Core",
+  "version": "1.0.0",
+  "author": "Noise Engine",
+  "description": "Built-in generators",
+  "enabled": true,
+  "core": true,
+  "generators": []
+}

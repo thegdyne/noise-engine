@@ -1,0 +1,15 @@
+{
+  "generator_id": "dust_rattle",
+  "name": "Dust Rattle",
+  "synthdef": "forge_wax_print_dust_rattle",
+  "custom_params": [
+    {"key": "density", "label": "DNS", "tooltip": "Density - particle count, seeds/beads", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "size", "label": "SIZ", "tooltip": "Size - particle size, pitch of impacts", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shell", "label": "SHL", "tooltip": "Shell - container material, body resonance", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shake", "label": "SHK", "tooltip": "Shake - movement intensity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ring", "label": "RNG", "tooltip": "Ring - metal vs organic character", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

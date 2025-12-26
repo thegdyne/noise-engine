@@ -8,12 +8,13 @@ This is intentionally a test-only stabilizer; the proper fix is to make
 runtime code CWD-independent (backlog item).
 """
 from __future__ import annotations
-
 import os
 from pathlib import Path
+
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+
 
 def pytest_sessionstart(session):
     os.chdir(ROOT)
@@ -29,8 +30,14 @@ def project_root():
 
 @pytest.fixture
 def generators_dir():
-    """Return path to supercollider/generators directory."""
-    return ROOT / "supercollider" / "generators"
+    """Return path to core generators directory (packs/core/generators).
+    
+    Skips tests if the directory doesn't exist (e.g., in CI where packs may not be present).
+    """
+    path = ROOT / "packs" / "core" / "generators"
+    if not path.exists():
+        pytest.skip("packs/core/generators not present (likely CI environment)")
+    return path
 
 
 @pytest.fixture

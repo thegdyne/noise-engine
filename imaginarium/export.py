@@ -19,30 +19,24 @@ from .config import SPEC_VERSION
 from .models import Candidate, SoundSpec, SelectionResult
 from .methods import get_method
 from .seeds import GenerationContext
+from .naming import (
+    sanitize_to_slug,
+    validate_pack_id,
+    make_synthdef_name,
+    make_generator_ref,
+    make_generator_id_from_method,
+    MAX_PACK_ID_LENGTH,
+)
 
 
-def sanitize_name(name: str) -> str:
-    """Convert name to valid identifier (alphanumeric + underscore)."""
-    return "".join(c if c.isalnum() else "_" for c in name).lower()
-
-
-def generate_synthdef_name(pack_name: str, candidate: Candidate, index: int) -> str:
-    """Generate unique SynthDef name for a candidate."""
-    safe_pack = sanitize_name(pack_name)
-    method_short = candidate.method_id.split("/")[-1]
-    return f"imaginarium_{safe_pack}_{method_short}_{index:03d}"
-
-
-def generate_display_name(candidate: Candidate, index: int, pack_name: str = "") -> str:
+def generate_display_name(candidate: Candidate, index: int) -> str:
     """Generate human-readable display name."""
     method = get_method(candidate.method_id)
     if method:
         base = method.definition.display_name
     else:
         base = candidate.method_id.split("/")[-1].replace("_", " ").title()
-    # Include pack abbreviation to avoid cross-pack collisions
-    abbrev = pack_name[:8] if pack_name else ""
-    return f"{base} {index + 1} [{abbrev}]" if abbrev else f"{base} {index + 1}"
+    return f"{base} {index + 1}"
 
 
 def export_pack(
@@ -59,7 +53,7 @@ def export_pack(
     Export selected candidates as a Noise Engine pack.
     
     Args:
-        pack_name: Name for the pack
+        pack_name: Name for the pack (will be sanitized to pack_id)
         selected: Selected candidates to export
         spec: Target SoundSpec
         context: Generation context with seeds
@@ -71,8 +65,12 @@ def export_pack(
     Returns:
         Path to pack directory
     """
+    # Derive pack_id from pack_name
+    pack_id = sanitize_to_slug(pack_name, max_length=MAX_PACK_ID_LENGTH)
+    validate_pack_id(pack_id)
+    
     # Create pack structure
-    pack_dir = output_dir / pack_name
+    pack_dir = output_dir / pack_id
     gen_dir = pack_dir / "generators"
     reports_dir = pack_dir / "reports"
     
@@ -82,11 +80,14 @@ def export_pack(
     
     # Generate files for each selected candidate
     generator_entries = []
-    generator_stems = []
+    generator_ids = []
 
     for i, candidate in enumerate(selected):
-        synthdef_name = generate_synthdef_name(pack_name, candidate, i)
-        display_name = generate_display_name(candidate, i, pack_name)
+        # Generate IDs using naming module
+        generator_id = make_generator_id_from_method(candidate.method_id, i)
+        synthdef_name = make_synthdef_name(pack_id, generator_id)
+        display_name = generate_display_name(candidate, i)
+        generator_ref = make_generator_ref(pack_id, generator_id)
 
         method = get_method(candidate.method_id)
 
@@ -109,78 +110,86 @@ def export_pack(
                 "synthdef": synthdef_name,
                 "custom_params": [],
                 "output_trim_db": -6.0,
+                "midi_retrig": False,
+                "pitch_target": None,
             }
 
-        # Calculate output trim based on measured RMS (applies to both)
+        # Add generator_id to JSON config
+        json_config["generator_id"] = generator_id
+
+        # Calculate output trim based on measured RMS
         TARGET_RMS_DB = -18.0
         if candidate.features and candidate.features.rms_db > -60:
             trim = TARGET_RMS_DB - candidate.features.rms_db
             trim = max(-18.0, min(18.0, trim))  # Clamp to ±18dB
             json_config["output_trim_db"] = round(float(trim), 1)
 
-        # Write SynthDef
-        scd_path = gen_dir / f"{synthdef_name}.scd"
+        # Write SynthDef (filename = generator_id.scd)
+        scd_path = gen_dir / f"{generator_id}.scd"
         scd_path.write_text(scd_code)
         
-        # Write generator JSON
-        json_path = gen_dir / f"{synthdef_name}.json"
+        # Write generator JSON (filename = generator_id.json)
+        json_path = gen_dir / f"{generator_id}.json"
         with open(json_path, "w") as f:
             json.dump(json_config, f, indent=2)
         
         generator_entries.append({
+            "generator_id": generator_id,
             "name": display_name,
             "synthdef": synthdef_name,
-            "file": f"generators/{synthdef_name}.json",
+            "generator_ref": generator_ref,
             "candidate_id": candidate.candidate_id,
             "family": candidate.family,
             "fit_score": candidate.fit_score,
         })
-        generator_stems.append(synthdef_name)
+        generator_ids.append(generator_id)
     
     # Write manifest (Noise Engine pack format)
     manifest = {
-        "pack_format": 1,
-        "name": pack_name,
+        "pack_format": 2,
+        "pack_id": pack_id,
+        "name": pack_name,  # Original display name
         "version": "1.0.0",
         "author": "Imaginarium",
         "description": f"Generated from image (brightness={spec.brightness:.2f}, noisiness={spec.noisiness:.2f})",
         "enabled": True,
-        "generators": generator_stems,  # File stems only
+        "generators": generator_ids,  # generator_id list
     }
     
     manifest_path = pack_dir / "manifest.json"
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
-        # Write preset (auto-loads all generators into slots 1-8)
-        preset = {
-            "version": 2,
-            "name": pack_name,
-            "pack": pack_name,
-            "slots": [
-                {
-                    "generator": entry["name"],
-                    "params": {
-                        "frequency": 0.5,
-                        "cutoff": 1.0,
-                        "resonance": 0.0,
-                        "attack": 0.0,
-                        "decay": 0.76,
-                        "custom_0": 0.5,
-                        "custom_1": 0.5,
-                        "custom_2": 0.5,
-                        "custom_3": 0.5,
-                        "custom_4": 0.5,
-                    },
-                }
-                for entry in generator_entries
-            ],
-        }
 
-        presets_dir = Path.home() / "noise-engine-presets"
-        presets_dir.mkdir(parents=True, exist_ok=True)
-        preset_path = presets_dir / f"{sanitize_name(pack_name)}_preset.json"
-        with open(preset_path, "w") as f:
-            json.dump(preset, f, indent=2)
+    # Write preset (auto-loads all generators into slots 1-8)
+    preset = {
+        "version": 2,
+        "name": pack_name,
+        "pack": pack_id,
+        "slots": [
+            {
+                "generator": entry["generator_ref"],  # Use generator_ref format
+                "params": {
+                    "frequency": 0.5,
+                    "cutoff": 1.0,
+                    "resonance": 0.0,
+                    "attack": 0.0,
+                    "decay": 0.76,
+                    "custom_0": 0.5,
+                    "custom_1": 0.5,
+                    "custom_2": 0.5,
+                    "custom_3": 0.5,
+                    "custom_4": 0.5,
+                },
+            }
+            for entry in generator_entries
+        ],
+    }
+
+    presets_dir = Path.home() / "noise-engine-presets"
+    presets_dir.mkdir(parents=True, exist_ok=True)
+    preset_path = presets_dir / f"{pack_id}_preset.json"
+    with open(preset_path, "w") as f:
+        json.dump(preset, f, indent=2)
 
     # Write Imaginarium metadata (separate file for traceability)
     imaginarium_meta = {
@@ -188,8 +197,9 @@ def export_pack(
         "created": datetime.now().isoformat(),
         "input_fingerprint": input_fingerprint,
         "run_seed": context.run_seed,
+        "pack_id": pack_id,
         "spec": spec.to_dict(),
-        "generator_details": generator_entries,  # Full details here
+        "generator_details": generator_entries,
     }
     
     meta_path = pack_dir / "imaginarium.json"
@@ -203,6 +213,7 @@ def export_pack(
             "input_fingerprint": input_fingerprint,
             "run_seed": context.run_seed,
             "sobol_seed": context.sobol_seed,
+            "pack_id": pack_id,
             "spec": spec.to_dict(),
             "candidates": [
                 {

@@ -1,2206 +1,2253 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noise Engine — User Manual</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #141414;
-            --bg-tertiary: #1a1a1a;
-            --bg-elevated: #222;
-            --text-primary: #e8e8e8;
-            --text-secondary: #888;
-            --text-muted: #555;
-            --accent: #ff8c00;
-            --accent-dim: #cc7000;
-            --accent-glow: rgba(255, 140, 0, 0.15);
-            --border: #2a2a2a;
-            --border-light: #333;
-            --success: #4ade80;
-            --warning: #fbbf24;
-            --danger: #f87171;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noise Engine — User Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #141414;
+      --bg-tertiary: #1a1a1a;
+      --bg-elevated: #222;
+      --text-primary: #e8e8e8;
+      --text-secondary: #888;
+      --text-muted: #555;
+      --accent: #ff8c00;
+      --accent-dim: #cc7000;
+      --accent-glow: rgba(255, 140, 0, 0.15);
+      --border: #2a2a2a;
+      --border-light: #333;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --danger: #f87171;
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        html {
-            scroll-behavior: smooth;
-        }
+    html {
+      scroll-behavior: smooth;
+    }
 
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.7;
-            font-size: 16px;
-        }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      font-size: 16px;
+    }
 
-        /* Noise texture overlay */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-            opacity: 0.03;
-            pointer-events: none;
-            z-index: 1000;
-        }
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 1000;
+    }
 
-        /* Header */
-        header {
-            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-            border-bottom: 1px solid var(--border);
-            padding: 3rem 2rem;
-            text-align: center;
-            position: relative;
-        }
+    /* Header */
+    header {
+      background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+      position: relative;
+    }
 
-        header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent), transparent);
-        }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
 
-        .logo {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 3rem;
-            font-weight: 700;
-            letter-spacing: -2px;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -2px;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
 
-        .tagline {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            letter-spacing: 0.5px;
-        }
+    .tagline {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+    }
 
-        .version {
-            display: inline-block;
-            margin-top: 1rem;
-            padding: 0.3rem 0.8rem;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--accent);
-        }
+    .version {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.3rem 0.8rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+    }
 
-        /* Layout */
-        .container {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: calc(100vh - 200px);
-        }
+    /* Layout */
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: calc(100vh - 200px);
+    }
 
-        /* Navigation */
-        nav {
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border);
-            padding: 2rem 0;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-        }
+    /* Navigation */
+    nav {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      padding: 2rem 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
 
-        nav h3 {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--text-muted);
-            padding: 0 1.5rem;
-            margin-bottom: 0.8rem;
-            margin-top: 1.5rem;
-        }
+    nav h3 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      padding: 0 1.5rem;
+      margin-bottom: 0.8rem;
+      margin-top: 1.5rem;
+    }
 
-        nav h3:first-child {
-            margin-top: 0;
-        }
+    nav h3:first-child {
+      margin-top: 0;
+    }
 
-        nav a {
-            display: block;
-            padding: 0.6rem 1.5rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.95rem;
-            border-left: 2px solid transparent;
-            transition: all 0.2s ease;
-        }
+    nav a {
+      display: block;
+      padding: 0.6rem 1.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.95rem;
+      border-left: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
 
-        nav a:hover {
-            color: var(--text-primary);
-            background: var(--accent-glow);
-            border-left-color: var(--accent);
-        }
+    nav a:hover {
+      color: var(--text-primary);
+      background: var(--accent-glow);
+      border-left-color: var(--accent);
+    }
 
-        nav a.active {
-            color: var(--accent);
-            border-left-color: var(--accent);
-        }
+    nav a.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+    }
 
-        /* Main content */
-        main {
-            padding: 3rem 4rem;
-            max-width: 900px;
-        }
+    /* Main content */
+    main {
+      padding: 3rem 4rem;
+      max-width: 900px;
+    }
 
-        section {
-            margin-bottom: 4rem;
-            animation: fadeIn 0.5s ease;
-        }
+    section {
+      margin-bottom: 4rem;
+      animation: fadeIn 0.5s ease;
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-        h1 {
-            font-size: 2.2rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
 
-        h1 .icon {
-            width: 40px;
-            height: 40px;
-            background: var(--accent-glow);
-            border: 1px solid var(--accent-dim);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
+    h1 .icon {
+      width: 40px;
+      height: 40px;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent-dim);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
 
-        h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
 
-        h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-top: 2rem;
-            margin-bottom: 0.8rem;
-            color: var(--accent);
-        }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.8rem;
+      color: var(--accent);
+    }
 
-        p {
-            margin-bottom: 1rem;
-            color: var(--text-secondary);
-        }
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+    }
 
-        /* Code blocks */
-        code {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85em;
-            background: var(--bg-tertiary);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            color: var(--accent);
-        }
+    /* Code blocks */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: var(--bg-tertiary);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--accent);
+    }
 
-        pre {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem;
-            overflow-x: auto;
-            margin: 1.5rem 0;
-        }
+    pre {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
 
-        pre code {
-            background: none;
-            border: none;
-            padding: 0;
-            color: var(--text-primary);
-        }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text-primary);
+    }
 
-        /* Tables */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.5rem 0;
-            font-size: 0.95rem;
-        }
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
 
-        th, td {
-            padding: 0.8rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
+    th, td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
 
-        th {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+    th {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
 
-        td {
-            color: var(--text-secondary);
-        }
+    td {
+      color: var(--text-secondary);
+    }
 
-        tr:hover td {
-            background: var(--accent-glow);
-        }
+    tr:hover td {
+      background: var(--accent-glow);
+    }
 
-        /* Info boxes */
-        .info-box {
-            background: var(--bg-tertiary);
-            border-left: 3px solid var(--accent);
-            padding: 1.2rem 1.5rem;
-            margin: 1.5rem 0;
-            border-radius: 0 8px 8px 0;
-        }
+    /* Info boxes */
+    .info-box {
+      background: var(--bg-tertiary);
+      border-left: 3px solid var(--accent);
+      padding: 1.2rem 1.5rem;
+      margin: 1.5rem 0;
+      border-radius: 0 8px 8px 0;
+    }
 
-        .info-box.tip {
-            border-left-color: var(--success);
-        }
+    .info-box.tip {
+      border-left-color: var(--success);
+    }
 
-        .info-box.warning {
-            border-left-color: var(--warning);
-        }
+    .info-box.warning {
+      border-left-color: var(--warning);
+    }
 
-        .info-box.danger {
-            border-left-color: var(--danger);
-        }
+    .info-box.danger {
+      border-left-color: var(--danger);
+    }
 
-        .info-box strong {
-            color: var(--text-primary);
-            display: block;
-            margin-bottom: 0.3rem;
-        }
+    .info-box strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 0.3rem;
+    }
 
-        /* Keyboard shortcuts */
-        kbd {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-light);
-            border-radius: 4px;
-            box-shadow: 0 2px 0 var(--border);
-            color: var(--text-primary);
-        }
+    /* Keyboard shortcuts */
+    kbd {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      box-shadow: 0 2px 0 var(--border);
+      color: var(--text-primary);
+    }
 
-        /* Feature cards */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
+    /* Feature cards */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
 
-        .feature-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-        }
+    .feature-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
 
-        .feature-card:hover {
-            border-color: var(--accent-dim);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-        }
+    .feature-card:hover {
+      border-color: var(--accent-dim);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
 
-        .feature-card h4 {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
+    .feature-card h4 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
 
-        .feature-card p {
-            font-size: 0.9rem;
-            margin: 0;
-        }
+    .feature-card p {
+      font-size: 0.9rem;
+      margin: 0;
+    }
 
-        /* Parameter list */
-        .param-list {
-            display: grid;
-            gap: 0.8rem;
-            margin: 1.5rem 0;
-        }
+    /* Parameter list */
+    .param-list {
+      display: grid;
+      gap: 0.8rem;
+      margin: 1.5rem 0;
+    }
 
-        .param {
-            display: grid;
-            grid-template-columns: 80px 1fr;
-            gap: 1rem;
-            align-items: center;
-            padding: 0.8rem 1rem;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
+    .param {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.8rem 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
 
-        .param-name {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            color: var(--accent);
-        }
+    .param-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--accent);
+    }
 
-        .param-desc {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
+    .param-desc {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
 
-        /* Diagrams */
-        .diagram {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            margin: 2rem 0;
-            text-align: center;
-        }
+    /* Diagrams */
+    .diagram {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
 
-        .signal-flow {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-        }
+    .signal-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
 
-        .signal-box {
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-light);
-            padding: 0.6rem 1rem;
-            border-radius: 6px;
-            color: var(--text-primary);
-        }
+    .signal-box {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      color: var(--text-primary);
+    }
 
-        .signal-box.highlight {
-            border-color: var(--accent);
-            background: var(--accent-glow);
-        }
+    .signal-box.highlight {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
 
-        .signal-arrow {
-            color: var(--text-muted);
-            font-size: 1.2rem;
-        }
+    .signal-arrow {
+      color: var(--text-muted);
+      font-size: 1.2rem;
+    }
 
-        /* Lists */
-        ul, ol {
-            margin: 1rem 0 1rem 1.5rem;
-            color: var(--text-secondary);
-        }
+    /* Lists */
+    ul, ol {
+      margin: 1rem 0 1rem 1.5rem;
+      color: var(--text-secondary);
+    }
 
-        li {
-            margin-bottom: 0.5rem;
-        }
+    li {
+      margin-bottom: 0.5rem;
+    }
 
-        /* Footer */
-        footer {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            padding: 2rem;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
+    /* Footer */
+    footer {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
 
-        footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
 
-        /* Responsive */
-        @media (max-width: 900px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
+    /* Responsive */
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
 
-            nav {
-                position: relative;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-            }
+      nav {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
 
-            main {
-                padding: 2rem;
-            }
-        }
+      main {
+        padding: 2rem;
+      }
+    }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
 
-        ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-        }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
 
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-light);
-            border-radius: 4px;
-        }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-light);
+      border-radius: 4px;
+    }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-    </style>
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="logo">NOISE ENGINE</div>
-        <div class="tagline">8-Slot Modular Synthesizer</div>
-        <div class="version">v1.0 — User Manual</div>
-    </header>
-
-    <div class="container">
-        <nav>
-            <h3>Getting Started</h3>
-            <a href="#introduction">Introduction</a>
-            <a href="#installation">Installation</a>
-            <a href="#quick-start">Quick Start</a>
-
-            <h3>Interface</h3>
-            <a href="#overview">Interface Overview</a>
-            <a href="#generators">Generators</a>
-            <a href="#filter-envelope">Filter & Envelope</a>
-            <a href="#modulation">Modulation</a>
-            <a href="#mod-matrix">Mod Matrix</a>
-
-            <h3>Mixing</h3>
-            <a href="#mixer">Mixer Section</a>
-            <a href="#master">Master Section</a>
-            <a href="#fx">Effects</a>
-
-            <h3>Advanced</h3>
-            <a href="#packs">Packs</a>
-            <a href="#presets">Presets</a>
-            <a href="#midi">MIDI</a>
-            <a href="#shortcuts">Keyboard Shortcuts</a>
-
-            <h3>Reference</h3>
-            <a href="#signal-flow">Signal Flow</a>
-            <a href="#parameters">Parameter Reference</a>
-        </nav>
-
-        <main>
-            <!-- Introduction -->
-            <section id="introduction">
-                <h1><span class="icon">◈</span> Introduction</h1>
-                <p>
-                    Noise Engine is a performance-oriented modular synthesizer combining Python's flexibility 
-                    with SuperCollider's powerful audio synthesis. Designed with a hardware synth philosophy — 
-                    all controls visible, no menu diving, immediate feedback.
-                </p>
-
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <h4>8 Generator Slots</h4>
-                        <p>Independent sound sources with dedicated controls for each</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Modulation Matrix</h4>
-                        <p>LFO and performance sources with quadrature output routing</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Full Mixer</h4>
-                        <p>Per-channel volume, pan, EQ, mute/solo, and send controls</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Master Processing</h4>
-                        <p>Global EQ, compressor, and limiter for polished output</p>
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <strong>Design Philosophy</strong>
-                    Everything is a vertical fader. No hidden menus. What you see is what you control.
-                </div>
-            </section>
-
-            <!-- Installation -->
-            <section id="installation">
-                <h1><span class="icon">⚙</span> Installation</h1>
-
-                <h2>Requirements</h2>
-                <ul>
-                    <li><strong>Python 3.10+</strong> with PyQt5</li>
-                    <li><strong>SuperCollider 3.12+</strong></li>
-                    <li>macOS, Windows, or Linux</li>
-                </ul>
-
-                <h2>Setup Steps</h2>
-                <ol>
-                    <li>Clone or download the Noise Engine repository</li>
-                    <li>Install Python dependencies:
-                        <pre><code>pip install -r requirements.txt</code></pre>
-                    </li>
-                    <li>Ensure SuperCollider is installed and <code>sclang</code> is in your PATH</li>
-                    <li>Launch Noise Engine:
-                        <pre><code>python main.py</code></pre>
-                    </li>
-                </ol>
-
-                <div class="info-box tip">
-                    <strong>First Launch</strong>
-                    On first run, SuperCollider will boot and load all SynthDefs. This may take a few seconds.
-                    Watch the console for "Server ready" confirmation.
-                </div>
-            </section>
-
-            <!-- Quick Start -->
-            <section id="quick-start">
-                <h1><span class="icon">▶</span> Quick Start</h1>
-
-                <h2>Make Your First Sound</h2>
-                <ol>
-                    <li><strong>Select a generator</strong> — Click the generator type button on Slot 1</li>
-                    <li><strong>Choose "Saw"</strong> — A classic subtractive waveform</li>
-                    <li><strong>Set ENV to OFF</strong> — This creates a continuous drone</li>
-                    <li><strong>Raise the channel fader</strong> — You should hear the oscillator</li>
-                    <li><strong>Adjust FRQ</strong> — Change the pitch</li>
-                    <li><strong>Sweep CUT</strong> — Filter the harmonics</li>
-                </ol>
-
-                <div class="info-box">
-                    <strong>No Sound?</strong>
-                    Check that your master fader is up, the slot isn't muted, and your audio output is configured correctly in your system preferences.
-                </div>
-            </section>
-
-            <!-- Interface Overview -->
-            <section id="overview">
-                <h1><span class="icon">▦</span> Interface Overview</h1>
-
-                <div class="diagram">
-                    <div class="signal-flow">
-                        <span class="signal-box">Pack Selection</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box highlight">8 Generator Slots</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box">Channel Strips</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box">Master Bus</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box highlight">Output</span>
-                    </div>
-                </div>
-
-                <h2>Main Sections</h2>
-                <table>
-                    <tr>
-                        <th>Section</th>
-                        <th>Location</th>
-                        <th>Purpose</th>
-                    </tr>
-                    <tr>
-                        <td>Pack Selector</td>
-                        <td>Top left</td>
-                        <td>Load generator collections</td>
-                    </tr>
-                    <tr>
-                        <td>Generator Panel</td>
-                        <td>Left side</td>
-                        <td>8 slots with synthesis controls</td>
-                    </tr>
-                    <tr>
-                        <td>Modulation</td>
-                        <td>Center</td>
-                        <td>LFO/performance sources and routing</td>
-                    </tr>
-                    <tr>
-                        <td>Mixer</td>
-                        <td>Right side</td>
-                        <td>Volume, pan, EQ per channel</td>
-                    </tr>
-                    <tr>
-                        <td>Master</td>
-                        <td>Far right</td>
-                        <td>Global processing and output</td>
-                    </tr>
-                    <tr>
-                        <td>Transport</td>
-                        <td>Bottom</td>
-                        <td>BPM, clock controls</td>
-                    </tr>
-                </table>
-            </section>
-
-            <!-- Generators -->
-            <section id="generators">
-                <h1><span class="icon">◊</span> Generators</h1>
-
-                <p>
-                    Each of the 8 generator slots is an independent sound source. Slots share a common 
-                    architecture but can load different generator types with unique characteristics.
-                </p>
-
-                <h2>Generator Types</h2>
-                <p>Click the generator type button to cycle through available generators. The type determines the core sound source — everything from classic analog waveforms to FM synthesis to physical modeling.</p>
-
-                <h2>Standard Parameters</h2>
-                <p>Every generator shares these five core parameters:</p>
-
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">FRQ</span>
-                        <span class="param-desc">Base frequency (20 Hz – 8 kHz, exponential)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">CUT</span>
-                        <span class="param-desc">Filter cutoff frequency (20 Hz – 16 kHz)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">RES</span>
-                        <span class="param-desc">Filter resonance (inverted: low = more resonant)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">ATK</span>
-                        <span class="param-desc">Envelope attack time (1 ms – 2 s)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">DEC</span>
-                        <span class="param-desc">Envelope decay time (10 ms – 10 s)</span>
-                    </div>
-                </div>
-
-                <h2>Custom Parameters (P1–P5)</h2>
-                <p>
-                    Each generator type defines up to 5 custom parameters specific to its synthesis method.
-                    Labels update to show the parameter name. Hover for a tooltip description.
-                </p>
-
-                <div class="info-box tip">
-                    <strong>Sticky Settings</strong>
-                    When you change generator type, the filter settings, envelope mode, clock rate, and 
-                    MIDI channel are preserved. Only the synthesis parameters reset.
-                </div>
-            </section>
-
-            <!-- Filter & Envelope -->
-            <section id="filter-envelope">
-                <h1><span class="icon">≈</span> Filter & Envelope</h1>
-
-                <p>
-                    The envelope system is one of Noise Engine's most powerful features for building 
-                    rhythmic ideas quickly. Set each slot to a different clock division, dial in attack 
-                    and decay times, and you've got instant polyrhythmic textures.
-                </p>
-
-                <h2>Filter Types</h2>
-                <table>
-                    <tr>
-                        <th>Type</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td><code>LP</code></td>
-                        <td>Low-pass — removes high frequencies, classic warm sound</td>
-                    </tr>
-                    <tr>
-                        <td><code>HP</code></td>
-                        <td>High-pass — removes low frequencies, thin/airy sound</td>
-                    </tr>
-                    <tr>
-                        <td><code>BP</code></td>
-                        <td>Band-pass — isolates a frequency band, vocal/resonant</td>
-                    </tr>
-                </table>
-
-                <h2>Envelope Sources</h2>
-                <table>
-                    <tr>
-                        <th>Mode</th>
-                        <th>Trigger</th>
-                        <th>Use Case</th>
-                    </tr>
-                    <tr>
-                        <td><code>OFF</code></td>
-                        <td>None (drone)</td>
-                        <td>Continuous pads, ambient textures, beds</td>
-                    </tr>
-                    <tr>
-                        <td><code>CLK</code></td>
-                        <td>Internal clock</td>
-                        <td>Rhythmic patterns, polyrhythms, sequenced hits</td>
-                    </tr>
-                    <tr>
-                        <td><code>MIDI</code></td>
-                        <td>MIDI note-on</td>
-                        <td>Keyboard playing, external sequencing</td>
-                    </tr>
-                </table>
-
-                <h2>Clock Divider / Multiplier</h2>
-                <p>
-                    When envelope is set to <code>CLK</code>, each generator has its own clock rate selector. 
-                    This is where the magic happens — stack different divisions across your 8 slots to create 
-                    complex interlocking rhythms from simple sounds.
-                </p>
-
-                <table>
-                    <tr>
-                        <th>Rate</th>
-                        <th>Triggers Per Bar</th>
-                        <th>Character</th>
-                    </tr>
-                    <tr>
-                        <td><code>4/1</code></td>
-                        <td>Once per 4 bars</td>
-                        <td>Slow evolving accents</td>
-                    </tr>
-                    <tr>
-                        <td><code>2/1</code></td>
-                        <td>Once per 2 bars</td>
-                        <td>Phrase markers</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/1</code></td>
-                        <td>1</td>
-                        <td>Downbeat pulse</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/2</code></td>
-                        <td>2</td>
-                        <td>Half-time feel</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/3</code></td>
-                        <td>3</td>
-                        <td>Triplet groove (polyrhythm)</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/4</code></td>
-                        <td>4</td>
-                        <td>Quarter note pulse</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/6</code></td>
-                        <td>6</td>
-                        <td>Triplet quarters</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/8</code></td>
-                        <td>8</td>
-                        <td>Eighth notes — driving</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/12</code></td>
-                        <td>12</td>
-                        <td>Triplet eighths — shuffle</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/16</code></td>
-                        <td>16</td>
-                        <td>Sixteenths — busy, urgent</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/24</code></td>
-                        <td>24</td>
-                        <td>Triplet sixteenths</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/32</code></td>
-                        <td>32</td>
-                        <td>Rapid-fire textures</td>
-                    </tr>
-                    <tr>
-                        <td><code>1/64</code></td>
-                        <td>64</td>
-                        <td>Granular territory</td>
-                    </tr>
-                </table>
-
-                <h2>Attack & Decay Interaction</h2>
-                <p>
-                    The <strong>ATK</strong> (attack) and <strong>DEC</strong> (decay) parameters shape each triggered note. 
-                    How you set these relative to your clock rate dramatically changes the feel:
-                </p>
-
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">ATK</span>
-                        <span class="param-desc">1 ms – 2 s • How quickly the sound reaches full volume</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">DEC</span>
-                        <span class="param-desc">10 ms – 10 s • How long the sound takes to fade out</span>
-                    </div>
-                </div>
-
-                <h3>Shaping Strategies</h3>
-                <table>
-                    <tr>
-                        <th>ATK</th>
-                        <th>DEC</th>
-                        <th>Result</th>
-                    </tr>
-                    <tr>
-                        <td>Short</td>
-                        <td>Short</td>
-                        <td>Percussive hits, clicks, plucks — tight and punchy</td>
-                    </tr>
-                    <tr>
-                        <td>Short</td>
-                        <td>Long</td>
-                        <td>Plucked strings, keys — immediate attack with ring-out</td>
-                    </tr>
-                    <tr>
-                        <td>Long</td>
-                        <td>Short</td>
-                        <td>Reversed swells, unusual — attack swallowed by decay</td>
-                    </tr>
-                    <tr>
-                        <td>Long</td>
-                        <td>Long</td>
-                        <td>Pads, swells — slow evolution, overlapping notes</td>
-                    </tr>
-                </table>
-
-                <div class="info-box tip">
-                    <strong>Pro Tip: Short Decays + Reverb</strong>
-                    Set a fast clock rate (1/16 or faster) with very short decay times for tight, 
-                    percussive hits. Then send heavily to the reverb. The dry sound stays punchy 
-                    while the reverb tail creates lush, ambient washes. This is the secret to 
-                    rhythmic ambient textures.
-                </div>
-
-                <h3>Polyrhythm Recipe</h3>
-                <p>Try this across 4 slots for instant polyrhythmic texture:</p>
-                <table>
-                    <tr>
-                        <th>Slot</th>
-                        <th>Rate</th>
-                        <th>Sound</th>
-                        <th>Role</th>
-                    </tr>
-                    <tr>
-                        <td>1</td>
-                        <td>1/4</td>
-                        <td>Low drone</td>
-                        <td>Pulse anchor</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>1/6</td>
-                        <td>Mid tone</td>
-                        <td>Triplet against 4</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>1/8</td>
-                        <td>High blip</td>
-                        <td>Driving eighths</td>
-                    </tr>
-                    <tr>
-                        <td>4</td>
-                        <td>1/3</td>
-                        <td>Noise hit</td>
-                        <td>Cross-rhythm accent</td>
-                    </tr>
-                </table>
-
-                <div class="info-box">
-                    <strong>The 3-against-4 Sweet Spot</strong>
-                    Combine 1/4 and 1/3 (or 1/8 and 1/6) for classic polyrhythmic tension. 
-                    The patterns align every 3 bars, creating hypnotic cycling grooves.
-                </div>
-            </section>
-
-            <!-- Modulation -->
-            <section id="modulation">
-                <h1><span class="icon">∿</span> Modulation</h1>
-
-                <p>
-                    The modulation system provides 4 slots for LFO and performance sources. Each source 
-                    has 4 outputs with independent waveform, phase, and polarity settings.
-                </p>
-
-                <h2>Mod Sources</h2>
-                <ul>
-                    <li><strong>LFO</strong> — Classic low-frequency oscillator with multiple waveforms</li>
-                    <li><strong>Sloth</strong> — Very slow, organic random movement</li>
-                    <li><strong>Performance</strong> — External CV/control input</li>
-                </ul>
-
-                <h2>Output Configuration</h2>
-                <p>Each of the 4 outputs per mod slot can be configured:</p>
-
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">Wave</span>
-                        <span class="param-desc">Sine, triangle, saw, square, random, noise</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Phase</span>
-                        <span class="param-desc">0°, 90°, 180°, 270° offset from base</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Polarity</span>
-                        <span class="param-desc">UNI (0 to +1), BI (-1 to +1), INV (inverted)</span>
-                    </div>
-                </div>
-
-                <h2>Creating Routings</h2>
-                <p>
-                    Click a mod output, then click a parameter on any generator to create a routing.
-                    Multiple sources can modulate the same target.
-                </p>
-
-                <div class="info-box">
-                    <strong>Modulation Formula</strong>
-                    <code>final = base + (source × amount) + offset</code><br>
-                    The result is clamped to the parameter's valid range.
-                </div>
-            </section>
-
-            <!-- Mod Matrix -->
-            <section id="mod-matrix">
-                <h1><span class="icon">▦</span> Mod Matrix</h1>
-
-                <p>
-                    The Mod Matrix provides a complete overview of all modulation routings and lets you 
-                    edit amounts and offsets with precision using keyboard controls.
-                </p>
-
-                <h2>Opening the Mod Matrix</h2>
-                <p>Press <kbd>⌘</kbd> + <kbd>M</kbd> (macOS) or <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux)</p>
-
-                <div class="info-box">
-                    <strong>Matrix View</strong>
-                    The matrix shows all active routings in a grid format: mod sources on rows, 
-                    target parameters on columns. Each cell shows the amount and offset for that routing.
-                </div>
-
-                <h2>Selecting a Routing</h2>
-                <p>Click any cell in the matrix to select it. The selected routing is highlighted with an orange border.</p>
-
-                <h2>Keyboard Controls</h2>
-                <p>Once a routing is selected, use the number keys to adjust values:</p>
-
-                <h3>Amount (Modulation Depth)</h3>
-                <table>
-                    <tr>
-                        <th>Key</th>
-                        <th>Amount</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td><kbd>1</kbd></td>
-                        <td>10%</td>
-                        <td>Subtle modulation</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>2</kbd></td>
-                        <td>20%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>3</kbd></td>
-                        <td>30%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>4</kbd></td>
-                        <td>40%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>5</kbd></td>
-                        <td>50%</td>
-                        <td>Medium modulation</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>6</kbd></td>
-                        <td>60%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>7</kbd></td>
-                        <td>70%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>8</kbd></td>
-                        <td>80%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>9</kbd></td>
-                        <td>90%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>0</kbd></td>
-                        <td>100%</td>
-                        <td>Full modulation depth</td>
-                    </tr>
-                </table>
-
-                <h3>Offset (Bias)</h3>
-                <p>Hold <kbd>Shift</kbd> while pressing number keys to set the offset:</p>
-                <table>
-                    <tr>
-                        <th>Key</th>
-                        <th>Offset</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>1</kbd></td>
-                        <td>-50%</td>
-                        <td>Strong negative bias</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>2</kbd></td>
-                        <td>-40%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>3</kbd></td>
-                        <td>-30%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>4</kbd></td>
-                        <td>-20%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>5</kbd></td>
-                        <td>-10%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>6</kbd></td>
-                        <td>0%</td>
-                        <td>No offset (center)</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>7</kbd></td>
-                        <td>+10%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>8</kbd></td>
-                        <td>+20%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>9</kbd></td>
-                        <td>+30%</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
-                        <td>+50%</td>
-                        <td>Strong positive bias</td>
-                    </tr>
-                </table>
-
-                <h3>Navigation</h3>
-                <table>
-                    <tr>
-                        <th>Key</th>
-                        <th>Action</th>
-                    </tr>
-                    <tr>
-                        <td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></td>
-                        <td>Move selection between routings</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Tab</kbd></td>
-                        <td>Next routing</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd> + <kbd>Tab</kbd></td>
-                        <td>Previous routing</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Esc</kbd></td>
-                        <td>Close matrix</td>
-                    </tr>
-                </table>
-
-                <h2>Deleting Routings</h2>
-                <table>
-                    <tr>
-                        <th>Action</th>
-                        <th>Key</th>
-                    </tr>
-                    <tr>
-                        <td>Delete selected routing</td>
-                        <td><kbd>Delete</kbd> or <kbd>Backspace</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Clear ALL routings</td>
-                        <td><kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd> (Mac)<br>
-                            <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd> (Win/Linux)</td>
-                    </tr>
-                </table>
-
-                <div class="info-box warning">
-                    <strong>Clear All Warning</strong>
-                    Clearing all routings is immediate and cannot be undone. 
-                    Save your preset first if you want to preserve your modulation setup.
-                </div>
-
-                <h2>Polarity in the Matrix</h2>
-                <p>Each routing also shows its polarity mode. Click the polarity indicator to cycle through:</p>
-                <ul>
-                    <li><strong>UNI</strong> — Unipolar (0 to +1), always adds to the base value</li>
-                    <li><strong>BI</strong> — Bipolar (-1 to +1), sweeps above and below the base</li>
-                    <li><strong>INV</strong> — Inverted, flips the modulation direction</li>
-                </ul>
-
-                <div class="info-box tip">
-                    <strong>Quick Workflow</strong>
-                    <ol>
-                        <li>Open matrix with <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>M</kbd></li>
-                        <li>Click a routing to select it</li>
-                        <li>Press <kbd>5</kbd> for 50% amount</li>
-                        <li>Press <kbd>Shift</kbd> + <kbd>6</kbd> for zero offset</li>
-                        <li>Use arrow keys to move to next routing</li>
-                        <li>Press <kbd>Esc</kbd> when done</li>
-                    </ol>
-                </div>
-
-                <h2>Understanding Amount vs Offset</h2>
-                <div class="diagram">
-                    <div class="signal-flow" style="flex-direction: column; gap: 1rem;">
-                        <div style="text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; line-height: 1.8;">
-                            <div><strong>Amount</strong> = How much the modulation source affects the target</div>
-                            <div style="color: var(--text-secondary);">→ 0% = no effect, 100% = full range sweep</div>
-                            <br>
-                            <div><strong>Offset</strong> = Shifts the center point of modulation</div>
-                            <div style="color: var(--text-secondary);">→ +offset = modulation biased higher</div>
-                            <div style="color: var(--text-secondary);">→ -offset = modulation biased lower</div>
-                        </div>
-                    </div>
-                </div>
-
-                <h3>Example: LFO → Filter Cutoff</h3>
-                <ul>
-                    <li><strong>Amount 50%, Offset 0%</strong> — Filter sweeps ±50% around current knob position</li>
-                    <li><strong>Amount 50%, Offset +25%</strong> — Filter sweeps higher than knob position</li>
-                    <li><strong>Amount 100%, Offset -50%</strong> — Full sweep, centered below knob position</li>
-                </ul>
-            </section>
-
-            <!-- Mixer -->
-            <section id="mixer">
-                <h1><span class="icon">▮</span> Mixer Section</h1>
-
-                <p>
-                    Each generator feeds into a dedicated channel strip with full mixing controls. 
-                    The signal flow is: <strong>Generator → EQ → Gain → Pan → Sends → Fader → Master</strong>. 
-                    Panning happens pre-FX, so your stereo image is preserved through the effects chain.
-                </p>
-
-                <h2>Channel Fader & Pan</h2>
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">Fader</span>
-                        <span class="param-desc">-∞ to +6 dB • Main channel level control</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Pan</span>
-                        <span class="param-desc">L ↔ R • Stereo position (pre-FX for clean imaging)</span>
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <strong>Pre-FX Panning</strong>
-                    Panning is applied before the send effects. This means a hard-panned sound 
-                    sent to reverb will have its reverb tail centered, creating natural spatial depth 
-                    rather than a lopsided wash.
-                </div>
-
-                <h2>Channel EQ</h2>
-                <p>
-                    Three-band EQ per channel for surgical or creative tone shaping. All bands are 
-                    shelving filters with ±20 dB range.
-                </p>
-
-                <table>
-                    <tr>
-                        <th>Band</th>
-                        <th>Range</th>
-                        <th>Frequency</th>
-                        <th>Use</th>
-                    </tr>
-                    <tr>
-                        <td><strong>Hi</strong></td>
-                        <td>-20 to +20 dB</td>
-                        <td>~8 kHz shelf</td>
-                        <td>Air, presence, brilliance</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Mid</strong></td>
-                        <td>-20 to +20 dB</td>
-                        <td>~1 kHz bell</td>
-                        <td>Body, honk, clarity</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Lo</strong></td>
-                        <td>-20 to +20 dB</td>
-                        <td>~200 Hz shelf</td>
-                        <td>Weight, warmth, mud control</td>
-                    </tr>
-                </table>
-
-                <h2>Cut Filters</h2>
-                <p>
-                    Simple on/off filters for quick frequency cleanup. Essential for making space 
-                    in a busy mix.
-                </p>
-
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">Lo Cut</span>
-                        <span class="param-desc">High-pass at ~80 Hz • Removes sub rumble and mud</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Hi Cut</span>
-                        <span class="param-desc">Low-pass at ~12 kHz • Tames harshness, pushes sounds back</span>
-                    </div>
-                </div>
-
-                <div class="info-box tip">
-                    <strong>Mix Tip: Lo Cut Everything</strong>
-                    Enable Lo Cut on most channels except your bass/sub sources. This clears up 
-                    low-end mud and gives your bass elements room to breathe. A clean low end 
-                    makes everything sound bigger.
-                </div>
-
-                <h2>Input Gain</h2>
-                <p>
-                    Three-position gain staging for hot signals or when you need extra push:
-                </p>
-                <table>
-                    <tr>
-                        <th>Position</th>
-                        <th>Gain</th>
-                        <th>Use</th>
-                    </tr>
-                    <tr>
-                        <td>1</td>
-                        <td>0 dB</td>
-                        <td>Unity — normal operation</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>+6 dB</td>
-                        <td>Moderate boost for quiet generators</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>+12 dB</td>
-                        <td>Hot signal — watch for clipping</td>
-                    </tr>
-                </table>
-
-                <h2>Effects Sends</h2>
-                <p>
-                    Each channel has independent send levels to the global delay and reverb effects. 
-                    Sends are post-EQ, pre-fader.
-                </p>
-
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">Echo</span>
-                        <span class="param-desc">0 – 100% • Send level to tape-style delay</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Verb</span>
-                        <span class="param-desc">0 – 100% • Send level to reverb</span>
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <strong>Pre-Fader Sends</strong>
-                    Send levels are independent of the channel fader. You can fade a channel to 
-                    silence while its reverb tail continues, perfect for transitions and builds.
-                </div>
-
-                <h2>Mute & Solo</h2>
-                <table>
-                    <tr>
-                        <th>Control</th>
-                        <th>Behavior</th>
-                    </tr>
-                    <tr>
-                        <td><strong>Mute</strong></td>
-                        <td>Silences the channel completely (including sends)</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Solo</strong></td>
-                        <td>Mutes all other channels — isolate for focused listening</td>
-                    </tr>
-                </table>
-
-                <h3>Quick Reference: All Channel Controls</h3>
-                <table>
-                    <tr>
-                        <th>Control</th>
-                        <th>Range</th>
-                        <th>Position in Chain</th>
-                    </tr>
-                    <tr>
-                        <td>EQ Hi/Mid/Lo</td>
-                        <td>-20 to +20 dB</td>
-                        <td>First (post-generator)</td>
-                    </tr>
-                    <tr>
-                        <td>Lo Cut / Hi Cut</td>
-                        <td>On/Off</td>
-                        <td>After EQ</td>
-                    </tr>
-                    <tr>
-                        <td>Gain</td>
-                        <td>0 / +6 / +12 dB</td>
-                        <td>After cuts</td>
-                    </tr>
-                    <tr>
-                        <td>Pan</td>
-                        <td>L ↔ R</td>
-                        <td>After gain (pre-FX)</td>
-                    </tr>
-                    <tr>
-                        <td>Echo Send</td>
-                        <td>0 – 100%</td>
-                        <td>Post-pan, pre-fader</td>
-                    </tr>
-                    <tr>
-                        <td>Verb Send</td>
-                        <td>0 – 100%</td>
-                        <td>Post-pan, pre-fader</td>
-                    </tr>
-                    <tr>
-                        <td>Fader</td>
-                        <td>-∞ to +6 dB</td>
-                        <td>Last (to master)</td>
-                    </tr>
-                </table>
-            </section>
-
-            <!-- Master -->
-            <section id="master">
-                <h1><span class="icon">▰</span> Master Section</h1>
-
-                <p>
-                    All channels sum into the master bus for final processing before output.
-                </p>
-
-                <h2>Master EQ</h2>
-                <ul>
-                    <li><strong>Hi / Mid / Lo</strong> — Three-band EQ with kill buttons</li>
-                    <li><strong>Lo Cut</strong> — Removes sub-bass rumble</li>
-                    <li><strong>Bypass</strong> — Disable all EQ processing</li>
-                </ul>
-
-                <h2>Compressor</h2>
-                <table>
-                    <tr>
-                        <th>Parameter</th>
-                        <th>Options</th>
-                    </tr>
-                    <tr>
-                        <td>Threshold</td>
-                        <td>-20 to 0 dB</td>
-                    </tr>
-                    <tr>
-                        <td>Ratio</td>
-                        <td>2:1, 4:1, 8:1, 20:1</td>
-                    </tr>
-                    <tr>
-                        <td>Attack</td>
-                        <td>0.1 ms, 0.3 ms, 1 ms</td>
-                    </tr>
-                    <tr>
-                        <td>Release</td>
-                        <td>0.1 s, 0.3 s, 0.6 s, 1.2 s</td>
-                    </tr>
-                    <tr>
-                        <td>Makeup Gain</td>
-                        <td>0 to +20 dB</td>
-                    </tr>
-                    <tr>
-                        <td>SC HPF</td>
-                        <td>Off, 80 Hz, 160 Hz, 300 Hz</td>
-                    </tr>
-                </table>
-
-                <h2>Limiter</h2>
-                <ul>
-                    <li><strong>Ceiling</strong> — Maximum output level (-6 to 0 dB)</li>
-                    <li><strong>Bypass</strong> — Disable limiting</li>
-                </ul>
-
-                <div class="info-box warning">
-                    <strong>Gain Staging</strong>
-                    Keep individual channel levels reasonable. Use the master compressor for glue, 
-                    not as a fix for an overloaded mix.
-                </div>
-            </section>
-
-            <!-- Effects -->
-            <section id="fx">
-                <h1><span class="icon">◎</span> Effects</h1>
-
-                <p>
-                    Noise Engine's effects section is designed for creative sound design, not just mixing. 
-                    Four powerful processors — each with deep control — can transform your generators 
-                    into something entirely new.
-                </p>
-
-                <div class="diagram">
-                    <div class="signal-flow">
-                        <span class="signal-box">Channels</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box highlight">Overdrive</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box highlight">Dual Filter</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box">Master</span>
-                    </div>
-                    <div style="margin-top: 1rem; color: var(--text-muted);">↓ sends</div>
-                    <div class="signal-flow" style="margin-top: 0.5rem;">
-                        <span class="signal-box highlight">Echo</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box highlight">Reverb</span>
-                        <span class="signal-arrow">→</span>
-                        <span class="signal-box">Master</span>
-                    </div>
-                </div>
-
-                <!-- Overdrive -->
-                <h2>Analog Overdrive</h2>
-                <p>
-                    Warm saturation and harmonic enhancement inspired by classic analog circuits. 
-                    From subtle tape warmth to aggressive tube destruction.
-                </p>
-
-                <h3>Drive Modes</h3>
-                <table>
-                    <tr>
-                        <th>Mode</th>
-                        <th>Character</th>
-                        <th>Best For</th>
-                    </tr>
-                    <tr>
-                        <td><strong>Tape</strong></td>
-                        <td>Soft compression, gentle harmonic saturation</td>
-                        <td>Warmth, glue, subtle enhancement</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Tube</strong></td>
-                        <td>Even harmonics, smooth breakup</td>
-                        <td>Rich overtones, vintage character</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Transistor</strong></td>
-                        <td>Odd harmonics, harder clipping</td>
-                        <td>Edge, grit, aggressive textures</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Foldback</strong></td>
-                        <td>Wave folding, complex harmonics</td>
-                        <td>Metallic tones, digital destruction</td>
-                    </tr>
-                </table>
-
-                <h3>Overdrive Parameters</h3>
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">Drive</span>
-                        <span class="param-desc">0 – 100% • Amount of saturation/distortion applied</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Mix</span>
-                        <span class="param-desc">0 – 100% • Dry/wet blend (parallel processing)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Mode</span>
-                        <span class="param-desc">Tape / Tube / Transistor / Foldback</span>
-                    </div>
-                </div>
-
-                <div class="info-box tip">
-                    <strong>Parallel Saturation</strong>
-                    Keep Mix around 30-50% for parallel saturation — the punch and harmonics 
-                    of the driven signal blend with the clean dynamics of the original.
-                </div>
-
-                <!-- Echo -->
-                <h2>Tape Echo</h2>
-                <p>
-                    A tempo-synced delay with the warmth and character of vintage tape machines. 
-                    Each repeat degrades slightly, adding organic movement and depth.
-                </p>
-
-                <h3>Echo Parameters</h3>
-                <table>
-                    <tr>
-                        <th>Parameter</th>
-                        <th>Range</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td><strong>Time</strong></td>
-                        <td>Sync divisions</td>
-                        <td>Delay time locked to BPM (1/4, 1/8, dotted, triplet)</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Feedback</strong></td>
-                        <td>0 – 100%</td>
-                        <td>Number of repeats (100% = infinite, careful!)</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Mix</strong></td>
-                        <td>0 – 100%</td>
-                        <td>Wet signal level</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Tone</strong></td>
-                        <td>Dark ↔ Bright</td>
-                        <td>Low-pass filter on repeats (tape degradation)</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Wow</strong></td>
-                        <td>0 – 100%</td>
-                        <td>Pitch modulation (tape flutter)</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Spread</strong></td>
-                        <td>Mono ↔ Wide</td>
-                        <td>Stereo width of delays</td>
-                    </tr>
-                </table>
-
-                <div class="info-box">
-                    <strong>Dub Techniques</strong>
-                    High feedback + dark tone = classic dub delay. Automate feedback for 
-                    runaway echoes that build and release. Add Wow for seasick tape vibes.
-                </div>
-
-                <!-- Reverb -->
-                <h2>Reverb</h2>
-                <p>
-                    A lush algorithmic reverb capable of everything from tight rooms to infinite 
-                    frozen spaces. Multiple algorithms and deep parameter control make this 
-                    equally suited for realistic acoustics and creative sound design.
-                </p>
-
-                <h3>Reverb Algorithms</h3>
-                <table>
-                    <tr>
-                        <th>Space</th>
-                        <th>Character</th>
-                        <th>Decay Range</th>
-                    </tr>
-                    <tr>
-                        <td><strong>Room</strong></td>
-                        <td>Tight, natural reflections</td>
-                        <td>0.2 – 1.5s</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Hall</strong></td>
-                        <td>Classic concert hall, smooth decay</td>
-                        <td>1 – 4s</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Plate</strong></td>
-                        <td>Dense, metallic, bright</td>
-                        <td>0.5 – 3s</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Chamber</strong></td>
-                        <td>Warm, intimate, musical</td>
-                        <td>0.8 – 2.5s</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Cathedral</strong></td>
-                        <td>Massive, diffuse, epic</td>
-                        <td>3 – 12s</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Shimmer</strong></td>
-                        <td>Pitch-shifted tails, ethereal</td>
-                        <td>2 – infinite</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Freeze</strong></td>
-                        <td>Infinite sustain, textural</td>
-                        <td>Infinite</td>
-                    </tr>
-                </table>
-
-                <h3>Reverb Parameters</h3>
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">Space</span>
-                        <span class="param-desc">Algorithm selection (Room → Freeze)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Decay</span>
-                        <span class="param-desc">Reverb tail length (algorithm-dependent range)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Mix</span>
-                        <span class="param-desc">0 – 100% • Dry/wet balance</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Pre-Delay</span>
-                        <span class="param-desc">0 – 200ms • Gap before reverb onset</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Damping</span>
-                        <span class="param-desc">High-frequency absorption (dark ↔ bright tails)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Size</span>
-                        <span class="param-desc">Virtual room dimensions</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Mod</span>
-                        <span class="param-desc">Subtle pitch modulation in tail (chorus-like)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Width</span>
-                        <span class="param-desc">Stereo spread of reverb (mono ↔ wide)</span>
-                    </div>
-                </div>
-
-                <div class="info-box tip">
-                    <strong>Short Hits + Long Tails</strong>
-                    The magic combo: percussive generators with short decays, heavy reverb send, 
-                    long decay time. The dry sound punches through while the reverb creates 
-                    ambient texture. Add pre-delay to separate the punch from the wash.
-                </div>
-
-                <!-- Dual Filter -->
-                <h2>Dual Filter</h2>
-                <p>
-                    A rhythmic filtering effect with two independent filters that can sync to 
-                    the clock for tempo-locked modulation. Create everything from subtle movement 
-                    to aggressive rhythmic gating.
-                </p>
-
-                <h3>Filter Architecture</h3>
-                <table>
-                    <tr>
-                        <th>Mode</th>
-                        <th>Configuration</th>
-                        <th>Sound</th>
-                    </tr>
-                    <tr>
-                        <td><strong>Serial</strong></td>
-                        <td>Filter A → Filter B</td>
-                        <td>Steep filtering, resonant peaks interact</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Parallel</strong></td>
-                        <td>A + B mixed</td>
-                        <td>Two frequency bands, formant-like</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Split</strong></td>
-                        <td>A = low, B = high</td>
-                        <td>Crossover with independent processing</td>
-                    </tr>
-                </table>
-
-                <h3>Clock Sync</h3>
-                <p>
-                    Each filter's cutoff can be modulated by a clock-synced LFO. The divider 
-                    works exactly like the generator clock rates:
-                </p>
-
-                <table>
-                    <tr>
-                        <th>Division</th>
-                        <th>Filter Sweep</th>
-                        <th>Feel</th>
-                    </tr>
-                    <tr>
-                        <td>1/1</td>
-                        <td>1 sweep per bar</td>
-                        <td>Slow evolution</td>
-                    </tr>
-                    <tr>
-                        <td>1/4</td>
-                        <td>4 sweeps per bar</td>
-                        <td>Quarter-note pulse</td>
-                    </tr>
-                    <tr>
-                        <td>1/8</td>
-                        <td>8 sweeps per bar</td>
-                        <td>Driving rhythm</td>
-                    </tr>
-                    <tr>
-                        <td>1/16</td>
-                        <td>16 sweeps per bar</td>
-                        <td>Rapid gating/tremolo</td>
-                    </tr>
-                </table>
-
-                <h3>Filter Parameters (per filter)</h3>
-                <div class="param-list">
-                    <div class="param">
-                        <span class="param-name">Type</span>
-                        <span class="param-desc">LP / HP / BP / Notch</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Cutoff</span>
-                        <span class="param-desc">20 Hz – 20 kHz • Base filter frequency</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Resonance</span>
-                        <span class="param-desc">0 – 100% • Emphasis at cutoff (self-oscillates at max)</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Mod Depth</span>
-                        <span class="param-desc">How much the LFO affects cutoff</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Mod Rate</span>
-                        <span class="param-desc">Clock division for modulation</span>
-                    </div>
-                    <div class="param">
-                        <span class="param-name">Mod Wave</span>
-                        <span class="param-desc">Sine / Tri / Saw / Square / Random</span>
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    <strong>Polyrhythmic Filters</strong>
-                    Set Filter A to 1/4 and Filter B to 1/6 (parallel mode) for polyrhythmic 
-                    filtering. The two patterns interlock and create complex evolving textures — 
-                    the same 3-against-4 magic as the envelope clock rates.
-                </div>
-
-                <h2>Effects Signal Flow</h2>
-                <table>
-                    <tr>
-                        <th>Effect</th>
-                        <th>Type</th>
-                        <th>Position</th>
-                    </tr>
-                    <tr>
-                        <td>Overdrive</td>
-                        <td>Insert</td>
-                        <td>Master bus (pre-filter)</td>
-                    </tr>
-                    <tr>
-                        <td>Dual Filter</td>
-                        <td>Insert</td>
-                        <td>Master bus (post-overdrive)</td>
-                    </tr>
-                    <tr>
-                        <td>Echo</td>
-                        <td>Send/Return</td>
-                        <td>Parallel to master</td>
-                    </tr>
-                    <tr>
-                        <td>Reverb</td>
-                        <td>Send/Return</td>
-                        <td>Parallel to master (post-echo)</td>
-                    </tr>
-                </table>
-
-                <div class="info-box warning">
-                    <strong>Gain Staging</strong>
-                    Overdrive and high-resonance filters can add significant level. 
-                    Watch your master meter and use the limiter to catch peaks.
-                </div>
-            </section>
-
-            <!-- Packs -->
-            <section id="packs">
-                <h1><span class="icon">▤</span> Packs</h1>
-
-                <p>
-                    Packs are collections of 8 generators designed to work together. Loading a pack 
-                    populates all 8 slots with complementary sounds.
-                </p>
-
-                <h2>Loading a Pack</h2>
-                <ol>
-                    <li>Click the Pack dropdown at the top left</li>
-                    <li>Select a pack from the list</li>
-                    <li>All 8 slots populate with the pack's generators</li>
-                </ol>
-
-                <h2>Pack Structure</h2>
-                <pre><code>packs/
-└── pack_name/
-    ├── manifest.json    # Pack metadata
-    └── generators/
-        ├── gen1.json    # Generator config
-        ├── gen1.scd     # SuperCollider SynthDef
-        ├── gen2.json
-        ├── gen2.scd
-        └── ...</code></pre>
-
-                <h2>Generator ID Format</h2>
-                <p>Generators are identified by <code>namespace:stem</code>:</p>
-                <ul>
-                    <li><code>core:saw</code> — Built-in saw generator</li>
-                    <li><code>classic_synths:tb303</code> — TB-303 from classic_synths pack</li>
-                    <li><code>mod:lfo</code> — Modulation source</li>
-                </ul>
-            </section>
-
-            <!-- Presets -->
-            <section id="presets">
-                <h1><span class="icon">◆</span> Presets</h1>
-
-                <p>
-                    Presets save and restore the complete state of Noise Engine, including all 
-                    generator settings, mixer positions, and modulation routing.
-                </p>
-
-                <h2>Save Preset</h2>
-                <p>Press <kbd>Ctrl</kbd> + <kbd>S</kbd> (or <kbd>⌘</kbd> + <kbd>S</kbd> on Mac)</p>
-                <p>Enter a name when prompted. Presets are saved to the <code>presets/</code> directory.</p>
-
-                <h2>Load Preset</h2>
-                <p>Press <kbd>Ctrl</kbd> + <kbd>O</kbd> (or <kbd>⌘</kbd> + <kbd>O</kbd> on Mac)</p>
-                <p>Select a preset file to restore all settings.</p>
-
-                <h2>What's Saved</h2>
-                <ul>
-                    <li>All 8 generator slots (type + parameters)</li>
-                    <li>Filter and envelope settings per slot</li>
-                    <li>Mixer channels (volume, pan, EQ, sends, mute/solo)</li>
-                    <li>Master section (EQ, compressor, limiter)</li>
-                    <li>BPM and clock settings</li>
-                    <li>Modulation sources and routing</li>
-                </ul>
-
-                <div class="info-box tip">
-                    <strong>Pack Compatibility</strong>
-                    Presets reference generators by ID. If the required pack isn't installed, 
-                    those slots will load as empty.
-                </div>
-            </section>
-
-            <!-- MIDI -->
-            <section id="midi">
-                <h1><span class="icon">♪</span> MIDI</h1>
-
-                <p>
-                    Each generator slot can receive MIDI independently, enabling multi-timbral setups.
-                </p>
-
-                <h2>MIDI Channel Assignment</h2>
-                <p>
-                    Each slot has a MIDI channel selector. Set the envelope source to <code>MIDI</code> 
-                    to trigger the envelope from incoming notes.
-                </p>
-
-                <h2>Note Handling</h2>
-                <ul>
-                    <li><strong>Note-On</strong> — Triggers envelope, sets frequency (when pitch tracking enabled)</li>
-                    <li><strong>Note-Off</strong> — Releases envelope</li>
-                    <li><strong>Velocity</strong> — Can modulate amplitude or filter</li>
-                </ul>
-
-                <h2>MIDI Device Setup</h2>
-                <p>
-                    MIDI input is configured at the system level. Ensure your MIDI controller is 
-                    connected and recognized by your operating system before launching Noise Engine.
-                </p>
-            </section>
-
-            <!-- Keyboard Shortcuts -->
-            <section id="shortcuts">
-                <h1><span class="icon">⌨</span> Keyboard Shortcuts</h1>
-
-                <table>
-                    <tr>
-                        <th>Action</th>
-                        <th>macOS</th>
-                        <th>Windows/Linux</th>
-                    </tr>
-                    <tr>
-                        <td>Save Preset</td>
-                        <td><kbd>⌘</kbd> + <kbd>S</kbd></td>
-                        <td><kbd>Ctrl</kbd> + <kbd>S</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Load Preset</td>
-                        <td><kbd>⌘</kbd> + <kbd>O</kbd></td>
-                        <td><kbd>Ctrl</kbd> + <kbd>O</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Mod Matrix</td>
-                        <td><kbd>⌘</kbd> + <kbd>M</kbd></td>
-                        <td><kbd>Ctrl</kbd> + <kbd>M</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Keyboard Mode</td>
-                        <td><kbd>⌘</kbd> + <kbd>K</kbd></td>
-                        <td><kbd>Ctrl</kbd> + <kbd>K</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Clear All Mod Routings</td>
-                        <td><kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd></td>
-                        <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Close Overlay</td>
-                        <td><kbd>Esc</kbd></td>
-                        <td><kbd>Esc</kbd></td>
-                    </tr>
-                </table>
-
-                <h2>Mod Matrix Keys</h2>
-                <table>
-                    <tr>
-                        <th>Action</th>
-                        <th>Key</th>
-                    </tr>
-                    <tr>
-                        <td>Set amount 10%–100%</td>
-                        <td><kbd>1</kbd> – <kbd>0</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Set offset -50% to +50%</td>
-                        <td><kbd>Shift</kbd> + <kbd>1</kbd> – <kbd>0</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Navigate routings</td>
-                        <td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></td>
-                    </tr>
-                    <tr>
-                        <td>Delete selected routing</td>
-                        <td><kbd>Delete</kbd> / <kbd>Backspace</kbd></td>
-                    </tr>
-                </table>
-
-                <h2>Keyboard Mode Layout</h2>
-                <p>When keyboard mode is active, use the QWERTY keys as a piano:</p>
-                <pre><code>    W  E     T  Y  U     O  P      (black keys)
-   A  S  D  F  G  H  J  K  L  ;    (white keys)
-   C  D  E  F  G  A  B  C  D  E
-
-   Z = Octave Down    X = Octave Up</code></pre>
-            </section>
-
-            <!-- Signal Flow -->
-            <section id="signal-flow">
-                <h1><span class="icon">→</span> Signal Flow</h1>
-
-                <div class="diagram">
-                    <div class="signal-flow" style="flex-direction: column; gap: 1rem;">
-                        <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
-                            <span class="signal-box highlight">Generator</span>
-                            <span class="signal-arrow">→</span>
-                            <span class="signal-box">Stereo Width</span>
-                            <span class="signal-arrow">→</span>
-                            <span class="signal-box">Filter</span>
-                            <span class="signal-arrow">→</span>
-                            <span class="signal-box">Envelope VCA</span>
-                        </div>
-                        <div style="color: var(--text-muted);">↓</div>
-                        <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
-                            <span class="signal-box">Channel Strip</span>
-                            <span class="signal-arrow">→</span>
-                            <span class="signal-box">Sends (Echo/Verb)</span>
-                        </div>
-                        <div style="color: var(--text-muted);">↓</div>
-                        <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
-                            <span class="signal-box">Master EQ</span>
-                            <span class="signal-arrow">→</span>
-                            <span class="signal-box">Compressor</span>
-                            <span class="signal-arrow">→</span>
-                            <span class="signal-box">Limiter</span>
-                            <span class="signal-arrow">→</span>
-                            <span class="signal-box highlight">Output</span>
-                        </div>
-                    </div>
-                </div>
-
-                <h2>Processing Order</h2>
-                <p>
-                    Within each generator, the signal chain is strictly ordered. This ensures 
-                    consistent behavior across all generator types:
-                </p>
-                <ol>
-                    <li><strong>Source</strong> — Oscillator, noise, or other sound generation</li>
-                    <li><strong>ensure2ch</strong> — Force stereo (mono sources duplicated)</li>
-                    <li><strong>multiFilter</strong> — LP/HP/BP filtering with resonance</li>
-                    <li><strong>envVCA</strong> — Amplitude envelope with clock/MIDI triggering</li>
-                </ol>
-            </section>
-
-            <!-- Parameter Reference -->
-            <section id="parameters">
-                <h1><span class="icon">≡</span> Parameter Reference</h1>
-
-                <h2>Standard Parameters</h2>
-                <table>
-                    <tr>
-                        <th>Param</th>
-                        <th>Range</th>
-                        <th>Curve</th>
-                        <th>Unit</th>
-                    </tr>
-                    <tr>
-                        <td>FRQ</td>
-                        <td>20 – 8000</td>
-                        <td>Exponential</td>
-                        <td>Hz</td>
-                    </tr>
-                    <tr>
-                        <td>CUT</td>
-                        <td>20 – 16000</td>
-                        <td>Exponential</td>
-                        <td>Hz</td>
-                    </tr>
-                    <tr>
-                        <td>RES</td>
-                        <td>0.1 – 1.0</td>
-                        <td>Linear (inverted)</td>
-                        <td>Q</td>
-                    </tr>
-                    <tr>
-                        <td>ATK</td>
-                        <td>0.001 – 2.0</td>
-                        <td>Exponential</td>
-                        <td>seconds</td>
-                    </tr>
-                    <tr>
-                        <td>DEC</td>
-                        <td>0.01 – 10.0</td>
-                        <td>Exponential</td>
-                        <td>seconds</td>
-                    </tr>
-                </table>
-
-                <h2>Clock Rate Values</h2>
-                <table>
-                    <tr>
-                        <th>Index</th>
-                        <th>Rate</th>
-                        <th>Meaning</th>
-                    </tr>
-                    <tr><td>0</td><td>4/1</td><td>1 trigger per 4 bars</td></tr>
-                    <tr><td>1</td><td>2/1</td><td>1 trigger per 2 bars</td></tr>
-                    <tr><td>2</td><td>1/1</td><td>1 trigger per bar</td></tr>
-                    <tr><td>3</td><td>1/2</td><td>Half notes</td></tr>
-                    <tr><td>4</td><td>1/3</td><td>Triplet half notes</td></tr>
-                    <tr><td>5</td><td>1/4</td><td>Quarter notes</td></tr>
-                    <tr><td>6</td><td>1/6</td><td>Triplet quarters</td></tr>
-                    <tr><td>7</td><td>1/8</td><td>Eighth notes</td></tr>
-                    <tr><td>8</td><td>1/12</td><td>Triplet eighths</td></tr>
-                    <tr><td>9</td><td>1/16</td><td>Sixteenth notes</td></tr>
-                    <tr><td>10</td><td>1/24</td><td>Triplet sixteenths</td></tr>
-                    <tr><td>11</td><td>1/32</td><td>Thirty-second notes</td></tr>
-                    <tr><td>12</td><td>1/64</td><td>Sixty-fourth notes</td></tr>
-                </table>
-
-                <h2>Polarity Modes</h2>
-                <table>
-                    <tr>
-                        <th>Mode</th>
-                        <th>Output Range</th>
-                        <th>Use Case</th>
-                    </tr>
-                    <tr>
-                        <td>UNI</td>
-                        <td>0 to +1</td>
-                        <td>Always adds to parameter</td>
-                    </tr>
-                    <tr>
-                        <td>BI</td>
-                        <td>-1 to +1</td>
-                        <td>Adds and subtracts (vibrato, wobble)</td>
-                    </tr>
-                    <tr>
-                        <td>INV</td>
-                        <td>Inverted</td>
-                        <td>Opposite direction modulation</td>
-                    </tr>
-                </table>
-            </section>
-        </main>
-    </div>
-
-    <footer>
-        <p>Noise Engine — 8-Slot Modular Synthesizer</p>
-        <p>Built with Python + SuperCollider</p>
-    </footer>
-
-    <script>
-        // Highlight active nav item on scroll
-        const sections = document.querySelectorAll('section[id]');
-        const navLinks = document.querySelectorAll('nav a');
-
-        window.addEventListener('scroll', () => {
-            let current = '';
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                if (scrollY >= sectionTop - 100) {
-                    current = section.getAttribute('id');
-                }
-            });
-
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === '#' + current) {
-                    link.classList.add('active');
-                }
-            });
-        });
-
-        // Smooth scroll for nav links
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = link.getAttribute('href').substring(1);
-                const targetSection = document.getElementById(targetId);
-                if (targetSection) {
-                    targetSection.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-    </script>
+  <header>
+    <div class="logo">NOISE ENGINE</div>
+    <div class="tagline">8-Slot Modular Synthesizer</div>
+    <div class="version">v1.0 — User Manual</div>
+  </header>
+
+  <div class="container">
+    <nav>
+      <h3>Getting Started</h3>
+      <a href="#introduction">Introduction</a>
+      <a href="#installation">Installation</a>
+      <a href="#quick-start">Quick Start</a>
+
+      <h3>Interface</h3>
+      <a href="#overview">Interface Overview</a>
+      <a href="#generators">Generators</a>
+      <a href="#filter-envelope">Filter & Envelope</a>
+      <a href="#modulation">Modulation</a>
+      <a href="#mod-matrix">Mod Matrix</a>
+
+      <h3>Mixing</h3>
+      <a href="#mixer">Mixer Section</a>
+      <a href="#master">Master Section</a>
+      <a href="#fx">Effects</a>
+
+      <h3>Advanced</h3>
+      <a href="#packs">Packs</a>
+      <a href="#presets">Presets</a>
+      <a href="#midi">MIDI</a>
+      <a href="#shortcuts">Keyboard Shortcuts</a>
+
+      <h3>Reference</h3>
+      <a href="#signal-flow">Signal Flow</a>
+      <a href="#parameters">Parameter Reference</a>
+    </nav>
+
+    <main>
+      <!-- Introduction -->
+      <section id="introduction">
+        <h1><span class="icon">◈</span> Introduction</h1>
+        <p>
+          Noise Engine is a performance-oriented modular synthesizer combining Python's flexibility 
+          with SuperCollider's powerful audio synthesis. Designed with a hardware synth philosophy — 
+          all controls visible, no menu diving, immediate feedback.
+        </p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h4>8 Generator Slots</h4>
+            <p>Independent sound sources with dedicated controls for each</p>
+          </div>
+          <div class="feature-card">
+            <h4>Modulation Matrix</h4>
+            <p>LFO and performance sources with quadrature output routing</p>
+          </div>
+          <div class="feature-card">
+            <h4>Full Mixer</h4>
+            <p>Per-channel volume, pan, EQ, mute/solo, and send controls</p>
+          </div>
+          <div class="feature-card">
+            <h4>Master Processing</h4>
+            <p>Global EQ, compressor, and limiter for polished output</p>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <strong>Design Philosophy</strong>
+          Everything is a vertical fader. No hidden menus. What you see is what you control.
+        </div>
+      </section>
+
+      <!-- Installation -->
+      <section id="installation">
+        <h1><span class="icon">⚙</span> Installation</h1>
+
+        <h2>Requirements</h2>
+        <ul>
+          <li><strong>Python 3.10+</strong> with PyQt5</li>
+          <li><strong>SuperCollider 3.12+</strong></li>
+          <li>macOS, Windows, or Linux</li>
+        </ul>
+
+        <h2>Setup Steps</h2>
+        <ol>
+          <li>Clone or download the Noise Engine repository</li>
+          <li>Install Python dependencies:
+            <pre><code>pip install -r requirements.txt</code></pre>
+          </li>
+          <li>Ensure SuperCollider is installed and <code>sclang</code> is in your PATH</li>
+          <li>Launch Noise Engine:
+            <pre><code>python main.py</code></pre>
+          </li>
+        </ol>
+
+        <div class="info-box tip">
+          <strong>First Launch</strong>
+          On first run, SuperCollider will boot and load all SynthDefs. This may take a few seconds.
+          Watch the console for "Server ready" confirmation.
+        </div>
+      </section>
+
+      <!-- Quick Start -->
+      <section id="quick-start">
+        <h1><span class="icon">▶</span> Quick Start</h1>
+
+        <h2>Make Your First Sound</h2>
+        <ol>
+          <li><strong>Select a generator</strong> — Click the generator type button on Slot 1</li>
+          <li><strong>Choose "Saw"</strong> — A classic subtractive waveform</li>
+          <li><strong>Set ENV to OFF</strong> — This creates a continuous drone</li>
+          <li><strong>Raise the channel fader</strong> — You should hear the oscillator</li>
+          <li><strong>Adjust FRQ</strong> — Change the pitch</li>
+          <li><strong>Sweep CUT</strong> — Filter the harmonics</li>
+        </ol>
+
+        <div class="info-box">
+          <strong>No Sound?</strong>
+          Check that your master fader is up, the slot isn't muted, and your audio output is configured correctly in your system preferences.
+        </div>
+      </section>
+
+      <!-- Interface Overview -->
+      <section id="overview">
+        <h1><span class="icon">▦</span> Interface Overview</h1>
+
+        <div class="diagram">
+          <div class="signal-flow">
+            <span class="signal-box">Pack Selection</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box highlight">8 Generator Slots</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box">Channel Strips</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box">Master Bus</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box highlight">Output</span>
+          </div>
+        </div>
+
+        <h2>Main Sections</h2>
+        <table>
+          <tr>
+            <th>Section</th>
+            <th>Location</th>
+            <th>Purpose</th>
+          </tr>
+          <tr>
+            <td>Pack Selector</td>
+            <td>Top left</td>
+            <td>Load generator collections</td>
+          </tr>
+          <tr>
+            <td>Generator Panel</td>
+            <td>Left side</td>
+            <td>8 slots with synthesis controls</td>
+          </tr>
+          <tr>
+            <td>Modulation</td>
+            <td>Center</td>
+            <td>LFO/performance sources and routing</td>
+          </tr>
+          <tr>
+            <td>Mixer</td>
+            <td>Right side</td>
+            <td>Volume, pan, EQ per channel</td>
+          </tr>
+          <tr>
+            <td>Master</td>
+            <td>Far right</td>
+            <td>Global processing and output</td>
+          </tr>
+          <tr>
+            <td>Transport</td>
+            <td>Bottom</td>
+            <td>BPM, clock controls</td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- Generators -->
+      <section id="generators">
+        <h1><span class="icon">◊</span> Generators</h1>
+
+        <p>
+          Each of the 8 generator slots is an independent sound source. Slots share a common 
+          architecture but can load different generator types with unique characteristics.
+        </p>
+
+        <h2>Generator Types</h2>
+        <p>Click the generator type button to cycle through available generators. The type determines the core sound source — everything from classic analog waveforms to FM synthesis to physical modeling.</p>
+
+        <h2>Standard Parameters</h2>
+        <p>Every generator shares these seven core parameters:</p>
+
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">FRQ</span>
+            <span class="param-desc">Base frequency (20 Hz — 8 kHz, exponential)</span>
+          </div>
+          
+          <div class="param">
+            <span class="param-name">PORT</span>
+            <span class="param-desc">Portamento glide time (0 = instant, 1 = 500ms smooth glide)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">TRAN</span>
+            <span class="param-desc">Transpose in octaves (−2, −1, 0, +1, +2)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">CUT</span>
+            <span class="param-desc">Filter cutoff frequency (20 Hz — 16 kHz)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">RES</span>
+            <span class="param-desc">Filter resonance (inverted: low = more resonant)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">ATK</span>
+            <span class="param-desc">Envelope attack time (1 ms — 2 s)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">DEC</span>
+            <span class="param-desc">Envelope decay time (10 ms — 10 s)</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <strong>Portamento Tips</strong>
+          Portamento creates smooth pitch glides between notes — essential for expressive lead lines 
+          and basslines. At 0, pitch changes are instant. At higher values, the pitch slides smoothly 
+          to the new note. Works best with ENV set to MIDI for melodic playing.
+        </div>
+
+        <div class="info-box tip">
+          <strong>Transpose for Layering</strong>
+          Use TRAN to stack octaves across slots. Set slot 1 to −1, slot 2 to 0, and slot 3 to +1 
+          for instant three-octave unison. Combined with different generator types per slot, this 
+          creates rich, layered textures from a single MIDI input.
+        </div>
+
+        <h2>Custom Parameters (P1–P5)</h2>
+        <p>
+          Each generator type defines up to 5 custom parameters specific to its synthesis method.
+          Labels update to show the parameter name. Hover for a tooltip description.
+        </p>
+
+        <div class="info-box tip">
+          <strong>Sticky Settings</strong>
+          When you change generator type, the filter settings, envelope mode, clock rate, and 
+          MIDI channel are preserved. Only the synthesis parameters reset.
+        </div>
+      </section>
+
+      <!-- Filter & Envelope -->
+      <section id="filter-envelope">
+        <h1><span class="icon">≈</span> Filter & Envelope</h1>
+
+        <p>
+          The envelope system is one of Noise Engine's most powerful features for building 
+          rhythmic ideas quickly. Set each slot to a different clock division, dial in attack 
+          and decay times, and you've got instant polyrhythmic textures.
+        </p>
+
+        <h2>Filter Types</h2>
+        <table>
+          <tr>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>LP</code></td>
+            <td>Low-pass (24dB) — removes high frequencies, classic warm sound</td>
+          </tr>
+          <tr>
+            <td><code>HP</code></td>
+            <td>High-pass (24dB) — removes low frequencies, thin/airy sound</td>
+          </tr>
+          <tr>
+            <td><code>BP</code></td>
+            <td>Band-pass — isolates a frequency band, vocal/resonant</td>
+          </tr>
+          <tr>
+            <td><code>NOT</code></td>
+            <td>Notch — removes frequencies at cutoff, phase-y/flanging character</td>
+          </tr>
+          <tr>
+            <td><code>LP2</code></td>
+            <td>Low-pass (12dB) — gentler rolloff than LP, more harmonics pass through</td>
+          </tr>
+          <tr>
+            <td><code>OFF</code></td>
+            <td>Bypass — no filtering, full spectrum passes through</td>
+          </tr>
+        </table>
+
+        <h2>Envelope Sources</h2>
+        <table>
+          <tr>
+            <th>Mode</th>
+            <th>Trigger</th>
+            <th>Use Case</th>
+          </tr>
+          <tr>
+            <td><code>OFF</code></td>
+            <td>None (drone)</td>
+            <td>Continuous pads, ambient textures, beds</td>
+          </tr>
+          <tr>
+            <td><code>CLK</code></td>
+            <td>Internal clock</td>
+            <td>Rhythmic patterns, polyrhythms, sequenced hits</td>
+          </tr>
+          <tr>
+            <td><code>MIDI</code></td>
+            <td>MIDI note-on</td>
+            <td>Keyboard playing, external sequencing</td>
+          </tr>
+        </table>
+
+        <h2>Clock Divider / Multiplier</h2>
+        <p>
+          When envelope is set to <code>CLK</code>, each generator has its own clock rate selector. 
+          This is where the magic happens — stack different divisions across your 8 slots to create 
+          complex interlocking rhythms from simple sounds.
+        </p>
+
+        <table>
+          <tr>
+            <th>Rate</th>
+            <th>Triggers Per Bar</th>
+            <th>Character</th>
+          </tr>
+          <tr>
+            <td><code>4/1</code></td>
+            <td>Once per 4 bars</td>
+            <td>Slow evolving accents</td>
+          </tr>
+          <tr>
+            <td><code>2/1</code></td>
+            <td>Once per 2 bars</td>
+            <td>Phrase markers</td>
+          </tr>
+          <tr>
+            <td><code>1/1</code></td>
+            <td>1</td>
+            <td>Downbeat pulse</td>
+          </tr>
+          <tr>
+            <td><code>1/2</code></td>
+            <td>2</td>
+            <td>Half-time feel</td>
+          </tr>
+          <tr>
+            <td><code>1/3</code></td>
+            <td>3</td>
+            <td>Triplet groove (polyrhythm)</td>
+          </tr>
+          <tr>
+            <td><code>1/4</code></td>
+            <td>4</td>
+            <td>Quarter note pulse</td>
+          </tr>
+          <tr>
+            <td><code>1/6</code></td>
+            <td>6</td>
+            <td>Triplet quarters</td>
+          </tr>
+          <tr>
+            <td><code>1/8</code></td>
+            <td>8</td>
+            <td>Eighth notes — driving</td>
+          </tr>
+          <tr>
+            <td><code>1/12</code></td>
+            <td>12</td>
+            <td>Triplet eighths — shuffle</td>
+          </tr>
+          <tr>
+            <td><code>1/16</code></td>
+            <td>16</td>
+            <td>Sixteenths — busy, urgent</td>
+          </tr>
+          <tr>
+            <td><code>1/24</code></td>
+            <td>24</td>
+            <td>Triplet sixteenths</td>
+          </tr>
+          <tr>
+            <td><code>1/32</code></td>
+            <td>32</td>
+            <td>Rapid-fire textures</td>
+          </tr>
+          <tr>
+            <td><code>1/64</code></td>
+            <td>64</td>
+            <td>Granular territory</td>
+          </tr>
+        </table>
+
+        <h2>Attack & Decay Interaction</h2>
+        <p>
+          The <strong>ATK</strong> (attack) and <strong>DEC</strong> (decay) parameters shape each triggered note. 
+          How you set these relative to your clock rate dramatically changes the feel:
+        </p>
+
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">ATK</span>
+            <span class="param-desc">1 ms — 2 s • How quickly the sound reaches full volume</span>
+          </div>
+          <div class="param">
+            <span class="param-name">DEC</span>
+            <span class="param-desc">10 ms — 10 s • How long the sound takes to fade out</span>
+          </div>
+        </div>
+
+        <h3>Shaping Strategies</h3>
+        <table>
+          <tr>
+            <th>ATK</th>
+            <th>DEC</th>
+            <th>Result</th>
+          </tr>
+          <tr>
+            <td>Short</td>
+            <td>Short</td>
+            <td>Percussive hits, clicks, plucks — tight and punchy</td>
+          </tr>
+          <tr>
+            <td>Short</td>
+            <td>Long</td>
+            <td>Plucked strings, keys — immediate attack with ring-out</td>
+          </tr>
+          <tr>
+            <td>Long</td>
+            <td>Short</td>
+            <td>Reversed swells, unusual — attack swallowed by decay</td>
+          </tr>
+          <tr>
+            <td>Long</td>
+            <td>Long</td>
+            <td>Pads, swells — slow evolution, overlapping notes</td>
+          </tr>
+        </table>
+
+        <div class="info-box tip">
+          <strong>Pro Tip: Short Decays + Reverb</strong>
+          Set a fast clock rate (1/16 or faster) with very short decay times for tight, 
+          percussive hits. Then send heavily to the reverb. The dry sound stays punchy 
+          while the reverb tail creates lush, ambient washes. This is the secret to 
+          rhythmic ambient textures.
+        </div>
+
+        <h3>Polyrhythm Recipe</h3>
+        <p>Try this across 4 slots for instant polyrhythmic texture:</p>
+        <table>
+          <tr>
+            <th>Slot</th>
+            <th>Rate</th>
+            <th>Sound</th>
+            <th>Role</th>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>1/4</td>
+            <td>Low drone</td>
+            <td>Pulse anchor</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>1/6</td>
+            <td>Mid tone</td>
+            <td>Triplet against 4</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>1/8</td>
+            <td>High blip</td>
+            <td>Driving eighths</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>1/3</td>
+            <td>Noise hit</td>
+            <td>Cross-rhythm accent</td>
+          </tr>
+        </table>
+
+        <div class="info-box">
+          <strong>The 3-against-4 Sweet Spot</strong>
+          Combine 1/4 and 1/3 (or 1/8 and 1/6) for classic polyrhythmic tension. 
+          The patterns align every 3 bars, creating hypnotic cycling grooves.
+        </div>
+      </section>
+
+      <!-- Modulation -->
+      <section id="modulation">
+        <h1><span class="icon">∿</span> Modulation</h1>
+
+        <p>
+          The modulation system provides 4 slots for LFO and performance sources. Each source 
+          has 4 outputs with independent waveform, phase, and polarity settings.
+        </p>
+
+        <h2>Mod Sources</h2>
+        <ul>
+          <li><strong>LFO</strong> — Classic low-frequency oscillator with multiple waveforms</li>
+          <li><strong>Sloth</strong> — Very slow, organic random movement</li>
+          <li><strong>Performance</strong> — External CV/control input</li>
+        </ul>
+
+        <h2>Output Configuration</h2>
+        <p>Each of the 4 outputs per mod slot can be configured:</p>
+
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">Wave</span>
+            <span class="param-desc">Sine, triangle, saw, square, random, noise</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Phase</span>
+            <span class="param-desc">0°, 90°, 180°, 270° offset from base</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Polarity</span>
+            <span class="param-desc">UNI (0 to +1), BI (-1 to +1), INV (inverted)</span>
+          </div>
+        </div>
+
+        <h2>Creating Routings</h2>
+        <p>
+          Click a mod output, then click a parameter on any generator to create a routing.
+          Multiple sources can modulate the same target.
+        </p>
+
+        <div class="info-box">
+          <strong>Modulation Formula</strong>
+          <code>final = base + (source Ã— amount) + offset</code><br>
+          The result is clamped to the parameter's valid range.
+        </div>
+      </section>
+
+      <!-- Mod Matrix -->
+      <section id="mod-matrix">
+        <h1><span class="icon">▦</span> Mod Matrix</h1>
+
+        <p>
+          The Mod Matrix provides a complete overview of all modulation routings and lets you 
+          edit amounts and offsets with precision using keyboard controls.
+        </p>
+
+        <h2>Opening the Mod Matrix</h2>
+        <p>Press <kbd>⌘</kbd> + <kbd>M</kbd> (macOS) or <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux)</p>
+
+        <div class="info-box">
+          <strong>Matrix View</strong>
+          The matrix shows all active routings in a grid format: mod sources on rows, 
+          target parameters on columns. Each cell shows the amount and offset for that routing.
+        </div>
+
+        <h2>Selecting a Routing</h2>
+        <p>Click any cell in the matrix to select it. The selected routing is highlighted with an orange border.</p>
+
+        <h2>Keyboard Controls</h2>
+        <p>Once a routing is selected, use the number keys to adjust values:</p>
+
+        <h3>Amount (Modulation Depth)</h3>
+        <table>
+          <tr>
+            <th>Key</th>
+            <th>Amount</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><kbd>1</kbd></td>
+            <td>10%</td>
+            <td>Subtle modulation</td>
+          </tr>
+          <tr>
+            <td><kbd>2</kbd></td>
+            <td>20%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>3</kbd></td>
+            <td>30%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>4</kbd></td>
+            <td>40%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>5</kbd></td>
+            <td>50%</td>
+            <td>Medium modulation</td>
+          </tr>
+          <tr>
+            <td><kbd>6</kbd></td>
+            <td>60%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>7</kbd></td>
+            <td>70%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>8</kbd></td>
+            <td>80%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>9</kbd></td>
+            <td>90%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>0</kbd></td>
+            <td>100%</td>
+            <td>Full modulation depth</td>
+          </tr>
+        </table>
+
+        <h3>Offset (Bias)</h3>
+        <p>Hold <kbd>Shift</kbd> while pressing number keys to set the offset:</p>
+        <table>
+          <tr>
+            <th>Key</th>
+            <th>Offset</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>1</kbd></td>
+            <td>-50%</td>
+            <td>Strong negative bias</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>2</kbd></td>
+            <td>-40%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>3</kbd></td>
+            <td>-30%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>4</kbd></td>
+            <td>-20%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>5</kbd></td>
+            <td>-10%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>6</kbd></td>
+            <td>0%</td>
+            <td>No offset (center)</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>7</kbd></td>
+            <td>+10%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>8</kbd></td>
+            <td>+20%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>9</kbd></td>
+            <td>+30%</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
+            <td>+50%</td>
+            <td>Strong positive bias</td>
+          </tr>
+        </table>
+
+        <h3>Navigation</h3>
+        <table>
+          <tr>
+            <th>Key</th>
+            <th>Action</th>
+          </tr>
+          <tr>
+            <td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></td>
+            <td>Move selection between routings</td>
+          </tr>
+          <tr>
+            <td><kbd>Tab</kbd></td>
+            <td>Next routing</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift</kbd> + <kbd>Tab</kbd></td>
+            <td>Previous routing</td>
+          </tr>
+          <tr>
+            <td><kbd>Esc</kbd></td>
+            <td>Close matrix</td>
+          </tr>
+        </table>
+
+        <h2>Deleting Routings</h2>
+        <table>
+          <tr>
+            <th>Action</th>
+            <th>Key</th>
+          </tr>
+          <tr>
+            <td>Delete selected routing</td>
+            <td><kbd>Delete</kbd> or <kbd>Backspace</kbd></td>
+          </tr>
+          <tr>
+            <td>Clear ALL routings</td>
+            <td><kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd> (Mac)<br>
+              <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd> (Win/Linux)</td>
+          </tr>
+        </table>
+
+        <div class="info-box warning">
+          <strong>Clear All Warning</strong>
+          Clearing all routings is immediate and cannot be undone. 
+          Save your preset first if you want to preserve your modulation setup.
+        </div>
+
+        <h2>Polarity in the Matrix</h2>
+        <p>Each routing also shows its polarity mode. Click the polarity indicator to cycle through:</p>
+        <ul>
+          <li><strong>UNI</strong> — Unipolar (0 to +1), always adds to the base value</li>
+          <li><strong>BI</strong> — Bipolar (-1 to +1), sweeps above and below the base</li>
+          <li><strong>INV</strong> — Inverted, flips the modulation direction</li>
+        </ul>
+
+        <div class="info-box tip">
+          <strong>Quick Workflow</strong>
+          <ol>
+            <li>Open matrix with <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>M</kbd></li>
+            <li>Click a routing to select it</li>
+            <li>Press <kbd>5</kbd> for 50% amount</li>
+            <li>Press <kbd>Shift</kbd> + <kbd>6</kbd> for zero offset</li>
+            <li>Use arrow keys to move to next routing</li>
+            <li>Press <kbd>Esc</kbd> when done</li>
+          </ol>
+        </div>
+
+        <h2>Understanding Amount vs Offset</h2>
+        <div class="diagram">
+          <div class="signal-flow" style="flex-direction: column; gap: 1rem;">
+            <div style="text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; line-height: 1.8;">
+              <div><strong>Amount</strong> = How much the modulation source affects the target</div>
+              <div style="color: var(--text-secondary);">→ 0% = no effect, 100% = full range sweep</div>
+              <br>
+              <div><strong>Offset</strong> = Shifts the center point of modulation</div>
+              <div style="color: var(--text-secondary);">→ +offset = modulation biased higher</div>
+              <div style="color: var(--text-secondary);">→ -offset = modulation biased lower</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Example: LFO → Filter Cutoff</h3>
+        <ul>
+          <li><strong>Amount 50%, Offset 0%</strong> — Filter sweeps ±50% around current knob position</li>
+          <li><strong>Amount 50%, Offset +25%</strong> — Filter sweeps higher than knob position</li>
+          <li><strong>Amount 100%, Offset -50%</strong> — Full sweep, centered below knob position</li>
+        </ul>
+      </section>
+
+      <!-- Mixer -->
+      <section id="mixer">
+        <h1><span class="icon">▮</span> Mixer Section</h1>
+
+        <p>
+          Each generator feeds into a dedicated channel strip with full mixing controls. 
+          The signal flow is: <strong>Generator → EQ → Gain → Pan → Sends → Fader → Master</strong>. 
+          Panning happens pre-FX, so your stereo image is preserved through the effects chain.
+        </p>
+
+        <h2>Channel Fader & Pan</h2>
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">Fader</span>
+            <span class="param-desc">-∞ to +6 dB • Main channel level control</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Pan</span>
+            <span class="param-desc">L ↔ R • Stereo position (pre-FX for clean imaging)</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <strong>Pre-FX Panning</strong>
+          Panning is applied before the send effects. This means a hard-panned sound 
+          sent to reverb will have its reverb tail centered, creating natural spatial depth 
+          rather than a lopsided wash.
+        </div>
+
+        <h2>Channel EQ</h2>
+        <p>
+          Three-band EQ per channel for surgical or creative tone shaping. All bands are 
+          shelving filters with ±20 dB range.
+        </p>
+
+        <table>
+          <tr>
+            <th>Band</th>
+            <th>Range</th>
+            <th>Frequency</th>
+            <th>Use</th>
+          </tr>
+          <tr>
+            <td><strong>Hi</strong></td>
+            <td>-20 to +20 dB</td>
+            <td>~8 kHz shelf</td>
+            <td>Air, presence, brilliance</td>
+          </tr>
+          <tr>
+            <td><strong>Mid</strong></td>
+            <td>-20 to +20 dB</td>
+            <td>~1 kHz bell</td>
+            <td>Body, honk, clarity</td>
+          </tr>
+          <tr>
+            <td><strong>Lo</strong></td>
+            <td>-20 to +20 dB</td>
+            <td>~200 Hz shelf</td>
+            <td>Weight, warmth, mud control</td>
+          </tr>
+        </table>
+
+        <h2>Cut Filters</h2>
+        <p>
+          Simple on/off filters for quick frequency cleanup. Essential for making space 
+          in a busy mix.
+        </p>
+
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">Lo Cut</span>
+            <span class="param-desc">High-pass at ~80 Hz • Removes sub rumble and mud</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Hi Cut</span>
+            <span class="param-desc">Low-pass at ~12 kHz • Tames harshness, pushes sounds back</span>
+          </div>
+        </div>
+
+        <div class="info-box tip">
+          <strong>Mix Tip: Lo Cut Everything</strong>
+          Enable Lo Cut on most channels except your bass/sub sources. This clears up 
+          low-end mud and gives your bass elements room to breathe. A clean low end 
+          makes everything sound bigger.
+        </div>
+
+        <h2>Input Gain</h2>
+        <p>
+          Three-position gain staging for hot signals or when you need extra push:
+        </p>
+        <table>
+          <tr>
+            <th>Position</th>
+            <th>Gain</th>
+            <th>Use</th>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>0 dB</td>
+            <td>Unity — normal operation</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>+6 dB</td>
+            <td>Moderate boost for quiet generators</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>+12 dB</td>
+            <td>Hot signal — watch for clipping</td>
+          </tr>
+        </table>
+
+        <h2>Effects Sends</h2>
+        <p>
+          Each channel has independent send levels to the global delay and reverb effects. 
+          Sends are post-EQ, pre-fader.
+        </p>
+
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">Echo</span>
+            <span class="param-desc">0 — 100% • Send level to tape-style delay</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Verb</span>
+            <span class="param-desc">0 — 100% • Send level to reverb</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <strong>Pre-Fader Sends</strong>
+          Send levels are independent of the channel fader. You can fade a channel to 
+          silence while its reverb tail continues, perfect for transitions and builds.
+        </div>
+
+        <h2>Mute & Solo</h2>
+        <table>
+          <tr>
+            <th>Control</th>
+            <th>Behavior</th>
+          </tr>
+          <tr>
+            <td><strong>Mute</strong></td>
+            <td>Silences the channel completely (including sends)</td>
+          </tr>
+          <tr>
+            <td><strong>Solo</strong></td>
+            <td>Mutes all other channels — isolate for focused listening</td>
+          </tr>
+        </table>
+
+        <h3>Quick Reference: All Channel Controls</h3>
+        <table>
+          <tr>
+            <th>Control</th>
+            <th>Range</th>
+            <th>Position in Chain</th>
+          </tr>
+          <tr>
+            <td>EQ Hi/Mid/Lo</td>
+            <td>-20 to +20 dB</td>
+            <td>First (post-generator)</td>
+          </tr>
+          <tr>
+            <td>Lo Cut / Hi Cut</td>
+            <td>On/Off</td>
+            <td>After EQ</td>
+          </tr>
+          <tr>
+            <td>Gain</td>
+            <td>0 / +6 / +12 dB</td>
+            <td>After cuts</td>
+          </tr>
+          <tr>
+            <td>Pan</td>
+            <td>L ↔ R</td>
+            <td>After gain (pre-FX)</td>
+          </tr>
+          <tr>
+            <td>Echo Send</td>
+            <td>0 — 100%</td>
+            <td>Post-pan, pre-fader</td>
+          </tr>
+          <tr>
+            <td>Verb Send</td>
+            <td>0 — 100%</td>
+            <td>Post-pan, pre-fader</td>
+          </tr>
+          <tr>
+            <td>Fader</td>
+            <td>-∞ to +6 dB</td>
+            <td>Last (to master)</td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- Master -->
+      <section id="master">
+        <h1><span class="icon">▰</span> Master Section</h1>
+
+        <p>
+          All channels sum into the master bus for final processing before output.
+        </p>
+
+        <h2>Master EQ</h2>
+        <ul>
+          <li><strong>Hi / Mid / Lo</strong> — Three-band EQ with kill buttons</li>
+          <li><strong>Lo Cut</strong> — Removes sub-bass rumble</li>
+          <li><strong>Bypass</strong> — Disable all EQ processing</li>
+        </ul>
+
+        <h2>Compressor</h2>
+        <table>
+          <tr>
+            <th>Parameter</th>
+            <th>Options</th>
+          </tr>
+          <tr>
+            <td>Threshold</td>
+            <td>-20 to 0 dB</td>
+          </tr>
+          <tr>
+            <td>Ratio</td>
+            <td>2:1, 4:1, 8:1, 20:1</td>
+          </tr>
+          <tr>
+            <td>Attack</td>
+            <td>0.1 ms, 0.3 ms, 1 ms</td>
+          </tr>
+          <tr>
+            <td>Release</td>
+            <td>0.1 s, 0.3 s, 0.6 s, 1.2 s</td>
+          </tr>
+          <tr>
+            <td>Makeup Gain</td>
+            <td>0 to +20 dB</td>
+          </tr>
+          <tr>
+            <td>SC HPF</td>
+            <td>Off, 80 Hz, 160 Hz, 300 Hz</td>
+          </tr>
+        </table>
+
+        <h2>Limiter</h2>
+        <ul>
+          <li><strong>Ceiling</strong> — Maximum output level (-6 to 0 dB)</li>
+          <li><strong>Bypass</strong> — Disable limiting</li>
+        </ul>
+
+        <div class="info-box warning">
+          <strong>Gain Staging</strong>
+          Keep individual channel levels reasonable. Use the master compressor for glue, 
+          not as a fix for an overloaded mix.
+        </div>
+      </section>
+
+      <!-- Effects -->
+      <section id="fx">
+        <h1><span class="icon">◎</span> Effects</h1>
+
+        <p>
+          Noise Engine's effects section is designed for creative sound design, not just mixing. 
+          Four powerful processors — each with deep control — can transform your generators 
+          into something entirely new.
+        </p>
+
+        <div class="diagram">
+          <div class="signal-flow">
+            <span class="signal-box">Channels</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box highlight">Overdrive</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box highlight">Dual Filter</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box">Master</span>
+          </div>
+          <div style="margin-top: 1rem; color: var(--text-muted);">↓ sends</div>
+          <div class="signal-flow" style="margin-top: 0.5rem;">
+            <span class="signal-box highlight">Echo</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box highlight">Reverb</span>
+            <span class="signal-arrow">→</span>
+            <span class="signal-box">Master</span>
+          </div>
+        </div>
+
+        <!-- Overdrive -->
+        <h2>Analog Overdrive</h2>
+        <p>
+          Warm saturation and harmonic enhancement inspired by classic analog circuits. 
+          From subtle tape warmth to aggressive tube destruction.
+        </p>
+
+        <h3>Drive Modes</h3>
+        <table>
+          <tr>
+            <th>Mode</th>
+            <th>Character</th>
+            <th>Best For</th>
+          </tr>
+          <tr>
+            <td><strong>Tape</strong></td>
+            <td>Soft compression, gentle harmonic saturation</td>
+            <td>Warmth, glue, subtle enhancement</td>
+          </tr>
+          <tr>
+            <td><strong>Tube</strong></td>
+            <td>Even harmonics, smooth breakup</td>
+            <td>Rich overtones, vintage character</td>
+          </tr>
+          <tr>
+            <td><strong>Transistor</strong></td>
+            <td>Odd harmonics, harder clipping</td>
+            <td>Edge, grit, aggressive textures</td>
+          </tr>
+          <tr>
+            <td><strong>Foldback</strong></td>
+            <td>Wave folding, complex harmonics</td>
+            <td>Metallic tones, digital destruction</td>
+          </tr>
+        </table>
+
+        <h3>Overdrive Parameters</h3>
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">Drive</span>
+            <span class="param-desc">0 — 100% • Amount of saturation/distortion applied</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Mix</span>
+            <span class="param-desc">0 — 100% • Dry/wet blend (parallel processing)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Mode</span>
+            <span class="param-desc">Tape / Tube / Transistor / Foldback</span>
+          </div>
+        </div>
+
+        <div class="info-box tip">
+          <strong>Parallel Saturation</strong>
+          Keep Mix around 30-50% for parallel saturation — the punch and harmonics 
+          of the driven signal blend with the clean dynamics of the original.
+        </div>
+
+        <!-- Echo -->
+        <h2>Tape Echo</h2>
+        <p>
+          A tempo-synced delay with the warmth and character of vintage tape machines. 
+          Each repeat degrades slightly, adding organic movement and depth.
+        </p>
+
+        <h3>Echo Parameters</h3>
+        <table>
+          <tr>
+            <th>Parameter</th>
+            <th>Range</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><strong>Time</strong></td>
+            <td>Sync divisions</td>
+            <td>Delay time locked to BPM (1/4, 1/8, dotted, triplet)</td>
+          </tr>
+          <tr>
+            <td><strong>Feedback</strong></td>
+            <td>0 — 100%</td>
+            <td>Number of repeats (100% = infinite, careful!)</td>
+          </tr>
+          <tr>
+            <td><strong>Mix</strong></td>
+            <td>0 — 100%</td>
+            <td>Wet signal level</td>
+          </tr>
+          <tr>
+            <td><strong>Tone</strong></td>
+            <td>Dark ↔ Bright</td>
+            <td>Low-pass filter on repeats (tape degradation)</td>
+          </tr>
+          <tr>
+            <td><strong>Wow</strong></td>
+            <td>0 — 100%</td>
+            <td>Pitch modulation (tape flutter)</td>
+          </tr>
+          <tr>
+            <td><strong>Spread</strong></td>
+            <td>Mono ↔ Wide</td>
+            <td>Stereo width of delays</td>
+          </tr>
+        </table>
+
+        <div class="info-box">
+          <strong>Dub Techniques</strong>
+          High feedback + dark tone = classic dub delay. Automate feedback for 
+          runaway echoes that build and release. Add Wow for seasick tape vibes.
+        </div>
+
+        <!-- Reverb -->
+        <h2>Reverb</h2>
+        <p>
+          A lush algorithmic reverb capable of everything from tight rooms to infinite 
+          frozen spaces. Multiple algorithms and deep parameter control make this 
+          equally suited for realistic acoustics and creative sound design.
+        </p>
+
+        <h3>Reverb Algorithms</h3>
+        <table>
+          <tr>
+            <th>Space</th>
+            <th>Character</th>
+            <th>Decay Range</th>
+          </tr>
+          <tr>
+            <td><strong>Room</strong></td>
+            <td>Tight, natural reflections</td>
+            <td>0.2 — 1.5s</td>
+          </tr>
+          <tr>
+            <td><strong>Hall</strong></td>
+            <td>Classic concert hall, smooth decay</td>
+            <td>1 — 4s</td>
+          </tr>
+          <tr>
+            <td><strong>Plate</strong></td>
+            <td>Dense, metallic, bright</td>
+            <td>0.5 — 3s</td>
+          </tr>
+          <tr>
+            <td><strong>Chamber</strong></td>
+            <td>Warm, intimate, musical</td>
+            <td>0.8 — 2.5s</td>
+          </tr>
+          <tr>
+            <td><strong>Cathedral</strong></td>
+            <td>Massive, diffuse, epic</td>
+            <td>3 — 12s</td>
+          </tr>
+          <tr>
+            <td><strong>Shimmer</strong></td>
+            <td>Pitch-shifted tails, ethereal</td>
+            <td>2 — infinite</td>
+          </tr>
+          <tr>
+            <td><strong>Freeze</strong></td>
+            <td>Infinite sustain, textural</td>
+            <td>Infinite</td>
+          </tr>
+        </table>
+
+        <h3>Reverb Parameters</h3>
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">Space</span>
+            <span class="param-desc">Algorithm selection (Room → Freeze)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Decay</span>
+            <span class="param-desc">Reverb tail length (algorithm-dependent range)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Mix</span>
+            <span class="param-desc">0 — 100% • Dry/wet balance</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Pre-Delay</span>
+            <span class="param-desc">0 — 200ms • Gap before reverb onset</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Damping</span>
+            <span class="param-desc">High-frequency absorption (dark ↔ bright tails)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Size</span>
+            <span class="param-desc">Virtual room dimensions</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Mod</span>
+            <span class="param-desc">Subtle pitch modulation in tail (chorus-like)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Width</span>
+            <span class="param-desc">Stereo spread of reverb (mono ↔ wide)</span>
+          </div>
+        </div>
+
+        <div class="info-box tip">
+          <strong>Short Hits + Long Tails</strong>
+          The magic combo: percussive generators with short decays, heavy reverb send, 
+          long decay time. The dry sound punches through while the reverb creates 
+          ambient texture. Add pre-delay to separate the punch from the wash.
+        </div>
+
+        <!-- Dual Filter -->
+        <h2>Dual Filter</h2>
+        <p>
+          A rhythmic filtering effect with two independent filters that can sync to 
+          the clock for tempo-locked modulation. Create everything from subtle movement 
+          to aggressive rhythmic gating.
+        </p>
+
+        <h3>Filter Architecture</h3>
+        <table>
+          <tr>
+            <th>Mode</th>
+            <th>Configuration</th>
+            <th>Sound</th>
+          </tr>
+          <tr>
+            <td><strong>Serial</strong></td>
+            <td>Filter A → Filter B</td>
+            <td>Steep filtering, resonant peaks interact</td>
+          </tr>
+          <tr>
+            <td><strong>Parallel</strong></td>
+            <td>A + B mixed</td>
+            <td>Two frequency bands, formant-like</td>
+          </tr>
+          <tr>
+            <td><strong>Split</strong></td>
+            <td>A = low, B = high</td>
+            <td>Crossover with independent processing</td>
+          </tr>
+        </table>
+
+        <h3>Clock Sync</h3>
+        <p>
+          Each filter's cutoff can be modulated by a clock-synced LFO. The divider 
+          works exactly like the generator clock rates:
+        </p>
+
+        <table>
+          <tr>
+            <th>Division</th>
+            <th>Filter Sweep</th>
+            <th>Feel</th>
+          </tr>
+          <tr>
+            <td>1/1</td>
+            <td>1 sweep per bar</td>
+            <td>Slow evolution</td>
+          </tr>
+          <tr>
+            <td>1/4</td>
+            <td>4 sweeps per bar</td>
+            <td>Quarter-note pulse</td>
+          </tr>
+          <tr>
+            <td>1/8</td>
+            <td>8 sweeps per bar</td>
+            <td>Driving rhythm</td>
+          </tr>
+          <tr>
+            <td>1/16</td>
+            <td>16 sweeps per bar</td>
+            <td>Rapid gating/tremolo</td>
+          </tr>
+        </table>
+
+        <h3>Filter Parameters (per filter)</h3>
+        <div class="param-list">
+          <div class="param">
+            <span class="param-name">Type</span>
+            <span class="param-desc">LP / HP / BP / Notch</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Cutoff</span>
+            <span class="param-desc">20 Hz — 20 kHz • Base filter frequency</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Resonance</span>
+            <span class="param-desc">0 — 100% • Emphasis at cutoff (self-oscillates at max)</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Mod Depth</span>
+            <span class="param-desc">How much the LFO affects cutoff</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Mod Rate</span>
+            <span class="param-desc">Clock division for modulation</span>
+          </div>
+          <div class="param">
+            <span class="param-name">Mod Wave</span>
+            <span class="param-desc">Sine / Tri / Saw / Square / Random</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <strong>Polyrhythmic Filters</strong>
+          Set Filter A to 1/4 and Filter B to 1/6 (parallel mode) for polyrhythmic 
+          filtering. The two patterns interlock and create complex evolving textures — 
+          the same 3-against-4 magic as the envelope clock rates.
+        </div>
+
+        <h2>Effects Signal Flow</h2>
+        <table>
+          <tr>
+            <th>Effect</th>
+            <th>Type</th>
+            <th>Position</th>
+          </tr>
+          <tr>
+            <td>Overdrive</td>
+            <td>Insert</td>
+            <td>Master bus (pre-filter)</td>
+          </tr>
+          <tr>
+            <td>Dual Filter</td>
+            <td>Insert</td>
+            <td>Master bus (post-overdrive)</td>
+          </tr>
+          <tr>
+            <td>Echo</td>
+            <td>Send/Return</td>
+            <td>Parallel to master</td>
+          </tr>
+          <tr>
+            <td>Reverb</td>
+            <td>Send/Return</td>
+            <td>Parallel to master (post-echo)</td>
+          </tr>
+        </table>
+
+        <div class="info-box warning">
+          <strong>Gain Staging</strong>
+          Overdrive and high-resonance filters can add significant level. 
+          Watch your master meter and use the limiter to catch peaks.
+        </div>
+      </section>
+
+      <!-- Packs -->
+      <section id="packs">
+        <h1><span class="icon">▤</span> Packs</h1>
+
+        <p>
+          Packs are collections of 8 generators designed to work together. Loading a pack 
+          populates all 8 slots with complementary sounds.
+        </p>
+
+        <h2>Loading a Pack</h2>
+        <ol>
+          <li>Click the Pack dropdown at the top left</li>
+          <li>Select a pack from the list</li>
+          <li>All 8 slots populate with the pack's generators</li>
+        </ol>
+
+        <h2>Pack Structure</h2>
+        <pre><code>packs/
+│── pack_name/
+  ├── manifest.json  # Pack metadata
+  │── generators/
+    ├── gen1.json  # Generator config
+    ├── gen1.scd   # SuperCollider SynthDef
+    ├── gen2.json
+    ├── gen2.scd
+    │── ...</code></pre>
+
+        <h2>Generator ID Format</h2>
+        <p>Generators are identified by <code>namespace:stem</code>:</p>
+        <ul>
+          <li><code>core:saw</code> — Built-in saw generator</li>
+          <li><code>classic_synths:tb303</code> — TB-303 from classic_synths pack</li>
+          <li><code>mod:lfo</code> — Modulation source</li>
+        </ul>
+      </section>
+
+      <!-- Presets -->
+      <section id="presets">
+        <h1><span class="icon">◆</span> Presets</h1>
+
+        <p>
+          Presets save and restore the complete state of Noise Engine, including all 
+          generator settings, mixer positions, and modulation routing.
+        </p>
+
+        <h2>Save Preset</h2>
+        <p>Press <kbd>Ctrl</kbd> + <kbd>S</kbd> (or <kbd>⌘</kbd> + <kbd>S</kbd> on Mac)</p>
+        <p>Enter a name when prompted. Presets are saved to the <code>presets/</code> directory.</p>
+
+        <h2>Load Preset</h2>
+        <p>Press <kbd>Ctrl</kbd> + <kbd>O</kbd> (or <kbd>⌘</kbd> + <kbd>O</kbd> on Mac)</p>
+        <p>Select a preset file to restore all settings.</p>
+
+        <h2>What's Saved</h2>
+        <ul>
+          <li>All 8 generator slots (type + parameters)</li>
+          <li>Filter and envelope settings per slot</li>
+          <li>Mixer channels (volume, pan, EQ, sends, mute/solo)</li>
+          <li>Master section (EQ, compressor, limiter)</li>
+          <li>BPM and clock settings</li>
+          <li>Modulation sources and routing</li>
+        </ul>
+
+        <div class="info-box tip">
+          <strong>Pack Compatibility</strong>
+          Presets reference generators by ID. If the required pack isn't installed, 
+          those slots will load as empty.
+        </div>
+      </section>
+
+      <!-- MIDI -->
+      <section id="midi">
+        <h1><span class="icon">♪</span> MIDI</h1>
+
+        <p>
+          Each generator slot can receive MIDI independently, enabling multi-timbral setups.
+        </p>
+
+        <h2>MIDI Channel Assignment</h2>
+        <p>
+          Each slot has a MIDI channel selector. Set the envelope source to <code>MIDI</code> 
+          to trigger the envelope from incoming notes.
+        </p>
+
+        <h2>Note Handling</h2>
+        <ul>
+          <li><strong>Note-On</strong> — Triggers envelope, sets frequency (when pitch tracking enabled)</li>
+          <li><strong>Note-Off</strong> — Releases envelope</li>
+          <li><strong>Velocity</strong> — Can modulate amplitude or filter</li>
+        </ul>
+
+        <h2>MIDI Device Setup</h2>
+        <p>
+          MIDI input is configured at the system level. Ensure your MIDI controller is 
+          connected and recognized by your operating system before launching Noise Engine.
+        </p>
+      </section>
+
+      <!-- Keyboard Shortcuts -->
+      <section id="shortcuts">
+        <h1><span class="icon">⌨</span> Keyboard Shortcuts</h1>
+
+        <table>
+          <tr>
+            <th>Action</th>
+            <th>macOS</th>
+            <th>Windows/Linux</th>
+          </tr>
+          <tr>
+            <td>Save Preset</td>
+            <td><kbd>⌘</kbd> + <kbd>S</kbd></td>
+            <td><kbd>Ctrl</kbd> + <kbd>S</kbd></td>
+          </tr>
+          <tr>
+            <td>Load Preset</td>
+            <td><kbd>⌘</kbd> + <kbd>O</kbd></td>
+            <td><kbd>Ctrl</kbd> + <kbd>O</kbd></td>
+          </tr>
+          <tr>
+            <td>Mod Matrix</td>
+            <td><kbd>⌘</kbd> + <kbd>M</kbd></td>
+            <td><kbd>Ctrl</kbd> + <kbd>M</kbd></td>
+          </tr>
+          <tr>
+            <td>Keyboard Mode</td>
+            <td><kbd>⌘</kbd> + <kbd>K</kbd></td>
+            <td><kbd>Ctrl</kbd> + <kbd>K</kbd></td>
+          </tr>
+          <tr>
+            <td>Clear All Mod Routings</td>
+            <td><kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd></td>
+            <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Delete</kbd></td>
+          </tr>
+          <tr>
+            <td>Close Overlay</td>
+            <td><kbd>Esc</kbd></td>
+            <td><kbd>Esc</kbd></td>
+          </tr>
+        </table>
+
+        <h2>Mod Matrix Keys</h2>
+        <table>
+          <tr>
+            <th>Action</th>
+            <th>Key</th>
+          </tr>
+          <tr>
+            <td>Set amount 10% —100%</td>
+            <td><kbd>1</kbd> — <kbd>0</kbd></td>
+          </tr>
+          <tr>
+            <td>Set offset -50% to +50%</td>
+            <td><kbd>Shift</kbd> + <kbd>1</kbd> — <kbd>0</kbd></td>
+          </tr>
+          <tr>
+            <td>Navigate routings</td>
+            <td><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></td>
+          </tr>
+          <tr>
+            <td>Delete selected routing</td>
+            <td><kbd>Delete</kbd> / <kbd>Backspace</kbd></td>
+          </tr>
+        </table>
+
+        <h2>Keyboard Mode Layout</h2>
+        <p>When keyboard mode is active, use the QWERTY keys as a piano:</p>
+        <pre><code>  W E   T Y U   O P   (black keys)
+  A S D F G H J K L ;  (white keys)
+  C D E F G A B C D E
+
+  Z = Octave Down  X = Octave Up</code></pre>
+      </section>
+
+      <!-- Signal Flow -->
+      <section id="signal-flow">
+        <h1><span class="icon">→</span> Signal Flow</h1>
+
+        <div class="diagram">
+          <div class="signal-flow" style="flex-direction: column; gap: 1rem;">
+            <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+              <span class="signal-box highlight">Generator</span>
+              <span class="signal-arrow">→</span>
+              <span class="signal-box">Stereo Width</span>
+              <span class="signal-arrow">→</span>
+              <span class="signal-box">Filter</span>
+              <span class="signal-arrow">→</span>
+              <span class="signal-box">Envelope VCA</span>
+            </div>
+            <div style="color: var(--text-muted);">↓</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+              <span class="signal-box">Channel Strip</span>
+              <span class="signal-arrow">→</span>
+              <span class="signal-box">Sends (Echo/Verb)</span>
+            </div>
+            <div style="color: var(--text-muted);">↓</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+              <span class="signal-box">Master EQ</span>
+              <span class="signal-arrow">→</span>
+              <span class="signal-box">Compressor</span>
+              <span class="signal-arrow">→</span>
+              <span class="signal-box">Limiter</span>
+              <span class="signal-arrow">→</span>
+              <span class="signal-box highlight">Output</span>
+            </div>
+          </div>
+        </div>
+
+        <h2>Processing Order</h2>
+        <p>
+          Within each generator, the signal chain is strictly ordered. This ensures 
+          consistent behavior across all generator types:
+        </p>
+        <ol>
+          <li><strong>Source</strong> — Oscillator, noise, or other sound generation</li>
+          <li><strong>ensure2ch</strong> — Force stereo (mono sources duplicated)</li>
+          <li><strong>multiFilter</strong> — LP/HP/BP/NOT/LP2/OFF filtering</li>
+          <li><strong>envVCA</strong> — Amplitude envelope with clock/MIDI triggering</li>
+        </ol>
+      </section>
+
+      <!-- Parameter Reference -->
+      <section id="parameters">
+        <h1><span class="icon">≡</span> Parameter Reference</h1>
+
+        <h2>Standard Parameters</h2>
+        <table>
+          <tr>
+            <th>Param</th>
+            <th>Range</th>
+            <th>Curve</th>
+            <th>Unit</th>
+          </tr>
+          <tr>
+            <td>FRQ</td>
+            <td>20 — 8000</td>
+            <td>Exponential</td>
+            <td>Hz</td>
+          </tr>
+          <tr>
+            <td>PORT</td>
+            <td>0 — 1</td>
+            <td>Exponential</td>
+            <td>normalized (0=1ms, 1=500ms)</td>
+          </tr>
+          <tr>
+            <td>TRAN</td>
+            <td>−2 — +2</td>
+            <td>Stepped</td>
+            <td>octaves</td>
+          </tr>
+          <tr>
+            <td>CUT</td>
+            <td>20 — 16000</td>
+            <td>Exponential</td>
+            <td>Hz</td>
+          </tr>
+          <tr>
+            <td>RES</td>
+            <td>0.1 — 1.0</td>
+            <td>Linear (inverted)</td>
+            <td>Q</td>
+          </tr>
+          <tr>
+            <td>ATK</td>
+            <td>0.001 — 2.0</td>
+            <td>Exponential</td>
+            <td>seconds</td>
+          </tr>
+          <tr>
+            <td>DEC</td>
+            <td>0.01 — 10.0</td>
+            <td>Exponential</td>
+            <td>seconds</td>
+          </tr>
+        </table>
+
+        <h2>Clock Rate Values</h2>
+        <table>
+          <tr>
+            <th>Index</th>
+            <th>Rate</th>
+            <th>Meaning</th>
+          </tr>
+          <tr><td>0</td><td>4/1</td><td>1 trigger per 4 bars</td></tr>
+          <tr><td>1</td><td>2/1</td><td>1 trigger per 2 bars</td></tr>
+          <tr><td>2</td><td>1/1</td><td>1 trigger per bar</td></tr>
+          <tr><td>3</td><td>1/2</td><td>Half notes</td></tr>
+          <tr><td>4</td><td>1/3</td><td>Triplet half notes</td></tr>
+          <tr><td>5</td><td>1/4</td><td>Quarter notes</td></tr>
+          <tr><td>6</td><td>1/6</td><td>Triplet quarters</td></tr>
+          <tr><td>7</td><td>1/8</td><td>Eighth notes</td></tr>
+          <tr><td>8</td><td>1/12</td><td>Triplet eighths</td></tr>
+          <tr><td>9</td><td>1/16</td><td>Sixteenth notes</td></tr>
+          <tr><td>10</td><td>1/24</td><td>Triplet sixteenths</td></tr>
+          <tr><td>11</td><td>1/32</td><td>Thirty-second notes</td></tr>
+          <tr><td>12</td><td>1/64</td><td>Sixty-fourth notes</td></tr>
+        </table>
+
+        <h2>Polarity Modes</h2>
+        <table>
+          <tr>
+            <th>Mode</th>
+            <th>Output Range</th>
+            <th>Use Case</th>
+          </tr>
+          <tr>
+            <td>UNI</td>
+            <td>0 to +1</td>
+            <td>Always adds to parameter</td>
+          </tr>
+          <tr>
+            <td>BI</td>
+            <td>-1 to +1</td>
+            <td>Adds and subtracts (vibrato, wobble)</td>
+          </tr>
+          <tr>
+            <td>INV</td>
+            <td>Inverted</td>
+            <td>Opposite direction modulation</td>
+          </tr>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>Noise Engine — 8-Slot Modular Synthesizer</p>
+    <p>Built with Python + SuperCollider</p>
+  </footer>
+
+  <script>
+    // Highlight active nav item on scroll
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('nav a');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (scrollY >= sectionTop - 100) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Smooth scroll for nav links
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').substring(1);
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+  </script>
 </body>
 </html>

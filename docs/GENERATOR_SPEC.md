@@ -10,7 +10,11 @@ Each generator consists of **two files**:
 1. `generator_name.json` — UI config and custom parameter definitions
 2. `generator_name.scd` — SuperCollider SynthDef
 
-Place both in `supercollider/generators/`. The system auto-discovers them.
+**File locations:**
+- **Core generators**: `supercollider/generators/`
+- **Pack generators**: `packs/{pack_id}/generators/`
+
+The system auto-discovers both.
 
 ---
 
@@ -18,6 +22,7 @@ Place both in `supercollider/generators/`. The system auto-discovers them.
 
 ```json
 {
+    "generator_id": "generator_slug",
     "name": "Display Name",
     "synthdef": "synthdef_name",
     "custom_params": [
@@ -31,30 +36,59 @@ Place both in `supercollider/generators/`. The system auto-discovers them.
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
 }
 ```
 
-### Fields
+### Top-Level Fields
 
-| Field | Description |
-|-------|-------------|
-| `name` | Display name in UI dropdown |
-| `synthdef` | Must match `SynthDef(\name, ...)` exactly |
-| `custom_params` | Array of up to 5 custom parameters (P1-P5) |
+| Field | Type | Description |
+|-------|------|-------------|
+| `generator_id` | string | Slug identifier (matches filename, no spaces) |
+| `name` | string | Display name in UI dropdown |
+| `synthdef` | string | Must match `SynthDef(\name, ...)` exactly |
+| `custom_params` | array | Array of up to 5 custom parameters (P1-P5) |
+| `output_trim_db` | float | Output level trim in dB (typically -6.0 to 0.0) |
+| `midi_retrig` | bool | If true, MIDI notes retrigger envelope |
+| `pitch_target` | null or int | Which param receives pitch CV (see below) |
 
 ### Parameter Fields
 
-| Field | Description |
-|-------|-------------|
-| `key` | Internal identifier (used in SynthDef arg name) |
-| `label` | 3-char label shown on slider |
-| `tooltip` | Hover text description |
-| `default` | Initial value |
-| `min` / `max` | Value range |
-| `curve` | `"lin"` or `"exp"` |
-| `unit` | Display unit (Hz, ms, dB, etc.) |
-| `steps` | Optional: for stepped/discrete params |
+| Field | Type | Description |
+|-------|------|-------------|
+| `key` | string | Internal identifier |
+| `label` | string | 3-char label shown on slider (A-Z, 0-9) |
+| `tooltip` | string | Hover text description (required, non-empty) |
+| `default` | float | Initial value |
+| `min` / `max` | float | Value range |
+| `curve` | string | `"lin"` or `"exp"` |
+| `unit` | string | Display unit (Hz, ms, dB, etc.) — may be empty |
+| `steps` | int | Optional: for stepped/discrete params |
+
+### pitch_target Field
+
+**Type:** `null` or `int` (0-4) — **never a string**
+
+| Value | Meaning |
+|-------|---------|
+| `null` | Standard pitch from freqBus (most generators) |
+| `0` | P1 receives pitch CV |
+| `1` | P2 receives pitch CV |
+| `2` | P3 receives pitch CV |
+| `3` | P4 receives pitch CV |
+| `4` | P5 receives pitch CV |
+
+Use `null` for 99% of generators. Only use an integer if a custom param specifically controls pitch and needs keyboard/MIDI note input.
+
+**Examples:**
+```json
+"pitch_target": null    // ✓ Most generators
+"pitch_target": 0       // ✓ P1 receives pitch CV
+"pitch_target": "freq"  // ✗ WRONG — strings not allowed
+```
 
 ---
 
@@ -62,15 +96,18 @@ Place both in `supercollider/generators/`. The system auto-discovers them.
 
 ```supercollider
 SynthDef(\synthdef_name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                            filterTypeBus, envEnabledBus, envSourceBus=0, 
+                            filterTypeBus, envEnabledBus, envSourceBus=0,
                             clockRateBus, clockTrigBus,
                             midiTrigBus=0, slotIndex=0,
-                            customBus0, customBus1, customBus2, customBus3, customBus4|
+                            customBus0, customBus1, customBus2, customBus3, customBus4,
+                            portamentoBus|
     
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     
     // === READ STANDARD PARAMS ===
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
@@ -87,10 +124,11 @@ SynthDef(\synthdef_name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus
     // === SOUND SOURCE ===
     sig = /* your synthesis code */;
     
-    // === PROCESSING CHAIN (use helper functions) ===
-    sig = ~stereoSpread.(sig, width, random);
+    // === PROCESSING CHAIN (MANDATORY ORDER) ===
+    sig = LeakDC.ar(sig);  // Prevent DC offset
+    sig = ~stereoSpread.(sig, rate, width);  // Optional: mono→stereo
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, 
+    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp,
                    clockTrigBus, midiTrigBus, slotIndex);
     sig = ~ensure2ch.(sig);
     
@@ -111,9 +149,21 @@ SynthDef(\synthdef_name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus
 | RES | resBus | 0.1-1.0 | Filter resonance (inverted: low = more res) |
 | ATK | attackBus | 0.001-2s | Envelope attack |
 | DEC | decayBus | 0.01-10s | Envelope decay |
-| filterType | filterTypeBus | 0/1/2 | LP/HP/BP |
+| PRT | portamentoBus | 0.0-1.0 | Portamento/glide time |
+| filterType | filterTypeBus | 0-5 | Filter mode (see below) |
 | envSource | envSourceBus | 0/1/2 | OFF/CLK/MIDI |
 | clockRate | clockRateBus | 0-12 | Clock division index |
+
+### Filter Types
+
+| Value | Mode | Description |
+|-------|------|-------------|
+| 0 | LP | Low-pass (12dB/oct) |
+| 1 | HP | High-pass (12dB/oct) |
+| 2 | BP | Band-pass |
+| 3 | Notch | Band-reject |
+| 4 | LP2 | Low-pass (24dB/oct, steeper) |
+| 5 | OFF | Filter bypassed |
 
 ---
 
@@ -126,9 +176,9 @@ Converts mono to stereo with LFO-modulated panning.
 - `width`: Pan range 0-1 (0.3 = subtle, 1.0 = full L-R)
 
 ### `~multiFilter.(sig, filterType, freq, rq)`
-State-variable filter with LP/HP/BP modes.
+State-variable filter with multiple modes.
 - `sig`: Input signal
-- `filterType`: 0=LP, 1=HP, 2=BP
+- `filterType`: 0=LP, 1=HP, 2=BP, 3=Notch, 4=LP2, 5=OFF
 - `freq`: Cutoff frequency in Hz
 - `rq`: Reciprocal of Q (lower = more resonant, 0.1 = high res)
 
@@ -146,7 +196,7 @@ Envelope-controlled VCA with clock/MIDI triggering.
 ### `~ensure2ch.(sig)`
 Ensures output is exactly 2 channels (stereo).
 - Mono → dual-mono
-- 2ch → passthrough  
+- 2ch → passthrough
 - >2ch → mixdown to stereo
 
 ### Important: Trigger Buses are Audio Rate!
@@ -173,6 +223,7 @@ filtEnv = EnvGen.ar(Env.perc(0.001, decay), envTrig);
 **minimal.json**
 ```json
 {
+    "generator_id": "minimal",
     "name": "Minimal",
     "synthdef": "minimal",
     "custom_params": [
@@ -186,7 +237,10 @@ filtEnv = EnvGen.ar(Env.perc(0.001, decay), envTrig);
             "curve": "lin",
             "unit": ""
         }
-    ]
+    ],
+    "output_trim_db": -6.0,
+    "midi_retrig": false,
+    "pitch_target": null
 }
 ```
 
@@ -195,11 +249,14 @@ filtEnv = EnvGen.ar(Env.perc(0.001, decay), envTrig);
 SynthDef(\minimal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
                       midiTrigBus=0, slotIndex=0,
-                      customBus0, customBus1, customBus2, customBus3, customBus4|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate;
+                      customBus0, customBus1, customBus2, customBus3, customBus4,
+                      portamentoBus|
+    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
     var brightness;
     
     freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
     filterFreq = In.kr(cutoffBus);
     rq = In.kr(resBus);
     attack = In.kr(attackBus);
@@ -214,6 +271,7 @@ SynthDef(\minimal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Simple saw with brightness-controlled harmonics
     sig = Saw.ar(freq) * brightness.linexp(0, 1, 0.3, 1);
     
+    sig = LeakDC.ar(sig);
     sig = ~stereoSpread.(sig, 0.3, 0.1);
     sig = ~multiFilter.(sig, filterType, filterFreq, rq);
     sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
@@ -229,16 +287,18 @@ SynthDef(\minimal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 ## Tips
 
 1. **Always use `In.kr()`** to read from control buses
-2. **Use `~ensure2ch.`** at the end — generator buses are stereo
-3. **Keep CPU low** — these run 8× simultaneously
-4. **Test edge cases** — extreme freq, cutoff, resonance values
-5. **Add the print statement** — confirms successful load
+2. **Include `LeakDC.ar()`** before the filter to prevent DC offset
+3. **Use `~ensure2ch.`** at the end — generator buses are stereo
+4. **Keep CPU low** — these run 8× simultaneously
+5. **Test edge cases** — extreme freq, cutoff, resonance values
+6. **Add the print statement** — confirms successful load
+7. **Set `output_trim_db`** appropriately — typically -6.0 for safe headroom
 
 ---
 
 ## Register in GENERATOR_CYCLE
 
-After creating files, add to `src/config/__init__.py`:
+After creating core generator files, add to `src/config/__init__.py`:
 
 ```python
 GENERATOR_CYCLE = [
@@ -249,3 +309,28 @@ GENERATOR_CYCLE = [
 ```
 
 The name must match `"name"` in the JSON exactly.
+
+**Note:** Pack generators don't need registration — they're discovered automatically from `packs/{pack_id}/manifest.json`.
+
+---
+
+## Forbidden Parameter Labels
+
+These labels are reserved for core UI and must not be used in custom params:
+
+```
+FRQ, CUT, RES, ATK, DEC, PRT
+```
+
+---
+
+## Pack Generator Naming
+
+For pack generators, use namespaced SynthDef names:
+
+```
+forge_{pack_id}_{generator_id}
+imaginarium_{pack_id}_{method}_{variant}
+```
+
+This prevents collisions between packs.

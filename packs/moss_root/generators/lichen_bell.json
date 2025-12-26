@@ -1,0 +1,60 @@
+{
+  "generator_id": "lichen_bell",
+  "name": "Lichen Bell",
+  "synthdef": "forge_moss_root_lichen_bell",
+  "custom_params": [
+    {
+      "key": "stone",
+      "label": "STO",
+      "tooltip": "Stone density -- hard mineral attack character",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ring",
+      "label": "RNG",
+      "tooltip": "Ring time -- resonance and sustain of modes",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "crust",
+      "label": "CRU",
+      "tooltip": "Lichen crust -- textural surface layer",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "age",
+      "label": "AGE",
+      "tooltip": "Weathering age -- inharmonicity and wear",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spot",
+      "label": "SPT",
+      "tooltip": "Bright spot -- focused high partial emphasis",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

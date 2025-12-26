@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "icarus",
+  "name": "Icarus",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "The fall \u2014 human fragility against stellar magnitude. Freefall toward the sun.",
+  "enabled": true,
+  "generators": [
+    "freefall",
+    "solar_mass",
+    "wax_wings",
+    "terminal",
+    "heat_wall",
+    "last_breath",
+    "glory",
+    "ash"
+  ]
+}

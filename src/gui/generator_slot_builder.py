@@ -20,7 +20,7 @@ from .widgets import DragSlider, CycleButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
     GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE,
-    ENV_SOURCES
+    ENV_SOURCES, TRANSPOSE_OPTIONS, TRANSPOSE_DEFAULT_INDEX
 )
 
 # MIDI channels - OFF plus 1-16
@@ -257,6 +257,17 @@ def build_generator_button_strip(slot):
             btn.value_changed.connect(slot.on_rate_changed)
             btn.setEnabled(False)
 
+        elif btn_key == 'transpose':
+            slot.transpose_btn = CycleButton(TRANSPOSE_OPTIONS, initial_index=TRANSPOSE_DEFAULT_INDEX)
+            slot.transpose_btn.setObjectName(f"gen{slot.slot_id}_transpose")
+            btn = slot.transpose_btn
+            btn.setFixedSize(btn_width, btn_height)
+            btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
+            btn.setStyleSheet(button_style(cfg['style']))
+            btn.wrap = True
+            btn.value_changed.connect(slot.on_transpose_changed)
+            btn.setEnabled(False)
+
         elif btn_key == 'midi':
             slot.midi_btn = CycleButton(MIDI_CHANNELS, initial_index=0)
             slot.midi_btn.setObjectName(f"gen{slot.slot_id}_midi")
@@ -286,6 +297,19 @@ def build_generator_button_strip(slot):
 
         btn.setToolTip(cfg['tooltip'])
         layout.addWidget(btn, alignment=Qt.AlignCenter)
+
+        # Portamento knob  # ADD FROM HERE
+    slot.portamento_knob = DragSlider()
+    slot.portamento_knob.setObjectName(f"gen{slot.slot_id}_portamento")
+    slot.portamento_knob.setFixedWidth(gt.get('slider_width', 25))
+    slot.portamento_knob.setFixedHeight(gt.get('slider_height', 60))
+    slot.portamento_knob.setValue(0)  # Default 0 (no glide)
+    slot.portamento_knob.setToolTip("Portamento glide time (0=off, 1=full)")
+    slot.portamento_knob.setEnabled(False)  # Enable when generator loads
+    slot.portamento_knob.valueChanged.connect(
+        lambda val: slot.on_portamento_changed(val / 1000.0)
+    )
+    layout.addWidget(slot.portamento_knob, alignment=Qt.AlignCenter)  # TO HERE
 
     layout.addStretch()
 

@@ -62,7 +62,23 @@ def _register_builtins():
     from .physical.bowed import BowedTemplate
     from .physical.formant import FormantTemplate
     from .spectral.additive import AdditiveTemplate
-    
+    from .texture.granular_cloud import GranularCloudTemplate
+    from .texture.dust_resonator import DustResonatorTemplate
+    from .texture.noise_drone import NoiseDroneTemplate
+    from .subtractive.wavefold import WavefoldTemplate
+    from .fm.phase_mod import PhaseModTemplate
+    from .fm.am_chorus import AMChorusTemplate
+    from .physical.membrane import MembraneTemplate
+    from .physical.tube import TubeTemplate
+    from .spectral.spectral_drone import SpectralDroneTemplate
+    from .texture.chaos_osc import ChaosOscTemplate
+    from .spectral.wavetable import WavetableTemplate
+    from .spectral.vocoder import VocoderTemplate
+    from .spectral.harmonic_series import HarmonicSeriesTemplate
+    from .physical.comb_resonator import CombResonatorTemplate
+    from .texture.bitcrush import BitcrushTemplate
+    from .texture.noise_rhythm import NoiseRhythmTemplate
+
     register_method(BrightSawTemplate())
     register_method(DarkPulseTemplate())
     register_method(NoiseFilteredTemplate())
@@ -77,7 +93,22 @@ def _register_builtins():
     register_method(BowedTemplate())
     register_method(FormantTemplate())
     register_method(AdditiveTemplate())
-
+    register_method(GranularCloudTemplate())
+    register_method(DustResonatorTemplate())
+    register_method(NoiseDroneTemplate())
+    register_method(WavefoldTemplate())
+    register_method(PhaseModTemplate())
+    register_method(AMChorusTemplate())
+    register_method(MembraneTemplate())
+    register_method(TubeTemplate())
+    register_method(SpectralDroneTemplate())
+    register_method(ChaosOscTemplate())
+    register_method(WavetableTemplate())
+    register_method(VocoderTemplate())
+    register_method(HarmonicSeriesTemplate())
+    register_method(CombResonatorTemplate())
+    register_method(BitcrushTemplate())
+    register_method(NoiseRhythmTemplate())
 
 # Register on import
 _register_builtins()

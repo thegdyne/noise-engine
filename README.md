@@ -1,349 +1,211 @@
 # Noise Engine
 
-A modular, physics-based noise instrument with hybrid audio/CV output capabilities for expressive real-time performance and composition.
+**8-slot modular texture synthesizer — Python + SuperCollider**
 
-## Overview
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![SuperCollider 3.13+](https://img.shields.io/badge/SuperCollider-3.13+-red.svg)](https://supercollider.github.io/)
 
-Noise Engine is a software instrument that combines:
-- **Modular generator system** - Swappable sound generators (synthesis, sampling, processing)
-- **Physics-based control** - Parameters inspired by natural forces (gravity, buoyancy, friction)
-- **Hybrid output** - Both audio (internal synthesis) and MIDI (external CV control)
-- **Component architecture** - Flexible, reconfigurable UI like a modular synthesizer
+![Noise Engine Screenshot](docs/screenshot.png)
 
-## Key Features
+---
 
-- **Real-time parameter control** via any MIDI controller
-- **Multiple generator types** - Synthesis, sampling, hybrid processing
-- **Config-based routing** - Flexible signal patching without UI clutter
-- **Sequencer with routing control** - Evolving patches and compositional structure
-- **MIDI → CV output** - Control Eurorack systems via CV.OCD or similar converters
-- **Everything visible** - No menu diving, hardware-inspired interface
+## What is Noise Engine?
+
+Noise Engine is a performance-oriented drone and ambient synthesizer combining:
+
+- **8 independent generator slots** with 30 synthesis methods
+- **Quadrature modulation system** with LFO and chaos sources
+- **SSL-inspired mixer** with per-channel EQ, sends, and master processing
+- **19 curated sound packs** generated via the Imaginarium image-to-sound pipeline
+
+Built for **texture, atmosphere, and evolving soundscapes** — not a general-purpose polysynth.
+
+---
+
+## Features
+
+### Synthesis
+- 30 generators across 5 families (subtractive, FM, additive, noise, spectral)
+- Custom parameters (P1-P5) per generator with contextual labels
+- Transpose (±2 octaves) and portamento per slot
+- 6 filter modes: LP (24dB), HP, BP, Notch, LP2 (12dB), OFF
+- Clock-synced envelopes with 13 divisions (1/32 to 8 bars)
+
+### Modulation
+- 4 mod slots with quadrature output (A/B/C/D)
+- LFO: SIN/SAW/SQR/S&H with 6 phase presets
+- Sloth chaos: Torpor/Apathy/Inertia modes
+- Full mod matrix with amount/offset per routing
+
+### Mixer
+- 8 channel strips: fader, pan, 3-band EQ, mute/solo
+- Echo and Reverb sends per channel
+- Master section: EQ, compressor, limiter
+
+### Performance
+- MIDI input with per-slot channel assignment
+- Trigger modes: OFF / CLK / MIDI
+- Keyboard mode (CMD+K) for computer input
+- BPM control (20-300) with tap tempo
+
+### Presets & Packs
+- Save/load full state (CMD+S / CMD+O)
+- 19 CQD_Forge sound packs included
+- Pack system for organizing generators
+
+---
+
+## Installation
+
+### Requirements
+
+| Component | Version |
+|-----------|---------|
+| Python | 3.11+ |
+| SuperCollider | 3.13+ (3.14 recommended) |
+
+### Quick Start (Fedora/Linux)
+
+```bash
+# Install dependencies
+sudo dnf install supercollider supercollider-sc3-plugins python3-pip python3-virtualenv
+
+# Clone and setup
+git clone https://github.com/thegdyne/noise-engine.git
+cd noise-engine
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run
+python main.py
+```
+
+### Platform Guides
+
+- **[Linux Installation](docs/LINUX_INSTALL.md)** — Fedora (tested), Ubuntu, Arch
+- **[Windows Installation](docs/WINDOWS_INSTALL.md)** — Windows 10/11
+- **macOS** — Coming soon
+
+---
+
+## Usage
+
+### Basic Workflow
+
+1. **Select a pack** from the dropdown (or use Core)
+2. **Load generators** by clicking slot dropdowns
+3. **Set trigger mode** — CLK for clock-synced, MIDI for external control
+4. **Shape sound** with FRQ, CUT, RES, ATK, DEC and P1-P5
+5. **Add modulation** — route LFO/Sloth to any parameter
+6. **Mix** — balance levels, add echo/reverb
+7. **Save** your preset (CMD+S)
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| CMD+S | Save preset |
+| CMD+O | Open preset |
+| CMD+N | Init (new) preset |
+| CMD+K | Toggle keyboard mode |
+| CMD+M | Open mod matrix |
+| Space | Tap tempo |
+
+---
+
+## Sound Packs
+
+19 CQD_Forge packs included, each with 8 generators designed around a visual theme:
+
+| Pack | Character |
+|------|-----------|
+| Arctic Henge | Frozen, crystalline textures |
+| Astro Command | Retro sci-fi bleeps and drones |
+| Barbican Hound | Brutalist, concrete atmospheres |
+| Beacon Vigil | Lighthouse signals, coastal fog |
+| Boneyard | Skeletal, decayed resonances |
+| Drangarnir | Nordic sea stacks, wind and waves |
+| Emerald Canopy | Rainforest, organic layers |
+| Fuego Celeste | Volcanic, smoldering heat |
+| Icarus | Solar winds, melting wax |
+| Leviathan | Deep ocean, pressure and darkness |
+| Maratus | Peacock spider, iridescent chirps |
+| Moss Root | Forest floor, fungal networks |
+| Nerve Glow | Bioluminescent, neural pulses |
+| Rakshasa | Mythological, shape-shifting |
+| Seagrass Bay | Underwater meadows, gentle currents |
+| Summer of Love | Psychedelic warmth, vintage haze |
+| Wax Print | African textiles, rhythmic patterns |
+| + 2 more | ... |
+
+---
 
 ## Architecture
 
-### Component-Based Design
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Python GUI                           │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │ Gen 1-8 │ │ Mod 1-4 │ │  Mixer  │ │ Master  │           │
+│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘           │
+└───────┼───────────┼───────────┼───────────┼─────────────────┘
+        │    OSC    │           │           │
+        ▼           ▼           ▼           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     SuperCollider                           │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │SynthDefs│ │ Mod Bus │ │ Ch Strip│ │ Master  │           │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Each UI section is a self-contained, modular component:
-- **Modulation Panel** (left) - Physics-based parameters
-- **Generator Grid** (center) - Sound generators/processors
-- **Mixer Panel** (right) - Per-generator volume and routing
-- **Sequencer** (bottom) - Time-based control and automation
-- **Top Bar** - Presets, connection, settings
+---
 
-Components can be rearranged, hidden, or modified without breaking functionality.
+## Development
 
-### Tech Stack
+### Running Tests
 
-- **Python 3.9+** - GUI (PyQt5), MIDI I/O, OSC communication, control logic
-- **SuperCollider 3.14+** - Audio synthesis and DSP
-- **OSC** - Communication bridge between Python and SuperCollider
-- **YAML/JSON** - Configuration, routing, and presets
-
-## Hardware Integration
-
-### MIDI Controllers
-
-**Works with any MIDI controller.** The system is controller-agnostic and uses standard MIDI CC messages.
-
-**Tested/optimized for:**
-- Akai MIDIMix (24 knobs + 9 faders)
-- Any controller with continuous controls (knobs/faders/sliders)
-
-**Configuration:**
-- MIDI mapping defined in config files
-- Easy to adapt to your controller
-- Multiple controller profiles supported
-
-### Audio Interface
-
-- **Tested:** MOTU M6 (6 in / 6 out)
-- **Compatible:** Any CoreAudio/JACK interface
-
-### CV Output (Optional)
-
-- **CV.OCD** by Sixty Four Pixels - MIDI to CV converter for Eurorack
-- **Or any MIDI → CV converter**
-- Enables control of modular synthesizers from generators
-
-## Setup
-
-### Prerequisites
 ```bash
-# macOS
-brew install supercollider
-
-# Python 3.9+ required
-python3 --version
+pytest tests/ -v
 ```
 
-### Installation
-```bash
-# Clone repository
-git clone https://github.com/thegdyne/noise-engine.git
-cd noise-engine
+### Project Structure
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+```
+noise-engine/
+├── src/
+│   ├── gui/           # PyQt5 interface
+│   ├── presets/       # Preset management
+│   └── imaginarium/   # Image-to-sound pipeline
+├── supercollider/
+│   ├── core/          # Engine setup, buses, helpers
+│   ├── generators/    # SynthDef implementations
+│   └── effects/       # FX processors
+├── packs/             # Sound packs (core + CQD_Forge)
+├── docs/              # Documentation
+└── tools/             # Validation and build scripts
 ```
 
-### Quick Start
+### Creating Generators
 
-**Terminal 1 - SuperCollider:**
-```bash
-# Open SuperCollider
-open /Applications/SuperCollider.app
+See [Generator Authoring Guide](docs/GENERATOR_SPEC.md) for the SynthDef contract and JSON config format.
 
-# In SuperCollider IDE:
-# File → Open → supercollider/init.scd
-# Execute: Cmd+A, then Cmd+Return
-```
-
-**Terminal 2 - Python GUI:**
-```bash
-# Activate environment
-source venv/bin/activate
-
-# Run interface
-python src/main.py
-
-# Click "Connect to SuperCollider"
-# Move sliders to control sound
-```
-
-### Shell Alias (Optional)
-
-Add to `~/.zshrc` or `~/.bashrc` for quick launch:
-```bash
-# Adjust path to match your clone location
-alias noise-env="cd ~/repos/noise-engine && source venv/bin/activate"
-alias noise="cd ~/repos/noise-engine && source venv/bin/activate && python src/main.py"
-```
-
-Then:
-- `noise-env` - activates venv for development
-- `noise` - launches the app directly
-
-## Using the Interface
-
-### Generator Slots
-- **Click** a slot to cycle through generator types
-- **Drag vertically** on the generator name for fine control
-- **Shift+drag** for extra fine control
-- Generator settings (ENV, rate, MIDI channel, filter) are **sticky** - they persist when you change generator type
-
-### Console (Debug Log)
-The console shows real-time logs from the app - useful for troubleshooting.
-
-**To open:**
-- Click the **`>_`** button in the top-right corner, OR
-- Press **`Ctrl+``** (backtick key, above Tab)
-
-**Features:**
-- Color-coded messages: grey (debug), green (info), orange (warning), red (error)
-- Filter dropdown to show only certain levels
-- Auto-scroll toggle
-- Clear and Copy buttons
-
-### Keyboard Shortcuts
-| Key | Action |
-|-----|--------|
-| `Ctrl+`` | Toggle console panel |
-
-## Current Status
-
-### ✅ Working (December 2025)
-
-**Core System:**
-- Python GUI with PyQt5
-- SuperCollider audio engine via OSC
-- Robust connection with ping/pong verification and heartbeat monitoring
-- 8-slot generator grid
-
-**Generators (22 total):**
-- Synthesis: Subtractive, Additive, FM, Wavetable, Granular
-- Physical: Karplus-Strong, Modal
-- Relaxation oscillators: VCO, UJT, Neon, CapSense
-- Sirens: 4060, FBI, FBI Doppler  
-- Ring Modulators: Diode, 4-Quad, VCA
-- Effects/Chaos: PT2399 Grainy, PT2399 Chaos, Geiger, Giant B0N0
-- Test synth
-
-**Per-Generator Features:**
-- 5 standard params (FRQ, CUT, RES, ATK, DEC)
-- Up to 5 custom params per generator (JSON config)
-- Multimode filter (LP/HP/BP)
-- Envelope source: OFF (drone), CLK (clock sync), MIDI (note trigger)
-- MIDI channel assignment per slot
-- Sticky slot settings (persist when changing generator type)
-
-**MIDI:**
-- MIDI input device selection
-- Per-slot MIDI channel
-- MIDI note triggering with velocity
-- MIDI retrig for Modal/Karplus (continuous strike while key held)
-
-**Effects:**
-- 4-slot effects chain
-- Fidelity effect (bit crush, sample rate, bandwidth)
-
-### 🔨 In Progress
-
-- Modulation sources (LFOs) - UI visible but not connected
-- Per-channel mixer - UI visible but not connected
-- See `docs/TECH_DEBT.md` for known issues
-
-### ⏳ Roadmap
-
-- Preset save/load system
-- MIDI CC mapping (MIDI Learn)
-- More effects (reverb, delay, chorus)
-- Sequencer
-- Visual layer (physics-based graphics)
-
-See `docs/FUTURE_IDEAS.md` for full feature wishlist.
-
-## Configuration
-
-### Parameter Mapping
-
-Edit `config/parameters.yaml` to customize parameter definitions.
-
-### Routing Configuration
-
-Edit `config/routing.yaml` to define:
-- Which parameters affect which generators
-- Generator → mixer assignments
-- MIDI output routing
-- Sequencer targets
-
-### MIDI Controller Setup
-
-Edit `config/midi_mapping.yaml` to map your controller:
-```yaml
-# Example for any controller
-controller:
-  name: "Your Controller Name"
-  knobs:
-    1: gravity
-    2: buoyancy
-    3: friction
-    # ... map to your layout
-```
-
-## Documentation
-
-- **[Project Strategy](docs/PROJECT_STRATEGY.md)** - Architecture, principles, roadmap
-- **[Architecture](docs/architecture.md)** - Technical implementation details (coming soon)
-
-## Generator Types
-
-### Available (22 generators)
-
-**Synthesis:**
-- Subtractive, Additive, FM, Wavetable, Granular
-
-**Physical Modeling:**
-- Karplus-Strong (plucked string)
-- Modal (struck resonant body)
-
-**Relaxation Oscillators:**
-- VCO Relax, UJT Relax, Neon, CapSense
-
-**Sirens:**
-- 4060 Siren, FBI Siren, FBI Doppler
-
-**Ring Modulators:**
-- Diode Ring, 4-Quad Ring, VCA Ring
-
-**Effects/Chaos:**
-- PT2399 Grainy (tape degradation)
-- PT2399 Chaos (extreme feedback)
-- Geiger (random clicks)
-- Giant B0N0 (Nonlinear Circuits chaos)
-
-### Planned
-
-- Sample-based (load audio files)
-- Phase distortion
-- Formant/speech synthesis
-- Tracking oscillator / sub osc
-
-## Output Capabilities
-
-### Audio Output
-
-- Internal synthesis → audio interface
-- Stereo or multi-channel routing
-- Per-generator volume control
-- Master effects chain (future)
-
-### MIDI Output
-
-- MIDI notes (pitch CV)
-- MIDI CC (modulation sources)
-- MIDI triggers (gate/trigger signals)
-- MIDI clock (sync)
-- → CV converters → Eurorack modular systems
-
-### Hybrid Mode
-
-- Generators can output audio AND MIDI simultaneously
-- Sync internal sound with external modular
-- Use generators as control signal sources
-
-## Philosophy
-
-**Like a modular synthesizer:**
-- Components are independent modules
-- Flexible routing and patching
-- Build your own signal flow
-- Experiment and evolve
-
-**Everything visible:**
-- No hidden menus
-- Direct manipulation
-- Hardware-inspired interface
-- Spatial memory and muscle memory
-
-**Physics-based metaphors:**
-- Natural, intuitive control
-- Gravity, buoyancy, friction, etc.
-- Synesthetic experience
-- Expressive and performable
-
-## Contributing
-
-This is a personal project, but ideas and feedback are welcome:
-- Open issues for bugs or feature requests
-- Share your routing configurations
-- Submit generator ideas
-- Document your workflows
+---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE)
 
-## Credits
+---
 
-**Created by:** Gareth Millar  
-**Repository:** https://github.com/thegdyne/noise-engine
+## Links
 
-**Built with:**
-- SuperCollider by James McCartney and community
-- PyQt5 by Riverbank Computing
-- python-osc by attwad
+- **Documentation:** [docs/](docs/)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
+- **Ideas & Roadmap:** [docs/IDEAS.md](docs/IDEAS.md)
 
-**Generator concepts derived from:**
-- Elektor Magazine articles (relaxation oscillators, sirens, ring modulators)
-- Nonlinear Circuits by Andrew F (Giant B0N0)
-- See [docs/REFERENCES.md](docs/REFERENCES.md) for full source documentation
+---
 
-**Inspired by:**
-- Modular synthesis philosophy
-- Mutable Instruments (open source precedent)
-- Physics-based interaction design
-- Hybrid computer/modular workflows
+*Built with Python, PyQt5, and SuperCollider*

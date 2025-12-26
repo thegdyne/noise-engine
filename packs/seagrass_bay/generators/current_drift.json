@@ -1,0 +1,15 @@
+{
+  "generator_id": "current_drift",
+  "name": "Current Drift",
+  "synthdef": "forge_seagrass_bay_current_drift",
+  "custom_params": [
+    {"key": "flow", "label": "FLO", "tooltip": "Flow - main current rate", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "width", "label": "WDT", "tooltip": "Width - stereo spread of current", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tumble", "label": "TML", "tooltip": "Tumble - turbulence/churn", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pressure", "label": "PRE", "tooltip": "Pressure - water pressure waves", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "eddy", "label": "EDY", "tooltip": "Eddy - swirling motion", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

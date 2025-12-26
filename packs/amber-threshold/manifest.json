@@ -1,18 +1,19 @@
 {
-    "pack_format": 1,
-    "name": "Amber Threshold",
-    "version": "1.0.0",
-    "author": "Noise Engine",
-    "description": "Ancient stone entrance where warm light meets cold shadow. A liminal space between worlds.",
-    "enabled": true,
-    "generators": [
-        "AmberGlow",
-        "StonePath",
-        "ColdShadow",
-        "RainVeil",
-        "AncientDust",
-        "ThresholdHum",
-        "CrumbleEcho",
-        "TorchFlicker"
-    ]
+  "pack_format": 1,
+  "pack_id": "amber_threshold",
+  "name": "Amber Threshold",
+  "version": "1.0.0",
+  "author": "Noise Engine",
+  "description": "Ancient stone entrance where warm light meets cold shadow. A liminal space between worlds.",
+  "enabled": true,
+  "generators": [
+    "AmberGlow",
+    "StonePath",
+    "ColdShadow",
+    "RainVeil",
+    "AncientDust",
+    "ThresholdHum",
+    "CrumbleEcho",
+    "TorchFlicker"
+  ]
 }

@@ -1,18 +1,19 @@
 {
-    "pack_format": 1,
-    "name": "R'lyeh Collection",
-    "version": "1.0.0",
-    "author": "Noise Engine",
-    "description": "Dark ambient generators from the depths",
-    "enabled": true,
-    "generators": [
-        "CTHULHU",
-        "RLYEH",
-        "ABYSS",
-        "MADNESS",
-        "TEMPEST",
-        "VESSEL",
-        "TENTACLE",
-        "DAGON"
-    ]
+  "pack_format": 1,
+  "pack_id": "rlyeh",
+  "name": "R'lyeh Collection",
+  "version": "1.0.0",
+  "author": "Noise Engine",
+  "description": "Dark ambient generators from the depths",
+  "enabled": true,
+  "generators": [
+    "CTHULHU",
+    "RLYEH",
+    "ABYSS",
+    "MADNESS",
+    "TEMPEST",
+    "VESSEL",
+    "TENTACLE",
+    "DAGON"
+  ]
 }

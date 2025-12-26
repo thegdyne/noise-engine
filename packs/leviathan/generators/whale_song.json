@@ -1,0 +1,60 @@
+{
+  "generator_id": "whale_song",
+  "name": "Whale Song",
+  "synthdef": "forge_leviathan_whale_song",
+  "custom_params": [
+    {
+      "key": "call",
+      "label": "CAL",
+      "tooltip": "Call - vocalization type, low moan to high whistle",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "resonance",
+      "label": "RSN",
+      "tooltip": "Resonance - body cavity size, scales formant frequencies",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "echo",
+      "label": "ECO",
+      "tooltip": "Echo - underwater propagation, distance and reflections",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "lift",
+      "label": "LIF",
+      "tooltip": "Lift - emergence from depth, muffled to clear",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "soul",
+      "label": "SOL",
+      "tooltip": "Soul - emotional weight, vibrato and organic drift",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

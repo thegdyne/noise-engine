@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "seagrass_bay",
+  "name": "Seagrass Bay",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Underwater sanctuary sounds inspired by Florida springs - gentle manatees, swaying grass, rising bubbles, and dappled sunlight filtering through turquoise waters.",
+  "enabled": true,
+  "generators": [
+    "submerged_drone",
+    "grass_sway",
+    "bubble_rise",
+    "manatee_call",
+    "gentle_giant",
+    "crystal_spring",
+    "current_drift",
+    "surface_light"
+  ]
+}
