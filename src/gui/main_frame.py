@@ -1588,7 +1588,7 @@ class MainFrame(QMainWindow):
                 self._midi_mode_saved_states[i] = slot.env_source
                 if slot.env_source != 2:  # Not already MIDI
                     slot.env_btn.set_index(2)  # Update visual
-                    slot.on_env_source_changed("MIDI")  # Trigger full state update
+                    slot.on_env_source_changed(2)  # Trigger full state update
             self._midi_mode_changing = False
             self._midi_mode_active = True
             logger.info("MIDI mode activated", component="APP")
@@ -1606,7 +1606,7 @@ class MainFrame(QMainWindow):
         for i, slot in enumerate(self.generator_grid.slots.values()):
             saved = self._midi_mode_saved_states[i]
             slot.env_btn.set_index(saved)  # Update visual
-            slot.on_env_source_changed(ENV_SOURCES[saved])  # Trigger full state update
+            slot.on_env_source_changed(saved)  # Trigger full state update
         self._midi_mode_changing = False
         self._midi_mode_active = False
         logger.info("MIDI mode deactivated", component="APP")
