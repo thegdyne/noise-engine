@@ -302,19 +302,27 @@ class ModSlotState:
 @dataclass
 class ModSourcesState:
     """All modulation sources - Phase 3."""
-    slots: list = field(default_factory=lambda: [ModSlotState() for _ in range(NUM_MOD_SLOTS)])
-    
+    slots: list = field(default_factory=lambda: [
+        ModSlotState(generator_name="LFO"),
+        ModSlotState(generator_name="Sloth"),
+        ModSlotState(generator_name="LFO"),
+        ModSlotState(generator_name="Sloth"),
+    ])
+
     def to_dict(self) -> dict:
         return {
             "slots": [slot.to_dict() for slot in self.slots]
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "ModSourcesState":
-        slots_data = data.get("slots", [{}] * NUM_MOD_SLOTS)
+        # Default slots match ModulatorGrid defaults
+        default_gens = ["LFO", "Sloth", "LFO", "Sloth"]
+        slots_data = data.get("slots", [])
         slots = [ModSlotState.from_dict(s) for s in slots_data]
+        # Pad with proper defaults if missing
         while len(slots) < NUM_MOD_SLOTS:
-            slots.append(ModSlotState())
+            slots.append(ModSlotState(generator_name=default_gens[len(slots)]))
         return cls(slots=slots[:NUM_MOD_SLOTS])
 
 
