@@ -78,4 +78,4 @@ SynthDef(\c64_sid, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ c64_sid loaded".postln;
+"  [x] c64_sid loaded".postln;

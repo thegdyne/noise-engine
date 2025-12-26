@@ -2,7 +2,7 @@
 FBI Doppler Generator
 Passing emergency vehicle with doppler effect
 
-Signal flow: Siren → Doppler shift → Stereo pan → Filter → ENV VCA → Output
+Signal flow: Siren -> Doppler shift -> Stereo pan -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 pass_speed: 0-1 (how fast vehicle passes)
@@ -62,4 +62,4 @@ SynthDef(\fbiDoppler, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ fbiDoppler loaded".postln;
+"  [x] fbiDoppler loaded".postln;

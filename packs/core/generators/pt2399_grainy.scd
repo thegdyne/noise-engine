@@ -2,7 +2,7 @@
 PT2399 Grainy Generator
 Bandpass-filtered noise through lo-fi delay - the "musical" version
 
-Signal flow: Noise → Bandpass(FRQ) → Delay → Light Degradation → Filter → ENV VCA → Output
+Signal flow: Noise -> Bandpass(FRQ) -> Delay -> Light Degradation -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 delay_time: 0.001-0.5 s (short = comb, long = echo)
@@ -70,4 +70,4 @@ SynthDef(\pt2399Grainy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ pt2399Grainy loaded".postln;
+"  [x] pt2399Grainy loaded".postln;

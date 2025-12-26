@@ -102,4 +102,4 @@ SynthDef(\ancientdust, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ ancientdust loaded".postln;
+"  [x] ancientdust loaded".postln;

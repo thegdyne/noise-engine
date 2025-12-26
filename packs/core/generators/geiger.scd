@@ -2,7 +2,7 @@
 Geiger Counter Generator
 Radioactive click generator with Poisson distribution
 
-Signal flow: Click generation → Filter → ENV VCA → Output
+Signal flow: Click generation -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 count_rate: 0.1-100 Hz (clicks/sec, Poisson)
@@ -65,4 +65,4 @@ SynthDef(\geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ geiger loaded".postln;
+"  [x] geiger loaded".postln;

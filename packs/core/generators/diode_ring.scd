@@ -2,7 +2,7 @@
 Diode Ring Generator
 Classic diode ring modulator based on Elektor Formant series
 
-Signal flow: Carrier × Modulator → Diode nonlinearity → Filter → ENV VCA → Output
+Signal flow: Carrier x Modulator -> Diode nonlinearity -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 carrier_freq: 20-2000 Hz (carrier oscillator frequency)
@@ -64,4 +64,4 @@ SynthDef(\diodeRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ diodeRing loaded".postln;
+"  [x] diodeRing loaded".postln;

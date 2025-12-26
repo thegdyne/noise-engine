@@ -423,6 +423,79 @@ def validate_custom_params(params: List[dict], result: ValidationResult) -> Vali
 
 
 # ============================================================================
+# UNDECLARED VARIABLE DETECTION
+# ============================================================================
+
+def find_undeclared_variables(content: str) -> List[str]:
+    """
+    Find variables that are assigned but not declared in var statements.
+    
+    SC requires all local variables to be declared at the start of a function.
+    Missing declarations cause hangs/crashes during SynthDef compilation.
+    
+    Returns list of undeclared variable names.
+    """
+    # Strip comments first
+    code = strip_comments(content)
+    
+    # Extract argument names from |arg1, arg2, ...| block
+    arg_match = re.search(r'\|\s*([^|]+)\s*\|', code)
+    declared_args = set()
+    if arg_match:
+        arg_block = arg_match.group(1)
+        # Parse args: "out, freqBus, envSourceBus=0, ..." -> ["out", "freqBus", "envSourceBus"]
+        for arg in arg_block.split(','):
+            arg = arg.strip()
+            if '=' in arg:
+                arg = arg.split('=')[0].strip()
+            if arg:
+                declared_args.add(arg)
+    
+    # Extract declared variables from var statements
+    # Pattern: "var name1, name2, name3;" at start of line (with indentation)
+    declared_vars = set()
+    var_matches = re.findall(r'^\s*var\s+([^;]+);', code, re.MULTILINE)
+    for var_block in var_matches:
+        for var in var_block.split(','):
+            var = var.strip()
+            if var:
+                declared_vars.add(var)
+    
+    # Combine args and vars as "declared"
+    all_declared = declared_args | declared_vars
+    
+    # Find all assignments: "varname = ..." 
+    # Must be: start of line or after semicolon, word, optional whitespace, single =
+    # Exclude: ==, >=, <=, !=, property access (.var =), array access ([n] =)
+    assignment_pattern = re.compile(
+        r'(?:^|;|\{)\s*'           # Start of line, after semicolon, or after {
+        r'([a-zA-Z_][a-zA-Z0-9_]*)' # Variable name (capture group)
+        r'\s*='                     # Assignment operator
+        r'(?!=)'                    # Not followed by = (exclude ==)
+    , re.MULTILINE)
+    
+    assigned_vars = set()
+    for match in assignment_pattern.finditer(code):
+        var_name = match.group(1)
+        # Skip if it looks like a method call result or property
+        # Check character before the match - if it's a dot, skip
+        start = match.start(1)
+        if start > 0 and code[start-1] == '.':
+            continue
+        assigned_vars.add(var_name)
+    
+    # Find undeclared: assigned but not in declared set
+    undeclared = assigned_vars - all_declared
+    
+    # Filter out SC keywords/globals that look like assignments
+    sc_globals = {'thisThread', 'thisFunction', 'thisProcess', 'currentEnvironment',
+                  'topEnvironment', 'thisMethod', 'thisFunctionDef'}
+    undeclared = undeclared - sc_globals
+    
+    return sorted(undeclared)
+
+
+# ============================================================================
 # SYNTHDEF VALIDATION (Static Analysis)
 # ============================================================================
 
@@ -478,6 +551,11 @@ def validate_synthdef(scd_path: Path, pack_id: str, generator_id: str) -> Valida
     # Strip comments for accurate detection
     code_stripped = strip_comments(content)
     
+    # Check for undeclared variables (causes SC hangs)
+    undeclared = find_undeclared_variables(content)
+    for var in undeclared:
+        result.add_error(f"undeclared variable '{var}' (add to var statement)")
+    
     # Check for inline directive
     is_inline = has_inline_directive(content)  # Check original (directive is in a comment)
     
@@ -501,7 +579,7 @@ def validate_synthdef(scd_path: Path, pack_id: str, generator_id: str) -> Valida
         if len(helper_positions) == len(POST_CHAIN_ORDER):
             positions = [helper_positions[h] for h in POST_CHAIN_ORDER]
             if positions != sorted(positions):
-                result.add_error("post-chain order wrong: must be ~multiFilter → ~envVCA → ~ensure2ch")
+                result.add_error("post-chain order wrong: must be ~multiFilter ?+' ~envVCA ?+' ~ensure2ch")
     
     # Check Out.ar
     if "Out.ar" not in content:
@@ -595,7 +673,7 @@ def print_validation_report(validation: PackValidation, verbose: bool = False):
         
         if verbose:
             for warning in result.warnings:
-                print(f"       \033[93m⚠ {warning}\033[0m")
+                print(f"       \033[93m⚠️  {warning}\033[0m")
     
     print(f"\n{'-'*60}")
     

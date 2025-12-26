@@ -54,4 +54,4 @@ SynthDef(\example_pulse_bass, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     Out.ar(out, sig);
 }).add;
 
-"  ✓ example_pulse_bass loaded".postln;
+"  [x] example_pulse_bass loaded".postln;

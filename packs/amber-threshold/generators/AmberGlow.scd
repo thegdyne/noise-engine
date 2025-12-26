@@ -101,4 +101,4 @@ SynthDef(\amberglow, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ amberglow loaded".postln;
+"  [x] amberglow loaded".postln;

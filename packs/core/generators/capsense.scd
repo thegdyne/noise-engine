@@ -2,7 +2,7 @@
 CapSense Generator
 Capacitive touch sensor inspired relaxation oscillator
 
-Signal flow: Relaxation Osc → Waveshaping → Filter → ENV VCA → Output
+Signal flow: Relaxation Osc -> Waveshaping -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 sensitivity: 0-1 (touch responsiveness)
@@ -61,4 +61,4 @@ SynthDef(\capsense, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ capsense loaded".postln;
+"  [x] capsense loaded".postln;

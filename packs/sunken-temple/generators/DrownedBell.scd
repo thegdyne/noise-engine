@@ -104,4 +104,4 @@ SynthDef(\drownedbell, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ drownedbell loaded".postln;
+"  [x] drownedbell loaded".postln;

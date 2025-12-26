@@ -103,4 +103,4 @@ SynthDef(\stonepath, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ stonepath loaded".postln;
+"  [x] stonepath loaded".postln;

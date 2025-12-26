@@ -142,4 +142,4 @@ SynthDef(\dagon, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ dagon loaded".postln;
+"  [x] dagon loaded".postln;

@@ -1,4 +1,4 @@
-// Wild Mane — Chaotic hair texture with granular noise
+// Wild Mane -- Chaotic hair texture with granular noise
 // Role: motion | Family: texture
 
 SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -37,11 +37,11 @@ SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, cutoffBus, resBus, attackBu
     whipRate = whip;
     chaosLFO = LFNoise2.kr(whipRate) * wild;
 
-    // Hair strand layers — filtered noise bursts
+    // Hair strand layers -- filtered noise bursts
     strands = Dust.ar(frizz) * WhiteNoise.ar;
     strands = RLPF.ar(strands, freq * (1 + (chaosLFO * 2)).clip(0.5, 4), 0.3);
 
-    // Tangled complexity — multiple detuned layers
+    // Tangled complexity -- multiple detuned layers
     layers = Mix.fill(tangle.round, { |i|
         var detune, rate, strand;
         detune = LFNoise1.kr(whipRate * 0.3).range(0.8, 1.2);

@@ -1,4 +1,4 @@
-// Fang Strike — Modal synthesis of bone/ivory tusks
+// Fang Strike -- Modal synthesis of bone/ivory tusks
 // Role: accent | Family: physical
 
 SynthDef(\forge_rakshasa_fang_strike, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -47,7 +47,7 @@ SynthDef(\forge_rakshasa_fang_strike, { |out, freqBus, cutoffBus, resBus, attack
     // Modal decay times based on bone hardness
     modeDecays = [1.0, 0.7, 0.4, 0.25, 0.15] * decay * snap * bone.linlin(0.9, 0.995, 0.5, 2);
 
-    // Exciter — sharp click
+    // Exciter -- sharp click
     exciter = Impulse.ar(0) * EnvGen.ar(Env.perc(bite, 0.001), doneAction: 0);
     exciter = exciter + (WhiteNoise.ar * EnvGen.ar(Env.perc(0.0001, bite * 10)));
 

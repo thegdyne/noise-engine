@@ -1,4 +1,4 @@
-// Wax Wings — melting, failing, coming apart
+// Wax Wings -- melting, failing, coming apart
 // Role: foreground
 
 SynthDef(\forge_icarus_wax_wings, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

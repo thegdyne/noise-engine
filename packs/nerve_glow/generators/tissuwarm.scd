@@ -1,5 +1,5 @@
-// TISSUWARM — Warm tissue formant
-// Organic, breathy, living tissue warmth — amber glow
+// TISSUWARM -- Warm tissue formant
+// Organic, breathy, living tissue warmth -- amber glow
 
 SynthDef(\forge_nerve_glow_tissuwarm, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                          filterTypeBus, envEnabledBus, envSourceBus=0,

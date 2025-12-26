@@ -1,4 +1,4 @@
-// Gold Ring — Metallic ring modulation with pendulum swing
+// Gold Ring -- Metallic ring modulation with pendulum swing
 // Role: motion | Family: physical
 
 SynthDef(\forge_rakshasa_gold_ring, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -33,13 +33,13 @@ SynthDef(\forge_rakshasa_gold_ring, { |out, freqBus, cutoffBus, resBus, attackBu
     clang = In.kr(customBus3).linexp(0, 1, 0.01, 0.001);   // Attack sharpness
     chain = In.kr(customBus4).linlin(0, 1, 0.9, 0.998);    // Resonance/sustain
 
-    // Swing modulation — pendulum movement
+    // Swing modulation -- pendulum movement
     swingMod = SinOsc.kr(swing).range(0.95, 1.05);
 
-    // Carrier — clean tone
+    // Carrier -- clean tone
     carrier = SinOsc.ar(freq * swingMod);
 
-    // Modulator for ring mod — inharmonic ratio for metal
+    // Modulator for ring mod -- inharmonic ratio for metal
     modulator = SinOsc.ar(freq * 1.414 * swingMod);  // sqrt(2) for metallic
 
     // Ring modulation
@@ -48,7 +48,7 @@ SynthDef(\forge_rakshasa_gold_ring, { |out, freqBus, cutoffBus, resBus, attackBu
     // Mix clean and ring mod based on metal
     sig = (carrier * (1 - metal)) + (ringMod * metal);
 
-    // Shimmer — high harmonics for gold shine
+    // Shimmer -- high harmonics for gold shine
     shimmer = SinOsc.ar(freq * shine * swingMod) * 0.2;
     shimmer = shimmer + (SinOsc.ar(freq * shine * 1.5 * swingMod) * 0.1);
     sig = sig + (shimmer * shine.linlin(1, 4, 0, 0.5));

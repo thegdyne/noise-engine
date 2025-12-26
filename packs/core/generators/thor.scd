@@ -153,4 +153,4 @@ SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ thor loaded".postln;
+"  [x] thor loaded".postln;

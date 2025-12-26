@@ -106,4 +106,4 @@ SynthDef(\stonerain, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ stonerain loaded".postln;
+"  [x] stonerain loaded".postln;

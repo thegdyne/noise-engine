@@ -104,4 +104,4 @@ SynthDef(\voidchant, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ voidchant loaded".postln;
+"  [x] voidchant loaded".postln;

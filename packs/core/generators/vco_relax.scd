@@ -2,7 +2,7 @@
 VCO Relax Generator
 Relaxation oscillator inspired by Elektor circuits
 
-Signal flow: Relaxation Osc → Waveshaping → Filter → ENV VCA → Output
+Signal flow: Relaxation Osc -> Waveshaping -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 charge_rate: 0-1 (capacitor charge speed)
@@ -59,4 +59,4 @@ SynthDef(\vcoRelax, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ vcoRelax loaded".postln;
+"  [x] vcoRelax loaded".postln;

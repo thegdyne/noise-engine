@@ -98,4 +98,4 @@ SynthDef(\tb303, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ tb303 loaded".postln;
+"  [x] tb303 loaded".postln;

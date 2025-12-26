@@ -91,4 +91,4 @@ SynthDef(\ms20, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ ms20 loaded".postln;
+"  [x] ms20 loaded".postln;

@@ -6,7 +6,7 @@
         {
             "key": "glow",
             "label": "GLO",
-            "tooltip": "Glow – PWM depth for shimmering warmth",
+            "tooltip": "Glow - PWM depth for shimmering warmth",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "haze",
             "label": "HZE",
-            "tooltip": "Haze – chorus diffusion amount",
+            "tooltip": "Haze - chorus diffusion amount",
             "default": 0.45,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "depth",
             "label": "DPT",
-            "tooltip": "Depth – layered voices for richness",
+            "tooltip": "Depth - layered voices for richness",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "shift",
             "label": "SHF",
-            "tooltip": "Shift – subtle detuning between layers",
+            "tooltip": "Shift - subtle detuning between layers",
             "default": 0.35,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "air",
             "label": "AIR",
-            "tooltip": "Air – high frequency shimmer and breath",
+            "tooltip": "Air - high frequency shimmer and breath",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,

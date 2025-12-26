@@ -6,7 +6,7 @@
         {
             "key": "velocity",
             "label": "VEL",
-            "tooltip": "Velocity — terminal speed intensity",
+            "tooltip": "Velocity -- terminal speed intensity",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "blur",
             "label": "BLR",
-            "tooltip": "Blur — motion smear, chorus depth",
+            "tooltip": "Blur -- motion smear, chorus depth",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "mach",
             "label": "MCH",
-            "tooltip": "Mach — approaching sound barrier edge",
+            "tooltip": "Mach -- approaching sound barrier edge",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "wake",
             "label": "WAK",
-            "tooltip": "Wake — turbulent trail behind",
+            "tooltip": "Wake -- turbulent trail behind",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "doppler",
             "label": "DOP",
-            "tooltip": "Doppler — frequency shift from motion",
+            "tooltip": "Doppler -- frequency shift from motion",
             "default": 0.3,
             "min": 0.0,
             "max": 1.0,

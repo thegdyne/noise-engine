@@ -110,4 +110,4 @@ SynthDef(\abyssgate, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ abyssgate loaded".postln;
+"  [x] abyssgate loaded".postln;

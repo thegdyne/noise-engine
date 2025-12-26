@@ -136,4 +136,4 @@ SynthDef(\tether, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ tether loaded".postln;
+"  [x] tether loaded".postln;

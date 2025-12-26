@@ -1,4 +1,4 @@
-// Glory — blinding beauty of the sun up close
+// Glory -- blinding beauty of the sun up close
 // Role: accent
 
 SynthDef(\forge_icarus_glory, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -8,7 +8,7 @@ SynthDef(\forge_icarus_glory, { |out, freqBus, cutoffBus, resBus, attackBus, dec
                                  customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var blind, awe, rays, divine, moment;
     var light, harmonics, shimmer, frozen, numRays;
     // @forge: inline_post_chain
@@ -41,12 +41,12 @@ SynthDef(\forge_icarus_glory, { |out, freqBus, cutoffBus, resBus, attackBus, dec
 
     // Harmonic rays - additive partials
     harmonics = SinOsc.ar(freq * 2, 0, 0.3);
-    harmonics = harmonics + SinOsc.ar(freq * 3, 0, 0.2 * (numRays > 2));
-    harmonics = harmonics + SinOsc.ar(freq * 4, 0, 0.15 * (numRays > 3));
-    harmonics = harmonics + SinOsc.ar(freq * 5, 0, 0.12 * (numRays > 4));
-    harmonics = harmonics + SinOsc.ar(freq * 6, 0, 0.1 * (numRays > 5));
-    harmonics = harmonics + SinOsc.ar(freq * 7, 0, 0.08 * (numRays > 6));
-    harmonics = harmonics + SinOsc.ar(freq * 8, 0, 0.06 * (numRays > 7));
+    harmonics = harmonics + SinOsc.ar(freq * 3, 0, 0.2 * (numRays > 2).asInteger.asInteger);
+    harmonics = harmonics + SinOsc.ar(freq * 4, 0, 0.15 * (numRays > 3).asInteger.asInteger);
+    harmonics = harmonics + SinOsc.ar(freq * 5, 0, 0.12 * (numRays > 4).asInteger.asInteger);
+    harmonics = harmonics + SinOsc.ar(freq * 6, 0, 0.1 * (numRays > 5).asInteger.asInteger);
+    harmonics = harmonics + SinOsc.ar(freq * 7, 0, 0.08 * (numRays > 6).asInteger.asInteger);
+    harmonics = harmonics + SinOsc.ar(freq * 8, 0, 0.06 * (numRays > 7).asInteger.asInteger);
 
     // Divine shimmer - detuned high partials
     shimmer = SinOsc.ar(freq * 4 * LFNoise2.kr(moment, 0.02, 1), 0, divine);
@@ -56,12 +56,12 @@ SynthDef(\forge_icarus_glory, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     sig = (light + harmonics + shimmer) * blind;
 
     // Wide stereo spread - enveloping light
-    sig = Pan2.ar(Mix(sig), SinOsc.kr((0.3 * moment).max(0.001)).range(-(0.6).clip(0,1), (0.6).clip(0,1)));
+    sig = Pan2.ar(Mix(sig), SinOsc.kr((0.3 * moment).max(0.001)).range((-0.6).clip(0,1), 0.6));
     // Output chain (inlined; avoids global helpers for NRT stability)
     sig = LeakDC.ar(sig);
     ne_panRate = (0.3 * moment).max(0.001);
     ne_panWidth = (0.6).clip(0, 1);
-    ne_pan = SinOsc.kr(ne_panRate).range(-ne_panWidth, ne_panWidth);
+    ne_pan = SinOsc.kr(ne_panRate).range(ne_panWidth.neg, ne_panWidth);
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = Pan2.ar(neArr[0], ne_pan) }, { sig = neArr });
 

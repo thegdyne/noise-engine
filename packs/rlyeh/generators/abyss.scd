@@ -131,4 +131,4 @@ SynthDef(\abyss, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ abyss loaded".postln;
+"  [x] abyss loaded".postln;

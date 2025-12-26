@@ -99,4 +99,4 @@ SynthDef(\coldshadow, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ coldshadow loaded".postln;
+"  [x] coldshadow loaded".postln;

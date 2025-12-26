@@ -2,7 +2,7 @@
 Neon Relax Generator
 Neon bulb relaxation oscillator inspired by Elektor
 
-Signal flow: Neon Oscillator → Glow simulation → Filter → ENV VCA → Output
+Signal flow: Neon Oscillator -> Glow simulation -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 strike_voltage: 0-1 (ionization threshold)
@@ -60,4 +60,4 @@ SynthDef(\neonRelax, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ neonRelax loaded".postln;
+"  [x] neonRelax loaded".postln;

@@ -140,4 +140,4 @@ SynthDef(\liminal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ liminal loaded".postln;
+"  [x] liminal loaded".postln;

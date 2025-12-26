@@ -6,7 +6,7 @@
     {
       "key": "rustle",
       "label": "RST",
-      "tooltip": "Rustle density — how many leaves are moving",
+      "tooltip": "Rustle density -- how many leaves are moving",
       "default": 0.6,
       "min": 0.0,
       "max": 1.0,
@@ -16,7 +16,7 @@
     {
       "key": "wind",
       "label": "WND",
-      "tooltip": "Wind speed — rate of movement and chaos",
+      "tooltip": "Wind speed -- rate of movement and chaos",
       "default": 0.4,
       "min": 0.0,
       "max": 1.0,
@@ -26,7 +26,7 @@
     {
       "key": "wet",
       "label": "WET",
-      "tooltip": "Wetness — damp leaves are quieter, muffled",
+      "tooltip": "Wetness -- damp leaves are quieter, muffled",
       "default": 0.3,
       "min": 0.0,
       "max": 1.0,
@@ -36,7 +36,7 @@
     {
       "key": "pile",
       "label": "PIL",
-      "tooltip": "Pile depth — layered rustling echoes",
+      "tooltip": "Pile depth -- layered rustling echoes",
       "default": 0.4,
       "min": 0.0,
       "max": 1.0,
@@ -46,7 +46,7 @@
     {
       "key": "curl",
       "label": "CRL",
-      "tooltip": "Curl and crunch — crispy dried leaf character",
+      "tooltip": "Curl and crunch -- crispy dried leaf character",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,

@@ -2,7 +2,7 @@
 Wavetable Generator
 Interpolating wavetable synthesis with multiple waveforms
 
-Signal flow: Wavetables → Mix/Morph → Filter → ENV VCA → Output
+Signal flow: Wavetables -> Mix/Morph -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 wave_position: 0-1 (position in wavetable)
@@ -68,4 +68,4 @@ SynthDef(\wavetable, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ wavetable loaded".postln;
+"  [x] wavetable loaded".postln;

@@ -1,4 +1,4 @@
-// Tongue Lash — Forked tongue with pitch dive and squelchy FM
+// Tongue Lash -- Forked tongue with pitch dive and squelchy FM
 // Role: accent | Family: FM
 
 SynthDef(\forge_rakshasa_tongue_lash, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -32,7 +32,7 @@ SynthDef(\forge_rakshasa_tongue_lash, { |out, freqBus, cutoffBus, resBus, attack
     curl = In.kr(customBus3).linlin(0, 1, 0, 12);         // Vibrato Hz
     drip = In.kr(customBus4).linlin(0, 1, 0.3, 2);        // Decay modifier
 
-    // Pitch envelope — dives down from high on trigger
+    // Pitch envelope -- dives down from high on trigger
     pitchEnv = EnvGen.kr(Env.perc(0.001, decay * drip), doneAction: 0);
     freq = freq * (1 + ((lash - 1) * pitchEnv));
 
@@ -43,7 +43,7 @@ SynthDef(\forge_rakshasa_tongue_lash, { |out, freqBus, cutoffBus, resBus, attack
     // Detuning for forked tongues
     detuneAmt = (fork - 1) * 0.5;
 
-    // FM modulator — squelchy character
+    // FM modulator -- squelchy character
     modulator = SinOsc.ar(freq * 2) * slime * freq;
 
     // Two forked tongue oscillators

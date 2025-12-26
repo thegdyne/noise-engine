@@ -130,4 +130,4 @@ SynthDef(\rlyeh, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ rlyeh loaded".postln;
+"  [x] rlyeh loaded".postln;

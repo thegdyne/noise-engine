@@ -5,7 +5,7 @@ SynthDef(\forge_fuego_celeste_magma_drone, { |out, freqBus, cutoffBus, resBus, a
                                               customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var depth, churn, heat, pressure, rumble;
     var baseFreq, churnLFO, heatDrive, subOsc, chaosOsc, rumbleNoise, mixed;
     // @forge: inline_post_chain

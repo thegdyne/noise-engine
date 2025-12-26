@@ -1,4 +1,4 @@
-// Ash — disintegration, becoming particles
+// Ash -- disintegration, becoming particles
 // Role: accent
 
 SynthDef(\forge_icarus_ash, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

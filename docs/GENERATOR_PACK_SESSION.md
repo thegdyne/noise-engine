@@ -102,6 +102,149 @@ sig = Limiter.ar(sig, 0.95);
 sig = ~ensure2ch.(sig);
 Out.ar(out, sig);
 ```
+## Inline Post-Chain Pattern
+
+Some generators implement the filter/envelope chain inline rather than using the shared helpers (`~multiFilter`, `~envVCA`, `~ensure2ch`). This is valid when the generator needs custom behavior (e.g., acid-style filter envelope, custom stereo handling).
+
+### Directive
+
+Add this comment after the `var` declarations to opt out of helper requirements:
+```supercollider
+SynthDef(\forge_pack_name, { |out, freqBus, cutoffBus, ...|
+    var sig, freq, filterFreq, rq, ...;
+    var myCustomVars;
+    // @forge: inline_post_chain
+    
+    // ... rest of generator
+```
+
+### What the Directive Does
+
+- `forge_validate.py` skips helper call checks
+- Instead validates minimal contract:
+  - `Out.ar` present
+  - Some stereo handling detected
+  - Some envelope/amplitude control detected
+  - Some filter implementation detected (warning if missing)
+
+### When to Use Inline
+
+| Use Case | Example |
+|----------|---------|
+| Custom filter envelope | Acid 303-style squelch with per-note filter sweep |
+| Non-standard envelope | Complex multi-stage or triggered differently |
+| Specialized stereo | Width tied to a parameter, not LFO |
+| Performance optimization | Avoiding helper overhead in CPU-heavy generators |
+
+### Inline Implementation Pattern
+```supercollider
+    // Standard bus reads (same as always)
+    freq = In.kr(freqBus);
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envSource = In.kr(envSourceBus);
+    clockRate = In.kr(clockRateBus);
+    amp = 0.2;  // or read from bus
+
+    // ... DSP here ...
+
+    // Inline output chain
+    sig = LeakDC.ar(sig);
+    
+    // Inline stereo ensure
+    neArr = sig.asArray;
+    if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
+
+    // Inline filter (Select across all types)
+    ne_cut = filterFreq.clip(20, 18000);
+    ne_rq = rq.clip(0.05, 2);
+    ne_lp = RLPF.ar(sig, ne_cut, ne_rq);
+    ne_hp = RHPF.ar(sig, ne_cut, ne_rq);
+    ne_bp = BPF.ar(sig, ne_cut, ne_rq);
+    ne_nt = BRF.ar(sig, ne_cut, ne_rq);
+    ne_lp2 = RLPF.ar(ne_lp, ne_cut, ne_rq);
+    ne_off = sig;
+    sig = Select.ar(filterType.round.clip(0, 5), [ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off]);
+
+    // Inline envelope VCA
+    ne_atkT = attack.linexp(0, 1, 0.001, 2);
+    ne_relT = decay.linexp(0, 1, 0.05, 4);
+    trig = Select.kr(envSource.round.clip(0, 2), [
+        0,
+        Select.kr(clockRate.round.clip(0, 12), In.kr(clockTrigBus, 13)),
+        Select.kr(slotIndex.clip(0, 7), In.kr(midiTrigBus, 8))
+    ]);
+    ne_env = Select.kr(envSource.round.clip(0, 2), [
+        1.0,
+        Decay2.kr(trig, ne_atkT, ne_relT),
+        Decay2.kr(trig, ne_atkT, ne_relT)
+    ]);
+    sig = sig * ne_env * amp;
+
+    // Final stereo ensure
+    neArr = sig.asArray;
+    if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
+    Out.ar(out, sig);
+```
+
+### NRT Validation Notes
+
+The `forge_audio_validate.py` NRT transform handles both helper-based and inline generators:
+
+| Pattern | Transform |
+|---------|-----------|
+| `In.ar(clockTrigBus, N)` | → `DC.ar(0) ! N` |
+| `In.kr(clockTrigBus, N)` | → `DC.kr(0) ! N` |
+| `In.ar(midiTrigBus, N)` | → `DC.ar(0) ! N` |
+| `In.kr(midiTrigBus, N)` | → `DC.kr(0) ! N` |
+| `ampBus` references | Kept in arg list as `ampBus=(-1)` |
+| Complex amp selection | Neutralized to constant `0.5` |
+
+If an inline generator fails NRT render with undefined variable errors, check that:
+1. Trigger bus reads use standard pattern (`In.kr(clockTrigBus, 13)`)
+2. No custom arguments beyond the standard contract
+
+### Batch Adding Directive
+
+To add the directive to multiple generators:
+```bash
+# Create list of files
+cat << 'EOF' > /tmp/inline_generators.txt
+packs/pack_name/generators/gen1.scd
+packs/pack_name/generators/gen2.scd
+EOF
+
+# Batch insert after last var line
+while read -r file; do
+  if [ -f "$file" ]; then
+    last_var=$(grep -n "^    var " "$file" | tail -1 | cut -d: -f1)
+    sed -i '' "${last_var}a\\
+    // @forge: inline_post_chain
+" "$file"
+    echo "✓ $(basename $file)"
+  fi
+done < /tmp/inline_generators.txt
+```
+
+### Generators Using Inline Pattern
+
+These generators use inline post-chain (directive added Dec 2025):
+
+- `aurora_cave`: aurora, boreal
+- `beacon_vigil`: threshold
+- `block_walk`: stride_bass, leather_creak, sunset_pad, snap_clap
+- `boneyard`: canopy
+- `dew_sphere`: surface_tension, filament_bed, droplet_ping
+- `drangarnir`: wave_crash
+- `fuego_celeste`: magma_drone, star_ping
+- `icarus`: glory
+- `moss_root`: root_drone, branch_snap, leaf_fall, canopy_tone, lichen_bell
+- `seagrass_bay`: crystal_spring
+- `summer_of_love`: acid_bloom
+- `wax_print`: bold_motif
 
 ## Pack Structure
 ```

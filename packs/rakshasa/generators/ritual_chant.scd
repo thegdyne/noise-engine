@@ -1,4 +1,4 @@
-// Ritual Chant — Formant vocal synthesis for invocations
+// Ritual Chant -- Formant vocal synthesis for invocations
 // Role: foreground | Family: physical
 
 SynthDef(\forge_rakshasa_ritual_chant, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -42,7 +42,7 @@ SynthDef(\forge_rakshasa_ritual_chant, { |out, freqBus, cutoffBus, resBus, attac
     // Apply pitch modulations
     freq = freq * (1 + vibrato + drift);
 
-    // Source — rich pulse wave for vocal cord simulation
+    // Source -- rich pulse wave for vocal cord simulation
     source = Pulse.ar(freq, 0.3 + (LFNoise1.kr(1) * 0.1));
 
     // Add harmonics for prayer complexity
@@ -53,7 +53,7 @@ SynthDef(\forge_rakshasa_ritual_chant, { |out, freqBus, cutoffBus, resBus, attac
     });
     source = source + (harmonics * 0.3);
 
-    // Formant frequencies — morphs between vowels based on vox
+    // Formant frequencies -- morphs between vowels based on vox
     // Dark (O/U) at 0, bright (I/E/A) at 1
     formantFreqs = [
         vox.linlin(0, 1, 300, 800),   // F1

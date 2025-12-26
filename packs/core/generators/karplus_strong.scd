@@ -2,7 +2,7 @@
 Karplus-Strong Generator
 Physical modeling string/pluck synthesis
 
-Signal flow: Exciter → Delay Loop → Filter → ENV VCA → Output
+Signal flow: Exciter -> Delay Loop -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 exciter_color: 0-1 (dark thump <-> bright click)
@@ -80,4 +80,4 @@ SynthDef(\karplusStrong, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus
     Out.ar(out, sig);
 }).add;
 
-"  ✓ karplusStrong loaded".postln;
+"  [x] karplusStrong loaded".postln;

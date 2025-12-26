@@ -6,7 +6,7 @@
         {
             "key": "fork",
             "label": "FRK",
-            "tooltip": "Forked split — how far the two tongues detune apart",
+            "tooltip": "Forked split -- how far the two tongues detune apart",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "lash",
             "label": "LSH",
-            "tooltip": "Lash intensity — pitch dive depth on attack",
+            "tooltip": "Lash intensity -- pitch dive depth on attack",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "slime",
             "label": "SLM",
-            "tooltip": "Sliminess — wet squelchy FM modulation",
+            "tooltip": "Sliminess -- wet squelchy FM modulation",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "curl",
             "label": "CRL",
-            "tooltip": "Tongue curl — vibrato and wavering movement",
+            "tooltip": "Tongue curl -- vibrato and wavering movement",
             "default": 0.3,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "drip",
             "label": "DRP",
-            "tooltip": "Drip — how the sound decays and drools off",
+            "tooltip": "Drip -- how the sound decays and drools off",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,

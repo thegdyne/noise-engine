@@ -111,4 +111,4 @@ SynthDef(\darkwater, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ darkwater loaded".postln;
+"  [x] darkwater loaded".postln;

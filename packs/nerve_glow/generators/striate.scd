@@ -1,5 +1,5 @@
-// STRIATE — Muscle striations
-// Rhythmic banded patterns — the repeating structure of muscle tissue
+// STRIATE -- Muscle striations
+// Rhythmic banded patterns -- the repeating structure of muscle tissue
 
 SynthDef(\forge_nerve_glow_striate, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                        filterTypeBus, envEnabledBus, envSourceBus=0,

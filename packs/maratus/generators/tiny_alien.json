@@ -6,7 +6,7 @@
     {
       "key": "alien",
       "label": "ALN",
-      "tooltip": "Alien – detuning and dissonance amount",
+      "tooltip": "Alien - detuning and dissonance amount",
       "default": 0.4,
       "min": 0.0,
       "max": 1.0,
@@ -16,7 +16,7 @@
     {
       "key": "tiny",
       "label": "TNY",
-      "tooltip": "Tiny – size impression via octave blend",
+      "tooltip": "Tiny - size impression via octave blend",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -26,7 +26,7 @@
     {
       "key": "weird",
       "label": "WRD",
-      "tooltip": "Weird – FM modulation complexity",
+      "tooltip": "Weird - FM modulation complexity",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -36,7 +36,7 @@
     {
       "key": "creep",
       "label": "CRP",
-      "tooltip": "Creep – slow movement and drift",
+      "tooltip": "Creep - slow movement and drift",
       "default": 0.3,
       "min": 0.0,
       "max": 1.0,
@@ -46,7 +46,7 @@
     {
       "key": "threat",
       "label": "THR",
-      "tooltip": "Threat – menacing low growl",
+      "tooltip": "Threat - menacing low growl",
       "default": 0.4,
       "min": 0.0,
       "max": 1.0,

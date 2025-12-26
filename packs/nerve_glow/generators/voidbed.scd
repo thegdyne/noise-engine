@@ -1,5 +1,5 @@
-// VOIDBED — Deep void background
-// Dark filtered noise drone — the black space around the tissue
+// VOIDBED -- Deep void background
+// Dark filtered noise drone -- the black space around the tissue
 
 SynthDef(\forge_nerve_glow_voidbed, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                        filterTypeBus, envEnabledBus, envSourceBus=0,

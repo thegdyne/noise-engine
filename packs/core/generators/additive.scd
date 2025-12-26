@@ -2,7 +2,7 @@
 Additive Generator
 Harmonic partial synthesis with spectral shaping
 
-Signal flow: Partials → Mix → Filter → ENV VCA → Output
+Signal flow: Partials -> Mix -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 partial_ratio: 0.5-4.0 (harmonic spacing multiplier)
@@ -62,4 +62,4 @@ SynthDef(\additive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ additive loaded".postln;
+"  [x] additive loaded".postln;

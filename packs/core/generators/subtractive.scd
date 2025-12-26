@@ -2,7 +2,7 @@
 Subtractive Generator
 Classic oscillator + filter synthesis
 
-Signal flow: Oscillators → Mix → Filter → ENV VCA → Output
+Signal flow: Oscillators -> Mix -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 osc_waveform: 0-3 (saw/square/tri/noise)
@@ -69,4 +69,4 @@ SynthDef(\subtractive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ subtractive loaded".postln;
+"  [x] subtractive loaded".postln;

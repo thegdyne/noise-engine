@@ -138,4 +138,4 @@ SynthDef(\dusk, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ dusk loaded".postln;
+"  [x] dusk loaded".postln;

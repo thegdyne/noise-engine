@@ -2,7 +2,7 @@
 FM Generator
 Frequency modulation synthesis with multiple algorithms
 
-Signal flow: Operators → Algorithm → Filter → ENV VCA → Output
+Signal flow: Operators -> Algorithm -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 ratio: 0.5-8.0 (modulator:carrier ratio)
@@ -66,4 +66,4 @@ SynthDef(\fm, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ fm loaded".postln;
+"  [x] fm loaded".postln;

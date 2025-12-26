@@ -2,7 +2,7 @@
 FBI Siren Generator
 Classic two-tone emergency siren
 
-Signal flow: Dual oscillators → Alternation → Filter → ENV VCA → Output
+Signal flow: Dual oscillators -> Alternation -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 tone_split: 0-1 (interval between tones)
@@ -64,4 +64,4 @@ SynthDef(\fbiSiren, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ fbiSiren loaded".postln;
+"  [x] fbiSiren loaded".postln;

@@ -104,4 +104,4 @@ SynthDef(\torchflicker, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ torchflicker loaded".postln;
+"  [x] torchflicker loaded".postln;

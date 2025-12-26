@@ -2,7 +2,7 @@
 Modal Generator
 Resonant body physical modeling
 
-Signal flow: Exciter → Modal Resonators → Filter → ENV VCA → Output
+Signal flow: Exciter -> Modal Resonators -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 material: 0-1 (wood <-> metal <-> glass)
@@ -79,4 +79,4 @@ SynthDef(\modal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ modal loaded".postln;
+"  [x] modal loaded".postln;

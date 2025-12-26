@@ -1,5 +1,5 @@
-// AXONWEB — Axon network granular
-// Diffuse cloud of nerve fibers — cyan shimmer spreading
+// AXONWEB -- Axon network granular
+// Diffuse cloud of nerve fibers -- cyan shimmer spreading
 
 SynthDef(\forge_nerve_glow_axonweb, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                        filterTypeBus, envEnabledBus, envSourceBus=0,

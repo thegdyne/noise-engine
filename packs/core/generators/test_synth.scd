@@ -2,7 +2,7 @@
 Test Synth Generator
 Simple sine oscillator for testing signal flow
 
-Signal flow: Sine → Filter → ENV VCA → Output
+Signal flow: Sine -> Filter -> ENV VCA -> Output
 */
 
 SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -35,4 +35,4 @@ SynthDef(\testSynth, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ testSynth loaded".postln;
+"  [x] testSynth loaded".postln;

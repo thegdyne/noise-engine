@@ -1,4 +1,4 @@
-// Demon Breath — Low exhale with formant resonances and growl
+// Demon Breath -- Low exhale with formant resonances and growl
 // Role: bed | Family: texture
 
 SynthDef(\forge_rakshasa_demon_breath, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -43,7 +43,7 @@ SynthDef(\forge_rakshasa_demon_breath, { |out, freqBus, cutoffBus, resBus, attac
     // Main breath noise
     breath = PinkNoise.ar;
 
-    // Formant resonances — demon vocal tract
+    // Formant resonances -- demon vocal tract
     formantFreqs = [heat * 0.8, heat * 1.2, heat * 2.5] * growlMod;
     formants = Mix.ar(
         formantFreqs.collect({ |f, i|

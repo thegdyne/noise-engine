@@ -1,4 +1,4 @@
-// Last Breath — human fragility, heartbeat and breath
+// Last Breath -- human fragility, heartbeat and breath
 // Role: foreground
 
 SynthDef(\forge_icarus_last_breath, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

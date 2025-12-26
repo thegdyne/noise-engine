@@ -1,4 +1,4 @@
-// Terminal — maximum velocity, blur of speed
+// Terminal -- maximum velocity, blur of speed
 // Role: motion
 
 SynthDef(\forge_icarus_terminal, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

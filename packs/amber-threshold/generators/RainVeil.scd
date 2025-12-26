@@ -101,4 +101,4 @@ SynthDef(\rainveil, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ rainveil loaded".postln;
+"  [x] rainveil loaded".postln;

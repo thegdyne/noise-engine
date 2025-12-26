@@ -16,7 +16,7 @@ SynthDef(\forge_wax_print_bold_motif, { |out, freqBus, cutoffBus, resBus, attack
                                          customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var geometry, repeat, contrast, symmetry, ink;
     var layer1, layer2, layer3, patternMod;
     // @forge: inline_post_chain

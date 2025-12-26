@@ -6,7 +6,7 @@
         {
             "key": "leather",
             "label": "LTH",
-            "tooltip": "Leather – material resonance character",
+            "tooltip": "Leather - material resonance character",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "step",
             "label": "STP",
-            "tooltip": "Step – rhythmic pulse rate",
+            "tooltip": "Step - rhythmic pulse rate",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "rub",
             "label": "RUB",
-            "tooltip": "Rub – friction noise amount",
+            "tooltip": "Rub - friction noise amount",
             "default": 0.45,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "age",
             "label": "AGE",
-            "tooltip": "Age – worn, creaky character",
+            "tooltip": "Age - worn, creaky character",
             "default": 0.35,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "movement",
             "label": "MVT",
-            "tooltip": "Movement – motion complexity and variation",
+            "tooltip": "Movement - motion complexity and variation",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,

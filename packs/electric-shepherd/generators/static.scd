@@ -144,4 +144,4 @@ SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ static loaded".postln;
+"  [x] static loaded".postln;

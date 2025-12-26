@@ -8,7 +8,7 @@ SynthDef(\forge_dew_sphere_surface_tension, { |out, freqBus, cutoffBus, resBus, 
     customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var tension, cohesion, size, drift, air;
     var osc1, osc2, osc3, bindMod, driftMod, breath;
     var detune, phaseLink;

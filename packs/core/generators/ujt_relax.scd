@@ -2,7 +2,7 @@
 UJT Relax Generator
 Unijunction transistor relaxation oscillator
 
-Signal flow: UJT Oscillator → Waveshaping → Filter → ENV VCA → Output
+Signal flow: UJT Oscillator -> Waveshaping -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 peak_voltage: 0-1 (firing threshold)
@@ -60,4 +60,4 @@ SynthDef(\ujtRelax, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ ujtRelax loaded".postln;
+"  [x] ujtRelax loaded".postln;

@@ -6,7 +6,7 @@
     {
       "key": "age",
       "label": "AGE",
-      "tooltip": "Ancient weathering — adds inharmonic partials and texture",
+      "tooltip": "Ancient weathering -- adds inharmonic partials and texture",
       "default": 0.4,
       "min": 0.0,
       "max": 1.0,
@@ -16,7 +16,7 @@
     {
       "key": "depth",
       "label": "DPT",
-      "tooltip": "Root depth — sub-octave layering",
+      "tooltip": "Root depth -- sub-octave layering",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -26,7 +26,7 @@
     {
       "key": "sap",
       "label": "SAP",
-      "tooltip": "Sap flow — slow pitch drift and movement",
+      "tooltip": "Sap flow -- slow pitch drift and movement",
       "default": 0.3,
       "min": 0.0,
       "max": 1.0,
@@ -36,7 +36,7 @@
     {
       "key": "grit",
       "label": "GRT",
-      "tooltip": "Bark texture — adds gritty harmonic content",
+      "tooltip": "Bark texture -- adds gritty harmonic content",
       "default": 0.2,
       "min": 0.0,
       "max": 1.0,
@@ -46,7 +46,7 @@
     {
       "key": "spread",
       "label": "SPR",
-      "tooltip": "Root spread — stereo width of the drone",
+      "tooltip": "Root spread -- stereo width of the drone",
       "default": 0.6,
       "min": 0.0,
       "max": 1.0,

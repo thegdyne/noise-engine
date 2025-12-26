@@ -101,4 +101,4 @@ SynthDef(\buchla, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ buchla loaded".postln;
+"  [x] buchla loaded".postln;

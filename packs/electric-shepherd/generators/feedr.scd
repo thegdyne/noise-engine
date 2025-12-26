@@ -127,4 +127,4 @@ SynthDef(\feedr, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ feedr loaded".postln;
+"  [x] feedr loaded".postln;

@@ -6,7 +6,7 @@
     {
       "key": "thickness",
       "label": "THK",
-      "tooltip": "Moss thickness — voice density and layering",
+      "tooltip": "Moss thickness -- voice density and layering",
       "default": 0.6,
       "min": 0.0,
       "max": 1.0,
@@ -16,7 +16,7 @@
     {
       "key": "dampness",
       "label": "DMP",
-      "tooltip": "Dampness — moisture darkening the texture",
+      "tooltip": "Dampness -- moisture darkening the texture",
       "default": 0.4,
       "min": 0.0,
       "max": 1.0,
@@ -26,7 +26,7 @@
     {
       "key": "growth",
       "label": "GRW",
-      "tooltip": "Growth rate — slow timbral evolution",
+      "tooltip": "Growth rate -- slow timbral evolution",
       "default": 0.3,
       "min": 0.0,
       "max": 1.0,
@@ -36,7 +36,7 @@
     {
       "key": "scatter",
       "label": "SPR",
-      "tooltip": "Spore scatter — random stereo placement",
+      "tooltip": "Spore scatter -- random stereo placement",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -46,7 +46,7 @@
     {
       "key": "sun",
       "label": "SUN",
-      "tooltip": "Sunlight through canopy — harmonic brightness",
+      "tooltip": "Sunlight through canopy -- harmonic brightness",
       "default": 0.3,
       "min": 0.0,
       "max": 1.0,

@@ -6,7 +6,7 @@
         {
             "key": "bone",
             "label": "BON",
-            "tooltip": "Bone hardness — material density of the fangs",
+            "tooltip": "Bone hardness -- material density of the fangs",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "bite",
             "label": "BIT",
-            "tooltip": "Bite force — attack transient sharpness",
+            "tooltip": "Bite force -- attack transient sharpness",
             "default": 0.7,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "tusk",
             "label": "TSK",
-            "tooltip": "Tusk size — formant shift, larger = deeper resonance",
+            "tooltip": "Tusk size -- formant shift, larger = deeper resonance",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "gnaw",
             "label": "GNW",
-            "tooltip": "Gnawing — grinding modulation on the tone",
+            "tooltip": "Gnawing -- grinding modulation on the tone",
             "default": 0.3,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "snap",
             "label": "SNP",
-            "tooltip": "Snap — release character, quick cutoff vs ring",
+            "tooltip": "Snap -- release character, quick cutoff vs ring",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,

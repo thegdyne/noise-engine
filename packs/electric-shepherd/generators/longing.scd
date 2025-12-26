@@ -133,4 +133,4 @@ SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ longing loaded".postln;
+"  [x] longing loaded".postln;

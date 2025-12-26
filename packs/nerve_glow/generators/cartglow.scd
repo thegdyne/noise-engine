@@ -1,4 +1,4 @@
-// CARTGLOW — Cartilage glow modal resonator
+// CARTGLOW -- Cartilage glow modal resonator
 // Bell-like resonances of ossifying tissue, yellow/gold accents
 
 SynthDef(\forge_nerve_glow_cartglow, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -32,7 +32,7 @@ SynthDef(\forge_nerve_glow_cartglow, { |out, freqBus, cutoffBus, resBus, attackB
     dens = In.kr(customBus3).linlin(0, 1, 2, 8);           // Mode count
     spark = In.kr(customBus4).linexp(0, 1, 2000, 12000);   // Exciter brightness
 
-    // Exciter — bright impulse filtered by spark
+    // Exciter -- bright impulse filtered by spark
     exciter = Impulse.ar(0) + Dust.ar(3);
     exciter = exciter * WhiteNoise.ar(1);
     exciter = LPF.ar(exciter, spark);

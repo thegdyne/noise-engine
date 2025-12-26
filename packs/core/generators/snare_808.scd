@@ -92,4 +92,4 @@ SynthDef(\snare_808, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ snare_808 loaded".postln;
+"  [x] snare_808 loaded".postln;

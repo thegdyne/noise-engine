@@ -2,7 +2,7 @@
 VCA Ring Generator
 VCA-based ring modulator (softer character)
 
-Signal flow: Carrier through VCA controlled by modulator → Filter → ENV VCA → Output
+Signal flow: Carrier through VCA controlled by modulator -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 mod_ratio: 0.1-10 (modulator frequency ratio)
@@ -65,4 +65,4 @@ SynthDef(\vcaRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ vcaRing loaded".postln;
+"  [x] vcaRing loaded".postln;

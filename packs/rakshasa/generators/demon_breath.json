@@ -6,7 +6,7 @@
         {
             "key": "heat",
             "label": "HET",
-            "tooltip": "Heat — spectral temperature, cold to burning",
+            "tooltip": "Heat -- spectral temperature, cold to burning",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "foul",
             "label": "FOL",
-            "tooltip": "Foulness — distortion and corruption of the breath",
+            "tooltip": "Foulness -- distortion and corruption of the breath",
             "default": 0.3,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "hiss",
             "label": "HSS",
-            "tooltip": "Hissing — amount of high frequency air noise",
+            "tooltip": "Hissing -- amount of high frequency air noise",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "depth",
             "label": "DPT",
-            "tooltip": "Depth — low frequency rumble from within",
+            "tooltip": "Depth -- low frequency rumble from within",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "growl",
             "label": "GRL",
-            "tooltip": "Growl — threatening modulation and rumble",
+            "tooltip": "Growl -- threatening modulation and rumble",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,

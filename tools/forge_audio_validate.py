@@ -252,7 +252,7 @@ def transform_synthdef_for_nrt(scd_content: str, synthdef_name: str) -> str:
     
     # Remove .add; and wrap
     code = re.sub(r'\)\.add;', ');', code)
-    code = 'def = ' + code.strip()
+    code = re.sub(r'(SynthDef\()', r'def = \1', code.strip(), count=1)
     
     # Remove postln lines
     lines = code.split('\n')

@@ -98,4 +98,4 @@ SynthDef(\kick_808, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ kick_808 loaded".postln;
+"  [x] kick_808 loaded".postln;

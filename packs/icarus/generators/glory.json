@@ -6,7 +6,7 @@
         {
             "key": "blind",
             "label": "BLD",
-            "tooltip": "Blinding — overwhelming brightness",
+            "tooltip": "Blinding -- overwhelming brightness",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "awe",
             "label": "AWE",
-            "tooltip": "Awe — harmonic transcendence",
+            "tooltip": "Awe -- harmonic transcendence",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "rays",
             "label": "RAY",
-            "tooltip": "Rays — light beam count",
+            "tooltip": "Rays -- light beam count",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "divine",
             "label": "DVN",
-            "tooltip": "Divine — ethereal overtone shimmer",
+            "tooltip": "Divine -- ethereal overtone shimmer",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "moment",
             "label": "MNT",
-            "tooltip": "Moment — frozen time dilation",
+            "tooltip": "Moment -- frozen time dilation",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,

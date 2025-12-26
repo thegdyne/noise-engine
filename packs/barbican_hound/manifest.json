@@ -4,7 +4,7 @@
   "name": "Barbican Hound",
   "version": "1.0.0",
   "author": "CQD_Forge",
-  "description": "Urban London nobility — brutalist concrete meets dignified canine, wet streets, red bus warmth against grey architecture",
+  "description": "Urban London nobility -- brutalist concrete meets dignified canine, wet streets, red bus warmth against grey architecture",
   "enabled": true,
   "generators": [
     "brutalist",

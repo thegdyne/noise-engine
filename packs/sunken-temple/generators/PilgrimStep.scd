@@ -110,4 +110,4 @@ SynthDef(\pilgrimstep, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ pilgrimstep loaded".postln;
+"  [x] pilgrimstep loaded".postln;

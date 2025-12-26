@@ -104,4 +104,4 @@ SynthDef(\juno, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ juno loaded".postln;
+"  [x] juno loaded".postln;

@@ -96,4 +96,4 @@ SynthDef(\sh101, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ sh101 loaded".postln;
+"  [x] sh101 loaded".postln;

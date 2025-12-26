@@ -132,4 +132,4 @@ SynthDef(\tempest, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ tempest loaded".postln;
+"  [x] tempest loaded".postln;

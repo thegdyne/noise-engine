@@ -107,4 +107,4 @@ SynthDef(\forgottenbreath, { |out, freqBus, cutoffBus, resBus, attackBus, decayB
     Out.ar(out, sig);
 }).add;
 
-"  ✓ forgottenbreath loaded".postln;
+"  [x] forgottenbreath loaded".postln;

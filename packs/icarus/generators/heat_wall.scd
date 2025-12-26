@@ -1,4 +1,4 @@
-// Heat Wall — approaching inferno, rising temperature
+// Heat Wall -- approaching inferno, rising temperature
 // Role: bed
 
 SynthDef(\forge_icarus_heat_wall, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

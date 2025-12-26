@@ -1,4 +1,4 @@
-// Third Eye — Piercing hypnotic FM tone
+// Third Eye -- Piercing hypnotic FM tone
 // Role: foreground | Family: FM
 
 SynthDef(\forge_rakshasa_third_eye, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -33,10 +33,10 @@ SynthDef(\forge_rakshasa_third_eye, { |out, freqBus, cutoffBus, resBus, attackBu
     focus = In.kr(customBus3).linlin(0, 1, 0.5, 0.05);     // Bandwidth (inverted)
     pulse = In.kr(customBus4).linexp(0, 1, 0.1, 8);        // Pulse rate
 
-    // Trance modulation — slow hypnotic movement
+    // Trance modulation -- slow hypnotic movement
     tranceMod = SinOsc.kr(0.1 + (trance * 2)) * trance;
 
-    // Pulse — internal throb
+    // Pulse -- internal throb
     pulseMod = SinOsc.kr(pulse).range(1 - (trance * 0.3), 1);
 
     // FM index varies with gaze and trance
@@ -54,7 +54,7 @@ SynthDef(\forge_rakshasa_third_eye, { |out, freqBus, cutoffBus, resBus, attackBu
 
     sig = (carrier + harmonicMix) * pulseMod;
 
-    // Focus — bandpass for tight vs diffuse
+    // Focus -- bandpass for tight vs diffuse
     focusBand = BPF.ar(sig, freq * 1.5, focus);
     sig = (sig * (1 - focus.linlin(0.05, 0.5, 0.5, 0))) + (focusBand * focus.linlin(0.05, 0.5, 0.5, 0));
 

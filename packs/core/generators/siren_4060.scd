@@ -2,7 +2,7 @@
 4060 Siren Generator
 CD4060 counter/divider siren circuit
 
-Signal flow: Counter outputs → Mix → Filter → ENV VCA → Output
+Signal flow: Counter outputs -> Mix -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 clock_rate: 0-1 (master clock speed)
@@ -62,4 +62,4 @@ SynthDef(\siren4060, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ siren4060 loaded".postln;
+"  [x] siren4060 loaded".postln;

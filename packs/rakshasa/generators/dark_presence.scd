@@ -1,4 +1,4 @@
-// Dark Presence — Deep sub drone from the void
+// Dark Presence -- Deep sub drone from the void
 // Role: bed | Family: subtractive
 
 SynthDef(\forge_rakshasa_dark_presence, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
@@ -45,14 +45,14 @@ SynthDef(\forge_rakshasa_dark_presence, { |out, freqBus, cutoffBus, resBus, atta
     // Add second harmonic for presence
     subOsc = subOsc + (SinOsc.ar(abyssFreq * 2 * creepMod) * void * 0.3);
 
-    // Mass layers — stacked oscillators for thickness
+    // Mass layers -- stacked oscillators for thickness
     layer1 = SinOsc.ar(abyssFreq * creepMod);
     layer2 = SinOsc.ar(abyssFreq * 1.5 * creepMod * LFNoise1.kr(creep * 0.5).range(0.99, 1.01));
     layer3 = SinOsc.ar(abyssFreq * 2 * creepMod * LFNoise1.kr(creep * 0.3).range(0.99, 1.01));
 
     massLayers = (layer1 + (layer2 * 0.5) + (layer3 * 0.3)) * mass.linlin(1, 4, 0.2, 0.5);
 
-    // Dread — dissonant detuning
+    // Dread -- dissonant detuning
     dissonance = SinOsc.ar(abyssFreq * (1 + dread) * creepMod) * dread * 10;
     dissonance = dissonance + (SinOsc.ar(abyssFreq * (1 - (dread * 0.7)) * creepMod) * dread * 8);
 

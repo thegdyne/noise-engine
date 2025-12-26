@@ -1,4 +1,4 @@
-// NERVESPK — Nerve impulse sparks
+// NERVESPK -- Nerve impulse sparks
 // Dust impulses through resonant filters, like neural firing patterns
 
 SynthDef(\forge_nerve_glow_nervespk, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

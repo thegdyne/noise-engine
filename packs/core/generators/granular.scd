@@ -2,7 +2,7 @@
 Granular Generator
 Micro-sample cloud synthesis using sine grains
 
-Signal flow: Grain Triggers → Grain Synthesis → Filter → ENV VCA → Output
+Signal flow: Grain Triggers -> Grain Synthesis -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 pitch_shift: -24 to +24 semitones
@@ -76,4 +76,4 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ granular loaded".postln;
+"  [x] granular loaded".postln;

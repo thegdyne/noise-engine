@@ -6,7 +6,7 @@
         {
             "key": "scatter",
             "label": "SCT",
-            "tooltip": "Scatter — particle dispersion rate",
+            "tooltip": "Scatter -- particle dispersion rate",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "ember",
             "label": "EMB",
-            "tooltip": "Ember — glowing remains brightness",
+            "tooltip": "Ember -- glowing remains brightness",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "dust",
             "label": "DST",
-            "tooltip": "Dust — fine particle density",
+            "tooltip": "Dust -- fine particle density",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "fade",
             "label": "FAD",
-            "tooltip": "Fade — dissolution into nothing",
+            "tooltip": "Fade -- dissolution into nothing",
             "default": 0.5,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "memory",
             "label": "MEM",
-            "tooltip": "Memory — echoes of what was",
+            "tooltip": "Memory -- echoes of what was",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,

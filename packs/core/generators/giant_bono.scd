@@ -2,7 +2,7 @@
 Giant B0N0 Generator
 Chaotic oscillator inspired by Rob Hordijk's Benjolin
 
-Signal flow: Dual oscillators → Rungler → XOR → Filter → ENV VCA → Output
+Signal flow: Dual oscillators -> Rungler -> XOR -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 osc2_ratio: 0.1-10 (second oscillator ratio)
@@ -74,4 +74,4 @@ SynthDef(\giantBono, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ giantBono loaded (chaos edition)".postln;
+"  [x] giantBono loaded (chaos edition)".postln;

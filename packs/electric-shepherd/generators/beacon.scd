@@ -132,4 +132,4 @@ SynthDef(\beacon, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ beacon loaded".postln;
+"  [x] beacon loaded".postln;

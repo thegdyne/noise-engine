@@ -6,7 +6,7 @@
     {
       "key": "red",
       "label": "RED",
-      "tooltip": "Red band – low formant intensity",
+      "tooltip": "Red band - low formant intensity",
       "default": 0.6,
       "min": 0.0,
       "max": 1.0,
@@ -16,7 +16,7 @@
     {
       "key": "blue",
       "label": "BLU",
-      "tooltip": "Blue band – mid formant intensity",
+      "tooltip": "Blue band - mid formant intensity",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -26,7 +26,7 @@
     {
       "key": "green",
       "label": "GRN",
-      "tooltip": "Green band – high formant intensity",
+      "tooltip": "Green band - high formant intensity",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -36,7 +36,7 @@
     {
       "key": "yellow",
       "label": "YLW",
-      "tooltip": "Yellow band – presence formant",
+      "tooltip": "Yellow band - presence formant",
       "default": 0.4,
       "min": 0.0,
       "max": 1.0,
@@ -46,7 +46,7 @@
     {
       "key": "blend",
       "label": "BND",
-      "tooltip": "Blend – cross-fade smoothness between bands",
+      "tooltip": "Blend - cross-fade smoothness between bands",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,

@@ -102,4 +102,4 @@ SynthDef(\thresholdhum, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ thresholdhum loaded".postln;
+"  [x] thresholdhum loaded".postln;

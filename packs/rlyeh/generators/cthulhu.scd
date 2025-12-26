@@ -129,4 +129,4 @@ SynthDef(\cthulhu, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ cthulhu loaded".postln;
+"  [x] cthulhu loaded".postln;

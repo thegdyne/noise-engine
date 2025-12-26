@@ -94,4 +94,4 @@ SynthDef(\clap_808, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ clap_808 loaded".postln;
+"  [x] clap_808 loaded".postln;

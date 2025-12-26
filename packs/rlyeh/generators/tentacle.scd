@@ -143,4 +143,4 @@ SynthDef(\tentacle, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ tentacle loaded".postln;
+"  [x] tentacle loaded".postln;

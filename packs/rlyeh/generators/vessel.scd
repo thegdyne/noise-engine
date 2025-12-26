@@ -138,4 +138,4 @@ SynthDef(\vessel, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ vessel loaded".postln;
+"  [x] vessel loaded".postln;

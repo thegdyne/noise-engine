@@ -69,7 +69,7 @@ SynthDef(\madness, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     fractureMod = LFNoise2.kr(0.5).range(0.98, 1.02);
     fractureOsc = SinOsc.ar(freq * fractureMod);
     // Tritone (the devil's interval)
-    fractureOsc = fractureOsc + (SinOsc.ar(freq * 1.414 * fractureMod) * 0.5);  // sqrt(2) ≈ tritone
+    fractureOsc = fractureOsc + (SinOsc.ar(freq * 1.414 * fractureMod) * 0.5);  // sqrt(2) ~= tritone
     // Minor second cluster
     fractureOsc = fractureOsc + (SinOsc.ar(freq * 1.059 * fractureMod) * 0.4);  // Minor 2nd
     fractureOsc = fractureOsc + (SinOsc.ar(freq * 0.944 * fractureMod) * 0.4);  // Minor 2nd down
@@ -137,4 +137,4 @@ SynthDef(\madness, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ madness loaded".postln;
+"  [x] madness loaded".postln;

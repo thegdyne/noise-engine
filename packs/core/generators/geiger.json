@@ -55,6 +55,6 @@
     ],
     "reference": {
         "source": "Physics model",
-        "notes": "Based on Geiger-Müller tube behavior: Poisson-distributed random clicks, dead time recovery causing clustering at high rates, discharge transients"
+        "notes": "Based on Geiger-M?ller tube behavior: Poisson-distributed random clicks, dead time recovery causing clustering at high rates, discharge transients"
     }
 }

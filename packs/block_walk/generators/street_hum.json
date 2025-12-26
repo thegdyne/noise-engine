@@ -6,7 +6,7 @@
         {
             "key": "hum",
             "label": "HUM",
-            "tooltip": "Hum – power line fundamental strength",
+            "tooltip": "Hum - power line fundamental strength",
             "default": 0.6,
             "min": 0.0,
             "max": 1.0,
@@ -16,7 +16,7 @@
         {
             "key": "distance",
             "label": "DST",
-            "tooltip": "Distance – how far away the source",
+            "tooltip": "Distance - how far away the source",
             "default": 0.4,
             "min": 0.0,
             "max": 1.0,
@@ -26,7 +26,7 @@
         {
             "key": "wire",
             "label": "WIR",
-            "tooltip": "Wire buzz – high frequency crackle",
+            "tooltip": "Wire buzz - high frequency crackle",
             "default": 0.3,
             "min": 0.0,
             "max": 1.0,
@@ -36,7 +36,7 @@
         {
             "key": "drift",
             "label": "DRF",
-            "tooltip": "Drift – slow pitch and amplitude wandering",
+            "tooltip": "Drift - slow pitch and amplitude wandering",
             "default": 0.35,
             "min": 0.0,
             "max": 1.0,
@@ -46,7 +46,7 @@
         {
             "key": "air",
             "label": "AIR",
-            "tooltip": "Air – breeze and ambient movement",
+            "tooltip": "Air - breeze and ambient movement",
             "default": 0.25,
             "min": 0.0,
             "max": 1.0,

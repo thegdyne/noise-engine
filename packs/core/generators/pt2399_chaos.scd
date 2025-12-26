@@ -2,7 +2,7 @@
 PT2399 Chaos Generator
 The unhinged version - dying chip simulation with MADNESS macro
 
-Signal flow: Noise Bursts → Delay/Chaos → Degradation → Filter → ENV VCA → Output
+Signal flow: Noise Bursts -> Delay/Chaos -> Degradation -> Filter -> ENV VCA -> Output
 
 Custom params:
   - P1 delay_time: 0.005-5.0 s (longer = more degradation)
@@ -74,4 +74,4 @@ SynthDef(\pt2399Chaos, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ pt2399Chaos loaded".postln;
+"  [x] pt2399Chaos loaded".postln;

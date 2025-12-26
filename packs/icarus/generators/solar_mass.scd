@@ -1,4 +1,4 @@
-// Solar Mass — immense gravitational presence
+// Solar Mass -- immense gravitational presence
 // Role: bed
 
 SynthDef(\forge_icarus_solar_mass, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

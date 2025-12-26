@@ -1,5 +1,5 @@
-// MYOFIBER — Muscle fiber bowed string
-// Physical modeling of muscle tissue — warm, organic, pulsing
+// MYOFIBER -- Muscle fiber bowed string
+// Physical modeling of muscle tissue -- warm, organic, pulsing
 
 SynthDef(\forge_nerve_glow_myofiber, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                         filterTypeBus, envEnabledBus, envSourceBus=0,

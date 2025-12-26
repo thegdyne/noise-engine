@@ -136,4 +136,4 @@ SynthDef(\husk, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ husk loaded".postln;
+"  [x] husk loaded".postln;

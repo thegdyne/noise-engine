@@ -95,4 +95,4 @@ SynthDef(\drone, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ drone loaded".postln;
+"  [x] drone loaded".postln;

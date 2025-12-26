@@ -54,4 +54,4 @@ SynthDef(\example_sine_drone, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     Out.ar(out, sig);
 }).add;
 
-"  ✓ example_sine_drone loaded".postln;
+"  [x] example_sine_drone loaded".postln;

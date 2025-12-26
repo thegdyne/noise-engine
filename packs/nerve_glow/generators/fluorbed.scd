@@ -1,5 +1,5 @@
-// FLUORBED — Fluorescence spectral bed
-// Evolving additive harmonics — the glowing essence of fluorescent dyes
+// FLUORBED -- Fluorescence spectral bed
+// Evolving additive harmonics -- the glowing essence of fluorescent dyes
 
 SynthDef(\forge_nerve_glow_fluorbed, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
                                         filterTypeBus, envEnabledBus, envSourceBus=0,

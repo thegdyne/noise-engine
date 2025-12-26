@@ -5,7 +5,7 @@ SynthDef(\forge_block_walk_sunset_pad, { |out, freqBus, cutoffBus, resBus, attac
                                           customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
     var glow, haze, depth, shift, air;
     var pulse1, pulse2, pulse3, pwm1, pwm2, pwm3, detune;
     var chorus, airNoise;

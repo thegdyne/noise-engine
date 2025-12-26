@@ -5,9 +5,9 @@
   "custom_params": [
     {"key": "drop", "label": "DRP", "tooltip": "Impact sharpness of water drops", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
     {"key": "pane", "label": "PAN", "tooltip": "Surface resonance character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "bead", "label": "BED", "tooltip": "Decay time — how long drops ring", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "bead", "label": "BED", "tooltip": "Decay time -- how long drops ring", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
     {"key": "tint", "label": "TNT", "tooltip": "Brightness and color of the glass", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "pool", "label": "POL", "tooltip": "Accumulation — density of drops", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {"key": "pool", "label": "POL", "tooltip": "Accumulation -- density of drops", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
   ],
   "output_trim_db": -2.0,
   "midi_retrig": false,

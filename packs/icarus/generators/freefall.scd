@@ -1,4 +1,4 @@
-// Freefall — rushing descent, wind roar, tumbling
+// Freefall -- rushing descent, wind roar, tumbling
 // Role: motion
 
 SynthDef(\forge_icarus_freefall, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,

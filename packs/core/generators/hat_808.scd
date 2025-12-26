@@ -90,4 +90,4 @@ SynthDef(\hat_808, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     Out.ar(out, sig);
 }).add;
 
-"  ✓ hat_808 loaded".postln;
+"  [x] hat_808 loaded".postln;
