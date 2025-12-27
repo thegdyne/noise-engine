@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "mod_caf",
+  "name": "Mod Caf",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Modular synth workspace - patch cable textures, wood resonance, analog drift, acoustic tests",
+  "enabled": true,
+  "generators": [
+    "patch",
+    "slats",
+    "voltage",
+    "studio",
+    "osc",
+    "filter",
+    "lfo",
+    "test"
+  ]
+}

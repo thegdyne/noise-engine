@@ -1,0 +1,15 @@
+{
+  "generator_id": "pulse",
+  "name": "PULSE",
+  "synthdef": "forge_ex_machina_pulse",
+  "custom_params": [
+    {"key": "rate", "label": "RAT", "tooltip": "Pulse rate - energy rhythm", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "power", "label": "PWR", "tooltip": "Power level - core intensity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "surge", "label": "SRG", "tooltip": "Power surge - electrical spikes", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "glow", "label": "GLO", "tooltip": "Amber glow - warm light", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "stable", "label": "STB", "tooltip": "Stability - power consistency", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

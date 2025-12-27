@@ -1,0 +1,90 @@
+# contracts/gate.pack.yaml
+# Usage: cdd test contracts/gate.pack.yaml --var pack_id=nerve_glow
+contract: gate.pack
+version: 1.0.0
+status: draft
+description: Generic pack validation gate
+runner:
+  executor: shell
+  timeout_ms: 120000
+requirements:
+  - id: R001
+    priority: must
+    description: No UTF-8 mojibake corruption
+  - id: R002
+    priority: must
+    description: No NRT-breaking SC patterns
+  - id: R003
+    priority: must
+    description: Valid generator structure
+  - id: R004
+    priority: must
+    description: Audio safety (no silence/clipping/DC/runaway)
+tests:
+  - id: T001
+    name: utf8_clean_scd
+    requirement: R001
+    type: static
+    files: "../packs/{pack_id}/generators/*.scd"
+    assert:
+      - op: not_matches
+        pattern: "\u00c2\u00b1"
+        message: "Mojibake (double-encoded ±)"
+      - op: not_matches
+        pattern: "\u00e2\u0080"
+        message: "Mojibake (double-encoded punctuation)"
+  - id: T002
+    name: utf8_clean_json
+    requirement: R001
+    type: static
+    files: "../packs/{pack_id}/**/*.json"
+    assert:
+      - op: not_matches
+        pattern: "\u00c2"
+        message: "Mojibake: lone Â"
+  - id: T003
+    name: no_nrt_breaking_patterns
+    requirement: R002
+    type: static
+    files: "../packs/{pack_id}/generators/*.scd"
+    assert:
+      - op: not_matches
+        pattern: "=\\s*-[a-z][a-zA-Z]+"
+        message: "Unary minus before var (use .neg)"
+      - op: not_matches
+        pattern: "var\\s+gate\\s*[;,]"
+        message: "var gate is reserved"
+      - op: not_matches
+        pattern: "var\\s+amp\\s*[;,]"
+        message: "var amp conflicts with NRT"
+      - op: not_matches
+        pattern: "Mix\\.fill\\s*\\(\\s*[a-z]"
+        message: "Mix.fill count must be integer literal, not variable/UGen"
+      - op: not_matches
+        pattern: "Array\\.fill\\s*\\(\\s*[a-z]"
+        message: "Array.fill count must be integer literal, not variable/UGen"
+  - id: T004
+    name: static_validation
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["python", "../tools/forge_validate.py", "../packs/{pack_id}/"]
+        save_as: static
+    assert:
+      - op: eq
+        actual: $.static.ok
+        expected: true
+  - id: T005
+    name: audio_safety
+    requirement: R004
+    type: integration
+    tags: [audio, slow]
+    steps:
+      - action: shell
+        command: ["python", "../tools/forge_audio_validate.py", "../packs/{pack_id}/", "--render"]
+        save_as: audio
+    assert:
+      - op: eq
+        actual: $.audio.ok
+        expected: true

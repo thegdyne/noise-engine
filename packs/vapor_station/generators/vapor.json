@@ -1,0 +1,15 @@
+{
+  "generator_id": "vapor",
+  "name": "VAPOR",
+  "synthdef": "forge_vapor_station_vapor",
+  "custom_params": [
+    {"key": "density", "label": "DNS", "tooltip": "Fog density - thickness of atmosphere", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drift", "label": "DFT", "tooltip": "Drift speed - fog movement rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "depth", "label": "DPT", "tooltip": "Low frequency depth - sub presence", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "diffuse", "label": "DIF", "tooltip": "High diffusion - sparkle and air", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "damp", "label": "DMP", "tooltip": "Damping - fog cutoff frequency", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

@@ -1,0 +1,15 @@
+{
+  "generator_id": "pilgrim",
+  "name": "PILGRIM",
+  "synthdef": "forge_drowned_temple_pilgrim",
+  "custom_params": [
+    {"key": "breath", "label": "BRE", "tooltip": "Breath noise - aspirant texture", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "solitude", "label": "SOL", "tooltip": "Solitude - lonely wavering tone", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cloak", "label": "CLK", "tooltip": "Cloak rustle - fabric texture", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "steps", "label": "STP", "tooltip": "Footstep rate - walking pace", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "reverence", "label": "REV", "tooltip": "Reverence - deep sub presence", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

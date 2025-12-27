@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "scorn",
+  "name": "Scorn",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Biomechanical nightmare - flesh architecture, ribbed bone, umbilical cables, wet organic machinery",
+  "enabled": true,
+  "generators": [
+    "flesh",
+    "rib",
+    "birth",
+    "umbil",
+    "maw",
+    "throb",
+    "mucus",
+    "spire"
+  ]
+}

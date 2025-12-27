@@ -33,9 +33,9 @@ SynthDef(\forge_nerve_glow_fluorbed, { |out, freqBus, cutoffBus, resBus, attackB
     aurora = In.kr(customBus4).linexp(0, 1, 0.02, 0.5);   // Movement rate
 
     // Additive synthesis with drifting partials
-    numPartials = 16;
+    
 
-    partials = Mix.fill(numPartials, { |i|
+    partials = Mix.fill(16, { |i|
         var partialNum = i + 1;
         var baseFreq = freq * partialNum;
 

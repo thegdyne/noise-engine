@@ -1,0 +1,15 @@
+{
+  "generator_id": "hollow",
+  "name": "HOLLOW",
+  "synthdef": "forge_vapor_station_hollow",
+  "custom_params": [
+    {"key": "space", "label": "SPC", "tooltip": "Space size - reverb decay", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "distant", "label": "DST", "tooltip": "Distant sounds - far away impacts", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "lonely", "label": "LNY", "tooltip": "Lonely tone - single wavering note", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "concrete", "label": "CON", "tooltip": "Concrete resonance - hard surface", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wind", "label": "WND", "tooltip": "Night wind - gentle air movement", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

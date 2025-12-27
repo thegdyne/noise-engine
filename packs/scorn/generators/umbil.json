@@ -1,0 +1,15 @@
+{
+  "generator_id": "umbil",
+  "name": "UMBIL",
+  "synthdef": "forge_scorn_umbil",
+  "custom_params": [
+    {"key": "pulse", "label": "PLS", "tooltip": "Pulse rate - rhythm", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tube", "label": "TUB", "tooltip": "Tube resonance - body", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "flow", "label": "FLO", "tooltip": "Fluid flow - movement", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "taut", "label": "TAU", "tooltip": "Tautness - tension", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "connect", "label": "CON", "tooltip": "Connection - strength", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

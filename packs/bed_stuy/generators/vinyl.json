@@ -1,0 +1,15 @@
+{
+  "generator_id": "vinyl",
+  "name": "VINYL",
+  "synthdef": "forge_bed_stuy_vinyl",
+  "custom_params": [
+    {"key": "crackle", "label": "CRK", "tooltip": "Crackle density - surface noise", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "warmth", "label": "WRM", "tooltip": "Warm saturation - analog heat", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dust", "label": "DST", "tooltip": "Dust pops - vinyl artifacts", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hiss", "label": "HIS", "tooltip": "Surface hiss - high noise", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "worn", "label": "WRN", "tooltip": "Worn frequency - lo-fi cutoff", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

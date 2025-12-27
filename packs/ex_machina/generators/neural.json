@@ -1,0 +1,15 @@
+{
+  "generator_id": "neural",
+  "name": "NEURAL",
+  "synthdef": "forge_ex_machina_neural",
+  "custom_params": [
+    {"key": "process", "label": "PRC", "tooltip": "Processing rate - thought speed", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "spark", "label": "SPK", "tooltip": "Neural spark - synaptic fire", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "depth", "label": "DPT", "tooltip": "Thought depth - complexity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cascade", "label": "CAS", "tooltip": "Cascade events - rapid sequences", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dream", "label": "DRM", "tooltip": "Dream state - soft wandering", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

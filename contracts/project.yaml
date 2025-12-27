@@ -1,0 +1,16 @@
+project: noise-engine
+cdd_spec: 1.1.3
+version: 1.0.0
+status: draft
+
+goal: |
+  Noise Engine synthesizer validation contracts
+
+success_criteria:
+  - All packs pass gate checks
+  - No UTF-8 corruption
+  - No NRT-breaking patterns
+  - Audio safety verified
+
+components:
+  - gate.nerve_glow

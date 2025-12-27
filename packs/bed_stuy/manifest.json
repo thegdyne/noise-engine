@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "bed_stuy",
+  "name": "Bed-Stuy",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Brooklyn stoop vibes - 90s boom bap textures, vinyl warmth, urban atmosphere",
+  "enabled": true,
+  "generators": [
+    "stoop",
+    "vinyl",
+    "boom",
+    "bap",
+    "corner",
+    "chain",
+    "cipher",
+    "radio"
+  ]
+}

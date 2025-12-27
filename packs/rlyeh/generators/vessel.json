@@ -1,57 +1,15 @@
 {
-    "name": "VESSEL",
-    "synthdef": "vessel",
-    "custom_params": [
-        {
-            "key": "creak",
-            "label": "CRK",
-            "tooltip": "Wood creaking and straining",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "sail",
-            "label": "SAL",
-            "tooltip": "Sail flapping in wind",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "rope",
-            "label": "RPE",
-            "tooltip": "Rope tension and snap",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "hull",
-            "label": "HUL",
-            "tooltip": "Hull resonance against waves",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "doom",
-            "label": "DOM",
-            "tooltip": "Sense of impending doom",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "generator_id": "vessel",
+  "name": "VESSEL",
+  "synthdef": "forge_rlyeh_vessel",
+  "custom_params": [
+    {"key": "hull", "label": "HUL", "tooltip": "Hull resonance - wooden body tone", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "creak", "label": "CRK", "tooltip": "Creak rate - groaning wood", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rock", "label": "ROK", "tooltip": "Rocking motion - wave sway", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sail", "label": "SAL", "tooltip": "Sail flutter - canvas in wind", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dread", "label": "DRD", "tooltip": "Impending dread - dark undertone", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }

@@ -1,0 +1,15 @@
+{
+  "generator_id": "throb",
+  "name": "THROB",
+  "synthdef": "forge_scorn_throb",
+  "custom_params": [
+    {"key": "rate", "label": "RAT", "tooltip": "Throb rate - pulse speed", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "deep", "label": "DEP", "tooltip": "Deep sub - low frequency", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "organ", "label": "ORG", "tooltip": "Organ resonance - body", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pressure", "label": "PRS", "tooltip": "Blood pressure - flow", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "alive", "label": "ALV", "tooltip": "Alive feeling - life", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
