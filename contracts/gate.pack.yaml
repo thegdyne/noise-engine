@@ -1,8 +1,9 @@
-# contracts/gate.nerve_glow.yaml
-contract: gate.nerve_glow
+# contracts/gate.pack.yaml
+# Usage: cdd test contracts/gate.pack.yaml --var pack_id=nerve_glow
+contract: gate.pack
 version: 1.0.0
 status: draft
-description: Full pre-commit gate for nerve_glow pack
+description: Generic pack validation gate
 
 runner:
   executor: shell
@@ -27,7 +28,7 @@ tests:
     name: utf8_clean_scd
     requirement: R001
     type: static
-    files: "../packs/nerve_glow/generators/*.scd"
+    files: "../packs/{pack_id}/generators/*.scd"
     assert:
       - op: not_matches
         pattern: "\u00c2\u00b1"
@@ -40,7 +41,7 @@ tests:
     name: utf8_clean_json
     requirement: R001
     type: static
-    files: "../packs/nerve_glow/**/*.json"
+    files: "../packs/{pack_id}/**/*.json"
     assert:
       - op: not_matches
         pattern: "\u00c2"
@@ -50,7 +51,7 @@ tests:
     name: no_nrt_breaking_patterns
     requirement: R002
     type: static
-    files: "../packs/nerve_glow/generators/*.scd"
+    files: "../packs/{pack_id}/generators/*.scd"
     assert:
       - op: not_matches
         pattern: "=\\s*-[a-z][a-zA-Z]+"
@@ -68,7 +69,7 @@ tests:
     type: unit
     steps:
       - action: shell
-        command: ["python", "../tools/forge_validate.py", "../packs/nerve_glow/"]
+        command: ["python", "../tools/forge_validate.py", "../packs/{pack_id}/"]
         save_as: static
     assert:
       - op: eq
@@ -82,7 +83,7 @@ tests:
     tags: [audio, slow]
     steps:
       - action: shell
-        command: ["python", "../tools/forge_audio_validate.py", "../packs/nerve_glow/", "--render"]
+        command: ["python", "../tools/forge_audio_validate.py", "../packs/{pack_id}/", "--render"]
         save_as: audio
     assert:
       - op: eq
