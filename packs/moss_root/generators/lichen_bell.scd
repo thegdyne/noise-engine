@@ -5,7 +5,7 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, cutoffBus, resBus, attac
                                           customBus0, customBus1, customBus2, customBus3, customBus4,
                                      portamentoBus|
 
-    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_atkT, ne_relT;
     var stone, ring, crust, age, spot;
     var exciter, modes, crustNoise, spotPartial;
     var modeRatios, modeAmps, ringTime;
@@ -31,10 +31,10 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, cutoffBus, resBus, attac
     age = In.kr(customBus3);
     spot = In.kr(customBus4);
 
-    // Exciter: stone-like impulse
+    // Exciter: stone-like impulse + continuous Dust for drone mode
     exciter = Mix([
         HPF.ar(WhiteNoise.ar, stone.linexp(0, 1, 1000, 5000)),
-        Impulse.ar(0) * 0.5
+        Impulse.ar(0) * 0.5 + Dust.ar(3) * 0.3
     ]) * EnvGen.ar(Env.perc(0.001, stone.linexp(0, 1, 0.01, 0.05)));
 
     // Ring time based on ring parameter
@@ -54,6 +54,9 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, cutoffBus, resBus, attac
     // Add fundamental sine for body
     modes = modes + (SinOsc.ar(freq) * EnvGen.ar(Env.perc(0.001, ringTime * 0.5)) * 0.2);
 
+    // Continuous resonant bed for drone mode
+    modes = modes + (Ringz.ar(Dust.ar(5) * 0.15, freq * [1, 2.32, 3.56], ringTime * 0.5).sum * 0.2);
+
     sig = modes;
 
     // Crust: textural noise layer
@@ -68,16 +71,18 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, cutoffBus, resBus, attac
     spotPartial = SinOsc.ar(freq * 5.5) * EnvGen.ar(Env.perc(0.001, ringTime * 0.3)) * spot * 0.15;
     sig = sig + spotPartial;
 
+    // Continuous subtle shimmer
+    sig = sig + (SinOsc.ar(freq * [1, 2.32]) * 0.05).sum;
+
     // Subtle stereo from age-induced detuning
     sig = Pan2.ar(Mix(sig), SinOsc.kr(0.15) * age.linlin(0, 1, 0.2, 0.5));
 
     // MANDATORY output chain
-    // Output chain (inlined; avoids global helpers for NRT stability)
     sig = LeakDC.ar(sig);
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
 
-    // Filter select: 0=LP 1=HP 2=BP 3=Notch 4=LP2 5=OFF
+    // Filter select
     ne_cut = filterFreq.clip(20, 18000);
     ne_rq = rq.clip(0.05, 2);
     ne_lp = RLPF.ar(sig, ne_cut, ne_rq);
@@ -88,7 +93,7 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, cutoffBus, resBus, attac
     ne_off = sig;
     sig = Select.ar(filterType.round.clip(0, 5), [ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off]);
 
-    // Env VCA (drone / clock / midi)
+    // Env VCA
     ne_atkT = attack.linexp(0, 1, 0.001, 2);
     ne_relT = decay.linexp(0, 1, 0.05, 4);
     trig = Select.ar(envSource.round.clip(0, 2), [
@@ -103,7 +108,6 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, cutoffBus, resBus, attac
     ]);
     sig = sig * ne_env * amp;
 
-    // Ensure 2ch
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
     Out.ar(out, sig);
