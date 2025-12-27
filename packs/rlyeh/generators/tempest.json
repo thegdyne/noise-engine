@@ -1,57 +1,15 @@
 {
-    "name": "TEMPEST",
-    "synthdef": "tempest",
-    "custom_params": [
-        {
-            "key": "waves",
-            "label": "WAV",
-            "tooltip": "Crashing wave intensity",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "wind",
-            "label": "WND",
-            "tooltip": "Howling wind",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "thunder",
-            "label": "THN",
-            "tooltip": "Thunder rumble",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "spray",
-            "label": "SPY",
-            "tooltip": "Sea spray and foam",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "surge",
-            "label": "SRG",
-            "tooltip": "Storm surge intensity",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "generator_id": "tempest",
+  "name": "TEMPEST",
+  "synthdef": "forge_rlyeh_tempest",
+  "custom_params": [
+    {"key": "wind", "label": "WND", "tooltip": "Wind intensity - howling gale", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "waves", "label": "WAV", "tooltip": "Wave rate - oceanic swell", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "thunder", "label": "THN", "tooltip": "Thunder rumble - low frequency bursts", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rain", "label": "RAN", "tooltip": "Rain density - high frequency drops", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chaos", "label": "CHS", "tooltip": "Storm chaos - unpredictability", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }

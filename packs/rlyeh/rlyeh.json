@@ -1,0 +1,14 @@
+{
+  "preset_name": "R'lyeh Init",
+  "pack_id": "rlyeh",
+  "slots": [
+    {"generator_id": "cthulhu", "enabled": true},
+    {"generator_id": "rlyeh", "enabled": true},
+    {"generator_id": "abyss", "enabled": true},
+    {"generator_id": "madness", "enabled": true},
+    {"generator_id": "tempest", "enabled": true},
+    {"generator_id": "vessel", "enabled": true},
+    {"generator_id": "tentacle", "enabled": true},
+    {"generator_id": "dagon", "enabled": true}
+  ]
+}
