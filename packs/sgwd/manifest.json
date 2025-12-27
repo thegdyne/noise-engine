@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "sgwd",
+  "name": "Sgwd",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Welsh waterfall - cascading curtains, mossy gorge, dark pools",
+  "enabled": true,
+  "generators": [
+    "cascade",
+    "pool",
+    "moss",
+    "mist",
+    "stone",
+    "canopy",
+    "stream",
+    "gorge"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "generator_id": "gorge",
+  "name": "GORGE",
+  "synthdef": "forge_sgwd_gorge",
+  "custom_params": [
+    {"key": "depth", "label": "DPT", "tooltip": "Gorge depth", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "echo", "label": "ECH", "tooltip": "Echo decay", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dark", "label": "DRK", "tooltip": "Darkness", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "behind", "label": "BHD", "tooltip": "Behind the falls", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ancient", "label": "ANC", "tooltip": "Ancient presence", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

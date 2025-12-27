@@ -1,0 +1,15 @@
+{
+  "generator_id": "stone",
+  "name": "STONE",
+  "synthdef": "forge_sgwd_stone",
+  "custom_params": [
+    {"key": "ledge", "label": "LDG", "tooltip": "Ledge resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "mass", "label": "MAS", "tooltip": "Stone mass", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wet", "label": "WET", "tooltip": "Wet surface", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "age", "label": "AGE", "tooltip": "Weathered age", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hollow", "label": "HLW", "tooltip": "Hollow behind", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
