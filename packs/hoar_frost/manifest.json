@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "hoar_frost",
+  "name": "Hoar Frost",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Crystalline textures of frozen winter mornings - ice forming on still water, frost-laden willows, misty breath in cold air",
+  "enabled": true,
+  "generators": [
+    "rime_veil",
+    "stillwater",
+    "willow_drip",
+    "hoarfrost",
+    "mist_drift",
+    "ice_mirror",
+    "frozen_breath",
+    "crystal_chime"
+  ]
+}

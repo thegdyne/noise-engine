@@ -1,0 +1,14 @@
+{
+  "preset_name": "Hoar Frost Init",
+  "pack_id": "hoar_frost",
+  "slots": [
+    {"generator_id": "rime_veil", "enabled": true},
+    {"generator_id": "stillwater", "enabled": true},
+    {"generator_id": "willow_drip", "enabled": true},
+    {"generator_id": "hoarfrost", "enabled": true},
+    {"generator_id": "mist_drift", "enabled": true},
+    {"generator_id": "ice_mirror", "enabled": true},
+    {"generator_id": "frozen_breath", "enabled": true},
+    {"generator_id": "crystal_chime", "enabled": true}
+  ]
+}
