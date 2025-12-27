@@ -682,12 +682,26 @@ This ensures users always get actionable instructions with the archive.
 
 After validation, install the pack preset to your presets directory:
 ```bash
-python tools/create_pack_preset.py {pack_id}
+python tools/forge_gen_preset.py packs/{pack_id}/ --install
 ```
 
-This creates `~/noise-engine-presets/{pack_name}-init.json` with all 8 generators loaded.
+This creates:
+- `packs/{pack_id}/{pack_id}.json` - preset in pack directory
+- `~/noise-engine-presets/{pack_id}.json` - installed preset
 
-**Note:** Only run after pack passes gate validation.
+**Other options:**
+```bash
+# Generate preset only (no install)
+python tools/forge_gen_preset.py packs/{pack_id}/
+
+# Generate for all Forge packs
+python tools/forge_gen_preset.py --all --install
+
+# Generate only for packs missing presets
+python tools/forge_gen_preset.py --missing --install
+```
+
+**Note:** Only run after pack passes gate validation.**Note:** Only run after pack passes gate validation.
 ---
 
 Ready to forge. What's the pack theme/image?
