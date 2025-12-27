@@ -655,7 +655,9 @@ When delivering a completed pack archive, always include:
 
 **Extract:**
 ```bash
-tar -xzvf {pack_id}.tar.gz -C packs/
+
+cd ~/repos/noise-engine
+tar -xzvf ~/Downloads/{pack_id}.tar.gz -C packs/
 ```
 
 **Validate:**
@@ -674,6 +676,18 @@ python tools/forge_audio_validate.py packs/{pack_id}/ --render
 
 This ensures users always get actionable instructions with the archive.
 
+---
+
+## Install Pack Preset
+
+After validation, install the pack preset to your presets directory:
+```bash
+python tools/create_pack_preset.py {pack_id}
+```
+
+This creates `~/noise-engine-presets/{pack_name}-init.json` with all 8 generators loaded.
+
+**Note:** Only run after pack passes gate validation.
 ---
 
 Ready to forge. What's the pack theme/image?
