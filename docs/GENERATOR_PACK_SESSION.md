@@ -71,8 +71,25 @@ These patterns break NRT rendering. **Never generate them:**
 | `var gate;` | `var gateVal;` | `gate` reserved by NRT wrapper |
 | `var amp;` | `var ampVal;` | Can conflict with NRT amp handling |
 | `TGrains` + `LocalBuf.collect` | Avoid or accept failure | Complex buffer patterns hang NRT |
+| `TRand.kr(a, b, Dust.kr(r))` | `LFNoise0.kr(r).range(a, b)` | TRand with Dust trigger hangs NRT |
+| `Ringz.ar(...).sum` (single) | `Ringz.ar(..., [f1, f2])` | `.sum` on non-array causes SC error |
 
 **Variable declarations:** Must appear at **beginning of code blocks** only.
+
+### .sum Safety Rule
+
+`.sum` only works on arrays. If a UGen returns a single channel, `.sum` fails with "Message 'sum' not understood".
+
+```supercollider
+// WRONG - single Ringz, .sum fails
+sig = Ringz.ar(trig, freq * 2, 0.1).sum;
+
+// RIGHT - make it an array first
+sig = Ringz.ar(trig, freq * [2, 3], 0.1).sum;
+
+// RIGHT - or just don't use .sum for single UGen
+sig = Ringz.ar(trig, freq * 2, 0.1);
+```
 
 ---
 
@@ -565,6 +582,11 @@ Generators that needed post-hoc Limiter:
 Generators fixed for drone mode (Impulse.ar(0) → Dust.ar):
 `hoar_frost/crystal_chime`
 
+Generators fixed for NRT compatibility:
+- `rlyeh/dagon`: `TRand.kr` → `LFNoise0.kr` (TRand with Dust trigger hangs NRT)
+- `rlyeh/dagon`: `.sum` on single Ringz removed
+- `rlyeh/vessel`: `.sum` on single Ringz removed, gain boosted
+
 ---
 
 ## Troubleshooting Reference
@@ -573,7 +595,8 @@ For detailed diagnosis and fix commands, see `PACK_TROUBLESHOOTING.md`.
 
 | Symptom | Quick Reference |
 |---------|-----------------|
-| RENDER_FAILED (timeout) | Check unary minus, boolean arithmetic, `gate` variable |
+| RENDER_FAILED (timeout) | Check unary minus, boolean arithmetic, `gate` variable, `TRand` with `Dust` trigger |
+| RENDER_FAILED (SC error) | Check `.sum` on single UGen, syntax errors |
 | SILENCE | Check `midi_retrig`, squelch logic, borderline levels, `Impulse.ar(0)` |
 | SPARSE | Percussive in drone mode — usually acceptable |
 | CLIPPING | Add `Limiter.ar(sig, 0.95)` |
