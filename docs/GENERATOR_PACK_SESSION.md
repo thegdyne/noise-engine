@@ -647,5 +647,34 @@ Common fixes:
 
 ---
 
+## Pack Delivery Template
+
+When delivering a completed pack archive, always include:
+````markdown
+## {pack_name} Pack
+
+**Extract:**
+```bash
+tar -xzvf {pack_id}.tar.gz -C packs/
+```
+
+**Validate:**
+```bash
+cdd test contracts/gate.pack.yaml --var pack_id={pack_id}
+```
+
+**If CDD unavailable:**
+```bash
+python tools/forge_validate.py packs/{pack_id}/
+python tools/forge_audio_validate.py packs/{pack_id}/ --render
+```
+
+**Generators:** gen1, gen2, gen3, gen4, gen5, gen6, gen7, gen8
+````
+
+This ensures users always get actionable instructions with the archive.
+
+---
+
 Ready to forge. What's the pack theme/image?
 
