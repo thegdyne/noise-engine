@@ -1,0 +1,14 @@
+{
+  "preset_name": "Bed-Stuy Init",
+  "pack_id": "bed_stuy",
+  "slots": [
+    {"generator_id": "stoop", "enabled": true},
+    {"generator_id": "vinyl", "enabled": true},
+    {"generator_id": "boom", "enabled": true},
+    {"generator_id": "bap", "enabled": true},
+    {"generator_id": "corner", "enabled": true},
+    {"generator_id": "chain", "enabled": true},
+    {"generator_id": "cipher", "enabled": true},
+    {"generator_id": "radio", "enabled": true}
+  ]
+}
