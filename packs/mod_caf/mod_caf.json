@@ -1,0 +1,14 @@
+{
+  "preset_name": "Mod Caf Init",
+  "pack_id": "mod_caf",
+  "slots": [
+    {"generator_id": "patch", "enabled": true},
+    {"generator_id": "slats", "enabled": true},
+    {"generator_id": "voltage", "enabled": true},
+    {"generator_id": "studio", "enabled": true},
+    {"generator_id": "osc", "enabled": true},
+    {"generator_id": "filter", "enabled": true},
+    {"generator_id": "lfo", "enabled": true},
+    {"generator_id": "test", "enabled": true}
+  ]
+}
