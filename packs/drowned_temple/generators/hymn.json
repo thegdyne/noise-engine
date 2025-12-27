@@ -1,0 +1,15 @@
+{
+  "generator_id": "hymn",
+  "name": "HYMN",
+  "synthdef": "forge_drowned_temple_hymn",
+  "custom_params": [
+    {"key": "voice", "label": "VOC", "tooltip": "Voice level - formant intensity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "choir", "label": "CHR", "tooltip": "Choir voices - layered singers", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sacred", "label": "SCR", "tooltip": "Sacred harmonics - overtones", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ancient", "label": "ANC", "tooltip": "Ancient waver - pitch drift", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "fade", "label": "FAD", "tooltip": "Fade into distance - damping", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

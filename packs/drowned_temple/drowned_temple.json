@@ -1,0 +1,14 @@
+{
+  "preset_name": "Drowned Temple Init",
+  "pack_id": "drowned_temple",
+  "slots": [
+    {"generator_id": "deluge", "enabled": true},
+    {"generator_id": "vault", "enabled": true},
+    {"generator_id": "pilgrim", "enabled": true},
+    {"generator_id": "rubble", "enabled": true},
+    {"generator_id": "moss", "enabled": true},
+    {"generator_id": "pool", "enabled": true},
+    {"generator_id": "hymn", "enabled": true},
+    {"generator_id": "ruin", "enabled": true}
+  ]
+}
