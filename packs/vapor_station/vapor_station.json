@@ -1,0 +1,14 @@
+{
+  "preset_name": "Vapor Station Init",
+  "pack_id": "vapor_station",
+  "slots": [
+    {"generator_id": "vapor", "enabled": true},
+    {"generator_id": "pump", "enabled": true},
+    {"generator_id": "nozzle", "enabled": true},
+    {"generator_id": "sodium", "enabled": true},
+    {"generator_id": "fluoro", "enabled": true},
+    {"generator_id": "hose", "enabled": true},
+    {"generator_id": "fumes", "enabled": true},
+    {"generator_id": "hollow", "enabled": true}
+  ]
+}
