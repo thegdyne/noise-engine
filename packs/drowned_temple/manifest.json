@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "drowned_temple",
+  "name": "Drowned Temple",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Ancient ruins reclaimed by water - rain through vaults, flooded chambers, reverent decay",
+  "enabled": true,
+  "generators": [
+    "deluge",
+    "vault",
+    "pilgrim",
+    "rubble",
+    "moss",
+    "pool",
+    "hymn",
+    "ruin"
+  ]
+}

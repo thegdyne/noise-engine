@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "vapor_station",
+  "name": "Vapor Station",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Liminal gas station at night - fog, fluorescent hum, industrial pumps, chemical fumes",
+  "enabled": true,
+  "generators": [
+    "vapor",
+    "pump",
+    "nozzle",
+    "sodium",
+    "fluoro",
+    "hose",
+    "fumes",
+    "hollow"
+  ]
+}

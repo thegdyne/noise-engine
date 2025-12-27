@@ -1,57 +1,15 @@
 {
-    "name": "RLYEH",
-    "synthdef": "rlyeh",
-    "custom_params": [
-        {
-            "key": "stone",
-            "label": "STN",
-            "tooltip": "Ancient stone grinding",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "water",
-            "label": "WTR",
-            "tooltip": "Water displacement and cascades",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "groan",
-            "label": "GRN",
-            "tooltip": "Structure groaning under pressure",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "rise",
-            "label": "RSE",
-            "tooltip": "Rising motion (pitch sweep intensity)",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "age",
-            "label": "AGE",
-            "tooltip": "Ancient resonance (metallic decay)",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "generator_id": "rlyeh",
+  "name": "R'LYEH",
+  "synthdef": "forge_rlyeh_rlyeh",
+  "custom_params": [
+    {"key": "angles", "label": "ANG", "tooltip": "Wrong angles - non-Euclidean detune", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "depth", "label": "DPT", "tooltip": "Submerged depth - low pass darkness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "stone", "label": "STN", "tooltip": "Ancient stone - resonant overtones", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "echo", "label": "ECO", "tooltip": "Cyclopean echo - vast space reverb", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wrongness", "label": "WRG", "tooltip": "Geometric wrongness - stereo unease", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }

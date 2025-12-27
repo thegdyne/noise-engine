@@ -1,0 +1,15 @@
+{
+  "generator_id": "vault",
+  "name": "VAULT",
+  "synthdef": "forge_drowned_temple_vault",
+  "custom_params": [
+    {"key": "size", "label": "SIZ", "tooltip": "Chamber size - reverb decay", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "stone", "label": "STN", "tooltip": "Stone resonance - tonal body", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "echo", "label": "ECO", "tooltip": "Echo density - reflections", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "darkness", "label": "DRK", "tooltip": "Darkness - high frequency damping", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "age", "label": "AGE", "tooltip": "Ancient dust - noise texture", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

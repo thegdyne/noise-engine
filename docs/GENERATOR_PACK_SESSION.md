@@ -5,6 +5,19 @@ Generate a themed 8-generator pack for Noise Engine synthesizer. Each generator 
 
 ---
 
+## CRITICAL: Check Existing Pack First
+
+**Before generating any files, always examine an existing working pack:**
+
+```bash
+cat packs/nerve_glow/manifest.json
+cat packs/nerve_glow/generators/nervespk.json
+```
+
+This prevents format errors. The JSON schema has required fields that are easy to miss.
+
+---
+
 ## Generator Contract (CRITICAL)
 
 ```supercollider
@@ -58,8 +71,57 @@ These patterns break NRT rendering. **Never generate them:**
 | `var gate;` | `var gateVal;` | `gate` reserved by NRT wrapper |
 | `var amp;` | `var ampVal;` | Can conflict with NRT amp handling |
 | `TGrains` + `LocalBuf.collect` | Avoid or accept failure | Complex buffer patterns hang NRT |
+| `TRand.kr(a, b, Dust.kr(r))` | `LFNoise0.kr(r).range(a, b)` | TRand with Dust trigger hangs NRT |
+| `Ringz.ar(...).sum` (single) | `Ringz.ar(..., [f1, f2])` | `.sum` on non-array causes SC error |
 
 **Variable declarations:** Must appear at **beginning of code blocks** only.
+
+### .sum Safety Rule
+
+`.sum` only works on arrays. If a UGen returns a single channel, `.sum` fails with "Message 'sum' not understood".
+
+```supercollider
+// WRONG - single Ringz, .sum fails
+sig = Ringz.ar(trig, freq * 2, 0.1).sum;
+
+// RIGHT - make it an array first
+sig = Ringz.ar(trig, freq * [2, 3], 0.1).sum;
+
+// RIGHT - or just don't use .sum for single UGen
+sig = Ringz.ar(trig, freq * 2, 0.1);
+```
+
+---
+
+## Drone Mode Compatibility (CRITICAL)
+
+**Audio validation runs in drone mode (sustained gate) AND clocked mode. Generators must produce sound in at least one mode.**
+
+### Silent Generator Causes
+
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| `Impulse.ar(0)` | Fires once at start, then silent | Use `Dust.ar(density)` for continuous triggers |
+| `Impulse.ar(0) * exciter` | Same issue | Use `Dust.ar(rate)` or add `+ Impulse.ar(0)` for initial hit |
+| Narrow BPF on noise | Too quiet | Widen bandwidth or boost gain (×4 to ×8) |
+| Formant filters | Often too quiet | Use `Resonz` with gain multiplier (×4 to ×6) |
+| Percussive-only (bells, hits) | SILENCE in drone mode | Set `midi_retrig: true` - will pass in clocked mode |
+
+### Drone-Safe Excitation Patterns
+
+```supercollider
+// WRONG - silent after first instant
+trig = Impulse.ar(0);
+sig = DynKlank.ar(specs, trig * 0.3, freq);
+
+// RIGHT - continuous triggering
+trig = Dust.ar(density);  // density param from customBus
+sig = DynKlank.ar(specs, trig * 0.3, freq);
+
+// RIGHT - hybrid (initial hit + continuous)
+trig = Impulse.ar(0) + Dust.ar(density);
+sig = DynKlank.ar(specs, trig * 0.3, freq);
+```
 
 ---
 
@@ -111,14 +173,22 @@ Out.ar(out, sig);
 
 **Run in order. Stop at first failure.**
 
-### 1. UTF-8 Check (instant)
+### CDD Gate (Recommended)
+Single command validates everything:
+```bash
+cdd test contracts/gate.pack.yaml --var pack_id={pack_id}
+```
+
+### Manual Steps (if CDD not available)
+
+#### 1. UTF-8 Check (instant)
 Catches copy-paste corruption from AI context switching.
 ```bash
 python tools/utf8_fix.py --report packs/{pack_id}/
 ```
 If issues found: `python tools/utf8_fix.py --fix packs/{pack_id}/`
 
-### 2. SC Syntax Lint (5s)
+#### 2. SC Syntax Lint (5s)
 Catches NRT-breaking patterns before render attempt.
 ```bash
 # Check for problematic patterns
@@ -127,13 +197,13 @@ grep -rn '\-([^)]*)\\.' packs/{pack_id}/generators/*.scd                    # mi
 grep -rn 'var.*\bgate\b' packs/{pack_id}/generators/*.scd                   # reserved name
 ```
 
-### 3. Contract Check (10s)
+#### 3. Contract Check (10s)
 Ensures helper usage, arg signature, manifest validity.
 ```bash
 python tools/forge_validate.py packs/{pack_id}/
 ```
 
-### 4. Audio Render (2-3 min)
+#### 4. Audio Render (2-3 min)
 Full safety gates — silence, clipping, DC offset, runaway.
 ```bash
 python tools/forge_audio_validate.py packs/{pack_id}/ --render
@@ -256,19 +326,21 @@ var myCustomVars;
 
 ---
 
-## Generator JSON Schema
+## Generator JSON Schema (FULL)
+
+**CRITICAL: All fields shown are REQUIRED. Check an existing pack if unsure.**
 
 ```json
 {
   "generator_id": "my_gen",
-  "name": "Display Name",
+  "name": "MY GEN",
   "synthdef": "forge_{pack}_{name}",
   "custom_params": [
-    {"label": "P1", "tooltip": "Thematic description", "default": 0.5},
-    {"label": "P2", "tooltip": "Thematic description", "default": 0.5},
-    {"label": "P3", "tooltip": "Thematic description", "default": 0.5},
-    {"label": "P4", "tooltip": "Thematic description", "default": 0.5},
-    {"label": "P5", "tooltip": "Thematic description", "default": 0.5}
+    {"key": "param1", "label": "P1X", "tooltip": "Thematic description", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "param2", "label": "P2X", "tooltip": "Thematic description", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "param3", "label": "P3X", "tooltip": "Thematic description", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "param4", "label": "P4X", "tooltip": "Thematic description", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "param5", "label": "P5X", "tooltip": "Thematic description", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,
@@ -276,15 +348,31 @@ var myCustomVars;
 }
 ```
 
-**Rules:**
+### Required custom_params Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `key` | string | Internal parameter name (lowercase, no spaces) |
+| `label` | string | **Exactly 3 characters**, uppercase A-Z or 0-9 |
+| `tooltip` | string | Description shown on hover |
+| `default` | float | Initial value (0.0-1.0) |
+| `min` | float | Minimum value (usually 0.0) |
+| `max` | float | Maximum value (usually 1.0) |
+| `curve` | string | `"lin"` or `"exp"` |
+| `unit` | string | Display unit (usually `""`) |
+
+### Rules
 - `pitch_target`: `null` or integer (never string)
 - `midi_retrig`: `true` for percussive, `false` for pads/drones
 - `output_trim_db`: typically -6.0, adjust per validation trim recommendations
-- Forbidden P1-P5 labels: `FRQ`, `CUT`, `RES`, `ATK`, `DEC`, `PRT`
+- `name`: UPPERCASE display name
+- **Forbidden labels:** `FRQ`, `CUT`, `RES`, `ATK`, `DEC`, `PRT` (reserved for standard controls)
 
 ---
 
-## Manifest Schema
+## Manifest Schema (FULL)
+
+**CRITICAL: `generators` array is REQUIRED.**
 
 ```json
 {
@@ -292,9 +380,19 @@ var myCustomVars;
   "pack_id": "my_pack",
   "name": "Display Name",
   "version": "1.0.0",
-  "author": "Author Name",
+  "author": "CQD_Forge",
   "description": "Pack description",
-  "enabled": true
+  "enabled": true,
+  "generators": [
+    "gen1",
+    "gen2",
+    "gen3",
+    "gen4",
+    "gen5",
+    "gen6",
+    "gen7",
+    "gen8"
+  ]
 }
 ```
 
@@ -395,15 +493,18 @@ EOF
 
 Before archiving a pack:
 
-- [ ] `python tools/utf8_fix.py --report packs/{pack_id}/` — no corruption
-- [ ] `python tools/forge_validate.py packs/{pack_id}/` — contract PASS
-- [ ] `python tools/forge_audio_validate.py packs/{pack_id}/ --render` — all 8 PASS
+- [ ] `cdd test contracts/gate.pack.yaml --var pack_id={pack_id}` — all 5 tests pass
+- [ ] OR manual checks:
+  - [ ] `python tools/utf8_fix.py --report packs/{pack_id}/` — no corruption
+  - [ ] `python tools/forge_validate.py packs/{pack_id}/` — contract PASS
+  - [ ] `python tools/forge_audio_validate.py packs/{pack_id}/ --render` — all 8 PASS
 - [ ] All generators have `LeakDC.ar(sig)` in output chain
 - [ ] Generators with feedback/resonance have `Limiter.ar(sig, 0.95)`
-- [ ] `manifest.json` has `"pack_format": 1` and `"enabled": true`
+- [ ] `manifest.json` has `"pack_format": 1`, `"enabled": true`, and `"generators": [...]`
 - [ ] Init preset `{pack_id}.json` exists and loads all 8 generators
 - [ ] `pitch_target` is `null` or integer (never string)
 - [ ] `midi_retrig` matches generator type (percussive=true, pad=false)
+- [ ] Add pack to `.gitignore` exceptions: `!packs/{pack_id}/`
 
 ---
 
@@ -478,6 +579,14 @@ Generators that needed post-hoc LeakDC:
 Generators that needed post-hoc Limiter:
 `astro_command/alert_pulse`, `barbican_hound/routemaster`, `arctic_henge/aurora`, `arctic_henge/icebell`, `beacon_vigil/crown`, `rlyeh/VESSEL`, `rakshasa/gold_ring`, `summer_of_love/golden_haze`, `amber-threshold/StonePath`, `seagrass_bay/submerged_drone`
 
+Generators fixed for drone mode (Impulse.ar(0) → Dust.ar):
+`hoar_frost/crystal_chime`
+
+Generators fixed for NRT compatibility:
+- `rlyeh/dagon`: `TRand.kr` → `LFNoise0.kr` (TRand with Dust trigger hangs NRT)
+- `rlyeh/dagon`: `.sum` on single Ringz removed
+- `rlyeh/vessel`: `.sum` on single Ringz removed, gain boosted
+
 ---
 
 ## Troubleshooting Reference
@@ -486,13 +595,14 @@ For detailed diagnosis and fix commands, see `PACK_TROUBLESHOOTING.md`.
 
 | Symptom | Quick Reference |
 |---------|-----------------|
-| RENDER_FAILED (timeout) | Check unary minus, boolean arithmetic, `gate` variable |
-| SILENCE | Check `midi_retrig`, squelch logic, borderline levels |
+| RENDER_FAILED (timeout) | Check unary minus, boolean arithmetic, `gate` variable, `TRand` with `Dust` trigger |
+| RENDER_FAILED (SC error) | Check `.sum` on single UGen, syntax errors |
+| SILENCE | Check `midi_retrig`, squelch logic, borderline levels, `Impulse.ar(0)` |
 | SPARSE | Percussive in drone mode — usually acceptable |
 | CLIPPING | Add `Limiter.ar(sig, 0.95)` |
 | DC_OFFSET | Add `LeakDC.ar(sig)` |
 | RUNAWAY | Add `Limiter.ar(sig, 0.95)` |
-| CONTRACT_FAILED | Check manifest fields, variable declarations |
+| CONTRACT_FAILED | Check manifest `generators` array, JSON required fields |
 | UTF-8 errors | Run `utf8_fix.py --fix` |
 
 ---

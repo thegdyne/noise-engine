@@ -1,19 +1,19 @@
 {
   "pack_format": 1,
   "pack_id": "rlyeh",
-  "name": "R'lyeh Collection",
-  "version": "1.0.0",
-  "author": "Noise Engine",
-  "description": "Dark ambient generators from the depths",
+  "name": "R'lyeh",
+  "version": "2.0.0",
+  "author": "CQD_Forge",
+  "description": "Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn - dark ambient from the sunken city",
   "enabled": true,
   "generators": [
-    "CTHULHU",
-    "RLYEH",
-    "ABYSS",
-    "MADNESS",
-    "TEMPEST",
-    "VESSEL",
-    "TENTACLE",
-    "DAGON"
+    "cthulhu",
+    "rlyeh",
+    "abyss",
+    "madness",
+    "tempest",
+    "vessel",
+    "tentacle",
+    "dagon"
   ]
 }

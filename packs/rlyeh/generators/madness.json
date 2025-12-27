@@ -1,57 +1,15 @@
 {
-    "name": "MADNESS",
-    "synthdef": "madness",
-    "custom_params": [
-        {
-            "key": "fracture",
-            "label": "FRC",
-            "tooltip": "Reality fracturing (dissonance)",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "whisper",
-            "label": "WSP",
-            "tooltip": "Maddening whispers",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "spiral",
-            "label": "SPR",
-            "tooltip": "Descending spiral (pitch dive)",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "glimpse",
-            "label": "GLM",
-            "tooltip": "Horrific glimpses (sharp transients)",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "unravel",
-            "label": "UNR",
-            "tooltip": "Mind unraveling (chaos amount)",
-            "default": 0.2,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "generator_id": "madness",
+  "name": "MADNESS",
+  "synthdef": "forge_rlyeh_madness",
+  "custom_params": [
+    {"key": "fracture", "label": "FRC", "tooltip": "Reality fracture - pitch instability", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "spiral", "label": "SPR", "tooltip": "Descending spiral - amplitude throb", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "voices", "label": "VOI", "tooltip": "Whispering voices - paranoid noise", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "paranoia", "label": "PAR", "tooltip": "Paranoia - jitter rate", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hysteria", "label": "HYS", "tooltip": "Hysteria - feedback FM intensity", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }

@@ -1,57 +1,15 @@
 {
-    "name": "DAGON",
-    "synthdef": "dagon",
-    "custom_params": [
-        {
-            "key": "ritual",
-            "label": "RIT",
-            "tooltip": "Ritual drum pulse",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "chant",
-            "label": "CHT",
-            "tooltip": "Deep One chanting",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "tide",
-            "label": "TDE",
-            "tooltip": "Tidal pulse rhythm",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "ancient",
-            "label": "ANC",
-            "tooltip": "Ancient resonance",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "summon",
-            "label": "SUM",
-            "tooltip": "Summoning intensity",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "generator_id": "dagon",
+  "name": "DAGON",
+  "synthdef": "forge_rlyeh_dagon",
+  "custom_params": [
+    {"key": "bubble", "label": "BUB", "tooltip": "Bubble rate - underwater texture", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "depth", "label": "DPT", "tooltip": "Ocean depth - low pass darkness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "scale", "label": "SCL", "tooltip": "Fish scale - harmonic shimmer", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "call", "label": "CAL", "tooltip": "Deep one call - eerie vocalization", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ancient", "label": "ANC", "tooltip": "Ancient presence - fundamental drone", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }

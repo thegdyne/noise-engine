@@ -1,0 +1,15 @@
+{
+  "generator_id": "fluoro",
+  "name": "FLUORO",
+  "synthdef": "forge_vapor_station_fluoro",
+  "custom_params": [
+    {"key": "buzz", "label": "BUZ", "tooltip": "Buzz intensity - tube resonance", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cold", "label": "CLD", "tooltip": "Cold harmonics - harsh high frequencies", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "strobe", "label": "STB", "tooltip": "Strobe flicker - rapid on/off", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "failing", "label": "FAL", "tooltip": "Failing tube - crackle and sputter", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tubes", "label": "TUB", "tooltip": "Tube count - layered voices", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

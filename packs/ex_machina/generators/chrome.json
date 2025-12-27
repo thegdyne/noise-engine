@@ -1,0 +1,15 @@
+{
+  "generator_id": "chrome",
+  "name": "CHROME",
+  "synthdef": "forge_ex_machina_chrome",
+  "custom_params": [
+    {"key": "shine", "label": "SHN", "tooltip": "Chrome shine - metallic brightness", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cold", "label": "CLD", "tooltip": "Cold brightness - high frequency", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "reflect", "label": "RFL", "tooltip": "Reflection rate - shimmer speed", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "skull", "label": "SKL", "tooltip": "Skull resonance - hollow body", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "amber", "label": "AMB", "tooltip": "Amber glow - warm undertone", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

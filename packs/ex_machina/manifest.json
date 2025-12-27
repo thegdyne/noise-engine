@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "ex_machina",
+  "name": "Ex Machina",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Synthetic consciousness - chrome masks, servo precision, human warmth meets machine cold",
+  "enabled": true,
+  "generators": [
+    "ava",
+    "chrome",
+    "servo",
+    "breath",
+    "glass",
+    "pulse",
+    "neural",
+    "skin"
+  ]
+}

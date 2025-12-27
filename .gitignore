@@ -75,3 +75,11 @@ _example
 test_inputs/
 
 spatial_debug.json
+venv312/
+!packs/hoar_frost/
+!packs/vapor_station/
+!packs/drowned_temple/
+!packs/bed_stuy/
+!packs/mod_caf/
+!packs/ex_machina/
+!packs/scorn/
