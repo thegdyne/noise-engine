@@ -1,5 +1,19 @@
 # CQD_Forge Pack Generation Session
 
+---
+
+## Prerequisites
+
+This doc assumes you have the noise-engine repo with:
+- `contracts/gate.pack.yaml` - CDD validation contract
+- `tools/forge_validate.py` - structure validation
+- `tools/forge_audio_validate.py` - audio safety checks
+- CDD installed: `pip install git+https://github.com/thegdyne/cdd.git@main`
+
+Without these, packs can be created but not validated.
+
+---
+
 ## Task
 Generate a themed 8-generator pack for Noise Engine synthesizer. Each generator has custom DSP where P1-P5 parameters implement thematic concepts (not just relabeled generic params).
 
@@ -607,4 +621,31 @@ For detailed diagnosis and fix commands, see `PACK_TROUBLESHOOTING.md`.
 
 ---
 
+## CDD Gate Validation (Single Command)
+
+After creating a pack, validate everything with:
+```bash
+cdd test contracts/gate.pack.yaml --var pack_id={pack_id}
+```
+
+This runs 5 tests:
+1. **T001** - UTF-8 clean (.scd files)
+2. **T002** - UTF-8 clean (.json files)
+3. **T003** - SC static patterns (Mix.fill, Array.fill, unary minus)
+4. **T004** - Structure validation (manifest, JSON schema)
+5. **T005** - Audio safety (silence, clipping, DC offset, runaway)
+
+If T005 fails, run audio validate directly for details:
+```bash
+python tools/forge_audio_validate.py packs/{pack_id}/ --render
+```
+
+Common fixes:
+- **SILENCE/SPARSE**: Add continuous noise bed (PinkNoise, BrownNoise)
+- **CLIPPING/RUNAWAY**: Add `Limiter.ar(sig, 0.95)` before output
+- **DC_OFFSET**: Add `LeakDC.ar(sig)` before filter chain
+
+---
+
 Ready to forge. What's the pack theme/image?
+
