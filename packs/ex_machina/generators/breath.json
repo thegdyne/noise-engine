@@ -1,0 +1,15 @@
+{
+  "generator_id": "breath",
+  "name": "BREATH",
+  "synthdef": "forge_ex_machina_breath",
+  "custom_params": [
+    {"key": "inhale", "label": "INH", "tooltip": "Breath rate - respiration cycle", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "warmth", "label": "WRM", "tooltip": "Body warmth - organic presence", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "life", "label": "LIF", "tooltip": "Life signs - subtle variations", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pulse", "label": "PLS", "tooltip": "Heart pulse - rhythm rate", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "soft", "label": "SFT", "tooltip": "Softness - filter warmth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

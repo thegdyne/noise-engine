@@ -1,0 +1,14 @@
+{
+  "preset_name": "Ex Machina Init",
+  "pack_id": "ex_machina",
+  "slots": [
+    {"generator_id": "ava", "enabled": true},
+    {"generator_id": "chrome", "enabled": true},
+    {"generator_id": "servo", "enabled": true},
+    {"generator_id": "breath", "enabled": true},
+    {"generator_id": "glass", "enabled": true},
+    {"generator_id": "pulse", "enabled": true},
+    {"generator_id": "neural", "enabled": true},
+    {"generator_id": "skin", "enabled": true}
+  ]
+}
