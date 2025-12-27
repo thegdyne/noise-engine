@@ -71,7 +71,7 @@ CHECK_EXTENSIONS = {'.py', '.scd', '.md'}
 CODE_EXTENSIONS = {'.py', '.scd'}
 
 # Directories to skip
-SKIP_DIRS = {'__pycache__', '.git', 'venv', 'env', '.venv', 'node_modules', 'build', 'dist'}
+SKIP_DIRS = {'__pycache__', '.git', 'venv', 'venv312', 'env', '.venv', 'node_modules', 'build', 'dist'}
 
 # Files to skip (test file contains patterns as literals)
 SKIP_FILES = {'test_encoding.py'}
