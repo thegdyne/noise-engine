@@ -87,6 +87,8 @@ These patterns break NRT rendering. **Never generate them:**
 | `TGrains` + `LocalBuf.collect` | Avoid or accept failure | Complex buffer patterns hang NRT |
 | `TRand.kr(a, b, Dust.kr(r))` | `LFNoise0.kr(r).range(a, b)` | TRand with Dust trigger hangs NRT |
 | `Ringz.ar(...).sum` (single) | `Ringz.ar(..., [f1, f2])` | `.sum` on non-array causes SC error |
+| `Mix.fill(n, {...})` | `Mix.fill(7, {...})` | Count must be integer literal, not variable |
+| `Array.fill(n, {...})` | `Array.fill(7, {...})` | Count must be integer literal, not variable |
 
 **Variable declarations:** Must appear at **beginning of code blocks** only.
 
@@ -209,6 +211,8 @@ Catches NRT-breaking patterns before render attempt.
 grep -rn '\-[a-z][a-zA-Z]*[^a-zA-Z0-9]' packs/{pack_id}/generators/*.scd   # unary minus
 grep -rn '\-([^)]*)\\.' packs/{pack_id}/generators/*.scd                    # minus-paren
 grep -rn 'var.*\bgate\b' packs/{pack_id}/generators/*.scd                   # reserved name
+grep -rn 'Mix\.fill\s*(\s*[a-z]' packs/{pack_id}/generators/*.scd           # Mix.fill with variable
+grep -rn 'Array\.fill\s*(\s*[a-z]' packs/{pack_id}/generators/*.scd         # Array.fill with variable
 ```
 
 #### 3. Contract Check (10s)
@@ -232,6 +236,60 @@ python tools/forge_audio_validate.py packs/{pack_id}/generators/{gen}.scd --rend
 ```bash
 python tools/forge_gate.py packs/{pack_id}/
 ```
+
+### Debugging Specific Test Failures
+
+When a specific test fails, use `--only` to run just that test and `--json` for detailed output:
+
+```bash
+# Run only T003 (NRT patterns check)
+cdd test contracts/gate.pack.yaml --var pack_id={pack_id} --only T003
+
+# Get detailed JSON with exact file/line/match info
+cdd test contracts/gate.pack.yaml --var pack_id={pack_id} --only T003 --json | python -m json.tool
+```
+
+The JSON output includes:
+- `assertions[].details.file` — which file has the issue
+- `assertions[].details.line` — line number
+- `assertions[].details.match` — the matched pattern
+- `assertions[].details.snippet` — code context
+- `assertions[].message` — human-readable explanation
+
+**Example output:**
+```json
+{
+  "assertions": [{
+    "op": "not_matches",
+    "pass": false,
+    "details": {
+      "file": "packs/my_pack/generators/gen1.scd",
+      "line": 40,
+      "match": "Mix.fill(n",
+      "snippet": "sawStack = Mix.fill(numSaws, { |i|"
+    },
+    "message": "Mix.fill count must be integer literal, not variable/UGen"
+  }]
+}
+```
+
+**Available test IDs:**
+
+*gate.pack.yaml:*
+| Test | Checks |
+|------|--------|
+| T001 | UTF-8 clean (.scd files) |
+| T002 | UTF-8 clean (.json files) |
+| T003 | SC static patterns (Mix.fill, Array.fill, unary minus) |
+| T004 | Structure validation (manifest, JSON schema) |
+| T005 | Audio safety (silence, clipping, DC offset, runaway) |
+
+*pack.diversity.yaml:*
+| Test | Checks |
+|------|--------|
+| T006 | All generators declare synthesis_method |
+| T007 | Minimum 3 family diversity |
+| T008 | No family dominance (≤4 per family) |
 
 ---
 
@@ -500,14 +558,26 @@ for manifest_path in Path("packs").glob("*/manifest.json"):
 print("Done!")
 EOF
 ```
+---
+
+## Session Start
+
+Ready to forge. What's the pack theme/image?
+
+After receiving theme, I'll propose a **method planning table** before generating any code:
+
+| Gen# | Name | Concept | Method ID | Family |
+|------|------|---------|-----------|--------|
+
+You'll confirm the diversity spread (≥3 families, ≤4 per family) before I generate any SynthDefs.
 
 ---
 
 ## Pre-Flight Checklist
 
 Before archiving a pack:
-
 - [ ] `cdd test contracts/gate.pack.yaml --var pack_id={pack_id}` — all 5 tests pass
+- [ ] `python3 tools/check_diversity.py {pack_id}` — all 3 checks pass (declared, diversity, dominance)
 - [ ] OR manual checks:
   - [ ] `python tools/utf8_fix.py --report packs/{pack_id}/` — no corruption
   - [ ] `python tools/forge_validate.py packs/{pack_id}/` — contract PASS
@@ -618,6 +688,7 @@ For detailed diagnosis and fix commands, see `PACK_TROUBLESHOOTING.md`.
 | RUNAWAY | Add `Limiter.ar(sig, 0.95)` |
 | CONTRACT_FAILED | Check manifest `generators` array, JSON required fields |
 | UTF-8 errors | Run `utf8_fix.py --fix` |
+| T003 fail (Mix.fill/Array.fill) | Replace variable count with integer literal: `Mix.fill(7, {` not `Mix.fill(n, {` |
 
 ---
 
@@ -704,5 +775,219 @@ python tools/forge_gen_preset.py --missing --install
 **Note:** Only run after pack passes gate validation.**Note:** Only run after pack passes gate validation.
 ---
 
-Ready to forge. What's the pack theme/image?
 
+# SYNTHESIS_METHODS_SECTION.md
+---
+
+## Synthesis Method Diversity (ENFORCED)
+
+Each pack MUST use methods from at least **3 different families** across its 8 generators. No family may be used more than **4 times**.
+
+This is validated by `cdd test contracts/pack.diversity.yaml --var pack_id={pack_id}`.
+
+### Available Methods Reference
+
+| Family | Method ID | Character | Best For |
+|--------|-----------|-----------|----------|
+| **fm** | `fm/simple_fm` | Bell-like, metallic | Bells, keys, plucks |
+| | `fm/feedback_fm` | Aggressive, chaotic | Bass, leads, growls |
+| | `fm/hard_sync` | Tearing, aggressive | Leads, stabs |
+| | `fm/phase_mod` | DX7-style, clean | Keys, pads |
+| | `fm/ratio_stack` | Complex harmonic | Organs, rich tones |
+| | `fm/ring_mod` | Inharmonic, alien | FX, weird textures |
+| | `fm/am_chorus` | Tremolo, warm | Pads, ambient |
+| **physical** | `physical/bowed` | String bow, expressive | Strings, drones |
+| | `physical/comb_resonator` | Metallic resonance | Plucks, metallic |
+| | `physical/formant` | Vocal, vowel-like | Choirs, voice |
+| | `physical/karplus` | Plucked string | Guitar, harp |
+| | `physical/membrane` | Drum-like, body | Toms, percussion |
+| | `physical/modal` | Resonant modes | Bells, bars, plates |
+| | `physical/tube` | Wind instrument | Flutes, breath |
+| **spectral** | `spectral/additive` | Pure partials | Organs, clean tones |
+| | `spectral/harmonic_series` | Natural overtones | Brass, strings |
+| | `spectral/spectral_drone` | Evolving spectrum | Ambient, drones |
+| | `spectral/vocoder` | Robotic, analyzed | Robot voice, FX |
+| | `spectral/wavetable` | Morphing, digital | Complex evolving |
+| **subtractive** | `subtractive/bright_saw` | Classic saw | Leads, bass |
+| | `subtractive/dark_pulse` | Hollow pulse | Bass, pads |
+| | `subtractive/noise_filtered` | Wind, breath | Textures, FX |
+| | `subtractive/supersaw` | Detuned stack | Trance, huge |
+| | `subtractive/wavefold` | West coast complex | Rich harmonics |
+| **texture** | `texture/bitcrush` | Lo-fi, degraded | Lo-fi, retro |
+| | `texture/chaos_osc` | Unpredictable chaos | Experimental |
+| | `texture/dust_resonator` | Sparse pings | Ambient, sparse |
+| | `texture/granular_cloud` | Grain swarm | Clouds, pads |
+| | `texture/noise_drone` | Filtered noise bed | Ambient, drones |
+| | `texture/noise_rhythm` | Rhythmic noise | Percussion, FX |
+
+### Theme-Based Method Selection
+
+| Theme Type | Prefer | Avoid |
+|------------|--------|-------|
+| Organic/Natural | `physical`, `texture` | `fm` |
+| Digital/Electronic | `fm`, `spectral` | `physical` |
+| Ambient/Atmospheric | `spectral`, `texture`, `physical` | - |
+| Aggressive/Industrial | `fm`, `subtractive`, `texture` | - |
+| Acoustic/Realistic | `physical`, `spectral` | `texture` |
+
+---
+
+## Method Assignment (Pre-Generation Planning)
+
+**CRITICAL:** Before generating any code, plan method assignments to ensure diversity.
+
+### Planning Template
+
+Copy this table and fill in before coding:
+
+```markdown
+| Gen# | Name | Theme Concept | Method ID | Family |
+|------|------|---------------|-----------|--------|
+| 1 | {name} | {concept} | {method_id} | {family} |
+| 2 | {name} | {concept} | {method_id} | {family} |
+| 3 | {name} | {concept} | {method_id} | {family} |
+| 4 | {name} | {concept} | {method_id} | {family} |
+| 5 | {name} | {concept} | {method_id} | {family} |
+| 6 | {name} | {concept} | {method_id} | {family} |
+| 7 | {name} | {concept} | {method_id} | {family} |
+| 8 | {name} | {concept} | {method_id} | {family} |
+
+**Diversity check:**
+- Families used: {list unique families}
+- Count: {number} (must be ≥3)
+- Max per family: {max count} (must be ≤4)
+```
+
+### Example: Modular Synth Pack (mod_caf)
+
+| Gen# | Name | Theme Concept | Method ID | Family |
+|------|------|---------------|-----------|--------|
+| 1 | patch | Cable connections | `texture/noise_rhythm` | texture |
+| 2 | slats | Wood architecture | `physical/comb_resonator` | physical |
+| 3 | voltage | CV modulation | `texture/chaos_osc` | texture |
+| 4 | studio | Room ambience | `texture/noise_drone` | texture |
+| 5 | osc | Analog oscillator | `subtractive/bright_saw` | subtractive |
+| 6 | filter | Resonant sweep | `subtractive/wavefold` | subtractive |
+| 7 | lfo | Slow modulation | `fm/am_chorus` | fm |
+| 8 | test | Acoustic test | `spectral/additive` | spectral |
+
+**Diversity check:**
+- Families used: texture, physical, subtractive, fm, spectral
+- Count: 5 ✓ (≥3)
+- Max per family: 3 (texture) ✓ (≤4)
+
+---
+
+## Generator JSON Extension
+
+Each generator JSON MUST include the `synthesis_method` field:
+
+```json
+{
+  "generator_id": "osc",
+  "name": "OSC",
+  "synthdef": "forge_mod_caf_osc",
+  "synthesis_method": "subtractive/bright_saw",
+  "custom_params": [...],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
+```
+
+### Validation
+
+```bash
+# Check diversity
+cdd test contracts/pack.diversity.yaml --var pack_id={pack_id}
+
+# Expected output:
+# T006 ✓ pass ✓ all_generators_declare_method
+# T007 ✓ pass ✓ minimum_family_diversity (4 families)
+# T008 ✓ pass ✓ no_family_dominance (max 3)
+```
+
+---
+
+## Method-Specific DSP Patterns
+
+Some methods have specific DSP requirements beyond the standard output chain.
+
+### FM Methods
+```supercollider
+// All FM methods benefit from:
+sig = LeakDC.ar(sig);  // FM can create DC offset
+
+// feedback_fm specifically needs:
+sig = Limiter.ar(sig, 0.95);  // Feedback can runaway
+```
+
+### Physical Methods
+```supercollider
+// bowed, membrane need:
+sig = LeakDC.ar(sig);  // Physical models often have DC issues
+sig = Limiter.ar(sig, 0.95);  // Resonance can spike
+
+// karplus needs:
+sig = LeakDC.ar(sig);  // Pluck transients create DC
+```
+
+### Texture Methods
+```supercollider
+// chaos_osc, granular_cloud need:
+sig = LeakDC.ar(sig);
+sig = Limiter.ar(sig, 0.95);  // Chaos is unpredictable
+
+// noise_drone is usually safe with just:
+sig = LeakDC.ar(sig);
+```
+
+### Subtractive Methods
+```supercollider
+// wavefold needs:
+sig = LeakDC.ar(sig);  // Folding creates DC
+sig = Limiter.ar(sig, 0.95);  // Folding can spike
+
+// bright_saw, dark_pulse usually safe with:
+sig = LeakDC.ar(sig);
+```
+
+---
+
+## Imaginarium Integration (Future)
+
+When using Imaginarium's method templates to generate SynthDefs automatically:
+
+```python
+from imaginarium.methods.fm import SimpleFMTemplate
+
+template = SimpleFMTemplate()
+
+# Generate SynthDef
+scd = template.generate_synthdef(
+    synthdef_name="forge_my_pack_bell",
+    params={"ratio": 2.5, "index": 4.0, "brightness": 0.7},
+    seed=12345
+)
+
+# Generate JSON
+json_config = template.generate_json(
+    display_name="BELL",
+    synthdef_name="forge_my_pack_bell",
+    params={"ratio": 2.5, "index": 4.0, "brightness": 0.7}
+)
+
+# Add synthesis_method field
+json_config["synthesis_method"] = template.definition.method_id
+# Result: "fm/simple_fm"
+```
+
+The method templates automatically:
+- Generate correctly formatted SynthDef code
+- Map custom params to the right ranges
+- Include seed for determinism
+- Follow the generator contract
+
+---
+
+Ready to Forge? 

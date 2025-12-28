@@ -3,13 +3,59 @@
   "name": "STUDIO",
   "synthdef": "forge_mod_caf_studio",
   "custom_params": [
-    {"key": "room", "label": "ROM", "tooltip": "Room tone - ambient noise", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "hvac", "label": "HVC", "tooltip": "HVAC hum - ventilation", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "gear", "label": "GER", "tooltip": "Gear noise - equipment hiss", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "quiet", "label": "QUI", "tooltip": "Quiet filter - darkness", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "presence", "label": "PRS", "tooltip": "Human presence - movement", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "room",
+      "label": "ROM",
+      "tooltip": "Room tone - ambient noise",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hvac",
+      "label": "HVC",
+      "tooltip": "HVAC hum - ventilation",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "gear",
+      "label": "GER",
+      "tooltip": "Gear noise - equipment hiss",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "quiet",
+      "label": "QUI",
+      "tooltip": "Quiet filter - darkness",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "presence",
+      "label": "PRS",
+      "tooltip": "Human presence - movement",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,
-  "pitch_target": null
+  "pitch_target": null,
+  "synthesis_method": "texture/noise_drone"
 }

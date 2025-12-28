@@ -1,0 +1,1632 @@
+schema_version: '1.0'
+generated_from: imaginarium/methods
+families:
+  fm:
+    description: ''
+    methods:
+      am_chorus:
+        id: fm/am_chorus
+        display_name: AM Chorus
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: mod_depth
+          label: DEP
+          tooltip: AM modulation depth
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: mod_rate
+          label: RAT
+          tooltip: AM modulation rate
+          range:
+          - 0.1
+          - 20.0
+          curve: exp
+        - name: detune
+          label: DTN
+          tooltip: Voice detuning amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: voices
+          label: VOC
+          tooltip: Number of chorus voices
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: shimmer
+          label: SHM
+          tooltip: High frequency shimmer
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - movement
+        - richness
+        default_tags:
+          topology: am
+          character: lush
+          role: bed
+        sample_tags:
+          topology: am
+          character: lush
+          role: bed
+          family: fm
+          method: fm/am_chorus
+      feedback_fm:
+        id: fm/feedback_fm
+        display_name: Feedback FM
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: feedback
+          label: FBK
+          tooltip: Self-modulation feedback amount
+          range:
+          - 0.0
+          - 1.5
+          curve: lin
+        - name: fb_mod_rate
+          label: RAT
+          tooltip: Feedback modulation LFO rate
+          range:
+          - 0.1
+          - 8.0
+          curve: exp
+        - name: fb_mod_depth
+          label: DEP
+          tooltip: Feedback modulation depth
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: Output filter brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: drive
+          label: DRV
+          tooltip: Waveshaping drive amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - chaos
+        - movement
+        default_tags:
+          topology: fm
+          character: aggressive
+        sample_tags:
+          topology: fm
+          family: fm
+          method: fm/feedback_fm
+          character: gritty
+      hard_sync:
+        id: fm/hard_sync
+        display_name: Hard Sync
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: sync_ratio
+          label: RAT
+          tooltip: Slave to master frequency ratio
+          range:
+          - 1.0
+          - 8.0
+          curve: lin
+        - name: sync_sweep
+          label: SWP
+          tooltip: Sync ratio sweep depth
+          range:
+          - 0.0
+          - 2.0
+          curve: lin
+        - name: sweep_rate
+          label: SPD
+          tooltip: Sweep LFO rate
+          range:
+          - 0.1
+          - 8.0
+          curve: exp
+        - name: pulse_mix
+          label: PLS
+          tooltip: Pulse wave mix amount
+          range:
+          - 0.0
+          - 0.5
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: Output filter brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - aggression
+        - movement
+        default_tags:
+          topology: hard_sync
+          character: angular
+        sample_tags:
+          topology: hard_sync
+          family: fm
+          method: fm/hard_sync
+          character: angular
+          movement: static
+      phase_mod:
+        id: fm/phase_mod
+        display_name: Phase Mod
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: distortion
+          label: DST
+          tooltip: Phase distortion amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: waveform
+          label: WAV
+          tooltip: Base waveform shape
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: mod_rate
+          label: RAT
+          tooltip: Distortion modulation rate
+          range:
+          - 0.1
+          - 8.0
+          curve: exp
+        - name: mod_depth
+          label: MOD
+          tooltip: Distortion modulation depth
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: Harmonic brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - intensity
+        - movement
+        default_tags:
+          topology: phase_mod
+          character: digital
+        sample_tags:
+          topology: phase_mod
+          character: digital
+          family: fm
+          method: fm/phase_mod
+          intensity: moderate
+      ratio_stack:
+        id: fm/ratio_stack
+        display_name: Ratio Stack FM
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: ratio_spread
+          label: SPR
+          tooltip: Harmonic to inharmonic ratio spread
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: index_1
+          label: IX1
+          tooltip: Modulator 1 index
+          range:
+          - 0.5
+          - 6.0
+          curve: exp
+        - name: index_2
+          label: IX2
+          tooltip: Modulator 2 index
+          range:
+          - 0.2
+          - 4.0
+          curve: exp
+        - name: index_3
+          label: IX3
+          tooltip: Modulator 3 index
+          range:
+          - 0.1
+          - 3.0
+          curve: exp
+        - name: mod_decay
+          label: DEC
+          tooltip: Modulation index decay time
+          range:
+          - 0.1
+          - 4.0
+          curve: exp
+        macro_controls:
+        - complexity
+        - harmonic
+        default_tags:
+          topology: fm
+          character: complex
+        sample_tags:
+          topology: fm
+          family: fm
+          method: fm/ratio_stack
+          character: complex
+      ring_mod:
+        id: fm/ring_mod
+        display_name: Ring Mod
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: mod_ratio
+          label: RAT
+          tooltip: Modulator frequency ratio
+          range:
+          - 0.5
+          - 4.0
+          curve: lin
+        - name: mod_detune
+          label: DET
+          tooltip: Modulator detune offset
+          range:
+          - 0.0
+          - 50.0
+          curve: lin
+        - name: mix
+          label: MIX
+          tooltip: Dry/ring-modulated mix
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: mod_shape
+          label: SHP
+          tooltip: "Modulator waveform (sine \u2192 saw)"
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: Output filter brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - dissonance
+        - metallic
+        default_tags:
+          topology: ring_mod
+          character: metallic
+        sample_tags:
+          topology: ring_mod
+          family: fm
+          method: fm/ring_mod
+          character: harmonic
+      simple_fm:
+        id: fm/simple_fm
+        display_name: Simple FM
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: ratio
+          label: RAT
+          tooltip: Modulator to carrier frequency ratio
+          range:
+          - 0.5
+          - 8.0
+          curve: lin
+        - name: index
+          label: IDX
+          tooltip: FM modulation index (brightness)
+          range:
+          - 0.0
+          - 10.0
+          curve: lin
+        - name: index_decay
+          label: DEC
+          tooltip: Modulation index decay time
+          range:
+          - 0.1
+          - 4.0
+          curve: exp
+        - name: mod_env_amt
+          label: ENV
+          tooltip: Modulation envelope amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: Output filter brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - metallic
+        - evolve
+        default_tags:
+          topology: fm
+          oscillator: sine
+          character: metallic
+        sample_tags:
+          topology: fm
+          oscillator: sine
+          family: fm
+          method: fm/simple_fm
+          character: harmonic
+          timbre: medium
+  physical:
+    description: ''
+    methods:
+      bowed:
+        id: physical/bowed
+        display_name: Bowed String
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: bow_pressure
+          label: PRS
+          tooltip: Bow pressure intensity
+          range:
+          - 0.2
+          - 1.0
+          curve: lin
+        - name: bow_position
+          label: POS
+          tooltip: Bow position on string
+          range:
+          - 0.05
+          - 0.2
+          curve: lin
+        - name: vibrato_rate
+          label: VIB
+          tooltip: Vibrato rate
+          range:
+          - 3.0
+          - 7.0
+          curve: lin
+        - name: vibrato_depth
+          label: DEP
+          tooltip: Vibrato depth
+          range:
+          - 0.0
+          - 0.02
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: Bow friction brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - intensity
+        - expression
+        default_tags:
+          topology: physical
+          exciter: sustained
+          character: bowed
+        sample_tags:
+          topology: physical
+          exciter: sustained
+          family: physical
+          method: physical/bowed
+          character: expressive
+      comb_resonator:
+        id: physical/comb_resonator
+        display_name: Comb Resonator
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: feedback
+          label: FBK
+          tooltip: Comb feedback amount
+          range:
+          - 0.01
+          - 0.99
+          curve: lin
+        - name: damping
+          label: DMP
+          tooltip: High frequency damping
+          range:
+          - 0.01
+          - 1.0
+          curve: lin
+        - name: detune
+          label: DTN
+          tooltip: Comb pitch spread
+          range:
+          - 0.01
+          - 1.0
+          curve: lin
+        - name: excite
+          label: EXC
+          tooltip: Exciter brightness
+          range:
+          - 0.01
+          - 1.0
+          curve: lin
+        - name: mod_rate
+          label: MOD
+          tooltip: Delay time modulation
+          range:
+          - 0.01
+          - 5.0
+          curve: exp
+        macro_controls:
+        - resonance
+        - movement
+        default_tags:
+          topology: comb
+          character: metallic
+        sample_tags:
+          topology: comb
+          character: metallic
+          family: physical
+          method: physical/comb_resonator
+      formant:
+        id: physical/formant
+        display_name: Formant Voice
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: vowel
+          label: VOW
+          tooltip: "Vowel morph (A\u2192E\u2192I\u2192O\u2192U)"
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: breathiness
+          label: BRH
+          tooltip: Breath noise amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: formant_shift
+          label: SHF
+          tooltip: Formant frequency shift
+          range:
+          - 0.5
+          - 2.0
+          curve: lin
+        - name: formant_width
+          label: WID
+          tooltip: Formant bandwidth
+          range:
+          - 0.5
+          - 2.0
+          curve: lin
+        - name: vibrato_depth
+          label: VIB
+          tooltip: Vibrato depth
+          range:
+          - 0.0
+          - 0.02
+          curve: lin
+        macro_controls:
+        - openness
+        - airiness
+        default_tags:
+          topology: formant
+          exciter: pulse
+          character: vocal
+        sample_tags:
+          topology: formant
+          exciter: pulse
+          family: physical
+          method: physical/formant
+          character: vocal
+      karplus:
+        id: physical/karplus
+        display_name: Plucked String
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: decay_time
+          label: DEC
+          tooltip: String decay time
+          range:
+          - 0.5
+          - 8.0
+          curve: exp
+        - name: damping
+          label: DMP
+          tooltip: String damping amount
+          range:
+          - 0.0
+          - 0.9
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: Exciter brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: exciter_color
+          label: EXC
+          tooltip: Exciter noise color
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: body_size
+          label: BOD
+          tooltip: Body resonance amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - material
+        - sustain
+        default_tags:
+          topology: physical
+          exciter: noise
+          character: plucked
+        sample_tags:
+          topology: physical
+          exciter: noise
+          family: physical
+          method: physical/karplus
+          sustain: medium
+          character: plucked
+      membrane:
+        id: physical/membrane
+        display_name: Membrane
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: tension
+          label: TNS
+          tooltip: Membrane tension (pitch)
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: ring_decay
+          label: DEC
+          tooltip: Ring decay time
+          range:
+          - 0.05
+          - 3.0
+          curve: exp
+        - name: strike
+          label: STK
+          tooltip: Strike hardness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: metallic
+          label: MTL
+          tooltip: Metallic/inharmonic partials
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: size
+          label: SIZ
+          tooltip: Membrane size (body resonance)
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - character
+        - sustain
+        default_tags:
+          topology: membrane
+          character: percussive
+          role: accent
+        sample_tags:
+          topology: membrane
+          character: percussive
+          role: accent
+          family: physical
+          method: physical/membrane
+          material: skin
+      modal:
+        id: physical/modal
+        display_name: Modal Resonator
+        template_version: '2'
+        param_count: 5
+        params:
+        - name: decay_time
+          label: DEC
+          tooltip: Mode decay time
+          range:
+          - 0.5
+          - 10.0
+          curve: exp
+        - name: brightness
+          label: BRT
+          tooltip: High mode emphasis
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: inharmonicity
+          label: INH
+          tooltip: Modal frequency stretch
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: density
+          label: DNS
+          tooltip: Mode amplitude density
+          range:
+          - 0.2
+          - 1.0
+          curve: lin
+        - name: strike_brightness
+          label: STK
+          tooltip: Strike exciter brightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - material
+        - size
+        default_tags:
+          topology: physical
+          exciter: impulse
+          character: resonant
+        sample_tags:
+          topology: physical
+          exciter: impulse
+          family: physical
+          method: physical/modal
+          sustain: medium
+          character: bell
+      tube:
+        id: physical/tube
+        display_name: Tube
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: breath
+          label: BRH
+          tooltip: Breath/air noise amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: embouchure
+          label: EMB
+          tooltip: Lip/edge tightness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: length
+          label: LEN
+          tooltip: Tube length multiplier
+          range:
+          - 0.3
+          - 3.0
+          curve: exp
+        - name: flare
+          label: FLR
+          tooltip: Bell/flare amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: flutter
+          label: FLT
+          tooltip: Pitch flutter/vibrato
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - airiness
+        - resonance
+        default_tags:
+          topology: tube
+          character: breathy
+        sample_tags:
+          topology: tube
+          character: breathy
+          family: physical
+          method: physical/tube
+          shape: cylindrical
+  spectral:
+    description: ''
+    methods:
+      additive:
+        id: spectral/additive
+        display_name: Additive
+        template_version: '2'
+        param_count: 5
+        params:
+        - name: num_partials
+          label: PRT
+          tooltip: Number of partials (structural)
+          range:
+          - 4.0
+          - 16.0
+          curve: lin
+        - name: odd_even
+          label: ODD
+          tooltip: Odd/even harmonic balance
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: rolloff
+          label: ROL
+          tooltip: Harmonic amplitude rolloff
+          range:
+          - 0.5
+          - 2.0
+          curve: lin
+        - name: detune_spread
+          label: DET
+          tooltip: Partial detuning spread
+          range:
+          - 0.0
+          - 0.015
+          curve: lin
+        - name: brightness
+          label: BRT
+          tooltip: High partial emphasis
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - complexity
+        - character
+        default_tags:
+          topology: additive
+          character: clean
+        sample_tags:
+          topology: additive
+          family: spectral
+          method: spectral/additive
+          character: balanced
+          complexity: moderate
+          texture: clean
+      harmonic_series:
+        id: spectral/harmonic_series
+        display_name: Harmonic Series
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: partials
+          label: PRT
+          tooltip: Number of partials
+          range:
+          - 1.0
+          - 16.0
+          curve: lin
+        - name: slope
+          label: SLP
+          tooltip: Amplitude rolloff per partial
+          range:
+          - -2.0
+          - 0.0
+          curve: lin
+        - name: odd_even
+          label: ODD
+          tooltip: Odd vs even harmonic balance
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: stretch
+          label: STR
+          tooltip: Inharmonicity stretch
+          range:
+          - 0.99
+          - 1.02
+          curve: lin
+        - name: shimmer
+          label: SHM
+          tooltip: Per-partial vibrato
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - brightness
+        - character
+        default_tags:
+          topology: additive
+          character: pure
+        sample_tags:
+          topology: additive
+          character: pure
+          family: spectral
+          method: spectral/harmonic_series
+          quality: harmonic
+      spectral_drone:
+        id: spectral/spectral_drone
+        display_name: Spectral Drone
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: freeze
+          label: FRZ
+          tooltip: Spectral freeze amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: smear
+          label: SMR
+          tooltip: Spectral blur/diffusion
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: shift
+          label: SHF
+          tooltip: Spectral pitch shift
+          range:
+          - 0.5
+          - 2.0
+          curve: exp
+        - name: feedback
+          label: FBK
+          tooltip: Spectral feedback amount
+          range:
+          - 0.0
+          - 0.95
+          curve: lin
+        - name: sparkle
+          label: SPK
+          tooltip: Random bin excitation
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - stasis
+        - evolution
+        default_tags:
+          topology: spectral
+          character: frozen
+          role: bed
+        sample_tags:
+          topology: spectral
+          character: frozen
+          role: bed
+          family: spectral
+          method: spectral/spectral_drone
+      vocoder:
+        id: spectral/vocoder
+        display_name: Vocoder
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: bands
+          label: BND
+          tooltip: Number of active bands
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: resonance
+          label: REZ
+          tooltip: Band filter resonance
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: shift
+          label: SHF
+          tooltip: Spectral shift
+          range:
+          - 0.5
+          - 2.0
+          curve: exp
+        - name: noise_mix
+          label: NSE
+          tooltip: Noise carrier amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: attack
+          label: ATK
+          tooltip: Band envelope attack
+          range:
+          - 0.001
+          - 0.1
+          curve: exp
+        macro_controls:
+        - character
+        - texture
+        default_tags:
+          topology: vocoder
+          character: robotic
+        sample_tags:
+          topology: vocoder
+          character: robotic
+          family: spectral
+          method: spectral/vocoder
+          texture: tonal
+      wavetable:
+        id: spectral/wavetable
+        display_name: Wavetable
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: position
+          label: POS
+          tooltip: Wavetable position (morph)
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: morph_rate
+          label: MRT
+          tooltip: Auto-morph LFO rate
+          range:
+          - 0.01
+          - 5.0
+          curve: exp
+        - name: morph_depth
+          label: MDP
+          tooltip: Auto-morph amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: harmonics
+          label: HRM
+          tooltip: Harmonic richness
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: detune
+          label: DTN
+          tooltip: Unison detune amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - movement
+        - richness
+        default_tags:
+          topology: wavetable
+          character: evolving
+        sample_tags:
+          topology: wavetable
+          character: evolving
+          family: spectral
+          method: spectral/wavetable
+  subtractive:
+    description: ''
+    methods:
+      bright_saw:
+        id: subtractive/bright_saw
+        display_name: Bright Saw
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: cutoff_ratio
+          label: CUT
+          tooltip: Filter cutoff as ratio of maximum
+          range:
+          - 0.3
+          - 1.0
+          curve: lin
+        - name: resonance
+          label: RES
+          tooltip: Filter resonance
+          range:
+          - 0.1
+          - 0.8
+          curve: lin
+        - name: drive
+          label: DRV
+          tooltip: Pre-filter saturation
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: detune
+          label: DET
+          tooltip: Oscillator detune spread
+          range:
+          - 0.0
+          - 0.03
+          curve: lin
+        - name: spread
+          label: WID
+          tooltip: Stereo width
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - TONE
+        - EDGE
+        - MOTION
+        default_tags:
+          topology: serial
+          oscillator: saw
+          character: bright
+        sample_tags:
+          topology: serial
+          oscillator: saw
+          character: bright
+          family: subtractive
+          method: subtractive/bright_saw
+          saturation: clean
+          width: tight
+      dark_pulse:
+        id: subtractive/dark_pulse
+        display_name: Dark Pulse
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: pulse_width
+          label: WID
+          tooltip: Base pulse width
+          range:
+          - 0.1
+          - 0.9
+          curve: lin
+        - name: pwm_depth
+          label: PWM
+          tooltip: Pulse width modulation depth
+          range:
+          - 0.0
+          - 0.4
+          curve: lin
+        - name: pwm_rate
+          label: RAT
+          tooltip: PWM LFO rate
+          range:
+          - 0.1
+          - 4.0
+          curve: exp
+        - name: cutoff_hz
+          label: CUT
+          tooltip: Filter cutoff ceiling
+          range:
+          - 100.0
+          - 2000.0
+          curve: exp
+        - name: resonance
+          label: RES
+          tooltip: Filter resonance
+          range:
+          - 0.0
+          - 0.8
+          curve: lin
+        macro_controls:
+        - darkness
+        - movement
+        default_tags:
+          topology: serial
+          oscillator: pulse
+          character: dark
+        sample_tags:
+          topology: serial
+          oscillator: pulse
+          character: dark
+          family: subtractive
+          method: subtractive/dark_pulse
+          brightness: medium
+      noise_filtered:
+        id: subtractive/noise_filtered
+        display_name: Filtered Noise
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: noise_type
+          label: TYP
+          tooltip: "Noise type (white \u2192 pink \u2192 brown \u2192 gray)"
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: cutoff_hz
+          label: CUT
+          tooltip: Filter cutoff ceiling
+          range:
+          - 100.0
+          - 8000.0
+          curve: exp
+        - name: resonance
+          label: RES
+          tooltip: Filter resonance
+          range:
+          - 0.0
+          - 0.95
+          curve: lin
+        - name: dust_density
+          label: DST
+          tooltip: Velvet-like sparse impulse density
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: crackle_amt
+          label: CRK
+          tooltip: Chaotic crackle texture amount
+          range:
+          - 0.0
+          - 0.5
+          curve: lin
+        macro_controls:
+        - darkness
+        - texture
+        default_tags:
+          topology: noise
+          exciter: continuous
+          character: texture
+        sample_tags:
+          topology: noise
+          exciter: continuous
+          family: subtractive
+          method: subtractive/noise_filtered
+          character: pink
+      supersaw:
+        id: subtractive/supersaw
+        display_name: Supersaw
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: detune
+          label: DET
+          tooltip: Oscillator detune amount
+          range:
+          - 0.001
+          - 0.03
+          curve: exp
+        - name: mix
+          label: MIX
+          tooltip: Center vs detuned oscillator balance
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: cutoff_ratio
+          label: CUT
+          tooltip: Filter cutoff as ratio of maximum
+          range:
+          - 0.1
+          - 1.0
+          curve: lin
+        - name: resonance
+          label: RES
+          tooltip: Filter resonance
+          range:
+          - 0.0
+          - 0.8
+          curve: lin
+        - name: stereo_spread
+          label: WID
+          tooltip: Stereo spread of detuned oscillators
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - thickness
+        - brightness
+        default_tags:
+          topology: oscillator
+          character: thick
+        sample_tags:
+          topology: oscillator
+          family: subtractive
+          method: subtractive/supersaw
+          character: thick
+      wavefold:
+        id: subtractive/wavefold
+        display_name: Wavefold
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: fold_amount
+          label: FLD
+          tooltip: Wavefolding intensity
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: symmetry
+          label: SYM
+          tooltip: Fold symmetry (0=asym, 1=sym)
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: drive
+          label: DRV
+          tooltip: Input gain before folding
+          range:
+          - 1.0
+          - 8.0
+          curve: exp
+        - name: stages
+          label: STG
+          tooltip: Number of fold stages
+          range:
+          - 1.0
+          - 4.0
+          curve: lin
+        - name: mix
+          label: MIX
+          tooltip: Dry/wet mix
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - intensity
+        - character
+        default_tags:
+          topology: nonlinear
+          character: metallic
+        sample_tags:
+          topology: nonlinear
+          character: metallic
+          family: subtractive
+          method: subtractive/wavefold
+          intensity: moderate
+          harmonics: mixed
+  texture:
+    description: ''
+    methods:
+      bitcrush:
+        id: texture/bitcrush
+        display_name: Bitcrush
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: bits
+          label: BIT
+          tooltip: Bit depth
+          range:
+          - 2.0
+          - 16.0
+          curve: lin
+        - name: sample_rate
+          label: SRT
+          tooltip: Sample rate reduction
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: source
+          label: SRC
+          tooltip: Noise vs tone source
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: fold
+          label: FLD
+          tooltip: Pre-crush wavefold
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: drive
+          label: DRV
+          tooltip: Input drive
+          range:
+          - 1.0
+          - 4.0
+          curve: exp
+        macro_controls:
+        - crunch
+        - aggression
+        default_tags:
+          topology: bitcrush
+          character: lofi
+        sample_tags:
+          topology: bitcrush
+          character: lofi
+          family: texture
+          method: texture/bitcrush
+          quality: retro
+      chaos_osc:
+        id: texture/chaos_osc
+        display_name: Chaos Osc
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: chaos
+          label: CHS
+          tooltip: Chaos amount (order to chaos)
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: rate
+          label: RAT
+          tooltip: Base oscillation rate
+          range:
+          - 0.1
+          - 20.0
+          curve: exp
+        - name: coupling
+          label: CPL
+          tooltip: Oscillator coupling strength
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: tonal
+          label: TON
+          tooltip: Tonal vs noise character
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: damping
+          label: DMP
+          tooltip: High frequency damping
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - wildness
+        - stability
+        default_tags:
+          topology: chaos
+          character: unpredictable
+        sample_tags:
+          topology: chaos
+          character: unpredictable
+          family: texture
+          method: texture/chaos_osc
+          stability: edge
+          tonality: noisy
+      dust_resonator:
+        id: texture/dust_resonator
+        display_name: Dust Resonator
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: dust_density
+          label: DST
+          tooltip: Impulse density (events per second)
+          range:
+          - 0.5
+          - 50.0
+          curve: exp
+        - name: ring_decay
+          label: RNG
+          tooltip: Resonator ring-out time
+          range:
+          - 0.01
+          - 2.0
+          curve: exp
+        - name: brightness
+          label: BRT
+          tooltip: Resonator frequency range
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: spread
+          label: SPR
+          tooltip: Stereo spread of impulses
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: crackle
+          label: CRK
+          tooltip: Additional crackle texture
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - activity
+        - sustain
+        default_tags:
+          topology: stochastic
+          character: organic
+        sample_tags:
+          topology: stochastic
+          character: organic
+          family: texture
+          method: texture/dust_resonator
+          density: medium
+      granular_cloud:
+        id: texture/granular_cloud
+        display_name: Granular Cloud
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: density
+          label: DNS
+          tooltip: Grain density (grains per second)
+          range:
+          - 1.0
+          - 100.0
+          curve: exp
+        - name: grain_size
+          label: SIZ
+          tooltip: Individual grain duration
+          range:
+          - 0.01
+          - 0.2
+          curve: exp
+        - name: pitch_scatter
+          label: PIT
+          tooltip: Random pitch variation per grain
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: position_jitter
+          label: JIT
+          tooltip: Stereo position randomization
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: shimmer
+          label: SHM
+          tooltip: High frequency sparkle amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - thickness
+        - chaos
+        default_tags:
+          topology: granular
+          character: atmospheric
+        sample_tags:
+          topology: granular
+          character: atmospheric
+          family: texture
+          method: texture/granular_cloud
+          density: medium
+      noise_drone:
+        id: texture/noise_drone
+        display_name: Noise Drone
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: depth
+          label: DPT
+          tooltip: Low frequency emphasis
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: movement
+          label: MOV
+          tooltip: Filter modulation rate
+          range:
+          - 0.01
+          - 2.0
+          curve: exp
+        - name: texture
+          label: TEX
+          tooltip: Noise color (dark to bright)
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: resonance
+          label: RES
+          tooltip: Filter resonance peaks
+          range:
+          - 0.0
+          - 0.9
+          curve: lin
+        - name: space
+          label: SPC
+          tooltip: Stereo width and diffusion
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - darkness
+        - animation
+        default_tags:
+          topology: noise
+          character: drone
+          role: bed
+        sample_tags:
+          topology: noise
+          character: drone
+          role: bed
+          family: texture
+          method: texture/noise_drone
+          register: low
+          motion: slow
+      noise_rhythm:
+        id: texture/noise_rhythm
+        display_name: Noise Rhythm
+        template_version: '1'
+        param_count: 5
+        params:
+        - name: tone
+          label: TON
+          tooltip: Noise pitch/tone
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: snap
+          label: SNP
+          tooltip: Attack snap
+          range:
+          - 0.001
+          - 0.1
+          curve: exp
+        - name: body
+          label: BDY
+          tooltip: Body decay length
+          range:
+          - 0.01
+          - 0.5
+          curve: exp
+        - name: color
+          label: CLR
+          tooltip: Noise color (dark to bright)
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        - name: pitch_env
+          label: PEN
+          tooltip: Pitch envelope amount
+          range:
+          - 0.0
+          - 1.0
+          curve: lin
+        macro_controls:
+        - punch
+        - sustain
+        default_tags:
+          topology: noise
+          character: percussive
+          role: accent
+        sample_tags:
+          topology: noise
+          character: percussive
+          role: accent
+          family: texture
+          method: texture/noise_rhythm
+diversity:
+  min_families: 3
+  max_per_family: 4
+  recommended_families: 4

@@ -3,13 +3,59 @@
   "name": "PATCH",
   "synthdef": "forge_mod_caf_patch",
   "custom_params": [
-    {"key": "crackle", "label": "CRK", "tooltip": "Contact crackle - connection noise", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "hum", "label": "HUM", "tooltip": "Ground hum - mains frequency", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "insert", "label": "INS", "tooltip": "Jack insert - plug clicks", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "oxidation", "label": "OXD", "tooltip": "Oxidation - dirty contacts", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ground", "label": "GND", "tooltip": "Ground frequency - 50/60Hz region", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "crackle",
+      "label": "CRK",
+      "tooltip": "Contact crackle - connection noise",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hum",
+      "label": "HUM",
+      "tooltip": "Ground hum - mains frequency",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "insert",
+      "label": "INS",
+      "tooltip": "Jack insert - plug clicks",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "oxidation",
+      "label": "OXD",
+      "tooltip": "Oxidation - dirty contacts",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ground",
+      "label": "GND",
+      "tooltip": "Ground frequency - 50/60Hz region",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,
-  "pitch_target": null
+  "pitch_target": null,
+  "synthesis_method": "texture/noise_rhythm"
 }

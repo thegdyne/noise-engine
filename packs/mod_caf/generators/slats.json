@@ -3,13 +3,59 @@
   "name": "SLATS",
   "synthdef": "forge_mod_caf_slats",
   "custom_params": [
-    {"key": "body", "label": "BOD", "tooltip": "Wood body - resonance amount", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "spacing", "label": "SPC", "tooltip": "Slat spacing - comb frequency", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "tap", "label": "TAP", "tooltip": "Tap rate - wood knocks", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "warmth", "label": "WRM", "tooltip": "Warmth filter - brightness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "room", "label": "ROM", "tooltip": "Room reflection - space", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "body",
+      "label": "BOD",
+      "tooltip": "Wood body - resonance amount",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spacing",
+      "label": "SPC",
+      "tooltip": "Slat spacing - comb frequency",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tap",
+      "label": "TAP",
+      "tooltip": "Tap rate - wood knocks",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "warmth",
+      "label": "WRM",
+      "tooltip": "Warmth filter - brightness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "room",
+      "label": "ROM",
+      "tooltip": "Room reflection - space",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,
-  "pitch_target": null
+  "pitch_target": null,
+  "synthesis_method": "physical/comb_resonator"
 }

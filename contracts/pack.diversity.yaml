@@ -1,0 +1,102 @@
+# contracts/pack.diversity.yaml
+# Validates synthesis method diversity across pack generators
+#
+# Usage: cdd test contracts/pack.diversity.yaml --var pack_id=your_pack
+
+contract: pack.diversity
+version: 2.0.0
+status: draft
+
+description: |
+  Enforces synthesis method diversity across pack generators.
+  Each generator JSON must include a synthesis_method field.
+  Rules: ≥3 families, ≤4 per family.
+
+runner:
+  executor: shell
+  timeout_ms: 30000
+
+requirements:
+  - id: R006
+    priority: must
+    description: All generators declare synthesis_method
+    acceptance_criteria:
+      - Every generator JSON has synthesis_method field
+      
+  - id: R007
+    priority: must
+    description: Pack uses at least 3 distinct families
+    acceptance_criteria:
+      - Across 8 generators, at least 3 different family prefixes
+      
+  - id: R008
+    priority: should
+    description: No single family dominates
+    acceptance_criteria:
+      - No family used in more than 4 generators
+
+tests:
+  # T006: Check all generators have synthesis_method
+  # Exit 0 = all declared, Exit 1 = some missing
+  - id: T006
+    name: all_generators_declare_method
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command:
+          - python3
+          - ../tools/check_diversity.py
+          - "$.vars.pack_id"
+          - --check-declared
+        save_as: method_check
+    assert:
+      - op: eq
+        actual: $.method_check.ok
+        expected: true
+
+  # T007: Check minimum 3 distinct families
+  # Exit 0 = ≥3 families, Exit 1 = <3 families
+  - id: T007
+    name: minimum_family_diversity
+    requirement: R007
+    type: unit
+    steps:
+      - action: shell
+        command:
+          - python3
+          - ../tools/check_diversity.py
+          - "$.vars.pack_id"
+          - --check-diversity
+        save_as: diversity
+    assert:
+      - op: eq
+        actual: $.diversity.ok
+        expected: true
+
+  # T008: Check no family has >4 generators
+  # Exit 0 = max ≤4, Exit 1 = max >4
+  - id: T008
+    name: no_family_dominance
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command:
+          - python3
+          - ../tools/check_diversity.py
+          - "$.vars.pack_id"
+          - --check-dominance
+        save_as: dominance
+    assert:
+      - op: eq
+        actual: $.dominance.ok
+        expected: true
+
+change_log:
+  - 2.0.0: Rewrote to use exit codes ($.ok) instead of parsed JSON
+  - 1.4.0: Fixed path to ../tools/ from contracts/diversity/
+  - 1.3.0: Use --var interpolation and external tool
+  - 1.2.0: Fixed JSONPath for shell envelope
+  - 1.1.0: Unique test IDs (T100+)
+  - 1.0.0: Initial contract
