@@ -1,0 +1,16 @@
+{
+  "generator_id": "ritual",
+  "name": "RITUAL",
+  "synthdef": "forge_oldwinch_ritual",
+  "synthesis_method": "spectral/harmonic_series",
+  "custom_params": [
+    {"key": "sacred", "label": "SAC", "tooltip": "Sacred power - harmonic intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chant", "label": "CHN", "tooltip": "Ritual chant - harmonic count", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "gather", "label": "GTH", "tooltip": "Gathering circle - chorus spread", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "season", "label": "SSN", "tooltip": "Seasonal cycle - slow modulation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "power", "label": "PWR", "tooltip": "Earth power - low harmonic boost", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

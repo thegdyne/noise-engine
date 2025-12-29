@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "oldwinch",
+  "name": "Old Winchester",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Iron Age hill fort soundscapes - earthwork ramparts, ancient yews, burial mounds, chalk downland and windswept heights inspired by Old Winchester Hill",
+  "enabled": true,
+  "generators": [
+    "rampart",
+    "yew",
+    "barrow",
+    "chalk",
+    "iron",
+    "beacon",
+    "ritual",
+    "mist"
+  ]
+}
