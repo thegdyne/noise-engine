@@ -1,0 +1,16 @@
+{
+  "generator_id": "stomp",
+  "name": "STOMP",
+  "synthdef": "forge_kaiju_beats_stomp",
+  "synthesis_method": "subtractive/dark_pulse",
+  "custom_params": [
+    {"key": "weight", "label": "WGT", "tooltip": "Weight - sub bass content", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "punch", "label": "PUN", "tooltip": "Punch - transient attack", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "thud", "label": "THD", "tooltip": "Thud - body thickness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rumble", "label": "RMB", "tooltip": "Rumble - low frequency motion", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "width", "label": "WID", "tooltip": "Stereo width", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

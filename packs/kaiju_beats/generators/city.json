@@ -1,0 +1,16 @@
+{
+  "generator_id": "city",
+  "name": "CITY",
+  "synthdef": "forge_kaiju_beats_city",
+  "synthesis_method": "texture/noise_drone",
+  "custom_params": [
+    {"key": "traffic", "label": "TRF", "tooltip": "Traffic rumble", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "steel", "label": "STL", "tooltip": "Steel work and girder sounds", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "jackhammer", "label": "JAK", "tooltip": "Jackhammer intensity", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sirens", "label": "SRN", "tooltip": "Distant sirens", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "crowd", "label": "CRD", "tooltip": "Crowd murmur", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

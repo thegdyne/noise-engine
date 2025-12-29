@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "kaiju_beats",
+  "name": "Kaiju Beats",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Late 90s hip-hop meets Japanese kaiju cinema - giant robots, monster roars, lo-fi boombox beats, urban construction, intergalactic space vibes. Inspired by Beastie Boys Intergalactic.",
+  "enabled": true,
+  "generators": [
+    "mecha",
+    "kaiju",
+    "boom",
+    "static",
+    "stomp",
+    "cosmic",
+    "servo",
+    "city"
+  ]
+}

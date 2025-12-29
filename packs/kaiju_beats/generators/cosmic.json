@@ -1,0 +1,16 @@
+{
+  "generator_id": "cosmic",
+  "name": "COSMIC",
+  "synthdef": "forge_kaiju_beats_cosmic",
+  "synthesis_method": "spectral/additive",
+  "custom_params": [
+    {"key": "partials", "label": "PAR", "tooltip": "Number of partials", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drift", "label": "DFT", "tooltip": "Frequency drift amount", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shimmer", "label": "SHM", "tooltip": "Amplitude shimmer", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "depth", "label": "DPT", "tooltip": "Space depth - reverb-like", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "warp", "label": "WRP", "tooltip": "Harmonic warp - inharmonicity", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

@@ -1,0 +1,94 @@
+{
+  "name": "kaiju_beats",
+  "description": "Kaiju Beats pack init preset",
+  "slots": [
+    {
+      "generator": "forge_kaiju_beats_mecha",
+      "pack": "kaiju_beats",
+      "params": {
+        "mass": 0.5,
+        "hydraulic": 0.3,
+        "armor": 0.4,
+        "groan": 0.3,
+        "rust": 0.2
+      }
+    },
+    {
+      "generator": "forge_kaiju_beats_kaiju",
+      "pack": "kaiju_beats",
+      "params": {
+        "throat": 0.5,
+        "roar": 0.4,
+        "breath": 0.3,
+        "vowel": 0.5,
+        "size": 0.3
+      }
+    },
+    {
+      "generator": "forge_kaiju_beats_boom",
+      "pack": "kaiju_beats",
+      "params": {
+        "bits": 0.3,
+        "rate": 0.5,
+        "wow": 0.4,
+        "hiss": 0.3,
+        "bass": 0.5
+      }
+    },
+    {
+      "generator": "forge_kaiju_beats_static",
+      "pack": "kaiju_beats",
+      "params": {
+        "tune": 0.5,
+        "burst": 0.4,
+        "scan": 0.3,
+        "crackle": 0.3,
+        "carrier": 0.4
+      }
+    },
+    {
+      "generator": "forge_kaiju_beats_stomp",
+      "pack": "kaiju_beats",
+      "params": {
+        "weight": 0.6,
+        "punch": 0.4,
+        "thud": 0.5,
+        "rumble": 0.3,
+        "width": 0.3
+      }
+    },
+    {
+      "generator": "forge_kaiju_beats_cosmic",
+      "pack": "kaiju_beats",
+      "params": {
+        "partials": 0.6,
+        "drift": 0.4,
+        "shimmer": 0.3,
+        "depth": 0.5,
+        "warp": 0.2
+      }
+    },
+    {
+      "generator": "forge_kaiju_beats_servo",
+      "pack": "kaiju_beats",
+      "params": {
+        "ratio": 0.4,
+        "whine": 0.3,
+        "torque": 0.5,
+        "jitter": 0.3,
+        "motor": 0.4
+      }
+    },
+    {
+      "generator": "forge_kaiju_beats_city",
+      "pack": "kaiju_beats",
+      "params": {
+        "traffic": 0.5,
+        "steel": 0.3,
+        "jackhammer": 0.2,
+        "sirens": 0.2,
+        "crowd": 0.3
+      }
+    }
+  ]
+}
