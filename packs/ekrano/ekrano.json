@@ -1,102 +1,410 @@
 {
-  "preset_name": "ekrano",
-  "preset_version": 1,
+  "version": 2,
+  "mapping_version": 1,
+  "name": "Ekranoplan",
+  "pack": "ekrano",
   "slots": [
     {
-      "slot_index": 0,
-      "generator_id": "turbine",
-      "pack_id": "ekrano",
+      "generator": "TURBINE",
       "params": {
-        "custom0": 0.6,
-        "custom1": 0.5,
-        "custom2": 0.4,
-        "custom3": 0.5,
-        "custom4": 0.3
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "slot_index": 1,
-      "generator_id": "ground",
-      "pack_id": "ekrano",
+      "generator": "GROUND",
       "params": {
-        "custom0": 0.5,
-        "custom1": 0.6,
-        "custom2": 0.4,
-        "custom3": 0.3,
-        "custom4": 0.4
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "slot_index": 2,
-      "generator_id": "moskit",
-      "pack_id": "ekrano",
+      "generator": "MOSKIT",
       "params": {
-        "custom0": 0.5,
-        "custom1": 0.4,
-        "custom2": 0.5,
-        "custom3": 0.5,
-        "custom4": 0.6
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "slot_index": 3,
-      "generator_id": "hull",
-      "pack_id": "ekrano",
+      "generator": "HULL",
       "params": {
-        "custom0": 0.6,
-        "custom1": 0.5,
-        "custom2": 0.5,
-        "custom3": 0.5,
-        "custom4": 0.4
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "slot_index": 4,
-      "generator_id": "caspian",
-      "pack_id": "ekrano",
+      "generator": "CASPIAN",
       "params": {
-        "custom0": 0.5,
-        "custom1": 0.4,
-        "custom2": 0.3,
-        "custom3": 0.5,
-        "custom4": 0.5
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "slot_index": 5,
-      "generator_id": "radar",
-      "pack_id": "ekrano",
+      "generator": "RADAR",
       "params": {
-        "custom0": 0.4,
-        "custom1": 0.5,
-        "custom2": 0.5,
-        "custom3": 0.6,
-        "custom4": 0.5
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "slot_index": 6,
-      "generator_id": "rust",
-      "pack_id": "ekrano",
+      "generator": "RUST",
       "params": {
-        "custom0": 0.4,
-        "custom1": 0.5,
-        "custom2": 0.5,
-        "custom3": 0.3,
-        "custom4": 0.4
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "slot_index": 7,
-      "generator_id": "flyby",
-      "pack_id": "ekrano",
+      "generator": "FLYBY",
       "params": {
-        "custom0": 0.3,
-        "custom1": 0.5,
-        "custom2": 0.5,
-        "custom3": 0.5,
-        "custom4": 0.6
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     }
-  ]
+  ],
+  "mixer": {
+    "channels": [
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      }
+    ],
+    "master_volume": 0.8
+  },
+  "bpm": 120,
+  "master": {
+    "volume": 0.8,
+    "eq_hi": 120,
+    "eq_mid": 120,
+    "eq_lo": 120,
+    "comp_threshold": 0.8,
+    "comp_ratio": 2.0,
+    "limiter": true
+  },
+  "mod_sources": {
+    "slots": [
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "mod_routing": {
+    "connections": []
+  }
 }
