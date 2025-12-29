@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "cleanroom_shift",
+  "name": "Cleanroom Shift",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "HDD production-line cleanroom ambience: laminar fans, bright ballast, airlock rituals, micro-precision ticks, servo whine, sticker station beeps, tester jig cycles, muffled radio wash.",
+  "enabled": true,
+  "generators": [
+    "laminar_fans",
+    "ballast_white",
+    "airlock_ritual",
+    "microscope_ticks",
+    "actuator_servo",
+    "sticker_station",
+    "tester_jig",
+    "muffled_radio"
+  ]
+}

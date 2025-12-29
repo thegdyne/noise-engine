@@ -1,0 +1,61 @@
+{
+  "generator_id": "muffled_radio",
+  "name": "RAD",
+  "synthdef": "forge_cleanroom_shift_muffled_radio",
+  "synthesis_method": "texture/granular_cloud",
+  "custom_params": [
+    {
+      "key": "drift",
+      "label": "DRF",
+      "tooltip": "Drift / fatigue / micro instability (time blur)",
+      "default": 0.22,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "grit",
+      "label": "GRT",
+      "tooltip": "Grit / switching hash / harshness (ESD edge)",
+      "default": 0.28,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "space",
+      "label": "SPC",
+      "tooltip": "Space / duct bloom / sterile reflections",
+      "default": 0.18,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drop",
+      "label": "DRP",
+      "tooltip": "Dropout / interlock gating / missing frames",
+      "default": 0.1,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "shift",
+      "label": "SHF",
+      "tooltip": "Shift state (timeless cycle intensity/mood)",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

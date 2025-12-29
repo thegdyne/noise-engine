@@ -1,0 +1,41 @@
+{
+  "preset_format": 1,
+  "name": "Cleanroom Shift",
+  "pack_id": "cleanroom_shift",
+  "version": "1.0.0",
+  "slots": [
+    {
+      "slot": 0,
+      "generator_id": "laminar_fans"
+    },
+    {
+      "slot": 1,
+      "generator_id": "ballast_white"
+    },
+    {
+      "slot": 2,
+      "generator_id": "airlock_ritual"
+    },
+    {
+      "slot": 3,
+      "generator_id": "microscope_ticks"
+    },
+    {
+      "slot": 4,
+      "generator_id": "actuator_servo"
+    },
+    {
+      "slot": 5,
+      "generator_id": "sticker_station"
+    },
+    {
+      "slot": 6,
+      "generator_id": "tester_jig"
+    },
+    {
+      "slot": 7,
+      "generator_id": "muffled_radio"
+    }
+  ],
+  "notes": "Generated placeholder. Replace via: python tools/forge_gen_preset.py packs/cleanroom_shift/ --install"
+}
