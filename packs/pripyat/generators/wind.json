@@ -1,0 +1,16 @@
+{
+  "generator_id": "wind",
+  "name": "WIND",
+  "synthdef": "forge_pripyat_wind",
+  "synthesis_method": "subtractive/noise_filtered",
+  "custom_params": [
+    {"key": "gust", "label": "GST", "tooltip": "Wind intensity variation", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cold", "label": "CLD", "tooltip": "High frequency chill", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tree", "label": "TRE", "tooltip": "Branch resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "howl", "label": "HWL", "tooltip": "Low frequency moaning", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dead", "label": "DED", "tooltip": "Dead leaf rustle", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

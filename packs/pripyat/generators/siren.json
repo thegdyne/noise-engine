@@ -1,0 +1,16 @@
+{
+  "generator_id": "siren",
+  "name": "SIREN",
+  "synthdef": "forge_pripyat_siren",
+  "synthesis_method": "spectral/harmonic_series",
+  "custom_params": [
+    {"key": "dist", "label": "DST", "tooltip": "Distance from source", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wail", "label": "WAL", "tooltip": "Siren modulation depth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rate", "label": "RTE", "tooltip": "Sweep rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tone", "label": "TON", "tooltip": "Harmonic richness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dopp", "label": "DOP", "tooltip": "Doppler-like drift", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

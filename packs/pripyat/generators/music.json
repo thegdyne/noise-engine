@@ -1,0 +1,16 @@
+{
+  "generator_id": "music",
+  "name": "MUSIC",
+  "synthdef": "forge_pripyat_music",
+  "synthesis_method": "spectral/additive",
+  "custom_params": [
+    {"key": "brok", "label": "BRK", "tooltip": "How broken and detuned", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pipe", "label": "PIP", "tooltip": "Number of active pipes", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "whee", "label": "WHZ", "tooltip": "Air leak wheeze", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rust", "label": "RST", "tooltip": "Timbral decay from rust", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "memo", "label": "MEM", "tooltip": "Melody fragment emergence", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

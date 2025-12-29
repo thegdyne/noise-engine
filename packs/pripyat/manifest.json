@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "pripyat",
+  "name": "Pripyat",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Abandoned amusement park frozen in time. Creaking ferris wheel, geiger clicks, cold wind through bare trees, broken radio broadcasts from a world that ended.",
+  "enabled": true,
+  "generators": [
+    "ferris",
+    "geiger",
+    "siren",
+    "wind",
+    "radio",
+    "reactor",
+    "echo",
+    "music"
+  ]
+}

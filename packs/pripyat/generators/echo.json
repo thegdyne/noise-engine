@@ -1,0 +1,16 @@
+{
+  "generator_id": "echo",
+  "name": "ECHO",
+  "synthdef": "forge_pripyat_echo",
+  "synthesis_method": "physical/comb_resonator",
+  "custom_params": [
+    {"key": "size", "label": "SIZ", "tooltip": "Room and hall size", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "conc", "label": "CNC", "tooltip": "Concrete surface character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "empt", "label": "EMP", "tooltip": "Emptiness - sparse reflections", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drip", "label": "DRP", "tooltip": "Water drip sounds", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chill", "label": "CHL", "tooltip": "Cold dampening", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
