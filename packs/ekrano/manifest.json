@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "ekrano",
+  "name": "Ekranoplan",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Lun-class ekranoplan - Soviet ground effect vehicle beached on the Caspian coast",
+  "enabled": true,
+  "generators": [
+    "turbine",
+    "ground",
+    "moskit",
+    "hull",
+    "caspian",
+    "radar",
+    "rust",
+    "flyby"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "generator_id": "radar",
+  "name": "RADAR",
+  "synthdef": "forge_ekrano_radar",
+  "synthesis_method": "spectral/additive",
+  "custom_params": [
+    {"key": "pulse", "label": "PLS", "tooltip": "Pulse repetition rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sweep", "label": "SWP", "tooltip": "Frequency sweep range", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "beam", "label": "BEM", "tooltip": "Beam focus - partial count", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ping", "label": "PNG", "tooltip": "Ping attack intensity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "echo", "label": "ECH", "tooltip": "Echo decay time", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

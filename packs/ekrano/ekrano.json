@@ -1,0 +1,102 @@
+{
+  "preset_name": "ekrano",
+  "preset_version": 1,
+  "slots": [
+    {
+      "slot_index": 0,
+      "generator_id": "turbine",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.6,
+        "custom1": 0.5,
+        "custom2": 0.4,
+        "custom3": 0.5,
+        "custom4": 0.3
+      }
+    },
+    {
+      "slot_index": 1,
+      "generator_id": "ground",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.5,
+        "custom1": 0.6,
+        "custom2": 0.4,
+        "custom3": 0.3,
+        "custom4": 0.4
+      }
+    },
+    {
+      "slot_index": 2,
+      "generator_id": "moskit",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.5,
+        "custom1": 0.4,
+        "custom2": 0.5,
+        "custom3": 0.5,
+        "custom4": 0.6
+      }
+    },
+    {
+      "slot_index": 3,
+      "generator_id": "hull",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.6,
+        "custom1": 0.5,
+        "custom2": 0.5,
+        "custom3": 0.5,
+        "custom4": 0.4
+      }
+    },
+    {
+      "slot_index": 4,
+      "generator_id": "caspian",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.5,
+        "custom1": 0.4,
+        "custom2": 0.3,
+        "custom3": 0.5,
+        "custom4": 0.5
+      }
+    },
+    {
+      "slot_index": 5,
+      "generator_id": "radar",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.4,
+        "custom1": 0.5,
+        "custom2": 0.5,
+        "custom3": 0.6,
+        "custom4": 0.5
+      }
+    },
+    {
+      "slot_index": 6,
+      "generator_id": "rust",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.4,
+        "custom1": 0.5,
+        "custom2": 0.5,
+        "custom3": 0.3,
+        "custom4": 0.4
+      }
+    },
+    {
+      "slot_index": 7,
+      "generator_id": "flyby",
+      "pack_id": "ekrano",
+      "params": {
+        "custom0": 0.3,
+        "custom1": 0.5,
+        "custom2": 0.5,
+        "custom3": 0.5,
+        "custom4": 0.6
+      }
+    }
+  ]
+}

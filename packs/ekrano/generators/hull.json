@@ -1,0 +1,16 @@
+{
+  "generator_id": "hull",
+  "name": "HULL",
+  "synthdef": "forge_ekrano_hull",
+  "synthesis_method": "physical/modal",
+  "custom_params": [
+    {"key": "mass", "label": "MAS", "tooltip": "Hull mass - decay time", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "strike", "label": "STK", "tooltip": "Strike excitation intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "size", "label": "SIZ", "tooltip": "Hull size - mode spread", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ring", "label": "RNG", "tooltip": "Modal ring resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "damp", "label": "DMP", "tooltip": "Damping factor", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
