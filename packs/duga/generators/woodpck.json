@@ -1,0 +1,16 @@
+{
+  "generator_id": "woodpck",
+  "name": "WOODPCK",
+  "synthdef": "forge_duga_woodpck",
+  "synthesis_method": "texture/noise_rhythm",
+  "custom_params": [
+    {"key": "rate", "label": "RTE", "tooltip": "Tapping rate (classic ~10Hz)", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sharp", "label": "SHP", "tooltip": "Pulse sharpness", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "band", "label": "BND", "tooltip": "Frequency band width", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "noise", "label": "NSE", "tooltip": "Background static", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drift", "label": "DFT", "tooltip": "Signal drift instability", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

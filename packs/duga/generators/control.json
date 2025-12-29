@@ -1,0 +1,16 @@
+{
+  "generator_id": "control",
+  "name": "CONTROL",
+  "synthdef": "forge_duga_control",
+  "synthesis_method": "subtractive/dark_pulse",
+  "custom_params": [
+    {"key": "hum", "label": "HUM", "tooltip": "Electrical hum level", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "flkr", "label": "FLK", "tooltip": "Fluorescent flicker", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pwid", "label": "PWD", "tooltip": "Pulse width", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dead", "label": "DED", "tooltip": "Dead equipment presence", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dust", "label": "DST", "tooltip": "Dust and debris sounds", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

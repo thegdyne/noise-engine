@@ -1,0 +1,16 @@
+{
+  "generator_id": "array",
+  "name": "ARRAY",
+  "synthdef": "forge_duga_array",
+  "synthesis_method": "physical/modal",
+  "custom_params": [
+    {"key": "size", "label": "SIZ", "tooltip": "Structure scale", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rust", "label": "RST", "tooltip": "Metal decay and oxidation", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tens", "label": "TNS", "tooltip": "Cable tension", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wind", "label": "WND", "tooltip": "Wind excitation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "reso", "label": "RSO", "tooltip": "Modal resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

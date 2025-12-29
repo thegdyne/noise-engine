@@ -1,0 +1,14 @@
+{
+  "preset_name": "duga",
+  "pack_id": "duga",
+  "slots": [
+    {"generator_id": "woodpck", "pack_id": "duga"},
+    {"generator_id": "sweep", "pack_id": "duga"},
+    {"generator_id": "array", "pack_id": "duga"},
+    {"generator_id": "jamming", "pack_id": "duga"},
+    {"generator_id": "control", "pack_id": "duga"},
+    {"generator_id": "signal", "pack_id": "duga"},
+    {"generator_id": "steel", "pack_id": "duga"},
+    {"generator_id": "coldwar", "pack_id": "duga"}
+  ]
+}

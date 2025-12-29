@@ -87,3 +87,5 @@ venv312/
 !packs/pripyat/
 -vet{pack_id}/
 !packs/pripyat/
+!packs/ekrano/
+!packs/duga/

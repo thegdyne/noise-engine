@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "duga",
+  "name": "Duga",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "The Russian Woodpecker. Abandoned over-the-horizon radar array near Chernobyl. Cold War surveillance tones, the infamous 10Hz tapping, wind through massive steel lattice.",
+  "enabled": true,
+  "generators": [
+    "woodpck",
+    "sweep",
+    "array",
+    "jamming",
+    "control",
+    "signal",
+    "steel",
+    "coldwar"
+  ]
+}
