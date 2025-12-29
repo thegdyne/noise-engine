@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "robotjox",
+  "name": "Robot Jox",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Giant mecha combat soundscapes - hydraulic servos, cockpit systems, arena impacts, massive footsteps and weapon systems inspired by Robot Jox",
+  "enabled": true,
+  "generators": [
+    "servo",
+    "stomp",
+    "cockpit",
+    "armor",
+    "reactor",
+    "weapon",
+    "arena",
+    "clash"
+  ]
+}

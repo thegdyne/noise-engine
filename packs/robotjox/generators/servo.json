@@ -1,0 +1,16 @@
+{
+  "generator_id": "servo",
+  "name": "SERVO",
+  "synthdef": "forge_robotjox_servo",
+  "synthesis_method": "physical/tube",
+  "custom_params": [
+    {"key": "pressure", "label": "PRS", "tooltip": "Hydraulic pressure - air hiss intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "stroke", "label": "STK", "tooltip": "Piston stroke - movement range", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "load", "label": "LOD", "tooltip": "Mechanical load - strain character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "leak", "label": "LEK", "tooltip": "Hydraulic leak - continuous hiss", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "speed", "label": "SPD", "tooltip": "Servo speed - movement rate", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

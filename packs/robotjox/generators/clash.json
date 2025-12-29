@@ -1,0 +1,16 @@
+{
+  "generator_id": "clash",
+  "name": "CLASH",
+  "synthdef": "forge_robotjox_clash",
+  "synthesis_method": "texture/dust_resonator",
+  "custom_params": [
+    {"key": "impact", "label": "IMP", "tooltip": "Collision impact - hit density", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "metal", "label": "MTL", "tooltip": "Metal character - resonance time", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "mass", "label": "MAS", "tooltip": "Robot mass - low frequency", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "scrape", "label": "SCP", "tooltip": "Metal scrape - friction noise", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chaos", "label": "CHS", "tooltip": "Battle chaos - randomization", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
