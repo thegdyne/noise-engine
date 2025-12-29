@@ -1,0 +1,16 @@
+{
+  "generator_id": "ramp",
+  "name": "RAMP",
+  "synthdef": "forge_tricorn_ramp",
+  "synthesis_method": "physical/comb_resonator",
+  "custom_params": [
+    {"key": "spiral", "label": "SPR", "tooltip": "Spiral depth - comb delay feedback intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ascent", "label": "ASC", "tooltip": "Ascending pitch drift rate", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "concrete", "label": "CON", "tooltip": "Concrete surface texture - noise mix", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "levels", "label": "LVL", "tooltip": "Number of resonant levels - comb stages", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "echo", "label": "ECH", "tooltip": "Parking deck echo - delay time", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
