@@ -1,0 +1,17 @@
+{
+  "preset_name": "Gotham Stairs",
+  "preset_id": "gotham_stairs",
+  "description": "Descent into madness - urban decay, transformation, and dark triumph",
+  "author": "CQD_Forge",
+  "version": "1.0.0",
+  "slots": [
+    {"generator": "forge_gotham_stairs_descent", "pack": "gotham_stairs"},
+    {"generator": "forge_gotham_stairs_graffiti", "pack": "gotham_stairs"},
+    {"generator": "forge_gotham_stairs_manic", "pack": "gotham_stairs"},
+    {"generator": "forge_gotham_stairs_mirror", "pack": "gotham_stairs"},
+    {"generator": "forge_gotham_stairs_smile", "pack": "gotham_stairs"},
+    {"generator": "forge_gotham_stairs_sirens", "pack": "gotham_stairs"},
+    {"generator": "forge_gotham_stairs_decay", "pack": "gotham_stairs"},
+    {"generator": "forge_gotham_stairs_triumph", "pack": "gotham_stairs"}
+  ]
+}

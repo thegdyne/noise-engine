@@ -1,0 +1,16 @@
+{
+  "generator_id": "smile",
+  "name": "SMILE",
+  "synthdef": "forge_gotham_stairs_smile",
+  "synthesis_method": "physical/formant",
+  "custom_params": [
+    {"key": "grin", "label": "GRN", "tooltip": "Forced grin width - formant spread", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "teeth", "label": "TTH", "tooltip": "Teeth showing - high formant emphasis", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "strain", "label": "STN", "tooltip": "Muscle strain - tension modulation", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "fake", "label": "FAK", "tooltip": "Fake happiness - formant instability", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "crack", "label": "CRK", "tooltip": "Cracking facade - breakdown moments", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

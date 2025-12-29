@@ -1,0 +1,16 @@
+{
+  "generator_id": "graffiti",
+  "name": "GRAFFITI",
+  "synthdef": "forge_gotham_stairs_graffiti",
+  "synthesis_method": "texture/noise_drone",
+  "custom_params": [
+    {"key": "spray", "label": "SPR", "tooltip": "Spray paint hiss intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "grit", "label": "GRT", "tooltip": "Wall texture grit and roughness", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drip", "label": "DRP", "tooltip": "Paint drip rate and resonance", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "layer", "label": "LAY", "tooltip": "Layered paint depth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "vandal", "label": "VND", "tooltip": "Chaotic defacement energy", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

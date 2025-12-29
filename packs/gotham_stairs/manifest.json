@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "gotham_stairs",
+  "name": "Gotham Stairs",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Descent into madness. Urban decay, transformation, and dark triumph inspired by the iconic staircase scene.",
+  "enabled": true,
+  "generators": [
+    "descent",
+    "graffiti",
+    "manic",
+    "mirror",
+    "smile",
+    "sirens",
+    "decay",
+    "triumph"
+  ]
+}
