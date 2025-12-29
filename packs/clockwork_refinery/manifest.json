@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "clockwork_refinery",
+  "name": "Clockwork Refinery",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Industrial mechanical processing tones: intake thunks, gear grind, belt rattle, dial tones, refinement sheen, output haze.",
+  "enabled": true,
+  "generators": [
+    "intake_clunk",
+    "gear_grind",
+    "belt_rattle",
+    "mainspring",
+    "selector_dial",
+    "refinement_sheen",
+    "output_haze",
+    "reject_sparks"
+  ]
+}
