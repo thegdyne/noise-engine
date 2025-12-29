@@ -592,6 +592,24 @@ Before archiving a pack:
 - [ ] `./tools/forge_release.sh {pack_id}` — committed and pushed to dev
 ---
 
+## Audio Trim Calibration (output_trim_db)
+
+Goal: bake validator trim suggestions into generator JSON, without chasing stochastic “hunting”.
+
+1) Render + verify PASS
+   python tools/forge_audio_validate.py packs/<pack_id>/ --render -v
+
+2) Apply trims (recommended: median over 3 runs)
+   python tools/forge_trim_apply.py <pack_id> --runs 3 --agg median
+
+3) Re-render to confirm nothing breaks
+   python tools/forge_audio_validate.py packs/<pack_id>/ --render -v
+
+Notes:
+- Trim recommendations may vary on stochastic generators (Dust/dropout/random gating).
+- Stop once the pack passes; trims are advisory, not a gate, unless you’re targeting tight loudness matching.
+
+___
 ## Audio Validation Modes
 
 | Generator Type | Expected Pass Mode | `midi_retrig` |
