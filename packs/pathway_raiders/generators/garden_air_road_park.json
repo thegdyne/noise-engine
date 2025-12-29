@@ -1,0 +1,61 @@
+{
+  "generator_id": "garden_air_road_park",
+  "name": "AIR",
+  "synthdef": "forge_pathway_raiders_garden_air_road_park",
+  "synthesis_method": "texture/noise_drone",
+  "custom_params": [
+    {
+      "key": "speed",
+      "label": "SPD",
+      "tooltip": "Speed / excitement (density, rate, pitch lift)",
+      "default": 0.45,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "brake",
+      "label": "BRK",
+      "tooltip": "Brake/skid grit (bite, transient harshness)",
+      "default": 0.25,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "air",
+      "label": "AIR",
+      "tooltip": "Open air / distance (tilt + tiny reflections)",
+      "default": 0.35,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hide",
+      "label": "HID",
+      "tooltip": "Hide/seek occlusion (masking, ducking)",
+      "default": 0.15,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sun",
+      "label": "SUN",
+      "tooltip": "Day mood (bright afternoon \u2194 dusky warmth)",
+      "default": 0.55,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": 24.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

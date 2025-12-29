@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "pathway_raiders",
+  "name": "Pathway Raiders",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Childhood perimeter rides + garden play: patio grout-bump rhythm, chain/freewheel chatter, corner whip squeals, patio-to-grass drop thumps, climbing frame ring, slide whoosh, shed tool rattle, distant road + park + fir wind.",
+  "enabled": true,
+  "generators": [
+    "patio_grout_bumps",
+    "chain_freewheel",
+    "corner_whip",
+    "grass_drop_thump",
+    "climbing_frame_resonance",
+    "slide_whoosh",
+    "shed_tool_rattle",
+    "garden_air_road_park"
+  ]
+}
