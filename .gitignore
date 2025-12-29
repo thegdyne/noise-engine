@@ -85,3 +85,4 @@ venv312/
 !packs/scorn/
 !packs/sgwd/
 !packs/pripyat/
+-vet{pack_id}/
