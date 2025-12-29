@@ -589,7 +589,7 @@ Before archiving a pack:
 - [ ] `pitch_target` is `null` or integer (never string)
 - [ ] `midi_retrig` matches generator type (percussive=true, pad=false)
 - [ ] Add pack to `.gitignore` exceptions: `!packs/{pack_id}/`
-
+- [ ] `./tools/forge_release.sh {pack_id}` — committed and pushed to dev
 ---
 
 ## Audio Validation Modes
@@ -743,6 +743,11 @@ python tools/forge_audio_validate.py packs/{pack_id}/ --render
 ```
 
 **Generators:** gen1, gen2, gen3, gen4, gen5, gen6, gen7, gen8
+
+**Release (maintainer):**
+````bash
+./tools/forge_release.sh {pack_id}
+````
 ````
 
 This ensures users always get actionable instructions with the archive.
@@ -775,6 +780,28 @@ python tools/forge_gen_preset.py --missing --install
 **Note:** Only run after pack passes gate validation.**Note:** Only run after pack passes gate validation.
 ---
 
+## Release Pack to Repository
+
+After validation passes and preset is installed, release the pack:
+```bash
+./tools/forge_release.sh {pack_id}
+```
+
+This script:
+1. Adds pack to `.gitignore` exceptions (`!packs/{pack_id}/`)
+2. Stages pack directory and `.gitignore`
+3. Commits with message `Add {pack_id} pack`
+4. Pushes to `dev` branch
+
+**Manual equivalent:**
+```bash
+echo '!packs/{pack_id}/' >> .gitignore
+git add packs/{pack_id}/ .gitignore
+git commit -m "Add {pack_id} pack"
+git push origin dev
+```
+**Note:** Only run after pack passes all gate validation.
+---
 
 # SYNTHESIS_METHODS_SECTION.md
 ---
