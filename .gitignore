@@ -52,6 +52,14 @@ spatial_debug.json
 venv312/
 -vet{pack_id}/
 
+# Packs - ignore by default, allowlist shipped
+packs/*
+
+# User scratch pack: keep folder, ignore contents
+!packs/user/
+packs/user/*
+!packs/user/.gitkeep
+
 # User scratch pack: keep folder, ignore contents
 !packs/user/
 packs/user/*
