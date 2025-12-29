@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "name": "backyard",
+  "slots": [
+    {
+      "generator_id": "spokes",
+      "pack_id": "backyard",
+      "params": {
+        "speed": 0.4,
+        "density": 0.5,
+        "chain": 0.3,
+        "brake": 0.2,
+        "freewheel": 0.4
+      }
+    },
+    {
+      "generator_id": "patio",
+      "pack_id": "backyard",
+      "params": {
+        "roll": 0.5,
+        "groove": 0.6,
+        "wheel": 0.5,
+        "rattle": 0.4,
+        "grit": 0.3
+      }
+    },
+    {
+      "generator_id": "climb",
+      "pack_id": "backyard",
+      "params": {
+        "strike": 0.5,
+        "ring": 0.6,
+        "ladder": 0.4,
+        "hollow": 0.5,
+        "rust": 0.3
+      }
+    },
+    {
+      "generator_id": "paddle",
+      "pack_id": "backyard",
+      "params": {
+        "splash": 0.5,
+        "depth": 0.4,
+        "ripple": 0.5,
+        "kick": 0.4,
+        "sun": 0.3
+      }
+    },
+    {
+      "generator_id": "swords",
+      "pack_id": "backyard",
+      "params": {
+        "force": 0.5,
+        "wood": 0.5,
+        "shield": 0.4,
+        "clash": 0.5,
+        "fury": 0.4
+      }
+    },
+    {
+      "generator_id": "lamb",
+      "pack_id": "backyard",
+      "params": {
+        "bleat": 0.5,
+        "run": 0.4,
+        "hoof": 0.4,
+        "wool": 0.3,
+        "play": 0.5
+      }
+    },
+    {
+      "generator_id": "distant",
+      "pack_id": "backyard",
+      "params": {
+        "traffic": 0.4,
+        "birds": 0.3,
+        "wind": 0.4,
+        "distance": 0.6,
+        "time": 0.5
+      }
+    },
+    {
+      "generator_id": "dig",
+      "pack_id": "backyard",
+      "params": {
+        "spade": 0.5,
+        "soil": 0.5,
+        "stone": 0.3,
+        "depth": 0.4,
+        "effort": 0.4
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "generator_id": "lamb",
+  "name": "LAMB",
+  "synthdef": "forge_backyard_lamb",
+  "synthesis_method": "physical/formant",
+  "custom_params": [
+    {"key": "bleat", "label": "BLT", "tooltip": "Bleat pitch variation", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "run", "label": "RUN", "tooltip": "Running/movement speed", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hoof", "label": "HOF", "tooltip": "Hoof scatter on grass", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wool", "label": "WOL", "tooltip": "Woolly body rustle", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "play", "label": "PLY", "tooltip": "Playfulness/energy", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

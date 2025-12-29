@@ -1,0 +1,16 @@
+{
+  "generator_id": "distant",
+  "name": "DISTANT",
+  "synthdef": "forge_backyard_distant",
+  "synthesis_method": "subtractive/noise_filtered",
+  "custom_params": [
+    {"key": "traffic", "label": "TRF", "tooltip": "Traffic flow density", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "birds", "label": "BRD", "tooltip": "Park bird sounds", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wind", "label": "WND", "tooltip": "Wind carrying sound", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "distance", "label": "DST", "tooltip": "Distance/proximity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "time", "label": "TIM", "tooltip": "Time of day warmth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
