@@ -69,7 +69,7 @@ SynthDef(\forge_backyard_lamb, { |out, freqBus, cutoffBus, resBus, attackBus, de
     sig = bleatVoice + hoofSteps + woolRustle + breathNoise;
 
     // Continuous bed for drone mode - grass/field ambience
-    sig = sig + (BrownNoise.ar(0.06) + PinkNoise.ar(0.04));
+    sig = sig + (BrownNoise.ar(0.1) + PinkNoise.ar(0.06));
 
     // Output chain
     sig = LeakDC.ar(sig);

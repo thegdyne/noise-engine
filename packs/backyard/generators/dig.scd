@@ -73,7 +73,7 @@ SynthDef(\forge_backyard_dig, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     sig = spadeHit + soilMove + stoneClunk + earthThud + effortBreath;
 
     // Continuous bed for drone stability - earth/soil ambience
-    sig = sig + (BrownNoise.ar(0.06) + PinkNoise.ar(0.03));
+    sig = sig + (BrownNoise.ar(0.1) + PinkNoise.ar(0.06));
 
     // Output chain
     sig = LeakDC.ar(sig);
