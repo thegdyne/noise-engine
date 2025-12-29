@@ -86,3 +86,4 @@ venv312/
 !packs/sgwd/
 !packs/pripyat/
 -vet{pack_id}/
+!packs/pripyat/
