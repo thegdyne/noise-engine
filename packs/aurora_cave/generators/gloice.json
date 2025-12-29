@@ -1,0 +1,61 @@
+{
+  "generator_id": "gloice",
+  "name": "GLOICE",
+  "synthdef": "forge_aurora_cave_gloice",
+  "synthesis_method": "texture/granular_cloud",
+  "custom_params": [
+    {
+      "key": "density",
+      "label": "DNS",
+      "tooltip": "Particle density - ice sparkle rate",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glow",
+      "label": "GLW",
+      "tooltip": "Glow intensity - aurora reflection",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "grain",
+      "label": "GRN",
+      "tooltip": "Grain size - particle duration",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "scatter",
+      "label": "SCT",
+      "tooltip": "Light scatter - pitch spread",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "frost",
+      "label": "FST",
+      "tooltip": "Frost texture - high frequency haze",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

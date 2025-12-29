@@ -1,0 +1,10 @@
+{
+  "pack_format": 1,
+  "pack_id": "aurora_cave",
+  "name": "Aurora Cave",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Ice cave with aurora borealis - frozen depths, ethereal light, crystalline resonance",
+  "enabled": true,
+  "generators": ["glacial", "aurora", "crystl", "cavern", "gloice", "boreal", "icesht", "tunnel"]
+}

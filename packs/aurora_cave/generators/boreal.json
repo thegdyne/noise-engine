@@ -1,0 +1,61 @@
+{
+  "generator_id": "boreal",
+  "name": "BOREAL",
+  "synthdef": "forge_aurora_cave_boreal",
+  "synthesis_method": "spectral/harmonic_series",
+  "custom_params": [
+    {
+      "key": "flow",
+      "label": "FLW",
+      "tooltip": "Light flow rate - spectral drift speed",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "curtain",
+      "label": "CRT",
+      "tooltip": "Curtain density - harmonic layers",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pulse",
+      "label": "PLS",
+      "tooltip": "Aurora pulse - brightness oscillation",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "color",
+      "label": "CLR",
+      "tooltip": "Spectral color - harmonic balance",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "vast",
+      "label": "VST",
+      "tooltip": "Vastness - spatial width",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

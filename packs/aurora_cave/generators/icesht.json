@@ -1,0 +1,61 @@
+{
+  "generator_id": "icesht",
+  "name": "ICESHT",
+  "synthdef": "forge_aurora_cave_icesht",
+  "synthesis_method": "texture/dust_resonator",
+  "custom_params": [
+    {
+      "key": "crack",
+      "label": "CRK",
+      "tooltip": "Crackle density - fracture rate",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "stress",
+      "label": "STR",
+      "tooltip": "Ice stress - resonance intensity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "thick",
+      "label": "THK",
+      "tooltip": "Ice thickness - low frequency content",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "brittle",
+      "label": "BRT",
+      "tooltip": "Brittleness - high frequency snap",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sheet",
+      "label": "SHT",
+      "tooltip": "Sheet resonance - body tone",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0,
+  "midi_retrig": true,
+  "pitch_target": null
+}

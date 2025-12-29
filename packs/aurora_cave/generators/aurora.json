@@ -1,0 +1,61 @@
+{
+  "generator_id": "aurora",
+  "name": "AURORA",
+  "synthdef": "forge_aurora_cave_aurora",
+  "synthesis_method": "spectral/spectral_drone",
+  "custom_params": [
+    {
+      "key": "shimmer",
+      "label": "SHM",
+      "tooltip": "Light shimmer intensity",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "bands",
+      "label": "BND",
+      "tooltip": "Aurora band count - harmonic layers",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drift",
+      "label": "DFT",
+      "tooltip": "Spectral drift rate - aurora movement",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glow",
+      "label": "GLW",
+      "tooltip": "Ethereal glow - soft saturation",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spread",
+      "label": "SPR",
+      "tooltip": "Stereo aurora spread",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

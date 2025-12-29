@@ -1,0 +1,61 @@
+{
+  "generator_id": "tunnel",
+  "name": "TUNNEL",
+  "synthdef": "forge_aurora_cave_tunnel",
+  "synthesis_method": "physical/tube",
+  "custom_params": [
+    {
+      "key": "wind",
+      "label": "WND",
+      "tooltip": "Wind intensity - breath pressure",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "length",
+      "label": "LEN",
+      "tooltip": "Tunnel length - resonant pitch",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mouth",
+      "label": "MTH",
+      "tooltip": "Opening size - harmonic content",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "howl",
+      "label": "HWL",
+      "tooltip": "Howling resonance - feedback",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cold",
+      "label": "CLD",
+      "tooltip": "Cold air texture - high frequency hiss",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
