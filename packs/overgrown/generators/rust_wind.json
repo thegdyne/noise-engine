@@ -1,0 +1,61 @@
+{
+  "generator_id": "rust_wind",
+  "name": "RUST WIND",
+  "synthdef": "forge_overgrown_rust_wind",
+  "synthesis_method": "subtractive/noise_filtered",
+  "custom_params": [
+    {
+      "key": "gust",
+      "label": "GST",
+      "tooltip": "Wind gust intensity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "corrosion",
+      "label": "COR",
+      "tooltip": "Metal corrosion texture",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "howl",
+      "label": "HWL",
+      "tooltip": "Howling resonance",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "rattle",
+      "label": "RTL",
+      "tooltip": "Loose metal rattle",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "lonely",
+      "label": "LNL",
+      "tooltip": "Lonely desolate character",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

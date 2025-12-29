@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "overgrown",
+  "name": "Overgrown",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Post-apocalyptic soundscapes - nature reclaiming civilization. Inspired by overgrown urban ruins, floating spores, and the haunting beauty of abandoned spaces.",
+  "enabled": true,
+  "generators": [
+    "spore_drift",
+    "rebar_song",
+    "giraffe_hum",
+    "vine_creep",
+    "broken_sky",
+    "echo_mall",
+    "moss_bed",
+    "rust_wind"
+  ]
+}

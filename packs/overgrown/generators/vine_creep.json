@@ -1,0 +1,61 @@
+{
+  "generator_id": "vine_creep",
+  "name": "VINE CREEP",
+  "synthdef": "forge_overgrown_vine_creep",
+  "synthesis_method": "spectral/additive",
+  "custom_params": [
+    {
+      "key": "growth",
+      "label": "GRO",
+      "tooltip": "Rate of vine growth",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tendril",
+      "label": "TND",
+      "tooltip": "Tendril complexity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "coil",
+      "label": "COL",
+      "tooltip": "Spiral coiling intensity",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sap",
+      "label": "SAP",
+      "tooltip": "Organic sap wetness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spread",
+      "label": "SPR",
+      "tooltip": "Spatial spread of vines",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
