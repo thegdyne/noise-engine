@@ -1,0 +1,61 @@
+{
+  "generator_id": "mycel",
+  "name": "MYCEL",
+  "synthdef": "forge_avebury_mycel",
+  "synthesis_method": "texture/granular_cloud",
+  "custom_params": [
+    {
+      "key": "network",
+      "label": "NET",
+      "tooltip": "Network density - grain rate",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spread",
+      "label": "SPD",
+      "tooltip": "Mycelium spread - pitch scatter",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "signal",
+      "label": "SIG",
+      "tooltip": "Chemical signal - modulation depth",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "growth",
+      "label": "GRW",
+      "tooltip": "Growth rate - temporal evolution",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "soil",
+      "label": "SOL",
+      "tooltip": "Soil character - noise texture",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": 20.1,
+  "midi_retrig": false,
+  "pitch_target": null
+}

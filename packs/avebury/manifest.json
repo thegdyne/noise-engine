@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "avebury",
+  "name": "Avebury",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Ancient wishing tree soundscapes - spreading roots, twisted growth, leaf whispers, carved bark and sacred resonance inspired by Avebury's beech trees",
+  "enabled": true,
+  "generators": [
+    "roots",
+    "trunk",
+    "canopy",
+    "carved",
+    "dapple",
+    "mycel",
+    "creak",
+    "wish"
+  ]
+}

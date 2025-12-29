@@ -1,0 +1,61 @@
+{
+  "generator_id": "roots",
+  "name": "ROOTS",
+  "synthdef": "forge_avebury_roots",
+  "synthesis_method": "physical/comb_resonator",
+  "custom_params": [
+    {
+      "key": "spread",
+      "label": "SPD",
+      "tooltip": "Root spread - comb delay network density",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "depth",
+      "label": "DPT",
+      "tooltip": "Underground depth - low frequency emphasis",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "earth",
+      "label": "ERT",
+      "tooltip": "Earth damping - resonance decay",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pulse",
+      "label": "PLS",
+      "tooltip": "Root pulse rate - slow organic rhythm",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tangle",
+      "label": "TNG",
+      "tooltip": "Root tangle - pitch detuning",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": 15.5,
+  "midi_retrig": false,
+  "pitch_target": null
+}
