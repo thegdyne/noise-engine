@@ -1146,6 +1146,12 @@ class MainFrame(QMainWindow):
             logger.info("Mod matrix window closed", component="MOD")
         else:
             self.mod_matrix_window.show()
+            # Center on main window
+            main_geo = self.geometry()
+            window_geo = self.mod_matrix_window.geometry()
+            x = main_geo.x() + (main_geo.width() - window_geo.width()) // 2
+            y = main_geo.y() + (main_geo.height() - window_geo.height()) // 2
+            self.mod_matrix_window.move(x, y)
             self.mod_matrix_window.raise_()
             self.mod_matrix_window.activateWindow()
             logger.info("Mod matrix window opened", component="MOD")
@@ -1165,6 +1171,12 @@ class MainFrame(QMainWindow):
             logger.info("Crossmod matrix window closed", component="CROSSMOD")
         else:
             self.crossmod_window.show()
+            # Center on main window
+            main_geo = self.geometry()
+            window_geo = self.crossmod_window.geometry()
+            x = main_geo.x() + (main_geo.width() - window_geo.width()) // 2
+            y = main_geo.y() + (main_geo.height() - window_geo.height()) // 2
+            self.crossmod_window.move(x, y)
             self.crossmod_window.raise_()
             self.crossmod_window.activateWindow()
             logger.info("Crossmod matrix window opened", component="CROSSMOD")
