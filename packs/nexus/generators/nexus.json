@@ -1,0 +1,16 @@
+{
+  "generator_id": "nexus",
+  "name": "NEXUS",
+  "synthdef": "forge_nexus_nexus",
+  "synthesis_method": "fm/feedback_fm",
+  "custom_params": [
+    {"key": "op1", "label": "OP1", "tooltip": "First operator intensity - feeds into OP2", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "op2", "label": "OP2", "tooltip": "Second operator - modulates OP3, scaled by OP1", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "op3", "label": "OP3", "tooltip": "Third operator output - feeds back to OP1", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "fbk", "label": "FBK", "tooltip": "Feedback amount OP3 to OP1 - creates instability", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "drf", "label": "DRF", "tooltip": "Drift in all operator frequency ratios", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

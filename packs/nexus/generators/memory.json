@@ -1,0 +1,16 @@
+{
+  "generator_id": "memory",
+  "name": "MEMORY",
+  "synthdef": "forge_nexus_memory",
+  "synthesis_method": "fm/ring_mod",
+  "custom_params": [
+    {"key": "clr", "label": "CLR", "tooltip": "Clarity - signal vs noise ratio", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "frg", "label": "FRG", "tooltip": "Fragmentation - phase discontinuities", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ech", "label": "ECH", "tooltip": "Echo loops - delay repetition", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "blr", "label": "BLR", "tooltip": "Blur - diffusion and smear", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "tru", "label": "TRU", "tooltip": "Truth axis - stable vs fabricated", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
