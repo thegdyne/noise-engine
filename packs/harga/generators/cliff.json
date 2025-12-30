@@ -1,0 +1,16 @@
+{
+  "generator_id": "cliff",
+  "name": "CLIFF",
+  "synthdef": "forge_harga_cliff",
+  "synthesis_method": "texture/chaos_osc",
+  "custom_params": [
+    {"key": "oscA", "label": "OSA", "tooltip": "Osc A edge tone - influenced by cross-mod return", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "oscB", "label": "OSB", "tooltip": "Osc B abyss drone - scaled by Rungle chaos", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "xmod", "label": "XMD", "tooltip": "Cross-mod vertigo depth - feeds back through Osc A", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "xret", "label": "XRT", "tooltip": "Cross-mod gravity return - shapes Osc B curve", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rungle", "label": "RNG", "tooltip": "Rungle falling chaos - reshapes descent network", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
