@@ -32,7 +32,7 @@ except ImportError:
         'border': '#444444',
     }
     FONT_FAMILY = 'Arial'
-    FONT_SIZES = {'small': 10, 'normal': 11, 'section': 12}
+    FONT_SIZES = {'small': 10, 'label': 11, 'section': 12}
     MONO_FONT = 'Courier New'
 
 
@@ -96,7 +96,7 @@ class CrossmodConnectionPopup(QDialog):
         
         # Header: "GEN X → GY PARAM [INV]"
         self.header_label = QLabel()
-        self.header_label.setFont(QFont(MONO_FONT, FONT_SIZES['normal'], QFont.Bold))
+        self.header_label.setFont(QFont(MONO_FONT, FONT_SIZES['label'], QFont.Bold))
         self.header_label.setStyleSheet(f"color: {COLORS['text_bright']};")
         self._update_header()
         layout.addWidget(self.header_label)

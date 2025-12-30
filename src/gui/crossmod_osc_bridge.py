@@ -49,22 +49,22 @@ class CrossmodOSCBridge:
     
     def _on_connection_removed(self, source_gen: int, target_gen: int, target_param: str):
         """Send unroute message when connection removed."""
-        self.osc.send("/noise/crossmod/unroute", [source_gen, target_gen, target_param])
+        self.osc.send_message("/noise/crossmod/unroute", [source_gen, target_gen, target_param])
     
     def _on_follower_changed(self, source_gen: int):
         """Send enabled message when follower state changes."""
         follower = self.state.followers[source_gen]
         enabled_int = 1 if follower.enabled else 0
-        self.osc.send("/noise/crossmod/enabled", [source_gen, enabled_int])
+        self.osc.send_message("/noise/crossmod/enabled", [source_gen, enabled_int])
     
     def _on_all_cleared(self):
         """Send clear message when all connections cleared."""
-        self.osc.send("/noise/crossmod/clear", [])
+        self.osc.send_message("/noise/crossmod/clear", [])
     
     def _send_route(self, conn: CrossmodConnection):
         """Send route message for a connection."""
         invert_int = 1 if conn.invert else 0
-        self.osc.send("/noise/crossmod/route", [
+        self.osc.send_message("/noise/crossmod/route", [
             conn.source_gen,
             conn.target_gen,
             conn.target_param,
