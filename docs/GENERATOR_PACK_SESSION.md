@@ -830,96 +830,406 @@ Each pack MUST use methods from at least **3 different families** across its 8 g
 
 This is validated by `cdd test contracts/pack.diversity.yaml --var pack_id={pack_id}`.
 
-### Available Methods Reference
+---
 
-| Family | Method ID | Character | Best For |
-|--------|-----------|-----------|----------|
-| **fm** | `fm/simple_fm` | Bell-like, metallic | Bells, keys, plucks |
-| | `fm/feedback_fm` | Aggressive, chaotic | Bass, leads, growls |
-| | `fm/hard_sync` | Tearing, aggressive | Leads, stabs |
-| | `fm/phase_mod` | DX7-style, clean | Keys, pads |
-| | `fm/ratio_stack` | Complex harmonic | Organs, rich tones |
-| | `fm/ring_mod` | Inharmonic, alien | FX, weird textures |
-| | `fm/am_chorus` | Tremolo, warm | Pads, ambient |
-| **physical** | `physical/bowed` | String bow, expressive | Strings, drones |
-| | `physical/comb_resonator` | Metallic resonance | Plucks, metallic |
-| | `physical/formant` | Vocal, vowel-like | Choirs, voice |
-| | `physical/karplus` | Plucked string | Guitar, harp |
-| | `physical/membrane` | Drum-like, body | Toms, percussion |
-| | `physical/modal` | Resonant modes | Bells, bars, plates |
-| | `physical/tube` | Wind instrument | Flutes, breath |
-| **spectral** | `spectral/additive` | Pure partials | Organs, clean tones |
-| | `spectral/harmonic_series` | Natural overtones | Brass, strings |
-| | `spectral/spectral_drone` | Evolving spectrum | Ambient, drones |
-| | `spectral/vocoder` | Robotic, analyzed | Robot voice, FX |
-| | `spectral/wavetable` | Morphing, digital | Complex evolving |
-| **subtractive** | `subtractive/bright_saw` | Classic saw | Leads, bass |
-| | `subtractive/dark_pulse` | Hollow pulse | Bass, pads |
-| | `subtractive/noise_filtered` | Wind, breath | Textures, FX |
-| | `subtractive/supersaw` | Detuned stack | Trance, huge |
-| | `subtractive/wavefold` | West coast complex | Rich harmonics |
-| **texture** | `texture/bitcrush` | Lo-fi, degraded | Lo-fi, retro |
-| | `texture/chaos_osc` | Unpredictable chaos | Experimental |
-| | `texture/dust_resonator` | Sparse pings | Ambient, sparse |
-| | `texture/granular_cloud` | Grain swarm | Clouds, pads |
-| | `texture/noise_drone` | Filtered noise bed | Ambient, drones |
-| | `texture/noise_rhythm` | Rhythmic noise | Percussion, FX |
+## Parameter Design Philosophy
 
-### Theme-Based Method Selection
+**Core principle:** P1-P5 should be exploratory, thematic, and non-uniform across a pack. Each generator is an instrument unto itself, not a variation on a template.
+
+### Design Modes
+
+| Mode | Structure | Best For |
+|------|-----------|----------|
+| **A: Uniform Structure** | Same functional pattern, thematic labels | Consistent cross-mod behavior with themed flavor |
+| **B: Uniform Parameters** | Same param names, different DSP | "Family" of instruments with shared interface |
+| **C: Unique Everything** ⭐ | Different params AND topology per generator | Maximum variety - each generator is a discovery |
+
+**Mode C is preferred** for most packs. Each generator becomes its own instrument.
+
+### Parameter Design Rules (Mode C)
+
+1. **No shared labels across generators** — Every label unique within the pack
+2. **Parameters as verbs/actions** — `DRP` (drop), `BRK` (break), not `AMT`, `LVL`
+3. **Character axis** — One param that fundamentally changes personality (usually P5)
+4. **Interacting parameters** — Minimum 2 params influence each other
+5. **Behavioral tooltips** — Explain the *behavior*, not just the name
+
+### Parameter Interaction Patterns
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| **Scaling** | P1's effect multiplied by P3 | `p1 * (0.3 + (p3 * 0.7))` |
+| **Curve shaping** | P5 changes P2's response | `p2.linexp(0, 1, 0.1, 10) * (1 + p5)` |
+| **Feedback** | P4 feeds back into P2's depth | `p2 * (1 + (p4 * p5 * 0.5))` |
+| **Chaos injection** | P5 destabilizes all others | `sig * (1 + (LFNoise2.kr(p5 * 3) * p5 * 0.2))` |
+| **Gravity** | One param pulls toward order | `(chaotic * (1 - grav)) + (stable * grav)` |
+
+---
+
+## Synthesis Technique Theory
+
+Understanding the relationships between synthesis techniques helps choose appropriate methods for thematic concepts.
+
+### Inter-Oscillator Modulation Family
+
+Techniques where oscillators influence each other's parameters.
+
+| Technique | Description | Character | SC Implementation |
+|-----------|-------------|-----------|-------------------|
+| **Simple FM** | Modulator → Carrier frequency | Bell-like, metallic | `SinOsc.ar(freq + (mod * index))` |
+| **Cross FM** | Two oscs modulate each other bidirectionally | Chaotic, unstable, rich | LocalIn/LocalOut feedback |
+| **Through-Zero FM** | FM that passes through 0 Hz cleanly | Clean even at extreme depths | `PMOsc`, `FM7` |
+| **Linear FM** | Frequency deviation in Hz, not ratio | Stable pitch tracking | Direct Hz modulation |
+| **Exponential FM** | Standard 1V/oct response | Classic analog instability | `.midiratio` scaling |
+| **Feedback FM** | Osc modulates itself | Aggressive, saw-like | `SinOscFB.ar(freq, fb)` |
+| **Nested FM** | Mod → Mod → Carrier chains | Complex evolving spectra | Chained modulators |
+
+### Phase-Domain Techniques
+
+Manipulation of oscillator phase rather than frequency.
+
+| Technique | Description | Character | SC Implementation |
+|-----------|-------------|-----------|-------------------|
+| **Phase Modulation** | DX7-style, mathematically ≈FM | Clean, stable | `PMOsc.ar(carFreq, modFreq, pmIndex)` |
+| **Phase Distortion** | Warp phase readout (Casio CZ) | Digital but warm | Custom phase shaping |
+| **Hard Sync** | Reset slave phase on master cycle | Tearing, vocal, classic | `SyncSaw.ar(syncFreq, sawFreq)` |
+| **Soft Sync** | Partial phase reset | Gentler than hard sync | Custom implementation |
+| **Reverse Sync** | Slave reverses direction on reset | Unusual timbres | Custom implementation |
+
+### Amplitude-Domain Modulation
+
+Techniques operating on signal amplitude relationships.
+
+| Technique | Description | Character | SC Implementation |
+|-----------|-------------|-----------|-------------------|
+| **Ring Modulation** | Multiply two signals (bipolar) | Inharmonic, metallic, alien | `sig1 * sig2` |
+| **AM (Amplitude Mod)** | Ring mod with DC offset (unipolar) | Sidebands + carrier | `sig * (1 + (mod * depth))` |
+| **Balanced Modulation** | Suppressed carrier ring mod | Pure sidebands only | `sig1 * sig2` with DC blocking |
+| **Intermodulation** | Sum/difference frequency products | Combination tones | Nonlinear mixing |
+
+### Waveshaping Family
+
+Transfer function and amplitude-dependent harmonic generation.
+
+| Technique | Description | Character | SC Implementation |
+|-----------|-------------|-----------|-------------------|
+| **Wave Folding** | Buchla/West Coast style | Adds harmonics with amplitude | `sig.fold2(threshold)` cascaded |
+| **Waveshaping** | Transfer function distortion | Controlled harmonic addition | `Shaper.ar(buf, sig)` |
+| **Chebyshev Shaping** | Polynomial transfer functions | Precise harmonic control | Chebyshev polynomials |
+| **Tanh Saturation** | Soft clipping | Warm compression | `sig.tanh` |
+| **Hard Clipping** | Abrupt limiting | Harsh, buzzy | `sig.clip2(threshold)` |
+
+### Hybrid/Exotic Techniques
+
+Less common synthesis approaches.
+
+| Technique | Description | Character | SC Implementation |
+|-----------|-------------|-----------|-------------------|
+| **Frequency Shifting** | Fixed Hz offset (SSB) | Inharmonic, metallic | `FreqShift.ar(sig, shift)` |
+| **Heterodyning** | Sum + difference mixing | Radio-style, barberpole | Dual ring mod |
+| **Vector Synthesis** | Crossfade between sources | Morphing, evolving | `SelectX`, `LinXFade2` |
+| **Variable Waveshape** | Modulating waveshape over time | PPG Wave style | `SelectX` between waves |
+
+---
+
+## Available Methods Reference
+
+### FM Family
+
+| Method ID | Character | Best For | Safety |
+|-----------|-----------|----------|--------|
+| `fm/simple_fm` | Bell-like, metallic | Bells, keys, plucks | LeakDC |
+| `fm/feedback_fm` | Aggressive, chaotic | Bass, leads, growls | LeakDC + Limiter |
+| `fm/cross_fm` | Chaotic, unstable, rich | Experimental, drones | LeakDC + Limiter |
+| `fm/tzfm` | Clean even at extreme depths | Bass, clean FM | LeakDC |
+| `fm/linear_fm` | Stable pitch tracking | Tracked bass, leads | LeakDC |
+| `fm/nested_fm` | Complex evolving spectra | Pads, evolving textures | LeakDC + Limiter |
+| `fm/hard_sync` | Tearing, aggressive | Leads, stabs | LeakDC |
+| `fm/phase_mod` | DX7-style, clean | Keys, pads | LeakDC |
+| `fm/ratio_stack` | Complex harmonic | Organs, rich tones | LeakDC |
+| `fm/ring_mod` | Inharmonic, alien | FX, weird textures | LeakDC |
+| `fm/am_chorus` | Tremolo, warm | Pads, ambient | LeakDC |
+
+### Physical Family
+
+| Method ID | Character | Best For | Safety |
+|-----------|-----------|----------|--------|
+| `physical/bowed` | String bow, expressive | Strings, drones | LeakDC + Limiter |
+| `physical/comb_resonator` | Metallic resonance | Plucks, metallic | LeakDC + Limiter |
+| `physical/formant` | Vocal, vowel-like | Choirs, voice | LeakDC |
+| `physical/karplus` | Plucked string | Guitar, harp | LeakDC |
+| `physical/membrane` | Drum-like, body | Toms, percussion | LeakDC + Limiter |
+| `physical/modal` | Resonant modes | Bells, bars, plates | LeakDC |
+| `physical/tube` | Wind instrument | Flutes, breath | LeakDC |
+
+### Spectral Family
+
+| Method ID | Character | Best For | Safety |
+|-----------|-----------|----------|--------|
+| `spectral/additive` | Pure partials | Organs, clean tones | LeakDC |
+| `spectral/harmonic_series` | Natural overtones | Brass, strings | LeakDC |
+| `spectral/spectral_drone` | Evolving spectrum | Ambient, drones | LeakDC |
+| `spectral/vocoder` | Robotic, analyzed | Robot voice, FX | LeakDC |
+| `spectral/wavetable` | Morphing, digital | Complex evolving | LeakDC |
+| `spectral/freq_shift` | Inharmonic, metallic | FX, detuned textures | LeakDC |
+
+### Subtractive Family
+
+| Method ID | Character | Best For | Safety |
+|-----------|-----------|----------|--------|
+| `subtractive/bright_saw` | Classic saw | Leads, bass | LeakDC |
+| `subtractive/dark_pulse` | Hollow pulse | Bass, pads | LeakDC |
+| `subtractive/noise_filtered` | Wind, breath | Textures, FX | LeakDC |
+| `subtractive/supersaw` | Detuned stack | Trance, huge | LeakDC |
+| `subtractive/wavefold` | West coast complex | Rich harmonics | LeakDC + Limiter |
+| `subtractive/sync` | Tearing, formant-like | Leads, vocal | LeakDC |
+
+### Texture Family
+
+| Method ID | Character | Best For | Safety |
+|-----------|-----------|----------|--------|
+| `texture/bitcrush` | Lo-fi, degraded | Lo-fi, retro | LeakDC |
+| `texture/chaos_osc` | Unpredictable chaos | Experimental | LeakDC + Limiter |
+| `texture/dust_resonator` | Sparse pings | Ambient, sparse | LeakDC |
+| `texture/granular_cloud` | Grain swarm | Clouds, pads | LeakDC + Limiter |
+| `texture/noise_drone` | Filtered noise bed | Ambient, drones | LeakDC |
+| `texture/noise_rhythm` | Rhythmic noise | Percussion, FX | LeakDC |
+
+---
+
+## SuperCollider Implementation Patterns
+
+### Cross FM Pattern
+
+```supercollider
+// Cross FM - two oscillators modulating each other
+// CRITICAL: Requires Limiter - can easily runaway
+var freq1 = freq;
+var freq2 = freq * ratio;  // ratio from customBus
+var index1 = idx1.linexp(0, 1, 0.1, 8);  // mod depth A→B
+var index2 = idx2.linexp(0, 1, 0.1, 8);  // mod depth B→A
+var osc1, osc2;
+
+// Use LocalIn/LocalOut for mutual feedback
+osc2 = LocalIn.ar(1);
+osc1 = SinOsc.ar(freq1 + (osc2 * index2 * freq1));
+osc2 = SinOsc.ar(freq2 + (osc1 * index1 * freq2));
+LocalOut.ar(osc2);
+
+sig = (osc1 + (osc2 * mix)) * 0.5;
+// MUST use Limiter - cross FM is inherently unstable
+```
+
+### Through-Zero FM Pattern
+
+```supercollider
+// TZFM using PMOsc (phase modulation, mathematically equivalent)
+var modFreq = freq * ratio;
+var pmIndex = index.linexp(0, 1, 0.1, 12);
+sig = PMOsc.ar(freq, modFreq, pmIndex);
+```
+
+### Linear FM Pattern
+
+```supercollider
+// Linear FM - deviation in Hz, not ratio
+// Pitch tracks better at extreme depths
+var modFreq = freq * ratio;
+var deviation = index.linexp(0, 1, 10, 2000);  // Hz deviation
+var mod = SinOsc.ar(modFreq) * deviation;
+sig = SinOsc.ar(freq + mod);
+```
+
+### Nested FM Pattern
+
+```supercollider
+// Nested FM: Mod2 → Mod1 → Carrier
+var mod2Freq = freq * ratio2;
+var mod1Freq = freq * ratio1;
+var idx1 = index1.linexp(0, 1, 0.1, 6);
+var idx2 = index2.linexp(0, 1, 0.1, 6);
+
+var mod2 = SinOsc.ar(mod2Freq);
+var mod1 = SinOsc.ar(mod1Freq + (mod2 * idx2 * mod1Freq));
+sig = SinOsc.ar(freq + (mod1 * idx1 * freq));
+```
+
+### Hard Sync Pattern
+
+```supercollider
+// Hard sync - slave resets on master cycle
+var masterFreq = freq;
+var slaveRatio = ratio.linexp(0, 1, 1, 8);  // Slave multiple
+sig = SyncSaw.ar(masterFreq, masterFreq * slaveRatio);
+```
+
+### Ring Modulation Pattern
+
+```supercollider
+// Ring mod - bipolar multiplication
+var carrier = SinOsc.ar(freq);
+var modulator = SinOsc.ar(freq * ratio);
+sig = carrier * modulator;  // Creates sum & difference frequencies
+
+// For AM (amplitude modulation) - add DC offset
+// sig = carrier * (1 + (modulator * depth));  // Keeps carrier
+```
+
+### Frequency Shifting Pattern
+
+```supercollider
+// Frequency shift - fixed Hz offset (not ratio)
+// Creates inharmonic, metallic textures
+var shift = shiftAmt.linlin(0, 1, -500, 500);  // Hz
+var source = Saw.ar(freq);
+sig = FreqShift.ar(source, shift);
+```
+
+### Wavefolder Pattern
+
+```supercollider
+// West coast style wavefolding
+// Drive increases harmonics
+var driveAmt = drive.linexp(0, 1, 1, 10);
+var source = SinOsc.ar(freq) * driveAmt;
+
+// Cascade multiple folds for richer harmonics
+sig = source.fold2(1.0);
+sig = sig.fold2(0.8);
+sig = sig.fold2(0.6);
+sig = sig * 0.3;  // Compensate for gain increase
+// MUST use Limiter
+```
+
+### Vector Synthesis Pattern
+
+```supercollider
+// Crossfade between multiple sources
+var saw = Saw.ar(freq);
+var pulse = Pulse.ar(freq, width);
+var sine = SinOsc.ar(freq);
+var tri = LFTri.ar(freq);
+
+// 2D vector position from two params
+var xPos = vecX;  // 0-1
+var yPos = vecY;  // 0-1
+
+// Bilinear interpolation
+var top = LinXFade2.ar(saw, pulse, xPos * 2 - 1);
+var bot = LinXFade2.ar(sine, tri, xPos * 2 - 1);
+sig = LinXFade2.ar(top, bot, yPos * 2 - 1);
+```
+
+---
+
+## Theme-Based Method Selection
 
 | Theme Type | Prefer | Avoid |
 |------------|--------|-------|
-| Organic/Natural | `physical`, `texture` | `fm` |
+| Organic/Natural | `physical`, `texture` | heavy `fm` |
 | Digital/Electronic | `fm`, `spectral` | `physical` |
 | Ambient/Atmospheric | `spectral`, `texture`, `physical` | - |
 | Aggressive/Industrial | `fm`, `subtractive`, `texture` | - |
 | Acoustic/Realistic | `physical`, `spectral` | `texture` |
+| Chaotic/Experimental | `fm/cross_fm`, `fm/feedback_fm`, `texture/chaos_osc` | - |
+| Vintage/Analog | `subtractive`, `fm/ring_mod` | `spectral` |
+| Sci-Fi/Alien | `spectral/freq_shift`, `fm/ring_mod`, `fm/cross_fm` | `physical` |
+| West Coast | `subtractive/wavefold`, `fm/feedback_fm`, `texture` | - |
+| East Coast | `subtractive`, `fm/simple_fm` | - |
 
 ---
 
-## Method Assignment (Pre-Generation Planning)
+## Pre-Generation Planning (CRITICAL)
 
-**CRITICAL:** Before generating any code, plan method assignments to ensure diversity.
+**Before generating any code, complete the unified planning table.**
 
-### Planning Template
+This ensures:
+- Method diversity (≥3 families, ≤4 per family)
+- Parameter uniqueness (40 unique labels for Mode C)
+- DSP topology documented upfront
 
-Copy this table and fill in before coding:
+### Unified Planning Template
 
 ```markdown
-| Gen# | Name | Theme Concept | Method ID | Family |
-|------|------|---------------|-----------|--------|
-| 1 | {name} | {concept} | {method_id} | {family} |
-| 2 | {name} | {concept} | {method_id} | {family} |
-| 3 | {name} | {concept} | {method_id} | {family} |
-| 4 | {name} | {concept} | {method_id} | {family} |
-| 5 | {name} | {concept} | {method_id} | {family} |
-| 6 | {name} | {concept} | {method_id} | {family} |
-| 7 | {name} | {concept} | {method_id} | {family} |
-| 8 | {name} | {concept} | {method_id} | {family} |
+## Pack: {pack_id}
+## Theme: {description}
+## Parameter Mode: C (Unique Everything)
 
-**Diversity check:**
-- Families used: {list unique families}
-- Count: {number} (must be ≥3)
-- Max per family: {max count} (must be ≤4)
+| Gen | Name | Method ID | Family | DSP Concept | P1 | P2 | P3 | P4 | P5 |
+|-----|------|-----------|--------|-------------|----|----|----|----|-----|
+| 1 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+| 2 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+| 3 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+| 4 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+| 5 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+| 6 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+| 7 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+| 8 | {NAME} | {method} | {fam} | {concept} | {LBL} | {LBL} | {LBL} | {LBL} | {LBL} |
+
+**Method Diversity Check:**
+- Families used: {list}
+- Count: {n} (must be ≥3)
+- Max per family: {n} (must be ≤4)
+
+**Parameter Uniqueness Check:**
+- Total labels: 40
+- Unique labels: {n} (must be 40 for Mode C)
+- Duplicates: {list any}
 ```
+
+### Example: Radioactive Decay Pack (isotope)
+
+## Pack: isotope
+## Theme: Nuclear decay, radiation, half-life processes
+## Parameter Mode: C (Unique Everything)
+
+| Gen | Name | Method ID | Family | DSP Concept | P1 | P2 | P3 | P4 | P5 |
+|-----|------|-----------|--------|-------------|----|----|----|----|-----|
+| 1 | FISSION | `fm/cross_fm` | fm | Mutual oscillator splitting | SPL | CHN | CRT | MAS | YLD |
+| 2 | HALFLIFE | `texture/dust_resonator` | texture | Stochastic decay pings | DKY | ISO | PRT | RAD | HLF |
+| 3 | REACTOR | `fm/feedback_fm` | fm | Controlled chain reaction | ROD | COR | FLX | TME | MWt |
+| 4 | FALLOUT | `texture/noise_drone` | texture | Contaminated atmosphere | ASH | DFT | CNT | WND | CLR |
+| 5 | GEIGER | `texture/noise_rhythm` | texture | Detection clicks | CLK | CNT | PRX | SRC | THR |
+| 6 | GLOW | `spectral/additive` | spectral | Cherenkov radiation | BLU | WAT | PLS | DEP | INT |
+| 7 | MELTDOWN | `physical/membrane` | physical | Containment failure | PRS | BRC | HEA | CRK | VNT |
+| 8 | ISOTOPE | `spectral/freq_shift` | spectral | Unstable atomic shift | ATM | SHF | STB | ORB | DCY |
+
+**Method Diversity Check:**
+- Families used: fm, texture, spectral, physical
+- Count: 4 ✓ (≥3)
+- Max per family: 3 (texture) ✓ (≤4)
+
+**Parameter Uniqueness Check:**
+- Total labels: 40
+- Unique labels: 40 ✓
+- Duplicates: none
 
 ### Example: Modular Synth Pack (mod_caf)
 
-| Gen# | Name | Theme Concept | Method ID | Family |
-|------|------|---------------|-----------|--------|
-| 1 | patch | Cable connections | `texture/noise_rhythm` | texture |
-| 2 | slats | Wood architecture | `physical/comb_resonator` | physical |
-| 3 | voltage | CV modulation | `texture/chaos_osc` | texture |
-| 4 | studio | Room ambience | `texture/noise_drone` | texture |
-| 5 | osc | Analog oscillator | `subtractive/bright_saw` | subtractive |
-| 6 | filter | Resonant sweep | `subtractive/wavefold` | subtractive |
-| 7 | lfo | Slow modulation | `fm/am_chorus` | fm |
-| 8 | test | Acoustic test | `spectral/additive` | spectral |
+## Pack: mod_caf
+## Theme: Vintage modular synthesizer studio
+## Parameter Mode: C (Unique Everything)
 
-**Diversity check:**
+| Gen | Name | Method ID | Family | DSP Concept | P1 | P2 | P3 | P4 | P5 |
+|-----|------|-----------|--------|-------------|----|----|----|----|-----|
+| 1 | PATCH | `texture/noise_rhythm` | texture | Cable connections | CBL | JCK | SIG | RTE | TNL |
+| 2 | SLATS | `physical/comb_resonator` | physical | Wood cabinet resonance | WOD | SLT | RNG | BOD | AIR |
+| 3 | VOLTAGE | `texture/chaos_osc` | texture | CV modulation | MOD | SRC | RNG | SLP | GTE |
+| 4 | STUDIO | `texture/noise_drone` | texture | Room ambience | ROM | DIM | REF | ABS | HUM |
+| 5 | OSC | `subtractive/bright_saw` | subtractive | Classic analog oscillator | WAV | DTN | PWM | SUB | DRV |
+| 6 | FILTER | `subtractive/wavefold` | subtractive | Resonant sweep | FLD | RES | TRK | SAT | SQU |
+| 7 | LFO | `fm/am_chorus` | fm | Slow modulation source | SPD | DPT | WAV | SYC | PHS |
+| 8 | SCOPE | `spectral/additive` | spectral | Oscilloscope test tones | FRQ | HAR | PHZ | SYM | GRD |
+
+**Method Diversity Check:**
 - Families used: texture, physical, subtractive, fm, spectral
 - Count: 5 ✓ (≥3)
 - Max per family: 3 (texture) ✓ (≤4)
+
+**Parameter Uniqueness Check:**
+- Total labels: 40
+- Unique labels: 40 ✓
+- Duplicates: none
 
 ---
 
@@ -929,27 +1239,48 @@ Each generator JSON MUST include the `synthesis_method` field:
 
 ```json
 {
-  "generator_id": "osc",
-  "name": "OSC",
-  "synthdef": "forge_mod_caf_osc",
-  "synthesis_method": "subtractive/bright_saw",
-  "custom_params": [...],
+  "generator_id": "fission",
+  "name": "FISSION",
+  "synthdef": "forge_isotope_fission",
+  "synthesis_method": "fm/cross_fm",
+  "custom_params": [
+    {"key": "split", "label": "SPL", "tooltip": "Fission split point - where oscillator coupling breaks", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chain", "label": "CHN", "tooltip": "Chain reaction probability - feedback between splits", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "critical", "label": "CRT", "tooltip": "Criticality threshold - transition to runaway", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "mass", "label": "MAS", "tooltip": "Fissile mass - density of harmonic content", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "yield", "label": "YLD", "tooltip": "Energy yield - overall modulation intensity and chaos", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
   "output_trim_db": -6.0,
   "midi_retrig": false,
   "pitch_target": null
 }
 ```
 
-### Validation
+Note how tooltips explain *behavior* in thematic terms, not just the parameter name.
+
+---
+
+## Validation
+
+### Method Diversity
 
 ```bash
-# Check diversity
 cdd test contracts/pack.diversity.yaml --var pack_id={pack_id}
 
 # Expected output:
 # T006 ✓ pass ✓ all_generators_declare_method
 # T007 ✓ pass ✓ minimum_family_diversity (4 families)
 # T008 ✓ pass ✓ no_family_dominance (max 3)
+```
+
+### Parameter Uniqueness (Mode C)
+
+```bash
+# Should return 40 unique labels for 8 generators
+grep -oh '"label": "[^"]*"' packs/{pack_id}/generators/*.json | sort | uniq -c | sort -rn
+
+# Check for duplicates (should show nothing)
+grep -oh '"label": "[^"]*"' packs/{pack_id}/generators/*.json | sort | uniq -d
 ```
 
 ---
@@ -963,18 +1294,28 @@ Some methods have specific DSP requirements beyond the standard output chain.
 // All FM methods benefit from:
 sig = LeakDC.ar(sig);  // FM can create DC offset
 
-// feedback_fm specifically needs:
-sig = Limiter.ar(sig, 0.95);  // Feedback can runaway
+// feedback_fm, cross_fm, nested_fm specifically need:
+sig = Limiter.ar(sig, 0.95);  // Feedback/cross-mod can runaway
 ```
 
 ### Physical Methods
 ```supercollider
-// bowed, membrane need:
+// bowed, membrane, comb_resonator need:
 sig = LeakDC.ar(sig);  // Physical models often have DC issues
 sig = Limiter.ar(sig, 0.95);  // Resonance can spike
 
-// karplus needs:
+// karplus, modal usually safe with:
 sig = LeakDC.ar(sig);  // Pluck transients create DC
+```
+
+### Spectral Methods
+```supercollider
+// freq_shift needs:
+sig = LeakDC.ar(sig);  // Frequency shifting can create DC
+
+// additive with many partials needs:
+sig = LeakDC.ar(sig);
+sig = Limiter.ar(sig, 0.95);  // Sum of partials can exceed headroom
 ```
 
 ### Texture Methods
@@ -993,8 +1334,50 @@ sig = LeakDC.ar(sig);
 sig = LeakDC.ar(sig);  // Folding creates DC
 sig = Limiter.ar(sig, 0.95);  // Folding can spike
 
+// sync needs:
+sig = LeakDC.ar(sig);  // Sync discontinuities create DC
+
 // bright_saw, dark_pulse usually safe with:
 sig = LeakDC.ar(sig);
+```
+
+---
+
+## Safety Quick Reference
+
+| Method | LeakDC | Limiter | Notes |
+|--------|--------|---------|-------|
+| `fm/simple_fm` | ✓ | - | Clean at moderate index |
+| `fm/feedback_fm` | ✓ | ✓ | Feedback can runaway |
+| `fm/cross_fm` | ✓ | ✓ | Inherently unstable |
+| `fm/tzfm` | ✓ | - | Clean through zero |
+| `fm/linear_fm` | ✓ | - | Stable tracking |
+| `fm/nested_fm` | ✓ | ✓ | Deep chains can spike |
+| `fm/hard_sync` | ✓ | - | Discontinuities create DC |
+| `fm/ring_mod` | ✓ | - | Usually well-behaved |
+| `physical/*` | ✓ | ✓ | Most physical models |
+| `spectral/freq_shift` | ✓ | - | SSB creates DC |
+| `subtractive/wavefold` | ✓ | ✓ | Folding creates both |
+| `subtractive/sync` | ✓ | - | Discontinuities |
+| `texture/chaos_osc` | ✓ | ✓ | Unpredictable by nature |
+| All others | ✓ | - | LeakDC is always safe |
+
+---
+
+## Session Start Prompt
+
+When starting a new pack session:
+
+```
+Theme: {description}
+Parameter Mode: C (Unique Everything)
+
+Complete unified planning table before generating any SynthDefs:
+
+| Gen | Name | Method ID | Family | DSP Concept | P1 | P2 | P3 | P4 | P5 |
+|-----|------|-----------|--------|-------------|----|----|----|----|-----|
+
+Confirm both diversity checks pass before proceeding.
 ```
 
 ---
@@ -1004,27 +1387,31 @@ sig = LeakDC.ar(sig);
 When using Imaginarium's method templates to generate SynthDefs automatically:
 
 ```python
-from imaginarium.methods.fm import SimpleFMTemplate
+from imaginarium.methods.fm import CrossFMTemplate
 
-template = SimpleFMTemplate()
+template = CrossFMTemplate()
 
 # Generate SynthDef
 scd = template.generate_synthdef(
-    synthdef_name="forge_my_pack_bell",
-    params={"ratio": 2.5, "index": 4.0, "brightness": 0.7},
+    synthdef_name="forge_isotope_fission",
+    params={"ratio": 1.5, "index1": 3.0, "index2": 2.5},
     seed=12345
 )
 
-# Generate JSON
+# Generate JSON with custom params
 json_config = template.generate_json(
-    display_name="BELL",
-    synthdef_name="forge_my_pack_bell",
-    params={"ratio": 2.5, "index": 4.0, "brightness": 0.7}
+    display_name="FISSION",
+    synthdef_name="forge_isotope_fission",
+    param_labels=["SPL", "CHN", "CRT", "MAS", "YLD"],
+    param_tooltips=[
+        "Fission split point - where oscillator coupling breaks",
+        "Chain reaction probability - feedback between splits",
+        # ...
+    ]
 )
 
-# Add synthesis_method field
-json_config["synthesis_method"] = template.definition.method_id
-# Result: "fm/simple_fm"
+# Method ID auto-populated
+json_config["synthesis_method"]  # "fm/cross_fm"
 ```
 
 The method templates automatically:
@@ -1032,7 +1419,8 @@ The method templates automatically:
 - Map custom params to the right ranges
 - Include seed for determinism
 - Follow the generator contract
+- Add appropriate safety (Limiter for unstable methods)
 
 ---
 
-Ready to Forge? 
+Ready to Forge?
