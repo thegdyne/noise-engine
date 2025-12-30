@@ -1,0 +1,16 @@
+{
+  "generator_id": "sun",
+  "name": "SUN",
+  "synthdef": "forge_wicker_sun",
+  "synthesis_method": "texture/noise_drone",
+  "custom_params": [
+    {"key": "golden", "label": "GLD", "tooltip": "Golden intensity - scaled by Zenith height", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "heat", "label": "HET", "tooltip": "Heat intensity - curve shaped by Scorch severity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "zenith", "label": "ZNT", "tooltip": "Zenith height - modulates Golden AND Haze", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "haze", "label": "HZE", "tooltip": "Haze thickness - feeds back into Heat", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "scorch", "label": "SCH", "tooltip": "Scorch severity - master oppression axis", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

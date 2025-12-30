@@ -1,0 +1,16 @@
+{
+  "generator_id": "isle",
+  "name": "ISLE",
+  "synthdef": "forge_wicker_isle",
+  "synthesis_method": "subtractive/noise_filtered",
+  "custom_params": [
+    {"key": "wind", "label": "WND", "tooltip": "Wind strength - scaled by Mist density", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shore", "label": "SHR", "tooltip": "Shore distance - curve shaped by Doom approach", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "gull", "label": "GUL", "tooltip": "Gull presence - modulates Wind AND Doom", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "mist", "label": "MST", "tooltip": "Mist density - feeds back into Shore", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "doom", "label": "DOM", "tooltip": "Doom approach - master isolation axis", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
