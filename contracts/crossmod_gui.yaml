@@ -1,0 +1,675 @@
+# Crossmod GUI Contract
+# Verifies implementation matches spec v1.2 and follows mod_matrix patterns
+
+contract: crossmod_gui
+cdd_spec: 1.1.5
+version: 1.0.0
+status: frozen
+description: |
+  Crossmod matrix GUI for generator-to-generator modulation routing.
+  Adapts mod_matrix pattern for 8 source generators → 8×10 target params.
+  Reference: CROSSMOD_GUI_DESIGN.md v1.2
+
+runner:
+  executor: shell
+  timeout_ms: 30000
+
+requirements:
+  # === FILE STRUCTURE ===
+  - id: R001
+    priority: must
+    description: All crossmod GUI files exist
+    acceptance_criteria:
+      - crossmod_matrix_window.py exists
+      - crossmod_matrix_cell.py exists
+      - crossmod_routing_state.py exists
+      - crossmod_osc_bridge.py exists
+      - crossmod_connection_popup.py exists
+
+  # === WINDOW CLASS ===
+  - id: R002
+    priority: must
+    description: CrossmodMatrixWindow class with required methods
+    acceptance_criteria:
+      - Class CrossmodMatrixWindow defined
+      - _setup_ui method exists
+      - _build_column_headers method exists
+      - _build_rows method exists
+      - keyPressEvent method exists
+
+  # === CELL CLASS ===
+  - id: R003
+    priority: must
+    description: CrossmodMatrixCell with 8-color scheme and invert support
+    acceptance_criteria:
+      - Class CrossmodMatrixCell defined
+      - SOURCE_COLORS dict with 8 entries
+      - set_connection method with invert parameter
+      - Invert visual in paintEvent
+
+  # === STATE CLASS ===
+  - id: R004
+    priority: must
+    description: CrossmodRoutingState with follower support
+    acceptance_criteria:
+      - Class CrossmodRoutingState defined
+      - CrossmodConnection dataclass with invert field
+      - FollowerState class defined
+      - connection_changed signal exists
+
+  # === OSC BRIDGE ===
+  - id: R005
+    priority: must
+    description: CrossmodOSCBridge sends correct OSC messages
+    acceptance_criteria:
+      - /noise/crossmod/route endpoint used
+      - /noise/crossmod/unroute endpoint used
+      - /noise/crossmod/enabled endpoint used
+      - /noise/crossmod/clear endpoint used
+
+  # === KEYBOARD ===
+  - id: R006
+    priority: must
+    description: Keyboard navigation matches spec
+    acceptance_criteria:
+      - Arrow key navigation
+      - Space toggles connection
+      - I key toggles invert
+      - Shift+Space creates inverted connection
+      - D opens popup
+
+  # === ROW CHECKBOXES ===
+  - id: R007
+    priority: must
+    description: Row enable checkboxes for follower control
+    acceptance_criteria:
+      - QCheckBox in row headers
+      - Checkbox toggles follower enabled state
+
+  # === POPUP ===
+  - id: R008
+    priority: must
+    description: Connection popup with invert checkbox
+    acceptance_criteria:
+      - CrossmodConnectionPopup class exists
+      - Invert checkbox present
+      - Amount slider present
+      - Offset slider present
+      - Remove button present
+
+  # === SELF-MODULATION ===
+  - id: R009
+    priority: must
+    description: Self-modulation (diagonal) is allowed
+    acceptance_criteria:
+      - No blocking of source==target cells
+      - Diagonal cells clickable
+
+  # === WINDOW CONFIG ===
+  - id: R010
+    priority: should
+    description: Window settings and shortcuts
+    acceptance_criteria:
+      - Window title "CROSSMOD MATRIX"
+      - Ctrl+X toggle shortcut
+      - QSettings persistence with CrossmodMatrix key
+
+tests:
+  # === R001: FILE EXISTENCE ===
+  - id: T001
+    name: crossmod_matrix_window_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["test", "-f", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "crossmod_matrix_window.py must exist"
+
+  - id: T002
+    name: crossmod_matrix_cell_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["test", "-f", "../src/gui/crossmod_matrix_cell.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "crossmod_matrix_cell.py must exist"
+
+  - id: T003
+    name: crossmod_routing_state_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["test", "-f", "../src/gui/crossmod_routing_state.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "crossmod_routing_state.py must exist"
+
+  - id: T004
+    name: crossmod_osc_bridge_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["test", "-f", "../src/gui/crossmod_osc_bridge.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "crossmod_osc_bridge.py must exist"
+
+  - id: T005
+    name: crossmod_connection_popup_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["test", "-f", "../src/gui/crossmod_connection_popup.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "crossmod_connection_popup.py must exist"
+
+  # === R002: WINDOW CLASS ===
+  - id: T010
+    name: window_class_defined
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class CrossmodMatrixWindow", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CrossmodMatrixWindow class must be defined"
+
+  - id: T011
+    name: window_setup_ui_method
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def _setup_ui", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "_setup_ui method must exist"
+
+  - id: T012
+    name: window_build_column_headers_method
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def _build_column_headers", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "_build_column_headers method must exist"
+
+  - id: T013
+    name: window_build_rows_method
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def _build_rows", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "_build_rows method must exist"
+
+  - id: T014
+    name: window_keypressevent_method
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def keyPressEvent", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "keyPressEvent method must exist"
+
+  # === R003: CELL CLASS ===
+  - id: T020
+    name: cell_class_defined
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class CrossmodMatrixCell", "../src/gui/crossmod_matrix_cell.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CrossmodMatrixCell class must be defined"
+
+  - id: T021
+    name: cell_source_colors_dict
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "SOURCE_COLORS", "../src/gui/crossmod_matrix_cell.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SOURCE_COLORS dict must exist"
+
+  - id: T022
+    name: cell_8_source_colors
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "^\\s+[1-8]:\\s*['\"]#", "../src/gui/crossmod_matrix_cell.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SOURCE_COLORS must have 8 color entries (keys 1-8)"
+
+  - id: T023
+    name: cell_set_connection_with_invert
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "def set_connection.*invert", "../src/gui/crossmod_matrix_cell.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "set_connection must have invert parameter"
+
+  - id: T024
+    name: cell_paintevent_exists
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def paintEvent", "../src/gui/crossmod_matrix_cell.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "paintEvent method must exist"
+
+  # === R004: STATE CLASS ===
+  - id: T030
+    name: state_class_defined
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class CrossmodRoutingState", "../src/gui/crossmod_routing_state.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CrossmodRoutingState class must be defined"
+
+  - id: T031
+    name: state_connection_class
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class CrossmodConnection", "../src/gui/crossmod_routing_state.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CrossmodConnection class must be defined"
+
+  - id: T032
+    name: state_connection_invert_field
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "invert.*:|:.*invert", "../src/gui/crossmod_routing_state.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CrossmodConnection must have invert field"
+
+  - id: T033
+    name: state_follower_class
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class FollowerState", "../src/gui/crossmod_routing_state.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "FollowerState class must be defined"
+
+  - id: T034
+    name: state_connection_changed_signal
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "connection_changed", "../src/gui/crossmod_routing_state.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "connection_changed signal must exist"
+
+  # === R005: OSC BRIDGE ===
+  - id: T040
+    name: osc_bridge_class_defined
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class CrossmodOSCBridge", "../src/gui/crossmod_osc_bridge.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CrossmodOSCBridge class must be defined"
+
+  - id: T041
+    name: osc_route_endpoint
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "/noise/crossmod/route", "../src/gui/crossmod_osc_bridge.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/crossmod/route endpoint must be used"
+
+  - id: T042
+    name: osc_unroute_endpoint
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "/noise/crossmod/unroute", "../src/gui/crossmod_osc_bridge.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/crossmod/unroute endpoint must be used"
+
+  - id: T043
+    name: osc_enabled_endpoint
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "/noise/crossmod/enabled", "../src/gui/crossmod_osc_bridge.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/crossmod/enabled endpoint must be used"
+
+  - id: T044
+    name: osc_clear_endpoint
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "/noise/crossmod/clear", "../src/gui/crossmod_osc_bridge.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/crossmod/clear endpoint must be used"
+
+  # === R006: KEYBOARD ===
+  - id: T050
+    name: keyboard_arrow_navigation
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "Key_Up\\|Key_Down\\|Key_Left\\|Key_Right", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Arrow key navigation must be implemented"
+
+  - id: T051
+    name: keyboard_space_toggle
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "Key_Space", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Space key toggle must be implemented"
+
+  - id: T052
+    name: keyboard_i_invert
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "Key_I", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "I key for invert must be implemented"
+
+  - id: T053
+    name: keyboard_d_popup
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "Key_D", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "D key for popup must be implemented"
+
+  # === R007: ROW CHECKBOXES ===
+  - id: T060
+    name: row_checkbox_widget
+    requirement: R007
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "QCheckBox", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "QCheckBox must be used for row enable"
+
+  - id: T061
+    name: row_checkbox_follower_control
+    requirement: R007
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "follower.*enabled|enabled.*follower|set_follower_enabled", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Row checkbox must control follower enabled state"
+
+  # === R008: POPUP ===
+  - id: T070
+    name: popup_class_defined
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class CrossmodConnectionPopup", "../src/gui/crossmod_connection_popup.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CrossmodConnectionPopup class must be defined"
+
+  - id: T071
+    name: popup_invert_checkbox
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-Ei", "invert.*checkbox|checkbox.*invert|invert_cb|cb_invert", "../src/gui/crossmod_connection_popup.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Popup must have invert checkbox"
+
+  - id: T072
+    name: popup_amount_slider
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-Ei", "amount.*slider|slider.*amount|amount_slider", "../src/gui/crossmod_connection_popup.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Popup must have amount slider"
+
+  - id: T073
+    name: popup_remove_button
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-Ei", "remove.*button|btn.*remove|remove_btn", "../src/gui/crossmod_connection_popup.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Popup must have remove button"
+
+  # === R009: SELF-MODULATION ===
+  - id: T080
+    name: no_diagonal_blocking
+    requirement: R009
+    type: unit
+    steps:
+      - action: shell
+        command: ["bash", "-c", "! grep -E 'source.*==.*target.*skip|source.*==.*target.*block|diagonal.*disabled' ../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Self-modulation (diagonal) must not be blocked"
+
+  # === R010: WINDOW CONFIG ===
+  - id: T090
+    name: window_title_crossmod
+    requirement: R010
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "CROSSMOD MATRIX", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Window title must be CROSSMOD MATRIX"
+
+  - id: T091
+    name: window_ctrl_x_shortcut
+    requirement: R010
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "Ctrl+X", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Ctrl+X shortcut must be defined"
+
+  - id: T092
+    name: window_qsettings_key
+    requirement: R010
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "CrossmodMatrix", "../src/gui/crossmod_matrix_window.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "QSettings must use CrossmodMatrix key"
+
+change_log:
+  - 1.0.0: Initial contract from CROSSMOD_GUI_DESIGN.md v1.2
