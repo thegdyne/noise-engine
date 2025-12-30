@@ -23,6 +23,7 @@ OSC messages from Python:
 
 OSC messages to Python:
 - /noise/midi/gate [slot] - Gate triggered (for LED flash)
+- /noise/midi/cc [channel, cc, value] - CC received (for Python mapping)
 */
 
 ~setupMIDI = {
@@ -96,7 +97,8 @@ OSC messages to Python:
         });
         
         ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
-            // Future: map CCs to parameters
+            var midiChannel = chan + 1;  // Convert 0-15 to 1-16
+            ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val);
         });
         
         "  ✓ MIDI handlers active".postln;
@@ -105,6 +107,35 @@ OSC messages to Python:
         ~midiPortIndex = -1;
         ("MIDI disconnected (port " ++ portIndex ++ ")").postln;
     });
+};
+
+// Connect to ALL MIDI devices (for CC control - per MIDI CC spec v1)
+~connectAllMIDI = {
+    // Clean up any existing handlers
+    if(~midiNoteOnFunc.notNil, { ~midiNoteOnFunc.free; ~midiNoteOnFunc = nil; });
+    if(~midiNoteOffFunc.notNil, { ~midiNoteOffFunc.free; ~midiNoteOffFunc = nil; });
+    if(~midiCCFunc.notNil, { ~midiCCFunc.free; ~midiCCFunc = nil; });
+
+    MIDIIn.connectAll;
+    ~midiConnected = true;
+    ~midiPortIndex = -1;  // -1 indicates "all devices"
+    "MIDI: Listening to ALL devices".postln;
+
+    // Set up handlers
+    ~midiNoteOnFunc = MIDIFunc.noteOn({ |vel, note, chan, src|
+        ~handleMidiNoteOn.(vel, note, chan);
+    });
+
+    ~midiNoteOffFunc = MIDIFunc.noteOff({ |vel, note, chan, src|
+        ~handleMidiNoteOff.(vel, note, chan);
+    });
+
+    ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
+        var midiChannel = chan + 1;  // Convert 0-15 to 1-16
+        ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val);
+    });
+
+    "  ✓ MIDI handlers active (all devices)".postln;
 };
 
 // Handle MIDI note on
