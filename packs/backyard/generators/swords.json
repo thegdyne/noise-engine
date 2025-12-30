@@ -1,0 +1,16 @@
+{
+  "generator_id": "swords",
+  "name": "SWORDS",
+  "synthdef": "forge_backyard_swords",
+  "synthesis_method": "physical/karplus",
+  "custom_params": [
+    {"key": "force", "label": "FRC", "tooltip": "Strike force", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wood", "label": "WOD", "tooltip": "Wood density/hardness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "shield", "label": "SHD", "tooltip": "Shield thud amount", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "clash", "label": "CLH", "tooltip": "Clash ring intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "fury", "label": "FRY", "tooltip": "Battle fury/intensity", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

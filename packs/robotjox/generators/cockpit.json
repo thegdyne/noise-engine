@@ -1,0 +1,16 @@
+{
+  "generator_id": "cockpit",
+  "name": "COCKPIT",
+  "synthdef": "forge_robotjox_cockpit",
+  "synthesis_method": "fm/simple_fm",
+  "custom_params": [
+    {"key": "alert", "label": "ALR", "tooltip": "Warning alert level - FM intensity", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hud", "label": "HUD", "tooltip": "HUD display - high frequency content", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "comms", "label": "COM", "tooltip": "Radio comms - modulation depth", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "power", "label": "PWR", "tooltip": "Power systems - base drone", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "damage", "label": "DMG", "tooltip": "System damage - glitch amount", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

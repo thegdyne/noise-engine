@@ -1,0 +1,16 @@
+{
+  "generator_id": "patio",
+  "name": "PATIO",
+  "synthdef": "forge_backyard_patio",
+  "synthesis_method": "texture/noise_rhythm",
+  "custom_params": [
+    {"key": "roll", "label": "ROL", "tooltip": "Rolling speed", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "groove", "label": "GRV", "tooltip": "Groove depth/bump intensity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "wheel", "label": "WHL", "tooltip": "Wheel hardness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rattle", "label": "RAT", "tooltip": "Board rattle", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "grit", "label": "GRT", "tooltip": "Surface grit/texture", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

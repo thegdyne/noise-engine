@@ -1,0 +1,61 @@
+{
+  "generator_id": "creak",
+  "name": "CREAK",
+  "synthdef": "forge_avebury_creak",
+  "synthesis_method": "physical/modal",
+  "custom_params": [
+    {
+      "key": "stress",
+      "label": "STS",
+      "tooltip": "Wood stress - modal excitation",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "aged",
+      "label": "AGD",
+      "tooltip": "Ancient age - decay character",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "branch",
+      "label": "BRN",
+      "tooltip": "Branch thickness - modal spacing",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wind",
+      "label": "WND",
+      "tooltip": "Wind load - excitation rate",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "groan",
+      "label": "GRN",
+      "tooltip": "Deep groan - low mode emphasis",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -0.1,
+  "midi_retrig": false,
+  "pitch_target": null
+}

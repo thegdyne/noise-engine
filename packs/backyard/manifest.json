@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "backyard",
+  "name": "Backyard",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Childhood summers - bike spokes, patio skateboarding, climbing frames, paddling pools, sword battles, the family lamb, distant roads and park sounds, digging in the garden",
+  "enabled": true,
+  "generators": [
+    "spokes",
+    "patio",
+    "climb",
+    "paddle",
+    "swords",
+    "lamb",
+    "distant",
+    "dig"
+  ]
+}

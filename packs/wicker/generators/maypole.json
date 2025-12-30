@@ -1,0 +1,16 @@
+{
+  "generator_id": "maypole",
+  "name": "MAYPOLE",
+  "synthdef": "forge_wicker_maypole",
+  "synthesis_method": "fm/am_chorus",
+  "custom_params": [
+    {"key": "dance", "label": "DNC", "tooltip": "Dance intensity - scaled by Spiral tightness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ribbon", "label": "RBN", "tooltip": "Ribbon flutter - curve shaped by Weave complexity", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "spiral", "label": "SPR", "tooltip": "Spiral tightness - modulates Dance AND Trance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "trance", "label": "TRN", "tooltip": "Trance depth - feeds back into Ribbon", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "weave", "label": "WEV", "tooltip": "Weave complexity - master hypnosis axis", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

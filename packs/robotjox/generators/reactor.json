@@ -1,0 +1,16 @@
+{
+  "generator_id": "reactor",
+  "name": "REACTOR",
+  "synthdef": "forge_robotjox_reactor",
+  "synthesis_method": "subtractive/supersaw",
+  "custom_params": [
+    {"key": "output", "label": "OUT", "tooltip": "Power output - oscillator count", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "spin", "label": "SPN", "tooltip": "Turbine spin - detune spread", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "surge", "label": "SRG", "tooltip": "Power surge - modulation depth", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "coolant", "label": "CLT", "tooltip": "Coolant flow - noise component", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "redline", "label": "RED", "tooltip": "Redline danger - harmonic distortion", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

@@ -1,0 +1,28 @@
+# Bulk content - 900+ files
+packs/
+imaginarium/
+
+# Audio files
+*.wav
+*.aif
+*.aiff
+
+# Assets
+branding/*.svg
+branding/*.png
+
+# Generated
+PROJECT_CONTEXT.md
+
+# One-off patch/fix scripts
+patch_*.sh
+patch_*.py
+fix_*.sh
+fix-*.sh
+test_*.py
+
+# Stray files
+0.01
+ODD
+
+docs/BACKLOG/

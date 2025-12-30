@@ -14,9 +14,11 @@ Detects:
 - Any other non-ASCII sneaking into code
 
 Usage:
-    python utf8_fix.py --report <path>           # Scan and report ALL non-ASCII
-    python utf8_fix.py --fix <path>              # Normalize to ASCII (creates backups)
-    python utf8_fix.py --report <path> --ext .scd .py  # Specific extensions
+    python utf8_fix.py --report path/to/dir/     # Scan directory for ALL non-ASCII
+    python utf8_fix.py --report path/to/file.py  # Scan single file
+    python utf8_fix.py --dry-run path/to/file.py # Preview what --fix would change
+    python utf8_fix.py --fix path/to/file.scd    # Fix single file (creates backup)
+    python utf8_fix.py --report . --ext .scd .py # Directory with extension filter
 """
 
 import argparse
@@ -350,6 +352,55 @@ def print_report(reports: List[FileReport], verbose: bool = True) -> Tuple[int, 
     return files_with_issues, total_issues, invalid_utf8_count
 
 
+def print_dry_run(reports: List[FileReport]) -> None:
+    """Show line-by-line preview of what --fix would change."""
+    for report in reports:
+        if not report.issues and not report.has_invalid_utf8:
+            continue
+        if report.error and "Read error" in report.error:
+            continue
+        
+        filepath = report.path
+        print(f"\n{'='*60}")
+        print(f"FILE: {filepath}")
+        print('='*60)
+        
+        # Read content
+        if report.has_invalid_utf8:
+            content = filepath.read_bytes().decode('utf-8', errors='replace')
+        else:
+            content = filepath.read_text(encoding='utf-8')
+        
+        lines = content.split('\n')
+        
+        # Group issues by line
+        issues_by_line: Dict[int, List[Issue]] = {}
+        for issue in report.issues:
+            if issue.line_num not in issues_by_line:
+                issues_by_line[issue.line_num] = []
+            issues_by_line[issue.line_num].append(issue)
+        
+        # Show each affected line
+        for line_num in sorted(issues_by_line.keys()):
+            original_line = lines[line_num - 1]
+            fixed_line = original_line
+            
+            # Apply fixes (in reverse column order to preserve positions)
+            for issue in sorted(issues_by_line[line_num], key=lambda i: i.col, reverse=True):
+                col = issue.col - 1  # 0-indexed
+                char = original_line[col] if col < len(original_line) else ''
+                replacement = NORMALIZE_MAP.get(char, '?')
+                fixed_line = fixed_line[:col] + replacement + fixed_line[col+1:]
+            
+            print(f"\nL{line_num}:")
+            print(f"  - {repr(original_line)}")
+            print(f"  + {repr(fixed_line)}")
+            
+            # Show what chars changed
+            changes = [f"{i.codepoint}->'{i.replacement}'" for i in issues_by_line[line_num]]
+            print(f"    ({', '.join(changes)})")
+
+
 def create_backup(filepath: Path, backup_dir: Path) -> Path:
     """Create backup preserving relative path structure."""
     # Get relative path from backup_dir's parent
@@ -378,15 +429,18 @@ Catches ANY non-ASCII character in code files:
   - Replacement characters (corruption indicator)
 
 Examples:
-  %(prog)s --report packs/           # Find ALL non-ASCII in packs
-  %(prog)s --fix packs/              # Normalize to ASCII
-  %(prog)s --report . --ext .scd     # Check only .scd files
+  %(prog)s --report packs/           # Find ALL non-ASCII in packs dir
+  %(prog)s --report tools/foo.py     # Check single file
+  %(prog)s --fix packs/gen.scd       # Fix single file
+  %(prog)s --report . --ext .scd     # Check only .scd files in dir
         """
     )
     
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--report', action='store_true',
                       help='Scan and report all non-ASCII')
+    mode.add_argument('--dry-run', action='store_true',
+                      help='Preview fixes line-by-line (no changes made)')
     mode.add_argument('--fix', action='store_true',
                       help='Normalize to ASCII (backups created)')
     
@@ -416,7 +470,10 @@ Examples:
         print("No matching files found.")
         sys.exit(0)
     
-    print(f"Checking {len(files)} file(s) for non-ASCII...")
+    if len(files) == 1 and args.path.is_file():
+        print(f"Checking single file for non-ASCII...")
+    else:
+        print(f"Checking {len(files)} file(s) for non-ASCII...")
     
     reports = [scan_file(f) for f in files]
     files_with_issues, total_issues, invalid_utf8 = print_report(reports, verbose=not args.quiet)
@@ -433,8 +490,15 @@ Examples:
         sys.exit(0)
     
     if args.report:
-        print("\nRun with --fix to normalize to ASCII")
+        print("\nRun with --dry-run to preview fixes, or --fix to apply")
         sys.exit(1 if invalid_utf8 else 0)
+    
+    if args.dry_run:
+        print_dry_run(reports)
+        print("\n" + "=" * 60)
+        print("DRY RUN - no changes made")
+        print("Run with --fix to apply these changes")
+        sys.exit(0)
     
     # Fix mode
     print("\n" + "=" * 60)

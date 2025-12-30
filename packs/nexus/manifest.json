@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "nexus",
+  "name": "Nexus",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Blade Runner 2049 - FM multiplexing with unique topologies per generator. Cascade feedback, phase interference, radioactive decay, power hierarchies, memory fragments, baseline grids, subsonic mass.",
+  "enabled": true,
+  "generators": [
+    "nexus",
+    "rain",
+    "holo",
+    "waste",
+    "tower",
+    "memory",
+    "baseline",
+    "seawall"
+  ]
+}

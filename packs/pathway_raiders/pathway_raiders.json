@@ -1,0 +1,410 @@
+{
+  "version": 2,
+  "mapping_version": 1,
+  "name": "Pathway Raiders",
+  "pack": "pathway_raiders",
+  "slots": [
+    {
+      "generator": "GRUT",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "CHAIN",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "CORNR",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "DROP",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "FRAME",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "SLIDE",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "SHED",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "AIR",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    }
+  ],
+  "mixer": {
+    "channels": [
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      }
+    ],
+    "master_volume": 0.8
+  },
+  "bpm": 120,
+  "master": {
+    "volume": 0.8,
+    "eq_hi": 120,
+    "eq_mid": 120,
+    "eq_lo": 120,
+    "comp_threshold": 0.8,
+    "comp_ratio": 2.0,
+    "limiter": true
+  },
+  "mod_sources": {
+    "slots": [
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "mod_routing": {
+    "connections": []
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "generator_id": "rain",
+  "name": "RAIN",
+  "synthdef": "forge_nexus_rain",
+  "synthesis_method": "texture/noise_drone",
+  "custom_params": [
+    {"key": "drp", "label": "DRP", "tooltip": "Drop density - excitation rate of rain", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "srf", "label": "SRF", "tooltip": "Surface tension - water resonance character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "neo", "label": "NEO", "tooltip": "Neon color - harmonic tint from city lights", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "mir", "label": "MIR", "tooltip": "Mirror pooling - reflections and delays", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "fog", "label": "FOG", "tooltip": "Atmospheric diffusion - smears everything", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

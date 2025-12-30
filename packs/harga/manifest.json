@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "harga",
+  "name": "Hårga",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Midsommar folk horror - Benjolin-style cross-modulating oscillators. Endless daylight, flower crowns, communal ecstasy. Twin oscillators feed into each other creating beautiful instability.",
+  "enabled": true,
+  "generators": [
+    "bloom",
+    "harga",
+    "cliff",
+    "krona",
+    "sol",
+    "runa",
+    "skal",
+    "tempel"
+  ]
+}

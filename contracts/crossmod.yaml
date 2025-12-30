@@ -1,0 +1,343 @@
+# Cross-Modulation Feature Contract
+# Reference: CROSSMOD_DESIGN.md (Signed off 2025-12-30)
+
+contract: crossmod
+cdd_spec: 1.1.5
+version: 1.0.0
+status: frozen
+description: |
+  8-channel cross-modulation bus where generators can modulate each other's
+  parameters via envelope followers. Source IDs 16-23, unipolar output 0..1.
+
+runner:
+  executor: shell
+  timeout_ms: 10000
+
+requirements:
+  - id: R001
+    priority: must
+    description: SSOT constants defined in SC
+    acceptance_criteria:
+      - ~crossmodBusOffset.*=.*16
+      - ~crossmodBusCount.*=.*8
+
+  - id: R002
+    priority: must
+    description: SSOT constants match in Python
+    acceptance_criteria:
+      - CROSSMOD_BUS_OFFSET = 16
+      - CROSSMOD_BUS_COUNT = 8
+
+  - id: R003
+    priority: must
+    description: Unified bus resolver exists
+    acceptance_criteria:
+      - ~getModSourceBus function defined
+
+  - id: R004
+    priority: must
+    description: Envelope follower SynthDef defined
+    acceptance_criteria:
+      - SynthDef(\crossModFollower) exists
+      - Uses Amplitude.kr
+
+  - id: R005
+    priority: must
+    description: Follower lifecycle functions exist
+    acceptance_criteria:
+      - ~startCrossModFollower defined
+      - ~stopCrossModFollower defined
+
+  - id: R006
+    priority: must
+    description: OSC handlers exist
+    acceptance_criteria:
+      - /noise/crossmod/route handler
+      - /noise/crossmod/unroute handler
+
+  - id: R007
+    priority: must
+    description: mod_apply_v2.scd uses unified resolver
+    acceptance_criteria:
+      - ~getModSourceBus called instead of direct ~modBuses access
+
+  - id: R008
+    priority: must
+    description: helpers.scd hooks follower lifecycle
+    acceptance_criteria:
+      - Calls ~startCrossModFollower
+      - Calls ~stopCrossModFollower
+
+  - id: R009
+    priority: must
+    description: init.scd loads crossmod files
+    acceptance_criteria:
+      - Loads crossmod_buses.scd
+      - Loads crossmod_followers.scd
+      - Loads crossmod_osc.scd
+
+tests:
+  # === Baseline ===
+  - id: T001
+    name: baseline_mod_apply_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "setupModApply", "../supercollider/core/mod_apply_v2.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "mod_apply_v2.scd must exist"
+
+  # === NEW FILES: crossmod_buses.scd ===
+  - id: T002
+    name: sc_ssot_offset
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~crossmodBusOffset.*=.*16", "../supercollider/core/crossmod_buses.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CROSSMOD_BUS_OFFSET must be 16"
+
+  - id: T003
+    name: sc_ssot_count
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~crossmodBusCount.*=.*8", "../supercollider/core/crossmod_buses.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CROSSMOD_BUS_COUNT must be 8"
+
+  - id: T004
+    name: unified_resolver
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~getModSourceBus", "../supercollider/core/crossmod_buses.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~getModSourceBus must be defined"
+
+  # === NEW FILES: crossmod_followers.scd ===
+  - id: T005
+    name: follower_synthdef
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "SynthDef.*crossModFollower", "../supercollider/core/crossmod_followers.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SynthDef crossModFollower must exist"
+
+  - id: T006
+    name: follower_amplitude
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "Amplitude.kr", "../supercollider/core/crossmod_followers.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must use Amplitude.kr"
+
+  - id: T007
+    name: start_follower
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~startCrossModFollower", "../supercollider/core/crossmod_followers.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~startCrossModFollower must be defined"
+
+  - id: T008
+    name: stop_follower
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~stopCrossModFollower", "../supercollider/core/crossmod_followers.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~stopCrossModFollower must be defined"
+
+  # === NEW FILES: crossmod_osc.scd ===
+  - id: T009
+    name: osc_route
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "/noise/crossmod/route", "../supercollider/core/crossmod_osc.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/crossmod/route handler required"
+
+  - id: T010
+    name: osc_unroute
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "/noise/crossmod/unroute", "../supercollider/core/crossmod_osc.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/crossmod/unroute handler required"
+
+  # === Python SSOT ===
+  - id: T011
+    name: python_ssot_offset
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "CROSSMOD_BUS_OFFSET.*=.*16", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Python CROSSMOD_BUS_OFFSET must be 16"
+
+  - id: T012
+    name: python_ssot_count
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "CROSSMOD_BUS_COUNT.*=.*8", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Python CROSSMOD_BUS_COUNT must be 8"
+
+  # === INTEGRATION: mod_apply_v2.scd uses resolver ===
+  - id: T013
+    name: mod_apply_uses_resolver
+    requirement: R007
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~getModSourceBus", "../supercollider/core/mod_apply_v2.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "mod_apply_v2 must use ~getModSourceBus"
+
+  # === INTEGRATION: helpers.scd hooks lifecycle ===
+  - id: T014
+    name: helpers_start_follower
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~startCrossModFollower", "../supercollider/core/helpers.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "helpers.scd must call ~startCrossModFollower"
+
+  - id: T015
+    name: helpers_stop_follower
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~stopCrossModFollower", "../supercollider/core/helpers.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "helpers.scd must call ~stopCrossModFollower"
+
+  # === INTEGRATION: init.scd load order ===
+  - id: T016
+    name: init_loads_buses
+    requirement: R009
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "crossmod_buses.scd", "../supercollider/init.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "init.scd must load crossmod_buses.scd"
+
+  - id: T017
+    name: init_loads_followers
+    requirement: R009
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "crossmod_followers.scd", "../supercollider/init.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "init.scd must load crossmod_followers.scd"
+
+  - id: T018
+    name: init_loads_osc
+    requirement: R009
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "crossmod_osc.scd", "../supercollider/init.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "init.scd must load crossmod_osc.scd"
+
+change_log:
+  - 0.0.1: Baseline test only
+  - 0.0.2: Add tests for new crossmod files (T002-T012)
+  - 0.0.3: Add integration tests for modified files (T013-T018)

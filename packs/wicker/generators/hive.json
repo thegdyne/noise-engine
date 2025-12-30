@@ -1,0 +1,16 @@
+{
+  "generator_id": "hive",
+  "name": "HIVE",
+  "synthdef": "forge_wicker_hive",
+  "synthesis_method": "fm/ring_mod",
+  "custom_params": [
+    {"key": "swarm", "label": "SWM", "tooltip": "Swarm density - scaled by Queen presence", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "frenzy", "label": "FRZ", "tooltip": "Frenzy intensity - curve shaped by Trap chaos", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "queen", "label": "QEN", "tooltip": "Queen presence - modulates Swarm AND Comb", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "comb", "label": "CMB", "tooltip": "Comb resonance - feeds back into Frenzy depth", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "trap", "label": "TRP", "tooltip": "Trapped chaos axis - reshapes all parameters", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

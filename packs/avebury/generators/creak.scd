@@ -1,0 +1,79 @@
+SynthDef(\forge_avebury_creak, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
+                                   filterTypeBus, envEnabledBus, envSourceBus=0,
+                                   clockRateBus, clockTrigBus,
+                                   midiTrigBus=0, slotIndex=0,
+                                   customBus0, customBus1, customBus2, customBus3, customBus4,
+                                   portamentoBus|
+
+    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var stress, aged, branch, wind, groan;
+    var exciter, modes, windTrig, stressTrig, ringTime, creakNoise;
+
+    // Theme params
+    stress = In.kr(customBus0);
+    aged = In.kr(customBus1);
+    branch = In.kr(customBus2);
+    wind = In.kr(customBus3);
+    groan = In.kr(customBus4);
+
+    // Standard reads
+    freq = In.kr(freqBus);
+    portamento = In.kr(portamentoBus);
+    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
+    filterFreq = In.kr(cutoffBus);
+    rq = In.kr(resBus);
+    attack = In.kr(attackBus);
+    decay = In.kr(decayBus);
+    filterType = In.kr(filterTypeBus);
+    envSource = In.kr(envSourceBus);
+    clockRate = In.kr(clockRateBus);
+
+    // Wind triggered excitation
+    windTrig = Dust.ar(wind.linexp(0, 1, 0.5, 8));
+
+    // Stress creak - filtered noise bursts
+    stressTrig = windTrig * LFNoise2.kr(2).range(0, 1);
+    creakNoise = BPF.ar(
+        Crackle.ar(1.8 + (stress * 0.15), 0.5),
+        freq * LFNoise1.kr(3).range(0.8, 2.5),
+        0.15
+    );
+    creakNoise = creakNoise * Decay.ar(stressTrig, 0.2 + (aged * 0.4));
+
+    // Ring time based on age
+    ringTime = aged.linexp(0, 1, 0.2, 1.2);
+
+    // Exciter - continuous friction + impacts
+    exciter = PinkNoise.ar(0.15) + (windTrig * 0.4);
+
+    // Modal resonances - wood beam modes
+    // Branch thickness affects modal spacing
+    modes = Ringz.ar(exciter, freq, ringTime, 0.25);
+    modes = modes + Ringz.ar(exciter, freq * (1.5 + (branch * 0.5)), ringTime * 0.7, 0.2);
+    modes = modes + Ringz.ar(exciter, freq * (2.2 + (branch * 0.8)), ringTime * 0.5, 0.15);
+    modes = modes + Ringz.ar(exciter, freq * (3.1 + branch), ringTime * 0.35, 0.1);
+
+    // Deep groan - low frequency modes
+    modes = modes + Ringz.ar(exciter, freq * 0.5, ringTime * 1.5, 0.3 * groan);
+    modes = modes + Ringz.ar(exciter, freq * 0.25, ringTime * 2, 0.25 * groan);
+
+    sig = modes * 0.4;
+
+    // Add creak texture
+    sig = sig + (creakNoise * stress);
+
+    // Wood friction noise
+    sig = sig + BPF.ar(BrownNoise.ar(0.1), freq * 0.7, 0.3) * 2;
+
+    // Continuous low bed
+    sig = sig + LPF.ar(BrownNoise.ar(0.1), 200);
+
+    // Output chain
+    sig = LeakDC.ar(sig);
+    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
+    sig = Limiter.ar(sig, 0.95);
+    sig = ~ensure2ch.(sig);
+    Out.ar(out, sig);
+}).add;
+"  * forge_avebury_creak loaded".postln;

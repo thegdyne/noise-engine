@@ -1,0 +1,16 @@
+{
+  "generator_id": "hymn",
+  "name": "HYMN",
+  "synthdef": "forge_wicker_hymn",
+  "synthesis_method": "spectral/harmonic_series",
+  "custom_params": [
+    {"key": "chant", "label": "CHT", "tooltip": "Chant intensity - scaled by Ancient depth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "fervor", "label": "FVR", "tooltip": "Fervor passion - curve shaped by Rite power", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ancient", "label": "ANC", "tooltip": "Ancient depth - modulates Chant AND Circle", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "circle", "label": "CRC", "tooltip": "Circle unity - feeds back into Fervor", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rite", "label": "RIT", "tooltip": "Rite power - master transcendence axis", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

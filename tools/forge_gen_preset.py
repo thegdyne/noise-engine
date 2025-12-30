@@ -3,9 +3,12 @@
 
 Usage:
     python tools/forge_gen_preset.py packs/pack_name/
+    python tools/forge_gen_preset.py packs/pack_name/ --install-only
     python tools/forge_gen_preset.py --all
+    python tools/forge_gen_preset.py --all --install-only
     python tools/forge_gen_preset.py --missing
     python tools/forge_gen_preset.py --all --install
+    python tools/forge_gen_preset.py --sync
 """
 
 import argparse
@@ -157,6 +160,27 @@ def get_pack_id(pack_path: Path) -> str:
     return manifest.get("pack_id", pack_path.name)
 
 
+def install_preset(pack_path: Path, dry_run: bool = False) -> bool:
+    """Install existing preset to ~/noise-engine-presets/."""
+    pack_id = get_pack_id(pack_path)
+    preset_filename = f"{pack_id}.json"
+    pack_preset_path = pack_path / preset_filename
+
+    if not pack_preset_path.exists():
+        print(f"No preset found: {pack_preset_path}")
+        return False
+
+    if dry_run:
+        print(f"Would install: {pack_preset_path} -> {PRESETS_DIR / preset_filename}")
+    else:
+        PRESETS_DIR.mkdir(parents=True, exist_ok=True)
+        install_path = PRESETS_DIR / preset_filename
+        shutil.copy(pack_preset_path, install_path)
+        print(f"Installed: {install_path}")
+
+    return True
+
+
 def save_preset(pack_path: Path, install: bool = False, dry_run: bool = False) -> Path:
     """Generate and save preset for a pack."""
     pack_id = get_pack_id(pack_path)
@@ -211,20 +235,64 @@ def main():
     parser.add_argument("--all", action="store_true", help="Generate for all Forge packs")
     parser.add_argument("--missing", action="store_true", help="Generate only for packs without preset")
     parser.add_argument("--install", action="store_true", help="Also copy preset to ~/noise-engine-presets/")
+    parser.add_argument("--install-only", action="store_true", help="Only install existing presets (no regeneration)")
+    parser.add_argument("--sync", action="store_true", help="Install presets missing from ~/noise-engine-presets/")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be created")
     parser.add_argument("--packs-dir", default="packs", help="Packs directory (default: packs)")
     args = parser.parse_args()
 
     packs_dir = Path(args.packs_dir)
 
+    if args.sync:
+        forge_packs = get_forge_packs(packs_dir)
+        print(f"Found {len(forge_packs)} Forge packs\n")
+
+        installed = 0
+        skipped = 0
+        missing_preset = 0
+
+        for pack_path in forge_packs:
+            pack_id = get_pack_id(pack_path)
+            preset_filename = f"{pack_id}.json"
+            pack_preset_path = pack_path / preset_filename
+            installed_path = PRESETS_DIR / preset_filename
+
+            if not pack_preset_path.exists():
+                print(f"No preset in pack: {pack_path.name}")
+                missing_preset += 1
+                continue
+
+            if installed_path.exists():
+                skipped += 1
+                continue
+
+            if args.dry_run:
+                print(f"Would install: {pack_preset_path} -> {installed_path}")
+            else:
+                PRESETS_DIR.mkdir(parents=True, exist_ok=True)
+                shutil.copy(pack_preset_path, installed_path)
+                print(f"Installed: {installed_path}")
+            installed += 1
+
+        print(f"\nInstalled: {installed}, Already present: {skipped}, No pack preset: {missing_preset}")
+        return
+
     if args.all or args.missing:
         forge_packs = get_forge_packs(packs_dir)
         print(f"Found {len(forge_packs)} Forge packs\n")
 
         created = 0
+        installed = 0
         skipped = 0
 
         for pack_path in forge_packs:
+            if args.install_only:
+                if install_preset(pack_path, dry_run=args.dry_run):
+                    installed += 1
+                else:
+                    skipped += 1
+                continue
+
             if args.missing and pack_has_preset(pack_path):
                 print(f"Skipping {pack_path.name} (has preset)")
                 skipped += 1
@@ -233,14 +301,20 @@ def main():
             save_preset(pack_path, install=args.install, dry_run=args.dry_run)
             created += 1
 
-        print(f"\nCreated: {created}, Skipped: {skipped}")
+        if args.install_only:
+            print(f"\nInstalled: {installed}, Skipped: {skipped}")
+        else:
+            print(f"\nCreated: {created}, Skipped: {skipped}")
 
     elif args.pack_path:
         pack_path = Path(args.pack_path)
         if not pack_path.exists():
             print(f"Error: {pack_path} does not exist", file=sys.stderr)
             sys.exit(1)
-        save_preset(pack_path, install=args.install, dry_run=args.dry_run)
+        if args.install_only:
+            install_preset(pack_path, dry_run=args.dry_run)
+        else:
+            save_preset(pack_path, install=args.install, dry_run=args.dry_run)
 
     else:
         parser.print_help()

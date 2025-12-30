@@ -1,0 +1,16 @@
+{
+  "generator_id": "armor",
+  "name": "ARMOR",
+  "synthdef": "forge_robotjox_armor",
+  "synthesis_method": "physical/modal",
+  "custom_params": [
+    {"key": "plate", "label": "PLT", "tooltip": "Plate thickness - modal character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "stress", "label": "STS", "tooltip": "Material stress - resonance intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dent", "label": "DNT", "tooltip": "Battle damage - excitation rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rust", "label": "RST", "tooltip": "Surface rust - noise texture", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "flex", "label": "FLX", "tooltip": "Hull flex - pitch modulation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

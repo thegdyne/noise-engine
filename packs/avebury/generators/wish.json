@@ -1,0 +1,61 @@
+{
+  "generator_id": "wish",
+  "name": "WISH",
+  "synthdef": "forge_avebury_wish",
+  "synthesis_method": "spectral/harmonic_series",
+  "custom_params": [
+    {
+      "key": "intent",
+      "label": "INT",
+      "tooltip": "Wish intent - harmonic brightness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sacred",
+      "label": "SAC",
+      "tooltip": "Sacred resonance - harmonic count",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ancient",
+      "label": "ANC",
+      "tooltip": "Ancient power - low harmonic boost",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spirit",
+      "label": "SPR",
+      "tooltip": "Spirit shimmer - amplitude flutter",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ritual",
+      "label": "RTL",
+      "tooltip": "Ritual pulse - slow modulation",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": 13.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

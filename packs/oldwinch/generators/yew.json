@@ -1,0 +1,16 @@
+{
+  "generator_id": "yew",
+  "name": "YEW",
+  "synthdef": "forge_oldwinch_yew",
+  "synthesis_method": "physical/bowed",
+  "custom_params": [
+    {"key": "bow", "label": "BOW", "tooltip": "Bow pressure - excitation intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "twist", "label": "TWS", "tooltip": "Trunk twist - pitch modulation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ancient", "label": "ANC", "tooltip": "Ancient age - harmonic darkness", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "resin", "label": "RSN", "tooltip": "Resin stickiness - bow friction", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hollow", "label": "HLW", "tooltip": "Hollow trunk - resonance character", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

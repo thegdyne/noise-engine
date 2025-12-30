@@ -8,6 +8,10 @@ venv/
 env/
 ENV/
 
+#ignore contract artifacts
+artifacts/
+contracts/artifacts/
+
 # IDE (VSCode)
 .vscode/
 *.swp
@@ -41,57 +45,76 @@ presets/*.json
 # SuperCollider
 supercollider/recordings/
 
-# Packs - track shipped, ignore user-created
-packs/*
-_example
-!packs/core/
-!packs/rlyeh/
-!packs/electric-shepherd/
-!packs/wax_print/
-!packs/sunken-temple/
-!packs/summer_of_love/
-!packs/seagrass_bay/
-!packs/rakshasa/
-!packs/nerve_glow/
-!packs/moss_root/
-!packs/maratus/
-!packs/leviathan/
-!packs/icarus/
-!packs/fuego_celeste/
-!packs/emerald_canopy/
-!packs/drangarnir/
-!packs/dew_sphere/
-!packs/boneyard/
-!packs/block_walk/
-!packs/beacon_vigil/
-!packs/barbican_hound/
-!packs/astro_command/
-!packs/arctic_henge/
-!packs/amber-threshold/
-!packs/user/
-!packs/glacialis/
-
 # Test artifacts
 test_inputs/
 
 spatial_debug.json
 venv312/
-!packs/hoar_frost/
-!packs/vapor_station/
-!packs/drowned_temple/
-!packs/bed_stuy/
-!packs/mod_caf/
-!packs/ex_machina/
-!packs/scorn/
-!packs/sgwd/
-!packs/pripyat/
 -vet{pack_id}/
-!packs/pripyat/
-!packs/ekrano/
-!packs/duga/
-!packs/kaiju_beats/
-!packs/clockwork_refinery/
-!packs/aurora_cave/
-!packs/gotham_stairs/
-!packs/overgrown/
+
+# Packs - ignore by default, allowlist shipped
+packs/*
+
+# User scratch pack: keep folder, ignore contents
+!packs/user/
+packs/user/*
+!packs/user/.gitkeep
+
+# User scratch pack: keep folder, ignore contents
+!packs/user/
+packs/user/*
+!packs/user/.gitkeep
+
+packs/*
+!packs/amber-threshold/
+!packs/arctic_henge/
+!packs/astro_command/
+!packs/avebury/
+!packs/backyard/
+!packs/barbican_hound/
+!packs/beacon_vigil/
+!packs/bed_stuy/
+!packs/block_walk/
+!packs/boneyard/
 !packs/cleanroom_shift/
+!packs/clockwork_refinery/
+!packs/core/
+!packs/dew_sphere/
+!packs/drangarnir/
+!packs/drowned_temple/
+!packs/duga/
+!packs/ekrano/
+!packs/electric-shepherd/
+!packs/emerald_canopy/
+!packs/ex_machina/
+!packs/fuego_celeste/
+!packs/glacialis/
+!packs/gotham_stairs/
+!packs/hoar_frost/
+!packs/icarus/
+!packs/kaiju_beats/
+!packs/leviathan/
+!packs/maratus/
+!packs/mod_caf/
+!packs/moss_root/
+!packs/nerve_glow/
+!packs/oldwinch/
+!packs/overgrown/
+!packs/pathway_raiders/
+!packs/pripyat/
+!packs/rakshasa/
+!packs/rlyeh/
+!packs/scorn/
+!packs/seagrass_bay/
+!packs/sgwd/
+!packs/summer_of_love/
+!packs/sunken-temple/
+!packs/tricorn/
+!packs/vapor_station/
+!packs/wax_print/
+!packs/robotjox/
+
+!packs/wicker/
+!packs/harga/
+!packs/nexus/
+PROJECT_CONTEXT.md

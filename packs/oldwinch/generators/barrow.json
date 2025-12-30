@@ -1,0 +1,16 @@
+{
+  "generator_id": "barrow",
+  "name": "BARROW",
+  "synthdef": "forge_oldwinch_barrow",
+  "synthesis_method": "spectral/spectral_drone",
+  "custom_params": [
+    {"key": "depth", "label": "DPT", "tooltip": "Burial depth - low frequency emphasis", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "spirit", "label": "SPR", "tooltip": "Ancestor spirits - spectral shimmer", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "earth", "label": "ERT", "tooltip": "Earth covering - damping", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "bronze", "label": "BRZ", "tooltip": "Bronze Age echoes - metallic partials", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "time", "label": "TIM", "tooltip": "Deep time - slow evolution", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

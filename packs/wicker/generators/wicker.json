@@ -1,0 +1,16 @@
+{
+  "generator_id": "wicker",
+  "name": "WICKER",
+  "synthdef": "forge_wicker_wicker",
+  "synthesis_method": "physical/comb_resonator",
+  "custom_params": [
+    {"key": "weave", "label": "WVE", "tooltip": "Weave density - scaled by Hollow resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "strain", "label": "STN", "tooltip": "Strain tension - curve shaped by Bound captivity", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "hollow", "label": "HLW", "tooltip": "Hollow resonance - modulates Weave AND Cage", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cage", "label": "CGE", "tooltip": "Cage enclosure - feeds back into Strain", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "bound", "label": "BND", "tooltip": "Bound captivity - master claustrophobia axis", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

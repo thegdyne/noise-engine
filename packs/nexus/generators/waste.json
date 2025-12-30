@@ -1,0 +1,16 @@
+{
+  "generator_id": "waste",
+  "name": "WASTE",
+  "synthdef": "forge_nexus_waste",
+  "synthesis_method": "texture/noise_rhythm",
+  "custom_params": [
+    {"key": "rad", "label": "RAD", "tooltip": "Radiation level - overall modulation intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dky", "label": "DKY", "tooltip": "Decay halflife - envelope character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "iso", "label": "ISO", "tooltip": "Isotope instability - frequency ratio jitter", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ash", "label": "ASH", "tooltip": "Ash accumulation - noise floor buildup", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "glw", "label": "GLW", "tooltip": "Glow character - warmth vs harshness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

@@ -1,0 +1,16 @@
+{
+  "generator_id": "rubble",
+  "name": "RUBBLE",
+  "synthdef": "forge_tricorn_rubble",
+  "synthesis_method": "texture/dust_resonator",
+  "custom_params": [
+    {"key": "impacts", "label": "IMP", "tooltip": "Impact density - dust rate", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chunks", "label": "CHK", "tooltip": "Chunk size - resonance pitch spread", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "scatter", "label": "SCT", "tooltip": "Debris scatter - randomization", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "settle", "label": "SET", "tooltip": "Settling time - decay length", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "dust", "label": "DST", "tooltip": "Demolition dust - noise cloud", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

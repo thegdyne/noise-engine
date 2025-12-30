@@ -24,6 +24,9 @@ from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
 from src.gui.mod_routing_state import ModRoutingState, ModConnection, Polarity
 from src.gui.mod_matrix_window import ModMatrixWindow
+from src.gui.crossmod_routing_state import CrossmodRoutingState
+from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
+from src.gui.crossmod_matrix_window import CrossmodMatrixWindow
 from src.gui.keyboard_overlay import KeyboardOverlay
 from src.gui.mod_debug import install_mod_debug_hotkey
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
@@ -65,7 +68,12 @@ class MainFrame(QMainWindow):
         
         # Mod matrix window (created on first open)
         self.mod_matrix_window = None
-        
+
+        # Crossmod routing state (slot-to-slot)
+        self.crossmod_state = CrossmodRoutingState()
+        self.crossmod_osc = None
+        self.crossmod_window = None
+
         # FX window (created on first open)
         self.fx_window = None
         
@@ -253,6 +261,10 @@ class MainFrame(QMainWindow):
         # Shortcut: FX window (Ctrl+F / Cmd+F)
         fx_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
         fx_shortcut.activated.connect(self._open_fx_window)
+
+        # Shortcut: crossmod matrix (Ctrl+X / Cmd+X)
+        crossmod_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
+        crossmod_shortcut.activated.connect(self._open_crossmod_matrix)
 
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
@@ -541,6 +553,9 @@ class MainFrame(QMainWindow):
             
             if self.osc.connect():
                 self.osc_connected = True
+                # Initialize crossmod OSC bridge
+                if self.crossmod_osc is None:
+                    self.crossmod_osc = CrossmodOSCBridge(self.crossmod_state, self.osc.client)
                 self._set_header_buttons_enabled(True)
                 self.master_section.set_osc_bridge(self.osc)
                 self.inline_fx.set_osc_bridge(self.osc)
@@ -1131,9 +1146,40 @@ class MainFrame(QMainWindow):
             logger.info("Mod matrix window closed", component="MOD")
         else:
             self.mod_matrix_window.show()
+            # Center on main window
+            main_geo = self.geometry()
+            window_geo = self.mod_matrix_window.geometry()
+            x = main_geo.x() + (main_geo.width() - window_geo.width()) // 2
+            y = main_geo.y() + (main_geo.height() - window_geo.height()) // 2
+            self.mod_matrix_window.move(x, y)
             self.mod_matrix_window.raise_()
             self.mod_matrix_window.activateWindow()
             logger.info("Mod matrix window opened", component="MOD")
+
+    def _open_crossmod_matrix(self):
+        """Toggle the crossmod routing matrix window (Cmd+X)."""
+        # Create OSC bridge on first use (needs osc.client)
+        if self.crossmod_osc is None and self.osc_connected:
+            self.crossmod_osc = CrossmodOSCBridge(self.crossmod_state, self.osc.client)
+
+        if self.crossmod_window is None:
+            self.crossmod_window = CrossmodMatrixWindow(self.crossmod_state, parent=self)
+
+        # Toggle visibility
+        if self.crossmod_window.isVisible():
+            self.crossmod_window.hide()
+            logger.info("Crossmod matrix window closed", component="CROSSMOD")
+        else:
+            self.crossmod_window.show()
+            # Center on main window
+            main_geo = self.geometry()
+            window_geo = self.crossmod_window.geometry()
+            x = main_geo.x() + (main_geo.width() - window_geo.width()) // 2
+            y = main_geo.y() + (main_geo.height() - window_geo.height()) // 2
+            self.crossmod_window.move(x, y)
+            self.crossmod_window.raise_()
+            self.crossmod_window.activateWindow()
+            logger.info("Crossmod matrix window opened", component="CROSSMOD")
 
     def _open_fx_window(self):
         """Toggle the FX controls window (Cmd+F)."""

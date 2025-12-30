@@ -815,6 +815,10 @@ MOD_SLOT_COUNT = 4
 MOD_OUTPUTS_PER_SLOT = 4  # Quadrature: A/B/C/D or X/Y/Z/R
 MOD_BUS_COUNT = MOD_SLOT_COUNT * MOD_OUTPUTS_PER_SLOT  # 16
 
+# Cross-modulation buses (source IDs 16-23)
+CROSSMOD_BUS_OFFSET = 16
+CROSSMOD_BUS_COUNT = 8
+
 # Mod generator cycle (like GENERATOR_CYCLE)
 MOD_GENERATOR_CYCLE = [
     "Empty",

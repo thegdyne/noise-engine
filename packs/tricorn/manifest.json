@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "tricorn",
+  "name": "Tricorn",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Brutalist shopping centre soundscapes - concrete masses, spiral ramps, hollow voids, decay and demolition inspired by Portsmouth's Tricorn Centre",
+  "enabled": true,
+  "generators": [
+    "ramp",
+    "slab",
+    "tower",
+    "void",
+    "cantlvr",
+    "decay",
+    "helix",
+    "rubble"
+  ]
+}

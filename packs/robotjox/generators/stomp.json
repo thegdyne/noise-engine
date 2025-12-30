@@ -1,0 +1,16 @@
+{
+  "generator_id": "stomp",
+  "name": "STOMP",
+  "synthdef": "forge_robotjox_stomp",
+  "synthesis_method": "physical/membrane",
+  "custom_params": [
+    {"key": "mass", "label": "MAS", "tooltip": "Mech mass - impact weight", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ground", "label": "GND", "tooltip": "Ground type - surface character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "quake", "label": "QKE", "tooltip": "Ground quake - sub rumble", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "debris", "label": "DBR", "tooltip": "Flying debris - scatter noise", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pace", "label": "PCE", "tooltip": "Walking pace - step rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

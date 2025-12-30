@@ -67,7 +67,7 @@ def main() -> int:
     ap.add_argument("--agg", choices=["median", "mean"], default="median", help="aggregation (default: median)")
     ap.add_argument("--clamp-lo", type=float, default=-24.0, help="min output_trim_db (default: -24)")
     ap.add_argument("--clamp-hi", type=float, default=24.0, help="max output_trim_db (default: +24)")
-    ap.add_argument("--dry-run", action="store_true", help="print changes, don’t write")
+    ap.add_argument("--dry-run", action="store_true", help="print changes, don't write")
     ap.add_argument("--extra", nargs="*", default=[], help="extra args passed to forge_audio_validate.py")
     args = ap.parse_args()
 

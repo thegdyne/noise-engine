@@ -1,0 +1,16 @@
+{
+  "generator_id": "dig",
+  "name": "DIG",
+  "synthdef": "forge_backyard_dig",
+  "synthesis_method": "fm/simple_fm",
+  "custom_params": [
+    {"key": "spade", "label": "SPD", "tooltip": "Spade strike intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "soil", "label": "SOL", "tooltip": "Soil density/texture", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "stone", "label": "STN", "tooltip": "Stone hit frequency", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "depth", "label": "DPH", "tooltip": "Digging depth", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "effort", "label": "EFT", "tooltip": "Effort/exertion", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

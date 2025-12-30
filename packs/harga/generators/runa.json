@@ -1,0 +1,16 @@
+{
+  "generator_id": "runa",
+  "name": "RUNA",
+  "synthdef": "forge_harga_runa",
+  "synthesis_method": "fm/hard_sync",
+  "custom_params": [
+    {"key": "oscA", "label": "OSA", "tooltip": "Osc A master stroke - influenced by cross-mod return", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "oscB", "label": "OSB", "tooltip": "Osc B slave angle - scaled by Rungle chaos", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "xmod", "label": "XMD", "tooltip": "Cross-mod carve depth - feeds back through Osc A", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "xret", "label": "XRT", "tooltip": "Cross-mod stone return - shapes Osc B curve", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "rungle", "label": "RNG", "tooltip": "Rungle ancient chaos - reshapes rune network", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

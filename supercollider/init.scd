@@ -122,7 +122,11 @@ s.waitForBoot({
     (~basePath +/+ "core/mod_lfo.scd").load;
     (~basePath +/+ "core/mod_sloth.scd").load;
     
-    // Load mod routing/apply system
+    // Load cross-mod buses BEFORE mod_apply (provides ~getModSourceBus resolver)
+    (~basePath +/+ "core/crossmod_buses.scd").load;
+    ~setupCrossModBuses.();
+    
+    // Load mod routing/apply system (uses ~getModSourceBus from crossmod_buses)
     (~basePath +/+ "core/mod_apply_v2.scd").load;
     ~setupModApply.();
     
@@ -135,6 +139,12 @@ s.waitForBoot({
     // Load mod routing OSC handlers (depends on mod_apply)
     (~basePath +/+ "core/mod_routing.scd").load;
     ~setupModRouting.();
+    
+    // Load cross-mod followers and OSC (after mod_apply)
+    (~basePath +/+ "core/crossmod_followers.scd").load;
+    ~setupCrossModFollowers.();
+    (~basePath +/+ "core/crossmod_osc.scd").load;
+    ~setupCrossModOSC.();
     
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
@@ -183,6 +193,7 @@ s.waitForBoot({
         ("✓ " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
     });
     "✓ 4 mod source slots ready".postln;
+    "✓ 8 cross-mod buses ready".postln;
     ("✓ OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
     "".postln;

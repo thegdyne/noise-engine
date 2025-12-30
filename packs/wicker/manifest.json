@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "wicker",
+  "name": "Wicker",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Folk horror soundscapes - oppressive summer, droning bees, pagan rituals. Parameters cross-modulate creating butterfly effect cascades where small touches ripple through the entire sound.",
+  "enabled": true,
+  "generators": [
+    "hive",
+    "pyre",
+    "hymn",
+    "wicker",
+    "sun",
+    "maypole",
+    "ritual",
+    "isle"
+  ]
+}

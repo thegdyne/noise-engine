@@ -1,0 +1,16 @@
+{
+  "generator_id": "holo",
+  "name": "HOLO",
+  "synthdef": "forge_nexus_holo",
+  "synthesis_method": "fm/phase_mod",
+  "custom_params": [
+    {"key": "sol", "label": "SOL", "tooltip": "Solidity - presence stability", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "flk", "label": "FLK", "tooltip": "Flicker rate - instability frequency", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "prj", "label": "PRJ", "tooltip": "Projection beam - stereo field and distance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "ght", "label": "GHT", "tooltip": "Ghost trails - temporal smear", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "syn", "label": "SYN", "tooltip": "Sync lock - pulls chaos into grid", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
