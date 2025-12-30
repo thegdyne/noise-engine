@@ -1,14 +1,410 @@
 {
-  "preset_name": "robotjox",
-  "pack_id": "robotjox",
+  "version": 2,
+  "mapping_version": 1,
+  "name": "Robot Jox",
+  "pack": "robotjox",
   "slots": [
-    {"slot": 0, "generator_id": "servo", "pack_id": "robotjox"},
-    {"slot": 1, "generator_id": "stomp", "pack_id": "robotjox"},
-    {"slot": 2, "generator_id": "cockpit", "pack_id": "robotjox"},
-    {"slot": 3, "generator_id": "armor", "pack_id": "robotjox"},
-    {"slot": 4, "generator_id": "reactor", "pack_id": "robotjox"},
-    {"slot": 5, "generator_id": "weapon", "pack_id": "robotjox"},
-    {"slot": 6, "generator_id": "arena", "pack_id": "robotjox"},
-    {"slot": 7, "generator_id": "clash", "pack_id": "robotjox"}
-  ]
+    {
+      "generator": "SERVO",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "STOMP",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "COCKPIT",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "ARMOR",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "REACTOR",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "WEAPON",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "ARENA",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    },
+    {
+      "generator": "CLASH",
+      "params": {
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
+    }
+  ],
+  "mixer": {
+    "channels": [
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      }
+    ],
+    "master_volume": 0.8
+  },
+  "bpm": 120,
+  "master": {
+    "volume": 0.8,
+    "eq_hi": 120,
+    "eq_mid": 120,
+    "eq_lo": 120,
+    "comp_threshold": 0.8,
+    "comp_ratio": 2.0,
+    "limiter": true
+  },
+  "mod_sources": {
+    "slots": [
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "mod_routing": {
+    "connections": []
+  }
 }

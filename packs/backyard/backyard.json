@@ -1,94 +1,410 @@
 {
   "version": 2,
-  "name": "backyard",
+  "mapping_version": 1,
+  "name": "Backyard",
+  "pack": "backyard",
   "slots": [
     {
-      "generator_id": "spokes",
-      "pack_id": "backyard",
+      "generator": "SPOKES",
       "params": {
-        "speed": 0.4,
-        "density": 0.5,
-        "chain": 0.3,
-        "brake": 0.2,
-        "freewheel": 0.4
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "generator_id": "patio",
-      "pack_id": "backyard",
+      "generator": "PATIO",
       "params": {
-        "roll": 0.5,
-        "groove": 0.6,
-        "wheel": 0.5,
-        "rattle": 0.4,
-        "grit": 0.3
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "generator_id": "climb",
-      "pack_id": "backyard",
+      "generator": "CLIMB",
       "params": {
-        "strike": 0.5,
-        "ring": 0.6,
-        "ladder": 0.4,
-        "hollow": 0.5,
-        "rust": 0.3
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "generator_id": "paddle",
-      "pack_id": "backyard",
+      "generator": "PADDLE",
       "params": {
-        "splash": 0.5,
-        "depth": 0.4,
-        "ripple": 0.5,
-        "kick": 0.4,
-        "sun": 0.3
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "generator_id": "swords",
-      "pack_id": "backyard",
+      "generator": "SWORDS",
       "params": {
-        "force": 0.5,
-        "wood": 0.5,
-        "shield": 0.4,
-        "clash": 0.5,
-        "fury": 0.4
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "generator_id": "lamb",
-      "pack_id": "backyard",
+      "generator": "LAMB",
       "params": {
-        "bleat": 0.5,
-        "run": 0.4,
-        "hoof": 0.4,
-        "wool": 0.3,
-        "play": 0.5
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "generator_id": "distant",
-      "pack_id": "backyard",
+      "generator": "DISTANT",
       "params": {
-        "traffic": 0.4,
-        "birds": 0.3,
-        "wind": 0.4,
-        "distance": 0.6,
-        "time": 0.5
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     },
     {
-      "generator_id": "dig",
-      "pack_id": "backyard",
+      "generator": "DIG",
       "params": {
-        "spade": 0.5,
-        "soil": 0.5,
-        "stone": 0.3,
-        "depth": 0.4,
-        "effort": 0.4
-      }
+        "frequency": 0.5,
+        "cutoff": 1.0,
+        "resonance": 0.0,
+        "attack": 0.0,
+        "decay": 0.73,
+        "custom_0": 0.5,
+        "custom_1": 0.5,
+        "custom_2": 0.5,
+        "custom_3": 0.5,
+        "custom_4": 0.5
+      },
+      "filter_type": 0,
+      "env_source": 0,
+      "clock_rate": 6,
+      "midi_channel": 0,
+      "transpose": 2,
+      "portamento": 0.0
     }
-  ]
+  ],
+  "mixer": {
+    "channels": [
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      },
+      {
+        "volume": 0.8,
+        "pan": 0.5,
+        "mute": false,
+        "solo": false,
+        "eq_hi": 100,
+        "eq_mid": 100,
+        "eq_lo": 100,
+        "gain": 0,
+        "echo_send": 0,
+        "verb_send": 0,
+        "lo_cut": false,
+        "hi_cut": false
+      }
+    ],
+    "master_volume": 0.8
+  },
+  "bpm": 120,
+  "master": {
+    "volume": 0.8,
+    "eq_hi": 120,
+    "eq_mid": 120,
+    "eq_lo": 120,
+    "comp_threshold": 0.8,
+    "comp_ratio": 2.0,
+    "limiter": true
+  },
+  "mod_sources": {
+    "slots": [
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "LFO",
+        "params": {
+          "mode": 0,
+          "rate": 0.5,
+          "shape": 0.0
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          3,
+          5,
+          6
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "generator_name": "Sloth",
+        "params": {
+          "rate": 0.5
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "mod_routing": {
+    "connections": []
+  }
 }

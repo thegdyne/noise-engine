@@ -1,5 +1,5 @@
 // cleanroom_shift/laminar_fans.scd
-// Cleanroom Shift — laminar_fans
+// Cleanroom Shift -- laminar_fans
 // Generated from GENERATOR_PACK_SESSION.md contract
 //
 // P1 DRF: drift / fatigue / micro instability
@@ -56,7 +56,7 @@ i = (e + f) * h;
 j = (i * (1 + (grt * 2.5))).tanh;
 k = CombC.ar(j, 0.30, (0.02 + (spc * 0.16)).clip(0.02, 0.22), 1.4 + (spc * 2.0));
 sig = (j * 0.95) + (k * 0.45) + PinkNoise.ar(0.012);
-sig = sig * (2.5 + (shf * 1.5));   // louder, “shift intensity”
+sig = sig * (2.5 + (shf * 1.5));   // louder, "shift intensity"
 sig = (sig * 1.2).tanh;
 
     // MANDATORY output chain (this order):
