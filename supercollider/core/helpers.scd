@@ -118,6 +118,11 @@ Reusable functions for generator management
                 \customBus4, customBuses[4].index,
                 \portamentoBus, params[\portamento].index
             ], ~genGroup, \addToHead);
+            
+            // Start cross-mod follower (after generator, for envelope tracking)
+            if(~startCrossModFollower.notNil, {
+                ~startCrossModFollower.(slotID);
+            });
         }, {
             "ERROR: genGroup is nil!".postln;
         });
@@ -130,6 +135,11 @@ Reusable functions for generator management
             ~generators[slotID].free;
             ~generators[slotID] = nil;
             "Stopped generator in slot %".format(slotID).postln;
+        });
+        
+        // Stop cross-mod follower
+        if(~stopCrossModFollower.notNil, {
+            ~stopCrossModFollower.(slotID);
         });
         
         // Stop channel strip when generator stops

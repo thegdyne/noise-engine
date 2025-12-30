@@ -219,11 +219,12 @@ Mapped-space modulation:
     };
     
     // Add a route (find free slot, use .set())
+    // sourceBus: 0-15 (mod buses) OR 16-23 (crossmod buses)
     ~addModRoute = { |sourceBus, targetSlot, targetParam, depth=0.5, amount=1.0, offset=0.0, polarity=0, invert=0|
         var destKey = ~destKey.(targetSlot, targetParam.asSymbol);
         var synth = ~modApplySynths[destKey];
         var routes = ~modRoutes[destKey];
-        var slotIdx;
+        var slotIdx, sourceBusObj;
         
         if(synth.isNil) {
             ("Mod apply: no synth for " ++ destKey).warn;
@@ -237,12 +238,19 @@ Mapped-space modulation:
             ^nil;
         };
         
+        // Use unified bus resolver (handles both mod buses 0-15 and crossmod 16-23)
+        sourceBusObj = ~getModSourceBus.(sourceBus);
+        if(sourceBusObj.isNil) {
+            ("Mod apply: invalid source bus " ++ sourceBus).warn;
+            ^nil;
+        };
+        
         // Update tracking
         routes[slotIdx] = sourceBus;
         
         // Set synth args for this slot via .set() - NO REBUILD
         synth.set(
-            ("bus" ++ slotIdx).asSymbol, ~modBuses[sourceBus].index,
+            ("bus" ++ slotIdx).asSymbol, sourceBusObj.index,
             ("depth" ++ slotIdx).asSymbol, depth,
             ("amount" ++ slotIdx).asSymbol, amount,
             ("offset" ++ slotIdx).asSymbol, offset,
