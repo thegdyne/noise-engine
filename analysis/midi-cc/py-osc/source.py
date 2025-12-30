@@ -29,7 +29,6 @@ class OSCBridge(QObject):
     # Signals for thread-safe notifications
     gate_triggered = pyqtSignal(int)  # slot_id
     levels_received = pyqtSignal(float, float, float, float)  # ampL, ampR, peakL, peakR
-    midi_cc_received = pyqtSignal(int, int, int)  # channel, cc, value
     channel_levels_received = pyqtSignal(int, float, float)  # slot_id, ampL, ampR
     comp_gr_received = pyqtSignal(float)  # compressor gain reduction in dB
     mod_bus_value_received = pyqtSignal(int, float)  # bus_idx, value (for mod scope)
@@ -189,10 +188,7 @@ class OSCBridge(QObject):
         
         # Handle gate triggers from SC
         dispatcher.map(OSC_PATHS['midi_gate'], self._handle_gate)
-
-        # Handle MIDI CC from SC
-        dispatcher.map('/noise/midi/cc', self._handle_midi_cc)
-
+        
         # Handle level meter data from SC
         dispatcher.map(OSC_PATHS['master_levels'], self._handle_levels)
         
@@ -245,16 +241,6 @@ class OSCBridge(QObject):
         if len(args) > 0:
             slot_id = int(args[0])
             self.gate_triggered.emit(slot_id)
-
-    def _handle_midi_cc(self, address, *args):
-        """Handle MIDI CC from SC."""
-        if self._deleted:
-            return
-        if len(args) >= 3:
-            channel = int(args[0])  # 1-16
-            cc = int(args[1])  # 0-127
-            value = int(args[2])  # 0-127
-            self.midi_cc_received.emit(channel, cc, value)
     
     def _handle_levels(self, address, *args):
         """Handle level meter data from SC."""

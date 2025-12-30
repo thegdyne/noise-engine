@@ -1,0 +1,10 @@
+{
+  "type": "source_reference",
+  "original_path": "src/gui/midi_selector.py",
+  "snapshot_path": "source.py",
+  "hash": "3bb1ea2fcdfdf4d701b706b795f7507d7abfc8f16537e55909890377b93be90d",
+  "captured_at": "2025-12-30T23:12:41.212086+00:00",
+  "file_type": "python",
+  "size_bytes": 5030,
+  "line_count": 151
+}

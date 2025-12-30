@@ -1,0 +1,159 @@
+# MIDI CC - Mapping Manager
+# Phase 1: Store and lookup CC→control mappings
+
+contract: midi-cc-mapping-manager
+version: 0.1.0
+status: draft
+
+description: |
+  New component that manages MIDI CC to UI control mappings.
+  
+  Per spec Section 5 (Mapping Management):
+  - Mapping key: (channel: 1-16, cc: 0-127)
+  - Device intentionally ignored in v1
+  - One CC can map to multiple controls (duplicate allowed)
+  
+  Per spec Section 6 (Value Handling):
+  - Pickup mode state per mapping
+  - Flood control at ~60Hz per (channel, cc)
+
+source_ref:
+  - path: src/midi/cc_mapping_manager.py  # New file
+    
+requirements:
+  - id: R001
+    priority: must
+    description: MidiCCMappingManager class exists
+    acceptance_criteria:
+      - Class defined in src/midi/cc_mapping_manager.py
+      - Inherits from QObject for Qt signal support
+      
+  - id: R002
+    priority: must
+    description: Can add mapping from (channel, cc) to control
+    acceptance_criteria:
+      - add_mapping(channel, cc, control) method exists
+      - Stores mapping in internal dict
+      
+  - id: R003
+    priority: must
+    description: Can lookup controls for (channel, cc)
+    acceptance_criteria:
+      - get_controls(channel, cc) method exists
+      - Returns list of mapped controls (may be empty)
+      
+  - id: R004
+    priority: must
+    description: Can remove mapping for control
+    acceptance_criteria:
+      - remove_mapping(control) method exists
+      - Removes all mappings pointing to that control
+      
+  - id: R005
+    priority: must  
+    description: Can clear all mappings
+    acceptance_criteria:
+      - clear_all() method exists
+      - Empties all mappings
+      
+  - id: R006
+    priority: must
+    description: Tracks pickup (caught) state per mapping
+    acceptance_criteria:
+      - Per-mapping caught state stored
+      - reset_pickup(channel, cc) or reset_all_pickup() method
+
+runner:
+  executor: shell
+  
+tests:
+  - id: T001
+    name: class_exists
+    requirement: R001
+    description: Verify MidiCCMappingManager class exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class MidiCCMappingManager", "../src/midi/cc_mapping_manager.py"]
+        save_as: class_count
+    assert:
+      - op: gte
+        actual: $.class_count.stdout_int
+        expected: 1
+
+  - id: T002
+    name: inherits_qobject
+    requirement: R001
+    description: Verify inherits from QObject
+    steps:
+      - action: shell
+        command: ["grep", "-E", "class MidiCCMappingManager\\(.*QObject", "../src/midi/cc_mapping_manager.py"]
+        save_as: inheritance
+    assert:
+      - op: eq
+        actual: $.inheritance.ok
+        expected: true
+
+  - id: T003
+    name: add_mapping_exists
+    requirement: R002
+    description: Verify add_mapping method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def add_mapping", "../src/midi/cc_mapping_manager.py"]
+        save_as: add_count
+    assert:
+      - op: gte
+        actual: $.add_count.stdout_int
+        expected: 1
+
+  - id: T004
+    name: get_controls_exists
+    requirement: R003
+    description: Verify get_controls method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def get_controls", "../src/midi/cc_mapping_manager.py"]
+        save_as: get_count
+    assert:
+      - op: gte
+        actual: $.get_count.stdout_int
+        expected: 1
+
+  - id: T005
+    name: remove_mapping_exists
+    requirement: R004
+    description: Verify remove_mapping method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def remove_mapping", "../src/midi/cc_mapping_manager.py"]
+        save_as: remove_count
+    assert:
+      - op: gte
+        actual: $.remove_count.stdout_int
+        expected: 1
+
+  - id: T006
+    name: clear_all_exists
+    requirement: R005
+    description: Verify clear_all method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def clear_all", "../src/midi/cc_mapping_manager.py"]
+        save_as: clear_count
+    assert:
+      - op: gte
+        actual: $.clear_count.stdout_int
+        expected: 1
+
+  - id: T007
+    name: pickup_state_tracked
+    requirement: R006
+    description: Verify pickup/caught state is tracked
+    steps:
+      - action: shell
+        command: ["grep", "-c", "caught\\|pickup", "../src/midi/cc_mapping_manager.py"]
+        save_as: pickup_count
+    assert:
+      - op: gte
+        actual: $.pickup_count.stdout_int
+        expected: 1

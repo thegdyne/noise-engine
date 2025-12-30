@@ -1,0 +1,118 @@
+# MIDI CC - SuperCollider Forwarding
+# Phase 1: SC receives CC from any device, forwards to Python via OSC
+
+contract: midi-cc-sc-forwarding
+version: 0.1.0
+status: draft
+
+description: |
+  SuperCollider receives MIDI CC messages from all connected devices
+  and forwards them to Python via OSC message /noise/midi/cc.
+  
+  Per spec Section 10 (Channel Numbering Convention):
+  - SC receives 0-15 from wire
+  - Converts to 1-16 before sending via OSC
+  - Single conversion point at SC boundary
+
+source_ref:
+  - path: supercollider/core/midi_handler.scd
+    analysis: analysis/midi-cc/sc-midi
+    
+requirements:
+  - id: R001
+    priority: must
+    description: MIDIFunc.cc handler exists and is stored in ~midiCCFunc
+    acceptance_criteria:
+      - MIDIFunc.cc is called in the setup/connect flow
+      - Result is assigned to ~midiCCFunc for lifecycle management
+      
+  - id: R002
+    priority: must
+    description: CC handler sends OSC /noise/midi/cc with channel, cc, value
+    acceptance_criteria:
+      - OSC path is exactly '/noise/midi/cc'
+      - Arguments are [channel, cc, value] in order
+      - Uses ~pythonAddr.sendMsg
+      
+  - id: R003
+    priority: must
+    description: Channel converted from 0-15 to 1-16 before OSC send
+    acceptance_criteria:
+      - chan + 1 conversion happens before sendMsg
+      - Value sent is in range 1-16, not 0-15
+
+  - id: R004
+    priority: must
+    description: Listen to all MIDI devices (not port-specific)
+    acceptance_criteria:
+      - MIDIIn.connectAll is used OR all sources connected
+      - No single-port restriction
+
+runner:
+  executor: shell
+  
+tests:
+  - id: T001
+    name: cc_handler_exists
+    requirement: R001
+    description: Verify MIDIFunc.cc is used
+    steps:
+      - action: shell
+        command: ["grep", "-c", "MIDIFunc.cc", "../supercollider/core/midi_handler.scd"]
+        save_as: cc_count
+    assert:
+      - op: gte
+        actual: $.cc_count.stdout_int
+        expected: 1
+        
+  - id: T002
+    name: cc_osc_path_correct
+    requirement: R002
+    description: Verify OSC path /noise/midi/cc is used
+    steps:
+      - action: shell
+        command: ["grep", "-c", "/noise/midi/cc", "../supercollider/core/midi_handler.scd"]
+        save_as: path_count
+    assert:
+      - op: gte
+        actual: $.path_count.stdout_int
+        expected: 1
+
+  - id: T003
+    name: channel_conversion_exists
+    requirement: R003
+    description: Verify channel conversion chan + 1 exists near CC handling
+    steps:
+      - action: shell
+        command: ["grep", "-E", "chan\\s*\\+\\s*1", "../supercollider/core/midi_handler.scd"]
+        save_as: conversion
+    assert:
+      - op: eq
+        actual: $.conversion.ok
+        expected: true
+
+  - id: T004
+    name: uses_python_addr
+    requirement: R002
+    description: Verify ~pythonAddr.sendMsg is used for CC
+    steps:
+      - action: shell
+        command: ["grep", "-c", "~pythonAddr.sendMsg", "../supercollider/core/midi_handler.scd"]
+        save_as: sendmsg_count
+    assert:
+      - op: gte
+        actual: $.sendmsg_count.stdout_int
+        expected: 1
+
+  - id: T005
+    name: connect_all_or_multiple
+    requirement: R004
+    description: Verify multi-device support (connectAll or loop over sources)
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -c 'connectAll\\|MIDIClient.sources.do' ../supercollider/core/midi_handler.scd || echo 0"]
+        save_as: connect_pattern
+    assert:
+      - op: gte
+        actual: $.connect_pattern.stdout_int
+        expected: 1

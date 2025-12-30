@@ -1,0 +1,131 @@
+# MIDI CC - Python OSC Receiver
+# Phase 1: Python receives /noise/midi/cc, emits Qt signal
+
+contract: midi-cc-py-receiver
+version: 0.1.0
+status: draft
+
+description: |
+  Python OSC bridge receives /noise/midi/cc messages from SuperCollider
+  and emits a Qt signal for thread-safe handling by the mapping manager.
+  
+  Per spec Section 9 (OSC Messages):
+  - Path: /noise/midi/cc
+  - Args: [channel (1-16), cc (0-127), value (0-127)]
+
+source_ref:
+  - path: src/audio/osc_bridge.py
+    analysis: analysis/midi-cc/py-osc
+    
+requirements:
+  - id: R001
+    priority: must
+    description: Signal midi_cc_received exists with (int, int, int) signature
+    acceptance_criteria:
+      - pyqtSignal declared with three int parameters
+      - Named midi_cc_received
+      
+  - id: R002
+    priority: must
+    description: Dispatcher maps /noise/midi/cc to handler
+    acceptance_criteria:
+      - dispatcher.map call for midi_cc path
+      - Handler method exists
+      
+  - id: R003
+    priority: must
+    description: Handler emits signal with channel, cc, value
+    acceptance_criteria:
+      - Handler validates args length >= 3
+      - Casts args to int
+      - Emits midi_cc_received signal
+      
+  - id: R004
+    priority: must
+    description: Handler includes deletion guard
+    acceptance_criteria:
+      - Checks self._deleted before processing
+      - Returns early if deleted
+
+runner:
+  executor: shell
+  
+tests:
+  - id: T001
+    name: signal_declared
+    requirement: R001
+    description: Verify midi_cc_received signal exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "midi_cc_received.*pyqtSignal", "../src/audio/osc_bridge.py"]
+        save_as: signal_count
+    assert:
+      - op: gte
+        actual: $.signal_count.stdout_int
+        expected: 1
+        
+  - id: T002
+    name: signal_has_three_ints
+    requirement: R001
+    description: Verify signal has int, int, int signature
+    steps:
+      - action: shell
+        command: ["grep", "-E", "midi_cc_received.*=.*pyqtSignal\\(int,\\s*int,\\s*int\\)", "../src/audio/osc_bridge.py"]
+        save_as: signal_sig
+    assert:
+      - op: eq
+        actual: $.signal_sig.ok
+        expected: true
+
+  - id: T003
+    name: dispatcher_mapping_exists
+    requirement: R002
+    description: Verify dispatcher.map for midi_cc
+    steps:
+      - action: shell
+        command: ["grep", "-c", "dispatcher.map.*midi.*cc", "../src/audio/osc_bridge.py"]
+        save_as: dispatch_count
+    assert:
+      - op: gte
+        actual: $.dispatch_count.stdout_int
+        expected: 1
+
+  - id: T004
+    name: handler_method_exists
+    requirement: R002
+    description: Verify _handle_midi_cc method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def _handle_midi_cc", "../src/audio/osc_bridge.py"]
+        save_as: handler_count
+    assert:
+      - op: gte
+        actual: $.handler_count.stdout_int
+        expected: 1
+
+  - id: T005
+    name: handler_emits_signal
+    requirement: R003
+    description: Verify handler emits midi_cc_received
+    steps:
+      - action: shell
+        command: ["grep", "-c", "midi_cc_received.emit", "../src/audio/osc_bridge.py"]
+        save_as: emit_count
+    assert:
+      - op: gte
+        actual: $.emit_count.stdout_int
+        expected: 1
+
+  - id: T006
+    name: handler_has_deleted_guard
+    requirement: R004
+    description: Verify handler checks _deleted
+    steps:
+      - action: shell
+        # Check that _handle_midi_cc contains _deleted check (within ~10 lines)
+        command: ["sh", "-c", "grep -A10 'def _handle_midi_cc' ../src/audio/osc_bridge.py | grep -c '_deleted'"]
+        save_as: deleted_check
+    assert:
+      - op: gte
+        actual: $.deleted_check.stdout_int
+        expected: 1

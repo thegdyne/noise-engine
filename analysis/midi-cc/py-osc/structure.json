@@ -1,0 +1,10 @@
+{
+  "type": "source_reference",
+  "original_path": "src/audio/osc_bridge.py",
+  "snapshot_path": "source.py",
+  "hash": "adcc61343f796a5bf936456b1b66b0de2d72324337174d16127973b282996eeb",
+  "captured_at": "2025-12-30T23:12:24.430828+00:00",
+  "file_type": "python",
+  "size_bytes": 15189,
+  "line_count": 403
+}
