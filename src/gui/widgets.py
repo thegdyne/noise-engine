@@ -93,6 +93,10 @@ class DragSlider(QSlider):
         # MIDI CC ghost indicator (pickup mode)
         self._cc_ghost = None  # Normalized 0-1, or None if not showing
         self._cc_ghost_color = QColor('#FF6600')  # Orange
+
+        # MIDI mapping visual state
+        self._midi_armed = False
+        self._midi_mapped = False
     
     def set_modulation_range(self, min_norm: float, max_norm: float, 
                              inner_min: float = None, inner_max: float = None,
@@ -150,6 +154,16 @@ class DragSlider(QSlider):
     def clear_cc_ghost(self):
         """Clear CC ghost indicator."""
         self._cc_ghost = None
+        self.update()
+
+    def set_midi_armed(self, armed):
+        """Set MIDI Learn armed state (shows highlight)."""
+        self._midi_armed = armed
+        self.update()
+
+    def set_midi_mapped(self, mapped):
+        """Set MIDI mapped state (shows badge)."""
+        self._midi_mapped = mapped
         self.update()
 
     def has_modulation(self) -> bool:
@@ -274,6 +288,24 @@ class DragSlider(QSlider):
                              rect.right() - 2, int(ghost_y))
 
             painter.end()
+
+        # Draw MIDI armed highlight (yellow border during learn)
+        if self._midi_armed:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setPen(QPen(QColor('#FFA500'), 3))  # Orange
+            painter.drawRect(self.rect().adjusted(1, 1, -2, -2))
+            painter.end()
+
+        # Draw MIDI mapped badge (small dot)
+        if self._midi_mapped:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setBrush(QColor('#FF00FF'))  # Bright pink dot
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(self.width() - 4, 2, 4, 4)  # Top-right corner
+            painter.end()
+
     def set_param_config(self, param_config, format_func=None):
         """
         Set parameter config for value mapping and popup display.

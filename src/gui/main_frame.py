@@ -2041,22 +2041,23 @@ class MainFrame(QMainWindow):
         else:
             # Already caught - apply value directly
             control.setValue(int(cc_scaled))
+
     def _on_learn_started(self, control):
         """Visual feedback when MIDI Learn starts."""
-        control.setProperty('midiLearnArmed', True)
-        control.style().polish(control)
+        if hasattr(control, 'set_midi_armed'):
+            control.set_midi_armed(True)
         logger.info(f"MIDI Learn armed: {control.objectName()}", component="MIDI")
 
     def _on_learn_completed(self, channel, cc, control):
         """Visual feedback when MIDI Learn completes."""
-        control.setProperty('midiLearnArmed', False)
-        control.setProperty('midiMapped', True)
-        control.style().polish(control)
+        if hasattr(control, 'set_midi_armed'):
+            control.set_midi_armed(False)
+        if hasattr(control, 'set_midi_mapped'):
+            control.set_midi_mapped(True)
         logger.info(f"MIDI mapped: Ch{channel} CC{cc} -> {control.objectName()}", component="MIDI")
 
     def _on_learn_cancelled(self, control):
         """Visual feedback when MIDI Learn cancelled."""
-        if control:
-            control.setProperty('midiLearnArmed', False)
-            control.style().polish(control)
+        if control and hasattr(control, 'set_midi_armed'):
+            control.set_midi_armed(False)
         logger.info("MIDI Learn cancelled", component="MIDI")
