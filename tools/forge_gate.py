@@ -242,7 +242,7 @@ Examples:
     parser.add_argument('--quick', '-q', action='store_true', 
                         help='Skip audio validation (faster)')
     parser.add_argument('--fix-ascii', action='store_true',
-                        help='Auto-fix ASCII issues using utf8_fix.py')
+                        help='Auto-fix ASCII issues using cdd-utils utf8')
     
     args = parser.parse_args()
     
@@ -284,7 +284,7 @@ Examples:
             ascii_issues = [i for i in issues if i.code == 'UTF8']
             if ascii_issues and args.fix_ascii:
                 print(f"\n  Attempting ASCII fix...")
-                subprocess.run(['python', 'tools/utf8_fix.py', '--fix', str(pack)])
+                subprocess.run(['cdd-utils', 'utf8', '--fix', str(pack)])
         
         status = "✓ PASS" if passed else "✗ FAIL"
         print(f"  {status}: {summary}")

@@ -200,9 +200,9 @@ cdd test contracts/gate.pack.yaml --var pack_id={pack_id}
 #### 1. UTF-8 Check (instant)
 Catches copy-paste corruption from AI context switching.
 ```bash
-python tools/utf8_fix.py --report packs/{pack_id}/
+cdd-utils utf8 --report packs/{pack_id}/
 ```
-If issues found: `python tools/utf8_fix.py --fix packs/{pack_id}/`
+If issues found: `cdd-utils utf8 --fix packs/{pack_id}/`
 
 #### 2. SC Syntax Lint (5s)
 Catches NRT-breaking patterns before render attempt.
@@ -524,7 +524,7 @@ sed -i '' 's/(count > 2)/(count > 2).asInteger/g' packs/{pack_id}/generators/*.s
 
 ### Fix UTF-8 Corruption
 ```bash
-python tools/utf8_fix.py --fix packs/{pack_id}/
+cdd-utils utf8 --fix packs/{pack_id}/
 ```
 
 ### Fix Missing Manifest Fields
@@ -579,7 +579,7 @@ Before archiving a pack:
 - [ ] `cdd test contracts/gate.pack.yaml --var pack_id={pack_id}` — all 5 tests pass
 - [ ] `python3 tools/check_diversity.py {pack_id}` — all 3 checks pass (declared, diversity, dominance)
 - [ ] OR manual checks:
-  - [ ] `python tools/utf8_fix.py --report packs/{pack_id}/` — no corruption
+  - [ ] `cdd-utils utf8 --report packs/{pack_id}/` — no corruption
   - [ ] `python tools/forge_validate.py packs/{pack_id}/` — contract PASS
   - [ ] `python tools/forge_audio_validate.py packs/{pack_id}/ --render` — all 8 PASS
 - [ ] All generators have `LeakDC.ar(sig)` in output chain
@@ -705,7 +705,7 @@ For detailed diagnosis and fix commands, see `PACK_TROUBLESHOOTING.md`.
 | DC_OFFSET | Add `LeakDC.ar(sig)` |
 | RUNAWAY | Add `Limiter.ar(sig, 0.95)` |
 | CONTRACT_FAILED | Check manifest `generators` array, JSON required fields |
-| UTF-8 errors | Run `utf8_fix.py --fix` |
+| UTF-8 errors | Run `cdd-utils utf8 --fix` |
 | T003 fail (Mix.fill/Array.fill) | Replace variable count with integer literal: `Mix.fill(7, {` not `Mix.fill(n, {` |
 
 ---

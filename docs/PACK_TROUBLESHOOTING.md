@@ -266,12 +266,12 @@ Mojibake characters, syntax errors with `??` or similar.
 
 **Diagnose:**
 ```bash
-python tools/utf8_fix.py --report packs/my_pack/
+cdd-utils utf8 --report packs/my_pack/
 ```
 
 **Fix:**
 ```bash
-python tools/utf8_fix.py --fix packs/my_pack/
+cdd-utils utf8 --fix packs/my_pack/
 ```
 
 ---

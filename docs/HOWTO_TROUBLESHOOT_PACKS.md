@@ -270,12 +270,12 @@ sed -i '' 's/var exciter/var exciter, myVar/' packs/my_pack/generators/my_gen.sc
 
 **Diagnose:**
 ```bash
-python tools/utf8_fix.py --report packs/my_pack/
+cdd-utils utf8 --report packs/my_pack/
 ```
 
 **Fix:**
 ```bash
-python tools/utf8_fix.py --fix packs/my_pack/
+cdd-utils utf8 --fix packs/my_pack/
 ```
 
 ---
