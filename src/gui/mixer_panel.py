@@ -247,6 +247,7 @@ class ChannelStrip(QWidget):
         
         # Fader - no alignment constraint so it fills vertical space
         self.fader = DragSlider()
+        self.fader.setObjectName(f"mixer{self.channel_id}_fader")
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
         self.fader.setMinimumHeight(SIZES['slider_height_large'])

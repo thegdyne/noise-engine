@@ -358,6 +358,7 @@ class MasterSection(QWidget):
         lo_container = QVBoxLayout()
         lo_container.setSpacing(1)
         self.eq_lo_slider = DragSlider()
+        self.eq_lo_slider.setObjectName("master_eq_lo")
         self.eq_lo_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_lo_slider.setRange(0, 240)  # 0=-12dB, 120=0dB, 240=+12dB
         self.eq_lo_slider.setValue(120)  # 0dB default
@@ -379,6 +380,7 @@ class MasterSection(QWidget):
         mid_container = QVBoxLayout()
         mid_container.setSpacing(1)
         self.eq_mid_slider = DragSlider()
+        self.eq_mid_slider.setObjectName("master_eq_mid")
         self.eq_mid_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_mid_slider.setRange(0, 240)
         self.eq_mid_slider.setValue(120)
@@ -400,6 +402,7 @@ class MasterSection(QWidget):
         hi_container = QVBoxLayout()
         hi_container.setSpacing(1)
         self.eq_hi_slider = DragSlider()
+        self.eq_hi_slider.setObjectName("master_eq_hi")
         self.eq_hi_slider.setFixedWidth(SIZES['slider_width_narrow'])
         self.eq_hi_slider.setRange(0, 240)
         self.eq_hi_slider.setValue(120)
@@ -510,6 +513,7 @@ class MasterSection(QWidget):
         thr_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
         thr_container.addWidget(thr_label)
         self.comp_threshold = DragSlider()
+        self.comp_threshold.setObjectName("master_comp_threshold")
         self.comp_threshold.setFixedWidth(SIZES['slider_width'])
         self.comp_threshold.setRange(0, 400)  # 0=-20dB, 200=0dB, 400=+20dB
         self.comp_threshold.setValue(100)  # -10dB default
@@ -527,6 +531,7 @@ class MasterSection(QWidget):
         mkp_label.setStyleSheet(f"color: {COLORS['text_dim']}; border: none;")
         mkp_container.addWidget(mkp_label)
         self.comp_makeup = DragSlider()
+        self.comp_makeup.setObjectName("master_comp_makeup")
         self.comp_makeup.setFixedWidth(SIZES['slider_width'])
         self.comp_makeup.setRange(0, 200)  # 0 to +20dB
         self.comp_makeup.setValue(0)  # 0dB default
@@ -692,6 +697,7 @@ class MasterSection(QWidget):
         
         # Ceiling control
         self.ceiling_fader = DragSlider()
+        self.ceiling_fader.setObjectName("master_limiter_ceiling")
         self.ceiling_fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.ceiling_fader.setRange(0, 600)  # 0 = -6dB, 600 = 0dB
         self.ceiling_fader.setValue(590)  # -0.1dB default
@@ -726,6 +732,7 @@ class MasterSection(QWidget):
         fader_container.addWidget(fader_label)
         
         self.master_fader = DragSlider()
+        self.master_fader.setObjectName("master_fader")
         self.master_fader.setFixedWidth(SIZES['slider_width'])
         self.master_fader.setValue(800)  # 80% default
         self.master_fader.setMinimumHeight(SIZES['slider_height_small'])

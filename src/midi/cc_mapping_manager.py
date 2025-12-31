@@ -155,3 +155,32 @@ class MidiCCMappingManager(QObject):
             Dict of {(channel, cc): [controls]}
         """
         return dict(self._mappings)
+
+    def to_dict(self):
+        """Serialize mappings for saving.
+
+        Returns:
+            Dict with mappings keyed by control objectName
+        """
+        result = {}
+        for (channel, cc), controls in self._mappings.items():
+            for control in controls:
+                name = control.objectName()
+                if name:
+                    result[name] = {'channel': channel, 'cc': cc}
+        return result
+
+    def from_dict(self, data, find_control_func):
+        """Restore mappings from saved data.
+
+        Args:
+            data: Dict from to_dict()
+            find_control_func: Function(name) -> control widget or None
+        """
+        self.clear_all()
+        for name, mapping in data.items():
+            control = find_control_func(name)
+            if control:
+                self.add_mapping(mapping['channel'], mapping['cc'], control)
+                if hasattr(control, 'set_midi_mapped'):
+                    control.set_midi_mapped(True)

@@ -64,6 +64,9 @@ class MainFrame(QMainWindow):
         self._cc_timer.timeout.connect(self._process_pending_cc)
         self._cc_timer.start(16)  # ~60Hz
 
+        # MIDI menu
+        self._setup_midi_menu()
+
         # Connect MIDI CC signal from OSC
         self.osc.midi_cc_received.connect(self._on_midi_cc)
 
@@ -2061,3 +2064,71 @@ class MainFrame(QMainWindow):
         if control and hasattr(control, 'set_midi_armed'):
             control.set_midi_armed(False)
         logger.info("MIDI Learn cancelled", component="MIDI")
+
+    def _find_control_by_name(self, name):
+        """Find a control widget by objectName."""
+        return self.findChild(QWidget, name)
+
+    def save_midi_mappings(self):
+        """Save MIDI mappings to file."""
+        from PyQt5.QtWidgets import QFileDialog
+        import json
+        import os
+
+        data = self.cc_mapping_manager.to_dict()
+        if not data:
+            logger.info("No MIDI mappings to save", component="MIDI")
+            return
+
+        # Default to midi_mappings folder
+        midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
+        os.makedirs(midi_dir, exist_ok=True)
+
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save MIDI Mappings", midi_dir, "JSON Files (*.json)"
+        )
+        if path:
+            if not path.endswith('.json'):
+                path += '.json'
+            with open(path, 'w') as f:
+                json.dump(data, f, indent=2)
+            logger.info(f"Saved MIDI mappings to {path}", component="MIDI")
+
+    def load_midi_mappings(self):
+        """Load MIDI mappings from file."""
+        from PyQt5.QtWidgets import QFileDialog
+        import json
+        import os
+
+        # Default to midi_mappings folder
+        midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
+        os.makedirs(midi_dir, exist_ok=True)
+
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Load MIDI Mappings", midi_dir, "JSON Files (*.json)"
+        )
+        if path:
+            with open(path, 'r') as f:
+                data = json.load(f)
+            self.cc_mapping_manager.from_dict(data, self._find_control_by_name)
+            logger.info(f"Loaded MIDI mappings from {path}", component="MIDI")
+
+    def clear_all_midi_mappings(self):
+        """Clear all MIDI mappings."""
+        # Clear visual badges first
+        for controls in self.cc_mapping_manager.get_all_mappings().values():
+            for control in controls:
+                if hasattr(control, 'set_midi_mapped'):
+                    control.set_midi_mapped(False)
+        self.cc_mapping_manager.clear_all()
+        logger.info("Cleared all MIDI mappings", component="MIDI")
+
+    def _setup_midi_menu(self):
+        """Create MIDI menu in menu bar."""
+        menu_bar = self.menuBar()
+        midi_menu = menu_bar.addMenu("MIDI")
+
+        midi_menu.addAction("Save Mappings...", self.save_midi_mappings)
+        midi_menu.addAction("Load Mappings...", self.load_midi_mappings)
+        midi_menu.addSeparator()
+        midi_menu.addAction("Clear All Mappings", self.clear_all_midi_mappings)
