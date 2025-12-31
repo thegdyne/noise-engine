@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES, pan_slider_style
-from .widgets import DragSlider, MiniKnob
+from .widgets import DragSlider, MiniKnob, MidiButton
 from src.config import SIZES
 
 
@@ -286,15 +286,17 @@ class ChannelStrip(QWidget):
         # Mute/Solo/Gain buttons
         btn_layout = QVBoxLayout()
         btn_layout.setSpacing(2)
-        
-        self.mute_btn = QPushButton("M")
+
+        self.mute_btn = MidiButton("M")
+        self.mute_btn.setObjectName(f"mixer{self.channel_id}_mute")
         self.mute_btn.setFixedSize(*SIZES['button_small'])
         self.mute_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro'], QFont.Bold))
         self.mute_btn.setStyleSheet(button_style('disabled'))
         self.mute_btn.clicked.connect(self.toggle_mute)
         btn_layout.addWidget(self.mute_btn, alignment=Qt.AlignCenter)
-        
-        self.solo_btn = QPushButton("S")
+
+        self.solo_btn = MidiButton("S")
+        self.solo_btn.setObjectName(f"mixer{self.channel_id}_solo")
         self.solo_btn.setFixedSize(*SIZES['button_small'])
         self.solo_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro'], QFont.Bold))
         self.solo_btn.setStyleSheet(button_style('disabled'))

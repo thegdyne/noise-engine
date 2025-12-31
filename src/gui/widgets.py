@@ -993,3 +993,110 @@ class MiniKnob(QWidget):
     def maximum(self):
         """Return maximum value (for MIDI CC compatibility)."""
         return self._max
+
+class MidiButton(QPushButton):
+    """Button with MIDI CC mapping support."""
+
+    def __init__(self, text="", parent=None):
+        super().__init__(text, parent)
+        self._midi_armed = False
+        self._midi_mapped = False
+        self._midi_mode = 'toggle'  # 'toggle' or 'momentary'
+        self._midi_state = False  # Current on/off state for MIDI
+        self._last_cc_high = False  # Track CC state for edge detection
+
+    def set_midi_armed(self, armed):
+        """Set MIDI Learn armed state."""
+        self._midi_armed = armed
+        self.update()
+
+    def set_midi_mapped(self, mapped):
+        """Set MIDI mapped state."""
+        self._midi_mapped = mapped
+        self.update()
+
+    def set_midi_mode(self, mode):
+        """Set MIDI mode: 'toggle' or 'momentary'."""
+        self._midi_mode = mode
+
+    def handle_cc(self, value):
+        """Handle incoming CC value. Returns True if button should activate."""
+        cc_high = value >= 64
+
+        if self._midi_mode == 'toggle':
+            # Toggle only on rising edge (low → high transition)
+            if cc_high and not self._last_cc_high:
+                self._last_cc_high = cc_high
+                return True
+            self._last_cc_high = cc_high
+            return False
+        else:
+            # Momentary: click on any edge change (press and release)
+            if cc_high != self._last_cc_high:
+                self._last_cc_high = cc_high
+                return True
+            return False
+
+    def _get_main_frame(self):
+        """Find MainFrame by walking up parent chain."""
+        widget = self.window()
+        while widget:
+            if hasattr(widget, 'cc_mapping_manager'):
+                return widget
+            widget = widget.parent()
+        return None
+
+    def _start_midi_learn(self):
+        """Start MIDI Learn for this control."""
+        main_frame = self._get_main_frame()
+        if main_frame:
+            main_frame.cc_learn_manager.start_learn(self)
+
+    def _clear_midi_mapping(self):
+        """Clear MIDI mapping for this control."""
+        main_frame = self._get_main_frame()
+        if main_frame:
+            main_frame.cc_mapping_manager.remove_mapping(self)
+            self.set_midi_mapped(False)
+
+    def _set_toggle_mode(self):
+        """Set to toggle mode."""
+        self._midi_mode = 'toggle'
+
+    def _set_momentary_mode(self):
+        """Set to momentary mode."""
+        self._midi_mode = 'momentary'
+
+    def contextMenuEvent(self, event):
+        """Right-click menu for MIDI Learn."""
+        menu = QMenu(self)
+
+        main_frame = self._get_main_frame()
+        if not main_frame:
+            return
+
+        if self._midi_mapped:
+            menu.addAction("Clear MIDI Mapping", self._clear_midi_mapping)
+            menu.addSeparator()
+            toggle_action = menu.addAction("Toggle Mode", self._set_toggle_mode)
+            toggle_action.setCheckable(True)
+            toggle_action.setChecked(self._midi_mode == 'toggle')
+            momentary_action = menu.addAction("Momentary Mode", self._set_momentary_mode)
+            momentary_action.setCheckable(True)
+            momentary_action.setChecked(self._midi_mode == 'momentary')
+            menu.addSeparator()
+
+        menu.addAction("MIDI Learn", self._start_midi_learn)
+        menu.exec_(event.globalPos())
+
+    def paintEvent(self, event):
+        """Draw button with MIDI badge."""
+        super().paintEvent(event)
+
+        if self._midi_mapped:
+            from PyQt5.QtGui import QPainter
+            painter = QPainter(self)
+            painter.setBrush(QColor('#FF00FF'))
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(self.width() - 6, 1, 4, 4)
+            painter.end()
