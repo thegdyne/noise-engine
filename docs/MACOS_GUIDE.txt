@@ -1,0 +1,209 @@
+NOISE ENGINE - macOS GUIDE
+==========================
+
+Tested on macOS Sonoma / Ventura (12+)
+
+
+INSTALLATION
+------------
+
+1. SuperCollider
+
+   Option A: Homebrew
+   brew install --cask supercollider
+
+   Option B: Direct download
+   https://supercollider.github.io/downloads
+   Download the .dmg, drag to Applications.
+
+
+2. Python 3.11+
+
+   Option A: Homebrew
+   brew install python@3.11
+
+   Option B: Direct download
+   https://www.python.org/downloads/
+   Tick "Add Python to PATH" during install.
+
+
+3. Noise Engine
+
+   Option A: Git clone
+   git clone https://github.com/thegdyne/noise-engine.git
+   cd noise-engine
+
+   Option B: ZIP download
+   https://github.com/thegdyne/noise-engine
+   Green "Code" button > Download ZIP > Extract to Desktop
+
+
+4. Python Environment
+
+   cd ~/Desktop/noise-engine-main
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+
+   If requirements.txt fails, install manually:
+   python3 -m pip install PyQt5 python-osc python-rtmidi pyyaml numpy Pillow scipy librosa
+
+
+5. Install Presets
+
+   python3 tools/forge_gen_preset.py --all --install
+
+   This copies presets to ~/noise-engine-presets/
+
+   IMPORTANT: Type "--all --install" manually!
+   Chat apps convert -- to em-dashes which breaks the command.
+
+
+RUNNING
+-------
+
+Step 1: Start SuperCollider
+
+   Open SuperCollider
+   File > Open > noise-engine/supercollider/init.scd
+   Cmd+A (select all)
+   Cmd+Enter (run)
+   Wait for "Noise Engine ready!" in console
+
+
+Step 2: Start the GUI
+
+   cd ~/Desktop/noise-engine-main
+   source venv/bin/activate
+   python3 src/main.py
+
+
+Step 3: Connect
+
+   Click "Connect to SuperCollider" (top right)
+   Green = connected
+
+
+Step 4: Load a Preset
+
+   Click Load > select a preset (try "harga" to start)
+   Turn up Master Volume carefully - all 8 generators may be active!
+
+
+PANIC CONTROLS
+--------------
+
+If it gets too loud:
+
+   1. Mute buttons on channel strips
+   2. Master Volume fader - drag down
+   3. In SuperCollider: type s.freeAll; then Cmd+Enter
+   4. Quit SuperCollider entirely
+
+
+GENERATOR CONTROLS
+------------------
+
+Each of the 8 slots has:
+
+   Top row       Custom parameters (unique per generator)
+
+   Bottom sliders:
+      FREQ       Base frequency
+      CUTOFF     Filter cutoff
+      RES        Filter resonance
+      ATK        Envelope attack
+      DEC        Envelope decay
+
+   Buttons:
+      Filter     Top-right button, cycles LP/HP/BP etc.
+      ENV/CLK    2nd button, switch envelope mode
+
+   Clock mode:
+      Hold CLK button + drag up (multiply) or down (divide)
+      Great for rhythmic textures
+
+
+MIXER
+-----
+
+Each generator has a channel strip:
+   Volume, Pan, EQ, Mute/Solo
+
+Master section:
+   Master EQ, Limiter, Master Volume with pre/post meters
+
+
+MODULATION
+----------
+
+   Cmd+M    Modulation Matrix
+   Cmd+X    Cross Matrix
+
+Using the matrix:
+   Arrow keys       Navigate
+   Number keys 1-0  Set amount
+   Left column      Mod sources
+
+Modulators:
+   2x LFOs     Quadrature (4 phase-shifted outputs each)
+   2x Sloths   Slow chaotic sources
+
+
+MIDI
+----
+
+Click MIDI button to connect.
+Sets all generators to MIDI mode (monophonic).
+
+
+TROUBLESHOOTING
+---------------
+
+"python" not found
+   Use python3 instead
+
+Missing module
+   python3 -m pip install ModuleName
+
+"Unrecognized arguments -all"
+   Type flags manually, don't copy-paste
+
+No presets showing
+   Re-run with both flags together: --all --install
+
+sclang not found
+   export PATH="/Applications/SuperCollider.app/Contents/MacOS:$PATH"
+
+SC blocked by Gatekeeper
+   xattr -cr /Applications/SuperCollider.app
+
+No sound
+   Check System Settings > Sound output
+
+PyQt5 import error
+   pip install PyQt5 in your venv
+
+
+QUICK REFERENCE
+---------------
+
+Full Homebrew setup:
+   brew install --cask supercollider && brew install python@3.11
+
+Run Noise Engine:
+   cd noise-engine
+   source venv/bin/activate
+   python3 src/main.py
+
+Controls:
+   Load preset        Load button > select file
+   Change filter      Top-right button on generator
+   Clock sync         Switch to CLK mode
+   Adjust clock rate  Hold CLK + drag
+   Mod matrix         Cmd+M
+   Cross matrix       Cmd+X
+   Set mod amount     Arrow keys + 1-0
+
+
+Last updated: 2025-01-01
