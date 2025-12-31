@@ -1984,17 +1984,44 @@ class MainFrame(QMainWindow):
             # Normal operation - apply to mapped controls
             controls = self.cc_mapping_manager.get_controls(channel, cc)
             for control in controls:
-                self._apply_cc_to_control(control, value)
+                self._apply_cc_to_control(control, channel, cc, value)
 
-    def _apply_cc_to_control(self, control, value):
-        """Apply CC value to a control. Phase 3 will add pickup logic."""
-        # Scale 0-127 to control range
-        if hasattr(control, 'minimum') and hasattr(control, 'maximum'):
-            min_val = control.minimum()
-            max_val = control.maximum()
-            scaled = min_val + (value / 127.0) * (max_val - min_val)
-            control.setValue(int(scaled))
+    def _apply_cc_to_control(self, control, channel, cc, value):
+        """Apply CC value to a control with pickup mode."""
+        if not hasattr(control, 'minimum') or not hasattr(control, 'maximum'):
+            return
 
+        min_val = control.minimum()
+        max_val = control.maximum()
+        param_range = max_val - min_val
+
+        # Scale CC 0-127 to control range
+        cc_scaled = min_val + (value / 127.0) * param_range
+
+        # Pickup threshold: one CC step in param units
+        eps = param_range / 127.0
+
+        # Get current caught state
+        is_caught = self.cc_mapping_manager.is_caught(channel, cc, control)
+
+        if not is_caught:
+            # Check if CC catches current value
+            current_val = control.value()
+            if abs(cc_scaled - current_val) <= eps:
+                # Caught! Start controlling
+                self.cc_mapping_manager.set_caught(channel, cc, control, True)
+                control.setValue(int(cc_scaled))
+                # Clear ghost
+                if hasattr(control, 'set_cc_ghost'):
+                    control.set_cc_ghost(None)
+            else:
+                # Not caught - show ghost indicator
+                if hasattr(control, 'set_cc_ghost'):
+                    ghost_norm = value / 127.0
+                    control.set_cc_ghost(ghost_norm)
+        else:
+            # Already caught - apply value directly
+            control.setValue(int(cc_scaled))
     def _on_learn_started(self, control):
         """Visual feedback when MIDI Learn starts."""
         control.setProperty('midiLearnArmed', True)

@@ -5,7 +5,7 @@ Atomic components with no business logic - just behavior
 
 from PyQt5.QtWidgets import QSlider, QPushButton, QLabel, QApplication, QWidget, QMenu
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPoint
-from PyQt5.QtGui import QFont, QPainter, QPen, QColor
+from PyQt5.QtGui import QFont, QPainter, QPen, QColor, QPolygon
 
 from .theme import slider_style, DRAG_SENSITIVITY, COLORS, MONO_FONT, FONT_SIZES
 
@@ -89,6 +89,10 @@ class DragSlider(QSlider):
         self._mod_inner_max = None   # Normalized 0-1 (inner/amount)
         self._mod_current = None     # Normalized 0-1 (animated value)
         self._mod_color = QColor('#00ff66')  # Default green
+
+        # MIDI CC ghost indicator (pickup mode)
+        self._cc_ghost = None  # Normalized 0-1, or None if not showing
+        self._cc_ghost_color = QColor('#FF6600')  # Orange
     
     def set_modulation_range(self, min_norm: float, max_norm: float, 
                              inner_min: float = None, inner_max: float = None,
@@ -134,7 +138,20 @@ class DragSlider(QSlider):
         self._mod_inner_max = None
         self._mod_current = None
         self.update()
-    
+
+    def set_cc_ghost(self, norm_value):
+        """Set CC ghost indicator position (pickup mode).
+        Args:
+            norm_value: Normalized value (0-1), or None to hide ghost
+        """
+        self._cc_ghost = norm_value
+        self.update()
+
+    def clear_cc_ghost(self):
+        """Clear CC ghost indicator."""
+        self._cc_ghost = None
+        self.update()
+
     def has_modulation(self) -> bool:
         """Check if modulation is active on this slider."""
         return self._mod_range_min is not None
@@ -153,10 +170,10 @@ class DragSlider(QSlider):
             # Store values at paint time for debug comparison
             self._last_paint_min = self._mod_range_min
             self._last_paint_max = self._mod_range_max
-            
+
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
-            
+
             # Get the actual groove rect from Qt style
             from PyQt5.QtWidgets import QStyleOptionSlider, QStyle
             opt = QStyleOptionSlider()
@@ -164,28 +181,28 @@ class DragSlider(QSlider):
             groove_rect = self.style().subControlRect(
                 QStyle.CC_Slider, opt, QStyle.SC_SliderGroove, self
             )
-            
+
             groove_x = groove_rect.x()
             groove_width = groove_rect.width()
             groove_top = groove_rect.top()
             groove_bottom = groove_rect.bottom()
             available_height = groove_bottom - groove_top
-            
+
             # Convert normalized values to Y positions (inverted - 0 at bottom)
             def norm_to_y(norm):
                 return groove_top + (1.0 - norm) * available_height
-            
+
             # Outer range (depth) - Y positions
             outer_min_y = norm_to_y(self._mod_range_min)
             outer_max_y = norm_to_y(self._mod_range_max)
-            
+
             # Inner range (amount) - Y positions if available
-            has_inner = (self._mod_inner_min is not None and 
-                        self._mod_inner_max is not None)
+            has_inner = (self._mod_inner_min is not None and
+                         self._mod_inner_max is not None)
             if has_inner:
                 inner_min_y = norm_to_y(self._mod_inner_min)
                 inner_max_y = norm_to_y(self._mod_inner_max)
-            
+
             # Handle collapsed outer range
             if abs(self._mod_range_max - self._mod_range_min) < 0.001:
                 bracket_color = QColor(self._mod_color)
@@ -202,14 +219,14 @@ class DragSlider(QSlider):
                     groove_width, int(outer_min_y - outer_max_y),
                     outer_color
                 )
-                
+
                 # Draw outer brackets (dim)
                 outer_bracket = QColor(self._mod_color)
                 outer_bracket.setAlpha(100)
                 painter.setPen(QPen(outer_bracket, 1))
                 painter.drawLine(groove_x - 2, int(outer_max_y), groove_x + groove_width + 2, int(outer_max_y))
                 painter.drawLine(groove_x - 2, int(outer_min_y), groove_x + groove_width + 2, int(outer_min_y))
-                
+
                 # Draw INNER range (amount) if available
                 if has_inner and abs(self._mod_inner_max - self._mod_inner_min) >= 0.001:
                     # Inner fill (brighter)
@@ -220,14 +237,14 @@ class DragSlider(QSlider):
                         groove_width, int(inner_min_y - inner_max_y),
                         inner_color
                     )
-                    
+
                     # Inner brackets (bright)
                     inner_bracket = QColor(self._mod_color)
                     inner_bracket.setAlpha(255)
                     painter.setPen(QPen(inner_bracket, 2))
                     painter.drawLine(groove_x - 2, int(inner_max_y), groove_x + groove_width + 2, int(inner_max_y))
                     painter.drawLine(groove_x - 2, int(inner_min_y), groove_x + groove_width + 2, int(inner_min_y))
-            
+
             # Draw current modulated value indicator (animated line)
             if self._mod_current is not None:
                 current_y = norm_to_y(self._mod_current)
@@ -237,9 +254,26 @@ class DragSlider(QSlider):
                     groove_x - 6, int(current_y),
                     groove_x + groove_width + 6, int(current_y)
                 )
-            
+
             painter.end()
-        
+
+        # Draw CC ghost indicator (pickup mode) - separate from modulation
+        if self._cc_ghost is not None:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+
+            rect = self.rect()
+            available_height = rect.height() - 10
+
+            # Ghost position (inverted for vertical slider)
+            ghost_y = rect.top() + 5 + available_height * (1.0 - self._cc_ghost)
+
+            # Draw ghost line
+            painter.setPen(QPen(self._cc_ghost_color, 2))
+            painter.drawLine(rect.left() + 2, int(ghost_y),
+                             rect.right() - 2, int(ghost_y))
+
+            painter.end()
     def set_param_config(self, param_config, format_func=None):
         """
         Set parameter config for value mapping and popup display.
