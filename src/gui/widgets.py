@@ -437,8 +437,11 @@ class DragSlider(QSlider):
         """Right-click menu for MIDI Learn."""
         menu = QMenu(self)
 
-        # Check if mapped
-        main_frame = self.window()
+        # Find MainFrame by walking up parent chain
+        main_frame = self._get_main_frame()
+        if not main_frame:
+            return
+
         is_mapped = self._midi_mapped
 
         if is_mapped:
@@ -447,16 +450,27 @@ class DragSlider(QSlider):
         menu.addAction("MIDI Learn", self._start_midi_learn)
         menu.exec_(event.globalPos())
 
+    def _get_main_frame(self):
+        """Find MainFrame by walking up parent chain."""
+        widget = self.window()
+        print(f"DEBUG window: {widget}, has cc_mapping_manager: {hasattr(widget, 'cc_mapping_manager')}")
+        while widget:
+            if hasattr(widget, 'cc_mapping_manager'):
+                return widget
+            print(f"DEBUG checking parent: {widget.parent()}")
+            widget = widget.parent()
+        return None
+
     def _start_midi_learn(self):
         """Start MIDI Learn for this control."""
-        main_frame = self.window()
-        if hasattr(main_frame, 'cc_learn_manager'):
+        main_frame = self._get_main_frame()
+        if main_frame:
             main_frame.cc_learn_manager.start_learn(self)
 
     def _clear_midi_mapping(self):
         """Clear MIDI mapping for this control."""
-        main_frame = self.window()
-        if hasattr(main_frame, 'cc_mapping_manager'):
+        main_frame = self._get_main_frame()
+        if main_frame:
             main_frame.cc_mapping_manager.remove_mapping(self)
             self.set_midi_mapped(False)
 
@@ -774,6 +788,9 @@ class MiniKnob(QWidget):
         self._dragging = False
         self._drag_start_y = 0
         self._drag_start_value = 0
+        # MIDI mapping visual state
+        self._midi_armed = False
+        self._midi_mapped = False
         self._popup = None
         
         # Fixed size for compact channel strips
@@ -915,3 +932,57 @@ class MiniKnob(QWidget):
     def _hide_popup(self):
         if self._popup:
             self._popup.hide_value()
+
+    def set_midi_armed(self, armed):
+        """Set MIDI Learn armed state."""
+        self._midi_armed = armed
+        self.update()
+
+    def set_midi_mapped(self, mapped):
+        """Set MIDI mapped state."""
+        self._midi_mapped = mapped
+        self.update()
+
+    def _get_main_frame(self):
+        """Find MainFrame by walking up parent chain."""
+        widget = self.window()
+        while widget:
+            if hasattr(widget, 'cc_mapping_manager'):
+                return widget
+            widget = widget.parent()
+        return None
+
+    def _start_midi_learn(self):
+        """Start MIDI Learn for this control."""
+        main_frame = self._get_main_frame()
+        if main_frame:
+            main_frame.cc_learn_manager.start_learn(self)
+
+    def _clear_midi_mapping(self):
+        """Clear MIDI mapping for this control."""
+        main_frame = self._get_main_frame()
+        if main_frame:
+            main_frame.cc_mapping_manager.remove_mapping(self)
+            self.set_midi_mapped(False)
+
+    def contextMenuEvent(self, event):
+        """Right-click menu for MIDI Learn."""
+        menu = QMenu(self)
+
+        main_frame = self._get_main_frame()
+        if not main_frame:
+            return
+
+        if self._midi_mapped:
+            menu.addAction("Clear MIDI Mapping", self._clear_midi_mapping)
+
+        menu.addAction("MIDI Learn", self._start_midi_learn)
+        menu.exec_(event.globalPos())
+
+    def minimum(self):
+        """Return minimum value (for MIDI CC compatibility)."""
+        return self._min
+
+    def maximum(self):
+        """Return maximum value (for MIDI CC compatibility)."""
+        return self._max

@@ -91,13 +91,15 @@ class FXSection(QFrame):
     def on_bypass_changed(self, bypassed):
         """Override in subclass."""
         pass
-    
-    def add_knob(self, label, min_val=0, max_val=100, default=50):
+
+    def add_knob(self, label, min_val=0, max_val=100, default=50, name=None):
         """Add a labeled knob to controls."""
         container = QVBoxLayout()
         container.setSpacing(2)
-        
+
         knob = DragSlider()
+        if name:
+            knob.setObjectName(name)
         knob.setRange(min_val, max_val)
         knob.setValue(default)
         knob.setFixedSize(28, 50)
@@ -145,10 +147,10 @@ class HeatSection(FXSection):
         self.controls.addLayout(circuit_container)
         
         # Knobs
-        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0)
+        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0, name="fx_heat_drive")
         self.drive_knob.valueChanged.connect(lambda v: self.drive_changed.emit(v / 100.0))
         
-        self.mix_knob = self.add_knob("MIX", 0, 100, 100)
+        self.mix_knob = self.add_knob("MIX", 0, 100, 100, name="fx_heat_mix")
         self.mix_knob.valueChanged.connect(lambda v: self.mix_changed.emit(v / 100.0))
     
     def on_bypass_changed(self, bypassed):
@@ -171,25 +173,25 @@ class TapeEchoSection(FXSection):
         # No bypass for send effects - always on
         self.bypass_btn.hide()
         
-        self.time_knob = self.add_knob("TIME", 0, 100, 40)
+        self.time_knob = self.add_knob("TIME", 0, 100, 40, name="fx_echo_time")
         self.time_knob.valueChanged.connect(lambda v: self.time_changed.emit(v / 100.0))
         
-        self.feedback_knob = self.add_knob("FDBK", 0, 100, 30)
+        self.feedback_knob = self.add_knob("FDBK", 0, 100, 30, name="fx_echo_feedback")
         self.feedback_knob.valueChanged.connect(lambda v: self.feedback_changed.emit(v / 100.0))
         
-        self.tone_knob = self.add_knob("TONE", 0, 100, 70)
+        self.tone_knob = self.add_knob("TONE", 0, 100, 70, name="fx_echo_tone")
         self.tone_knob.valueChanged.connect(lambda v: self.tone_changed.emit(v / 100.0))
-        
-        self.wow_knob = self.add_knob("WOW", 0, 100, 10)
+
+        self.wow_knob = self.add_knob("WOW", 0, 100, 10, name="fx_echo_wow")
         self.wow_knob.valueChanged.connect(lambda v: self.wow_changed.emit(v / 100.0))
         
-        self.spring_knob = self.add_knob("SPRING", 0, 100, 0)
+        self.spring_knob = self.add_knob("SPRING", 0, 100, 0, name="fx_echo_spring")
         self.spring_knob.valueChanged.connect(lambda v: self.spring_changed.emit(v / 100.0))
-        
-        self.verb_send_knob = self.add_knob("VRB", 0, 100, 0)
+
+        self.verb_send_knob = self.add_knob("VRB", 0, 100, 0, name="fx_echo_verb")
         self.verb_send_knob.valueChanged.connect(lambda v: self.verb_send_changed.emit(v / 100.0))
         
-        self.return_knob = self.add_knob("RTN", 0, 100, 50)
+        self.return_knob = self.add_knob("RTN", 0, 100, 50, name="fx_echo_return")
         self.return_knob.valueChanged.connect(lambda v: self.return_changed.emit(v / 100.0))
 
 
@@ -206,16 +208,16 @@ class ReverbSection(FXSection):
         # No bypass for send effects
         self.bypass_btn.hide()
         
-        self.size_knob = self.add_knob("SIZE", 0, 100, 50)
+        self.size_knob = self.add_knob("SIZE", 0, 100, 50, name="fx_reverb_size")
         self.size_knob.valueChanged.connect(lambda v: self.size_changed.emit(v / 100.0))
         
-        self.decay_knob = self.add_knob("DECAY", 0, 100, 50)
+        self.decay_knob = self.add_knob("DECAY", 0, 100, 50, name="fx_reverb_decay")
         self.decay_knob.valueChanged.connect(lambda v: self.decay_changed.emit(v / 100.0))
         
-        self.tone_knob = self.add_knob("TONE", 0, 100, 70)
+        self.tone_knob = self.add_knob("TONE", 0, 100, 70, name="fx_reverb_tone")
         self.tone_knob.valueChanged.connect(lambda v: self.tone_changed.emit(v / 100.0))
         
-        self.return_knob = self.add_knob("RTN", 0, 100, 30)
+        self.return_knob = self.add_knob("RTN", 0, 100, 30, name="fx_reverb_return")
         self.return_knob.valueChanged.connect(lambda v: self.return_changed.emit(v / 100.0))
 
 
@@ -238,14 +240,14 @@ class DualFilterSection(FXSection):
         super().__init__("DUAL FILTER", parent)
         
         # Drive
-        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0)
+        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0, name="fx_filter_drive")
         self.drive_knob.valueChanged.connect(lambda v: self.drive_changed.emit(v / 100.0))
         
         # Filter 1
-        self.freq1_knob = self.add_knob("F1", 0, 100, 50)
+        self.freq1_knob = self.add_knob("F1", 0, 100, 50, name="fx_filter_freq1")
         self.freq1_knob.valueChanged.connect(lambda v: self.freq1_changed.emit(v / 100.0))
-        
-        self.reso1_knob = self.add_knob("R1", 0, 100, 0)
+
+        self.reso1_knob = self.add_knob("R1", 0, 100, 0, name="fx_filter_reso1")
         self.reso1_knob.valueChanged.connect(lambda v: self.reso1_changed.emit(v / 100.0))
         
         # Mode 1 combo
@@ -266,10 +268,10 @@ class DualFilterSection(FXSection):
         self.controls.addLayout(mode1_container)
         
         # Filter 2
-        self.freq2_knob = self.add_knob("F2", 0, 100, 35)
+        self.freq2_knob = self.add_knob("F2", 0, 100, 35, name="fx_filter_freq2")
         self.freq2_knob.valueChanged.connect(lambda v: self.freq2_changed.emit(v / 100.0))
         
-        self.reso2_knob = self.add_knob("R2", 0, 100, 0)
+        self.reso2_knob = self.add_knob("R2", 0, 100, 0, name="fx_filter_reso2")
         self.reso2_knob.valueChanged.connect(lambda v: self.reso2_changed.emit(v / 100.0))
         
         # Mode 2 combo
@@ -322,7 +324,7 @@ class DualFilterSection(FXSection):
         self.controls.addLayout(route_container)
         
         # Mix
-        self.mix_knob = self.add_knob("MIX", 0, 100, 100)
+        self.mix_knob = self.add_knob("MIX", 0, 100, 100, name="fx_filter_mix")
         self.mix_knob.valueChanged.connect(lambda v: self.mix_changed.emit(v / 100.0))
     
     def on_bypass_changed(self, bypassed):
