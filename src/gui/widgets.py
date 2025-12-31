@@ -439,7 +439,7 @@ class DragSlider(QSlider):
 
         # Check if mapped
         main_frame = self.window()
-        is_mapped = self.property('midiMapped')
+        is_mapped = self._midi_mapped
 
         if is_mapped:
             menu.addAction("Clear MIDI Mapping", self._clear_midi_mapping)
@@ -458,9 +458,7 @@ class DragSlider(QSlider):
         main_frame = self.window()
         if hasattr(main_frame, 'cc_mapping_manager'):
             main_frame.cc_mapping_manager.remove_mapping(self)
-            self.setProperty('midiMapped', False)
-            self.style().polish(self)
-
+            self.set_midi_mapped(False)
 
 class MiniSlider(DragSlider):
     """Compact vertical slider for generator params with value popup support."""
