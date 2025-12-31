@@ -251,9 +251,10 @@ class OSCBridge(QObject):
         if self._deleted:
             return
         if len(args) >= 3:
-            channel = int(args[0])  # 1-16
-            cc = int(args[1])  # 0-127
-            value = int(args[2])  # 0-127
+            channel = int(args[0])
+            cc = int(args[1])
+            value = int(args[2])
+            print(f"MIDI CC: ch={channel} cc={cc} val={value}")  # Debug
             self.midi_cc_received.emit(channel, cc, value)
     
     def _handle_levels(self, address, *args):

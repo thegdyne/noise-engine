@@ -186,7 +186,7 @@ class TapeEchoSection(FXSection):
         self.spring_knob = self.add_knob("SPRING", 0, 100, 0)
         self.spring_knob.valueChanged.connect(lambda v: self.spring_changed.emit(v / 100.0))
         
-        self.verb_send_knob = self.add_knob("â†'VRB", 0, 100, 0)
+        self.verb_send_knob = self.add_knob("VRB", 0, 100, 0)
         self.verb_send_knob.valueChanged.connect(lambda v: self.verb_send_changed.emit(v / 100.0))
         
         self.return_knob = self.add_knob("RTN", 0, 100, 50)
@@ -464,7 +464,7 @@ class FXWindow(QMainWindow):
         self.dual_filter.mix_changed.connect(
             lambda v: self._send_osc(OSC_PATHS['fb_mix'], v))
 
-    # â"€â"€ Preset State Methods â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # Preset State Methods
 
     def get_state(self):
         """Collect current FX state from all sections.

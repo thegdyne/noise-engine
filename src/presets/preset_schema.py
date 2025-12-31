@@ -12,7 +12,7 @@ from typing import Optional
 import json
 
 PRESET_VERSION = 2
-MAPPING_VERSION = 1  # For future UIâ†'value curve changes
+MAPPING_VERSION = 1  # For future UI->value curve changes
 
 # Valid ranges
 FILTER_TYPES = 6      # 0=LP, 1=HP, 2=BP, 3=Notch, 4=LP2, 5=OFF

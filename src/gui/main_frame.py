@@ -37,6 +37,7 @@ from src.config import (
 )
 from src.utils.logger import logger
 from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
+from src.midi import MidiCCMappingManager, MidiCCLearnManager
 
 
 class MainFrame(QMainWindow):
@@ -52,6 +53,19 @@ class MainFrame(QMainWindow):
         self.setAttribute(Qt.WA_AcceptTouchEvents, False)
         
         self.osc = OSCBridge()
+
+        # MIDI CC mapping (Phase 1+2)
+        self.cc_mapping_manager = MidiCCMappingManager()
+        self.cc_learn_manager = MidiCCLearnManager(self.cc_mapping_manager)
+
+        # Connect MIDI CC signal from OSC
+        self.osc.midi_cc_received.connect(self._on_midi_cc)
+
+        # Connect learn manager signals for visual feedback
+        self.cc_learn_manager.learn_started.connect(self._on_learn_started)
+        self.cc_learn_manager.learn_completed.connect(self._on_learn_completed)
+        self.cc_learn_manager.learn_cancelled.connect(self._on_learn_cancelled)
+
         self.osc_connected = False
         
         self.active_generators = {}
@@ -99,7 +113,7 @@ class MainFrame(QMainWindow):
         # Install event filter for keyboard overlay
         self.installEventFilter(self)
 
-    # â"€â"€ Dirty State Tracking â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # Dirty State Tracking
 
     def _mark_dirty(self):
         """Mark session as having unsaved changes."""
@@ -889,7 +903,7 @@ class MainFrame(QMainWindow):
         
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""
-        # Calculate slot from bus index: bus 0-3 â†' slot 1, bus 4-7 â†' slot 2, etc.
+        # Calculate slot from bus index: bus 0-3 slot 1, bus 4-7 slot 2, etc.
         slot_id = (bus_idx // 4) + 1
         output_idx = bus_idx % 4
         
@@ -938,7 +952,7 @@ class MainFrame(QMainWindow):
                 [conn.source_bus, conn.target_slot, conn.target_param,
                  conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
             )
-            logger.debug(f"Mod route added: bus {conn.source_bus} â†' slot {conn.target_slot}.{conn.target_param} "
+            logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} "
                         f"(d={conn.depth}, a={conn.amount}, o={conn.offset}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
         
         # Update slider visualization
@@ -952,7 +966,7 @@ class MainFrame(QMainWindow):
                 OSC_PATHS['mod_route_remove'],
                 [source_bus, target_slot, target_param]
             )
-            logger.debug(f"Mod route removed: bus {source_bus} â†' slot {target_slot}.{target_param}", component="MOD")
+            logger.debug(f"Mod route removed: bus {source_bus} → slot {target_slot}.{target_param}", component="MOD")
         
         # Update slider visualization (may clear if no more routes)
         self._update_slider_mod_range(target_slot, target_param)
@@ -1850,6 +1864,13 @@ class MainFrame(QMainWindow):
 
     def eventFilter(self, obj, event):
         """Forward key events to keyboard overlay when visible."""
+        # Cancel MIDI Learn on Escape
+        if event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Escape:
+                if hasattr(self, 'cc_learn_manager') and self.cc_learn_manager.is_learning():
+                    self.cc_learn_manager.cancel_learn()
+                    return True
+
         if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
             if event.type() == QEvent.KeyPress:
                 self._keyboard_overlay.keyPressEvent(event)
@@ -1949,3 +1970,47 @@ class MainFrame(QMainWindow):
 
         # Accept the close event
         event.accept()
+
+    # ─────────────────────────────────────────────────────────────
+    # MIDI CC Handling (Phase 2)
+    # ─────────────────────────────────────────────────────────────
+
+    def _on_midi_cc(self, channel, cc, value):
+        """Handle MIDI CC from OSC bridge."""
+        # If learning, let learn manager handle it
+        if self.cc_learn_manager.is_learning():
+            self.cc_learn_manager.on_cc_received(channel, cc, value)
+        else:
+            # Normal operation - apply to mapped controls
+            controls = self.cc_mapping_manager.get_controls(channel, cc)
+            for control in controls:
+                self._apply_cc_to_control(control, value)
+
+    def _apply_cc_to_control(self, control, value):
+        """Apply CC value to a control. Phase 3 will add pickup logic."""
+        # Scale 0-127 to control range
+        if hasattr(control, 'minimum') and hasattr(control, 'maximum'):
+            min_val = control.minimum()
+            max_val = control.maximum()
+            scaled = min_val + (value / 127.0) * (max_val - min_val)
+            control.setValue(int(scaled))
+
+    def _on_learn_started(self, control):
+        """Visual feedback when MIDI Learn starts."""
+        control.setProperty('midiLearnArmed', True)
+        control.style().polish(control)
+        logger.info(f"MIDI Learn armed: {control.objectName()}", component="MIDI")
+
+    def _on_learn_completed(self, channel, cc, control):
+        """Visual feedback when MIDI Learn completes."""
+        control.setProperty('midiLearnArmed', False)
+        control.setProperty('midiMapped', True)
+        control.style().polish(control)
+        logger.info(f"MIDI mapped: Ch{channel} CC{cc} -> {control.objectName()}", component="MIDI")
+
+    def _on_learn_cancelled(self, control):
+        """Visual feedback when MIDI Learn cancelled."""
+        if control:
+            control.setProperty('midiLearnArmed', False)
+            control.style().polish(control)
+        logger.info("MIDI Learn cancelled", component="MIDI")

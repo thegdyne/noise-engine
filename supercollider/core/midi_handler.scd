@@ -97,7 +97,8 @@ OSC messages to Python:
         });
         
         ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
-            var midiChannel = chan + 1;  // Convert 0-15 to 1-16
+            var midiChannel = chan + 1;
+            ("CC: ch=" ++ midiChannel ++ " cc=" ++ num ++ " val=" ++ val).postln;  // Debug
             ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val);
         });
         
