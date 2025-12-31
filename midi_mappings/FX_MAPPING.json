@@ -1,0 +1,18 @@
+{
+  "mixer1_echo": {
+    "channel": 1,
+    "cc": 18
+  },
+  "mixer1_verb": {
+    "channel": 1,
+    "cc": 22
+  },
+  "fx_heat_drv": {
+    "channel": 1,
+    "cc": 26
+  },
+  "fx_heat_mix": {
+    "channel": 1,
+    "cc": 30
+  }
+}

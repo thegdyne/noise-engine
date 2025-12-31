@@ -874,6 +874,13 @@ class MiniKnob(QWidget):
         painter.setPen(Qt.NoPen)
         painter.setBrush(dot_color)
         painter.drawEllipse(center_rect)
+
+        # Draw MIDI mapped badge (small dot)
+        if self._midi_mapped:
+            painter.setBrush(QColor('#FF00FF'))  # Bright pink
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(self.width() - 6, 0, 5, 5)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self._dragging = True

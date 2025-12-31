@@ -102,6 +102,7 @@ class FXModule(QFrame):
         
         # Create larger knob
         knob = MiniKnob()
+        knob.setObjectName(f"fx_{self.name.lower()}_{name.lower()}")
         knob.setFixedSize(22, 22)  # Larger than default 18x18
         knob.setValue(default)
         knob.setToolTip(tooltip or f"{name} (double-click reset)")
@@ -512,6 +513,7 @@ class FilterModule(FXModule):
         container.setContentsMargins(0, 0, 0, 0)
         
         knob = MiniKnob()
+        knob.setObjectName(f"fx_filter_{name.lower()}")
         knob.setFixedSize(22, 22)
         knob.setValue(default)
         knob.setToolTip(tooltip)
@@ -606,6 +608,7 @@ class FilterModule(FXModule):
         amt_container.setSpacing(1)
         amt_container.setContentsMargins(0, 0, 0, 0)
         self.amt_knob = MiniKnob()
+        self.amt_knob.setObjectName("fx_filter_clk_amt")
         self.amt_knob.setFixedSize(20, 20)
         self.amt_knob.setValue(0)
         self.amt_knob.setToolTip("Clock sync modulation depth")
