@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLabel, QFrame, QShortcut, QApplication)
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QEvent, QTimer
 from PyQt5.QtGui import QFont, QKeySequence
 
 from src.gui.generator_grid import GeneratorGrid
@@ -57,6 +57,12 @@ class MainFrame(QMainWindow):
         # MIDI CC mapping (Phase 1+2)
         self.cc_mapping_manager = MidiCCMappingManager()
         self.cc_learn_manager = MidiCCLearnManager(self.cc_mapping_manager)
+
+        # MIDI CC flood control (~60Hz update rate)
+        self._pending_cc = {}  # (channel, cc) -> value
+        self._cc_timer = QTimer(self)
+        self._cc_timer.timeout.connect(self._process_pending_cc)
+        self._cc_timer.start(16)  # ~60Hz
 
         # Connect MIDI CC signal from OSC
         self.osc.midi_cc_received.connect(self._on_midi_cc)
@@ -1977,11 +1983,24 @@ class MainFrame(QMainWindow):
 
     def _on_midi_cc(self, channel, cc, value):
         """Handle MIDI CC from OSC bridge."""
-        # If learning, let learn manager handle it
+        # If learning, handle immediately (don't buffer)
         if self.cc_learn_manager.is_learning():
             self.cc_learn_manager.on_cc_received(channel, cc, value)
         else:
-            # Normal operation - apply to mapped controls
+            # Buffer for flood control - store latest value per (channel, cc)
+            self._pending_cc[(channel, cc)] = value
+
+    def _process_pending_cc(self):
+        """Process buffered CC updates (~60Hz)."""
+        if not self._pending_cc:
+            return
+
+        # Snapshot and clear
+        pending = self._pending_cc.copy()
+        self._pending_cc.clear()
+
+        # Process each pending CC
+        for (channel, cc), value in pending.items():
             controls = self.cc_mapping_manager.get_controls(channel, cc)
             for control in controls:
                 self._apply_cc_to_control(control, channel, cc, value)
@@ -1999,7 +2018,7 @@ class MainFrame(QMainWindow):
         cc_scaled = min_val + (value / 127.0) * param_range
 
         # Pickup threshold: one CC step in param units
-        eps = param_range / 127.0
+        eps = (param_range / 127.0) * 3
 
         # Get current caught state
         is_caught = self.cc_mapping_manager.is_caught(channel, cc, control)
