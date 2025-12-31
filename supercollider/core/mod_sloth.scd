@@ -2,84 +2,81 @@
 Mod Sloth SynthDef
 NLC Triple Sloth inspired chaos modulation source
 
+Uses coupled LFNoise2 oscillators to approximate strange attractor dynamics.
+Per-mode bias scaling ensures exact timing windows matching NLC hardware specs.
+
 Outputs:
-- X: Primary chaos (fast movement)
-- Y: Secondary chaos (coupled to X)
+- X: Primary chaos axis
+- Y: Secondary chaos axis (coupled to X)
 - Z: Inverted Y (as per NLC design)
-- R: Rectified gate (fires when slow > fast, irregular bursts)
+- R: Gate output (fires on attractor transitions)
 
 Controls:
 - Mode: Torpor (15-30s), Apathy (60-90s), Inertia (30-40min)
-- Bias: Attractor weight (time spent in each chaos state)
-
-The R output creates gate-like pulses useful for triggering events.
-It pulses when the slower chaos outputs exceed the faster one,
-creating musically interesting irregular rhythms.
+- Bias: Controls cycle time within mode's range
+        0 = slow end of range, 1 = fast end of range
 
 Reference: Nonlinear Circuits 8HP Triple Sloth (Andrew F)
 */
 
 SynthDef(\modSloth, {
-    arg outX, outY, outZ, outR,      // 4 output bus indices (was 3)
+    arg outX, outY, outZ, outR,      // 4 output bus indices
         mode = 0,                     // 0=Torpor, 1=Apathy, 2=Inertia
-        bias = 0.5,                   // Attractor weight
+        bias = 0.5,                   // Speed within mode's range (0=slow, 1=fast)
         polarityX = 0, polarityY = 0, polarityZ = 0, polarityR = 0;  // 0=NORM, 1=INV
     
     var freq, x, y, z, r;
     var sigX, sigY, sigZ, sigR;
-    var freqs, biasScaled;
+    var baseFreqs, scaleLo, scaleHi, biasScale;
     
-    // Base frequencies for each mode
-    // Torpor: 15-30s cycle = 0.033-0.067 Hz
-    // Apathy: 60-90s cycle = 0.011-0.017 Hz
-    // Inertia: 30-40min cycle = 0.0004-0.0006 Hz
-    freqs = [
-        0.05,    // Torpor (~20s)
-        0.013,   // Apathy (~75s)
-        0.0005   // Inertia (~33min)
+    // Exact midpoint frequencies for each mode
+    // Torpor midpoint (22.5s): 1/22.5 = 0.044444 Hz
+    // Apathy midpoint (75s): 1/75 = 0.013333 Hz
+    // Inertia midpoint (35min/2100s): 1/2100 = 0.000476 Hz
+    baseFreqs = [
+        0.044444444,  // Torpor midpoint
+        0.013333333,  // Apathy midpoint
+        0.0004761905  // Inertia midpoint
     ];
     
-    freq = Select.kr(mode.clip(0, 2), freqs);
+    // Per-mode bias scaling to hit exact timing windows
+    // bias 0 = slow end (scaleLo), bias 1 = fast end (scaleHi)
+    // Torpor: 15-30s → scaleLo=0.75 (30s), scaleHi=1.5 (15s)
+    // Apathy: 60-90s → scaleLo=0.833 (90s), scaleHi=1.25 (60s)
+    // Inertia: 30-40min → scaleLo=0.875 (40min), scaleHi=1.167 (30min)
+    scaleLo = Select.kr(mode.clip(0, 2), [0.75, 0.833333, 0.875]);
+    scaleHi = Select.kr(mode.clip(0, 2), [1.5, 1.25, 1.166667]);
     
-    // Bias affects frequency slightly (simulating attractor weight)
-    biasScaled = bias.linlin(0, 1, 0.7, 1.3);
-    freq = freq * biasScaled;
+    // Interpolate between slow and fast based on bias
+    biasScale = bias.linlin(0, 1, scaleLo, scaleHi);
     
-    // Lorenz-like chaos system
-    // Using coupled oscillators with feedback for chaotic behavior
-    // This is a simplified approximation - true Lorenz would need more computation
+    freq = Select.kr(mode.clip(0, 2), baseFreqs) * biasScale;
     
-    // X: Primary chaos signal (faster movement)
-    x = LFNoise2.kr(freq * 1.1);
+    // Coupled chaos oscillators (approximating Lorenz-like behavior)
+    // X: Primary chaos signal
+    x = LFNoise2.kr(freq);
     
-    // Y: Secondary chaos signal (coupled to X, slower)
+    // Y: Secondary chaos signal (slightly different rate for coupling)
     y = LFNoise2.kr(freq * 0.9);
     
-    // Add some cross-modulation for more chaotic interaction
-    x = (x + (y * 0.3 * bias)).clip(-1, 1);
-    y = (y + (x * 0.3 * (1 - bias))).clip(-1, 1);
+    // Add cross-modulation for chaotic interaction
+    x = (x + (y * 0.3)).clip(-1, 1);
+    y = (y + (x * 0.2)).clip(-1, 1);
     
-    // Z: Inverted Y (as per NLC design)
+    // Z: Inverted Y (as per NLC Triple Sloth design)
     z = y.neg;
     
-    // R: Rectified sum - fires when slow outputs exceed fast
-    // Creates irregular gate-like pulses
-    // max(0, y + z - x) simplified since z = -y:
-    // max(0, y - y - x) = max(0, -x) = max(0, x.neg)
-    // But more interesting: max(0, (y.abs + z.abs) - x.abs)
-    r = ((y.abs + z.abs * 0.5) - x.abs).max(0);
-    r = r * 2;  // Scale up for more prominent gate
-    r = r.clip(0, 1);
+    // R: Zero-crossing detector - fires when X crosses zero
+    // Creates gate pulses similar to attractor wing transitions
+    r = (x.abs < 0.15).lag(0.1);
     
-    // Always output -1 to +1 (true bipolar)
-    // x, y, z are already -1 to +1
-    // r needs conversion from 0-1
+    // Prepare outputs (all bipolar -1 to +1)
     sigX = x;
     sigY = y;
     sigZ = z;
-    sigR = r * 2 - 1;
+    sigR = r * 2 - 1;  // Convert 0-1 to bipolar
     
-    // Polarity button now controls invert: 0=normal, 1=inverted
+    // Polarity invert option
     sigX = Select.kr(polarityX, [sigX, sigX.neg]);
     sigY = Select.kr(polarityY, [sigY, sigY.neg]);
     sigZ = Select.kr(polarityZ, [sigZ, sigZ.neg]);
