@@ -1,0 +1,199 @@
+# MIDI CC - Learn Mode Manager
+# Phase 2: Handles armed state and CC capture for MIDI Learn
+
+contract: midi-cc-learn-manager
+version: 0.1.0
+status: draft
+
+description: |
+  Manages MIDI Learn mode - tracks which control is armed,
+  captures first CC received, creates mapping.
+  
+  Per spec Section 4 (MIDI Learn):
+  - One control armed at a time
+  - First CC received creates mapping
+  - Cancel via Escape or right-click again
+  - Learn replaces existing mapping on that control
+
+source_ref:
+  - path: src/midi/cc_learn_manager.py
+    
+requirements:
+  - id: R001
+    priority: must
+    description: MidiCCLearnManager class exists
+    acceptance_criteria:
+      - Class defined in src/midi/cc_learn_manager.py
+      - Inherits from QObject for Qt signal support
+      
+  - id: R002
+    priority: must
+    description: Can arm a control for learning
+    acceptance_criteria:
+      - start_learn(control) method exists
+      - Stores armed control reference
+      - Emits learn_started signal
+      
+  - id: R003
+    priority: must
+    description: Can cancel learning
+    acceptance_criteria:
+      - cancel_learn() method exists
+      - Clears armed control
+      - Emits learn_cancelled signal
+      
+  - id: R004
+    priority: must
+    description: Can check if learning is active
+    acceptance_criteria:
+      - is_learning() method exists
+      - Returns bool
+      
+  - id: R005
+    priority: must
+    description: Can get currently armed control
+    acceptance_criteria:
+      - get_armed_control() method exists
+      - Returns control or None
+      
+  - id: R006
+    priority: must
+    description: Handles CC received during learn mode
+    acceptance_criteria:
+      - on_cc_received(channel, cc, value) method exists
+      - Only processes if learning active
+      - Emits learn_completed signal with channel, cc, control
+
+runner:
+  executor: shell
+  
+tests:
+  - id: T001
+    name: class_exists
+    requirement: R001
+    description: Verify MidiCCLearnManager class exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class MidiCCLearnManager", "../src/midi/cc_learn_manager.py"]
+        save_as: class_count
+    assert:
+      - op: gte
+        actual: $.class_count.stdout_int
+        expected: 1
+
+  - id: T002
+    name: inherits_qobject
+    requirement: R001
+    description: Verify inherits from QObject
+    steps:
+      - action: shell
+        command: ["grep", "-E", "class MidiCCLearnManager\\(.*QObject", "../src/midi/cc_learn_manager.py"]
+        save_as: inheritance
+    assert:
+      - op: eq
+        actual: $.inheritance.ok
+        expected: true
+
+  - id: T003
+    name: start_learn_exists
+    requirement: R002
+    description: Verify start_learn method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def start_learn", "../src/midi/cc_learn_manager.py"]
+        save_as: start_count
+    assert:
+      - op: gte
+        actual: $.start_count.stdout_int
+        expected: 1
+
+  - id: T004
+    name: learn_started_signal
+    requirement: R002
+    description: Verify learn_started signal exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "learn_started.*pyqtSignal", "../src/midi/cc_learn_manager.py"]
+        save_as: signal_count
+    assert:
+      - op: gte
+        actual: $.signal_count.stdout_int
+        expected: 1
+
+  - id: T005
+    name: cancel_learn_exists
+    requirement: R003
+    description: Verify cancel_learn method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def cancel_learn", "../src/midi/cc_learn_manager.py"]
+        save_as: cancel_count
+    assert:
+      - op: gte
+        actual: $.cancel_count.stdout_int
+        expected: 1
+
+  - id: T006
+    name: learn_cancelled_signal
+    requirement: R003
+    description: Verify learn_cancelled signal exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "learn_cancelled.*pyqtSignal", "../src/midi/cc_learn_manager.py"]
+        save_as: signal_count
+    assert:
+      - op: gte
+        actual: $.signal_count.stdout_int
+        expected: 1
+
+  - id: T007
+    name: is_learning_exists
+    requirement: R004
+    description: Verify is_learning method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def is_learning", "../src/midi/cc_learn_manager.py"]
+        save_as: is_learning_count
+    assert:
+      - op: gte
+        actual: $.is_learning_count.stdout_int
+        expected: 1
+
+  - id: T008
+    name: get_armed_control_exists
+    requirement: R005
+    description: Verify get_armed_control method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def get_armed_control", "../src/midi/cc_learn_manager.py"]
+        save_as: get_armed_count
+    assert:
+      - op: gte
+        actual: $.get_armed_count.stdout_int
+        expected: 1
+
+  - id: T009
+    name: on_cc_received_exists
+    requirement: R006
+    description: Verify on_cc_received method exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "def on_cc_received", "../src/midi/cc_learn_manager.py"]
+        save_as: on_cc_count
+    assert:
+      - op: gte
+        actual: $.on_cc_count.stdout_int
+        expected: 1
+
+  - id: T010
+    name: learn_completed_signal
+    requirement: R006
+    description: Verify learn_completed signal exists
+    steps:
+      - action: shell
+        command: ["grep", "-c", "learn_completed.*pyqtSignal", "../src/midi/cc_learn_manager.py"]
+        save_as: signal_count
+    assert:
+      - op: gte
+        actual: $.signal_count.stdout_int
+        expected: 1
