@@ -5,6 +5,10 @@ UTF-8 Corruption Detection & ASCII Normalization Tool
 BROAD MODE: Catches ANY non-ASCII character in code files.
 For code (Python, SuperCollider, etc.), ASCII is almost always correct.
 
+SMART MODE: Distinguishes between:
+  - Legitimate: Isolated non-ASCII (intentional symbols like • ↻ →)
+  - Suspicious: Clustered non-ASCII (likely corruption like â†')
+
 Detects:
 - Invalid UTF-8 sequences (partial/corrupted bytes)
 - Replacement characters (U+FFFD)
@@ -17,7 +21,9 @@ Usage:
     python utf8_fix.py --report path/to/dir/     # Scan directory for ALL non-ASCII
     python utf8_fix.py --report path/to/file.py  # Scan single file
     python utf8_fix.py --dry-run path/to/file.py # Preview what --fix would change
-    python utf8_fix.py --fix path/to/file.scd    # Fix single file (creates backup)
+    python utf8_fix.py --dry-run --smart file.py # Categorize as legitimate vs suspicious
+    python utf8_fix.py --fix path/to/file.scd    # Fix ALL non-ASCII (creates backup)
+    python utf8_fix.py --smart-fix file.py       # Fix SUSPICIOUS only (creates backup)
     python utf8_fix.py --report . --ext .scd .py # Directory with extension filter
 """
 
@@ -96,6 +102,7 @@ NORMALIZE_MAP = {
     '\u2193': 'v',     # downwards arrow
     '\u21d2': '=>',    # rightwards double arrow
     '\u21d0': '<=',    # leftwards double arrow
+    '\u21bb': '[refresh]',  # clockwise rotation arrow
     
     # Math
     '\u00d7': 'x',     # multiplication sign
@@ -168,6 +175,46 @@ def is_printable_ascii(char: str) -> bool:
     code = ord(char)
     # Tab, newline, carriage return, or printable ASCII (space through tilde)
     return code == 9 or code == 10 or code == 13 or (32 <= code <= 126)
+
+
+def classify_issues_smart(line: str, issues: List[Issue]) -> Tuple[List[Issue], List[Issue]]:
+    """
+    Classify issues on a line as legitimate (isolated) or suspicious (clustered).
+    
+    Legitimate: non-ASCII character surrounded by ASCII (intentional use)
+    Suspicious: non-ASCII characters adjacent to each other (likely corruption)
+    
+    Returns (legitimate, suspicious) tuple.
+    """
+    if not issues:
+        return [], []
+    
+    # Get positions of all non-ASCII chars on this line
+    non_ascii_cols = {issue.col for issue in issues}
+    
+    legitimate = []
+    suspicious = []
+    
+    for issue in issues:
+        col = issue.col
+        # Check if there's another non-ASCII within 1 position (adjacent)
+        has_adjacent = (col - 1 in non_ascii_cols) or (col + 1 in non_ascii_cols)
+        
+        # Also check the actual characters at adjacent positions in the line
+        # (handles cases where we might have missed something)
+        line_idx = col - 1  # 0-indexed
+        left_char = line[line_idx - 1] if line_idx > 0 else ' '
+        right_char = line[line_idx + 1] if line_idx < len(line) - 1 else ' '
+        
+        left_is_non_ascii = not is_printable_ascii(left_char)
+        right_is_non_ascii = not is_printable_ascii(right_char)
+        
+        if has_adjacent or left_is_non_ascii or right_is_non_ascii:
+            suspicious.append(issue)
+        else:
+            legitimate.append(issue)
+    
+    return legitimate, suspicious
 
 
 def scan_content(content: str) -> List[Issue]:
@@ -244,29 +291,74 @@ def scan_file(filepath: Path) -> FileReport:
     return FileReport(path=filepath, issues=issues, has_invalid_utf8=False)
 
 
-def fix_content(content: str) -> Tuple[str, int]:
-    """Replace all non-ASCII with ASCII equivalents."""
-    result = []
+def fix_content(content: str, only_suspicious: bool = False) -> Tuple[str, int]:
+    """
+    Replace non-ASCII with ASCII equivalents.
+    
+    If only_suspicious=True, only fix characters that are adjacent to other non-ASCII.
+    """
+    if not only_suspicious:
+        # Original behavior: fix everything
+        result = []
+        fix_count = 0
+        
+        for char in content:
+            if is_printable_ascii(char):
+                result.append(char)
+            else:
+                replacement = NORMALIZE_MAP.get(char, '?')
+                result.append(replacement)
+                fix_count += 1
+        
+        return ''.join(result), fix_count
+    
+    # Smart mode: only fix suspicious (clustered) characters
+    lines = content.split('\n')
+    result_lines = []
     fix_count = 0
     
-    for char in content:
-        if is_printable_ascii(char):
-            result.append(char)
-        else:
-            replacement = NORMALIZE_MAP.get(char, '?')
-            result.append(replacement)
-            fix_count += 1
+    for line_num, line in enumerate(lines, 1):
+        # Find non-ASCII positions on this line
+        non_ascii_positions = []
+        for col, char in enumerate(line):
+            if not is_printable_ascii(char):
+                non_ascii_positions.append(col)
+        
+        if not non_ascii_positions:
+            result_lines.append(line)
+            continue
+        
+        # Determine which are suspicious (adjacent to other non-ASCII)
+        non_ascii_set = set(non_ascii_positions)
+        suspicious_cols = set()
+        
+        for col in non_ascii_positions:
+            # Check if adjacent to another non-ASCII
+            if (col - 1 in non_ascii_set) or (col + 1 in non_ascii_set):
+                suspicious_cols.add(col)
+        
+        # Build fixed line
+        result_chars = []
+        for col, char in enumerate(line):
+            if col in suspicious_cols:
+                replacement = NORMALIZE_MAP.get(char, '?')
+                result_chars.append(replacement)
+                fix_count += 1
+            else:
+                result_chars.append(char)
+        
+        result_lines.append(''.join(result_chars))
     
-    return ''.join(result), fix_count
+    return '\n'.join(result_lines), fix_count
 
 
-def fix_file_with_invalid_utf8(filepath: Path) -> Tuple[str, int]:
+def fix_file_with_invalid_utf8(filepath: Path, only_suspicious: bool = False) -> Tuple[str, int]:
     """Handle files with invalid UTF-8 by reading as bytes and cleaning."""
     raw_bytes = filepath.read_bytes()
     
     # Decode with replacement, then normalize
     content = raw_bytes.decode('utf-8', errors='replace')
-    return fix_content(content)
+    return fix_content(content, only_suspicious=only_suspicious)
 
 
 def collect_files(path: Path, extensions: Optional[List[str]] = None) -> List[Path]:
@@ -352,8 +444,16 @@ def print_report(reports: List[FileReport], verbose: bool = True) -> Tuple[int, 
     return files_with_issues, total_issues, invalid_utf8_count
 
 
-def print_dry_run(reports: List[FileReport]) -> None:
-    """Show line-by-line preview of what --fix would change."""
+def print_dry_run(reports: List[FileReport], smart: bool = False) -> Tuple[int, int]:
+    """
+    Show line-by-line preview of what --fix would change.
+    
+    If smart=True, categorize as legitimate vs suspicious.
+    Returns (legitimate_count, suspicious_count).
+    """
+    total_legitimate = 0
+    total_suspicious = 0
+    
     for report in reports:
         if not report.issues and not report.has_invalid_utf8:
             continue
@@ -380,25 +480,85 @@ def print_dry_run(reports: List[FileReport]) -> None:
                 issues_by_line[issue.line_num] = []
             issues_by_line[issue.line_num].append(issue)
         
-        # Show each affected line
-        for line_num in sorted(issues_by_line.keys()):
-            original_line = lines[line_num - 1]
-            fixed_line = original_line
+        if smart:
+            # Smart mode: categorize and display separately
+            file_legitimate = []
+            file_suspicious = []
             
-            # Apply fixes (in reverse column order to preserve positions)
-            for issue in sorted(issues_by_line[line_num], key=lambda i: i.col, reverse=True):
-                col = issue.col - 1  # 0-indexed
-                char = original_line[col] if col < len(original_line) else ''
-                replacement = NORMALIZE_MAP.get(char, '?')
-                fixed_line = fixed_line[:col] + replacement + fixed_line[col+1:]
+            for line_num in sorted(issues_by_line.keys()):
+                line = lines[line_num - 1]
+                legit, susp = classify_issues_smart(line, issues_by_line[line_num])
+                file_legitimate.extend(legit)
+                file_suspicious.extend(susp)
             
-            print(f"\nL{line_num}:")
-            print(f"  - {repr(original_line)}")
-            print(f"  + {repr(fixed_line)}")
+            total_legitimate += len(file_legitimate)
+            total_suspicious += len(file_suspicious)
             
-            # Show what chars changed
-            changes = [f"{i.codepoint}->'{i.replacement}'" for i in issues_by_line[line_num]]
-            print(f"    ({', '.join(changes)})")
+            # Print legitimate
+            if file_legitimate:
+                print("\nLEGITIMATE (isolated non-ASCII):")
+                for issue in file_legitimate:
+                    # Get actual char from line
+                    line = lines[issue.line_num - 1]
+                    char = line[issue.col - 1] if issue.col <= len(line) else '?'
+                    print(f"  L{issue.line_num}:C{issue.col}  {char}  ({issue.codepoint}) in '...{issue.context}...'")
+            else:
+                print("\nLEGITIMATE (isolated non-ASCII):")
+                print("  (none)")
+            
+            # Print suspicious with fix preview
+            if file_suspicious:
+                print("\nSUSPICIOUS (adjacent to other non-ASCII):")
+                # Group by line for preview
+                susp_by_line: Dict[int, List[Issue]] = {}
+                for issue in file_suspicious:
+                    if issue.line_num not in susp_by_line:
+                        susp_by_line[issue.line_num] = []
+                    susp_by_line[issue.line_num].append(issue)
+                
+                for line_num in sorted(susp_by_line.keys()):
+                    original_line = lines[line_num - 1]
+                    fixed_line = original_line
+                    
+                    # Apply fixes (in reverse column order to preserve positions)
+                    for issue in sorted(susp_by_line[line_num], key=lambda i: i.col, reverse=True):
+                        col = issue.col - 1  # 0-indexed
+                        char = original_line[col] if col < len(original_line) else ''
+                        replacement = NORMALIZE_MAP.get(char, '?')
+                        fixed_line = fixed_line[:col] + replacement + fixed_line[col+1:]
+                    
+                    print(f"\n  L{line_num}:")
+                    print(f"    - {repr(original_line)}")
+                    print(f"    + {repr(fixed_line)}")
+                    
+                    changes = [f"{i.codepoint}->'{i.replacement}'" for i in susp_by_line[line_num]]
+                    print(f"      ({', '.join(changes)})")
+            else:
+                print("\nSUSPICIOUS (adjacent to other non-ASCII):")
+                print("  (none)")
+            
+        else:
+            # Original dry-run behavior: show all as fixes
+            for line_num in sorted(issues_by_line.keys()):
+                original_line = lines[line_num - 1]
+                fixed_line = original_line
+                
+                # Apply fixes (in reverse column order to preserve positions)
+                for issue in sorted(issues_by_line[line_num], key=lambda i: i.col, reverse=True):
+                    col = issue.col - 1  # 0-indexed
+                    char = original_line[col] if col < len(original_line) else ''
+                    replacement = NORMALIZE_MAP.get(char, '?')
+                    fixed_line = fixed_line[:col] + replacement + fixed_line[col+1:]
+                
+                print(f"\nL{line_num}:")
+                print(f"  - {repr(original_line)}")
+                print(f"  + {repr(fixed_line)}")
+                
+                # Show what chars changed
+                changes = [f"{i.codepoint}->'{i.replacement}'" for i in issues_by_line[line_num]]
+                print(f"    ({', '.join(changes)})")
+    
+    return total_legitimate, total_suspicious
 
 
 def create_backup(filepath: Path, backup_dir: Path) -> Path:
@@ -428,10 +588,17 @@ Catches ANY non-ASCII character in code files:
   - Unicode arrows, bullets, symbols
   - Replacement characters (corruption indicator)
 
+Smart mode distinguishes:
+  - LEGITIMATE: Isolated non-ASCII (surrounded by ASCII) - likely intentional
+  - SUSPICIOUS: Clustered non-ASCII (adjacent to each other) - likely corruption
+
 Examples:
   %(prog)s --report packs/           # Find ALL non-ASCII in packs dir
   %(prog)s --report tools/foo.py     # Check single file
-  %(prog)s --fix packs/gen.scd       # Fix single file
+  %(prog)s --dry-run file.py         # Preview all fixes
+  %(prog)s --dry-run --smart file.py # Categorize legitimate vs suspicious
+  %(prog)s --fix packs/gen.scd       # Fix ALL non-ASCII
+  %(prog)s --smart-fix file.py       # Fix SUSPICIOUS only (keep legitimate)
   %(prog)s --report . --ext .scd     # Check only .scd files in dir
         """
     )
@@ -442,9 +609,13 @@ Examples:
     mode.add_argument('--dry-run', action='store_true',
                       help='Preview fixes line-by-line (no changes made)')
     mode.add_argument('--fix', action='store_true',
-                      help='Normalize to ASCII (backups created)')
+                      help='Normalize ALL non-ASCII to ASCII (backups created)')
+    mode.add_argument('--smart-fix', action='store_true',
+                      help='Normalize only SUSPICIOUS non-ASCII (backups created)')
     
     parser.add_argument('path', type=Path, help='File or directory to process')
+    parser.add_argument('--smart', action='store_true',
+                        help='With --dry-run: categorize as legitimate vs suspicious')
     parser.add_argument('--ext', nargs='+', metavar='EXT',
                         help='File extensions (e.g., .scd .py)')
     parser.add_argument('--backup-dir', type=Path,
@@ -456,6 +627,11 @@ Examples:
     
     if not args.path.exists():
         print(f"Error: Path not found: {args.path}")
+        sys.exit(1)
+    
+    if args.smart and not args.dry_run:
+        print("Error: --smart only works with --dry-run")
+        print("       Use --smart-fix to fix only suspicious characters")
         sys.exit(1)
     
     # Normalize extensions
@@ -491,18 +667,32 @@ Examples:
     
     if args.report:
         print("\nRun with --dry-run to preview fixes, or --fix to apply")
+        print("Run with --dry-run --smart to see legitimate vs suspicious")
         sys.exit(1 if invalid_utf8 else 0)
     
     if args.dry_run:
-        print_dry_run(reports)
+        total_legit, total_susp = print_dry_run(reports, smart=args.smart)
         print("\n" + "=" * 60)
-        print("DRY RUN - no changes made")
-        print("Run with --fix to apply these changes")
+        if args.smart:
+            print(f"{total_legit} legitimate, {total_susp} suspicious")
+            if total_susp > 0:
+                print("Run with --smart-fix to replace SUSPICIOUS only")
+            if total_legit > 0:
+                print("Run with --fix to replace ALL (including legitimate)")
+        else:
+            print("DRY RUN - no changes made")
+            print("Run with --fix to apply these changes")
+            print("Run with --dry-run --smart to categorize legitimate vs suspicious")
         sys.exit(0)
     
-    # Fix mode
+    # Fix mode (--fix or --smart-fix)
+    only_suspicious = args.smart_fix
+    
     print("\n" + "=" * 60)
-    print("Normalizing to ASCII...")
+    if only_suspicious:
+        print("Normalizing SUSPICIOUS non-ASCII to ASCII (keeping legitimate)...")
+    else:
+        print("Normalizing ALL non-ASCII to ASCII...")
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if args.backup_dir:
@@ -515,6 +705,7 @@ Examples:
     print(f"Backups: {backup_dir}")
     
     fixed_count = 0
+    chars_fixed = 0
     for report in reports:
         if not report.issues and not report.has_invalid_utf8:
             continue
@@ -525,18 +716,22 @@ Examples:
         create_backup(filepath, backup_dir)
         
         if report.has_invalid_utf8:
-            fixed_content, fix_count = fix_file_with_invalid_utf8(filepath)
+            fixed_content, fix_count = fix_file_with_invalid_utf8(filepath, only_suspicious=only_suspicious)
         else:
             content = filepath.read_text(encoding='utf-8')
-            fixed_content, fix_count = fix_content(content)
+            fixed_content, fix_count = fix_content(content, only_suspicious=only_suspicious)
         
-        filepath.write_text(fixed_content, encoding='utf-8')
-        fixed_count += 1
-        
-        if not args.quiet:
+        if fix_count > 0:
+            filepath.write_text(fixed_content, encoding='utf-8')
+            fixed_count += 1
+            chars_fixed += fix_count
+            
+            if not args.quiet:
+                print(f"  Fixed: {filepath} ({fix_count} chars)")
+        elif not args.quiet and not only_suspicious:
             print(f"  Fixed: {filepath} ({fix_count} chars)")
     
-    print(f"\nFixed {fixed_count} file(s)")
+    print(f"\nFixed {chars_fixed} char(s) in {fixed_count} file(s)")
 
 
 if __name__ == '__main__':
