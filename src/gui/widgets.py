@@ -3,7 +3,7 @@ Reusable UI Widgets
 Atomic components with no business logic - just behavior
 """
 
-from PyQt5.QtWidgets import QSlider, QPushButton, QLabel, QApplication, QWidget
+from PyQt5.QtWidgets import QSlider, QPushButton, QLabel, QApplication, QWidget, QMenu
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPoint
 from PyQt5.QtGui import QFont, QPainter, QPen, QColor
 
@@ -366,6 +366,34 @@ class DragSlider(QSlider):
             else:
                 self.valueChanged.emit(self._double_click_value)
         super().mouseDoubleClickEvent(event)
+
+    def contextMenuEvent(self, event):
+        """Right-click menu for MIDI Learn."""
+        menu = QMenu(self)
+
+        # Check if mapped
+        main_frame = self.window()
+        is_mapped = self.property('midiMapped')
+
+        if is_mapped:
+            menu.addAction("Clear MIDI Mapping", self._clear_midi_mapping)
+
+        menu.addAction("MIDI Learn", self._start_midi_learn)
+        menu.exec_(event.globalPos())
+
+    def _start_midi_learn(self):
+        """Start MIDI Learn for this control."""
+        main_frame = self.window()
+        if hasattr(main_frame, 'cc_learn_manager'):
+            main_frame.cc_learn_manager.start_learn(self)
+
+    def _clear_midi_mapping(self):
+        """Clear MIDI mapping for this control."""
+        main_frame = self.window()
+        if hasattr(main_frame, 'cc_mapping_manager'):
+            main_frame.cc_mapping_manager.remove_mapping(self)
+            self.setProperty('midiMapped', False)
+            self.style().polish(self)
 
 
 class MiniSlider(DragSlider):
