@@ -100,9 +100,6 @@ def build_modulator_header(slot):
     slot.gen_button = CycleButton(MOD_GENERATOR_CYCLE, initial_index=initial_idx)
     slot.gen_button.setObjectName(f"mod{slot.slot_id}_type")  # DEBUG
     slot.gen_button.setFixedSize(mt['header_button_width'], mt['header_button_height'])
-    # CRITICAL: allow shrink below sizeHint, prevents overflow
-    slot.gen_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-    slot.gen_button.setMinimumWidth(0)
     slot.gen_button.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
     slot.gen_button.setStyleSheet(button_style('submenu'))
     # Left-align text with padding
