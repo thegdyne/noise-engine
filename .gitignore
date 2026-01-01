@@ -61,11 +61,7 @@ packs/user/*
 !packs/user/.gitkeep
 
 # User scratch pack: keep folder, ignore contents
-!packs/user/
-packs/user/*
-!packs/user/.gitkeep
 
-packs/*
 !packs/amber-threshold/
 !packs/arctic_henge/
 !packs/astro_command/
@@ -119,6 +115,4 @@ packs/*
 !packs/nexus/
 PROJECT_CONTEXT.md
 _utf8_backups_*/
-.context-cache/
-.context-cache/
 .context-cache/

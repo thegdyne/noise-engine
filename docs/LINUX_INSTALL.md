@@ -157,7 +157,7 @@ source venv/bin/activate
 python main.py
 ```
 
-The app will start SuperCollider automatically. Watch the status indicator in the header — it should turn green when connected.
+Before launching Noise Engine, open SuperCollider and run `supercollider/init.scd`. Watch the status indicator in the header — it should turn green when connected.
 
 ---
 
