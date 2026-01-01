@@ -269,11 +269,67 @@ class ChannelStrip(QWidget):
         from PyQt5.QtWidgets import QSlider
 
         class PanSlider(QSlider):
-            """Pan slider with double-click to center."""
+            """Pan slider with double-click to center and MIDI support."""
+
+            def __init__(self, orientation, parent=None):
+                super().__init__(orientation, parent)
+                self._midi_armed = False
+                self._midi_mapped = False
+
             def mouseDoubleClickEvent(self, event):
                 self.setValue(0)  # Center on double-click
 
+            def set_midi_armed(self, armed):
+                self._midi_armed = armed
+                self.update()
+
+            def set_midi_mapped(self, mapped):
+                self._midi_mapped = mapped
+                self.update()
+
+            def _get_main_frame(self):
+                widget = self.window()
+                while widget:
+                    if hasattr(widget, 'cc_mapping_manager'):
+                        return widget
+                    widget = widget.parent()
+                return None
+
+            def _start_midi_learn(self):
+                main_frame = self._get_main_frame()
+                if main_frame:
+                    main_frame.cc_learn_manager.start_learn(self)
+
+            def _clear_midi_mapping(self):
+                main_frame = self._get_main_frame()
+                if main_frame:
+                    main_frame.cc_mapping_manager.remove_mapping(self)
+                    self.set_midi_mapped(False)
+
+            def contextMenuEvent(self, event):
+                from PyQt5.QtWidgets import QMenu
+                menu = QMenu(self)
+                main_frame = self._get_main_frame()
+                if not main_frame:
+                    return
+                if self._midi_mapped:
+                    menu.addAction("Clear MIDI Mapping", self._clear_midi_mapping)
+                menu.addAction("MIDI Learn", self._start_midi_learn)
+                menu.exec_(event.globalPos())
+
+            def paintEvent(self, event):
+                super().paintEvent(event)
+                if self._midi_mapped:
+                    from PyQt5.QtGui import QPainter, QColor
+                    from PyQt5.QtCore import Qt
+                    painter = QPainter(self)
+                    painter.setBrush(QColor('#FF00FF'))
+                    painter.setPen(Qt.NoPen)
+                    painter.drawEllipse(self.width() - 6, 0, 4, 4)
+                    painter.end()
+
         self.pan_slider = PanSlider(Qt.Horizontal)
+        self.pan_slider.setObjectName(f"mixer{self.channel_id}_pan")
         self.pan_slider.setRange(-100, 100)  # -100 = L, 0 = C, 100 = R
         self.pan_slider.setValue(0)
         self.pan_slider.setFixedWidth(45)
