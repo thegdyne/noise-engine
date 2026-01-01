@@ -805,14 +805,26 @@ class CycleButton(QPushButton):
             self._emit_signals()
 
     def handle_cc(self, value):
-        """Handle CC for cycling. Returns True if should cycle."""
-        cc_high = value >= 64
-        # Cycle only on rising edge
-        if cc_high and not self._last_cc_high:
+        """Handle CC - button cycles with wrap, knob sweeps through options."""
+        # Detect if this is a button (0 or 127) or knob (values in between)
+        if value == 0 or value == 127:
+            # Button-style: cycle on rising edge
+            cc_high = value >= 64
+            if cc_high and not self._last_cc_high:
+                self._last_cc_high = cc_high
+                return True  # Will trigger cycle_forward
             self._last_cc_high = cc_high
-            return True
-        self._last_cc_high = cc_high
-        return False
+            return False
+        else:
+            # Knob-style: set index directly based on CC position
+            num_options = len(self.values)
+            new_index = int((value / 127.0) * (num_options - 1) + 0.5)
+            new_index = max(0, min(new_index, num_options - 1))
+            if new_index != self.index:
+                self.index = new_index
+                self._update_display()
+                self._emit_signals()
+            return False  # Don't trigger cycle_forward
 
     def _get_main_frame(self):
         """Find MainFrame by walking up parent chain."""

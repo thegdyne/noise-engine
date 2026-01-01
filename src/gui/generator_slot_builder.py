@@ -259,7 +259,7 @@ def build_generator_button_strip(slot):
             btn.setFixedSize(btn_width, btn_height)
             btn.setFont(QFont(cfg['font'], cfg['font_size'], QFont.Bold if cfg['font_bold'] else QFont.Normal))
             btn.setStyleSheet(button_style(cfg['style']))
-            btn.wrap = False
+            btn.wrap = True
             btn.value_changed.connect(slot.on_rate_changed)
             btn.setEnabled(False)
 
