@@ -174,7 +174,7 @@ Empty generator = no synth, buses zeroed.
         ~modOutputState[idx][output][\polarity] = polarity;
         
         // Parameter name depends on generator type
-        if(genName == "LFO") {
+        if((genName == "LFO") || (genName == "ARSEq+")) {
             paramName = [\polarityA, \polarityB, \polarityC, \polarityD][output];
         } {
             paramName = [\polarityX, \polarityY, \polarityZ, \polarityR][output];

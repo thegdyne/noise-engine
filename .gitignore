@@ -116,3 +116,4 @@ packs/user/*
 PROJECT_CONTEXT.md
 _utf8_backups_*/
 .context-cache/
+analysis/
