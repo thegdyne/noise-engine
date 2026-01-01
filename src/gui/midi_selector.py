@@ -134,6 +134,7 @@ class MIDISelector(QWidget):
                 self.combo.setCurrentIndex(0)
 
         self.combo.blockSignals(False)
+
     def on_device_selected(self, index):
         """Handle device selection."""
         device_name = self.combo.currentText()
@@ -166,8 +167,9 @@ class MIDISelector(QWidget):
         try:
             with open(self._config_path, 'w') as f:
                 json.dump({'last_device': device_name}, f)
-        except Exception:
-            pass  # Silent fail
+        except (IOError, OSError) as e:
+            # Non-critical: config save failure doesn't affect functionality
+            pass
 
     def _load_last_device(self):
         """Load last selected device from config."""
@@ -176,6 +178,7 @@ class MIDISelector(QWidget):
                 with open(self._config_path, 'r') as f:
                     data = json.load(f)
                     return data.get('last_device', '')
-        except Exception:
+        except (IOError, OSError, json.JSONDecodeError):
+            # Non-critical: missing/corrupt config just means no device pre-selected
             pass
         return ''
