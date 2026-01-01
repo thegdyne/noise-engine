@@ -1,0 +1,181 @@
+contract: arseq_plus_phase5
+version: 1.0.0
+status: frozen
+cdd_spec: "1.1.5"
+
+description: |
+  ARSEq+ Phase 5: Integration
+  Forward signals through ModulatorGrid, connect in MainFrame, send OSC.
+  
+  Source ref:
+    - src/gui/modulator_grid.py (signal forwarding pattern)
+    - src/gui/main_frame.py (signal connection pattern)
+
+runner:
+  executor: shell
+
+requirements:
+  - id: R001
+    priority: must
+    description: ModulatorGrid forwards ARSEq+ envelope signals
+    source_ref: "modulator_grid.py signal pattern"
+    acceptance_criteria:
+      - env_attack_changed signal defined in ModulatorGrid
+      - env_release_changed signal defined in ModulatorGrid
+      - env_curve_changed signal defined in ModulatorGrid
+      - env_sync_mode_changed signal defined in ModulatorGrid
+
+  - id: R002
+    priority: must
+    description: ModulatorGrid connects slot signals
+    source_ref: "modulator_grid.py _connect_slot_signals"
+    acceptance_criteria:
+      - env_attack_changed connected in _connect_slot_signals
+      - env_release_changed connected in _connect_slot_signals
+
+  - id: R003
+    priority: must
+    description: MainFrame connects ModulatorGrid ARSEq+ signals
+    source_ref: "main_frame.py signal connections"
+    acceptance_criteria:
+      - env_attack_changed connected to handler
+      - env_release_changed connected to handler
+
+  - id: R004
+    priority: must
+    description: MainFrame has ARSEq+ envelope OSC handlers
+    source_ref: "main_frame.py handler pattern"
+    acceptance_criteria:
+      - on_mod_env_attack handler exists
+      - on_mod_env_release handler exists
+
+tests:
+  - id: T001
+    name: grid_env_attack_signal
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "env_attack_changed.*pyqtSignal", "../src/gui/modulator_grid.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T002
+    name: grid_env_release_signal
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "env_release_changed.*pyqtSignal", "../src/gui/modulator_grid.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T003
+    name: grid_env_curve_signal
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "env_curve_changed.*pyqtSignal", "../src/gui/modulator_grid.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T004
+    name: grid_env_sync_signal
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "env_sync_mode_changed.*pyqtSignal", "../src/gui/modulator_grid.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T005
+    name: grid_connect_env_attack
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "env_attack_changed.connect", "../src/gui/modulator_grid.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T006
+    name: grid_connect_env_release
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "env_release_changed.connect", "../src/gui/modulator_grid.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T007
+    name: main_connect_env_attack
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "env_attack_changed.connect", "../src/gui/main_frame.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T008
+    name: main_connect_env_release
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "env_release_changed.connect", "../src/gui/main_frame.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T009
+    name: main_handler_env_attack
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "def on_mod_env_attack", "../src/gui/main_frame.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T010
+    name: main_handler_env_release
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "def on_mod_env_release", "../src/gui/main_frame.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
