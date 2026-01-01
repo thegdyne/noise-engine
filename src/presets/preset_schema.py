@@ -326,6 +326,60 @@ class ModSourcesState:
         return cls(slots=slots[:NUM_MOD_SLOTS])
 
 
+# Phase 6: ARSEq+ modulator state
+
+@dataclass
+class ARSeqEnvelopeState:
+    """State for a single ARSEq+ envelope."""
+    attack: float = 0.5  # Normalized 0–1
+    release: float = 0.5  # Normalized 0–1
+    curve: float = 0.5  # 0=LOG, 0.5=LIN, 1=EXP
+    sync_mode: int = 0  # 0=SYNC, 1=LOOP
+    loop_rate: int = 6  # Index into MOD_CLOCK_RATES
+    polarity: int = 0  # 0=NORM, 1=INV
+
+
+@dataclass
+class ARSeqPlusState:
+    """Full ARSEq+ modulator state."""
+    mode: int = 0  # 0=SEQ, 1=PAR
+    clock_mode: int = 0  # 0=CLK, 1=FREE
+    rate: float = 0.5  # Normalized 0–1
+    envelopes: list = field(default_factory=lambda: [
+        ARSeqEnvelopeState() for _ in range(4)
+    ])
+
+    def to_dict(self) -> dict:
+        return {
+            "mode": self.mode,
+            "clock_mode": self.clock_mode,
+            "rate": self.rate,
+            "envelopes": [
+                {
+                    "attack": e.attack,
+                    "release": e.release,
+                    "curve": e.curve,
+                    "sync_mode": e.sync_mode,
+                    "loop_rate": e.loop_rate,
+                    "polarity": e.polarity,
+                }
+                for e in self.envelopes
+            ]
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ARSeqPlusState":
+        envelopes = [
+            ARSeqEnvelopeState(**e)
+            for e in data.get("envelopes", [{} for _ in range(4)])
+        ]
+        return cls(
+            mode=data.get("mode", 0),
+            clock_mode=data.get("clock_mode", 0),
+            rate=data.get("rate", 0.5),
+            envelopes=envelopes,
+        )
+
 # Phase 5: FX State dataclasses
 
 @dataclass

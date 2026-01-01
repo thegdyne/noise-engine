@@ -140,6 +140,8 @@ COLORS = {
     'accent_mod_sloth': get('accent_mod_sloth'),
     'accent_mod_sloth_dim': get('accent_mod_sloth_dim'),
     'accent_effect': get('accent_effect'),
+    'accent_mod_arseq_plus': get('accent_mod_arseq_plus'),
+    'accent_mod_arseq_plus_dim': get('accent_mod_arseq_plus_dim'),
     'accent_effect_dim': get('accent_effect_dim'),
     
     # Scope
