@@ -16,7 +16,7 @@ from PyQt5.QtGui import QFont
 from .theme import (COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES,
                     mute_button_style, gate_indicator_style, midi_channel_style,
                     GENERATOR_THEME, slider_style)
-from .widgets import DragSlider, CycleButton
+from .widgets import DragSlider, CycleButton, MidiButton
 from src.config import (
     FILTER_TYPES, CLOCK_RATES, CLOCK_DEFAULT_INDEX, SIZES,
     GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE,
@@ -285,7 +285,7 @@ def build_generator_button_strip(slot):
             btn.value_changed.connect(slot.on_midi_channel_changed)
 
         elif btn_key == 'mute':
-            slot.mute_btn = QPushButton("M")
+            slot.mute_btn = MidiButton("M")
             slot.mute_btn.setObjectName(f"gen{slot.slot_id}_mute")
             btn = slot.mute_btn
             btn.setFixedSize(btn_width, btn_height)

@@ -446,12 +446,19 @@ class MainFrame(QMainWindow):
         self.connect_btn.setStyleSheet(self._connect_btn_style())
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
-        
+
         self.status_label = QLabel("Disconnected")
         self.status_label.setFixedWidth(130)  # FIXED: fits "CONNECTION LOST"
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
-        
+
+        # MIDI status
+        self.midi_status_label = QLabel("MIDI: Ready")
+        self.midi_status_label.setFixedWidth(100)
+        self.midi_status_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        self.midi_status_label.setToolTip("MIDI CC control active")
+        layout.addWidget(self.midi_status_label)
+
         layout.addSpacing(10)
         
         # Console toggle button
@@ -1724,10 +1731,13 @@ class MainFrame(QMainWindow):
         
         # Phase 5: FX state
         fx = self.fx_window.get_state() if self.fx_window else FXState()
+
+        # Phase 6: MIDI mappings
+        midi_mappings = self.cc_mapping_manager.to_dict()
         
         # Get current pack
         current_pack = get_current_pack()
-        
+
         state = PresetState(
             pack=current_pack,
             slots=slots,
@@ -1737,6 +1747,7 @@ class MainFrame(QMainWindow):
             mod_sources=mod_sources,
             mod_routing=mod_routing,
             fx=fx,
+            midi_mappings=midi_mappings,
         )
 
         # Get filename from user
@@ -1838,6 +1849,18 @@ class MainFrame(QMainWindow):
         # Phase 5: FX state
         if self.fx_window:
             self.fx_window.set_state(state.fx)
+
+        # Phase 6: MIDI mappings (if preset contains them)
+        if state.midi_mappings:
+            # Clear existing visual badges
+            for controls in self.cc_mapping_manager.get_all_mappings().values():
+                for control in controls:
+                    if hasattr(control, 'set_midi_mapped'):
+                        control.set_midi_mapped(False)
+            # Load new mappings
+            self.cc_mapping_manager.from_dict(state.midi_mappings, self._find_control_by_name)
+            self._update_midi_status()
+            self._show_toast("MIDI mappings loaded from preset")
 
     def _init_preset(self):
         """Reset to default empty state (Cmd+N / Ctrl+N)."""
@@ -2072,7 +2095,17 @@ class MainFrame(QMainWindow):
             control.set_midi_armed(False)
         if hasattr(control, 'set_midi_mapped'):
             control.set_midi_mapped(True)
+
+        # Check for duplicate mappings
+        existing = self.cc_mapping_manager.get_controls(channel, cc)
+        other_controls = [c for c in existing if c != control]
+        if other_controls:
+            names = [c.objectName() for c in other_controls if c.objectName()]
+            if names:
+                self._show_toast(f"CC{cc} also mapped to: {', '.join(names)}")
+
         logger.info(f"MIDI mapped: Ch{channel} CC{cc} -> {control.objectName()}", component="MIDI")
+        self._update_midi_status()
 
     def _on_learn_cancelled(self, control):
         """Visual feedback when MIDI Learn cancelled."""
@@ -2127,6 +2160,7 @@ class MainFrame(QMainWindow):
                 data = json.load(f)
             self.cc_mapping_manager.from_dict(data, self._find_control_by_name)
             logger.info(f"Loaded MIDI mappings from {path}", component="MIDI")
+        self._update_midi_status()
 
     def clear_all_midi_mappings(self):
         """Clear all MIDI mappings."""
@@ -2137,6 +2171,7 @@ class MainFrame(QMainWindow):
                     control.set_midi_mapped(False)
         self.cc_mapping_manager.clear_all()
         logger.info("Cleared all MIDI mappings", component="MIDI")
+        self._update_midi_status()
 
     def _setup_midi_menu(self):
         """Create MIDI menu in menu bar."""
@@ -2147,3 +2182,32 @@ class MainFrame(QMainWindow):
         midi_menu.addAction("Load Mappings...", self.load_midi_mappings)
         midi_menu.addSeparator()
         midi_menu.addAction("Clear All Mappings", self.clear_all_midi_mappings)
+
+    def _update_midi_status(self):
+        """Update MIDI status label with mapping count."""
+        count = len(self.cc_mapping_manager.to_dict())
+        if count == 0:
+            self.midi_status_label.setText("MIDI: Ready")
+            self.midi_status_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        else:
+            self.midi_status_label.setText(f"MIDI: {count} mapped")
+            self.midi_status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
+
+    def _show_toast(self, message, duration=3000):
+        """Show brief toast notification."""
+        from PyQt5.QtWidgets import QLabel
+        from PyQt5.QtCore import QTimer
+
+        toast = QLabel(message, self)
+        toast.setStyleSheet(f"""
+            background-color: {COLORS['background_light']};
+            color: {COLORS['text']};
+            padding: 8px 16px;
+            border: 1px solid {COLORS['border']};
+            border-radius: 4px;
+        """)
+        toast.adjustSize()
+        toast.move(self.width() // 2 - toast.width() // 2, 50)
+        toast.show()
+
+        QTimer.singleShot(duration, toast.deleteLater)

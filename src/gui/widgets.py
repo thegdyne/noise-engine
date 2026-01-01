@@ -593,6 +593,10 @@ class CycleButton(QPushButton):
         self.drag_start_y = 0
         self.drag_start_index = 0
         self.moved_during_press = False
+
+        # MIDI mapping support
+        self._midi_armed = False
+        self._midi_mapped = False
     
     def _should_skip(self, index):
         """Check if value at index should be skipped."""
@@ -768,6 +772,84 @@ class CycleButton(QPushButton):
         # Set tooltip to full text if elided
         if elided != text:
             self.setToolTip(text)
+
+    def set_midi_armed(self, armed):
+        """Set MIDI Learn armed state."""
+        self._midi_armed = armed
+        self.update()
+
+    def set_midi_mapped(self, mapped):
+        """Set MIDI mapped state."""
+        self._midi_mapped = mapped
+        self.update()
+
+    def minimum(self):
+        """Return minimum index (for MIDI CC compatibility)."""
+        return 0
+
+    def maximum(self):
+        """Return maximum index (for MIDI CC compatibility)."""
+        return len(self.values) - 1
+
+    def value(self):
+        """Return current index (for MIDI CC compatibility)."""
+        return self.index
+
+    def setValue(self, index):
+        """Set index (for MIDI CC compatibility)."""
+        index = max(0, min(index, len(self.values) - 1))
+        if index != self.index:
+            self.index = index
+            self._update_display()
+            self._emit_signals()
+
+    def _get_main_frame(self):
+        """Find MainFrame by walking up parent chain."""
+        widget = self.window()
+        while widget:
+            if hasattr(widget, 'cc_mapping_manager'):
+                return widget
+            widget = widget.parent()
+        return None
+
+    def _start_midi_learn(self):
+        """Start MIDI Learn for this control."""
+        main_frame = self._get_main_frame()
+        if main_frame:
+            main_frame.cc_learn_manager.start_learn(self)
+
+    def _clear_midi_mapping(self):
+        """Clear MIDI mapping for this control."""
+        main_frame = self._get_main_frame()
+        if main_frame:
+            main_frame.cc_mapping_manager.remove_mapping(self)
+            self.set_midi_mapped(False)
+
+    def contextMenuEvent(self, event):
+        """Right-click menu for MIDI Learn."""
+        menu = QMenu(self)
+
+        main_frame = self._get_main_frame()
+        if not main_frame:
+            return
+
+        if self._midi_mapped:
+            menu.addAction("Clear MIDI Mapping", self._clear_midi_mapping)
+
+        menu.addAction("MIDI Learn", self._start_midi_learn)
+        menu.exec_(event.globalPos())
+
+    def paintEvent(self, event):
+        """Draw button with MIDI badge."""
+        super().paintEvent(event)
+
+        if self._midi_mapped:
+            from PyQt5.QtGui import QPainter
+            painter = QPainter(self)
+            painter.setBrush(QColor('#FF00FF'))
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(self.width() - 6, 1, 4, 4)
+            painter.end()
 
 class MiniKnob(QWidget):
     """
