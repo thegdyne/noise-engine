@@ -97,7 +97,7 @@ class DragSlider(QSlider):
         # MIDI mapping visual state
         self._midi_armed = False
         self._midi_mapped = False
-    
+
     def set_modulation_range(self, min_norm: float, max_norm: float, 
                              inner_min: float = None, inner_max: float = None,
                              color: QColor = None):
@@ -597,7 +597,8 @@ class CycleButton(QPushButton):
         # MIDI mapping support
         self._midi_armed = False
         self._midi_mapped = False
-    
+        self._last_cc_high = False  # Edge detection for cycling
+
     def _should_skip(self, index):
         """Check if value at index should be skipped."""
         if self.skip_prefix is None:
@@ -802,6 +803,16 @@ class CycleButton(QPushButton):
             self.index = index
             self._update_display()
             self._emit_signals()
+
+    def handle_cc(self, value):
+        """Handle CC for cycling. Returns True if should cycle."""
+        cc_high = value >= 64
+        # Cycle only on rising edge
+        if cc_high and not self._last_cc_high:
+            self._last_cc_high = cc_high
+            return True
+        self._last_cc_high = cc_high
+        return False
 
     def _get_main_frame(self):
         """Find MainFrame by walking up parent chain."""

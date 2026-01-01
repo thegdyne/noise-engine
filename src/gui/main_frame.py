@@ -2013,26 +2013,17 @@ class MainFrame(QMainWindow):
         if self.cc_learn_manager.is_learning():
             self.cc_learn_manager.on_cc_received(channel, cc, value)
         else:
-            # Check if any mapped controls are buttons - handle immediately
-            controls = self.cc_mapping_manager.get_controls(channel, cc)
-            for control in controls:
-                if hasattr(control, 'handle_cc'):
-                    # Button - instant response, no buffering
-                    self._apply_cc_to_control(control, channel, cc, value)
-                else:
-                    # Slider/knob - buffer for flood control
-                    self._pending_cc[(channel, cc)] = value
+            # Buffer all CCs - process in timer
+            self._pending_cc[(channel, cc)] = value
 
     def _process_pending_cc(self):
         """Process buffered CC updates (~60Hz)."""
         if not self._pending_cc:
             return
 
-        # Snapshot and clear
-        pending = self._pending_cc.copy()
+        pending = dict(self._pending_cc)
         self._pending_cc.clear()
 
-        # Process each pending CC
         for (channel, cc), value in pending.items():
             controls = self.cc_mapping_manager.get_controls(channel, cc)
             for control in controls:
@@ -2044,7 +2035,10 @@ class MainFrame(QMainWindow):
         if hasattr(control, 'handle_cc'):
             should_activate = control.handle_cc(value)
             if should_activate:
-                control.click()
+                if hasattr(control, 'cycle_forward'):
+                    control.cycle_forward()
+                else:
+                    control.click()
             return
 
         # Handle sliders/knobs

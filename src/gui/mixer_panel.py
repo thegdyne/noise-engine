@@ -104,9 +104,9 @@ class ChannelStrip(QWidget):
     
     # Gain stages: dB value, display text, color style
     GAIN_STAGES = [
-        (0, "0", 'disabled'),      # Unity - grey
-        (6, "+6", 'warning'),      # +6dB - amber
-        (12, "+12", 'destructive') # +12dB - red
+        (0, "0", 'disabled'),  # Unity - grey
+        (6, "+6", 'submenu'),  # +6dB - orange
+        (12, "+12", 'warning'),  # +12dB - amber
     ]
     
     def __init__(self, channel_id, label="", parent=None):
@@ -360,7 +360,8 @@ class ChannelStrip(QWidget):
         btn_layout.addWidget(self.solo_btn, alignment=Qt.AlignCenter)
         
         # Gain stage button (cycles 0dB -> +6dB -> +12dB)
-        self.gain_btn = QPushButton("0")
+        self.gain_btn = MidiButton("0")
+        self.gain_btn.setObjectName(f"mixer{self.channel_id}_gain")
         self.gain_btn.setFixedSize(*SIZES['button_small'])
         self.gain_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro'], QFont.Bold))
         self.gain_btn.setStyleSheet(button_style('disabled'))
