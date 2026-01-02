@@ -298,7 +298,20 @@ def build_output_row(slot, output_idx, label, output_config):
         wave_btn.value_changed.connect(
             lambda w, idx=output_idx, wforms=MOD_LFO_WAVEFORMS: slot._on_wave_changed(idx, wforms.index(w))
         )
-        row.addWidget(wave_btn)
+
+        if output_idx == 0:
+            wave_container = QVBoxLayout()
+            wave_container.setSpacing(2)
+            wave_container.setContentsMargins(0, 0, 0, 0)
+            wave_label = QLabel("SHAPE")
+            wave_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+            wave_label.setAlignment(Qt.AlignCenter)
+            wave_label.setStyleSheet(f"color: {COLORS['text']};")
+            wave_container.addWidget(wave_label)
+            wave_container.addWidget(wave_btn)
+            row.addLayout(wave_container)
+        else:
+            row.addWidget(wave_btn)
         row_widgets['wave'] = wave_btn
         
         # Only add per-output phase for old "waveform_phase" config (backward compat)
@@ -342,7 +355,20 @@ def build_output_row(slot, output_idx, label, output_config):
     pol_btn.value_changed.connect(
         lambda p, idx=output_idx, pols=MOD_POLARITY: slot._on_polarity_changed(idx, pols.index(p))
     )
-    row.addWidget(pol_btn)
+
+    if output_idx == 0:
+        pol_container = QVBoxLayout()
+        pol_container.setSpacing(2)
+        pol_container.setContentsMargins(0, 0, 0, 0)
+        pol_label = QLabel("INV")
+        pol_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        pol_label.setAlignment(Qt.AlignCenter)
+        pol_label.setStyleSheet(f"color: {COLORS['text']};")
+        pol_container.addWidget(pol_label)
+        pol_container.addWidget(pol_btn)
+        row.addLayout(pol_container)
+    else:
+        row.addWidget(pol_btn)
     row_widgets['polarity'] = pol_btn
     
     row.addStretch()
@@ -352,7 +378,6 @@ def build_output_row(slot, output_idx, label, output_config):
 
 # ARSEq+ sync/loop mode labels
 ARSEQ_SYNC_MODES = ["SYN", "LOP"]  # SYNC, LOOP
-
 
 def build_arseq_output_row(slot, output_idx, label):
     """Build an ARSEq+ envelope output row - minimal horizontal."""
@@ -437,37 +462,65 @@ def build_arseq_output_row(slot, output_idx, label):
     )
     row_widgets['curve'] = crv_slider
 
-    # SYN/LOP toggle
-    sync_btn = CycleButton(ARSEQ_SYNC_MODES, initial_index=0)
-    sync_btn.setObjectName(f"mod{slot.slot_id}_env{output_idx}_sync")
-    sync_btn.setFixedSize(30, btn_height)
-    sync_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-    sync_btn.setStyleSheet(button_style('submenu'))
-    sync_btn.setToolTip("SYN: master / LOP: loop")
-    sync_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-    sync_btn.text_padding_lr = 1
-    sync_btn.index_changed.connect(
-        lambda idx, env_idx=output_idx: slot._on_env_sync_mode_changed(env_idx, idx)
-    )
-    row.addWidget(sync_btn)
-    row_widgets['sync_mode'] = sync_btn
-
-    # LOOP rate selector (hidden until LOP mode)
+    # LOOP rate selector (created first, hidden by default)
     from src.config import MOD_CLOCK_RATES
     loop_rate_btn = CycleButton(MOD_CLOCK_RATES, initial_index=6)
     loop_rate_btn.setObjectName(f"mod{slot.slot_id}_env{output_idx}_loop_rate")
-    loop_rate_btn.setFixedSize(24, btn_height)
+    loop_rate_btn.setFixedSize(30, btn_height)
     loop_rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
     loop_rate_btn.setStyleSheet(button_style('submenu'))
-    loop_rate_btn.setToolTip("Loop rate")
+    loop_rate_btn.setToolTip("Loop rate (shift+click MODE to show/hide)")
     loop_rate_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
     loop_rate_btn.text_padding_lr = 0
     loop_rate_btn.setVisible(False)
     loop_rate_btn.index_changed.connect(
         lambda idx, env_idx=output_idx: slot._on_env_loop_rate_changed(env_idx, idx)
     )
-    row.addWidget(loop_rate_btn)
     row_widgets['loop_rate'] = loop_rate_btn
+
+    # SYN/LOP toggle
+    sync_btn = CycleButton(ARSEQ_SYNC_MODES, initial_index=0)
+    sync_btn.setObjectName(f"mod{slot.slot_id}_env{output_idx}_sync")
+    sync_btn.setFixedSize(30, btn_height)
+    sync_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    sync_btn.setStyleSheet(button_style('submenu'))
+    sync_btn.setToolTip("SYN: master / LOP: loop (shift+click for rate)")
+    sync_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+    sync_btn.text_padding_lr = 1
+    sync_btn.index_changed.connect(
+        lambda idx, env_idx=output_idx: slot._on_env_sync_mode_changed(env_idx, idx)
+    )
+
+    if output_idx == 0:
+        sync_container = QVBoxLayout()
+        sync_container.setSpacing(2)
+        sync_container.setContentsMargins(0, 0, 0, 0)
+        sync_label = QLabel("MODE*")
+        sync_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        sync_label.setAlignment(Qt.AlignCenter)
+        sync_label.setStyleSheet(f"color: {COLORS['text']};")
+        sync_label.setToolTip("Shift+click to show rate selector")
+        sync_container.addWidget(sync_label)
+        sync_container.addWidget(sync_btn)
+        sync_container.addWidget(loop_rate_btn)
+        row.addLayout(sync_container)
+    else:
+        row.addWidget(sync_btn)
+        row.addWidget(loop_rate_btn)
+    row_widgets['sync_mode'] = sync_btn
+
+    # Shift+click on MODE shows rate selector (only in LOP mode)
+    def toggle_rate_visibility(sync=sync_btn, rate=loop_rate_btn):
+        if sync.index == 1:  # Only in LOP mode
+            if rate.isVisible():
+                rate.setVisible(False)
+                sync.setVisible(True)
+            else:
+                rate.setVisible(True)
+                sync.setVisible(False)
+
+    sync_btn.shift_click_callback = toggle_rate_visibility
+    loop_rate_btn.shift_click_callback = toggle_rate_visibility
 
     # Polarity N/I toggle
     pol_btn = CycleButton(MOD_POLARITY, initial_index=0)
@@ -481,7 +534,20 @@ def build_arseq_output_row(slot, output_idx, label):
     pol_btn.value_changed.connect(
         lambda p, idx=output_idx, pols=MOD_POLARITY: slot._on_polarity_changed(idx, pols.index(p))
     )
-    row.addWidget(pol_btn)
+
+    if output_idx == 0:
+        pol_container = QVBoxLayout()
+        pol_container.setSpacing(2)
+        pol_container.setContentsMargins(0, 0, 0, 0)
+        pol_label = QLabel("INV")
+        pol_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        pol_label.setAlignment(Qt.AlignCenter)
+        pol_label.setStyleSheet(f"color: {COLORS['text']};")
+        pol_container.addWidget(pol_label)
+        pol_container.addWidget(pol_btn)
+        row.addLayout(pol_container)
+    else:
+        row.addWidget(pol_btn)
     row_widgets['polarity'] = pol_btn
 
     return row, row_widgets

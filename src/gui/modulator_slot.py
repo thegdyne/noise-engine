@@ -229,13 +229,9 @@ class ModulatorSlot(QWidget):
         self.env_curve_changed.emit(self.slot_id, env_idx, normalized)
 
     def _on_env_sync_mode_changed(self, env_idx, mode_idx):
-        """Handle envelope sync mode change (0=SYNC, 1=LOOP)."""
+        """Handle SYN/LOP toggle."""
         self.env_sync_mode_changed.emit(self.slot_id, env_idx, mode_idx)
-        # Show/hide loop rate button
-        if env_idx < len(self.output_rows):
-            row = self.output_rows[env_idx]
-            if 'loop_rate' in row:
-                row['loop_rate'].setVisible(mode_idx == 1)
+        # Rate selector visibility now controlled by shift+click on MODE button
 
     def _on_env_loop_rate_changed(self, env_idx, rate_idx):
         """Handle envelope loop rate change."""
