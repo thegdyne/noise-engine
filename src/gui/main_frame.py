@@ -874,6 +874,12 @@ class MainFrame(QMainWindow):
                 self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, out_idx, row['phase'].get_index()])
             if 'polarity' in row:
                 self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, out_idx, row['polarity'].get_index()])
+            if 'tension' in row:
+                tension_val = row['tension'].value() / 1000.0
+                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"tension{out_idx + 1}", tension_val])
+            if 'mass' in row:
+                mass_val = row['mass'].value() / 1000.0
+                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"mass{out_idx + 1}", mass_val])
         
         # Sync custom params from UI sliders/buttons
         for param in get_mod_generator_custom_params(gen_name):
@@ -1903,6 +1909,8 @@ class MainFrame(QMainWindow):
         # Phase 3: Mod sources
         if state.version >= 2:
             self.modulator_grid.set_state(state.mod_sources.to_dict())
+            # Force full sync to SC (recreates synths with fresh init)
+            self._sync_mod_sources()
 
         # Phase 4: Mod routing (only if has connections)
         if state.mod_routing.get("connections"):

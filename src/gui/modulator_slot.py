@@ -447,5 +447,9 @@ class ModulatorSlot(QWidget):
                 self.output_phase_changed.emit(self.slot_id, i, row_widgets['phase'].index)
             if 'polarity' in row_widgets:
                 self.output_polarity_changed.emit(self.slot_id, i, row_widgets['polarity'].index)
+            if 'tension' in row_widgets:
+                self.tension_changed.emit(self.slot_id, i, row_widgets['tension'].value() / 1000.0)
+            if 'mass' in row_widgets:
+                self.mass_changed.emit(self.slot_id, i, row_widgets['mass'].value() / 1000.0)
 
 
