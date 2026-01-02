@@ -1,0 +1,433 @@
+contract: sauce_of_grav_phase3
+cdd_spec: 1.1.5
+version: 1.0.0
+status: draft
+description: |
+  SauceOfGrav Phase 3: SuperCollider SynthDef
+  - Main SynthDef with 14-step physics loop
+  - Boot sequence integration
+  - Spawn case in mod_slots.scd
+  - All control parameters defined
+
+runner:
+  executor: shell
+  timeout_ms: 30000
+
+requirements:
+  - id: R001
+    priority: must
+    description: SynthDef file exists
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - mod_sauce_of_grav.scd exists in supercollider/core/
+
+  - id: R002
+    priority: must
+    description: SynthDef has correct name
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - SynthDef named ne_mod_sauce_of_grav
+
+  - id: R003
+    priority: must
+    description: All hub control parameters defined
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - clockMode parameter
+      - rate parameter
+      - depth parameter
+      - gravity parameter
+      - resonance parameter
+      - excursion parameter
+      - calm parameter
+
+  - id: R004
+    priority: must
+    description: All output parameters defined
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - tension1-4 parameters
+      - mass1-4 parameters
+      - polarity1-4 parameters
+      - out1-4 bus parameters
+
+  - id: R005
+    priority: must
+    description: Physics components present
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - Van der Pol damping logic
+      - Ring coupling topology
+      - Hub dynamics
+      - Resonance energy floor
+
+  - id: R006
+    priority: must
+    description: Added to boot sequence
+    source_ref: NEW_MODULATOR_CHECKLIST.md
+    acceptance_criteria:
+      - mod_sauce_of_grav.scd loaded in init.scd
+
+  - id: R007
+    priority: must
+    description: Spawn case in mod_slots.scd
+    source_ref: NEW_MODULATOR_CHECKLIST.md
+    acceptance_criteria:
+      - SauceOfGrav case in setModGenerator function
+
+tests:
+  # === File Existence ===
+  - id: T001
+    name: synthdef_file_exists
+    requirement: R001
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - test
+          - "-f"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: mod_sauce_of_grav.scd must exist
+
+  # === SynthDef Name ===
+  - id: T002
+    name: synthdef_name_correct
+    requirement: R002
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - ne_mod_sauce_of_grav
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: SynthDef must be named ne_mod_sauce_of_grav
+
+  # === Hub Parameters ===
+  - id: T003
+    name: param_clockMode
+    requirement: R003
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - clockMode
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: clockMode parameter must be defined
+
+  - id: T004
+    name: param_rate
+    requirement: R003
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "-E"
+          - "\\\\rate"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: rate parameter must be defined
+
+  - id: T005
+    name: param_depth
+    requirement: R003
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "-E"
+          - "\\\\depth"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: depth parameter must be defined
+
+  - id: T006
+    name: param_gravity
+    requirement: R003
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - gravity
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: gravity parameter must be defined
+
+  - id: T007
+    name: param_resonance
+    requirement: R003
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - resonance
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: resonance parameter must be defined
+
+  - id: T008
+    name: param_excursion
+    requirement: R003
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - excursion
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: excursion parameter must be defined
+
+  - id: T009
+    name: param_calm
+    requirement: R003
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - calm
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: calm parameter must be defined
+
+  # === Output Parameters ===
+  - id: T010
+    name: param_tension_outputs
+    requirement: R004
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - tension1
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: tension parameters must be defined
+
+  - id: T011
+    name: param_mass_outputs
+    requirement: R004
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - mass1
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: mass parameters must be defined
+
+  - id: T012
+    name: param_polarity_outputs
+    requirement: R004
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - polarity1
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: polarity parameters must be defined
+
+  - id: T013
+    name: param_output_buses
+    requirement: R004
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "-E"
+          - "\\\\out1|\\\\outA"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: output bus parameters must be defined
+
+  # === Physics Components ===
+  - id: T014
+    name: physics_vdp_damping
+    requirement: R005
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "-iE"
+          - "vdp|vanderpol|van.?der.?pol"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: Van der Pol damping logic must be present
+
+  - id: T015
+    name: physics_ring_coupling
+    requirement: R005
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "-iE"
+          - "ring|neighbor|coupling"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: Ring coupling topology must be present
+
+  - id: T016
+    name: physics_hub_dynamics
+    requirement: R005
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "-iE"
+          - "hub|bias"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: Hub dynamics must be present
+
+  - id: T017
+    name: physics_resonance_floor
+    requirement: R005
+    type: unit
+    files: ../supercollider/core/mod_sauce_of_grav.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "-iE"
+          - "reso|energy|floor|kick"
+          - ../supercollider/core/mod_sauce_of_grav.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: Resonance energy floor must be present
+
+  # === Boot Sequence ===
+  - id: T018
+    name: init_boot_sequence
+    requirement: R006
+    type: unit
+    files: ../supercollider/init.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - mod_sauce_of_grav
+          - ../supercollider/init.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: mod_sauce_of_grav.scd must be loaded in init.scd
+
+  # === Spawn Case ===
+  - id: T019
+    name: spawn_case_exists
+    requirement: R007
+    type: unit
+    files: ../supercollider/core/mod_slots.scd
+    steps:
+      - action: shell
+        command:
+          - grep
+          - SauceOfGrav
+          - ../supercollider/core/mod_slots.scd
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: SauceOfGrav spawn case must exist in mod_slots.scd
