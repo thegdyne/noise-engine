@@ -178,6 +178,7 @@ Empty generator = no synth, buses zeroed.
     // Update parameter on existing synth
     ~setModParam = { |slot, key, value|
         var idx = slot - 1;
+        ("  Mod " ++ slot ++ " param: " ++ key ++ " = " ++ value).postln;
         ~modParams[idx][key.asSymbol] = value;
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(key.asSymbol, value);
@@ -204,13 +205,17 @@ Empty generator = no synth, buses zeroed.
         
         ~modOutputState[idx][output][\polarity] = polarity;
         
-        // Parameter name depends on generator type
-        if((genName == "LFO") || (genName == "ARSEq+") || (genName == "SauceOfGrav")) {
+    // Parameter name depends on generator type
+        case
+        { (genName == "LFO") || (genName == "ARSEq+") } {
             paramName = [\polarityA, \polarityB, \polarityC, \polarityD][output];
-        } {
+        }
+        { genName == "SauceOfGrav" } {
+            paramName = [\polarity1, \polarity2, \polarity3, \polarity4][output];
+        }
+        { /* Sloth */
             paramName = [\polarityX, \polarityY, \polarityZ, \polarityR][output];
         };
-        
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(paramName, polarity);
         };

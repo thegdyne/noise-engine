@@ -188,6 +188,10 @@ class MainFrame(QMainWindow):
         self.modulator_grid.env_curve_changed.connect(self.on_mod_env_curve)
         self.modulator_grid.env_sync_mode_changed.connect(self.on_mod_env_sync_mode)
         self.modulator_grid.env_loop_rate_changed.connect(self.on_mod_env_loop_rate)
+
+        # SauceOfGrav output signals
+        self.modulator_grid.tension_changed.connect(self.on_mod_tension)
+        self.modulator_grid.mass_changed.connect(self.on_mod_mass)
         content_layout.addWidget(self.modulator_grid)
         
         # Scope repaint timer (~30fps)
@@ -963,6 +967,24 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(rate_idx)])
         logger.debug(f"Mod {slot_id} env {env_idx} loop_rate: {rate_idx}", component="OSC")
+
+    def on_mod_tension(self, slot_id, output_idx, normalized):
+        """Handle SauceOfGrav tension change."""
+        print(f"DEBUG: on_mod_tension - osc_connected={self.osc_connected}")
+        param_name = f"tension{output_idx + 1}"
+        if self.osc_connected:
+            print(f"DEBUG: sending OSC /noise/mod/param [{slot_id}, {param_name}, {normalized}]")
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, normalized])
+        else:
+            print("DEBUG: OSC not connected, message not sent")
+        logger.debug(f"Mod {slot_id} tension{output_idx + 1}: {normalized:.3f}", component="OSC")
+
+    def on_mod_mass(self, slot_id, output_idx, normalized):
+        """Handle SauceOfGrav mass change."""
+        param_name = f"mass{output_idx + 1}"
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, normalized])
+        logger.debug(f"Mod {slot_id} mass{output_idx + 1}: {normalized:.3f}", component="OSC")
 
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""

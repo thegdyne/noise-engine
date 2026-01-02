@@ -31,6 +31,10 @@ class ModulatorGrid(QWidget):
     env_sync_mode_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, mode
     env_loop_rate_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, rate_idx
 
+    # SauceOfGrav output signals
+    tension_changed = pyqtSignal(int, int, float)  # slot_id, output_idx, normalized
+    mass_changed = pyqtSignal(int, int, float)  # slot_id, output_idx, normalized
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.slots = {}
@@ -83,6 +87,10 @@ class ModulatorGrid(QWidget):
         slot.env_curve_changed.connect(self.env_curve_changed.emit)
         slot.env_sync_mode_changed.connect(self.env_sync_mode_changed.emit)
         slot.env_loop_rate_changed.connect(self.env_loop_rate_changed.emit)
+
+        # SauceOfGrav output signals
+        slot.tension_changed.connect(self.tension_changed.emit)
+        slot.mass_changed.connect(self.mass_changed.emit)
 
     def get_slot(self, slot_id):
         """Get a slot by ID."""
