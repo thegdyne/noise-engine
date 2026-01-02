@@ -28,6 +28,8 @@ from .modulator_slot_builder import (
     build_modulator_slot_ui,
     build_param_slider,
     build_output_row,
+    build_arseq_output_row,
+    build_saucegrav_output_row,
 )
 
 
@@ -105,10 +107,15 @@ class ModulatorSlot(QWidget):
             col = build_param_slider(self, param)
             self.params_layout.addWidget(col)
         self.params_layout.addStretch()
-        
-        # Build output rows
+
+        # Build output rows (use specialized builder for ARSEq+/SauceOfGrav)
         for i in range(MOD_OUTPUTS_PER_SLOT):
-            row, row_widgets = build_output_row(self, i, output_labels[i], self.output_config)
+            if gen_name == "ARSEq+":
+                row, row_widgets = build_arseq_output_row(self, i, output_labels[i])
+            elif gen_name == "SauceOfGrav":
+                row, row_widgets = build_saucegrav_output_row(self, i, output_labels[i])
+            else:
+                row, row_widgets = build_output_row(self, i, output_labels[i], self.output_config)
             self.outputs_layout.addLayout(row)
             self.output_rows.append(row_widgets)
             
@@ -347,6 +354,14 @@ class ModulatorSlot(QWidget):
         gen_name = state.get("generator_name", "Empty")
         if gen_name != self.generator_name:
             self.update_for_generator(gen_name)
+            # Update the button to show the new generator
+            if self.gen_button:
+                from src.config import MOD_GENERATOR_CYCLE
+                if gen_name in MOD_GENERATOR_CYCLE:
+                    idx = MOD_GENERATOR_CYCLE.index(gen_name)
+                    self.gen_button.blockSignals(True)
+                    self.gen_button.set_index(idx)
+                    self.gen_button.blockSignals(False)
 
         # Restore param values
         params = state.get("params", {})
