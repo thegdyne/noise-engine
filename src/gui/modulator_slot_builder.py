@@ -486,7 +486,9 @@ def build_saucegrav_output_row(slot, output_idx, label):
     tension_slider.setOrientation(Qt.Horizontal)
     tension_slider.setFixedHeight(btn_height)
     tension_slider.setMinimumWidth(30)
-    tension_slider.setValue(500)
+    # Stagger tension for varied behavior
+    tension_defaults = [300, 450, 550, 700]  # low→high coupling
+    tension_slider.setValue(tension_defaults[output_idx] if output_idx < 4 else 500)
     tension_slider.setToolTip("TENS: low=independent, high=coupled")
     tension_slider.valueChanged.connect(
         lambda val, idx=output_idx: slot._on_tension_changed(idx, val)
@@ -500,7 +502,9 @@ def build_saucegrav_output_row(slot, output_idx, label):
     mass_slider.setOrientation(Qt.Horizontal)
     mass_slider.setFixedHeight(btn_height)
     mass_slider.setMinimumWidth(30)
-    mass_slider.setValue(500)
+    # Stagger mass for varied character
+    mass_defaults = [650, 550, 450, 350]  # slow→snappy
+    mass_slider.setValue(mass_defaults[output_idx] if output_idx < 4 else 500)
     mass_slider.setToolTip("MASS: low=snappy, high=slow arcs")
     mass_slider.valueChanged.connect(
         lambda val, idx=output_idx: slot._on_mass_changed(idx, val)
