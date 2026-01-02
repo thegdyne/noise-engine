@@ -379,6 +379,74 @@ class ARSeqPlusState:
             rate=data.get("rate", 0.5),
             envelopes=envelopes,
         )
+@dataclass
+class SauceOfGravOutputState:
+    """State for a single SauceOfGrav output."""
+    tension: float = 0.5       # Normalized 0–1
+    mass: float = 0.5          # Normalized 0–1
+    polarity: int = 0          # 0=NORM, 1=INV
+
+    def to_dict(self) -> dict:
+        return {
+            "tension": self.tension,
+            "mass": self.mass,
+            "polarity": self.polarity,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SauceOfGravOutputState":
+        return cls(
+            tension=data.get("tension", 0.5),
+            mass=data.get("mass", 0.5),
+            polarity=data.get("polarity", 0),
+        )
+
+
+@dataclass
+class SauceOfGravState:
+    """Full SauceOfGrav modulator state."""
+    clock_mode: int = 0        # 0=CLK, 1=FREE
+    rate: float = 0.5          # Normalized 0–1 (0–0.05 = OFF)
+    depth: float = 0.5         # Normalized 0–1
+    gravity: float = 0.5       # Normalized 0–1
+    resonance: float = 0.5     # Normalized 0–1
+    excursion: float = 0.5     # Normalized 0–1
+    calm: float = 0.5          # Normalized 0–1 (0.5 = neutral)
+    outputs: list = field(default_factory=lambda: [
+        SauceOfGravOutputState() for _ in range(4)
+    ])
+
+    def to_dict(self) -> dict:
+        return {
+            "clock_mode": self.clock_mode,
+            "rate": self.rate,
+            "depth": self.depth,
+            "gravity": self.gravity,
+            "resonance": self.resonance,
+            "excursion": self.excursion,
+            "calm": self.calm,
+            "outputs": [o.to_dict() for o in self.outputs],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SauceOfGravState":
+        raw_outputs = data.get("outputs", [])
+        outputs = []
+        for i in range(4):
+            if i < len(raw_outputs):
+                outputs.append(SauceOfGravOutputState.from_dict(raw_outputs[i]))
+            else:
+                outputs.append(SauceOfGravOutputState())
+        return cls(
+            clock_mode=data.get("clock_mode", 0),
+            rate=data.get("rate", 0.5),
+            depth=data.get("depth", 0.5),
+            gravity=data.get("gravity", 0.5),
+            resonance=data.get("resonance", 0.5),
+            excursion=data.get("excursion", 0.5),
+            calm=data.get("calm", 0.5),
+            outputs=outputs,
+        )
 
 # Phase 5: FX State dataclasses
 

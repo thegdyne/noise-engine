@@ -825,6 +825,7 @@ MOD_GENERATOR_CYCLE = [
     "LFO",
     "Sloth",
     "ARSEq+",
+    "SauceOfGrav",
 ]
 
 # LFO waveforms (TTLFO v2 inspired)
@@ -861,6 +862,93 @@ ARSEQ_SYNC_TIME_MAX = 10.0     # 10s
 ARSEQ_LOOP_TIME_MIN = 0.0001   # 0.1ms
 ARSEQ_LOOP_TIME_MAX = 120.0    # 2 minutes
 
+# === SauceOfGrav v1.4.3 Config Constants ===
+
+# Rate ranges
+SAUCE_FREE_RATE_MIN = 0.001    # Hz
+SAUCE_FREE_RATE_MAX = 100.0    # Hz
+SAUCE_RATE_DEADBAND = 0.05     # 0-0.05 = OFF
+
+# Noise / thresholds
+SAUCE_NOISE_RATE = 0.012
+SAUCE_VELOCITY_EPSILON = 0.001
+
+# Mass mapping
+MASS_BASE = 0.25
+MASS_GAIN = 2.1
+
+# Coupling
+HUB_COUPLE_BASE = 0.0
+HUB_COUPLE_GAIN = 6.0
+HUB_TENSION_EXP = 0.70
+RING_COUPLE_BASE = 0.0
+RING_COUPLE_GAIN = 3.5
+RING_TENSION_EXP = 1.30
+
+# Non-reciprocal ring
+RING_SKEW = 0.015
+
+# Gravity stiffness
+GRAV_STIFF_BASE = 0.0
+GRAV_STIFF_GAIN = 6.0
+
+# Excursion
+EXCURSION_MIN = 0.60
+EXCURSION_MAX = 1.60
+
+# CALM macro (v1.4.3)
+CALM_DAMP_CALM = 1.30
+CALM_DAMP_WILD = 0.75
+CALM_VDP_CALM = 0.90
+CALM_VDP_WILD = 1.15
+CALM_KICK_CALM = 0.60
+
+# Van der Pol
+VDP_INJECT = 0.8
+VDP_THRESHOLD = 0.35
+VDP_HUB_MOD = 0.05
+VDP_THRESHOLD_FLOOR = 0.05
+
+# Calibration trims
+TENSION_TRIM = [+0.012, -0.008, +0.015, -0.018]
+MASS_TRIM = [-0.010, +0.014, -0.006, +0.011]
+
+# Damping
+SAUCE_DAMPING_BASE = 0.10
+SAUCE_DAMPING_TENSION = 0.40
+
+# Rails
+SAUCE_RAIL_ZONE = 0.08
+SAUCE_RAIL_ABSORB = 0.35
+
+# Resonance
+RESO_FLOOR_MIN = 0.0002
+RESO_FLOOR_MAX = 0.0040
+RESO_DRIVE_GAIN = 6.0
+RESO_DELTAE_MAX = 0.01
+RESO_RAIL_EXP = 1.4
+
+# Kickstart
+RESO_KICK_GAIN = 2.8
+RESO_KICK_MAXF = 0.30
+RESO_KICK_COOLDOWN_S = 0.20
+KICK_PATTERNS = [
+    [+1, -1, +1, -1],
+    [+1, +1, -1, -1],
+    [+1, -1, -1, +1],
+]
+
+# Hub dynamics
+OVERSHOOT_TO_HUB_GAIN = 0.6
+OVERSHOOT_MAX = 0.25
+HUB_LIMIT = 2.0
+DEPTH_DAMP_MIN = 0.005
+DEPTH_DAMP_MAX = 2.50
+
+# Hub feed
+HUB_FEED_GAIN = 8.0
+HUB_FEED_MAX = 0.35
+
 # Sloth speed modes (NLC Triple Sloth inspired)
 MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
 MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
@@ -890,6 +978,7 @@ MOD_OUTPUT_LABELS = {
     "LFO": ["A", "B", "C", "D"],      # Quadrature phases
     "Sloth": ["X", "Y", "Z", "R"],  # R = rectified gate
     "ARSEq+": ["1", "2", "3", "4"],  # Envelope outputs
+    "SauceOfGrav": ["1", "2", "3", "4"],  # Coupled outputs
 }
 
 # Mod generator configs loaded from JSON files
@@ -974,6 +1063,24 @@ _MOD_GENERATOR_CONFIGS["ARSEq+"] = {
     ],
     "output_config": "arseq_plus",
     "outputs": ["1", "2", "3", "4"],
+}
+
+# SauceOfGrav config (programmatic registration)
+_MOD_GENERATOR_CONFIGS["SauceOfGrav"] = {
+    "internal_id": "sauce_of_grav",
+    "synthdef": "ne_mod_sauce_of_grav",
+    "custom_params": [
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0},
+        {"key": "rate", "label": "RATE", "default": 0.5},
+        {"key": "depth", "label": "DEPTH", "default": 0.5},
+        {"key": "gravity", "label": "GRAV", "default": 0.5},
+        {"key": "resonance", "label": "RESO", "default": 0.5},
+        {"key": "excursion", "label": "EXCUR", "default": 0.5},
+        {"key": "calm", "label": "CALM", "default": 0.5, "bipolar": True},
+    ],
+    "output_config": "sauce_of_grav",
+    "output_labels": ["1", "2", "3", "4"],
+    "has_reset": True,
 }
 
 def get_mod_generator_synthdef(name):

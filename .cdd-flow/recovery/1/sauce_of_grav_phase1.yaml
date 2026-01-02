@@ -1,0 +1,339 @@
+contract: sauce_of_grav_phase1
+cdd_spec: 1.1.5
+version: 1.0.0
+status: draft
+description: |
+  SauceOfGrav Phase 1: Infrastructure
+  - Theme colors (accent_mod_sauce_of_grav, reset_button)
+  - Config constants (all v1.4.3 physics constants)
+  - Generator config registration
+  - Preset state dataclasses
+  - MOD_GENERATOR_CYCLE inclusion
+
+runner:
+  executor: shell
+  timeout_ms: 30000
+
+requirements:
+  - id: R001
+    priority: must
+    description: Theme includes SauceOfGrav accent color
+    source_ref: "SAUCE_OF_GRAV_SPEC_v1_4_3.md:Theme Additions"
+    acceptance_criteria:
+      - accent_mod_sauce_of_grav color defined as #FF00FF
+
+  - id: R002
+    priority: must
+    description: Theme includes reset button color
+    source_ref: "SAUCE_OF_GRAV_SPEC_v1_4_3.md:Theme Additions"
+    acceptance_criteria:
+      - reset_button color defined
+
+  - id: R003
+    priority: must
+    description: Config includes all SauceOfGrav constants
+    source_ref: "SAUCE_OF_GRAV_SPEC_v1_4_3.md:Config Additions"
+    acceptance_criteria:
+      - Rate range constants defined
+      - Noise/threshold constants defined
+      - Mass/coupling constants defined
+      - Van der Pol constants defined
+      - CALM constants defined
+      - Hub dynamics constants defined
+      - RESO constants defined
+
+  - id: R004
+    priority: must
+    description: SauceOfGrav in MOD_GENERATOR_CYCLE
+    source_ref: "SAUCE_OF_GRAV_SPEC_v1_4_3.md:Naming Convention"
+    acceptance_criteria:
+      - "SauceOfGrav" appears in MOD_GENERATOR_CYCLE list
+
+  - id: R005
+    priority: must
+    description: Generator config registered
+    source_ref: "SAUCE_OF_GRAV_SPEC_v1_4_3.md:Config Additions"
+    acceptance_criteria:
+      - _MOD_GENERATOR_CONFIGS contains SauceOfGrav entry
+      - internal_id is sauce_of_grav
+      - Has custom_params with all hub controls
+      - Has output_config sauce_of_grav
+      - Has output_labels 1,2,3,4
+
+  - id: R006
+    priority: must
+    description: Preset state dataclasses defined
+    source_ref: "SAUCE_OF_GRAV_SPEC_v1_4_3.md:Preset State Schema"
+    acceptance_criteria:
+      - SauceOfGravOutputState dataclass exists
+      - SauceOfGravState dataclass exists
+      - Both have to_dict and from_dict methods
+
+  - id: R007
+    priority: must
+    description: Output labels registered
+    source_ref: "SAUCE_OF_GRAV_SPEC_v1_4_3.md:Naming Convention"
+    acceptance_criteria:
+      - MOD_OUTPUT_LABELS has SauceOfGrav entry with 1,2,3,4
+
+tests:
+  # === Theme Tests ===
+  - id: T001
+    name: theme_accent_color_defined
+    requirement: R001
+    type: unit
+    files: ../src/gui/theme.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "accent_mod_sauce_of_grav", "../src/gui/theme.py"]
+        save_as: grep_result
+    assert:
+      - op: eq
+        actual: $.grep_result.ok
+        expected: true
+        message: "accent_mod_sauce_of_grav must be defined in theme.py"
+
+  - id: T002
+    name: theme_accent_color_value
+    requirement: R001
+    type: unit
+    files: ../src/gui/theme.py
+    steps:
+      - action: shell
+        command: ["grep", "#FF00FF", "../src/gui/theme.py"]
+        save_as: grep_result
+    assert:
+      - op: eq
+        actual: $.grep_result.ok
+        expected: true
+        message: "Magenta #FF00FF must be defined for SauceOfGrav"
+
+  - id: T003
+    name: theme_reset_button_color
+    requirement: R002
+    type: unit
+    files: ../src/gui/theme.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "reset_button", "../src/gui/theme.py"]
+        save_as: grep_result
+    assert:
+      - op: eq
+        actual: $.grep_result.ok
+        expected: true
+        message: "reset_button color must be defined in theme.py"
+
+  # === Config Constants Tests ===
+  - id: T004
+    name: config_rate_constants
+    requirement: R003
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "SAUCE_FREE_RATE_MIN", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SAUCE_FREE_RATE_MIN must be defined"
+
+  - id: T005
+    name: config_rate_deadband
+    requirement: R003
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "SAUCE_RATE_DEADBAND", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SAUCE_RATE_DEADBAND must be defined"
+
+  - id: T006
+    name: config_vdp_constants
+    requirement: R003
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "VDP_INJECT", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "VDP_INJECT must be defined for Van der Pol"
+
+  - id: T007
+    name: config_calm_constants
+    requirement: R003
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "CALM_DAMP_CALM", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "CALM_DAMP_CALM must be defined"
+
+  - id: T008
+    name: config_hub_constants
+    requirement: R003
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "HUB_FEED_GAIN", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "HUB_FEED_GAIN must be defined"
+
+  - id: T009
+    name: config_reso_constants
+    requirement: R003
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "RESO_FLOOR_MIN", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "RESO_FLOOR_MIN must be defined"
+
+  # === Generator Cycle Test ===
+  - id: T010
+    name: generator_cycle_includes_saucegrav
+    requirement: R004
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "SauceOfGrav", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SauceOfGrav must be in MOD_GENERATOR_CYCLE"
+
+  # === Generator Config Tests ===
+  - id: T011
+    name: generator_config_registered
+    requirement: R005
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "_MOD_GENERATOR_CONFIGS.*SauceOfGrav", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SauceOfGrav must be registered in _MOD_GENERATOR_CONFIGS"
+
+  - id: T012
+    name: generator_config_internal_id
+    requirement: R005
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "sauce_of_grav", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "internal_id sauce_of_grav must be defined"
+
+  # === Preset Schema Tests ===
+  - id: T013
+    name: preset_output_state_class
+    requirement: R006
+    type: unit
+    files: ../src/presets/preset_schema.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class SauceOfGravOutputState", "../src/presets/preset_schema.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SauceOfGravOutputState dataclass must exist"
+
+  - id: T014
+    name: preset_state_class
+    requirement: R006
+    type: unit
+    files: ../src/presets/preset_schema.py
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class SauceOfGravState", "../src/presets/preset_schema.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SauceOfGravState dataclass must exist"
+
+  - id: T015
+    name: preset_to_dict_method
+    requirement: R006
+    type: unit
+    files: ../src/presets/preset_schema.py
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -A50 'class SauceOfGravState' ../src/presets/preset_schema.py | grep -c 'def to_dict'"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SauceOfGravState must have to_dict method"
+
+  - id: T016
+    name: preset_from_dict_method
+    requirement: R006
+    type: unit
+    files: ../src/presets/preset_schema.py
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -A80 'class SauceOfGravState' ../src/presets/preset_schema.py | grep -c 'def from_dict'"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SauceOfGravState must have from_dict method"
+
+  # === Output Labels Test ===
+  - id: T017
+    name: output_labels_registered
+    requirement: R007
+    type: unit
+    files: ../src/config/__init__.py
+    steps:
+      - action: shell
+        command: ["grep", "MOD_OUTPUT_LABELS.*SauceOfGrav", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "MOD_OUTPUT_LABELS must have SauceOfGrav entry"

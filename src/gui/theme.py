@@ -142,6 +142,9 @@ COLORS = {
     'accent_effect': get('accent_effect'),
     'accent_mod_arseq_plus': get('accent_mod_arseq_plus'),
     'accent_mod_arseq_plus_dim': get('accent_mod_arseq_plus_dim'),
+    'accent_mod_sauce_of_grav': get('accent_mod_sauce_of_grav'),
+    'accent_mod_sauce_of_grav_dim': get('accent_mod_sauce_of_grav_dim'),
+    'reset_button': get('reset_button'),
     'accent_effect_dim': get('accent_effect_dim'),
     
     # Scope
@@ -290,6 +293,7 @@ def slider_style():
             background: {COLORS['border']};
         }}
     """
+
 def slider_style_center_notch():
     """
     Vertical slider with center notch mark.

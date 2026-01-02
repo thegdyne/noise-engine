@@ -1,0 +1,256 @@
+diff --git a/src/config/__init__.py b/src/config/__init__.py
+index b725f4a..17bf7c3 100644
+--- a/src/config/__init__.py
++++ b/src/config/__init__.py
+@@ -825,6 +825,7 @@ MOD_GENERATOR_CYCLE = [
+     "LFO",
+     "Sloth",
+     "ARSEq+",
++    "SauceOfGrav",
+ ]
+ 
+ # LFO waveforms (TTLFO v2 inspired)
+@@ -861,6 +862,93 @@ ARSEQ_SYNC_TIME_MAX = 10.0     # 10s
+ ARSEQ_LOOP_TIME_MIN = 0.0001   # 0.1ms
+ ARSEQ_LOOP_TIME_MAX = 120.0    # 2 minutes
+ 
++# === SauceOfGrav v1.4.3 Config Constants ===
++
++# Rate ranges
++SAUCE_FREE_RATE_MIN = 0.001    # Hz
++SAUCE_FREE_RATE_MAX = 100.0    # Hz
++SAUCE_RATE_DEADBAND = 0.05     # 0-0.05 = OFF
++
++# Noise / thresholds
++SAUCE_NOISE_RATE = 0.012
++SAUCE_VELOCITY_EPSILON = 0.001
++
++# Mass mapping
++MASS_BASE = 0.25
++MASS_GAIN = 2.1
++
++# Coupling
++HUB_COUPLE_BASE = 0.0
++HUB_COUPLE_GAIN = 6.0
++HUB_TENSION_EXP = 0.70
++RING_COUPLE_BASE = 0.0
++RING_COUPLE_GAIN = 3.5
++RING_TENSION_EXP = 1.30
++
++# Non-reciprocal ring
++RING_SKEW = 0.015
++
++# Gravity stiffness
++GRAV_STIFF_BASE = 0.0
++GRAV_STIFF_GAIN = 6.0
++
++# Excursion
++EXCURSION_MIN = 0.60
++EXCURSION_MAX = 1.60
++
++# CALM macro (v1.4.3)
++CALM_DAMP_CALM = 1.30
++CALM_DAMP_WILD = 0.75
++CALM_VDP_CALM = 0.90
++CALM_VDP_WILD = 1.15
++CALM_KICK_CALM = 0.60
++
++# Van der Pol
++VDP_INJECT = 0.8
++VDP_THRESHOLD = 0.35
++VDP_HUB_MOD = 0.05
++VDP_THRESHOLD_FLOOR = 0.05
++
++# Calibration trims
++TENSION_TRIM = [+0.012, -0.008, +0.015, -0.018]
++MASS_TRIM = [-0.010, +0.014, -0.006, +0.011]
++
++# Damping
++SAUCE_DAMPING_BASE = 0.10
++SAUCE_DAMPING_TENSION = 0.40
++
++# Rails
++SAUCE_RAIL_ZONE = 0.08
++SAUCE_RAIL_ABSORB = 0.35
++
++# Resonance
++RESO_FLOOR_MIN = 0.0002
++RESO_FLOOR_MAX = 0.0040
++RESO_DRIVE_GAIN = 6.0
++RESO_DELTAE_MAX = 0.01
++RESO_RAIL_EXP = 1.4
++
++# Kickstart
++RESO_KICK_GAIN = 2.8
++RESO_KICK_MAXF = 0.30
++RESO_KICK_COOLDOWN_S = 0.20
++KICK_PATTERNS = [
++    [+1, -1, +1, -1],
++    [+1, +1, -1, -1],
++    [+1, -1, -1, +1],
++]
++
++# Hub dynamics
++OVERSHOOT_TO_HUB_GAIN = 0.6
++OVERSHOOT_MAX = 0.25
++HUB_LIMIT = 2.0
++DEPTH_DAMP_MIN = 0.005
++DEPTH_DAMP_MAX = 2.50
++
++# Hub feed
++HUB_FEED_GAIN = 8.0
++HUB_FEED_MAX = 0.35
++
+ # Sloth speed modes (NLC Triple Sloth inspired)
+ MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
+ MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
+@@ -890,6 +978,7 @@ MOD_OUTPUT_LABELS = {
+     "LFO": ["A", "B", "C", "D"],      # Quadrature phases
+     "Sloth": ["X", "Y", "Z", "R"],  # R = rectified gate
+     "ARSEq+": ["1", "2", "3", "4"],  # Envelope outputs
++    "SauceOfGrav": ["1", "2", "3", "4"],  # Coupled outputs
+ }
+ 
+ # Mod generator configs loaded from JSON files
+@@ -976,6 +1065,24 @@ _MOD_GENERATOR_CONFIGS["ARSEq+"] = {
+     "outputs": ["1", "2", "3", "4"],
+ }
+ 
++# SauceOfGrav config (programmatic registration)
++_MOD_GENERATOR_CONFIGS["SauceOfGrav"] = {
++    "internal_id": "sauce_of_grav",
++    "synthdef": "ne_mod_sauce_of_grav",
++    "custom_params": [
++        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0},
++        {"key": "rate", "label": "RATE", "default": 0.5},
++        {"key": "depth", "label": "DEPTH", "default": 0.5},
++        {"key": "gravity", "label": "GRAV", "default": 0.5},
++        {"key": "resonance", "label": "RESO", "default": 0.5},
++        {"key": "excursion", "label": "EXCUR", "default": 0.5},
++        {"key": "calm", "label": "CALM", "default": 0.5, "bipolar": True},
++    ],
++    "output_config": "sauce_of_grav",
++    "output_labels": ["1", "2", "3", "4"],
++    "has_reset": True,
++}
++
+ def get_mod_generator_synthdef(name):
+     """Get SynthDef name for a mod generator."""
+     config = _MOD_GENERATOR_CONFIGS.get(name, {})
+diff --git a/src/gui/skins/default.py b/src/gui/skins/default.py
+index 7bf028b..8ad06ab 100644
+--- a/src/gui/skins/default.py
++++ b/src/gui/skins/default.py
+@@ -55,6 +55,11 @@ SKIN = {
+     'accent_mod_arseq_plus': '#00CCCC',      # Cyan
+     'accent_mod_arseq_plus_dim': '#007777',  # Dimmed cyan
+ 
++    # Mod SauceOfGrav
++    'accent_mod_sauce_of_grav': '#FF00FF',
++    'accent_mod_sauce_of_grav_dim': '#990099',
++    'reset_button': '#CC3333',
++
+     # Effects - Purple
+     'accent_effect': '#aa88ff',
+     'accent_effect_dim': '#6644aa',
+diff --git a/src/gui/theme.py b/src/gui/theme.py
+index 140e3a8..9c19893 100644
+--- a/src/gui/theme.py
++++ b/src/gui/theme.py
+@@ -142,6 +142,9 @@ COLORS = {
+     'accent_effect': get('accent_effect'),
+     'accent_mod_arseq_plus': get('accent_mod_arseq_plus'),
+     'accent_mod_arseq_plus_dim': get('accent_mod_arseq_plus_dim'),
++    'accent_mod_sauce_of_grav': get('accent_mod_sauce_of_grav'),
++    'accent_mod_sauce_of_grav_dim': get('accent_mod_sauce_of_grav_dim'),
++    'reset_button': get('reset_button'),
+     'accent_effect_dim': get('accent_effect_dim'),
+     
+     # Scope
+@@ -290,6 +293,7 @@ def slider_style():
+             background: {COLORS['border']};
+         }}
+     """
++
+ def slider_style_center_notch():
+     """
+     Vertical slider with center notch mark.
+diff --git a/src/presets/preset_schema.py b/src/presets/preset_schema.py
+index ddde755..e0c74d7 100644
+--- a/src/presets/preset_schema.py
++++ b/src/presets/preset_schema.py
+@@ -379,6 +379,74 @@ class ARSeqPlusState:
+             rate=data.get("rate", 0.5),
+             envelopes=envelopes,
+         )
++@dataclass
++class SauceOfGravOutputState:
++    """State for a single SauceOfGrav output."""
++    tension: float = 0.5       # Normalized 0–1
++    mass: float = 0.5          # Normalized 0–1
++    polarity: int = 0          # 0=NORM, 1=INV
++
++    def to_dict(self) -> dict:
++        return {
++            "tension": self.tension,
++            "mass": self.mass,
++            "polarity": self.polarity,
++        }
++
++    @classmethod
++    def from_dict(cls, data: dict) -> "SauceOfGravOutputState":
++        return cls(
++            tension=data.get("tension", 0.5),
++            mass=data.get("mass", 0.5),
++            polarity=data.get("polarity", 0),
++        )
++
++
++@dataclass
++class SauceOfGravState:
++    """Full SauceOfGrav modulator state."""
++    clock_mode: int = 0        # 0=CLK, 1=FREE
++    rate: float = 0.5          # Normalized 0–1 (0–0.05 = OFF)
++    depth: float = 0.5         # Normalized 0–1
++    gravity: float = 0.5       # Normalized 0–1
++    resonance: float = 0.5     # Normalized 0–1
++    excursion: float = 0.5     # Normalized 0–1
++    calm: float = 0.5          # Normalized 0–1 (0.5 = neutral)
++    outputs: list = field(default_factory=lambda: [
++        SauceOfGravOutputState() for _ in range(4)
++    ])
++
++    def to_dict(self) -> dict:
++        return {
++            "clock_mode": self.clock_mode,
++            "rate": self.rate,
++            "depth": self.depth,
++            "gravity": self.gravity,
++            "resonance": self.resonance,
++            "excursion": self.excursion,
++            "calm": self.calm,
++            "outputs": [o.to_dict() for o in self.outputs],
++        }
++
++    @classmethod
++    def from_dict(cls, data: dict) -> "SauceOfGravState":
++        raw_outputs = data.get("outputs", [])
++        outputs = []
++        for i in range(4):
++            if i < len(raw_outputs):
++                outputs.append(SauceOfGravOutputState.from_dict(raw_outputs[i]))
++            else:
++                outputs.append(SauceOfGravOutputState())
++        return cls(
++            clock_mode=data.get("clock_mode", 0),
++            rate=data.get("rate", 0.5),
++            depth=data.get("depth", 0.5),
++            gravity=data.get("gravity", 0.5),
++            resonance=data.get("resonance", 0.5),
++            excursion=data.get("excursion", 0.5),
++            calm=data.get("calm", 0.5),
++            outputs=outputs,
++        )
+ 
+ # Phase 5: FX State dataclasses
+ 
