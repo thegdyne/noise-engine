@@ -224,7 +224,7 @@ def build_param_slider(slot, param):
         btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
         btn.text_padding_lr = 2
         btn.index_changed.connect(
-            lambda idx, k=key: slot._on_param_changed(k, idx)
+            lambda idx, k=key: slot._on_mode_changed(k, idx)
         )
         container.addWidget(btn)
         return col
@@ -243,7 +243,7 @@ def build_param_slider(slot, param):
     
     # Connect value change
     slider.valueChanged.connect(
-        lambda val, k=key: slot._on_param_changed(k, val / 1000.0)
+        lambda val, k=key, p=param: slot._on_param_changed(k, val, p)
     )
     
     slider.setToolTip(param.get('tooltip', ''))

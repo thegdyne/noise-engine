@@ -48,6 +48,10 @@ class ModulatorSlot(QWidget):
     env_sync_mode_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, mode (0=SYNC, 1=LOOP)
     env_loop_rate_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, rate_idx
 
+    # SauceOfGrav output signals
+    tension_changed = pyqtSignal(int, int, float)  # slot_id, output_idx, normalized
+    mass_changed = pyqtSignal(int, int, float)  # slot_id, output_idx, normalized
+
     def __init__(self, slot_id, default_generator="Empty", parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_StyledBackground, True)
@@ -192,13 +196,13 @@ class ModulatorSlot(QWidget):
 
     def _on_tension_changed(self, output_idx, value):
         """Handle tension slider change."""
-        # TODO: Phase 4 - send OSC
-        pass
+        normalized = value / 1000.0
+        self.tension_changed.emit(self.slot_id, output_idx, normalized)
 
     def _on_mass_changed(self, output_idx, value):
         """Handle mass slider change."""
-        # TODO: Phase 4 - send OSC
-        pass
+        normalized = value / 1000.0
+        self.mass_changed.emit(self.slot_id, output_idx, normalized)
 
     # ARSEq+ envelope handlers
     def _on_env_attack_changed(self, env_idx, slider_value):
@@ -237,6 +241,8 @@ class ModulatorSlot(QWidget):
             border_color = COLORS['accent_mod_sloth']
         elif gen_name == "ARSEq+":
             border_color = COLORS.get('accent_mod_arseq_plus', '#00CCCC')
+        elif gen_name == "SauceOfGrav":
+            border_color = COLORS.get('accent_mod_sauce_of_grav', '#FF6600')
         else:
             border_color = COLORS['border']
             
@@ -276,6 +282,8 @@ class ModulatorSlot(QWidget):
         output_wave = []
         output_phase = []
         output_polarity = []
+        output_tension = []
+        output_mass = []
 
         for row_widgets in self.output_rows:
             # Wave (if present)
@@ -296,6 +304,18 @@ class ModulatorSlot(QWidget):
             else:
                 output_polarity.append(0)
 
+            # Tension (SauceOfGrav)
+            if 'tension' in row_widgets:
+                output_tension.append(row_widgets['tension'].value() / 1000.0)
+            else:
+                output_tension.append(0.5)
+
+            # Mass (SauceOfGrav)
+            if 'mass' in row_widgets:
+                output_mass.append(row_widgets['mass'].value() / 1000.0)
+            else:
+                output_mass.append(0.5)
+
         # Pad to 4 outputs if fewer
         while len(output_wave) < 4:
             output_wave.append(0)
@@ -304,12 +324,20 @@ class ModulatorSlot(QWidget):
         while len(output_polarity) < 4:
             output_polarity.append(0)
 
+        # Pad to 4 outputs
+        while len(output_tension) < 4:
+            output_tension.append(0.5)
+        while len(output_mass) < 4:
+            output_mass.append(0.5)
+
         return {
             "generator_name": self.generator_name,
             "params": params,
             "output_wave": output_wave[:4],
             "output_phase": output_phase[:4],
             "output_polarity": output_polarity[:4],
+            "output_tension": output_tension[:4],
+            "output_mass": output_mass[:4],
         }
 
     def set_state(self, state: dict):
@@ -339,6 +367,8 @@ class ModulatorSlot(QWidget):
         output_wave = state.get("output_wave", [0, 0, 0, 0])
         output_phase = state.get("output_phase", [0, 3, 5, 6])
         output_polarity = state.get("output_polarity", [0, 0, 0, 0])
+        output_tension = state.get("output_tension", [0.5, 0.5, 0.5, 0.5])
+        output_mass = state.get("output_mass", [0.5, 0.5, 0.5, 0.5])
 
         for i, row_widgets in enumerate(self.output_rows):
             if i >= 4:
@@ -361,6 +391,18 @@ class ModulatorSlot(QWidget):
                 row_widgets['polarity'].blockSignals(True)
                 row_widgets['polarity'].set_index(output_polarity[i])
                 row_widgets['polarity'].blockSignals(False)
+
+            # Tension (SauceOfGrav)
+            if 'tension' in row_widgets and i < len(output_tension):
+                row_widgets['tension'].blockSignals(True)
+                row_widgets['tension'].setValue(int(output_tension[i] * 1000))
+                row_widgets['tension'].blockSignals(False)
+
+            # Mass (SauceOfGrav)
+            if 'mass' in row_widgets and i < len(output_mass):
+                row_widgets['mass'].blockSignals(True)
+                row_widgets['mass'].setValue(int(output_mass[i] * 1000))
+                row_widgets['mass'].blockSignals(False)
 
         # Send all state to SC
         self._send_all_state_to_osc()
@@ -393,12 +435,4 @@ class ModulatorSlot(QWidget):
             if 'polarity' in row_widgets:
                 self.output_polarity_changed.emit(self.slot_id, i, row_widgets['polarity'].index)
 
-    def _on_tension_changed(self, output_idx, value):
-        """Handle tension slider change."""
-        # TODO: Phase 4 - send OSC
-        pass
 
-    def _on_mass_changed(self, output_idx, value):
-        """Handle mass slider change."""
-        # TODO: Phase 4 - send OSC
-        pass
