@@ -563,4 +563,4 @@ def build_modulator_slot_ui(slot):
             background-color: {COLORS['background_light']};
         }}
     """)
-    slot.setMinimumWidth(140)
+    slot.setFixedWidth(156)
