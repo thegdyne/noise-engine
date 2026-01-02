@@ -40,7 +40,14 @@ class ModulatorSlot(QWidget):
     output_wave_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, wave_index
     output_phase_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, phase_index
     output_polarity_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, invert (0=NORM, 1=INV)
-    
+
+    # ARSEq+ envelope signals
+    env_attack_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
+    env_release_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
+    env_curve_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
+    env_sync_mode_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, mode (0=SYNC, 1=LOOP)
+    env_loop_rate_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, rate_idx
+
     def __init__(self, slot_id, default_generator="Empty", parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_StyledBackground, True)
@@ -178,17 +185,48 @@ class ModulatorSlot(QWidget):
     def _on_phase_changed(self, output_idx, phase_index):
         """Handle phase change."""
         self.output_phase_changed.emit(self.slot_id, output_idx, phase_index)
-        
+
     def _on_polarity_changed(self, output_idx, polarity):
         """Handle polarity change."""
         self.output_polarity_changed.emit(self.slot_id, output_idx, polarity)
-        
+
+    # ARSEq+ envelope handlers
+    def _on_env_attack_changed(self, env_idx, slider_value):
+        """Handle envelope attack time change."""
+        normalized = slider_value / 1000.0
+        self.env_attack_changed.emit(self.slot_id, env_idx, normalized)
+
+    def _on_env_release_changed(self, env_idx, slider_value):
+        """Handle envelope release time change."""
+        normalized = slider_value / 1000.0
+        self.env_release_changed.emit(self.slot_id, env_idx, normalized)
+
+    def _on_env_curve_changed(self, env_idx, slider_value):
+        """Handle envelope curve change."""
+        normalized = slider_value / 1000.0
+        self.env_curve_changed.emit(self.slot_id, env_idx, normalized)
+
+    def _on_env_sync_mode_changed(self, env_idx, mode_idx):
+        """Handle envelope sync mode change (0=SYNC, 1=LOOP)."""
+        self.env_sync_mode_changed.emit(self.slot_id, env_idx, mode_idx)
+        # Show/hide loop rate button
+        if env_idx < len(self.output_rows):
+            row = self.output_rows[env_idx]
+            if 'loop_rate' in row:
+                row['loop_rate'].setVisible(mode_idx == 1)
+
+    def _on_env_loop_rate_changed(self, env_idx, rate_idx):
+        """Handle envelope loop rate change."""
+        self.env_loop_rate_changed.emit(self.slot_id, env_idx, rate_idx)
+
     def _update_style_for_generator(self, gen_name):
         """Update slot styling based on generator type."""
         if gen_name == "LFO":
             border_color = COLORS['accent_mod_lfo']
         elif gen_name == "Sloth":
             border_color = COLORS['accent_mod_sloth']
+        elif gen_name == "ARSEq+":
+            border_color = COLORS.get('accent_mod_arseq_plus', '#00CCCC')
         else:
             border_color = COLORS['border']
             

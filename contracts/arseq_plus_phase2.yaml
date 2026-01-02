@@ -1,0 +1,154 @@
+contract: arseq_plus_phase2
+version: 1.0.0
+status: frozen
+cdd_spec: "1.1.5"
+
+description: |
+  ARSEq+ Phase 2: UI Components
+  Extends modulator_slot_builder.py with ARSEq+ output_config handling.
+  
+  Source ref: 
+    - docs/ARSEQ_PLUS_SPEC_v1.2.md (UI Layout section)
+    - analysis/arseq_plus_ui_baseline/PATTERNS.md
+
+runner:
+  executor: shell
+
+requirements:
+  - id: R001
+    priority: must
+    description: output_config arseq_plus handled in builder
+    source_ref: "PATTERNS.md#Required Elements"
+    acceptance_criteria:
+      - build_output_row handles 'arseq_plus' output_config
+      - OR dedicated build_arseq_output_row function exists
+
+  - id: R002
+    priority: must
+    description: Per-envelope controls exist
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Per-Envelope Controls"
+    acceptance_criteria:
+      - ATK slider created per envelope
+      - REL slider created per envelope
+      - CURVE control created per envelope
+      - SYN/LOP toggle created per envelope
+      - Polarity toggle created per envelope
+
+  - id: R003
+    priority: must
+    description: Theme values for ARSEq+ envelope controls
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#UI Layout"
+    acceptance_criteria:
+      - MODULATOR_THEME has arseq-specific values OR existing values reused
+
+  - id: R004
+    priority: should
+    description: Envelope fill indicator widget
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Visual Feedback"
+    acceptance_criteria:
+      - Widget class for envelope phase visualization exists
+
+tests:
+  - id: T001
+    name: arseq_output_config_handled
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "arseq_plus|arseq_output", "../src/gui/modulator_slot_builder.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T002
+    name: atk_slider_created
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "atk|attack.*slider|ATK", "../src/gui/modulator_slot_builder.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T003
+    name: rel_slider_created
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "rel|release.*slider|REL", "../src/gui/modulator_slot_builder.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T004
+    name: curve_control_created
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-iE", "curve|CRV", "../src/gui/modulator_slot_builder.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T005
+    name: sync_loop_toggle_created
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-iE", "sync.*loop|SYN.*LOP|sync_mode", "../src/gui/modulator_slot_builder.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T006
+    name: polarity_in_arseq_row
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -A100 'arseq' ../src/gui/modulator_slot_builder.py | grep -i polarity"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T007
+    name: envelope_indicator_exists
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -rE 'EnvelopeIndicator|FillIndicator|envelope.*indicator' ../src/gui/"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T008
+    name: theme_or_reuse_existing
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "MODULATOR_THEME", "../src/gui/modulator_slot_builder.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true

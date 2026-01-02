@@ -98,7 +98,46 @@ Empty generator = no synth, buses zeroed.
                 \polarityZ, outState[2][\polarity] ? 0,
                 \polarityR, outState[3][\polarity] ? 0  // R defaults NORM
             ], ~modGroup);
-            ("  Mod slot " ++ slot ++ " → Sloth").postln;
+("  Mod slot " ++ slot ++ " → Sloth").postln;
+        }
+        { genName == "ARSEq+" } {
+            ~modNodes[idx] = Synth(\modARSeqPlus, [
+                \outA, busA,
+                \outB, busB,
+                \outC, busC,
+                \outD, busD,
+                \mode, params[\mode] ? 0,
+                \clockMode, params[\clockMode] ? 0,
+                \rate, params[\rate] ? 0.5,
+                \atkA, params[\atkA] ? 0.5,
+                \atkB, params[\atkB] ? 0.5,
+                \atkC, params[\atkC] ? 0.5,
+                \atkD, params[\atkD] ? 0.5,
+                \relA, params[\relA] ? 0.5,
+                \relB, params[\relB] ? 0.5,
+                \relC, params[\relC] ? 0.5,
+                \relD, params[\relD] ? 0.5,
+                \curveA, params[\curveA] ? 0.5,
+                \curveB, params[\curveB] ? 0.5,
+                \curveC, params[\curveC] ? 0.5,
+                \curveD, params[\curveD] ? 0.5,
+                \syncModeA, params[\syncModeA] ? 0,
+                \syncModeB, params[\syncModeB] ? 0,
+                \syncModeC, params[\syncModeC] ? 0,
+                \syncModeD, params[\syncModeD] ? 0,
+                \loopRateA, params[\loopRateA] ? 6,
+                \loopRateB, params[\loopRateB] ? 6,
+                \loopRateC, params[\loopRateC] ? 6,
+                \loopRateD, params[\loopRateD] ? 6,
+                \polarityA, outState[0][\polarity] ? 0,
+                \polarityB, outState[1][\polarity] ? 0,
+                \polarityC, outState[2][\polarity] ? 0,
+                \polarityD, outState[3][\polarity] ? 0,
+                \clockTrigBus, ~clockTrigBus.index,
+                \clockIndex, ~modClockSourceIndex,
+                \bpmBus, ~clockBus.index
+            ], ~modGroup);
+            ("  Mod slot " ++ slot ++ " → ARSEq+").postln;
         }
         { /* Empty - node stays nil, buses already zeroed */
             ("  Mod slot " ++ slot ++ " → Empty").postln;
@@ -135,7 +174,7 @@ Empty generator = no synth, buses zeroed.
         ~modOutputState[idx][output][\polarity] = polarity;
         
         // Parameter name depends on generator type
-        if(genName == "LFO") {
+        if((genName == "LFO") || (genName == "ARSEq+")) {
             paramName = [\polarityA, \polarityB, \polarityC, \polarityD][output];
         } {
             paramName = [\polarityX, \polarityY, \polarityZ, \polarityR][output];

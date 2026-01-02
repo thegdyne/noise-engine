@@ -177,6 +177,13 @@ class MainFrame(QMainWindow):
         self.modulator_grid.output_wave_changed.connect(self.on_mod_output_wave)
         self.modulator_grid.output_phase_changed.connect(self.on_mod_output_phase)
         self.modulator_grid.output_polarity_changed.connect(self.on_mod_output_polarity)
+
+        # ARSEq+ envelope signals
+        self.modulator_grid.env_attack_changed.connect(self.on_mod_env_attack)
+        self.modulator_grid.env_release_changed.connect(self.on_mod_env_release)
+        self.modulator_grid.env_curve_changed.connect(self.on_mod_env_curve)
+        self.modulator_grid.env_sync_mode_changed.connect(self.on_mod_env_sync_mode)
+        self.modulator_grid.env_loop_rate_changed.connect(self.on_mod_env_loop_rate)
         content_layout.addWidget(self.modulator_grid)
         
         # Scope repaint timer (~30fps)
@@ -910,13 +917,49 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, output_idx, phase_index])
         logger.debug(f"Mod {slot_id} out {output_idx} phase: {phase_index}", component="OSC")
-        
+
     def on_mod_output_polarity(self, slot_id, output_idx, polarity):
         """Handle mod output polarity change."""
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, output_idx, polarity])
         logger.debug(f"Mod {slot_id} out {output_idx} polarity: {polarity}", component="OSC")
-        
+
+    # ARSEq+ envelope handlers
+    def on_mod_env_attack(self, slot_id, env_idx, value):
+        """Handle ARSEq+ envelope attack change."""
+        param_name = ["atkA", "atkB", "atkC", "atkD"][env_idx]
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
+        logger.debug(f"Mod {slot_id} env {env_idx} attack: {value:.3f}", component="OSC")
+
+    def on_mod_env_release(self, slot_id, env_idx, value):
+        """Handle ARSEq+ envelope release change."""
+        param_name = ["relA", "relB", "relC", "relD"][env_idx]
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
+        logger.debug(f"Mod {slot_id} env {env_idx} release: {value:.3f}", component="OSC")
+
+    def on_mod_env_curve(self, slot_id, env_idx, value):
+        """Handle ARSEq+ envelope curve change."""
+        param_name = ["curveA", "curveB", "curveC", "curveD"][env_idx]
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
+        logger.debug(f"Mod {slot_id} env {env_idx} curve: {value:.3f}", component="OSC")
+
+    def on_mod_env_sync_mode(self, slot_id, env_idx, mode):
+        """Handle ARSEq+ envelope sync mode change."""
+        param_name = ["syncModeA", "syncModeB", "syncModeC", "syncModeD"][env_idx]
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(mode)])
+        logger.debug(f"Mod {slot_id} env {env_idx} sync_mode: {mode}", component="OSC")
+
+    def on_mod_env_loop_rate(self, slot_id, env_idx, rate_idx):
+        """Handle ARSEq+ envelope loop rate change."""
+        param_name = ["loopRateA", "loopRateB", "loopRateC", "loopRateD"][env_idx]
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(rate_idx)])
+        logger.debug(f"Mod {slot_id} env {env_idx} loop_rate: {rate_idx}", component="OSC")
+
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""
         # Calculate slot from bus index: bus 0-3 slot 1, bus 4-7 slot 2, etc.

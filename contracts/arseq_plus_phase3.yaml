@@ -1,0 +1,249 @@
+contract: arseq_plus_phase3
+version: 1.0.0
+status: frozen
+cdd_spec: "1.1.5"
+
+description: |
+  ARSEq+ Phase 3: SuperCollider SynthDef
+  4-output AR envelope sequencer with SEQ/PAR modes, per-envelope SYNC/LOOP.
+  
+  Source ref:
+    - docs/ARSEQ_PLUS_SPEC_v1.2.md (SuperCollider Implementation)
+    - analysis/arseq_plus_sc_baseline/PATTERNS.md
+
+runner:
+  executor: shell
+
+requirements:
+  - id: R001
+    priority: must
+    description: SynthDef file exists with correct name
+    source_ref: "PATTERNS.md#SynthDef naming"
+    acceptance_criteria:
+      - File supercollider/core/mod_arseq_plus.scd exists
+      - Contains SynthDef named modARSeqPlus
+
+  - id: R002
+    priority: must
+    description: Four output buses defined
+    source_ref: "PATTERNS.md#Output buses"
+    acceptance_criteria:
+      - Arguments outA, outB, outC, outD present
+      - Out.kr writes to each output bus
+
+  - id: R003
+    priority: must
+    description: Master controls present
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Master Controls"
+    acceptance_criteria:
+      - mode argument (SEQ/PAR)
+      - clockMode argument (CLK/FREE)
+      - rate argument
+
+  - id: R004
+    priority: must
+    description: Per-envelope controls present
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Per-Envelope Controls"
+    acceptance_criteria:
+      - Attack params (atkA, atkB, atkC, atkD)
+      - Release params (relA, relB, relC, relD)
+      - Curve params (curveA, curveB, curveC, curveD)
+      - Polarity params (polarityA, polarityB, polarityC, polarityD)
+
+  - id: R005
+    priority: must
+    description: Clock sync infrastructure
+    source_ref: "PATTERNS.md#Clock input"
+    acceptance_criteria:
+      - clockTrigBus argument present
+      - bpmBus argument present
+
+  - id: R006
+    priority: should
+    description: Envelope generation using EnvGen
+    source_ref: "PATTERNS.md#Envelope Generation"
+    acceptance_criteria:
+      - EnvGen.kr used for envelope shaping
+
+tests:
+  - id: T001
+    name: synthdef_file_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["test", "-f", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T002
+    name: synthdef_name_correct
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "SynthDef.*modARSeqPlus", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T003
+    name: output_buses_defined
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "outA.*outB.*outC.*outD", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T004
+    name: output_kr_writes
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -c 'Out.kr' ../supercollider/core/mod_arseq_plus.scd | grep -E '^[4-9]|^[0-9]{2}'"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T005
+    name: master_mode_arg
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "\\bmode\\s*=", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T006
+    name: master_clockmode_arg
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "clockMode\\s*=", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T007
+    name: master_rate_arg
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "\\brate\\s*=", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T008
+    name: attack_params
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "atkA.*atkB.*atkC.*atkD|atk[ABCD]", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T009
+    name: release_params
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "relA.*relB.*relC.*relD|rel[ABCD]", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T010
+    name: curve_params
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "curveA.*curveB.*curveC.*curveD|curve[ABCD]", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T011
+    name: polarity_params
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-E", "polarityA.*polarityB|polarity[ABCD]", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T012
+    name: clock_trig_bus
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "clockTrigBus", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T013
+    name: bpm_bus
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "bpmBus", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T014
+    name: envgen_used
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "EnvGen", "../supercollider/core/mod_arseq_plus.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true

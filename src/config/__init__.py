@@ -824,6 +824,7 @@ MOD_GENERATOR_CYCLE = [
     "Empty",
     "LFO",
     "Sloth",
+    "ARSEq+",
 ]
 
 # LFO waveforms (TTLFO v2 inspired)
@@ -854,6 +855,12 @@ MOD_LFO_MODE_INDEX = {m: i for i, m in enumerate(MOD_LFO_MODES)}
 MOD_LFO_FREQ_MIN = 0.01   # ~100 second cycle
 MOD_LFO_FREQ_MAX = 100.0  # Audio rate modulation
 
+# ARSEq+ time ranges (in seconds)
+ARSEQ_SYNC_TIME_MIN = 0.0001   # 0.1ms
+ARSEQ_SYNC_TIME_MAX = 10.0     # 10s
+ARSEQ_LOOP_TIME_MIN = 0.0001   # 0.1ms
+ARSEQ_LOOP_TIME_MAX = 120.0    # 2 minutes
+
 # Sloth speed modes (NLC Triple Sloth inspired)
 MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
 MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
@@ -881,7 +888,8 @@ MOD_POLARITY_INDEX = {"NORM": 0, "INV": 1}
 MOD_OUTPUT_LABELS = {
     "Empty": ["A", "B", "C", "D"],
     "LFO": ["A", "B", "C", "D"],      # Quadrature phases
-    "Sloth": ["X", "Y", "Z", "R"],    # R = rectified gate
+    "Sloth": ["X", "Y", "Z", "R"],  # R = rectified gate
+    "ARSEq+": ["1", "2", "3", "4"],  # Envelope outputs
 }
 
 # Mod generator configs loaded from JSON files
@@ -954,6 +962,19 @@ def _load_mod_generator_configs():
 
 # Load on import
 _load_mod_generator_configs()
+
+# ARSEq+ config (programmatic registration)
+_MOD_GENERATOR_CONFIGS["ARSEq+"] = {
+    "internal_id": "arseq_plus",
+    "synthdef": "ne_mod_arseq_plus",
+    "custom_params": [
+        {"key": "mode", "label": "MODE", "steps": 2, "default": 0.0},
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0},
+        {"key": "rate", "label": "RATE", "default": 0.5},
+    ],
+    "output_config": "arseq_plus",
+    "outputs": ["1", "2", "3", "4"],
+}
 
 def get_mod_generator_synthdef(name):
     """Get SynthDef name for a mod generator."""
