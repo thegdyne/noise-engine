@@ -167,7 +167,7 @@ def build_param_slider(slot, param):
 
     # Mode buttons need wider column
     is_mode_btn = key in ('mode', 'clock_mode') and steps_i in (2, 3)
-    col_width = mt.get('mode_button_width', 36) if is_mode_btn else 20
+    col_width = 28 if is_mode_btn else 20
     
     # Fixed-width column widget
     col = QWidget()
@@ -215,9 +215,7 @@ def build_param_slider(slot, param):
         btn = CycleButton(mode_labels, initial_index=default_idx)
         btn.setObjectName(f"mod{slot.slot_id}_mode")
         # Mode buttons need specific width to show text like "CLK", "FREE"
-        mode_width = mt.get('mode_button_width', 48)
-        mode_height = mt.get('mode_button_height', 22)
-        btn.setFixedSize(mode_width, mode_height)
+        btn.setFixedSize(28, 22)
         btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         btn.setStyleSheet(button_style('submenu'))
         btn.setToolTip(tooltip)
