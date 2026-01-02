@@ -408,17 +408,19 @@ class ModulatorSlot(QWidget):
                 row_widgets['polarity'].set_index(output_polarity[i])
                 row_widgets['polarity'].blockSignals(False)
 
-            # Tension (SauceOfGrav)
+            # Tension (SauceOfGrav) - skip if old default (let builder defaults stand)
             if 'tension' in row_widgets and i < len(output_tension):
-                row_widgets['tension'].blockSignals(True)
-                row_widgets['tension'].setValue(int(output_tension[i] * 1000))
-                row_widgets['tension'].blockSignals(False)
+                if output_tension != [0.5, 0.5, 0.5, 0.5]:  # Only restore if customized
+                    row_widgets['tension'].blockSignals(True)
+                    row_widgets['tension'].setValue(int(output_tension[i] * 1000))
+                    row_widgets['tension'].blockSignals(False)
 
-            # Mass (SauceOfGrav)
+            # Mass (SauceOfGrav) - skip if old default (let builder defaults stand)
             if 'mass' in row_widgets and i < len(output_mass):
-                row_widgets['mass'].blockSignals(True)
-                row_widgets['mass'].setValue(int(output_mass[i] * 1000))
-                row_widgets['mass'].blockSignals(False)
+                if output_mass != [0.5, 0.5, 0.5, 0.5]:  # Only restore if customized
+                    row_widgets['mass'].blockSignals(True)
+                    row_widgets['mass'].setValue(int(output_mass[i] * 1000))
+                    row_widgets['mass'].blockSignals(False)
 
         # Send all state to SC
         self._send_all_state_to_osc()

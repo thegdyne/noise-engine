@@ -23,9 +23,11 @@ class ModMatrixCell(QWidget):
     
     # Colours by mod source type
     SOURCE_COLORS = {
-        'LFO': '#00ff66',      # Green
-        'Sloth': '#ff8800',    # Orange  
-        'Empty': '#666666',    # Grey
+        'LFO': '#00ff66',  # Green
+        'Sloth': '#ff8800',  # Orange
+        'ARSEq+': '#00cccc',  # Cyan
+        'SauceOfGrav': '#ff6600',  # Orange-red
+        'Empty': '#666666',  # Grey
     }
     
     # Alternating background tints for generator grouping
