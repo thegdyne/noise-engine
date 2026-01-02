@@ -173,6 +173,7 @@ Empty generator = no synth, buses zeroed.
         { /* Empty - node stays nil, buses already zeroed */
             ("  Mod slot " ++ slot ++ " → Empty").postln;
         };
+    };
     
     // Update parameter on existing synth
     ~setModParam = { |slot, key, value|
@@ -220,3 +221,4 @@ Empty generator = no synth, buses zeroed.
     
     "  ✓ Mod slots ready (4 slots × 4 outputs)".postln;
 };
+
