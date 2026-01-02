@@ -203,7 +203,6 @@ class ModulatorSlot(QWidget):
 
     def _on_tension_changed(self, output_idx, value):
         """Handle tension slider change."""
-        print(f"DEBUG: _on_tension_changed slot={self.slot_id} out={output_idx} val={value}")
         normalized = value / 1000.0
         self.tension_changed.emit(self.slot_id, output_idx, normalized)
 

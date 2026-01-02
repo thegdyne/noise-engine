@@ -970,13 +970,9 @@ class MainFrame(QMainWindow):
 
     def on_mod_tension(self, slot_id, output_idx, normalized):
         """Handle SauceOfGrav tension change."""
-        print(f"DEBUG: on_mod_tension - osc_connected={self.osc_connected}")
         param_name = f"tension{output_idx + 1}"
         if self.osc_connected:
-            print(f"DEBUG: sending OSC /noise/mod/param [{slot_id}, {param_name}, {normalized}]")
             self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, normalized])
-        else:
-            print("DEBUG: OSC not connected, message not sent")
         logger.debug(f"Mod {slot_id} tension{output_idx + 1}: {normalized:.3f}", component="OSC")
 
     def on_mod_mass(self, slot_id, output_idx, normalized):
