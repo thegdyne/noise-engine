@@ -178,17 +178,17 @@ def build_param_slider(slot, param):
     container.setContentsMargins(0, 0, 0, 0)
     container.setSpacing(1)
 
-    # Label - only show if no label_top (SauceOfGrav uses top/bottom labels instead)
-    if not param.get('label_top'):
-        label = QLabel(param.get('label', key.upper()[:4]))
-        label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet(f"color: {COLORS['text']};")
-        label.setToolTip(param.get('tooltip', ''))
-        label.setFixedHeight(mt['param_label_height'])
-        label.setFixedWidth(col_width)
-        label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        container.addWidget(label)
+    # Top position label - use label_top if specified, otherwise use main label
+    top_text = param.get('label_top', param.get('label', key.upper()[:4]))
+    top_label_widget = QLabel(top_text)
+    top_label_widget.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    top_label_widget.setAlignment(Qt.AlignCenter)
+    top_label_widget.setStyleSheet(f"color: {COLORS['text']};")
+    top_label_widget.setToolTip(param.get('tooltip', ''))
+    top_label_widget.setFixedHeight(mt['param_label_height'])
+    top_label_widget.setFixedWidth(col_width)
+    top_label_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    container.addWidget(top_label_widget)
 
     # Use CycleButton for stepped params
     if is_mode_btn:
@@ -227,17 +227,6 @@ def build_param_slider(slot, param):
         )
         container.addWidget(btn)
         return col
-
-    # Add top label (for sliders with label_top specified)
-    label_top = param.get('label_top', '')
-    top_label = QLabel(label_top)
-    top_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-    top_label.setAlignment(Qt.AlignCenter)
-    top_label.setStyleSheet(f"color: {COLORS['text']};")
-    top_label.setFixedHeight(mt['param_label_height'])
-    top_label.setFixedWidth(col_width)
-    top_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-    container.addWidget(top_label)
 
     # DragSlider for continuous params
     slider = DragSlider()
