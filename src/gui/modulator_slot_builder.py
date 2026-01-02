@@ -164,9 +164,9 @@ def build_param_slider(slot, param):
         steps_i = int(steps) if steps is not None else None
     except (ValueError, TypeError):
         steps_i = None
-    
+
     # Mode buttons need wider column
-    is_mode_btn = key == 'mode' and steps_i in (2, 3)
+    is_mode_btn = key in ('mode', 'clock_mode') and steps_i in (2, 3)
     col_width = mt.get('mode_button_width', 48) if is_mode_btn else mt['slider_column_width']
     
     # Fixed-width column widget
@@ -188,10 +188,18 @@ def build_param_slider(slot, param):
     label.setFixedWidth(col_width)
     label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     container.addWidget(label)
-    
-    # Use CycleButton for stepped params (mode: CLK/FREE for LFO, TOR/APA/INE for Sloth)
+
+    # Use CycleButton for stepped params
     if is_mode_btn:
-        if steps_i == 2:
+        if key == 'clock_mode':
+            # ARSEq+ clock mode: CLK/FREE
+            mode_labels = MOD_LFO_MODES  # Reuse CLK/FREE
+            tooltip = "CLK: sync to transport\nFREE: free-running rate"
+        elif key == 'mode' and slot.generator_name == "ARSEq+":
+            # ARSEq+ mode: SEQ/PAR
+            mode_labels = ["SEQ", "PAR"]
+            tooltip = "SEQ: envelopes fire in sequence (1→2→3→4)\nPAR: all fire together"
+        elif steps_i == 2:
             # LFO mode: CLK/FREE
             mode_labels = MOD_LFO_MODES
             tooltip = "CLK: sync to clock divisions\nFREE: manual frequency (0.01-100Hz)"
@@ -350,7 +358,7 @@ def build_arseq_output_row(slot, output_idx, label):
     atk_slider.setFixedHeight(btn_height)
     atk_slider.setMinimumWidth(30)
     atk_slider.setOrientation(Qt.Horizontal)
-    atk_slider.setValue(500)
+    atk_slider.setValue(0)
     atk_slider.setToolTip("ATK")
     atk_slider.valueChanged.connect(
         lambda val, idx=output_idx: slot._on_env_attack_changed(idx, val)

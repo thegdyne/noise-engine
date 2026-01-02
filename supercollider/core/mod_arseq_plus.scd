@@ -57,6 +57,9 @@ SynthDef(\modARSeqPlus, {
     var envA, envB, envC, envD;
     var trigA, trigB, trigC, trigD;
     var gateA, gateB, gateC, gateD;
+    var atkTrigA, atkTrigB, atkTrigC, atkTrigD;
+    var relTrigA, relTrigB, relTrigC, relTrigD;
+    var loopTrigA, loopTrigB, loopTrigC, loopTrigD;
     var masterTrig, seqStep, seqTrig;
     var clk, atrig, trig;
     var rateIndex, ticksPerCycle, masterFreq;
@@ -109,74 +112,104 @@ SynthDef(\modARSeqPlus, {
         Impulse.kr(masterFreq)
     ]);
 
-    // ---- SEQ MODE: SEQUENTIAL TRIGGERING ----
-    // Count master pulses, 2 per envelope (attack + release phase)
+// ---- SEQ MODE: SEQUENTIAL TRIGGERING ----
+    // CD4017-style decade counter: 2 clocks per envelope
+    // Q0=attack A, Q1=release A, Q2=attack B, Q3=release B, etc.
     seqStep = PulseCount.kr(masterTrig) % 8;  // 0-7 (2 steps × 4 envelopes)
-    
-    // ---- TRIGGER GENERATION ----
-    // SEQ mode: each envelope gets triggered in sequence
-    // PAR mode: all envelopes triggered together
-    
-    // SEQ triggers: envelope N fires on steps 2N and 2N+1
-    seqTrig = masterTrig;  // Use master trigger timing
-    
-    // Generate per-envelope gates
-    // In SEQ: gate high during envelope's active steps
-    // In PAR: all gates follow master
-    gateA = Select.kr(mode.round, [
-        // SEQ: active on steps 0,1
-        (seqStep < 2) * Trig1.kr(masterTrig * (seqStep < 2), 0.001),
-        // PAR: all triggered together
-        Trig1.kr(masterTrig, 0.001)
-    ]);
-    
-    gateB = Select.kr(mode.round, [
-        ((seqStep >= 2) * (seqStep < 4)) * Trig1.kr(masterTrig * ((seqStep >= 2) * (seqStep < 4)), 0.001),
-        Trig1.kr(masterTrig, 0.001)
-    ]);
-    
-    gateC = Select.kr(mode.round, [
-        ((seqStep >= 4) * (seqStep < 6)) * Trig1.kr(masterTrig * ((seqStep >= 4) * (seqStep < 6)), 0.001),
-        Trig1.kr(masterTrig, 0.001)
-    ]);
-    
-    gateD = Select.kr(mode.round, [
-        (seqStep >= 6) * Trig1.kr(masterTrig * (seqStep >= 6), 0.001),
-        Trig1.kr(masterTrig, 0.001)
-    ]);
 
-    // ---- LOOP MODE OVERRIDE ----
-    // When envelope is in LOOP mode, it self-triggers at its own rate
-    trigA = Select.kr(syncModeA.round, [
-        gateA,
-        Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateA.round.clip(0, 11), 
-            [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]))
+// ---- ATTACK/RELEASE TRIGGERS ----
+    // Each envelope gets separate attack and release triggers
+    // Attack on even steps (0,2,4,6), Release on odd steps (1,3,5,7)
+    // Use < comparisons (returns UGen, not boolean)
+    atkTrigA = masterTrig * (seqStep < 0.5);                              // step 0
+    relTrigA = masterTrig * (seqStep > 0.5) * (seqStep < 1.5);            // step 1
+    atkTrigB = masterTrig * (seqStep > 1.5) * (seqStep < 2.5);            // step 2
+    relTrigB = masterTrig * (seqStep > 2.5) * (seqStep < 3.5);            // step 3
+    atkTrigC = masterTrig * (seqStep > 3.5) * (seqStep < 4.5);            // step 4
+    relTrigC = masterTrig * (seqStep > 4.5) * (seqStep < 5.5);            // step 5
+    atkTrigD = masterTrig * (seqStep > 5.5) * (seqStep < 6.5);            // step 6
+    relTrigD = masterTrig * (seqStep > 6.5);                              // step 7
+
+    // ---- GATE FROM SET-RESET FLIP-FLOP ----
+    // Attack trigger SETS gate HIGH, Release trigger RESETS gate LOW
+    // In PAR mode, use masterTrig directly (all together)
+    gateA = Select.kr(mode.round, [
+        SetResetFF.kr(atkTrigA, relTrigA),  // SEQ: SR flip-flop
+        1  // PAR: always gated
     ]);
-    
-    trigB = Select.kr(syncModeB.round, [
-        gateB,
-        Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateB.round.clip(0, 11),
-            [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]))
+    gateB = Select.kr(mode.round, [
+        SetResetFF.kr(atkTrigB, relTrigB),
+        1
     ]);
-    
-    trigC = Select.kr(syncModeC.round, [
-        gateC,
-        Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateC.round.clip(0, 11),
-            [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]))
+    gateC = Select.kr(mode.round, [
+        SetResetFF.kr(atkTrigC, relTrigC),
+        1
     ]);
-    
-    trigD = Select.kr(syncModeD.round, [
-        gateD,
-        Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateD.round.clip(0, 11),
-            [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]))
+    gateD = Select.kr(mode.round, [
+        SetResetFF.kr(atkTrigD, relTrigD),
+        1
     ]);
+    // ---- LOOP MODE TRIGGERS ----
+    loopTrigA = Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateA.round.clip(0, 11),
+        [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]));
+    loopTrigB = Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateB.round.clip(0, 11),
+        [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]));
+    loopTrigC = Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateC.round.clip(0, 11),
+        [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]));
+    loopTrigD = Impulse.kr(bpm / 60 * 32 / Select.kr(loopRateD.round.clip(0, 11),
+        [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]));
 
     // ---- ENVELOPE GENERATION ----
-    envA = makeEnv.(trigA, atkA, relA, curveA, syncModeA);
-    envB = makeEnv.(trigB, atkB, relB, curveB, syncModeB);
-    envC = makeEnv.(trigC, atkC, relC, curveC, syncModeC);
-    envD = makeEnv.(trigD, atkD, relD, curveD, syncModeD);
+    // SEQ mode: gate-based ASR envelope (attack on HIGH, release on LOW)
+    // PAR mode: trigger-based AR envelope (all fire together)
+    // LOOP mode: trigger-based AR envelope (self-triggering)
 
+    envA = Select.kr(syncModeA.round, [
+        // SYNC mode
+        Select.kr(mode.round, [
+            // SEQ: gate-based ASR
+            EnvGen.kr(Env.asr(
+                mapSyncTime.(atkA),
+                1.0,
+                mapSyncTime.(relA),
+                mapCurve.(curveA)
+            ), gateA),
+            // PAR: trigger-based AR
+            makeEnv.(masterTrig, atkA, relA, curveA, 0)
+        ]),
+        // LOOP mode: self-triggering AR
+        makeEnv.(loopTrigA, atkA, relA, curveA, 1)
+    ]);
+
+    envB = Select.kr(syncModeB.round, [
+        Select.kr(mode.round, [
+            EnvGen.kr(Env.asr(
+                mapSyncTime.(atkB), 1.0, mapSyncTime.(relB), mapCurve.(curveB)
+            ), gateB),
+            makeEnv.(masterTrig, atkB, relB, curveB, 0)
+        ]),
+        makeEnv.(loopTrigB, atkB, relB, curveB, 1)
+    ]);
+
+    envC = Select.kr(syncModeC.round, [
+        Select.kr(mode.round, [
+            EnvGen.kr(Env.asr(
+                mapSyncTime.(atkC), 1.0, mapSyncTime.(relC), mapCurve.(curveC)
+            ), gateC),
+            makeEnv.(masterTrig, atkC, relC, curveC, 0)
+        ]),
+        makeEnv.(loopTrigC, atkC, relC, curveC, 1)
+    ]);
+
+    envD = Select.kr(syncModeD.round, [
+        Select.kr(mode.round, [
+            EnvGen.kr(Env.asr(
+                mapSyncTime.(atkD), 1.0, mapSyncTime.(relD), mapCurve.(curveD)
+            ), gateD),
+            makeEnv.(masterTrig, atkD, relD, curveD, 0)
+        ]),
+        makeEnv.(loopTrigD, atkD, relD, curveD, 1)
+    ]);
     // ---- OUTPUT SCALING ----
     // Convert 0-1 envelope to bipolar based on polarity
     // NORM (0): 0 to +1 → output 0 to +1

@@ -927,32 +927,37 @@ class MainFrame(QMainWindow):
     # ARSEq+ envelope handlers
     def on_mod_env_attack(self, slot_id, env_idx, value):
         """Handle ARSEq+ envelope attack change."""
+        param_name = ["atkA", "atkB", "atkC", "atkD"][env_idx]
         if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"atkEnv{env_idx}", value])
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
         logger.debug(f"Mod {slot_id} env {env_idx} attack: {value:.3f}", component="OSC")
 
     def on_mod_env_release(self, slot_id, env_idx, value):
         """Handle ARSEq+ envelope release change."""
+        param_name = ["relA", "relB", "relC", "relD"][env_idx]
         if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"relEnv{env_idx}", value])
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
         logger.debug(f"Mod {slot_id} env {env_idx} release: {value:.3f}", component="OSC")
 
     def on_mod_env_curve(self, slot_id, env_idx, value):
         """Handle ARSEq+ envelope curve change."""
+        param_name = ["curveA", "curveB", "curveC", "curveD"][env_idx]
         if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"curveEnv{env_idx}", value])
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
         logger.debug(f"Mod {slot_id} env {env_idx} curve: {value:.3f}", component="OSC")
 
     def on_mod_env_sync_mode(self, slot_id, env_idx, mode):
         """Handle ARSEq+ envelope sync mode change."""
+        param_name = ["syncModeA", "syncModeB", "syncModeC", "syncModeD"][env_idx]
         if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"syncModeEnv{env_idx}", float(mode)])
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(mode)])
         logger.debug(f"Mod {slot_id} env {env_idx} sync_mode: {mode}", component="OSC")
 
     def on_mod_env_loop_rate(self, slot_id, env_idx, rate_idx):
         """Handle ARSEq+ envelope loop rate change."""
+        param_name = ["loopRateA", "loopRateB", "loopRateC", "loopRateD"][env_idx]
         if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"loopRateEnv{env_idx}", float(rate_idx)])
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(rate_idx)])
         logger.debug(f"Mod {slot_id} env {env_idx} loop_rate: {rate_idx}", component="OSC")
 
     def on_mod_bus_value(self, bus_idx, value):

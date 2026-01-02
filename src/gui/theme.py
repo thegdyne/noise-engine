@@ -269,8 +269,27 @@ def slider_style():
         QSlider::handle:vertical:disabled {{
             background: {COLORS['border']};
         }}
+        QSlider::groove:horizontal {{
+            background: {COLORS['background_dark']};
+            height: 8px;
+            border-radius: 4px;
+        }}
+        QSlider::handle:horizontal {{
+            background: {COLORS['text']};
+            width: 12px;
+            margin: -4px 0;
+            border-radius: 6px;
+        }}
+        QSlider::handle:horizontal:hover {{
+            background: {COLORS['text_bright']};
+        }}
+        QSlider::groove:horizontal:disabled {{
+            background: {COLORS['background']};
+        }}
+        QSlider::handle:horizontal:disabled {{
+            background: {COLORS['border']};
+        }}
     """
-
 def slider_style_center_notch():
     """
     Vertical slider with center notch mark.
