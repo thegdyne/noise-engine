@@ -1076,7 +1076,7 @@ _MOD_GENERATOR_CONFIGS["SauceOfGrav"] = {
         {"key": "gravity", "label": "GRAV", "default": 0.5},
         {"key": "resonance", "label": "RESO", "default": 0.5},
         {"key": "excursion", "label": "EXCUR", "default": 0.5},
-        {"key": "calm", "label": "CALM", "default": 0.5, "bipolar": True},
+        {"key": "calm", "label": "WILD", "label_bottom": "CALM", "default": 0.5, "bipolar": True},
     ],
     "output_config": "sauce_of_grav",
     "output_labels": ["1", "2", "3", "4"],

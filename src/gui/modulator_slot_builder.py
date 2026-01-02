@@ -231,21 +231,36 @@ def build_param_slider(slot, param):
     slider = DragSlider()
     slider.setObjectName(f"mod{slot.slot_id}_{key}")
     slider.setFixedSize(18, mt['slider_height'])
-    
+
     # Bipolar params show center notch
     is_bipolar = param.get('bipolar', False)
-    
+
     # Set default value
     default_val = float(param.get('default', 0.5))
     slider.setValue(int(default_val * 1000))
-    
+
+    # Bipolar params: double-click resets to center
+    if is_bipolar:
+        slider.setDoubleClickValue(500)
+
     # Connect value change
     slider.valueChanged.connect(
         lambda val, k=key, p=param: slot._on_param_changed(k, val, p)
     )
-    
+
     slider.setToolTip(param.get('tooltip', ''))
     container.addWidget(slider, alignment=Qt.AlignHCenter)
+
+    # Add bottom label (for alignment; shows text if label_bottom specified)
+    label_bottom = param.get('label_bottom', '')
+    bottom_label = QLabel(label_bottom)
+    bottom_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    bottom_label.setAlignment(Qt.AlignCenter)
+    bottom_label.setStyleSheet(f"color: {COLORS['text']};")
+    bottom_label.setFixedHeight(mt['param_label_height'])
+    bottom_label.setFixedWidth(col_width)
+    bottom_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    container.addWidget(bottom_label)
 
     return col
 
