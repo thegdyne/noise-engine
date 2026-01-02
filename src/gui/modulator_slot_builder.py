@@ -373,7 +373,7 @@ def build_arseq_output_row(slot, output_idx, label):
     row.addWidget(out_label)
     row_widgets['label'] = out_label
 
-    # ATK slider (horizontal, wider)
+    # ATK slider (horizontal, wider) - with label on first row
     atk_slider = DragSlider()
     atk_slider.setObjectName(f"mod{slot.slot_id}_env{output_idx}_atk")
     atk_slider.setFixedHeight(btn_height)
@@ -384,10 +384,23 @@ def build_arseq_output_row(slot, output_idx, label):
     atk_slider.valueChanged.connect(
         lambda val, idx=output_idx: slot._on_env_attack_changed(idx, val)
     )
-    row.addWidget(atk_slider, 1)  # stretch factor
+
+    if output_idx == 0:
+        atk_container = QVBoxLayout()
+        atk_container.setSpacing(2)
+        atk_container.setContentsMargins(0, 0, 0, 0)
+        atk_label = QLabel("ATK")
+        atk_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        atk_label.setAlignment(Qt.AlignCenter)
+        atk_label.setStyleSheet(f"color: {COLORS['text']};")
+        atk_container.addWidget(atk_label)
+        atk_container.addWidget(atk_slider)
+        row.addLayout(atk_container, 1)
+    else:
+        row.addWidget(atk_slider, 1)
     row_widgets['atk'] = atk_slider
 
-    # REL slider (horizontal, wider)
+    # REL slider (horizontal, wider) - with label on first row
     rel_slider = DragSlider()
     rel_slider.setObjectName(f"mod{slot.slot_id}_env{output_idx}_rel")
     rel_slider.setFixedHeight(btn_height)
@@ -398,7 +411,20 @@ def build_arseq_output_row(slot, output_idx, label):
     rel_slider.valueChanged.connect(
         lambda val, idx=output_idx: slot._on_env_release_changed(idx, val)
     )
-    row.addWidget(rel_slider, 1)  # stretch factor
+
+    if output_idx == 0:
+        rel_container = QVBoxLayout()
+        rel_container.setSpacing(2)
+        rel_container.setContentsMargins(0, 0, 0, 0)
+        rel_label = QLabel("REL")
+        rel_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        rel_label.setAlignment(Qt.AlignCenter)
+        rel_label.setStyleSheet(f"color: {COLORS['text']};")
+        rel_container.addWidget(rel_label)
+        rel_container.addWidget(rel_slider)
+        row.addLayout(rel_container, 1)
+    else:
+        row.addWidget(rel_slider, 1)
     row_widgets['rel'] = rel_slider
 
     # Hidden curve slider (stored but not shown - simplify UI)
@@ -480,7 +506,7 @@ def build_saucegrav_output_row(slot, output_idx, label):
     row.addWidget(out_label)
     row_widgets['label'] = out_label
 
-    # TENS slider (horizontal)
+    # TENS slider (horizontal) - with label on first row
     tension_slider = DragSlider()
     tension_slider.setObjectName(f"mod{slot.slot_id}_out{output_idx}_tension")
     tension_slider.setOrientation(Qt.Horizontal)
@@ -493,10 +519,23 @@ def build_saucegrav_output_row(slot, output_idx, label):
     tension_slider.valueChanged.connect(
         lambda val, idx=output_idx: slot._on_tension_changed(idx, val)
     )
-    row.addWidget(tension_slider, 1)
+
+    if output_idx == 0:
+        tens_container = QVBoxLayout()
+        tens_container.setSpacing(2)
+        tens_container.setContentsMargins(0, 0, 0, 0)
+        tens_label = QLabel("TENS")
+        tens_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        tens_label.setAlignment(Qt.AlignCenter)
+        tens_label.setStyleSheet(f"color: {COLORS['text']};")
+        tens_container.addWidget(tens_label)
+        tens_container.addWidget(tension_slider)
+        row.addLayout(tens_container, 1)
+    else:
+        row.addWidget(tension_slider, 1)
     row_widgets['tension'] = tension_slider
 
-    # MASS slider (horizontal)
+    # MASS slider (horizontal) - with label on first row
     mass_slider = DragSlider()
     mass_slider.setObjectName(f"mod{slot.slot_id}_out{output_idx}_mass")
     mass_slider.setOrientation(Qt.Horizontal)
@@ -509,7 +548,20 @@ def build_saucegrav_output_row(slot, output_idx, label):
     mass_slider.valueChanged.connect(
         lambda val, idx=output_idx: slot._on_mass_changed(idx, val)
     )
-    row.addWidget(mass_slider, 1)
+
+    if output_idx == 0:
+        mass_container = QVBoxLayout()
+        mass_container.setSpacing(2)
+        mass_container.setContentsMargins(0, 0, 0, 0)
+        mass_label = QLabel("MASS")
+        mass_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        mass_label.setAlignment(Qt.AlignCenter)
+        mass_label.setStyleSheet(f"color: {COLORS['text']};")
+        mass_container.addWidget(mass_label)
+        mass_container.addWidget(mass_slider)
+        row.addLayout(mass_container, 1)
+    else:
+        row.addWidget(mass_slider, 1)
     row_widgets['mass'] = mass_slider
 
     # Polarity N/I toggle
