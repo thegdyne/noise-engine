@@ -88,7 +88,7 @@ def build_modulator_header(slot):
     
     # Slot number
     slot.id_label = QLabel(f"MOD {slot.slot_id}")
-    slot.id_label.setObjectName(f"mod{slot.slot_id}_label")  # DEBUG
+    slot.id_label.setObjectName(f"mod{slot.slot_id}_label")
     slot.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
     slot.id_label.setStyleSheet(f"color: {COLORS['text_bright']};")
     header.addWidget(slot.id_label)
@@ -98,7 +98,7 @@ def build_modulator_header(slot):
     # Generator selector button
     initial_idx = MOD_GENERATOR_CYCLE.index(slot.default_generator) if slot.default_generator in MOD_GENERATOR_CYCLE else 0
     slot.gen_button = CycleButton(MOD_GENERATOR_CYCLE, initial_index=initial_idx)
-    slot.gen_button.setObjectName(f"mod{slot.slot_id}_type")  # DEBUG
+    slot.gen_button.setObjectName(f"mod{slot.slot_id}_type")
     slot.gen_button.setFixedSize(mt['header_button_width'], mt['header_button_height'])
     slot.gen_button.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
     slot.gen_button.setStyleSheet(button_style('submenu'))
@@ -127,7 +127,7 @@ def build_modulator_slider_section(slot):
     slot.params_layout = QHBoxLayout(slot.params_container)
     m = mt['slider_section_margins']
     slot.params_layout.setContentsMargins(m[0], m[1], m[2], m[3])
-    slot.params_layout.setSpacing(mt['slider_row_spacing'])
+    slot.params_layout.setSpacing(0)
     return slot.params_container
 
 
@@ -145,8 +145,8 @@ def build_modulator_scope(slot):
     from .mod_scope import ModScope
     mt = MODULATOR_THEME
     slot.scope = ModScope(history_length=100)
-    slot.scope.setObjectName(f"mod{slot.slot_id}_scope")  # DEBUG
-    slot.scope.setFixedHeight(mt['scope_height'])  # FIXED: uses theme value
+    slot.scope.setObjectName(f"mod{slot.slot_id}_scope")
+    slot.scope.setFixedHeight(mt['scope_height'])
     slot.scope.setStyleSheet(f"""
         border: 1px solid {COLORS['border']};
         border-radius: 3px;
@@ -167,7 +167,7 @@ def build_param_slider(slot, param):
 
     # Mode buttons need wider column
     is_mode_btn = key in ('mode', 'clock_mode') and steps_i in (2, 3)
-    col_width = mt.get('mode_button_width', 48) if is_mode_btn else mt['slider_column_width']
+    col_width = mt.get('mode_button_width', 36) if is_mode_btn else 20
     
     # Fixed-width column widget
     col = QWidget()
@@ -213,46 +213,51 @@ def build_param_slider(slot, param):
         default_idx = max(0, min(default_idx, steps_i - 1))
         
         btn = CycleButton(mode_labels, initial_index=default_idx)
-        btn.setObjectName(f"mod{slot.slot_id}_mode")  # DEBUG
+        btn.setObjectName(f"mod{slot.slot_id}_mode")
         # Mode buttons need specific width to show text like "CLK", "FREE"
         mode_width = mt.get('mode_button_width', 48)
         mode_height = mt.get('mode_button_height', 22)
-        btn.setFixedSize(mode_width, mode_height)  # FIXED: uses theme values
+        btn.setFixedSize(mode_width, mode_height)
         btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         btn.setStyleSheet(button_style('submenu'))
         btn.setToolTip(tooltip)
-        btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        # Center-align text
         btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
         btn.text_padding_lr = 2
         btn.index_changed.connect(
-            lambda idx, k=key: slot._on_mode_changed(k, idx)
+            lambda idx, k=key: slot._on_param_changed(k, idx)
         )
         container.addWidget(btn)
-        slot.param_sliders[key] = btn
-    else:
-        # Standard slider for continuous params
-        slider = DragSlider()
-        slider.setFixedWidth(mt.get('slider_width', 25))   # FIXED: uses theme value
-        slider.setFixedHeight(mt.get('slider_height', 60))  # FIXED: uses theme value
-        slider.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        default = param.get('default', 0.5)
-        slider.setValue(int(default * 1000))
-        
-        slider.valueChanged.connect(
-            lambda val, k=key, p=param: slot._on_param_changed(k, val, p)
-        )
-        container.addWidget(slider, alignment=Qt.AlignCenter)
-        slot.param_sliders[key] = slider
+        return col
     
+    # DragSlider for continuous params
+    slider = DragSlider()
+    slider.setObjectName(f"mod{slot.slot_id}_{key}")
+    slider.setFixedSize(18, mt['slider_height'])
+    
+    # Bipolar params show center notch
+    is_bipolar = param.get('bipolar', False)
+    
+    # Set default value
+    default_val = float(param.get('default', 0.5))
+    slider.setValue(int(default_val * 1000))
+    
+    # Connect value change
+    slider.valueChanged.connect(
+        lambda val, k=key: slot._on_param_changed(k, val / 1000.0)
+    )
+    
+    slider.setToolTip(param.get('tooltip', ''))
+    container.addWidget(slider, alignment=Qt.AlignHCenter)
+
     return col
 
 
 def build_output_row(slot, output_idx, label, output_config):
-    """Build an output row with controls."""
+    """Build a single output row with waveform, phase, and polarity controls."""
     mt = MODULATOR_THEME
     row = QHBoxLayout()
     row.setSpacing(4)
+    row.setContentsMargins(0, 0, 0, 0)
     
     # Output label
     out_label = QLabel(label)
@@ -270,8 +275,8 @@ def build_output_row(slot, output_idx, label, output_config):
         # LFO: waveform + polarity per output
         # pattern_rotate: phases controlled globally via PAT/ROT params
         wave_btn = CycleButton(MOD_LFO_WAVEFORMS, initial_index=0)
-        wave_btn.setObjectName(f"mod{slot.slot_id}_wave{output_idx}")  # DEBUG
-        wave_btn.setFixedSize(mt.get('wave_button_width', 40), btn_height)  # FIXED: theme values
+        wave_btn.setObjectName(f"mod{slot.slot_id}_wave{output_idx}")
+        wave_btn.setFixedSize(mt.get('wave_button_width', 40), btn_height)
         wave_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         wave_btn.setStyleSheet(button_style('submenu'))
         wave_btn.setToolTip("Waveform: Saw/Tri/Sqr/Sin/S&H")
@@ -289,8 +294,8 @@ def build_output_row(slot, output_idx, label, output_config):
             default_phase_indices = [0, 3, 5, 6]  # 4 outputs now
             phase_labels = [f"{p}°" for p in MOD_LFO_PHASES]
             phase_btn = CycleButton(phase_labels, initial_index=default_phase_indices[output_idx] if output_idx < len(default_phase_indices) else 0)
-            phase_btn.setObjectName(f"mod{slot.slot_id}_phase{output_idx}")  # DEBUG
-            phase_btn.setFixedSize(mt.get('phase_button_width', 38), btn_height)  # FIXED: theme values
+            phase_btn.setObjectName(f"mod{slot.slot_id}_phase{output_idx}")
+            phase_btn.setFixedSize(mt.get('phase_button_width', 38), btn_height)
             phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
             phase_btn.setStyleSheet(button_style('submenu'))
             phase_btn.setToolTip("Phase offset: 0°-315° in 45° steps")
@@ -306,13 +311,16 @@ def build_output_row(slot, output_idx, label, output_config):
         # ARSEq+ uses dedicated row builder
         return build_arseq_output_row(slot, output_idx, label)
 
+    elif output_config == "sauce_of_grav":
+        # SauceOfGrav uses dedicated row builder
+        return build_saucegrav_output_row(slot, output_idx, label)
 
     # Polarity button (all generators)
     # Default: NORM (non-inverted) for all outputs
     default_polarity = 0  # NORM by default
     pol_btn = CycleButton(MOD_POLARITY, initial_index=default_polarity)
-    pol_btn.setObjectName(f"mod{slot.slot_id}_pol{output_idx}")  # DEBUG
-    pol_btn.setFixedSize(mt.get('pol_button_width', 28), btn_height)  # FIXED: theme values
+    pol_btn.setObjectName(f"mod{slot.slot_id}_pol{output_idx}")
+    pol_btn.setFixedSize(mt.get('pol_button_width', 28), btn_height)
     pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
     pol_btn.setStyleSheet(button_style('submenu'))
     pol_btn.setToolTip("Invert: NORM (original) / INV (flipped)")
@@ -429,6 +437,71 @@ def build_arseq_output_row(slot, output_idx, label):
     pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
     pol_btn.setStyleSheet(button_style('submenu'))
     pol_btn.setToolTip("N/I")
+    pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+    pol_btn.text_padding_lr = 0
+    pol_btn.value_changed.connect(
+        lambda p, idx=output_idx, pols=MOD_POLARITY: slot._on_polarity_changed(idx, pols.index(p))
+    )
+    row.addWidget(pol_btn)
+    row_widgets['polarity'] = pol_btn
+
+    return row, row_widgets
+
+
+def build_saucegrav_output_row(slot, output_idx, label):
+    """Build a SauceOfGrav output row with TENS/MASS sliders and polarity."""
+    mt = MODULATOR_THEME
+    row = QHBoxLayout()
+    row.setSpacing(4)
+    row.setContentsMargins(0, 0, 0, 0)
+
+    row_widgets = {}
+    btn_height = 20
+
+    # Output label (1-4)
+    out_label = QLabel(label)
+    out_label.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
+    out_label.setStyleSheet(f"color: {COLORS['text_bright']};")
+    out_label.setFixedWidth(12)
+    out_label.setToolTip(f"Output {label}")
+    row.addWidget(out_label)
+    row_widgets['label'] = out_label
+
+    # TENS slider (horizontal)
+    tension_slider = DragSlider()
+    tension_slider.setObjectName(f"mod{slot.slot_id}_out{output_idx}_tension")
+    tension_slider.setOrientation(Qt.Horizontal)
+    tension_slider.setFixedHeight(btn_height)
+    tension_slider.setMinimumWidth(30)
+    tension_slider.setValue(500)
+    tension_slider.setToolTip("TENS: low=independent, high=coupled")
+    tension_slider.valueChanged.connect(
+        lambda val, idx=output_idx: slot._on_tension_changed(idx, val)
+    )
+    row.addWidget(tension_slider, 1)
+    row_widgets['tension'] = tension_slider
+
+    # MASS slider (horizontal)
+    mass_slider = DragSlider()
+    mass_slider.setObjectName(f"mod{slot.slot_id}_out{output_idx}_mass")
+    mass_slider.setOrientation(Qt.Horizontal)
+    mass_slider.setFixedHeight(btn_height)
+    mass_slider.setMinimumWidth(30)
+    mass_slider.setValue(500)
+    mass_slider.setToolTip("MASS: low=snappy, high=slow arcs")
+    mass_slider.valueChanged.connect(
+        lambda val, idx=output_idx: slot._on_mass_changed(idx, val)
+    )
+    row.addWidget(mass_slider, 1)
+    row_widgets['mass'] = mass_slider
+
+    # Polarity N/I toggle
+    pol_btn = CycleButton(MOD_POLARITY, initial_index=0)
+    pol_btn.setObjectName(f"mod{slot.slot_id}_out{output_idx}_pol")
+    pol_btn.setFixedSize(20, btn_height)
+    pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    pol_btn.setStyleSheet(button_style('submenu'))
+    pol_btn.setToolTip("N/I: normal or inverted")
     pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
     pol_btn.text_padding_lr = 0
     pol_btn.value_changed.connect(

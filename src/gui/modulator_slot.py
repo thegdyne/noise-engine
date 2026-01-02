@@ -190,6 +190,16 @@ class ModulatorSlot(QWidget):
         """Handle polarity change."""
         self.output_polarity_changed.emit(self.slot_id, output_idx, polarity)
 
+    def _on_tension_changed(self, output_idx, value):
+        """Handle tension slider change."""
+        # TODO: Phase 4 - send OSC
+        pass
+
+    def _on_mass_changed(self, output_idx, value):
+        """Handle mass slider change."""
+        # TODO: Phase 4 - send OSC
+        pass
+
     # ARSEq+ envelope handlers
     def _on_env_attack_changed(self, env_idx, slider_value):
         """Handle envelope attack time change."""
@@ -382,3 +392,13 @@ class ModulatorSlot(QWidget):
                 self.output_phase_changed.emit(self.slot_id, i, row_widgets['phase'].index)
             if 'polarity' in row_widgets:
                 self.output_polarity_changed.emit(self.slot_id, i, row_widgets['polarity'].index)
+
+    def _on_tension_changed(self, output_idx, value):
+        """Handle tension slider change."""
+        # TODO: Phase 4 - send OSC
+        pass
+
+    def _on_mass_changed(self, output_idx, value):
+        """Handle mass slider change."""
+        # TODO: Phase 4 - send OSC
+        pass

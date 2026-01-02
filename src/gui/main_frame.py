@@ -122,6 +122,10 @@ class MainFrame(QMainWindow):
         # Install event filter for keyboard overlay
         self.installEventFilter(self)
 
+        # Debug hotkey
+        from .debug_dump import install_dump_hotkey
+        install_dump_hotkey(self)
+
     # Dirty State Tracking
 
     def _mark_dirty(self):
