@@ -572,7 +572,7 @@ GENERATOR_THEME = {
     'param_label_font': MONO_FONT,
     'param_label_size': FONT_SIZES['tiny'],
     'param_label_bold': True,
-    'param_label_height': 14,
+    'param_label_height': 10,
     'param_label_color': get('text_mid'),
     'param_label_color_dim': get('text_dim'),
     'param_label_color_active': get('accent_generator'),
@@ -734,7 +734,7 @@ MODULATOR_THEME = {
     'mode_button_width': 48,          # wider for text like "FREE", "CLK"
     'mode_button_height': 22,
     'slider_row_spacing': 8,          # horizontal gap between columns
-    'slider_section_margins': (0, 4, 0, 4),
+    'slider_section_margins': (0, 2, 0, 2),
     'slider_width': 25,
     'slider_height': 60,
     

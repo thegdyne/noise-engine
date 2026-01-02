@@ -176,18 +176,19 @@ def build_param_slider(slot, param):
     
     container = QVBoxLayout(col)
     container.setContentsMargins(0, 0, 0, 0)
-    container.setSpacing(2)
-    
-    # Label - CRITICAL: fixed width prevents column expansion
-    label = QLabel(param.get('label', key.upper()[:4]))
-    label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-    label.setAlignment(Qt.AlignCenter)
-    label.setStyleSheet(f"color: {COLORS['text']};")
-    label.setToolTip(param.get('tooltip', ''))
-    label.setFixedHeight(mt['param_label_height'])
-    label.setFixedWidth(col_width)
-    label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-    container.addWidget(label)
+    container.setSpacing(1)
+
+    # Label - only show if no label_top (SauceOfGrav uses top/bottom labels instead)
+    if not param.get('label_top'):
+        label = QLabel(param.get('label', key.upper()[:4]))
+        label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        label.setAlignment(Qt.AlignCenter)
+        label.setStyleSheet(f"color: {COLORS['text']};")
+        label.setToolTip(param.get('tooltip', ''))
+        label.setFixedHeight(mt['param_label_height'])
+        label.setFixedWidth(col_width)
+        label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        container.addWidget(label)
 
     # Use CycleButton for stepped params
     if is_mode_btn:
@@ -226,7 +227,18 @@ def build_param_slider(slot, param):
         )
         container.addWidget(btn)
         return col
-    
+
+    # Add top label (for sliders with label_top specified)
+    label_top = param.get('label_top', '')
+    top_label = QLabel(label_top)
+    top_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    top_label.setAlignment(Qt.AlignCenter)
+    top_label.setStyleSheet(f"color: {COLORS['text']};")
+    top_label.setFixedHeight(mt['param_label_height'])
+    top_label.setFixedWidth(col_width)
+    top_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    container.addWidget(top_label)
+
     # DragSlider for continuous params
     slider = DragSlider()
     slider.setObjectName(f"mod{slot.slot_id}_{key}")
