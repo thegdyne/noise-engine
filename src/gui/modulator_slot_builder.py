@@ -30,6 +30,56 @@ from src.config import (
 MOD_SLOTH_MODES = ["TOR", "APA", "INE"]  # Torpor, Apathy, Inertia
 
 
+class EnvelopeIndicator(QWidget):
+    """Visual indicator showing envelope fill/drain state."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._value = 0.0  # 0-1 fill level
+        self._phase = 'idle'  # 'attack', 'release', 'idle'
+        self._curve = 0.5  # 0=log, 0.5=lin, 1=exp
+
+    def setValue(self, value):
+        """Set fill level (0-1)."""
+        self._value = max(0.0, min(1.0, value))
+        self.update()
+
+    def setPhase(self, phase):
+        """Set phase: 'attack', 'release', or 'idle'."""
+        self._phase = phase
+        self.update()
+
+    def setCurve(self, curve):
+        """Set curve shape (0=log, 0.5=lin, 1=exp)."""
+        self._curve = curve
+        self.update()
+
+    def paintEvent(self, event):
+        from PyQt5.QtGui import QPainter, QColor
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        w, h = self.width(), self.height()
+
+        # Background
+        painter.fillRect(0, 0, w, h, QColor(COLORS['background_dark']))
+
+        # Fill bar
+        if self._value > 0:
+            fill_color = QColor(COLORS.get('accent_mod_arseq_plus', '#00CCCC'))
+            fill_w = int(w * self._value)
+            if self._phase == 'release':
+                painter.fillRect(w - fill_w, 0, fill_w, h, fill_color)
+            else:
+                painter.fillRect(0, 0, fill_w, h, fill_color)
+
+        # Center line
+        painter.setPen(QColor(COLORS['border_light']))
+        painter.drawLine(w // 2, 0, w // 2, h)
+
+        painter.end()
+
+
 def build_modulator_header(slot):
     """Build the header row with slot ID and generator selector."""
     mt = MODULATOR_THEME
@@ -50,9 +100,6 @@ def build_modulator_header(slot):
     slot.gen_button = CycleButton(MOD_GENERATOR_CYCLE, initial_index=initial_idx)
     slot.gen_button.setObjectName(f"mod{slot.slot_id}_type")  # DEBUG
     slot.gen_button.setFixedSize(mt['header_button_width'], mt['header_button_height'])
-    # CRITICAL: allow shrink below sizeHint, prevents overflow
-    slot.gen_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-    slot.gen_button.setMinimumWidth(0)
     slot.gen_button.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
     slot.gen_button.setStyleSheet(button_style('submenu'))
     # Left-align text with padding
@@ -117,9 +164,9 @@ def build_param_slider(slot, param):
         steps_i = int(steps) if steps is not None else None
     except (ValueError, TypeError):
         steps_i = None
-    
+
     # Mode buttons need wider column
-    is_mode_btn = key == 'mode' and steps_i in (2, 3)
+    is_mode_btn = key in ('mode', 'clock_mode') and steps_i in (2, 3)
     col_width = mt.get('mode_button_width', 48) if is_mode_btn else mt['slider_column_width']
     
     # Fixed-width column widget
@@ -141,10 +188,18 @@ def build_param_slider(slot, param):
     label.setFixedWidth(col_width)
     label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     container.addWidget(label)
-    
-    # Use CycleButton for stepped params (mode: CLK/FREE for LFO, TOR/APA/INE for Sloth)
+
+    # Use CycleButton for stepped params
     if is_mode_btn:
-        if steps_i == 2:
+        if key == 'clock_mode':
+            # ARSEq+ clock mode: CLK/FREE
+            mode_labels = MOD_LFO_MODES  # Reuse CLK/FREE
+            tooltip = "CLK: sync to transport\nFREE: free-running rate"
+        elif key == 'mode' and slot.generator_name == "ARSEq+":
+            # ARSEq+ mode: SEQ/PAR
+            mode_labels = ["SEQ", "PAR"]
+            tooltip = "SEQ: envelopes fire in sequence (1→2→3→4)\nPAR: all fire together"
+        elif steps_i == 2:
             # LFO mode: CLK/FREE
             mode_labels = MOD_LFO_MODES
             tooltip = "CLK: sync to clock divisions\nFREE: manual frequency (0.01-100Hz)"
@@ -246,7 +301,12 @@ def build_output_row(slot, output_idx, label, output_config):
             )
             row.addWidget(phase_btn)
             row_widgets['phase'] = phase_btn
-    
+
+    elif output_config == "arseq_plus":
+        # ARSEq+ uses dedicated row builder
+        return build_arseq_output_row(slot, output_idx, label)
+
+
     # Polarity button (all generators)
     # Default: NORM (non-inverted) for all outputs
     default_polarity = 0  # NORM by default
@@ -266,6 +326,117 @@ def build_output_row(slot, output_idx, label, output_config):
     
     row.addStretch()
     
+    return row, row_widgets
+
+
+# ARSEq+ sync/loop mode labels
+ARSEQ_SYNC_MODES = ["SYN", "LOP"]  # SYNC, LOOP
+
+
+def build_arseq_output_row(slot, output_idx, label):
+    """Build an ARSEq+ envelope output row - minimal horizontal."""
+    mt = MODULATOR_THEME
+    row = QHBoxLayout()
+    row.setSpacing(4)
+    row.setContentsMargins(0, 0, 0, 0)
+
+    row_widgets = {}
+    btn_height = 20
+
+    # Output label (envelope number)
+    out_label = QLabel(label)
+    out_label.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
+    out_label.setStyleSheet(f"color: {COLORS['text_bright']};")
+    out_label.setFixedWidth(12)
+    out_label.setToolTip(f"Envelope {label}")
+    row.addWidget(out_label)
+    row_widgets['label'] = out_label
+
+    # ATK slider (horizontal, wider)
+    atk_slider = DragSlider()
+    atk_slider.setObjectName(f"mod{slot.slot_id}_env{output_idx}_atk")
+    atk_slider.setFixedHeight(btn_height)
+    atk_slider.setMinimumWidth(30)
+    atk_slider.setOrientation(Qt.Horizontal)
+    atk_slider.setValue(0)
+    atk_slider.setToolTip("ATK")
+    atk_slider.valueChanged.connect(
+        lambda val, idx=output_idx: slot._on_env_attack_changed(idx, val)
+    )
+    row.addWidget(atk_slider, 1)  # stretch factor
+    row_widgets['atk'] = atk_slider
+
+    # REL slider (horizontal, wider)
+    rel_slider = DragSlider()
+    rel_slider.setObjectName(f"mod{slot.slot_id}_env{output_idx}_rel")
+    rel_slider.setFixedHeight(btn_height)
+    rel_slider.setMinimumWidth(30)
+    rel_slider.setOrientation(Qt.Horizontal)
+    rel_slider.setValue(500)
+    rel_slider.setToolTip("REL")
+    rel_slider.valueChanged.connect(
+        lambda val, idx=output_idx: slot._on_env_release_changed(idx, val)
+    )
+    row.addWidget(rel_slider, 1)  # stretch factor
+    row_widgets['rel'] = rel_slider
+
+    # Hidden curve slider (stored but not shown - simplify UI)
+    crv_slider = DragSlider()
+    crv_slider.setObjectName(f"mod{slot.slot_id}_env{output_idx}_crv")
+    crv_slider.setValue(500)
+    crv_slider.setVisible(False)
+    crv_slider.valueChanged.connect(
+        lambda val, idx=output_idx: slot._on_env_curve_changed(idx, val)
+    )
+    row_widgets['curve'] = crv_slider
+
+    # SYN/LOP toggle
+    sync_btn = CycleButton(ARSEQ_SYNC_MODES, initial_index=0)
+    sync_btn.setObjectName(f"mod{slot.slot_id}_env{output_idx}_sync")
+    sync_btn.setFixedSize(30, btn_height)
+    sync_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    sync_btn.setStyleSheet(button_style('submenu'))
+    sync_btn.setToolTip("SYN: master / LOP: loop")
+    sync_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+    sync_btn.text_padding_lr = 1
+    sync_btn.index_changed.connect(
+        lambda idx, env_idx=output_idx: slot._on_env_sync_mode_changed(env_idx, idx)
+    )
+    row.addWidget(sync_btn)
+    row_widgets['sync_mode'] = sync_btn
+
+    # LOOP rate selector (hidden until LOP mode)
+    from src.config import MOD_CLOCK_RATES
+    loop_rate_btn = CycleButton(MOD_CLOCK_RATES, initial_index=6)
+    loop_rate_btn.setObjectName(f"mod{slot.slot_id}_env{output_idx}_loop_rate")
+    loop_rate_btn.setFixedSize(24, btn_height)
+    loop_rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    loop_rate_btn.setStyleSheet(button_style('submenu'))
+    loop_rate_btn.setToolTip("Loop rate")
+    loop_rate_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+    loop_rate_btn.text_padding_lr = 0
+    loop_rate_btn.setVisible(False)
+    loop_rate_btn.index_changed.connect(
+        lambda idx, env_idx=output_idx: slot._on_env_loop_rate_changed(env_idx, idx)
+    )
+    row.addWidget(loop_rate_btn)
+    row_widgets['loop_rate'] = loop_rate_btn
+
+    # Polarity N/I toggle
+    pol_btn = CycleButton(MOD_POLARITY, initial_index=0)
+    pol_btn.setObjectName(f"mod{slot.slot_id}_env{output_idx}_pol")
+    pol_btn.setFixedSize(20, btn_height)
+    pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    pol_btn.setStyleSheet(button_style('submenu'))
+    pol_btn.setToolTip("N/I")
+    pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+    pol_btn.text_padding_lr = 0
+    pol_btn.value_changed.connect(
+        lambda p, idx=output_idx, pols=MOD_POLARITY: slot._on_polarity_changed(idx, pols.index(p))
+    )
+    row.addWidget(pol_btn)
+    row_widgets['polarity'] = pol_btn
+
     return row, row_widgets
 
 

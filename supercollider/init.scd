@@ -121,6 +121,7 @@ s.waitForBoot({
     // Load mod SynthDefs
     (~basePath +/+ "core/mod_lfo.scd").load;
     (~basePath +/+ "core/mod_sloth.scd").load;
+    (~basePath +/+ "core/mod_arseq_plus.scd").load;
     
     // Load cross-mod buses BEFORE mod_apply (provides ~getModSourceBus resolver)
     (~basePath +/+ "core/crossmod_buses.scd").load;

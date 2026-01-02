@@ -1,0 +1,207 @@
+contract: arseq_plus_phase1
+version: 1.0.0
+status: frozen
+cdd_spec: "1.1.5"
+
+description: |
+  ARSEq+ Phase 1: Core Infrastructure
+  Theme colors, config constants, state dataclasses, generator config registration.
+  
+  Source ref: docs/ARSEQ_PLUS_SPEC_v1.2.md (sections: Naming Convention, Config Additions, Preset State Schema)
+
+runner:
+  executor: shell
+
+requirements:
+  - id: R001
+    priority: must
+    description: Theme color defined
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Theme Additions"
+    acceptance_criteria:
+      - accent_mod_arseq_plus defined in COLORS dict
+      - Value is '#00CCCC' (Cyan)
+
+  - id: R002
+    priority: must
+    description: Config time constants defined
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Config Additions"
+    acceptance_criteria:
+      - ARSEQ_SYNC_TIME_MIN = 0.0001
+      - ARSEQ_SYNC_TIME_MAX = 10.0
+      - ARSEQ_LOOP_TIME_MIN = 0.0001
+      - ARSEQ_LOOP_TIME_MAX = 120.0
+
+  - id: R003
+    priority: must
+    description: Generator config registered
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Config Additions"
+    acceptance_criteria:
+      - ARSEq+ entry in _MOD_GENERATOR_CONFIGS
+      - internal_id is arseq_plus
+      - output_labels are 1,2,3,4
+
+  - id: R004
+    priority: must
+    description: State dataclasses defined
+    source_ref: "ARSEQ_PLUS_SPEC_v1.2.md#Preset State Schema"
+    acceptance_criteria:
+      - ARSeqEnvelopeState dataclass exists
+      - ARSeqPlusState dataclass exists
+      - to_dict and from_dict methods present
+
+tests:
+  - id: T001
+    name: theme_color_exists
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "accent_mod_arseq_plus", "../src/gui/skins/default.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T002
+    name: theme_color_value
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "accent_mod_arseq_plus.*#00CCCC", "../src/gui/skins/default.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T003
+    name: config_sync_time_min
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "ARSEQ_SYNC_TIME_MIN.*=.*0.0001", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T004
+    name: config_sync_time_max
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "ARSEQ_SYNC_TIME_MAX.*=.*10.0", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T005
+    name: config_loop_time_min
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "ARSEQ_LOOP_TIME_MIN.*=.*0.0001", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T006
+    name: config_loop_time_max
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "ARSEQ_LOOP_TIME_MAX.*=.*120.0", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T007
+    name: generator_config_registered
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "_MOD_GENERATOR_CONFIGS.*ARSEq+", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T008
+    name: generator_internal_id
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "internal_id.*arseq_plus", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T009
+    name: envelope_state_dataclass
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class ARSeqEnvelopeState", "../src/presets/preset_schema.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T010
+    name: arseq_state_dataclass
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "-c", "class ARSeqPlusState", "../src/presets/preset_schema.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T011
+    name: state_to_dict_method
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -A50 'class ARSeqPlusState' ../src/presets/preset_schema.py | grep -c 'def to_dict'"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+
+  - id: T012
+    name: state_from_dict_method
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -A80 'class ARSeqPlusState' ../src/presets/preset_schema.py | grep -c 'def from_dict'"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true

@@ -23,7 +23,14 @@ class ModulatorGrid(QWidget):
     output_wave_changed = pyqtSignal(int, int, int)
     output_phase_changed = pyqtSignal(int, int, int)
     output_polarity_changed = pyqtSignal(int, int, int)
-    
+
+    # ARSEq+ envelope signals
+    env_attack_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
+    env_release_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
+    env_curve_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
+    env_sync_mode_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, mode
+    env_loop_rate_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, rate_idx
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.slots = {}
@@ -69,7 +76,14 @@ class ModulatorGrid(QWidget):
         slot.output_wave_changed.connect(self.output_wave_changed.emit)
         slot.output_phase_changed.connect(self.output_phase_changed.emit)
         slot.output_polarity_changed.connect(self.output_polarity_changed.emit)
-        
+
+        # ARSEq+ envelope signals
+        slot.env_attack_changed.connect(self.env_attack_changed.emit)
+        slot.env_release_changed.connect(self.env_release_changed.emit)
+        slot.env_curve_changed.connect(self.env_curve_changed.emit)
+        slot.env_sync_mode_changed.connect(self.env_sync_mode_changed.emit)
+        slot.env_loop_rate_changed.connect(self.env_loop_rate_changed.emit)
+
     def get_slot(self, slot_id):
         """Get a slot by ID."""
         return self.slots.get(slot_id)

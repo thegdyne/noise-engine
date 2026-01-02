@@ -72,6 +72,7 @@ class DragSlider(QSlider):
         # Drag tracking
         self.dragging = False
         self.drag_start_y = 0
+        self.drag_start_x = 0
         self.drag_start_value = 0
         
         # Value popup (optional)
@@ -380,6 +381,7 @@ class DragSlider(QSlider):
         if event.button() == Qt.LeftButton:
             self.dragging = True
             self.drag_start_y = event.globalPos().y()
+            self.drag_start_x = event.globalPos().x()
             self.drag_start_value = self.value()
             self._update_popup()
             
@@ -398,10 +400,16 @@ class DragSlider(QSlider):
                 travel = fader_height * 3.0  # Fine control
             else:
                 travel = fader_height * 1.0  # Normal 1:1 tracking
-            
-            delta_y = self.drag_start_y - event.globalPos().y()
+
+            # Use X-axis for horizontal, Y-axis for vertical
+            if self.orientation() == Qt.Horizontal:
+                delta = event.globalPos().x() - self.drag_start_x
+                travel = self.width() * (3.0 if modifiers & Qt.ShiftModifier else 1.0)
+            else:
+                delta = self.drag_start_y - event.globalPos().y()
+                travel = fader_height * (3.0 if modifiers & Qt.ShiftModifier else 1.0)
             value_range = self.maximum() - self.minimum()
-            delta_value = int((delta_y / travel) * value_range)
+            delta_value = int((delta / travel) * value_range)
             
             new_value = self.drag_start_value + delta_value
             new_value = max(self.minimum(), min(self.maximum(), new_value))

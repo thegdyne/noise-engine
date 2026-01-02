@@ -50,7 +50,11 @@ SKIN = {
     'accent_mod_sloth': '#ff8800',
     'accent_mod_sloth_dim': '#aa5500',
     'accent_mod_sloth_bg': '#251a0a',
-    
+
+    # Mod ARSEQ_PLUS - Cyan
+    'accent_mod_arseq_plus': '#00CCCC',      # Cyan
+    'accent_mod_arseq_plus_dim': '#007777',  # Dimmed cyan
+
     # Effects - Purple
     'accent_effect': '#aa88ff',
     'accent_effect_dim': '#6644aa',
