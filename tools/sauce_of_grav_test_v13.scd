@@ -386,7 +386,11 @@ fork {
         // Non-uniform tension/mass prevents lock, resonance=0 removes sync
         // ============================================================
         runComparison.("E01", "EXCURSION affects hub travel (hub proxy)",
-            (clockMode: 1, rate: 0.0, depth: 0.0, gravity: 0.0, resonance: 0.0, calm: 0.5,
+            (clockMode: 1, rate: 0.0,
+             depth: 0.85,      // add damping so LOW doesn't hit rails
+             gravity: 0.35,    // stops hub proxy saturating
+             resonance: 0.0,
+             calm: 0.25,       // reduce energy
              tension1: 0.2, tension2: 0.4, tension3: 0.6, tension4: 0.8,
              mass1: 0.7, mass2: 0.5, mass3: 0.4, mass4: 0.3),
             (excursion: 0.0),
@@ -395,6 +399,7 @@ fork {
             "EXCURSION scales hubTarget via excursionGain. Use hub proxy (mean of lanes) range.",
             24
         );
+
 
         
         // ============================================================
