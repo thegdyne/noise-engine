@@ -1,14 +1,11 @@
 /*
-Mod SauceOfGrav SynthDef (Phase A Final - v10)
+Mod SauceOfGrav SynthDef (Phase B - v1)
 4-output coupled physics modulator
 
-Fixes in this revision:
-- FIX: Array syntax (removed # from clkMult array)
-- CALM multipliers: Fixed negative blend extrapolation bug
-- Transport gate: Boolean (clkGate = clockRunning.sign)
-- Refresh pulse: Boolean (refreshPulse = refreshTrig.sign) for atomic fade
-- Symmetry breakers: Per-lane ring skew + per-lane noise variation
-- Enhanced rail scaling v2 (AI2): zone SHRINKS + absorption reduces at high excursion
+Phase B additions:
+- Overshoot detection: per-lane tracking of hubTarget crossings
+- Hub impulses: overshoot events feed into hub velocity
+- tanh smoothing: soft saturation instead of hard clip for hubBias
 
 Reference: docs/SAUCE_OF_GRAV_SPEC_v1_4_3.md
 */
@@ -46,7 +43,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var hubTensionExp = 0.70;
 	var ringCoupleGain = 3.5;
 	var ringTensionExp = 1.30;
-	var ringSkewArr = #[0.012, 0.017, 0.014, 0.019];  // per-lane asymmetry
+	var ringSkewArr = #[0.012, 0.017, 0.014, 0.019];
 
 	// Gravity
 	var gravStiffGain = 6.0;
@@ -54,6 +51,9 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	// Excursion
 	var excursionMin = 0.60;
 	var excursionMax = 1.60;
+
+	// Excursion -> hub travel shaping (Phase B)
+    var excursionHubExp = 1.5;  // try 1.25..1.75 if you want to tune
 
 	// CALM multipliers
 	var calmDampCalm = 1.30;
@@ -78,7 +78,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 
 	// Rails
 	var railZone = 0.08;
-	var railAbsorbBase = 0.35;  // base value, scaled by excursion
+	var railAbsorbBase = 0.35;
 
 	// Resonance
 	var resoFloorMin = 0.0002;
@@ -86,24 +86,36 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var resoDriveGain = 6.0;
 	var resoDeltaEMax = 0.01;
 
+	var resoDampAtLow = 0.75;  // 0.4..1.0 (higher = bigger R01 delta)
+
+
 	// Kickstart
 	var resoKickGain = 2.8;
 	var resoKickMaxF = 0.30;
 	var kickCooldownS = 0.20;
 
-	// Hub
+	// Hub (Phase B constants)
 	var hubLimit = 2.0;
 	var depthDampMin = 0.005;
 	var depthDampMax = 2.50;
 	var hubFeedGain = 8.0;
 	var hubFeedMax = 0.35;
+	var overshootToHubGain = 0.6;
+	var overshootMax = 0.25;
+	var velocityEpsilon = 0.001;
 	var noiseRate = 0.012;
 
-	// === STATE VARIABLES ===
+	// === STATE VARIABLES (Phase A: 13, Phase B adds 16 = 29 total) ===
 	var pos1, pos2, pos3, pos4;
 	var vel1, vel2, vel3, vel4;
 	var hubBias, hubVel;
 	var kickCooldown, kickToggle, kickIndex;
+
+    // Phase B: Overshoot tracking state (16 values)
+    var prevSide1, prevSide2, prevSide3, prevSide4;
+    var osActive1, osActive2, osActive3, osActive4;
+    var osTarget1, osTarget2, osTarget3, osTarget4;
+    var osPeak1, osPeak2, osPeak3, osPeak4;
 
 	// === WORKING VARIABLES ===
 	var calmClamped, calmBi, tCalm, tWild, calmDampMul, calmVdpMul, calmKickMul;
@@ -122,35 +134,40 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var bpm, rateClamped, rateActive, baseHz, clkMult, refreshHz, refreshTrig, refreshPulse, fadeFactor;
 	var railAbsorbEff, railZoneEff;
 
+	// Phase B: Overshoot working variables
+	var side1, side2, side3, side4;
+	var didCross1, didCross2, didCross3, didCross4;
+	var excursion1, excursion2, excursion3, excursion4;
+	var velFlipped1, velFlipped2, velFlipped3, velFlipped4;
+	var osImpulse1, osImpulse2, osImpulse3, osImpulse4;
+	var hubImpulse, workSum, hubFeed;
+    var excHubMul;
+
 	// === CLOCK INPUT ===
 	clk = In.ar(clockTrigBus + clockIndex);
 	atrig = Trig1.ar(clk > 0.5, 0.001);
 	trig = Trig1.kr(A2K.kr(atrig), 0.001);
 	bpm = In.kr(bpmBus).max(1);
 	clockRunning = Decay.kr(trig, 0.2);
-	clkGate = clockRunning.sign;  // FIX: boolean 0/1 transport gate
+	clkGate = clockRunning.sign;
 
-	// === CALM BIPOLAR CONVERSION (FIXED) ===
+	// === CALM BIPOLAR CONVERSION ===
 	calmClamped = calm.clip(0, 1);
-	calmBi = (calmClamped * 2) - 1;  // -1..+1
-
-	// FIX: weights are always 0..1 (no negative blend extrapolation)
-	tCalm = calmBi.neg.max(0);  // calm side amount (0..1)
-	tWild = calmBi.max(0);       // wild side amount (0..1)
-
-	// linear interpolation around 1.0 center
+	calmBi = (calmClamped * 2) - 1;
+	tCalm = calmBi.neg.max(0);
+	tWild = calmBi.max(0);
 	calmDampMul = 1 + (tCalm * (calmDampCalm - 1)) + (tWild * (calmDampWild - 1));
 	calmVdpMul  = 1 + (tCalm * (calmVdpCalm  - 1)) + (tWild * (calmVdpWild  - 1));
-	calmKickMul = 1 + (tCalm * (calmKickCalm - 1));  // wild side stays 1
+	calmKickMul = 1 + (tCalm * (calmKickCalm - 1));
 
 	// === PARAMETER MAPPING ===
 	gravInfluence = 1.0 - gravity;
 	excursionGain = excursionMin + (excursion * (excursionMax - excursionMin));
+	// Scale hub drive with excursion so hub travel increases monotonically
+    excHubMul = excursionGain / ((excursionMin + excursionMax) * 0.5);  // ~0.545..1.455
 	kGrav = gravStiffGain * gravity;
 	hubDamp = depthDampMin + (depth.clip(0,1) * (depthDampMax - depthDampMin));
 
-	// Enhanced rail scaling (AI2 fix v2 for E01 locking)
-	// High excursion = SMALLER zone (kicks in later) + less absorption = less "sticky"
 	railZoneEff = (railZone * (1 - (0.35 * excursion))).clip(0.02, 0.12);
 	railAbsorbEff = (railAbsorbBase * (1 - (0.50 * excursion))).clip(0.1, railAbsorbBase);
 
@@ -170,14 +187,25 @@ SynthDef(\ne_mod_sauce_of_grav, {
 
 	kHub = hubCoupleGain * (tensionEff ** hubTensionExp);
 	kRing = ringCoupleGain * (tensionEff ** ringTensionExp);
-	kRingFwd = kRing * (1 + ringSkewArr);  // per-lane asymmetry
+	kRingFwd = kRing * (1 + ringSkewArr);
 	kRingBwd = kRing * (1 - ringSkewArr);
 
-	dampingBaseMapped = (dampingBase + (dampingTension * (1 - tensionEff))) * calmDampMul;
+	dampingBaseMapped =
+    (dampingBase + (dampingTension * (1 - tensionEff)))
+    * calmDampMul
+    * (1 + ((1 - resonance.clip(0, 1)) * resoDampAtLow));
 
-	// === INIT WITH FEEDBACK ===
-	# pos1, pos2, pos3, pos4, vel1, vel2, vel3, vel4,
-	  hubBias, hubVel, kickCooldown, kickToggle, kickIndex = LocalIn.kr(13);
+
+	// === INIT WITH FEEDBACK (29 values) ===
+    # pos1, pos2, pos3, pos4,
+      vel1, vel2, vel3, vel4,
+      hubBias, hubVel,
+      kickCooldown, kickToggle, kickIndex,
+      prevSide1, prevSide2, prevSide3, prevSide4,
+      osActive1, osActive2, osActive3, osActive4,
+      osTarget1, osTarget2, osTarget3, osTarget4,
+      osPeak1, osPeak2, osPeak3, osPeak4 = LocalIn.kr(29);
+
 
 	// sentinel: kickToggle only ever becomes +/-1
 	didInit = kickToggle.abs > 0.001;
@@ -199,34 +227,50 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	kickToggle   = Select.kr(didInit, [1.0, kickToggle]);
 	kickIndex    = Select.kr(didInit, [0.0, kickIndex]);
 
-	// === REFRESH EVENTS (before hubTarget for atomic timing) ===
+	// Phase B init: overshoot tracking
+	osActive1 = Select.kr(didInit, [0.0, osActive1]);
+	osActive2 = Select.kr(didInit, [0.0, osActive2]);
+	osActive3 = Select.kr(didInit, [0.0, osActive3]);
+	osActive4 = Select.kr(didInit, [0.0, osActive4]);
+
+	osTarget1 = Select.kr(didInit, [0.5, osTarget1]);
+	osTarget2 = Select.kr(didInit, [0.5, osTarget2]);
+	osTarget3 = Select.kr(didInit, [0.5, osTarget3]);
+	osTarget4 = Select.kr(didInit, [0.5, osTarget4]);
+
+	osPeak1 = Select.kr(didInit, [0.0, osPeak1]);
+	osPeak2 = Select.kr(didInit, [0.0, osPeak2]);
+	osPeak3 = Select.kr(didInit, [0.0, osPeak3]);
+	osPeak4 = Select.kr(didInit, [0.0, osPeak4]);
+
+	// === REFRESH EVENTS ===
 	rateClamped = rate.clip(0, 1);
 	rateActive = ((rateClamped - rateDeadband) / (1 - rateDeadband)).clip(0, 1);
 
 	baseHz = bpm / 60;
 	clkMult = Select.kr(
 		(rateActive * 11).round.clip(0, 11),
-		[1/64, 1/32, 1/16, 1/8, 1/4, 1/2, 1, 2, 4, 8, 16, 32]  // regular array, not literal
+		[1/64, 1/32, 1/16, 1/8, 1/4, 1/2, 1, 2, 4, 8, 16, 32]
 	);
 
 	refreshHz = rateActive.linexp(0, 1, freeRateMin, freeRateMax);
 
 	refreshTrig = Select.kr(rateClamped < rateDeadband, [
 		Select.kr(clockMode.round.clip(0, 1), [
-			Impulse.kr(baseHz * clkMult) * clkGate,  // CLK gated by boolean transport
-			Impulse.kr(refreshHz)                    // FREE
+			Impulse.kr(baseHz * clkMult) * clkGate,
+			Impulse.kr(refreshHz)
 		]),
 		0
 	]);
 
-	refreshPulse = refreshTrig.sign;  // FIX: boolean pulse so fade is atomic
+	refreshPulse = refreshTrig.sign;
 
 	fadeFactor = 0.95 - (depth.clip(0,1) * 0.95);
 	hubBias = hubBias * (1 + (refreshPulse * (fadeFactor - 1)));
 	hubVel  = hubVel  * (1 + (refreshPulse * (fadeFactor - 1)));
 
 	// === HUB TARGET ===
-	hubTarget = (0.5 + (hubBias * gravInfluence * excursionGain)).clip(0, 1);
+	hubTarget = (0.5 + (hubBias * gravInfluence * (excursionGain ** excursionHubExp))).clip(0, 1);
 
 	// === VAN DER POL DAMPING ===
 	vdpThresholdEff = (vdpThreshold * (1 + (vdpHubMod * hubBias / hubLimit))).max(vdpThresholdFloor);
@@ -234,7 +278,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	vdpFactor = (vdpInject * calmVdpMul) * (1 - ((amp / vdpThresholdEff) ** 2));
 	dampingEff = dampingBaseMapped - vdpFactor;
 
-	// === VELOCITY NOISE (per-lane variation for symmetry breaking) ===
+	// === VELOCITY NOISE ===
 	noise = [
 		WhiteNoise.kr(noiseRate * 0.9) * dt.sqrt,
 		WhiteNoise.kr(noiseRate * 1.1) * dt.sqrt,
@@ -257,7 +301,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		(kRingFwd[3] * (pos1 - pos4)) + (kRingBwd[3] * (pos3 - pos4))
 	];
 
-	// === RESONANCE (Phase B adds alignment + rail attenuation) ===
+	// === RESONANCE ===
 	eFloor = resoFloorMin + (resonance * (resoFloorMax - resoFloorMin));
 	energy = 0.5 * ((mass[0] * vel1.squared) + (mass[1] * vel2.squared) +
 	                (mass[2] * vel3.squared) + (mass[3] * vel4.squared));
@@ -267,7 +311,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		resoDriveGain * resonance * (eFloor - energy).clip(0, resoDeltaEMax) * [vel1, vel2, vel3, vel4].sign
 	]);
 
-	// === KICKSTART (Phase B adds pattern cycling) ===
+	// === KICKSTART ===
 	kickCooldown = (kickCooldown - dt).max(0);
 
 	fKick = Select.kr((energy < eFloor) * (kickCooldown < 0.001) * (resonance > 0.01), [
@@ -313,31 +357,140 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	pos4 = pos4.clip(0, 1);
 
 	railD = [pos1, pos2, pos3, pos4].min(1 - [pos1, pos2, pos3, pos4]);
-	railU = ((railZoneEff - railD) / railZoneEff).clip(0, 1);  // uses scaled zone
+	railU = ((railZoneEff - railD) / railZoneEff).clip(0, 1);
 
-	// Use scaled rail absorption (Option C)
 	vel1 = vel1 * (1 - (railAbsorbEff * railU[0].squared));
 	vel2 = vel2 * (1 - (railAbsorbEff * railU[1].squared));
 	vel3 = vel3 * (1 - (railAbsorbEff * railU[2].squared));
 	vel4 = vel4 * (1 - (railAbsorbEff * railU[3].squared));
 
-	// === HUB DYNAMICS (Phase B adds overshoot + tanh) ===
-	hubVel = hubVel + (hubFeedGain * (
-		((pos1 - hubTarget) * vel1) + ((pos2 - hubTarget) * vel2) +
-		((pos3 - hubTarget) * vel3) + ((pos4 - hubTarget) * vel4)
-	).clip(hubFeedMax.neg, hubFeedMax) * dt);
+    // === PHASE B: OVERSHOOT DETECTION (spec-correct) ===
+    // side relative to clamped hubTarget
+    side1 = (pos1 - hubTarget).sign;
+    side2 = (pos2 - hubTarget).sign;
+    side3 = (pos3 - hubTarget).sign;
+    side4 = (pos4 - hubTarget).sign;
 
-	hubVel  = hubVel  * (hubDamp * dt).neg.exp;
+    // non-zero tests (UGen comparators)
+    didCross1 =
+        (side1.abs > 0) *
+        (prevSide1.abs > 0) *
+        ((side1 * prevSide1) < 0) *
+        (vel1.abs > velocityEpsilon) *
+        (osActive1 < 0.5);
+
+    didCross2 =
+        (side2.abs > 0) *
+        (prevSide2.abs > 0) *
+        ((side2 * prevSide2) < 0) *
+        (vel2.abs > velocityEpsilon) *
+        (osActive2 < 0.5);
+
+    didCross3 =
+        (side3.abs > 0) *
+        (prevSide3.abs > 0) *
+        ((side3 * prevSide3) < 0) *
+        (vel3.abs > velocityEpsilon) *
+        (osActive3 < 0.5);
+
+    didCross4 =
+        (side4.abs > 0) *
+        (prevSide4.abs > 0) *
+        ((side4 * prevSide4) < 0) *
+        (vel4.abs > velocityEpsilon) *
+        (osActive4 < 0.5);
+
+    // latch target and activate on crossing
+    osTarget1 = Select.kr(didCross1, [osTarget1, hubTarget]);
+    osTarget2 = Select.kr(didCross2, [osTarget2, hubTarget]);
+    osTarget3 = Select.kr(didCross3, [osTarget3, hubTarget]);
+    osTarget4 = Select.kr(didCross4, [osTarget4, hubTarget]);
+
+    osActive1 = Select.kr(didCross1, [osActive1, 1]);
+    osActive2 = Select.kr(didCross2, [osActive2, 1]);
+    osActive3 = Select.kr(didCross3, [osActive3, 1]);
+    osActive4 = Select.kr(didCross4, [osActive4, 1]);
+
+    // seed peak on crossing with current excursion (signed)
+    osPeak1 = Select.kr(didCross1, [osPeak1, pos1 - osTarget1]);
+    osPeak2 = Select.kr(didCross2, [osPeak2, pos2 - osTarget2]);
+    osPeak3 = Select.kr(didCross3, [osPeak3, pos3 - osTarget3]);
+    osPeak4 = Select.kr(didCross4, [osPeak4, pos4 - osTarget4]);
+
+    // while active: track max |excursion| beyond frozen target
+    excursion1 = pos1 - osTarget1;
+    excursion2 = pos2 - osTarget2;
+    excursion3 = pos3 - osTarget3;
+    excursion4 = pos4 - osTarget4;
+
+    osPeak1 = Select.kr((osActive1 > 0.5) * (excursion1.abs > osPeak1.abs), [osPeak1, excursion1]);
+    osPeak2 = Select.kr((osActive2 > 0.5) * (excursion2.abs > osPeak2.abs), [osPeak2, excursion2]);
+    osPeak3 = Select.kr((osActive3 > 0.5) * (excursion3.abs > osPeak3.abs), [osPeak3, excursion3]);
+    osPeak4 = Select.kr((osActive4 > 0.5) * (excursion4.abs > osPeak4.abs), [osPeak4, excursion4]);
+
+    // completion: velocity flips relative to excursion direction (spec)
+    // done when (v * peak) < 0
+    velFlipped1 = (osActive1 > 0.5) * ((vel1 * osPeak1) < 0);
+    velFlipped2 = (osActive2 > 0.5) * ((vel2 * osPeak2) < 0);
+    velFlipped3 = (osActive3 > 0.5) * ((vel3 * osPeak3) < 0);
+    velFlipped4 = (osActive4 > 0.5) * ((vel4 * osPeak4) < 0);
+
+    // impulse only on completion step
+    osImpulse1 = velFlipped1 * osPeak1.clip(overshootMax.neg, overshootMax);
+    osImpulse2 = velFlipped2 * osPeak2.clip(overshootMax.neg, overshootMax);
+    osImpulse3 = velFlipped3 * osPeak3.clip(overshootMax.neg, overshootMax);
+    osImpulse4 = velFlipped4 * osPeak4.clip(overshootMax.neg, overshootMax);
+
+    // clear tracking on completion
+    osActive1 = osActive1 * (1 - velFlipped1);
+    osActive2 = osActive2 * (1 - velFlipped2);
+    osActive3 = osActive3 * (1 - velFlipped3);
+    osActive4 = osActive4 * (1 - velFlipped4);
+
+    osPeak1 = osPeak1 * (1 - velFlipped1);
+    osPeak2 = osPeak2 * (1 - velFlipped2);
+    osPeak3 = osPeak3 * (1 - velFlipped3);
+    osPeak4 = osPeak4 * (1 - velFlipped4);
+
+    // update prevSide only if side != 0 (spec)
+    prevSide1 = Select.kr(side1.abs > 0, [prevSide1, side1]);
+    prevSide2 = Select.kr(side2.abs > 0, [prevSide2, side2]);
+    prevSide3 = Select.kr(side3.abs > 0, [prevSide3, side3]);
+    prevSide4 = Select.kr(side4.abs > 0, [prevSide4, side4]);
+
+
+
+	// === HUB DYNAMICS (Phase B: impulses + tanh) ===
+    hubImpulse = (overshootToHubGain * excHubMul)
+        * (osImpulse1 + osImpulse2 + osImpulse3 + osImpulse4);
+
+    workSum =
+        ((pos1 - hubTarget) * vel1) + ((pos2 - hubTarget) * vel2) +
+        ((pos3 - hubTarget) * vel3) + ((pos4 - hubTarget) * vel4);
+
+    // raise the feed clip with excursion too (otherwise you just slam the clip sooner)
+    hubFeed = (hubFeedGain * excHubMul * workSum)
+        .clip((hubFeedMax * excHubMul).neg, (hubFeedMax * excHubMul));
+
+	hubVel = hubVel + ((hubImpulse + hubFeed) * dt);
+	hubVel = hubVel * (hubDamp * dt).neg.exp;
 	hubBias = hubBias + (hubVel * dt);
-	hubBias = hubBias.clip(hubLimit.neg, hubLimit);
 
-	// === FEEDBACK STATE ===
-	LocalOut.kr([
-		pos1, pos2, pos3, pos4,
-		vel1, vel2, vel3, vel4,
-		hubBias, hubVel,
-		kickCooldown, kickToggle, kickIndex
-	]);
+	// Phase B: tanh soft saturation instead of clip
+	hubBias = hubLimit * (hubBias / hubLimit).tanh;
+
+	// === FEEDBACK STATE (29 values) ===
+    LocalOut.kr([
+        pos1, pos2, pos3, pos4,
+        vel1, vel2, vel3, vel4,
+        hubBias, hubVel,
+        kickCooldown, kickToggle, kickIndex,
+        prevSide1, prevSide2, prevSide3, prevSide4,
+        osActive1, osActive2, osActive3, osActive4,
+        osTarget1, osTarget2, osTarget3, osTarget4,
+        osPeak1, osPeak2, osPeak3, osPeak4
+    ]);
+
 
 	// === OUTPUT WITH POLARITY ===
 	sig1 = Select.kr(polarity1.round.clip(0, 1), [pos1, pos1.neg]);
@@ -351,4 +504,4 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	Out.kr(out4, sig4);
 }).add;
 
-"  ✓ ne_mod_sauce_of_grav SynthDef loaded (Phase A v10 - rail zone shrink fix)".postln;
+"  ✓ ne_mod_sauce_of_grav SynthDef loaded (Phase B v1 - overshoot + tanh)".postln;
