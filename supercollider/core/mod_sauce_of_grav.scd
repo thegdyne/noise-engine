@@ -53,7 +53,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var excursionMax = 1.60;
 
 	// Excursion -> hub travel shaping (Phase B)
-    var excursionHubExp = 1.5;  // try 1.25..1.75 if you want to tune
+    var excursionHubExp = 1.7;  // try 1.25..1.75 if you want to tune
 
 	// CALM multipliers
 	var calmDampCalm = 1.30;
@@ -96,8 +96,8 @@ SynthDef(\ne_mod_sauce_of_grav, {
 
 	// Hub (Phase B constants)
 	var hubLimit = 2.0;
-	var depthDampMin = 0.005;
-	var depthDampMax = 2.50;
+	var depthDampMin = 0.003;
+	var depthDampMax = 2.35;
 	var hubFeedGain = 8.0;
 	var hubFeedMax = 0.35;
 	var overshootToHubGain = 0.6;
@@ -142,6 +142,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var osImpulse1, osImpulse2, osImpulse3, osImpulse4;
 	var hubImpulse, workSum, hubFeed;
     var excHubMul;
+    var noiseRateEff, lowRateBoost;
 
 	// === CLOCK INPUT ===
 	clk = In.ar(clockTrigBus + clockIndex);
@@ -163,8 +164,10 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	// === PARAMETER MAPPING ===
 	gravInfluence = 1.0 - gravity;
 	excursionGain = excursionMin + (excursion * (excursionMax - excursionMin));
-	// Scale hub drive with excursion so hub travel increases monotonically
-    excHubMul = excursionGain / ((excursionMin + excursionMax) * 0.5);  // ~0.545..1.455
+    // match hubTarget shaping so injection grows at the same rate as target amplitude
+    excHubMul =
+        (excursionGain ** excursionHubExp) /
+        (((excursionMin + excursionMax) * 0.5) ** excursionHubExp);
 	kGrav = gravStiffGain * gravity;
 	hubDamp = depthDampMin + (depth.clip(0,1) * (depthDampMax - depthDampMin));
 
@@ -270,7 +273,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	hubVel  = hubVel  * (1 + (refreshPulse * (fadeFactor - 1)));
 
 	// === HUB TARGET ===
-	hubTarget = (0.5 + (hubBias * gravInfluence * (excursionGain ** excursionHubExp))).clip(0, 1);
+	hubTarget = (0.5 + (hubBias * gravInfluence * (excursionGain ** excursionHubExp) * excHubMul)).clip(0, 1);
 
 	// === VAN DER POL DAMPING ===
 	vdpThresholdEff = (vdpThreshold * (1 + (vdpHubMod * hubBias / hubLimit))).max(vdpThresholdFloor);
@@ -279,12 +282,16 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	dampingEff = dampingBaseMapped - vdpFactor;
 
 	// === VELOCITY NOISE ===
-	noise = [
-		WhiteNoise.kr(noiseRate * 0.9) * dt.sqrt,
-		WhiteNoise.kr(noiseRate * 1.1) * dt.sqrt,
-		WhiteNoise.kr(noiseRate * 1.0) * dt.sqrt,
-		WhiteNoise.kr(noiseRate * 1.2) * dt.sqrt
-	];
+    // boost only when rate is low (< 0.2)
+    lowRateBoost = ((0.2 - rateClamped) / 0.2).clip(0, 1);  // 0 at >=0.2, 0.5 at 0.1, 1 at 0
+    noiseRateEff = noiseRate * (1 + (lowRateBoost * 0.9));  // was 0.6
+
+    noise = [
+        WhiteNoise.kr(noiseRateEff * 0.9) * dt.sqrt,
+        WhiteNoise.kr(noiseRateEff * 1.1) * dt.sqrt,
+        WhiteNoise.kr(noiseRateEff * 1.0) * dt.sqrt,
+        WhiteNoise.kr(noiseRateEff * 1.2) * dt.sqrt
+    ];
 	vel1 = vel1 + noise[0];
 	vel2 = vel2 + noise[1];
 	vel3 = vel3 + noise[2];
