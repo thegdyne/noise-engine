@@ -1,18 +1,14 @@
 /*
-Mod SauceOfGrav SynthDef (Phase A Final - Fixed)
-4-output coupled physics modulator inspired by Buchla 266 Source of Uncertainty And NLC Sauce of UNCE!
+Mod SauceOfGrav SynthDef (Phase A Final - v10)
+4-output coupled physics modulator
 
-Phase A Fixes Applied:
-- A1: dt = ControlDur.ir, physics runs every control tick
-- A2: Init sentinel (kickToggle) + full state initialization
-- A3: Polarity uses negation (pos.neg) not mirror (1-pos)
-- A4: Refresh events with CLK/FREE modes, CLK is transport-gated
-- Index clamping on all Select.kr for safety
-- Refresh fade applied before hubTarget (atomic timing)
-- Comparator-free refresh fade (multiplier form)
-- Rate input clamped before mapping
-- FIX: CLK gating uses clockRunning.ceil (binary) so refresh impulses are not fractional
-- Optional safety: calm/depth clamped 0..1
+Fixes in this revision:
+- FIX: Array syntax (removed # from clkMult array)
+- CALM multipliers: Fixed negative blend extrapolation bug
+- Transport gate: Boolean (clkGate = clockRunning.sign)
+- Refresh pulse: Boolean (refreshPulse = refreshTrig.sign) for atomic fade
+- Symmetry breakers: Per-lane ring skew + per-lane noise variation
+- Enhanced rail scaling v2 (AI2): zone SHRINKS + absorption reduces at high excursion
 
 Reference: docs/SAUCE_OF_GRAV_SPEC_v1_4_3.md
 */
@@ -45,12 +41,12 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var massBase = 0.25;
 	var massGain = 2.1;
 
-	// Coupling
+	// Coupling - with per-lane skew for symmetry breaking
 	var hubCoupleGain = 6.0;
 	var hubTensionExp = 0.70;
 	var ringCoupleGain = 3.5;
 	var ringTensionExp = 1.30;
-	var ringSkew = 0.015;
+	var ringSkewArr = #[0.012, 0.017, 0.014, 0.019];  // per-lane asymmetry
 
 	// Gravity
 	var gravStiffGain = 6.0;
@@ -82,7 +78,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 
 	// Rails
 	var railZone = 0.08;
-	var railAbsorb = 0.35;
+	var railAbsorbBase = 0.35;  // base value, scaled by excursion
 
 	// Resonance
 	var resoFloorMin = 0.0002;
@@ -110,7 +106,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var kickCooldown, kickToggle, kickIndex;
 
 	// === WORKING VARIABLES ===
-	var calmBi, calmDampMul, calmVdpMul, calmKickMul;
+	var calmClamped, calmBi, tCalm, tWild, calmDampMul, calmVdpMul, calmKickMul;
 	var gravInfluence, excursionGain, hubTarget;
 	var kGrav, hubDamp;
 	var mass, tensionEff, kHub, kRing, kRingFwd, kRingBwd, dampingBaseMapped;
@@ -122,9 +118,9 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var sig1, sig2, sig3, sig4;
 
 	var didInit;
-	var clk, atrig, trig, clockRunning;
-	var bpm, rateClamped, rateActive, baseHz, clkMult, refreshHz, refreshTrig, fadeFactor;
-	var calmClamped, depthClamped;
+	var clk, atrig, trig, clockRunning, clkGate;
+	var bpm, rateClamped, rateActive, baseHz, clkMult, refreshHz, refreshTrig, refreshPulse, fadeFactor;
+	var railAbsorbEff, railZoneEff;
 
 	// === CLOCK INPUT ===
 	clk = In.ar(clockTrigBus + clockIndex);
@@ -132,35 +128,32 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	trig = Trig1.kr(A2K.kr(atrig), 0.001);
 	bpm = In.kr(bpmBus).max(1);
 	clockRunning = Decay.kr(trig, 0.2);
+	clkGate = clockRunning.sign;  // FIX: boolean 0/1 transport gate
 
-	// Optional safety clamps
+	// === CALM BIPOLAR CONVERSION (FIXED) ===
 	calmClamped = calm.clip(0, 1);
-	depthClamped = depth.clip(0, 1);
+	calmBi = (calmClamped * 2) - 1;  // -1..+1
 
-	// === CALM BIPOLAR CONVERSION ===
-	calmBi = (calmClamped * 2) - 1;
+	// FIX: weights are always 0..1 (no negative blend extrapolation)
+	tCalm = calmBi.neg.max(0);  // calm side amount (0..1)
+	tWild = calmBi.max(0);       // wild side amount (0..1)
 
-	// === CALM MULTIPLIERS ===
-	calmDampMul = Select.kr(calmBi < 0, [
-		1.0.blend(calmDampWild, calmBi),
-		1.0.blend(calmDampCalm, calmBi.neg)
-	]);
-	calmVdpMul = Select.kr(calmBi < 0, [
-		1.0.blend(calmVdpWild, calmBi),
-		1.0.blend(calmVdpCalm, calmBi.neg)
-	]);
-	calmKickMul = Select.kr(calmBi < 0, [
-		1.0,
-		1.0.blend(calmKickCalm, calmBi.neg)
-	]);
+	// linear interpolation around 1.0 center
+	calmDampMul = 1 + (tCalm * (calmDampCalm - 1)) + (tWild * (calmDampWild - 1));
+	calmVdpMul  = 1 + (tCalm * (calmVdpCalm  - 1)) + (tWild * (calmVdpWild  - 1));
+	calmKickMul = 1 + (tCalm * (calmKickCalm - 1));  // wild side stays 1
 
 	// === PARAMETER MAPPING ===
 	gravInfluence = 1.0 - gravity;
 	excursionGain = excursionMin + (excursion * (excursionMax - excursionMin));
 	kGrav = gravStiffGain * gravity;
-	hubDamp = depthDampMin + (depthClamped * (depthDampMax - depthDampMin));
+	hubDamp = depthDampMin + (depth.clip(0,1) * (depthDampMax - depthDampMin));
 
-	// Per-output mass with trims
+	// Enhanced rail scaling (AI2 fix v2 for E01 locking)
+	// High excursion = SMALLER zone (kicks in later) + less absorption = less "sticky"
+	railZoneEff = (railZone * (1 - (0.35 * excursion))).clip(0.02, 0.12);
+	railAbsorbEff = (railAbsorbBase * (1 - (0.50 * excursion))).clip(0.1, railAbsorbBase);
+
 	mass = [
 		massBase + (massGain * (mass1 + massTrim[0]).clip(0, 1)),
 		massBase + (massGain * (mass2 + massTrim[1]).clip(0, 1)),
@@ -168,7 +161,6 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		massBase + (massGain * (mass4 + massTrim[3]).clip(0, 1))
 	];
 
-	// Per-output tension with trims
 	tensionEff = [
 		(tension1 + tensionTrim[0]).clip(0, 1),
 		(tension2 + tensionTrim[1]).clip(0, 1),
@@ -176,67 +168,62 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		(tension4 + tensionTrim[3]).clip(0, 1)
 	];
 
-	// Coupling constants
 	kHub = hubCoupleGain * (tensionEff ** hubTensionExp);
 	kRing = ringCoupleGain * (tensionEff ** ringTensionExp);
-	kRingFwd = kRing * (1 + ringSkew);
-	kRingBwd = kRing * (1 - ringSkew);
+	kRingFwd = kRing * (1 + ringSkewArr);  // per-lane asymmetry
+	kRingBwd = kRing * (1 - ringSkewArr);
 
-	// Base damping with CALM scaling
 	dampingBaseMapped = (dampingBase + (dampingTension * (1 - tensionEff))) * calmDampMul;
 
 	// === INIT WITH FEEDBACK ===
 	# pos1, pos2, pos3, pos4, vel1, vel2, vel3, vel4,
 	  hubBias, hubVel, kickCooldown, kickToggle, kickIndex = LocalIn.kr(13);
 
-	// Sentinel: kickToggle only flips ±1, never near zero after init
+	// sentinel: kickToggle only ever becomes +/-1
 	didInit = kickToggle.abs > 0.001;
 
-	// Positions to center
 	pos1 = Select.kr(didInit, [0.5, pos1]);
 	pos2 = Select.kr(didInit, [0.5, pos2]);
 	pos3 = Select.kr(didInit, [0.5, pos3]);
 	pos4 = Select.kr(didInit, [0.5, pos4]);
 
-	// Velocities to zero
 	vel1 = Select.kr(didInit, [0.0, vel1]);
 	vel2 = Select.kr(didInit, [0.0, vel2]);
 	vel3 = Select.kr(didInit, [0.0, vel3]);
 	vel4 = Select.kr(didInit, [0.0, vel4]);
 
-	// Hub to zero
 	hubBias = Select.kr(didInit, [0.0, hubBias]);
 	hubVel  = Select.kr(didInit, [0.0, hubVel]);
 
-	// Kick state
 	kickCooldown = Select.kr(didInit, [0.0, kickCooldown]);
 	kickToggle   = Select.kr(didInit, [1.0, kickToggle]);
 	kickIndex    = Select.kr(didInit, [0.0, kickIndex]);
 
 	// === REFRESH EVENTS (before hubTarget for atomic timing) ===
 	rateClamped = rate.clip(0, 1);
-	rateActive  = ((rateClamped - rateDeadband) / (1 - rateDeadband)).clip(0, 1);
+	rateActive = ((rateClamped - rateDeadband) / (1 - rateDeadband)).clip(0, 1);
 
 	baseHz = bpm / 60;
 	clkMult = Select.kr(
 		(rateActive * 11).round.clip(0, 11),
-		[1/64, 1/32, 1/16, 1/8, 1/4, 1/2, 1, 2, 4, 8, 16, 32]
+		[1/64, 1/32, 1/16, 1/8, 1/4, 1/2, 1, 2, 4, 8, 16, 32]  // regular array, not literal
 	);
 
 	refreshHz = rateActive.linexp(0, 1, freeRateMin, freeRateMax);
 
 	refreshTrig = Select.kr(rateClamped < rateDeadband, [
 		Select.kr(clockMode.round.clip(0, 1), [
-			Impulse.kr(baseHz * clkMult) * clockRunning.ceil,  // FIX: binary gate
-			Impulse.kr(refreshHz)
+			Impulse.kr(baseHz * clkMult) * clkGate,  // CLK gated by boolean transport
+			Impulse.kr(refreshHz)                    // FREE
 		]),
 		0
 	]);
 
-	// Comparator-free fade (multiplier form)
-	fadeFactor = 0.95 - (depthClamped * 0.95);
-	hubBias = hubBias * (1 + (refreshTrig * (fadeFactor - 1)));
-	hubVel  = hubVel  * (1 + (refreshTrig * (fadeFactor - 1)));
+	refreshPulse = refreshTrig.sign;  // FIX: boolean pulse so fade is atomic
+
+	fadeFactor = 0.95 - (depth.clip(0,1) * 0.95);
+	hubBias = hubBias * (1 + (refreshPulse * (fadeFactor - 1)));
+	hubVel  = hubVel  * (1 + (refreshPulse * (fadeFactor - 1)));
 
 	// === HUB TARGET ===
 	hubTarget = (0.5 + (hubBias * gravInfluence * excursionGain)).clip(0, 1);
@@ -247,12 +234,12 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	vdpFactor = (vdpInject * calmVdpMul) * (1 - ((amp / vdpThresholdEff) ** 2));
 	dampingEff = dampingBaseMapped - vdpFactor;
 
-	// === VELOCITY NOISE ===
+	// === VELOCITY NOISE (per-lane variation for symmetry breaking) ===
 	noise = [
-		WhiteNoise.kr(noiseRate) * dt.sqrt,
-		WhiteNoise.kr(noiseRate) * dt.sqrt,
-		WhiteNoise.kr(noiseRate) * dt.sqrt,
-		WhiteNoise.kr(noiseRate) * dt.sqrt
+		WhiteNoise.kr(noiseRate * 0.9) * dt.sqrt,
+		WhiteNoise.kr(noiseRate * 1.1) * dt.sqrt,
+		WhiteNoise.kr(noiseRate * 1.0) * dt.sqrt,
+		WhiteNoise.kr(noiseRate * 1.2) * dt.sqrt
 	];
 	vel1 = vel1 + noise[0];
 	vel2 = vel2 + noise[1];
@@ -270,7 +257,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		(kRingFwd[3] * (pos1 - pos4)) + (kRingBwd[3] * (pos3 - pos4))
 	];
 
-	// === RESONANCE (Phase B will add alignment + rail attenuation) ===
+	// === RESONANCE (Phase B adds alignment + rail attenuation) ===
 	eFloor = resoFloorMin + (resonance * (resoFloorMax - resoFloorMin));
 	energy = 0.5 * ((mass[0] * vel1.squared) + (mass[1] * vel2.squared) +
 	                (mass[2] * vel3.squared) + (mass[3] * vel4.squared));
@@ -280,7 +267,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		resoDriveGain * resonance * (eFloor - energy).clip(0, resoDeltaEMax) * [vel1, vel2, vel3, vel4].sign
 	]);
 
-	// === KICKSTART (Phase B will add pattern cycling) ===
+	// === KICKSTART (Phase B adds pattern cycling) ===
 	kickCooldown = (kickCooldown - dt).max(0);
 
 	fKick = Select.kr((energy < eFloor) * (kickCooldown < 0.001) * (resonance > 0.01), [
@@ -326,34 +313,42 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	pos4 = pos4.clip(0, 1);
 
 	railD = [pos1, pos2, pos3, pos4].min(1 - [pos1, pos2, pos3, pos4]);
-	railU = ((railZone - railD) / railZone).clip(0, 1);
-	vel1 = vel1 * (1 - (railAbsorb * railU[0].squared));
-	vel2 = vel2 * (1 - (railAbsorb * railU[1].squared));
-	vel3 = vel3 * (1 - (railAbsorb * railU[2].squared));
-	vel4 = vel4 * (1 - (railAbsorb * railU[3].squared));
+	railU = ((railZoneEff - railD) / railZoneEff).clip(0, 1);  // uses scaled zone
 
-	// === HUB DYNAMICS (Phase B will add overshoot + tanh) ===
-	hubVel = hubVel + (hubFeedGain * ((pos1 - hubTarget) * vel1 + (pos2 - hubTarget) * vel2 +
-	                                   (pos3 - hubTarget) * vel3 + (pos4 - hubTarget) * vel4).clip(hubFeedMax.neg, hubFeedMax) * dt);
-	hubVel = hubVel * (hubDamp * dt).neg.exp;
+	// Use scaled rail absorption (Option C)
+	vel1 = vel1 * (1 - (railAbsorbEff * railU[0].squared));
+	vel2 = vel2 * (1 - (railAbsorbEff * railU[1].squared));
+	vel3 = vel3 * (1 - (railAbsorbEff * railU[2].squared));
+	vel4 = vel4 * (1 - (railAbsorbEff * railU[3].squared));
+
+	// === HUB DYNAMICS (Phase B adds overshoot + tanh) ===
+	hubVel = hubVel + (hubFeedGain * (
+		((pos1 - hubTarget) * vel1) + ((pos2 - hubTarget) * vel2) +
+		((pos3 - hubTarget) * vel3) + ((pos4 - hubTarget) * vel4)
+	).clip(hubFeedMax.neg, hubFeedMax) * dt);
+
+	hubVel  = hubVel  * (hubDamp * dt).neg.exp;
 	hubBias = hubBias + (hubVel * dt);
 	hubBias = hubBias.clip(hubLimit.neg, hubLimit);
 
 	// === FEEDBACK STATE ===
-	LocalOut.kr([pos1, pos2, pos3, pos4, vel1, vel2, vel3, vel4,
-	             hubBias, hubVel, kickCooldown, kickToggle, kickIndex]);
+	LocalOut.kr([
+		pos1, pos2, pos3, pos4,
+		vel1, vel2, vel3, vel4,
+		hubBias, hubVel,
+		kickCooldown, kickToggle, kickIndex
+	]);
 
-	// === OUTPUT WITH POLARITY (index clamped for safety) ===
+	// === OUTPUT WITH POLARITY ===
 	sig1 = Select.kr(polarity1.round.clip(0, 1), [pos1, pos1.neg]);
 	sig2 = Select.kr(polarity2.round.clip(0, 1), [pos2, pos2.neg]);
 	sig3 = Select.kr(polarity3.round.clip(0, 1), [pos3, pos3.neg]);
 	sig4 = Select.kr(polarity4.round.clip(0, 1), [pos4, pos4.neg]);
 
-	// === OUTPUT TO BUSES ===
 	Out.kr(out1, sig1);
 	Out.kr(out2, sig2);
 	Out.kr(out3, sig3);
 	Out.kr(out4, sig4);
 }).add;
 
-"  ✓ ne_mod_sauce_of_grav SynthDef loaded (Phase A final - fixed)".postln;
+"  ✓ ne_mod_sauce_of_grav SynthDef loaded (Phase A v10 - rail zone shrink fix)".postln;
