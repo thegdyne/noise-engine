@@ -164,7 +164,13 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	// === PARAMETER MAPPING ===
 	gravInfluence = 1.0 - gravity;
 	excursionGain = excursionMin + (excursion * (excursionMax - excursionMin));
-    // match hubTarget shaping so injection grows at the same rate as target amplitude
+
+	// === EXCURSION SCALING ===
+	// excHubMul applies non-linear excursion shaping (power = excursionHubExp) with midpoint normalization.
+	// hubTarget multiplies by (excursionGain ** excursionHubExp) again.
+	// (Because hubTarget also multiplies by excursionGain ** excursionHubExp downstream.)
+	// This is intentional: stronger response in the upper range without making low excursion feel dead.
+	// With excursionHubExp=1.7, effective power ≈ 3.4.
     excHubMul =
         (excursionGain ** excursionHubExp) /
         (((excursionMin + excursionMax) * 0.5) ** excursionHubExp);

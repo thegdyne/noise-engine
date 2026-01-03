@@ -16,7 +16,7 @@ OUTPUT: /tmp/sauce_test_v13.txt
 */
 
 (
-var slot = 0;
+var slot = ~testSlot ? 0;  // Use global if set, else default to 0
 var baseBus;
 var outFile;
 var testResults = List.new;
