@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLabel, QFrame, QShortcut, QApplication)
-from PyQt5.QtCore import Qt, QEvent, QTimer
+from PyQt5.QtCore import Qt, QEvent, QTimer, QSettings
 from PyQt5.QtGui import QFont, QKeySequence
 
 from src.gui.generator_grid import GeneratorGrid
@@ -48,7 +48,7 @@ class MainFrame(QMainWindow):
         
         self.setWindowTitle("Noise Engine")
         self.setMinimumSize(1200, 700)
-        self.setGeometry(100, 50, 1400, 800)
+        self._restore_window_geometry()
         
         self.setAttribute(Qt.WA_AcceptTouchEvents, False)
         
@@ -157,6 +157,23 @@ class MainFrame(QMainWindow):
         if self._dirty:
             base = f"• {base}"
         self.setWindowTitle(base)
+
+    # ── Window Geometry Persistence ──────────────────────────────────
+
+    def _restore_window_geometry(self):
+        """Restore window geometry from settings, or use defaults."""
+        settings = QSettings("NoiseEngine", "NoiseEngine")
+        geometry = settings.value("window/geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+        else:
+            # First run defaults
+            self.setGeometry(100, 50, 1400, 800)
+
+    def _save_window_geometry(self):
+        """Save window geometry to settings."""
+        settings = QSettings("NoiseEngine", "NoiseEngine")
+        settings.setValue("window/geometry", self.saveGeometry())
 
     def setup_ui(self):
         """Create the main interface layout."""
@@ -1688,6 +1705,9 @@ class MainFrame(QMainWindow):
         if dialog.exec_() != QDialog.Accepted:
             return
         
+        # Save window position before restart
+        self._save_window_geometry()
+        
         logger.info("Restarting Noise Engine...", component="APP")
         
         # Disconnect OSC cleanly
@@ -2131,6 +2151,9 @@ class MainFrame(QMainWindow):
 
     def closeEvent(self, event):
         """Handle window close - cleanup OSC to prevent signal spam."""
+        # Save window position for next launch
+        self._save_window_geometry()
+        
         # Stop OSC bridge first to prevent signals on deleted objects
         if hasattr(self, 'osc') and self.osc:
             self.osc.shutdown()

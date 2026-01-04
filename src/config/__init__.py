@@ -557,7 +557,8 @@ def _load_generator_configs():
                             "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
                             "pitch_target": config.get('pitch_target'),  # None if not specified
                             "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
-                            "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
+                            "output_trim_db": config.get('output_trim_db', 0.0),  # Loudness normalization
+                            "synthesis_method": config.get('synthesis_method', '')  # For SynthesisIcon display
                         }
                         _GENERATOR_SOURCES[name] = None  # Mark as core
                         if synthdef:
@@ -659,6 +660,7 @@ def _load_generator_configs():
                 "pitch_target": config.get('pitch_target'),
                 "midi_retrig": config.get('midi_retrig', False),
                 "output_trim_db": config.get('output_trim_db', 0.0),
+                "synthesis_method": config.get('synthesis_method', ''),  # For SynthesisIcon display
                 "pack": pack['id'],  # Track source pack
                 "pack_path": pack['path'],
             }
@@ -796,6 +798,22 @@ def get_generator_output_trim_db(name):
     """
     config = _GENERATOR_CONFIGS.get(name, {})
     return config.get('output_trim_db', 0.0)
+
+
+def get_generator_synthesis_category(name):
+    """Get synthesis method category for a generator.
+
+    Returns:
+        str: Category like 'fm', 'physical', 'texture', etc.
+             Returns 'empty' for Empty generator, 'unknown' if not found.
+    """
+    if name == 'Empty':
+        return 'empty'
+    config = _GENERATOR_CONFIGS.get(name, {})
+    method = config.get('synthesis_method', '')
+    if '/' in method:
+        return method.split('/')[0]
+    return 'unknown'
 
 # Legacy GENERATORS dict for compatibility (built from JSON)
 GENERATORS = {name: cfg['synthdef'] for name, cfg in _GENERATOR_CONFIGS.items()}

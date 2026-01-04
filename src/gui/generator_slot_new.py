@@ -9,125 +9,19 @@ from PyQt5.QtGui import QFont, QPainter, QPen, QPainterPath, QColor
 from .widgets import DragSlider, CycleButton, MiniKnob
 from .theme import (COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES, button_style,
                     mute_button_style, gate_indicator_style, midi_channel_style)
+from .synthesis_icon import SynthesisIcon
 
 from src.config import (
     GENERATOR_PARAMS, MAX_CUSTOM_PARAMS, GENERATOR_CYCLE,
     get_generator_custom_params, get_generator_pitch_target,
     get_generator_midi_retrig, get_generator_retrig_param_index,
     CLOCK_RATES, FILTER_TYPES, ENV_SOURCES, ENV_SOURCE_INDEX,
-    TRANSPOSE_SEMITONES, map_value, format_value
+    TRANSPOSE_SEMITONES, map_value, format_value, get_generator_synthesis_category
 )
 from src.utils.logger import logger
 
 
-class GenScope(QWidget):
-    """Simple waveform display for generator slots."""
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.waveform = "sine"
-        self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet(f"""
-            background-color: {COLORS['background']};
-            border: 1px solid {COLORS['border']};
-        """)
-
-    def set_waveform(self, generator_type):
-        """Set waveform based on generator type."""
-        wave_map = {
-            'Empty': 'flat',
-            'Sine': 'sine', 'Sub': 'sine', 'Hymn': 'sine', 'Choir': 'sine',
-            'Saw': 'saw', 'Hive': 'saw', 'Swarm': 'saw',
-            'Square': 'square', 'Pulse': 'square',
-            'Noise': 'noise', 'Wind': 'noise', 'Rain': 'noise',
-            'FM': 'fm', 'Bell': 'fm',
-        }
-        for key, wave in wave_map.items():
-            if key.lower() in generator_type.lower():
-                self.waveform = wave
-                break
-        else:
-            self.waveform = 'sine'
-        self.update()
-
-    def paintEvent(self, event):
-        import math
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-
-        w, h = self.width(), self.height()
-        mid_y = h // 2
-        margin = 4
-        draw_w = w - margin * 2
-        draw_h = h - margin * 2
-
-        pen = QPen(QColor(COLORS.get('accent_generator', '#00ff66')))
-        pen.setWidth(1)
-        painter.setPen(pen)
-
-        if self.waveform == 'flat':
-            painter.drawLine(margin, mid_y, w - margin, mid_y)
-
-        elif self.waveform == 'sine':
-            path = QPainterPath()
-            for i in range(draw_w):
-                x = margin + i
-                y = mid_y - int(math.sin(i * 4 * math.pi / draw_w) * (draw_h // 2 - 2))
-                if i == 0:
-                    path.moveTo(x, y)
-                else:
-                    path.lineTo(x, y)
-            painter.drawPath(path)
-
-        elif self.waveform == 'saw':
-            path = QPainterPath()
-            teeth = 3
-            tooth_w = draw_w // teeth
-            for t in range(teeth):
-                x1 = margin + t * tooth_w
-                x2 = margin + (t + 1) * tooth_w
-                path.moveTo(x1, mid_y + draw_h // 2 - 2)
-                path.lineTo(x2, mid_y - draw_h // 2 + 2)
-                path.moveTo(x2, mid_y + draw_h // 2 - 2)
-            painter.drawPath(path)
-
-        elif self.waveform == 'square':
-            path = QPainterPath()
-            step = draw_w // 4
-            y_top = mid_y - draw_h // 2 + 2
-            y_bot = mid_y + draw_h // 2 - 2
-            path.moveTo(margin, y_top)
-            path.lineTo(margin + step, y_top)
-            path.lineTo(margin + step, y_bot)
-            path.lineTo(margin + step * 2, y_bot)
-            path.lineTo(margin + step * 2, y_top)
-            path.lineTo(margin + step * 3, y_top)
-            path.lineTo(margin + step * 3, y_bot)
-            path.lineTo(margin + step * 4, y_bot)
-            painter.drawPath(path)
-
-        elif self.waveform == 'noise':
-            import random
-            random.seed(42)
-            path = QPainterPath()
-            path.moveTo(margin, mid_y)
-            for i in range(0, draw_w, 2):
-                x = margin + i
-                y = mid_y + random.randint(-draw_h // 2 + 2, draw_h // 2 - 2)
-                path.lineTo(x, y)
-            painter.drawPath(path)
-
-        elif self.waveform == 'fm':
-            path = QPainterPath()
-            for i in range(draw_w):
-                x = margin + i
-                mod = math.sin(i * 12 * math.pi / draw_w) * 0.3
-                y = mid_y - int(math.sin(i * 4 * math.pi / draw_w + mod * 3) * (draw_h // 2 - 2))
-                if i == 0:
-                    path.moveTo(x, y)
-                else:
-                    path.lineTo(x, y)
-            painter.drawPath(path)
 
 
 # =============================================================================
@@ -379,7 +273,7 @@ class GeneratorSlot(QWidget):
         self.portamento_knob.setEnabled(False)
         
         # ----- SCOPE -----
-        self.scope = GenScope(self)
+        self.scope = SynthesisIcon(self)
         self.scope.setGeometry(5, L['slot_height'] - 55, 120, 50)
         
         # Initial env style
@@ -560,8 +454,8 @@ class GeneratorSlot(QWidget):
         self.update_style()
         
         self.update_custom_params(gen_type)
-        self.scope.set_waveform(gen_type)
-    
+        self.scope.set_category(get_generator_synthesis_category(gen_type))
+
     def update_custom_params(self, gen_type):
         """Update custom param sliders for current generator type."""
         custom_params = get_generator_custom_params(gen_type)
@@ -704,8 +598,8 @@ class GeneratorSlot(QWidget):
         self.update_custom_params(gen_type)
         self.update_env_style()
         self.update_style()
-        self.scope.set_waveform(gen_type)
-        
+        self.scope.set_category(get_generator_synthesis_category(gen_type))
+
     def on_env_source_changed(self, source_str):
         """Handle ENV source button change."""
         self.env_source = ENV_SOURCE_INDEX[source_str]
