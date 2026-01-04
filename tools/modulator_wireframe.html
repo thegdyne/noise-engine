@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Modulator Slot Wireframe - 4 Types</title>
+<style>
+body { background: #1a1a1a; color: #ccc; font-family: monospace; margin: 20px; }
+h2 { margin-bottom: 5px; }
+.controls { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+.controls button { 
+    background: #444; color: #fff; border: 1px solid #666; 
+    padding: 8px 15px; cursor: pointer; border-radius: 3px;
+}
+.controls button:hover { background: #555; }
+.controls label { display: flex; align-items: center; gap: 5px; }
+
+.slots-container { display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px; }
+.slot-column { display: flex; flex-direction: row; align-items: flex-start; gap: 20px; min-height: 450px; }
+.slot-title { 
+    font-size: 14px; font-weight: bold;
+    padding: 4px 12px; border-radius: 3px;
+    writing-mode: horizontal-tb;
+    min-width: 100px;
+    text-align: center;
+}
+.slot-title.lfo { background: #f80; color: #000; }
+.slot-title.sloth { background: #08f; color: #000; }
+.slot-title.arseq { background: #0cc; color: #000; }
+.slot-title.sauce { background: #f0f; color: #000; }
+
+.slot-wrapper { transform: scale(1.5); transform-origin: top left; }
+.slot { 
+    position: relative; 
+    background: #242424; 
+    border: 2px solid #666;
+    border-radius: 6px;
+}
+.slot.lfo { border-color: #f80; }
+.slot.sloth { border-color: #08f; }
+.slot.arseq { border-color: #0cc; }
+.slot.sauce { border-color: #f0f; }
+
+.widget { 
+    position: absolute; 
+    border: 1px solid #666; 
+    background: #333;
+    font-size: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    user-select: none;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+.widget:hover { border-color: #0ff; }
+.widget.selected { border-color: #ff0; background: #444; }
+.widget.slider { background: #2a2a2a; border-color: #555; }
+.widget.slider-h { background: #2a2a2a; border-color: #555; }
+.widget.button { background: #3a3a3a; border-color: #888; border-radius: 3px; }
+.widget.label { background: transparent; border: 1px dashed #555; font-size: 6px; }
+.widget.scope { background: #1a1a1a; border-color: #444; }
+
+.resize-handle {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 8px; height: 8px;
+    background: #0ff;
+    cursor: se-resize;
+}
+
+.output-section { margin-top: 20px; }
+.output-section h3 { margin-bottom: 10px; }
+.output-tabs { display: flex; gap: 5px; margin-bottom: 10px; }
+.output-tabs button {
+    background: #333; color: #ccc; border: 1px solid #555;
+    padding: 5px 15px; cursor: pointer; border-radius: 3px 3px 0 0;
+}
+.output-tabs button.active { background: #444; border-bottom-color: #444; }
+.output-tabs button:hover { background: #444; }
+pre { 
+    background: #222; padding: 15px; border-radius: 0 4px 4px 4px; 
+    font-size: 11px; max-height: 400px; overflow-y: auto; 
+    white-space: pre-wrap; margin: 0;
+}
+
+.size-display {
+    position: fixed; top: 10px; right: 10px;
+    background: #333; padding: 10px; border-radius: 4px;
+    font-size: 12px;
+}
+</style>
+</head>
+<body>
+<h2>Modulator Slot Wireframe Tool</h2>
+<div class="controls">
+    <button onclick="copyCurrentLayout()">Copy Current Dict</button>
+    <button onclick="copyAllLayouts()">Copy All Dicts</button>
+    <button onclick="resetAll()">Reset All</button>
+    <label><input type="checkbox" id="snap" checked> Snap to 2px grid</label>
+</div>
+
+<div class="size-display">
+    Slot: <span id="dims">156×280</span>
+</div>
+
+<div class="slots-container">
+    <div class="slot-column">
+        <div class="slot-title lfo">LFO</div>
+        <div class="slot-wrapper">
+            <div class="slot lfo" id="slot-lfo" data-type="lfo"></div>
+        </div>
+    </div>
+    <div class="slot-column">
+        <div class="slot-title sloth">Sloth</div>
+        <div class="slot-wrapper">
+            <div class="slot sloth" id="slot-sloth" data-type="sloth"></div>
+        </div>
+    </div>
+    <div class="slot-column">
+        <div class="slot-title arseq">ARSEq+</div>
+        <div class="slot-wrapper">
+            <div class="slot arseq" id="slot-arseq" data-type="arseq"></div>
+        </div>
+    </div>
+    <div class="slot-column">
+        <div class="slot-title sauce">SauceOfGrav</div>
+        <div class="slot-wrapper">
+            <div class="slot sauce" id="slot-sauce" data-type="sauce"></div>
+        </div>
+    </div>
+</div>
+
+<div class="output-section">
+    <h3>Layout Dictionaries</h3>
+    <div class="output-tabs">
+        <button class="active" onclick="showTab('lfo')">LFO</button>
+        <button onclick="showTab('sloth')">Sloth</button>
+        <button onclick="showTab('arseq')">ARSEq+</button>
+        <button onclick="showTab('sauce')">SauceOfGrav</button>
+        <button onclick="showTab('all')">All Combined</button>
+    </div>
+    <pre id="output"></pre>
+</div>
+
+<script>
+const GRID = 2;
+const SCALE = 1.5;
+let selectedWidget = null;
+let dragOffset = { x: 0, y: 0 };
+let currentTab = 'lfo';
+
+// Shared base layout
+const baseLayout = {
+    slot_width: 156,
+    slot_height: 280,
+    
+    // Header (shared)
+    mod_label_x: 5, mod_label_y: 5,
+    mod_label_w: 50, mod_label_h: 18,
+    selector_x: 58, selector_y: 3,
+    selector_w: 92, selector_h: 20,
+    
+    // Separator
+    sep_y: 24,
+    
+    // Scope
+    scope_x: 4, scope_y: 210,
+    scope_w: 148, scope_h: 60,
+};
+
+// Per-type layouts
+const layouts = {
+    lfo: {
+        ...baseLayout,
+        // Params
+        params_y: 30,
+        mode_x: 6, mode_w: 28, mode_h: 22,
+        rate_x: 38, rate_w: 18, rate_h: 50,
+        rotate_x: 60, rotate_w: 28,
+        label_h: 10,
+        
+        // Outputs
+        outputs_y: 95,
+        output_row_h: 24,
+        output_spacing: 2,
+        out_label_w: 14,
+        wave_x: 20, wave_w: 40,
+        phase_x: 62, phase_w: 38,
+        pol_x: 102, pol_w: 28,
+    },
+    sloth: {
+        ...baseLayout,
+        // Params  
+        params_y: 30,
+        mode_x: 6, mode_w: 28, mode_h: 22,
+        label_h: 10,
+        
+        // Outputs
+        outputs_y: 70,
+        output_row_h: 24,
+        output_spacing: 2,
+        out_label_w: 14,
+        pol_x: 22, pol_w: 28,
+    },
+    arseq: {
+        ...baseLayout,
+        // Params
+        params_y: 30,
+        mode_x: 6, mode_w: 28, mode_h: 22,
+        clk_x: 38, clk_w: 28,
+        rate_x: 70, rate_w: 18, rate_h: 50,
+        label_h: 10,
+        
+        // Outputs
+        outputs_y: 95,
+        output_row_h: 24,
+        output_spacing: 2,
+        out_label_w: 12,
+        atk_x: 16, atk_w: 34,
+        rel_x: 52, rel_w: 34,
+        sync_x: 88, sync_w: 28,
+        pol_x: 118, pol_w: 20,
+    },
+    sauce: {
+        ...baseLayout,
+        // Params (7 params!)
+        params_y: 30,
+        clk_x: 6, clk_w: 28, clk_h: 22,
+        rate_x: 26, rate_w: 18, rate_h: 50,
+        depth_x: 46, depth_w: 18,
+        grav_x: 66, grav_w: 18,
+        reso_x: 86, reso_w: 18,
+        excur_x: 106, excur_w: 18,
+        calm_x: 126, calm_w: 18,
+        label_h: 10,
+        slider_h: 50,
+        
+        // Outputs
+        outputs_y: 100,
+        output_row_h: 24,
+        output_spacing: 2,
+        out_label_w: 12,
+        tens_x: 16, tens_w: 45,
+        mass_x: 63, mass_w: 45,
+        pol_x: 110, pol_w: 20,
+    }
+};
+
+// Widget definitions per type
+const widgetDefs = {
+    lfo: [
+        { id: 'header', label: 'MOD 1', type: 'label', xKey: 'mod_label_x', yKey: 'mod_label_y', wKey: 'mod_label_w', hKey: 'mod_label_h' },
+        { id: 'selector', label: 'LFO', type: 'button', xKey: 'selector_x', yKey: 'selector_y', wKey: 'selector_w', hKey: 'selector_h' },
+        { id: 'scope', label: 'scope', type: 'scope', xKey: 'scope_x', yKey: 'scope_y', wKey: 'scope_w', hKey: 'scope_h' },
+        
+        { id: 'mode_lbl', label: 'CLK', type: 'label', xKey: 'mode_x', yKey: 'params_y', wKey: 'mode_w', hKey: 'label_h' },
+        { id: 'mode', label: 'CLK', type: 'button', xKey: 'mode_x', yKey: 'params_y', yOff: 12, wKey: 'mode_w', hKey: 'mode_h' },
+        { id: 'rate_lbl', label: 'RATE', type: 'label', xKey: 'rate_x', yKey: 'params_y', wKey: 'rate_w', hKey: 'label_h' },
+        { id: 'rate', label: '', type: 'slider', xKey: 'rate_x', yKey: 'params_y', yOff: 12, wKey: 'rate_w', hKey: 'rate_h' },
+        { id: 'rot_lbl', label: 'ROT', type: 'label', xKey: 'rotate_x', yKey: 'params_y', wKey: 'rotate_w', hKey: 'label_h' },
+        { id: 'rot', label: '0°', type: 'button', xKey: 'rotate_x', yKey: 'params_y', yOff: 12, wKey: 'rotate_w', hKey: 'mode_h' },
+        
+        // Output rows
+        ...['A', 'B', 'C', 'D'].flatMap((lbl, i) => [
+            { id: `out${i}_lbl`, label: lbl, type: 'label', xKey: 'mod_label_x', yKey: 'outputs_y', yOff: i * 26, w: 14, hKey: 'output_row_h' },
+            { id: `wave${i}`, label: 'Tri', type: 'button', xKey: 'wave_x', yKey: 'outputs_y', yOff: i * 26, wKey: 'wave_w', h: 22 },
+            { id: `phase${i}`, label: '0°', type: 'button', xKey: 'phase_x', yKey: 'outputs_y', yOff: i * 26, wKey: 'phase_w', h: 22 },
+            { id: `pol${i}`, label: 'N', type: 'button', xKey: 'pol_x', yKey: 'outputs_y', yOff: i * 26, wKey: 'pol_w', h: 22 },
+        ]),
+    ],
+    sloth: [
+        { id: 'header', label: 'MOD 2', type: 'label', xKey: 'mod_label_x', yKey: 'mod_label_y', wKey: 'mod_label_w', hKey: 'mod_label_h' },
+        { id: 'selector', label: 'Sloth', type: 'button', xKey: 'selector_x', yKey: 'selector_y', wKey: 'selector_w', hKey: 'selector_h' },
+        { id: 'scope', label: 'scope', type: 'scope', xKey: 'scope_x', yKey: 'scope_y', wKey: 'scope_w', hKey: 'scope_h' },
+        
+        { id: 'mode_lbl', label: 'MODE', type: 'label', xKey: 'mode_x', yKey: 'params_y', wKey: 'mode_w', hKey: 'label_h' },
+        { id: 'mode', label: 'APA', type: 'button', xKey: 'mode_x', yKey: 'params_y', yOff: 12, wKey: 'mode_w', hKey: 'mode_h' },
+        
+        // Output rows
+        ...['X', 'Y', 'Z', 'R'].flatMap((lbl, i) => [
+            { id: `out${i}_lbl`, label: lbl, type: 'label', xKey: 'mod_label_x', yKey: 'outputs_y', yOff: i * 26, w: 14, hKey: 'output_row_h' },
+            { id: `pol${i}`, label: 'N', type: 'button', xKey: 'pol_x', yKey: 'outputs_y', yOff: i * 26, wKey: 'pol_w', h: 22 },
+        ]),
+    ],
+    arseq: [
+        { id: 'header', label: 'MOD 3', type: 'label', xKey: 'mod_label_x', yKey: 'mod_label_y', wKey: 'mod_label_w', hKey: 'mod_label_h' },
+        { id: 'selector', label: 'ARSEq+', type: 'button', xKey: 'selector_x', yKey: 'selector_y', wKey: 'selector_w', hKey: 'selector_h' },
+        { id: 'scope', label: 'scope', type: 'scope', xKey: 'scope_x', yKey: 'scope_y', wKey: 'scope_w', hKey: 'scope_h' },
+        
+        { id: 'mode_lbl', label: 'MODE', type: 'label', xKey: 'mode_x', yKey: 'params_y', wKey: 'mode_w', hKey: 'label_h' },
+        { id: 'mode', label: 'SEQ', type: 'button', xKey: 'mode_x', yKey: 'params_y', yOff: 12, wKey: 'mode_w', hKey: 'mode_h' },
+        { id: 'clk_lbl', label: 'CLK', type: 'label', xKey: 'clk_x', yKey: 'params_y', wKey: 'clk_w', hKey: 'label_h' },
+        { id: 'clk', label: 'CLK', type: 'button', xKey: 'clk_x', yKey: 'params_y', yOff: 12, wKey: 'clk_w', hKey: 'mode_h' },
+        { id: 'rate_lbl', label: 'RATE', type: 'label', xKey: 'rate_x', yKey: 'params_y', wKey: 'rate_w', hKey: 'label_h' },
+        { id: 'rate', label: '', type: 'slider', xKey: 'rate_x', yKey: 'params_y', yOff: 12, wKey: 'rate_w', hKey: 'rate_h' },
+        
+        // Output rows  
+        ...['1', '2', '3', '4'].flatMap((lbl, i) => [
+            { id: `out${i}_lbl`, label: lbl, type: 'label', xKey: 'mod_label_x', yKey: 'outputs_y', yOff: i * 26, w: 12, hKey: 'output_row_h' },
+            { id: `atk${i}`, label: 'ATK', type: 'slider-h', xKey: 'atk_x', yKey: 'outputs_y', yOff: i * 26 + 2, wKey: 'atk_w', h: 20 },
+            { id: `rel${i}`, label: 'REL', type: 'slider-h', xKey: 'rel_x', yKey: 'outputs_y', yOff: i * 26 + 2, wKey: 'rel_w', h: 20 },
+            { id: `sync${i}`, label: 'SYN', type: 'button', xKey: 'sync_x', yKey: 'outputs_y', yOff: i * 26, wKey: 'sync_w', h: 22 },
+            { id: `pol${i}`, label: 'N', type: 'button', xKey: 'pol_x', yKey: 'outputs_y', yOff: i * 26, wKey: 'pol_w', h: 22 },
+        ]),
+    ],
+    sauce: [
+        { id: 'header', label: 'MOD 4', type: 'label', xKey: 'mod_label_x', yKey: 'mod_label_y', wKey: 'mod_label_w', hKey: 'mod_label_h' },
+        { id: 'selector', label: 'SauceOfGrav', type: 'button', xKey: 'selector_x', yKey: 'selector_y', wKey: 'selector_w', hKey: 'selector_h' },
+        { id: 'scope', label: 'scope', type: 'scope', xKey: 'scope_x', yKey: 'scope_y', wKey: 'scope_w', hKey: 'scope_h' },
+        
+        { id: 'clk_lbl', label: 'CLK', type: 'label', xKey: 'clk_x', yKey: 'params_y', wKey: 'clk_w', hKey: 'label_h' },
+        { id: 'clk', label: 'CLK', type: 'button', xKey: 'clk_x', yKey: 'params_y', yOff: 12, wKey: 'clk_w', hKey: 'clk_h' },
+        { id: 'rate_lbl', label: 'RATE', type: 'label', xKey: 'rate_x', yKey: 'params_y', wKey: 'rate_w', hKey: 'label_h' },
+        { id: 'rate', label: '', type: 'slider', xKey: 'rate_x', yKey: 'params_y', yOff: 12, wKey: 'rate_w', hKey: 'slider_h' },
+        { id: 'depth_lbl', label: 'DPTH', type: 'label', xKey: 'depth_x', yKey: 'params_y', wKey: 'depth_w', hKey: 'label_h' },
+        { id: 'depth', label: '', type: 'slider', xKey: 'depth_x', yKey: 'params_y', yOff: 12, wKey: 'depth_w', hKey: 'slider_h' },
+        { id: 'grav_lbl', label: 'GRAV', type: 'label', xKey: 'grav_x', yKey: 'params_y', wKey: 'grav_w', hKey: 'label_h' },
+        { id: 'grav', label: '', type: 'slider', xKey: 'grav_x', yKey: 'params_y', yOff: 12, wKey: 'grav_w', hKey: 'slider_h' },
+        { id: 'reso_lbl', label: 'RESO', type: 'label', xKey: 'reso_x', yKey: 'params_y', wKey: 'reso_w', hKey: 'label_h' },
+        { id: 'reso', label: '', type: 'slider', xKey: 'reso_x', yKey: 'params_y', yOff: 12, wKey: 'reso_w', hKey: 'slider_h' },
+        { id: 'excur_lbl', label: 'EXCR', type: 'label', xKey: 'excur_x', yKey: 'params_y', wKey: 'excur_w', hKey: 'label_h' },
+        { id: 'excur', label: '', type: 'slider', xKey: 'excur_x', yKey: 'params_y', yOff: 12, wKey: 'excur_w', hKey: 'slider_h' },
+        { id: 'calm_lbl', label: 'CALM', type: 'label', xKey: 'calm_x', yKey: 'params_y', wKey: 'calm_w', hKey: 'label_h' },
+        { id: 'calm', label: '', type: 'slider', xKey: 'calm_x', yKey: 'params_y', yOff: 12, wKey: 'calm_w', hKey: 'slider_h' },
+        
+        // Output rows
+        ...['1', '2', '3', '4'].flatMap((lbl, i) => [
+            { id: `out${i}_lbl`, label: lbl, type: 'label', xKey: 'mod_label_x', yKey: 'outputs_y', yOff: i * 26, w: 12, hKey: 'output_row_h' },
+            { id: `tens${i}`, label: 'TENS', type: 'slider-h', xKey: 'tens_x', yKey: 'outputs_y', yOff: i * 26 + 2, wKey: 'tens_w', h: 20 },
+            { id: `mass${i}`, label: 'MASS', type: 'slider-h', xKey: 'mass_x', yKey: 'outputs_y', yOff: i * 26 + 2, wKey: 'mass_w', h: 20 },
+            { id: `pol${i}`, label: 'N', type: 'button', xKey: 'pol_x', yKey: 'outputs_y', yOff: i * 26, wKey: 'pol_w', h: 22 },
+        ]),
+    ],
+};
+
+function snap(val) {
+    return document.getElementById('snap').checked ? Math.round(val / GRID) * GRID : val;
+}
+
+function renderSlot(type) {
+    const slot = document.getElementById(`slot-${type}`);
+    const layout = layouts[type];
+    const widgets = widgetDefs[type];
+    
+    slot.style.width = layout.slot_width + 'px';
+    slot.style.height = layout.slot_height + 'px';
+    slot.innerHTML = '';
+    
+    // Resize handle
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    handle.onmousedown = (e) => startResize(e, type);
+    slot.appendChild(handle);
+    
+    // Separator line
+    const sep = document.createElement('div');
+    sep.style.cssText = `position: absolute; left: 4px; right: 4px; top: ${layout.sep_y}px; height: 1px; background: #666;`;
+    slot.appendChild(sep);
+    
+    widgets.forEach(w => {
+        const el = document.createElement('div');
+        el.className = 'widget ' + w.type;
+        el.id = `${type}-${w.id}`;
+        el.innerText = w.label;
+        
+        const x = w.xKey ? layout[w.xKey] : w.x;
+        const y = (w.yKey ? layout[w.yKey] : w.y) + (w.yOff || 0);
+        const width = w.wKey ? layout[w.wKey] : w.w;
+        const height = w.hKey ? layout[w.hKey] : w.h;
+        
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.width = width + 'px';
+        el.style.height = height + 'px';
+        
+        el.onmousedown = (e) => startDrag(e, type, w);
+        slot.appendChild(el);
+    });
+}
+
+function renderAll() {
+    ['lfo', 'sloth', 'arseq', 'sauce'].forEach(renderSlot);
+    updateOutput();
+    document.getElementById('dims').innerText = `${layouts.lfo.slot_width}×${layouts.lfo.slot_height}`;
+}
+
+function startDrag(e, type, widget) {
+    e.preventDefault();
+    if (!widget.xKey && !widget.yKey) return; // Can't drag fixed widgets
+    
+    selectedWidget = { type, widget };
+    const el = document.getElementById(`${type}-${widget.id}`);
+    el.classList.add('selected');
+    const rect = el.getBoundingClientRect();
+    dragOffset.x = e.clientX - rect.left;
+    dragOffset.y = e.clientY - rect.top;
+    document.onmousemove = onDrag;
+    document.onmouseup = stopDrag;
+}
+
+function onDrag(e) {
+    if (!selectedWidget) return;
+    const { type, widget } = selectedWidget;
+    const slot = document.getElementById(`slot-${type}`);
+    const layout = layouts[type];
+    const slotRect = slot.getBoundingClientRect();
+    
+    if (widget.xKey) {
+        const newX = snap((e.clientX - slotRect.left - dragOffset.x) / SCALE);
+        layout[widget.xKey] = Math.max(0, newX);
+    }
+    if (widget.yKey) {
+        const newY = snap((e.clientY - slotRect.top - dragOffset.y - (widget.yOff || 0)) / SCALE);
+        layout[widget.yKey] = Math.max(0, newY);
+    }
+    
+    renderSlot(type);
+    document.getElementById(`${type}-${widget.id}`).classList.add('selected');
+    updateOutput();
+}
+
+function stopDrag() {
+    if (selectedWidget) {
+        const { type, widget } = selectedWidget;
+        const el = document.getElementById(`${type}-${widget.id}`);
+        if (el) el.classList.remove('selected');
+    }
+    selectedWidget = null;
+    document.onmousemove = null;
+    document.onmouseup = null;
+}
+
+let resizingType = null;
+function startResize(e, type) {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingType = type;
+    document.onmousemove = onResize;
+    document.onmouseup = stopResize;
+}
+
+function onResize(e) {
+    if (!resizingType) return;
+    const slot = document.getElementById(`slot-${resizingType}`);
+    const rect = slot.getBoundingClientRect();
+    const layout = layouts[resizingType];
+    layout.slot_width = snap((e.clientX - rect.left) / SCALE);
+    layout.slot_height = snap((e.clientY - rect.top) / SCALE);
+    renderSlot(resizingType);
+    updateOutput();
+    document.getElementById('dims').innerText = `${layout.slot_width}×${layout.slot_height}`;
+}
+
+function stopResize() {
+    resizingType = null;
+    document.onmousemove = null;
+    document.onmouseup = null;
+}
+
+function generateDict(type) {
+    const L = layouts[type];
+    const typeName = { lfo: 'LFO', sloth: 'SLOTH', arseq: 'ARSEQ', sauce: 'SAUCE' }[type];
+    
+    let s = `${typeName}_LAYOUT = {\n`;
+    s += `    'slot_width': ${L.slot_width},\n`;
+    s += `    'slot_height': ${L.slot_height},\n\n`;
+    
+    s += `    # Header\n`;
+    s += `    'mod_label_x': ${L.mod_label_x}, 'mod_label_y': ${L.mod_label_y},\n`;
+    s += `    'mod_label_w': ${L.mod_label_w}, 'mod_label_h': ${L.mod_label_h},\n`;
+    s += `    'selector_x': ${L.selector_x}, 'selector_y': ${L.selector_y},\n`;
+    s += `    'selector_w': ${L.selector_w}, 'selector_h': ${L.selector_h},\n`;
+    s += `    'sep_y': ${L.sep_y},\n\n`;
+    
+    s += `    # Scope\n`;
+    s += `    'scope_x': ${L.scope_x}, 'scope_y': ${L.scope_y},\n`;
+    s += `    'scope_w': ${L.scope_w}, 'scope_h': ${L.scope_h},\n\n`;
+    
+    s += `    # Params\n`;
+    s += `    'params_y': ${L.params_y},\n`;
+    s += `    'label_h': ${L.label_h},\n`;
+    
+    if (type === 'lfo') {
+        s += `    'mode_x': ${L.mode_x}, 'mode_w': ${L.mode_w}, 'mode_h': ${L.mode_h},\n`;
+        s += `    'rate_x': ${L.rate_x}, 'rate_w': ${L.rate_w}, 'rate_h': ${L.rate_h},\n`;
+        s += `    'rotate_x': ${L.rotate_x}, 'rotate_w': ${L.rotate_w},\n\n`;
+        s += `    # Outputs\n`;
+        s += `    'outputs_y': ${L.outputs_y},\n`;
+        s += `    'output_row_h': ${L.output_row_h},\n`;
+        s += `    'out_label_w': ${L.out_label_w},\n`;
+        s += `    'wave_x': ${L.wave_x}, 'wave_w': ${L.wave_w},\n`;
+        s += `    'phase_x': ${L.phase_x}, 'phase_w': ${L.phase_w},\n`;
+        s += `    'pol_x': ${L.pol_x}, 'pol_w': ${L.pol_w},\n`;
+    } else if (type === 'sloth') {
+        s += `    'mode_x': ${L.mode_x}, 'mode_w': ${L.mode_w}, 'mode_h': ${L.mode_h},\n\n`;
+        s += `    # Outputs\n`;
+        s += `    'outputs_y': ${L.outputs_y},\n`;
+        s += `    'output_row_h': ${L.output_row_h},\n`;
+        s += `    'out_label_w': ${L.out_label_w},\n`;
+        s += `    'pol_x': ${L.pol_x}, 'pol_w': ${L.pol_w},\n`;
+    } else if (type === 'arseq') {
+        s += `    'mode_x': ${L.mode_x}, 'mode_w': ${L.mode_w}, 'mode_h': ${L.mode_h},\n`;
+        s += `    'clk_x': ${L.clk_x}, 'clk_w': ${L.clk_w},\n`;
+        s += `    'rate_x': ${L.rate_x}, 'rate_w': ${L.rate_w}, 'rate_h': ${L.rate_h},\n\n`;
+        s += `    # Outputs\n`;
+        s += `    'outputs_y': ${L.outputs_y},\n`;
+        s += `    'output_row_h': ${L.output_row_h},\n`;
+        s += `    'out_label_w': ${L.out_label_w},\n`;
+        s += `    'atk_x': ${L.atk_x}, 'atk_w': ${L.atk_w},\n`;
+        s += `    'rel_x': ${L.rel_x}, 'rel_w': ${L.rel_w},\n`;
+        s += `    'sync_x': ${L.sync_x}, 'sync_w': ${L.sync_w},\n`;
+        s += `    'pol_x': ${L.pol_x}, 'pol_w': ${L.pol_w},\n`;
+    } else if (type === 'sauce') {
+        s += `    'clk_x': ${L.clk_x}, 'clk_w': ${L.clk_w}, 'clk_h': ${L.clk_h},\n`;
+        s += `    'rate_x': ${L.rate_x}, 'rate_w': ${L.rate_w},\n`;
+        s += `    'depth_x': ${L.depth_x}, 'depth_w': ${L.depth_w},\n`;
+        s += `    'grav_x': ${L.grav_x}, 'grav_w': ${L.grav_w},\n`;
+        s += `    'reso_x': ${L.reso_x}, 'reso_w': ${L.reso_w},\n`;
+        s += `    'excur_x': ${L.excur_x}, 'excur_w': ${L.excur_w},\n`;
+        s += `    'calm_x': ${L.calm_x}, 'calm_w': ${L.calm_w},\n`;
+        s += `    'slider_h': ${L.slider_h},\n\n`;
+        s += `    # Outputs\n`;
+        s += `    'outputs_y': ${L.outputs_y},\n`;
+        s += `    'output_row_h': ${L.output_row_h},\n`;
+        s += `    'out_label_w': ${L.out_label_w},\n`;
+        s += `    'tens_x': ${L.tens_x}, 'tens_w': ${L.tens_w},\n`;
+        s += `    'mass_x': ${L.mass_x}, 'mass_w': ${L.mass_w},\n`;
+        s += `    'pol_x': ${L.pol_x}, 'pol_w': ${L.pol_w},\n`;
+    }
+    
+    s += `}\n`;
+    return s;
+}
+
+function updateOutput() {
+    const out = document.getElementById('output');
+    if (currentTab === 'all') {
+        out.textContent = ['lfo', 'sloth', 'arseq', 'sauce'].map(generateDict).join('\n');
+    } else {
+        out.textContent = generateDict(currentTab);
+    }
+}
+
+function showTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.output-tabs button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    updateOutput();
+}
+
+function copyCurrentLayout() {
+    const text = document.getElementById('output').textContent;
+    navigator.clipboard.writeText(text);
+    alert(`Copied ${currentTab.toUpperCase()} layout to clipboard!`);
+}
+
+function copyAllLayouts() {
+    const text = ['lfo', 'sloth', 'arseq', 'sauce'].map(generateDict).join('\n');
+    navigator.clipboard.writeText(text);
+    alert('Copied all layouts to clipboard!');
+}
+
+function resetAll() {
+    // Reset to initial values
+    layouts.lfo = { ...baseLayout, params_y: 30, mode_x: 6, mode_w: 28, mode_h: 22, rate_x: 38, rate_w: 18, rate_h: 50, rotate_x: 60, rotate_w: 28, label_h: 10, outputs_y: 95, output_row_h: 24, output_spacing: 2, out_label_w: 14, wave_x: 20, wave_w: 40, phase_x: 62, phase_w: 38, pol_x: 102, pol_w: 28 };
+    layouts.sloth = { ...baseLayout, params_y: 30, mode_x: 6, mode_w: 28, mode_h: 22, label_h: 10, outputs_y: 70, output_row_h: 24, output_spacing: 2, out_label_w: 14, pol_x: 22, pol_w: 28 };
+    layouts.arseq = { ...baseLayout, params_y: 30, mode_x: 6, mode_w: 28, mode_h: 22, clk_x: 38, clk_w: 28, rate_x: 70, rate_w: 18, rate_h: 50, label_h: 10, outputs_y: 95, output_row_h: 24, output_spacing: 2, out_label_w: 12, atk_x: 16, atk_w: 34, rel_x: 52, rel_w: 34, sync_x: 88, sync_w: 28, pol_x: 118, pol_w: 20 };
+    layouts.sauce = { ...baseLayout, params_y: 30, clk_x: 6, clk_w: 28, clk_h: 22, rate_x: 26, rate_w: 18, depth_x: 46, depth_w: 18, grav_x: 66, grav_w: 18, reso_x: 86, reso_w: 18, excur_x: 106, excur_w: 18, calm_x: 126, calm_w: 18, label_h: 10, slider_h: 50, outputs_y: 100, output_row_h: 24, output_spacing: 2, out_label_w: 12, tens_x: 16, tens_w: 45, mass_x: 63, mass_w: 45, pol_x: 110, pol_w: 20 };
+    renderAll();
+}
+
+renderAll();
+</script>
+</body>
+</html>

@@ -1,10 +1,10 @@
 """
-Modulator Slot v2 - Flat absolute positioning
-Styled like GeneratorSlot v3 - no builder, all constants at top
+Modulator Slot v2 - Flat absolute positioning with per-type layouts
+Each modulator type (LFO, Sloth, ARSEq+, SauceOfGrav) has its own layout dict
 """
-from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QSizePolicy, QToolTip
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QCursor
 
 from .widgets import DragSlider, CycleButton
 from .theme import COLORS, button_style, MONO_FONT, FONT_FAMILY, FONT_SIZES
@@ -26,9 +26,10 @@ from src.config import (
 )
 
 # =============================================================================
-# LAYOUT - All positions in one place
+# PER-TYPE LAYOUTS
 # =============================================================================
-SLOT_LAYOUT = {
+
+LFO_LAYOUT = {
     'slot_width': 156,
     'slot_height': 280,
 
@@ -37,58 +38,162 @@ SLOT_LAYOUT = {
     'mod_label_w': 50, 'mod_label_h': 18,
     'selector_x': 58, 'selector_y': 3,
     'selector_w': 92, 'selector_h': 20,
-
-    # Separator
-    'sep_y': 24, 'sep_h': 1,
-
-    # Params area (dynamic)
-    'params_y': 28,
-    'params_h': 70,
-    'slider_w': 18, 'slider_h': 50, 'slider_label_h': 10,
-    'mode_btn_w': 28, 'mode_btn_h': 22,
-
-    # Outputs area (dynamic)  
-    'outputs_y': 100,
-    'output_row_h': 24,
-    'output_spacing': 4,
-    'output_label_w': 12,
-    'wave_btn_w': 40,
-    'phase_btn_w': 38,
-    'pol_btn_w': 20,
-    'slider_h_horiz': 20,
+    'sep_y': 24,
 
     # Scope
     'scope_x': 4, 'scope_y': 210,
     'scope_w': 148, 'scope_h': 60,
+
+    # Params
+    'params_y': 28,
+    'label_h': 10,
+    'mode_x': 6, 'mode_w': 28, 'mode_h': 22,
+    'rate_x': 38, 'rate_w': 18, 'rate_h': 50,
+    'rotate_x': 60, 'rotate_w': 28,
+
+    # Outputs
+    'outputs_y': 98,
+    'output_row_h': 24,
+    'out_label_w': 14,
+    'wave_x': 22, 'wave_w': 40,
+    'phase_x': 64, 'phase_w': 38,
+    'pol_x': 104, 'pol_w': 28,
 }
 
-L = SLOT_LAYOUT
+SLOTH_LAYOUT = {
+    'slot_width': 156,
+    'slot_height': 280,
+
+    # Header
+    'mod_label_x': 5, 'mod_label_y': 5,
+    'mod_label_w': 50, 'mod_label_h': 18,
+    'selector_x': 58, 'selector_y': 3,
+    'selector_w': 92, 'selector_h': 20,
+    'sep_y': 24,
+
+    # Scope
+    'scope_x': 4, 'scope_y': 210,
+    'scope_w': 148, 'scope_h': 60,
+
+    # Params
+    'params_y': 30,
+    'label_h': 10,
+    'mode_x': 22, 'mode_w': 28, 'mode_h': 22,
+
+    # Outputs
+    'outputs_y': 98,
+    'output_row_h': 24,
+    'out_label_w': 14,
+    'pol_x': 22, 'pol_w': 28,
+}
+
+ARSEQ_LAYOUT = {
+    'slot_width': 156,
+    'slot_height': 280,
+
+    # Header
+    'mod_label_x': 4, 'mod_label_y': 4,
+    'mod_label_w': 50, 'mod_label_h': 18,
+    'selector_x': 58, 'selector_y': 3,
+    'selector_w': 92, 'selector_h': 20,
+    'sep_y': 24,
+
+    # Scope
+    'scope_x': 4, 'scope_y': 210,
+    'scope_w': 148, 'scope_h': 60,
+
+    # Params
+    'params_y': 30,
+    'label_h': 10,
+    'mode_x': 6, 'mode_w': 28, 'mode_h': 22,
+    'clk_x': 38, 'clk_w': 28,
+    'rate_x': 70, 'rate_w': 18, 'rate_h': 60,
+
+    # Outputs
+    'outputs_y': 106,
+    'output_row_h': 24,
+    'out_label_w': 12,
+    'atk_x': 16, 'atk_w': 45,
+    'rel_x': 66, 'rel_w': 45,
+    'sync_x': 112, 'sync_w': 24,
+    'pol_x': 138, 'pol_w': 16,
+}
+
+SAUCE_LAYOUT = {
+    'slot_width': 156,
+    'slot_height': 280,
+
+    # Header
+    'mod_label_x': 4, 'mod_label_y': 4,
+    'mod_label_w': 50, 'mod_label_h': 18,
+    'selector_x': 58, 'selector_y': 3,
+    'selector_w': 92, 'selector_h': 20,
+    'sep_y': 24,
+
+    # Scope
+    'scope_x': 4, 'scope_y': 210,
+    'scope_w': 148, 'scope_h': 60,
+
+    # Params
+    'params_y': 30,
+    'label_h': 10,
+    'clk_x': 4, 'clk_w': 28, 'clk_h': 22,
+    'rate_x': 34, 'rate_w': 18,
+    'depth_x': 54, 'depth_w': 18,
+    'grav_x': 74, 'grav_w': 18,
+    'reso_x': 94, 'reso_w': 18,
+    'excur_x': 114, 'excur_w': 18,
+    'calm_x': 134, 'calm_w': 18,
+    'slider_h': 60,
+
+    # Outputs
+    'outputs_y': 108,
+    'output_row_h': 24,
+    'out_label_w': 12,
+    'tens_x': 14, 'tens_w': 55,
+    'mass_x': 70, 'mass_w': 55,
+    'pol_x': 130, 'pol_w': 20,
+}
+
+# Empty uses LFO layout as base
+EMPTY_LAYOUT = LFO_LAYOUT
+
+def get_layout(gen_name):
+    """Get layout dict for generator type."""
+    return {
+        'LFO': LFO_LAYOUT,
+        'Sloth': SLOTH_LAYOUT,
+        'ARSEq+': ARSEQ_LAYOUT,
+        'SauceOfGrav': SAUCE_LAYOUT,
+        'Empty': EMPTY_LAYOUT,
+    }.get(gen_name, LFO_LAYOUT)
 
 # Mode labels
-MOD_SLOTH_MODES = ["TOR", "APA", "INE"]  # Torpor, Apathy, Inertia
-ARSEQ_SYNC_MODES = ["SYN", "LOP"]  # SYNC, LOOP
+MOD_SLOTH_MODES = ["TOR", "APA", "INE"]
+ARSEQ_SYNC_MODES = ["SYN", "LOP"]
+LFO_ROTATE_PHASES = ["0Â°", "45Â°", "90Â°", "135Â°", "180Â°", "225Â°", "270Â°", "315Â°"]
 
 
 class ModulatorSlot(QWidget):
     """A single modulator slot with 4 outputs - flat absolute positioning."""
 
     # Signals
-    generator_changed = pyqtSignal(int, str)  # slot_id, generator_name
-    parameter_changed = pyqtSignal(int, str, float)  # slot_id, param_key, value
-    output_wave_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, wave_index
-    output_phase_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, phase_index
-    output_polarity_changed = pyqtSignal(int, int, int)  # slot_id, output_idx, invert
+    generator_changed = pyqtSignal(int, str)
+    parameter_changed = pyqtSignal(int, str, float)
+    output_wave_changed = pyqtSignal(int, int, int)
+    output_phase_changed = pyqtSignal(int, int, int)
+    output_polarity_changed = pyqtSignal(int, int, int)
 
     # ARSEq+ envelope signals
-    env_attack_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
-    env_release_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
-    env_curve_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
-    env_sync_mode_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, mode
-    env_loop_rate_changed = pyqtSignal(int, int, int)  # slot_id, env_idx, rate_idx
+    env_attack_changed = pyqtSignal(int, int, float)
+    env_release_changed = pyqtSignal(int, int, float)
+    env_curve_changed = pyqtSignal(int, int, float)
+    env_sync_mode_changed = pyqtSignal(int, int, int)
+    env_loop_rate_changed = pyqtSignal(int, int, int)
 
     # SauceOfGrav output signals
-    tension_changed = pyqtSignal(int, int, float)  # slot_id, output_idx, normalized
-    mass_changed = pyqtSignal(int, int, float)  # slot_id, output_idx, normalized
+    tension_changed = pyqtSignal(int, int, float)
+    mass_changed = pyqtSignal(int, int, float)
 
     def __init__(self, slot_id, default_generator="Empty", parent=None):
         super().__init__(parent)
@@ -99,15 +204,17 @@ class ModulatorSlot(QWidget):
         self.generator_name = "Empty"
         self.output_config = "fixed"
 
+        # Use default layout for sizing
+        L = get_layout(default_generator)
         self.setFixedWidth(L['slot_width'])
         self.setMinimumHeight(L['slot_height'])
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.MinimumExpanding)
 
         # Storage for dynamic widgets
-        self.param_widgets = []  # Cleared on generator change
-        self.param_sliders = {}  # key -> widget
-        self.output_widgets = []  # Cleared on generator change
-        self.output_rows = []  # [{widget_key: widget}, ...]
+        self.param_widgets = []
+        self.param_sliders = {}
+        self.output_widgets = []
+        self.output_rows = []
 
         self._build_static_ui()
         self.update_for_generator(default_generator)
@@ -118,7 +225,9 @@ class ModulatorSlot(QWidget):
 
     def _build_static_ui(self):
         """Build static widgets (header, separator, scope)."""
-        # ----- HEADER -----
+        L = get_layout(self.default_generator)
+
+        # Header
         self.id_label = QLabel(f"MOD {self.slot_id}", self)
         self.id_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
         self.id_label.setStyleSheet(f"color: {COLORS['text_bright']};")
@@ -135,21 +244,20 @@ class ModulatorSlot(QWidget):
         self.gen_button.text_padding_lr = 4
         self.gen_button.value_changed.connect(self._on_generator_changed)
 
-        # ----- SEPARATOR -----
+        # Separator
         self.separator = QFrame(self)
-        self.separator.setGeometry(4, L['sep_y'], L['slot_width'] - 8, L['sep_h'])
-        self.separator.setStyleSheet(f"background-color: {COLORS['border']};")
+        self.separator.setGeometry(4, L['sep_y'], L['slot_width'] - 8, 1)
+        self.separator.setStyleSheet(f"background-color: {COLORS['text_bright']};")
 
-        # ----- SCOPE -----
+        # Scope
         self.scope = ModScope(history_length=100, parent=self)
         self.scope.setGeometry(L['scope_x'], L['scope_y'], L['scope_w'], L['scope_h'])
         self.scope.setStyleSheet(f"border: 1px solid {COLORS['border']}; border-radius: 3px;")
 
-        # Base styling
         self._update_empty_style()
 
     # =========================================================================
-    # UI Building - Dynamic elements  
+    # UI Building - Dynamic elements (per-type)
     # =========================================================================
 
     def _clear_dynamic_widgets(self):
@@ -163,330 +271,465 @@ class ModulatorSlot(QWidget):
             w.deleteLater()
         self.output_widgets = []
         self.output_rows = []
+        self._curve_sliders = []
+        self._loop_rate_btns = []
 
-    def _build_params_for_generator(self, gen_name):
-        """Build parameter controls for current generator."""
-        custom_params = get_mod_generator_custom_params(gen_name)
-        if not custom_params:
-            return
-
-        x = 6
-        for param in custom_params:
-            key = param['key']
-            steps = param.get('steps')
-            try:
-                steps_i = int(steps) if steps is not None else None
-            except (ValueError, TypeError):
-                steps_i = None
-
-            is_mode_btn = key in ('mode', 'clock_mode') and steps_i in (2, 3)
-
-            if is_mode_btn:
-                x = self._build_mode_button(x, param, key, steps_i)
-            else:
-                x = self._build_param_slider(x, param, key)
-
-    def _build_mode_button(self, x, param, key, steps_i):
-        """Build a mode CycleButton at x position."""
+    def _build_lfo_ui(self):
+        """Build LFO-specific UI."""
+        L = LFO_LAYOUT
         y = L['params_y']
 
-        # Determine mode labels
-        if key == 'clock_mode':
-            mode_labels = MOD_LFO_MODES
-            tooltip = "CLK: sync to transport\nFREE: free-running rate"
-        elif key == 'mode' and self.generator_name == "ARSEq+":
-            mode_labels = ["SEQ", "PAR"]
-            tooltip = "SEQ: envelopes fire in sequence\nPAR: all fire together"
-        elif steps_i == 2:
-            mode_labels = MOD_LFO_MODES
-            tooltip = "CLK: sync to clock divisions\nFREE: manual frequency"
-        else:
-            mode_labels = MOD_SLOTH_MODES
-            tooltip = "Torpor: 15-30s\nApathy: 60-90s\nInertia: 30-40min"
-
-        default_idx = int(round(float(param.get('default', 0.0))))
-        default_idx = max(0, min(default_idx, steps_i - 1))
-
-        # Label
-        label_text = param.get('label_top', param.get('label', key.upper()[:4]))
-        lbl = QLabel(label_text, self)
+        # MODE (CLK/FREE)
+        lbl = QLabel("CLK", self)
         lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(f"color: {COLORS['text']};")
-        lbl.setGeometry(x, y, L['mode_btn_w'], L['slider_label_h'])
+        lbl.setGeometry(L['mode_x'], y, L['mode_w'], L['label_h'])
         self.param_widgets.append(lbl)
 
-        # Button
-        btn = CycleButton(mode_labels, initial_index=default_idx, parent=self)
-        btn.setGeometry(x, y + L['slider_label_h'] + 2, L['mode_btn_w'], L['mode_btn_h'])
-        btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
-        btn.setStyleSheet(button_style('submenu'))
-        btn.setToolTip(tooltip)
-        btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-        btn.index_changed.connect(lambda idx, k=key: self._on_mode_changed(k, idx))
-        self.param_widgets.append(btn)
-        self.param_sliders[key] = btn
+        mode_btn = CycleButton(MOD_LFO_MODES, initial_index=0, parent=self)
+        mode_btn.setGeometry(L['mode_x'], y + L['label_h'] + 2, L['mode_w'], L['mode_h'])
+        mode_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        mode_btn.setStyleSheet(button_style('submenu'))
+        mode_btn.setToolTip("CLK: sync to clock\nFREE: manual frequency")
+        mode_btn.index_changed.connect(lambda idx: self._on_mode_changed('mode', idx))
+        self.param_widgets.append(mode_btn)
+        self.param_sliders['mode'] = mode_btn
 
-        return x + L['mode_btn_w'] + 4
-
-    def _build_param_slider(self, x, param, key):
-        """Build a DragSlider at x position."""
-        y = L['params_y']
-
-        # Label
-        label_text = param.get('label_top', param.get('label', key.upper()[:4]))
-        lbl = QLabel(label_text, self)
+        # RATE slider
+        lbl = QLabel("RATE", self)
         lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         lbl.setAlignment(Qt.AlignCenter)
         lbl.setStyleSheet(f"color: {COLORS['text']};")
-        lbl.setGeometry(x, y, L['slider_w'], L['slider_label_h'])
-        lbl.setToolTip(param.get('tooltip', ''))
+        lbl.setGeometry(L['rate_x'], y, L['rate_w'], L['label_h'])
         self.param_widgets.append(lbl)
 
-        # Slider
-        slider = DragSlider(parent=self)
-        slider.setRange(0, 1000)
-        slider.setGeometry(x, y + L['slider_label_h'], L['slider_w'], L['slider_h'])
-        default_val = float(param.get('default', 0.5))
-        slider.setValue(int(default_val * 1000))
-        slider.setToolTip(param.get('tooltip', ''))
+        rate_slider = DragSlider(parent=self)
+        rate_slider.setRange(0, 1000)
+        rate_slider.setValue(500)
+        rate_slider.setGeometry(L['rate_x'], y + L['label_h'], L['rate_w'], L['rate_h'])
+        rate_slider.valueChanged.connect(lambda v: self._on_rate_changed(v))
+        rate_slider.valueChanged.connect(lambda v: self._update_lfo_rate_tooltip(v))
+        self.param_widgets.append(rate_slider)
+        self.param_sliders['rate'] = rate_slider
+        self._update_lfo_rate_tooltip(500)  # Sets initial tooltip
 
-        if param.get('bipolar', False):
-            slider.setDoubleClickValue(500)
+        # ROTATE button
+        lbl = QLabel("ROT", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['rotate_x'], y, L['rotate_w'], L['label_h'])
+        self.param_widgets.append(lbl)
 
-        slider.valueChanged.connect(lambda v, k=key, p=param: self._on_param_changed(k, v, p))
-        self.param_widgets.append(slider)
-        self.param_sliders[key] = slider
+        rot_btn = CycleButton(LFO_ROTATE_PHASES, initial_index=0, parent=self)
+        rot_btn.setGeometry(L['rotate_x'], y + L['label_h'] + 2, L['rotate_w'], L['mode_h'])
+        rot_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        rot_btn.setStyleSheet(button_style('submenu'))
+        rot_btn.setToolTip("Global phase rotation\nShifts all outputs together")
+        rot_btn.index_changed.connect(lambda idx: self._on_mode_changed('rotate', idx))
+        self.param_widgets.append(rot_btn)
+        self.param_sliders['rotate'] = rot_btn
 
-        return x + L['slider_w'] + 4
+        # Show all param widgets
+        for w in self.param_widgets:
+            w.show()
 
-    def _build_outputs_for_generator(self, gen_name):
-        """Build output rows for current generator."""
-        output_labels = get_mod_output_labels(gen_name)
-        output_config = get_mod_generator_output_config(gen_name)
-
-        y = L['outputs_y']
+        # Output rows
+        output_labels = get_mod_output_labels('LFO')
         for i in range(MOD_OUTPUTS_PER_SLOT):
-            label = output_labels[i] if i < len(output_labels) else str(i + 1)
-
-            if gen_name == "ARSEq+":
-                row_widgets = self._build_arseq_output_row(i, y, label)
-            elif gen_name == "SauceOfGrav":
-                row_widgets = self._build_saucegrav_output_row(i, y, label)
-            else:
-                row_widgets = self._build_lfo_output_row(i, y, label, output_config)
-
+            row_y = L['outputs_y'] + i * L['output_row_h']
+            row_widgets = self._build_lfo_output_row(i, row_y, output_labels[i], L)
             self.output_rows.append(row_widgets)
-            y += L['output_row_h'] + L['output_spacing']
 
-    def _build_lfo_output_row(self, idx, y, label, output_config):
-        """Build LFO/Sloth output row at y position."""
+    def _build_lfo_output_row(self, idx, y, label, L):
+        """Build single LFO output row."""
         row_widgets = {}
-        x = 6
 
-        # Output label
+        # Label
         lbl = QLabel(label, self)
         lbl.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
         lbl.setStyleSheet(f"color: {COLORS['text_bright']};")
-        lbl.setGeometry(x, y, L['output_label_w'], L['output_row_h'])
+        lbl.setGeometry(L['mod_label_x'], y, L['out_label_w'], L['output_row_h'])
         self.output_widgets.append(lbl)
         row_widgets['label'] = lbl
-        x += L['output_label_w'] + 4
 
-        # Waveform button (for LFO types)
-        if output_config in ("waveform_phase", "pattern_rotate"):
-            wave_btn = CycleButton(MOD_LFO_WAVEFORMS, initial_index=0, parent=self)
-            wave_btn.setGeometry(x, y, L['wave_btn_w'], L['output_row_h'] - 2)
-            wave_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-            wave_btn.setStyleSheet(button_style('submenu'))
-            wave_btn.setToolTip("Waveform: Saw/Tri/Sqr/Sin/S&H")
-            wave_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-            wave_btn.value_changed.connect(
-                lambda w, i=idx: self._on_wave_changed(i, MOD_LFO_WAVEFORMS.index(w))
-            )
-            self.output_widgets.append(wave_btn)
-            row_widgets['wave'] = wave_btn
-            x += L['wave_btn_w'] + 2
+        # Wave
+        wave_btn = CycleButton(MOD_LFO_WAVEFORMS, initial_index=0, parent=self)
+        wave_btn.setGeometry(L['wave_x'], y, L['wave_w'], 22)
+        wave_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        wave_btn.setStyleSheet(button_style('submenu'))
+        wave_btn.setToolTip("Waveform shape\nTri, Sin, Saw, Sqr, S&H, Noise")
+        wave_btn.value_changed.connect(lambda w, i=idx: self._on_wave_changed(i, MOD_LFO_WAVEFORMS.index(w)))
+        self.output_widgets.append(wave_btn)
+        row_widgets['wave'] = wave_btn
 
-            # Phase button (only for waveform_phase)
-            if output_config == "waveform_phase":
-                default_phases = [0, 3, 5, 6]
-                phase_labels = [f"{p}°" for p in MOD_LFO_PHASES]
-                phase_btn = CycleButton(phase_labels,
-                                        initial_index=default_phases[idx] if idx < 4 else 0,
-                                        parent=self)
-                phase_btn.setGeometry(x, y, L['phase_btn_w'], L['output_row_h'] - 2)
-                phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-                phase_btn.setStyleSheet(button_style('submenu'))
-                phase_btn.setToolTip("Phase offset: 0°-315° in 45° steps")
-                phase_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-                phase_btn.value_changed.connect(
-                    lambda p, i=idx, pl=phase_labels: self._on_phase_changed(i, pl.index(p))
-                )
-                self.output_widgets.append(phase_btn)
-                row_widgets['phase'] = phase_btn
-                x += L['phase_btn_w'] + 2
+        # Phase
+        default_phases = [0, 3, 5, 6]
+        phase_labels = [f"{p}Â°" for p in MOD_LFO_PHASES]
+        phase_btn = CycleButton(phase_labels, initial_index=default_phases[idx] if idx < 4 else 0, parent=self)
+        phase_btn.setGeometry(L['phase_x'], y, L['phase_w'], 22)
+        phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        phase_btn.setStyleSheet(button_style('submenu'))
+        phase_btn.setToolTip("Phase offset\n0Â° to 315Â° in 45Â° steps")
+        phase_btn.value_changed.connect(lambda p, i=idx, pl=phase_labels: self._on_phase_changed(i, pl.index(p)))
+        self.output_widgets.append(phase_btn)
+        row_widgets['phase'] = phase_btn
 
-        # Polarity button (always present)
+        # Polarity
         pol_btn = CycleButton(MOD_POLARITY, initial_index=0, parent=self)
-        pol_btn.setGeometry(x, y, L['pol_btn_w'], L['output_row_h'] - 2)
+        pol_btn.setGeometry(L['pol_x'], y, L['pol_w'], 22)
         pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         pol_btn.setStyleSheet(button_style('submenu'))
-        pol_btn.setToolTip("Invert: NORM/INV")
-        pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-        pol_btn.value_changed.connect(
-            lambda p, i=idx: self._on_polarity_changed(i, MOD_POLARITY.index(p))
-        )
+        pol_btn.setToolTip("NORM: 0 to +1\nINV: 0 to -1")
+        pol_btn.value_changed.connect(lambda p, i=idx: self._on_polarity_changed(i, MOD_POLARITY.index(p)))
         self.output_widgets.append(pol_btn)
         row_widgets['polarity'] = pol_btn
 
+        for w in row_widgets.values():
+            w.show()
+
         return row_widgets
 
-    def _build_arseq_output_row(self, idx, y, label):
-        """Build ARSEq+ envelope output row at y position."""
-        row_widgets = {}
-        x = 6
+    def _build_sloth_ui(self):
+        """Build Sloth-specific UI."""
+        L = SLOTH_LAYOUT
+        y = L['params_y']
 
-        # Output label
+        # MODE (TOR/APA/INE)
+        lbl = QLabel("MODE", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['mode_x'], y, L['mode_w'], L['label_h'])
+        self.param_widgets.append(lbl)
+
+        mode_btn = CycleButton(MOD_SLOTH_MODES, initial_index=1, parent=self)
+        mode_btn.setGeometry(L['mode_x'], y + L['label_h'] + 2, L['mode_w'], L['mode_h'])
+        mode_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        mode_btn.setStyleSheet(button_style('submenu'))
+        mode_btn.setToolTip("Torpor: 15-30s\nApathy: 60-90s\nInertia: 30-40min")
+        mode_btn.index_changed.connect(lambda idx: self._on_mode_changed('mode', idx))
+        self.param_widgets.append(mode_btn)
+        self.param_sliders['mode'] = mode_btn
+
+        for w in self.param_widgets:
+            w.show()
+
+        # Output rows
+        output_labels = get_mod_output_labels('Sloth')
+        for i in range(MOD_OUTPUTS_PER_SLOT):
+            row_y = L['outputs_y'] + i * L['output_row_h']
+            row_widgets = self._build_sloth_output_row(i, row_y, output_labels[i], L)
+            self.output_rows.append(row_widgets)
+
+    def _build_sloth_output_row(self, idx, y, label, L):
+        """Build single Sloth output row."""
+        row_widgets = {}
+
+        # Label
         lbl = QLabel(label, self)
         lbl.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
         lbl.setStyleSheet(f"color: {COLORS['text_bright']};")
-        lbl.setGeometry(x, y, L['output_label_w'], L['output_row_h'])
+        lbl.setGeometry(L['mod_label_x'], y, L['out_label_w'], L['output_row_h'])
         self.output_widgets.append(lbl)
         row_widgets['label'] = lbl
-        x += L['output_label_w'] + 2
 
-        # ATK slider (horizontal)
+        # Polarity only
+        pol_btn = CycleButton(MOD_POLARITY, initial_index=0, parent=self)
+        pol_btn.setGeometry(L['pol_x'], y, L['pol_w'], 22)
+        pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        pol_btn.setStyleSheet(button_style('submenu'))
+        pol_btn.setToolTip("NORM: 0 to +1\nINV: 0 to -1")
+        pol_btn.value_changed.connect(lambda p, i=idx: self._on_polarity_changed(i, MOD_POLARITY.index(p)))
+        self.output_widgets.append(pol_btn)
+        row_widgets['polarity'] = pol_btn
+
+        for w in row_widgets.values():
+            w.show()
+
+        return row_widgets
+
+    def _build_arseq_ui(self):
+        """Build ARSEq+-specific UI."""
+        L = ARSEQ_LAYOUT
+        y = L['params_y']
+
+        # MODE (SEQ/PAR) - get tooltip from config
+        arseq_params = {p['key']: p for p in get_mod_generator_custom_params('ARSEq+')}
+        
+        lbl = QLabel("MODE", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['mode_x'], y, L['mode_w'], L['label_h'])
+        self.param_widgets.append(lbl)
+
+        mode_btn = CycleButton(["SEQ", "PAR"], initial_index=0, parent=self)
+        mode_btn.setGeometry(L['mode_x'], y + L['label_h'] + 2, L['mode_w'], L['mode_h'])
+        mode_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        mode_btn.setStyleSheet(button_style('submenu'))
+        mode_btn.setToolTip(arseq_params.get('mode', {}).get('tooltip', "SEQ: sequence\nPAR: parallel"))
+        mode_btn.index_changed.connect(lambda idx: self._on_mode_changed('mode', idx))
+        self.param_widgets.append(mode_btn)
+        self.param_sliders['mode'] = mode_btn
+
+        # CLK (CLK/FREE)
+        lbl = QLabel("CLK", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['clk_x'], y, L['clk_w'], L['label_h'])
+        self.param_widgets.append(lbl)
+
+        clk_btn = CycleButton(MOD_LFO_MODES, initial_index=0, parent=self)
+        clk_btn.setGeometry(L['clk_x'], y + L['label_h'] + 2, L['clk_w'], L['mode_h'])
+        clk_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        clk_btn.setStyleSheet(button_style('submenu'))
+        clk_btn.setToolTip(arseq_params.get('clock_mode', {}).get('tooltip', "CLK: sync\nFREE: manual"))
+        clk_btn.index_changed.connect(lambda idx: self._on_mode_changed('clock_mode', idx))
+        self.param_widgets.append(clk_btn)
+        self.param_sliders['clock_mode'] = clk_btn
+
+        # RATE slider
+        lbl = QLabel("RATE", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['rate_x'], y, L['rate_w'], L['label_h'])
+        self.param_widgets.append(lbl)
+
+        rate_slider = DragSlider(parent=self)
+        rate_slider.setRange(0, 1000)
+        rate_slider.setValue(500)
+        rate_slider.setGeometry(L['rate_x'], y + L['label_h'], L['rate_w'], L['rate_h'])
+        rate_slider.valueChanged.connect(lambda v: self._on_rate_changed(v))
+        rate_slider.valueChanged.connect(lambda v: self._update_arseq_rate_tooltip(v))
+        self.param_widgets.append(rate_slider)
+        self.param_sliders['rate'] = rate_slider
+        self._update_arseq_rate_tooltip(500)
+
+        for w in self.param_widgets:
+            w.show()
+
+        # Output rows
+        output_labels = get_mod_output_labels('ARSEq+')
+        for i in range(MOD_OUTPUTS_PER_SLOT):
+            row_y = L['outputs_y'] + i * L['output_row_h']
+            row_widgets = self._build_arseq_output_row(i, row_y, output_labels[i], L)
+            self.output_rows.append(row_widgets)
+
+    def _build_arseq_output_row(self, idx, y, label, L):
+        """Build single ARSEq+ output row."""
+        row_widgets = {}
+
+        # Label
+        lbl = QLabel(label, self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
+        lbl.setStyleSheet(f"color: {COLORS['text_bright']};")
+        lbl.setGeometry(L['mod_label_x'], y, L['out_label_w'], L['output_row_h'])
+        self.output_widgets.append(lbl)
+        row_widgets['label'] = lbl
+
+        # ATK slider
         atk = DragSlider(parent=self)
         atk.setRange(0, 1000)
         atk.setOrientation(Qt.Horizontal)
-        atk.setGeometry(x, y + 2, 34, L['slider_h_horiz'])
+        atk.setGeometry(L['atk_x'], y + 2, L['atk_w'], 20)
         atk.setValue(0)
-        atk.setToolTip("ATK")
+        atk.setToolTip("Attack: 0%")
+        atk.valueChanged.connect(lambda v, s=atk: self._show_slider_tooltip(s, f"Attack: {v / 10:.0f}%"))
         atk.valueChanged.connect(lambda v, i=idx: self._on_env_attack_changed(i, v))
         self.output_widgets.append(atk)
         row_widgets['atk'] = atk
-        x += 36
 
-        # REL slider (horizontal)
+        # REL slider
         rel = DragSlider(parent=self)
         rel.setRange(0, 1000)
         rel.setOrientation(Qt.Horizontal)
-        rel.setGeometry(x, y + 2, 34, L['slider_h_horiz'])
+        rel.setGeometry(L['rel_x'], y + 2, L['rel_w'], 20)
         rel.setValue(500)
-        rel.setToolTip("REL")
+        rel.setToolTip("Release: 50%")
+        rel.valueChanged.connect(lambda v, s=rel: self._show_slider_tooltip(s, f"Release: {v / 10:.0f}%"))
         rel.valueChanged.connect(lambda v, i=idx: self._on_env_release_changed(i, v))
         self.output_widgets.append(rel)
         row_widgets['rel'] = rel
-        x += 36
 
-        # Hidden curve slider (for preset save/load)
+        # Hidden curve (not added to row_widgets to avoid show() call)
         crv = DragSlider(parent=self)
         crv.setRange(0, 1000)
         crv.setValue(500)
+        crv.setGeometry(0, 0, 0, 0)  # Zero size
         crv.setVisible(False)
         crv.valueChanged.connect(lambda v, i=idx: self._on_env_curve_changed(i, v))
         self.output_widgets.append(crv)
-        row_widgets['curve'] = crv
+        # Store reference but don't add to row_widgets (would get .show() called)
+        self._curve_sliders = getattr(self, '_curve_sliders', [])
+        self._curve_sliders.append(crv)
 
-        # Sync mode button
+        # Sync mode
         sync_btn = CycleButton(ARSEQ_SYNC_MODES, initial_index=0, parent=self)
-        sync_btn.setGeometry(x, y, 28, L['output_row_h'] - 2)
+        sync_btn.setGeometry(L['sync_x'], y, L['sync_w'], 22)
         sync_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         sync_btn.setStyleSheet(button_style('submenu'))
-        sync_btn.setToolTip("SYN: master / LOP: loop")
-        sync_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+        sync_btn.setToolTip("SYN: sync to master clock\nLOP: independent loop\nShift+click in LOP mode for rate")
         sync_btn.index_changed.connect(lambda m, i=idx: self._on_env_sync_mode_changed(i, m))
         self.output_widgets.append(sync_btn)
         row_widgets['sync_mode'] = sync_btn
-        x += 30
 
-        # Loop rate button (hidden by default)
+        # Loop rate (hidden - not in row_widgets to avoid show() call)
         loop_btn = CycleButton(MOD_CLOCK_RATES, initial_index=6, parent=self)
-        loop_btn.setGeometry(x - 30, y, 28, L['output_row_h'] - 2)
+        loop_btn.setGeometry(L['sync_x'], y, L['sync_w'], 22)
         loop_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         loop_btn.setStyleSheet(button_style('submenu'))
-        loop_btn.setToolTip("Loop rate")
         loop_btn.setVisible(False)
         loop_btn.index_changed.connect(lambda r, i=idx: self._on_env_loop_rate_changed(i, r))
         self.output_widgets.append(loop_btn)
-        row_widgets['loop_rate'] = loop_btn
+        # Store reference separately
+        self._loop_rate_btns = getattr(self, '_loop_rate_btns', [])
+        self._loop_rate_btns.append(loop_btn)
 
-        # Shift+click toggles rate visibility
+        # Toggle rate visibility on shift+click
         def toggle_rate(s=sync_btn, r=loop_btn):
-            if s.index == 1:  # LOP mode
+            if s.index == 1:  # Only works in LOP mode
                 r.setVisible(not r.isVisible())
                 s.setVisible(not r.isVisible())
         sync_btn.shift_click_callback = toggle_rate
         loop_btn.shift_click_callback = toggle_rate
 
-        # Polarity button
+        # Polarity
         pol_btn = CycleButton(MOD_POLARITY, initial_index=0, parent=self)
-        pol_btn.setGeometry(x, y, L['pol_btn_w'], L['output_row_h'] - 2)
+        pol_btn.setGeometry(L['pol_x'], y, L['pol_w'], 22)
         pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         pol_btn.setStyleSheet(button_style('submenu'))
-        pol_btn.setToolTip("N/I")
-        pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-        pol_btn.value_changed.connect(
-            lambda p, i=idx: self._on_polarity_changed(i, MOD_POLARITY.index(p))
-        )
+        pol_btn.setToolTip("NORM: 0 to +1\nINV: 0 to -1")
+        pol_btn.value_changed.connect(lambda p, i=idx: self._on_polarity_changed(i, MOD_POLARITY.index(p)))
         self.output_widgets.append(pol_btn)
         row_widgets['polarity'] = pol_btn
+
+        for w in row_widgets.values():
+            w.show()
 
         return row_widgets
 
-    def _build_saucegrav_output_row(self, idx, y, label):
-        """Build SauceOfGrav output row at y position."""
-        row_widgets = {}
-        x = 6
+    def _build_sauce_ui(self):
+        """Build SauceOfGrav-specific UI."""
+        L = SAUCE_LAYOUT
+        y = L['params_y']
 
-        # Output label
+        # Get tooltips from config
+        sauce_params = {p['key']: p for p in get_mod_generator_custom_params('SauceOfGrav')}
+
+        # CLK
+        lbl = QLabel("CLK", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['clk_x'], y, L['clk_w'], L['label_h'])
+        self.param_widgets.append(lbl)
+
+        clk_btn = CycleButton(MOD_LFO_MODES, initial_index=0, parent=self)
+        clk_btn.setGeometry(L['clk_x'], y + L['label_h'] + 2, L['clk_w'], L['clk_h'])
+        clk_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        clk_btn.setStyleSheet(button_style('submenu'))
+        clk_btn.setToolTip(sauce_params.get('clock_mode', {}).get('tooltip', "CLK: sync to transport\nFREE: free-running"))
+        clk_btn.index_changed.connect(lambda idx: self._on_mode_changed('clock_mode', idx))
+        self.param_widgets.append(clk_btn)
+        self.param_sliders['clock_mode'] = clk_btn
+
+        # Sliders: RATE, DEPTH, GRAV, RESO, EXCUR, CALM - use sauce_params from above
+        slider_defs = [
+            ('rate', 'RATE', L['rate_x'], L['rate_w']),
+            ('depth', 'DPTH', L['depth_x'], L['depth_w']),
+            ('gravity', 'GRAV', L['grav_x'], L['grav_w']),
+            ('resonance', 'RESO', L['reso_x'], L['reso_w']),
+            ('excursion', 'EXCR', L['excur_x'], L['excur_w']),
+            ('calm', 'CALM', L['calm_x'], L['calm_w']),
+        ]
+
+        for key, label_text, x, w in slider_defs:
+            lbl = QLabel(label_text, self)
+            lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setStyleSheet(f"color: {COLORS['text']};")
+            lbl.setGeometry(x, y, w, L['label_h'])
+            self.param_widgets.append(lbl)
+
+            slider = DragSlider(parent=self)
+            slider.setRange(0, 1000)
+            slider.setValue(500)
+            slider.setGeometry(x, y + L['label_h'], w, L['slider_h'])
+            # Use config tooltip if available
+            param_info = sauce_params.get(key, {})
+            base_tooltip = param_info.get('tooltip', key.capitalize())
+            slider.setToolTip(f"{base_tooltip}\nValue: 50%")
+            slider.valueChanged.connect(lambda v, k=key: self._on_sauce_param_changed(k, v))
+            slider.valueChanged.connect(lambda v, s=slider, t=base_tooltip: self._show_slider_tooltip(s, f"{t}\nValue: {v / 10:.0f}%"))
+            self.param_widgets.append(slider)
+            self.param_sliders[key] = slider
+
+        for w in self.param_widgets:
+            w.show()
+
+        # Output rows
+        output_labels = get_mod_output_labels('SauceOfGrav')
+        for i in range(MOD_OUTPUTS_PER_SLOT):
+            row_y = L['outputs_y'] + i * L['output_row_h']
+            row_widgets = self._build_sauce_output_row(i, row_y, output_labels[i], L)
+            self.output_rows.append(row_widgets)
+
+    def _build_sauce_output_row(self, idx, y, label, L):
+        """Build single SauceOfGrav output row."""
+        row_widgets = {}
+
+        # Label
         lbl = QLabel(label, self)
         lbl.setFont(QFont(MONO_FONT, FONT_SIZES['small'], QFont.Bold))
         lbl.setStyleSheet(f"color: {COLORS['text_bright']};")
-        lbl.setGeometry(x, y, L['output_label_w'], L['output_row_h'])
+        lbl.setGeometry(L['mod_label_x'], y, L['out_label_w'], L['output_row_h'])
         self.output_widgets.append(lbl)
         row_widgets['label'] = lbl
-        x += L['output_label_w'] + 2
 
-        # TENS slider (horizontal)
+        # TENS slider
         tension_defaults = [300, 450, 550, 700]
+        default_tens = tension_defaults[idx] if idx < 4 else 500
         tens = DragSlider(parent=self)
         tens.setRange(0, 1000)
         tens.setOrientation(Qt.Horizontal)
-        tens.setGeometry(x, y + 2, 45, L['slider_h_horiz'])
-        tens.setValue(tension_defaults[idx] if idx < 4 else 500)
-        tens.setToolTip("TENS: low=independent, high=coupled")
+        tens.setGeometry(L['tens_x'], y + 2, L['tens_w'], 20)
+        tens.setValue(default_tens)
+        tens.setToolTip(f"Tension: {default_tens / 10:.0f}%")
+        tens.valueChanged.connect(lambda v, s=tens: self._show_slider_tooltip(s, f"Tension: {v / 10:.0f}%"))
         tens.valueChanged.connect(lambda v, i=idx: self._on_tension_changed(i, v))
         self.output_widgets.append(tens)
         row_widgets['tension'] = tens
-        x += 47
 
-        # MASS slider (horizontal)
+        # MASS slider
         mass_defaults = [650, 550, 450, 350]
+        default_mass = mass_defaults[idx] if idx < 4 else 500
         mass = DragSlider(parent=self)
         mass.setRange(0, 1000)
         mass.setOrientation(Qt.Horizontal)
-        mass.setGeometry(x, y + 2, 45, L['slider_h_horiz'])
-        mass.setValue(mass_defaults[idx] if idx < 4 else 500)
-        mass.setToolTip("MASS: low=snappy, high=slow arcs")
+        mass.setGeometry(L['mass_x'], y + 2, L['mass_w'], 20)
+        mass.setValue(default_mass)
+        mass.setToolTip(f"Mass: {default_mass / 10:.0f}%")
+        mass.valueChanged.connect(lambda v, s=mass: self._show_slider_tooltip(s, f"Mass: {v / 10:.0f}%"))
         mass.valueChanged.connect(lambda v, i=idx: self._on_mass_changed(i, v))
         self.output_widgets.append(mass)
         row_widgets['mass'] = mass
-        x += 47
 
-        # Polarity button
+        # Polarity
         pol_btn = CycleButton(MOD_POLARITY, initial_index=0, parent=self)
-        pol_btn.setGeometry(x, y, L['pol_btn_w'], L['output_row_h'] - 2)
+        pol_btn.setGeometry(L['pol_x'], y, L['pol_w'], 22)
         pol_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         pol_btn.setStyleSheet(button_style('submenu'))
-        pol_btn.setToolTip("N/I")
-        pol_btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
-        pol_btn.value_changed.connect(
-            lambda p, i=idx: self._on_polarity_changed(i, MOD_POLARITY.index(p))
-        )
+        pol_btn.setToolTip("NORM: 0 to +1\nINV: 0 to -1")
+        pol_btn.value_changed.connect(lambda p, i=idx: self._on_polarity_changed(i, MOD_POLARITY.index(p)))
         self.output_widgets.append(pol_btn)
         row_widgets['polarity'] = pol_btn
+
+        for w in row_widgets.values():
+            w.show()
 
         return row_widgets
 
@@ -504,16 +747,22 @@ class ModulatorSlot(QWidget):
         self.generator_name = gen_name
         self.output_config = get_mod_generator_output_config(gen_name)
 
-        # Clear dynamic widgets
         self._clear_dynamic_widgets()
 
         if gen_name == "Empty":
             self._setup_empty_state()
             return
 
-        # Build params and outputs
-        self._build_params_for_generator(gen_name)
-        self._build_outputs_for_generator(gen_name)
+        # Build type-specific UI
+        if gen_name == "LFO":
+            self._build_lfo_ui()
+        elif gen_name == "Sloth":
+            self._build_sloth_ui()
+        elif gen_name == "ARSEq+":
+            self._build_arseq_ui()
+        elif gen_name == "SauceOfGrav":
+            self._build_sauce_ui()
+
         self._update_style_for_generator(gen_name)
 
     def _setup_empty_state(self):
@@ -560,80 +809,106 @@ class ModulatorSlot(QWidget):
         """Handle mode button change."""
         self.parameter_changed.emit(self.slot_id, key, float(index))
 
-    def _on_param_changed(self, key, slider_value, param):
-        """Handle parameter slider change."""
-        normalized = slider_value / 1000.0
-        real_value = map_value(normalized, param)
+    def _on_rate_changed(self, value):
+        """Handle rate slider change."""
+        normalized = value / 1000.0
+        # Get param config for proper mapping
+        for param in get_mod_generator_custom_params(self.generator_name):
+            if param.get('key') == 'rate':
+                real_value = map_value(normalized, param)
+                self.parameter_changed.emit(self.slot_id, 'rate', real_value)
+                break
 
-        # Show drag popup with formatted value
-        slider = self.param_sliders.get(key)
-        if slider and hasattr(slider, 'show_drag_value'):
-            display_text = self._format_param_value(key, normalized, real_value)
-            if display_text:
-                slider.show_drag_value(display_text)
+    def _update_lfo_rate_tooltip(self, value):
+        """Update LFO rate slider tooltip with current value."""
+        if 'rate' not in self.param_sliders:
+            return
+        slider = self.param_sliders['rate']
+        mode_btn = self.param_sliders.get('mode')
 
-        self.parameter_changed.emit(self.slot_id, key, real_value)
+        # Check if CLK mode (index 0) or FREE mode (index 1)
+        is_clk_mode = mode_btn.index == 0 if mode_btn else True
 
-    def _format_param_value(self, key, normalized, real_value):
-        """Format parameter value for drag popup display."""
-        if key == 'rate':
-            mode_btn = self.param_sliders.get('mode')
-            mode = mode_btn.index if mode_btn and hasattr(mode_btn, 'index') else 0
+        if is_clk_mode:
+            # Map to clock division
+            idx = int((value / 1000.0) * (len(MOD_CLOCK_RATES) - 1))
+            idx = max(0, min(idx, len(MOD_CLOCK_RATES) - 1))
+            division = MOD_CLOCK_RATES[idx]
+            tip = f"Rate: {division}"
+        else:
+            # Map to frequency
+            normalized = value / 1000.0
+            freq = MOD_LFO_FREQ_MIN * ((MOD_LFO_FREQ_MAX / MOD_LFO_FREQ_MIN) ** normalized)
+            tip = f"Rate: {freq:.2f} Hz"
+        
+        slider.setToolTip(tip)
+        QToolTip.showText(QCursor.pos(), tip, slider)
 
-            if mode == 0:  # CLK mode
-                rate_idx = int(normalized * (len(MOD_CLOCK_RATES) - 1))
-                rate_idx = max(0, min(rate_idx, len(MOD_CLOCK_RATES) - 1))
-                return MOD_CLOCK_RATES[rate_idx]
-            else:  # FREE mode
-                import math
-                freq = MOD_LFO_FREQ_MIN * math.pow(MOD_LFO_FREQ_MAX / MOD_LFO_FREQ_MIN, normalized)
-                if freq < 1:
-                    return f"{freq:.2f}Hz"
-                elif freq < 10:
-                    return f"{freq:.1f}Hz"
-                else:
-                    return f"{freq:.0f}Hz"
+    def _update_arseq_rate_tooltip(self, value):
+        """Update ARSEq+ rate slider tooltip with current value."""
+        if 'rate' not in self.param_sliders:
+            return
+        slider = self.param_sliders['rate']
+        clk_btn = self.param_sliders.get('clock_mode')
 
-        return f"{int(normalized * 100)}%"
+        # Check if CLK mode (index 0) or FREE mode (index 1)
+        is_clk_mode = clk_btn.index == 0 if clk_btn else True
+
+        if is_clk_mode:
+            # Map to clock division
+            idx = int((value / 1000.0) * (len(MOD_CLOCK_RATES) - 1))
+            idx = max(0, min(idx, len(MOD_CLOCK_RATES) - 1))
+            division = MOD_CLOCK_RATES[idx]
+            tip = f"Rate: {division}"
+        else:
+            # Show percentage for free mode
+            tip = f"Rate: {value / 10:.0f}%"
+        
+        slider.setToolTip(tip)
+        QToolTip.showText(QCursor.pos(), tip, slider)
+
+    def _show_slider_tooltip(self, slider, tip):
+        """Set tooltip and show it immediately at cursor position."""
+        slider.setToolTip(tip)
+        QToolTip.showText(QCursor.pos(), tip, slider)
+
+    def _on_sauce_param_changed(self, key, value):
+        """Handle SauceOfGrav param slider change."""
+        normalized = value / 1000.0
+        for param in get_mod_generator_custom_params(self.generator_name):
+            if param.get('key') == key:
+                real_value = map_value(normalized, param)
+                self.parameter_changed.emit(self.slot_id, key, real_value)
+                break
 
     def _on_wave_changed(self, output_idx, wave_index):
-        """Handle waveform change."""
         self.output_wave_changed.emit(self.slot_id, output_idx, wave_index)
 
     def _on_phase_changed(self, output_idx, phase_index):
-        """Handle phase change."""
         self.output_phase_changed.emit(self.slot_id, output_idx, phase_index)
 
     def _on_polarity_changed(self, output_idx, polarity):
-        """Handle polarity change."""
         self.output_polarity_changed.emit(self.slot_id, output_idx, polarity)
 
     def _on_tension_changed(self, output_idx, value):
-        """Handle tension slider change."""
         self.tension_changed.emit(self.slot_id, output_idx, value / 1000.0)
 
     def _on_mass_changed(self, output_idx, value):
-        """Handle mass slider change."""
         self.mass_changed.emit(self.slot_id, output_idx, value / 1000.0)
 
     def _on_env_attack_changed(self, env_idx, value):
-        """Handle ARSEq+ envelope attack change."""
         self.env_attack_changed.emit(self.slot_id, env_idx, value / 1000.0)
 
     def _on_env_release_changed(self, env_idx, value):
-        """Handle ARSEq+ envelope release change."""
         self.env_release_changed.emit(self.slot_id, env_idx, value / 1000.0)
 
     def _on_env_curve_changed(self, env_idx, value):
-        """Handle ARSEq+ envelope curve change."""
         self.env_curve_changed.emit(self.slot_id, env_idx, value / 1000.0)
 
     def _on_env_sync_mode_changed(self, env_idx, mode):
-        """Handle ARSEq+ envelope sync mode change."""
         self.env_sync_mode_changed.emit(self.slot_id, env_idx, mode)
 
     def _on_env_loop_rate_changed(self, env_idx, rate_idx):
-        """Handle ARSEq+ envelope loop rate change."""
         self.env_loop_rate_changed.emit(self.slot_id, env_idx, rate_idx)
 
     # =========================================================================
@@ -668,9 +943,15 @@ class ModulatorSlot(QWidget):
             output_mass.append(row_widgets['mass'].value() / 1000.0 if 'mass' in row_widgets else 0.5)
             env_attack.append(row_widgets['atk'].value() / 1000.0 if 'atk' in row_widgets else 0.5)
             env_release.append(row_widgets['rel'].value() / 1000.0 if 'rel' in row_widgets else 0.5)
-            env_curve.append(row_widgets['curve'].value() / 1000.0 if 'curve' in row_widgets else 0.5)
             env_sync_mode.append(row_widgets['sync_mode'].index if 'sync_mode' in row_widgets else 0)
-            env_loop_rate.append(row_widgets['loop_rate'].index if 'loop_rate' in row_widgets else 6)
+
+        # Get curve values from _curve_sliders if they exist
+        curve_sliders = getattr(self, '_curve_sliders', [])
+        env_curve = [s.value() / 1000.0 for s in curve_sliders] if curve_sliders else [0.5] * 4
+
+        # Get loop rate values from _loop_rate_btns if they exist
+        loop_rate_btns = getattr(self, '_loop_rate_btns', [])
+        env_loop_rate = [b.index for b in loop_rate_btns] if loop_rate_btns else [6] * 4
 
         # Pad to 4
         for lst, default in [(output_wave, 0), (output_phase, 0), (output_polarity, 0),
@@ -771,20 +1052,18 @@ class ModulatorSlot(QWidget):
                 row_widgets['rel'].setValue(int(env_release[i] * 1000))
                 row_widgets['rel'].blockSignals(False)
 
-            if 'curve' in row_widgets:
-                row_widgets['curve'].blockSignals(True)
-                row_widgets['curve'].setValue(int(env_curve[i] * 1000))
-                row_widgets['curve'].blockSignals(False)
-
             if 'sync_mode' in row_widgets:
                 row_widgets['sync_mode'].blockSignals(True)
                 row_widgets['sync_mode'].set_index(env_sync_mode[i])
                 row_widgets['sync_mode'].blockSignals(False)
 
-            if 'loop_rate' in row_widgets:
-                row_widgets['loop_rate'].blockSignals(True)
-                row_widgets['loop_rate'].set_index(env_loop_rate[i])
-                row_widgets['loop_rate'].blockSignals(False)
+        # Restore loop rate from _loop_rate_btns
+        loop_rate_btns = getattr(self, '_loop_rate_btns', [])
+        for i, btn in enumerate(loop_rate_btns):
+            if i < len(env_loop_rate):
+                btn.blockSignals(True)
+                btn.set_index(env_loop_rate[i])
+                btn.blockSignals(False)
 
         self._send_all_state_to_osc()
 
@@ -818,9 +1097,10 @@ class ModulatorSlot(QWidget):
                 self.env_attack_changed.emit(self.slot_id, i, row_widgets['atk'].value() / 1000.0)
             if 'rel' in row_widgets:
                 self.env_release_changed.emit(self.slot_id, i, row_widgets['rel'].value() / 1000.0)
-            if 'curve' in row_widgets:
-                self.env_curve_changed.emit(self.slot_id, i, row_widgets['curve'].value() / 1000.0)
             if 'sync_mode' in row_widgets:
                 self.env_sync_mode_changed.emit(self.slot_id, i, row_widgets['sync_mode'].index)
-            if 'loop_rate' in row_widgets:
-                self.env_loop_rate_changed.emit(self.slot_id, i, row_widgets['loop_rate'].index)
+
+        # Emit loop rate from _loop_rate_btns
+        loop_rate_btns = getattr(self, '_loop_rate_btns', [])
+        for i, btn in enumerate(loop_rate_btns):
+            self.env_loop_rate_changed.emit(self.slot_id, i, btn.index)
