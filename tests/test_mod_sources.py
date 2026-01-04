@@ -33,7 +33,7 @@ class TestModConstants:
         assert MOD_OUTPUTS_PER_SLOT == 4
         
     def test_bus_count_ssot(self):
-        """Bus count should equal slots × outputs (SSOT)."""
+        """Bus count should equal slots x outputs (SSOT)."""
         assert MOD_BUS_COUNT == MOD_SLOT_COUNT * MOD_OUTPUTS_PER_SLOT
         assert MOD_BUS_COUNT == 16
         
@@ -50,7 +50,7 @@ class TestModConstants:
         assert "Sqr" in MOD_LFO_WAVEFORMS
         
     def test_lfo_phases(self):
-        """LFO phases should be 0-315 in 45° steps."""
+        """LFO phases should be 0-315 in 45 degree steps."""
         assert MOD_LFO_PHASES == [0, 45, 90, 135, 180, 225, 270, 315]
         assert len(MOD_LFO_PHASES) == 8
         
@@ -81,19 +81,19 @@ class TestModBusIndex:
     
     def test_bus_index_formula(self):
         """Bus index = (slot - 1) * 4 + output."""
-        # Slot 1, outputs 0-3 → buses 0-3
+        # Slot 1, outputs 0-3 -> buses 0-3
         assert (1 - 1) * 4 + 0 == 0
         assert (1 - 1) * 4 + 1 == 1
         assert (1 - 1) * 4 + 2 == 2
         assert (1 - 1) * 4 + 3 == 3
         
-        # Slot 2, outputs 0-3 → buses 4-7
+        # Slot 2, outputs 0-3 -> buses 4-7
         assert (2 - 1) * 4 + 0 == 4
         assert (2 - 1) * 4 + 1 == 5
         assert (2 - 1) * 4 + 2 == 6
         assert (2 - 1) * 4 + 3 == 7
         
-        # Slot 4, outputs 0-3 → buses 12-15
+        # Slot 4, outputs 0-3 -> buses 12-15
         assert (4 - 1) * 4 + 0 == 12
         assert (4 - 1) * 4 + 1 == 13
         assert (4 - 1) * 4 + 2 == 14
@@ -105,19 +105,19 @@ class TestModGeneratorLoaders:
     
     def test_lfo_synthdef(self):
         """LFO should have correct synthdef name."""
-        assert get_mod_generator_synthdef("LFO") == "modLFO"
+        assert get_mod_generator_synthdef("LFO") == "ne_mod_lfo"
         
     def test_sloth_synthdef(self):
         """Sloth should have correct synthdef name."""
-        assert get_mod_generator_synthdef("Sloth") == "modSloth"
+        assert get_mod_generator_synthdef("Sloth") == "ne_mod_sloth"
         
     def test_empty_synthdef(self):
         """Empty should return None for synthdef."""
         assert get_mod_generator_synthdef("Empty") is None
         
     def test_lfo_output_config(self):
-        """LFO should have pattern_rotate output config."""
-        assert get_mod_generator_output_config("LFO") == "pattern_rotate"
+        """LFO should have waveform_phase output config."""
+        assert get_mod_generator_output_config("LFO") == "waveform_phase"
         
     def test_sloth_output_config(self):
         """Sloth should have fixed output config."""
@@ -128,18 +128,17 @@ class TestModGeneratorLoaders:
         assert get_mod_generator_output_config("Empty") == "fixed"
         
     def test_lfo_custom_params(self):
-        """LFO should have rate and shape params."""
+        """LFO should have clock_mode and rate params."""
         params = get_mod_generator_custom_params("LFO")
         keys = [p['key'] for p in params]
         assert "rate" in keys
-        assert "shape" in keys
+        assert "clock_mode" in keys
         
     def test_sloth_custom_params(self):
-        """Sloth should have mode and bias params."""
+        """Sloth should have mode param."""
         params = get_mod_generator_custom_params("Sloth")
         keys = [p['key'] for p in params]
         assert "mode" in keys
-        assert "bias" in keys
         
     def test_empty_custom_params(self):
         """Empty should have no custom params."""
@@ -147,11 +146,11 @@ class TestModGeneratorLoaders:
         assert params == []
         
     def test_output_labels_lfo(self):
-        """LFO output labels should be A/B/C."""
+        """LFO output labels should be A/B/C/D."""
         assert get_mod_output_labels("LFO") == ["A", "B", "C", "D"]
         
     def test_output_labels_sloth(self):
-        """Sloth output labels should be X/Y/Z."""
+        """Sloth output labels should be X/Y/Z/R."""
         assert get_mod_output_labels("Sloth") == ["X", "Y", "Z", "R"]
 
 
@@ -163,16 +162,16 @@ class TestStepsQuantization:
         from src.config import map_value
         p = {"min": 0, "max": 2, "steps": 3, "curve": "lin", "default": 0}
         
-        # 0.00-0.24 → 0
+        # 0.00-0.24 -> 0
         assert map_value(0.00, p) == 0
         assert map_value(0.24, p) == 0
         
-        # 0.25-0.74 → 1
+        # 0.25-0.74 -> 1
         assert map_value(0.26, p) == 1
         assert map_value(0.50, p) == 1
         assert map_value(0.74, p) == 1
         
-        # 0.75-1.00 → 2
+        # 0.75-1.00 -> 2
         assert map_value(0.76, p) == 2
         assert map_value(1.00, p) == 2
     

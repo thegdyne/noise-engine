@@ -268,6 +268,42 @@ def build_param_slider(slot, param):
     return col
 
 
+def build_lfo_rotate_button(slot):
+    """Build a ROT button for LFO to rotate all phase offsets by 45 degrees."""
+    mt = MODULATOR_THEME
+
+    col = QWidget()
+    col.setFixedWidth(28)
+    col.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+
+    container = QVBoxLayout(col)
+    container.setContentsMargins(0, 0, 0, 0)
+    container.setSpacing(1)
+
+    # Label
+    label = QLabel("ROT")
+    label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+    label.setAlignment(Qt.AlignCenter)
+    label.setStyleSheet(f"color: {COLORS['text']};")
+    label.setFixedHeight(mt['param_label_height'])
+    label.setFixedWidth(28)
+    label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    container.addWidget(label)
+
+    # Button - directly after label, no stretch
+    btn = CycleButton(["ROT"], initial_index=0)
+    btn.setObjectName(f"mod{slot.slot_id}_rotate")
+    btn.setFixedSize(28, 22)
+    btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+    btn.setStyleSheet(button_style('submenu'))
+    btn.setToolTip("Rotate all phases by 45 degrees")
+    btn.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
+    btn.text_padding_lr = 2
+    btn.value_changed.connect(lambda _: slot._on_rotate_phases())
+    container.addWidget(btn)
+
+    return col
+
 def build_output_row(slot, output_idx, label, output_config):
     """Build a single output row with waveform, phase, and polarity controls."""
     mt = MODULATOR_THEME

@@ -30,6 +30,7 @@ from .modulator_slot_builder import (
     build_output_row,
     build_arseq_output_row,
     build_saucegrav_output_row,
+    build_lfo_rotate_button,
 )
 
 
@@ -106,7 +107,14 @@ class ModulatorSlot(QWidget):
         for param in custom_params:
             col = build_param_slider(self, param)
             self.params_layout.addWidget(col)
+
         self.params_layout.addStretch()
+
+        # Add ROT button for LFO (rotates all phases by 45 degrees)
+        if gen_name == "LFO":
+            rot_col = build_lfo_rotate_button(self)
+            self.params_layout.addWidget(rot_col)
+        
 
         # Build output rows (use specialized builder for ARSEq+/SauceOfGrav)
         for i in range(MOD_OUTPUTS_PER_SLOT):
@@ -196,6 +204,22 @@ class ModulatorSlot(QWidget):
     def _on_phase_changed(self, output_idx, phase_index):
         """Handle phase change."""
         self.output_phase_changed.emit(self.slot_id, output_idx, phase_index)
+
+    def _on_rotate_phases(self):
+        """Rotate all phase offsets by 45 degrees (one step)."""
+        from src.config import MOD_LFO_PHASES
+        num_phases = len(MOD_LFO_PHASES)  # 8 phases: 0, 45, 90, ... 315
+        
+        for i, row_widgets in enumerate(self.output_rows):
+            if 'phase' in row_widgets:
+                phase_btn = row_widgets['phase']
+                current_idx = phase_btn.index
+                new_idx = (current_idx + 1) % num_phases
+                phase_btn.blockSignals(True)
+                phase_btn.set_index(new_idx)
+                phase_btn.blockSignals(False)
+                # Emit the change to update SC
+                self.output_phase_changed.emit(self.slot_id, i, new_idx)
 
     def _on_polarity_changed(self, output_idx, polarity):
         """Handle polarity change."""

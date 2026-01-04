@@ -285,9 +285,9 @@ class TestModGeneratorConfigs:
             config = get_mod_generator_output_config(gen_name)
             assert config is not None, f"{gen_name} has no output config"
 
-    def test_lfo_output_config_is_pattern_rotate(self):
+    def test_lfo_output_config_is_waveform_phase(self):
         """LFO should use pattern_rotate output config."""
-        assert get_mod_generator_output_config("LFO") == "pattern_rotate"
+        assert get_mod_generator_output_config("LFO") == "waveform_phase"
 
     def test_sloth_output_config_is_fixed(self):
         """Sloth should use fixed output config."""
