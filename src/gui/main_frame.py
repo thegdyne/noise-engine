@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLabel, QFrame, QShortcut, QApplication)
 from PyQt5.QtCore import Qt, QEvent, QTimer, QSettings
-from PyQt5.QtGui import QFont, QKeySequence
+from PyQt5.QtGui import QFont, QKeySequence, QColor
 
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
@@ -178,6 +178,16 @@ class MainFrame(QMainWindow):
     def setup_ui(self):
         """Create the main interface layout."""
         central = QWidget()
+        central.setObjectName("centralBackground")
+        central.setAutoFillBackground(True)
+        central.setStyleSheet(f"""
+                    #centralBackground {{
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                            stop:0 {COLORS['background_light']}, 
+                            stop:0.08 {COLORS['background']}, 
+                            stop:1 {COLORS['background_dark']});
+                    }}
+                """)
         self.setCentralWidget(central)
         
         main_layout = QVBoxLayout(central)
@@ -189,12 +199,14 @@ class MainFrame(QMainWindow):
         
         # Content area with console overlay
         content_container = QWidget()
+        content_container.setAutoFillBackground(True)
         content_outer = QHBoxLayout(content_container)
         content_outer.setContentsMargins(0, 0, 0, 0)
         content_outer.setSpacing(0)
         
         # Main content (left side)
         content_widget = QWidget()
+        content_widget.setAutoFillBackground(True)
         content_layout = QHBoxLayout(content_widget)
         content_layout.setContentsMargins(5, 5, 5, 5)
         content_layout.setSpacing(10)
@@ -264,6 +276,7 @@ class MainFrame(QMainWindow):
         
         # Bottom section - FX Chain + Master side by side
         bottom_container = QWidget()
+        bottom_container.setAutoFillBackground(True)
         bottom_layout = QHBoxLayout(bottom_container)
         bottom_layout.setContentsMargins(5, 5, 5, 5)
         bottom_layout.setSpacing(10)
