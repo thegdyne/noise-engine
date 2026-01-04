@@ -2,12 +2,58 @@
   "generator_id": "borealis",
   "name": "BOREALIS",
   "synthdef": "forge_glacialis_borealis",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "wave", "label": "WAV", "tooltip": "Waveform character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "sweep", "label": "SWP", "tooltip": "Aurora sweep rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "curtain", "label": "CRT", "tooltip": "Curtain layers/voices", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "glow", "label": "GLO", "tooltip": "Luminous saturation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "phase", "label": "PHS", "tooltip": "Phase spread width", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "wave",
+      "label": "WAV",
+      "tooltip": "Waveform character",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sweep",
+      "label": "SWP",
+      "tooltip": "Aurora sweep rate",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "curtain",
+      "label": "CRT",
+      "tooltip": "Curtain layers/voices",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glow",
+      "label": "GLO",
+      "tooltip": "Luminous saturation",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "phase",
+      "label": "PHS",
+      "tooltip": "Phase spread width",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": 10.0,
   "midi_retrig": false,

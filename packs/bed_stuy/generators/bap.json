@@ -2,12 +2,58 @@
   "generator_id": "bap",
   "name": "BAP",
   "synthdef": "forge_bed_stuy_bap",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "snap", "label": "SNP", "tooltip": "Snap transient - attack crack", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "body", "label": "BOD", "tooltip": "Body tone - tuned resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "wire", "label": "WIR", "tooltip": "Snare wire - rattle texture", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "room", "label": "ROM", "tooltip": "Room ambience - space", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "tight", "label": "TGT", "tooltip": "Decay tightness - sustain", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "snap",
+      "label": "SNP",
+      "tooltip": "Snap transient - attack crack",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "body",
+      "label": "BOD",
+      "tooltip": "Body tone - tuned resonance",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "wire",
+      "label": "WIR",
+      "tooltip": "Snare wire - rattle texture",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "room",
+      "label": "ROM",
+      "tooltip": "Room ambience - space",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tight",
+      "label": "TGT",
+      "tooltip": "Decay tightness - sustain",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

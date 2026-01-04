@@ -2,6 +2,7 @@
   "generator_id": "leaf_fall",
   "name": "Leaf Fall",
   "synthdef": "forge_moss_root_leaf_fall",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "rustle",

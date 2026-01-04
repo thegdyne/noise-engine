@@ -1,60 +1,61 @@
 {
-    "generator_id": "solar_mass",
-    "name": "Solar Mass",
-    "synthdef": "forge_icarus_solar_mass",
-    "custom_params": [
-        {
-            "key": "gravity",
-            "label": "GRV",
-            "tooltip": "Gravity -- gravitational pull intensity",
-            "default": 0.6,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "fusion",
-            "label": "FUS",
-            "tooltip": "Fusion -- core reactor beating rate",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "mass",
-            "label": "MAS",
-            "tooltip": "Mass -- sub-harmonic density",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "pressure",
-            "label": "PRS",
-            "tooltip": "Pressure -- compression drive amount",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "radiation",
-            "label": "RAD",
-            "tooltip": "Radiation -- high frequency emission",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -6.0,
-    "midi_retrig": false,
-    "pitch_target": null
+  "generator_id": "solar_mass",
+  "name": "Solar Mass",
+  "synthdef": "forge_icarus_solar_mass",
+  "synthesis_method": "subtractive/filtered_osc",
+  "custom_params": [
+    {
+      "key": "gravity",
+      "label": "GRV",
+      "tooltip": "Gravity -- gravitational pull intensity",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "fusion",
+      "label": "FUS",
+      "tooltip": "Fusion -- core reactor beating rate",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mass",
+      "label": "MAS",
+      "tooltip": "Mass -- sub-harmonic density",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pressure",
+      "label": "PRS",
+      "tooltip": "Pressure -- compression drive amount",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "radiation",
+      "label": "RAD",
+      "tooltip": "Radiation -- high frequency emission",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }

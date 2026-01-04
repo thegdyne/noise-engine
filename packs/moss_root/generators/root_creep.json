@@ -2,6 +2,7 @@
   "generator_id": "root_creep",
   "name": "Root Creep",
   "synthdef": "forge_moss_root_root_creep",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
     {
       "key": "twist",

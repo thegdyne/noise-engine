@@ -2,6 +2,7 @@
   "generator_id": "root_drone",
   "name": "Root Drone",
   "synthdef": "forge_moss_root_root_drone",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
     {
       "key": "age",

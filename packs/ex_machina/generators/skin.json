@@ -2,12 +2,58 @@
   "generator_id": "skin",
   "name": "SKIN",
   "synthdef": "forge_ex_machina_skin",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "texture", "label": "TXT", "tooltip": "Skin texture - surface quality", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "warmth", "label": "WRM", "tooltip": "Body warmth - temperature", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "uncanny", "label": "UNC", "tooltip": "Uncanny quality - wrongness", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "membrane", "label": "MEM", "tooltip": "Membrane flex - elasticity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "touch", "label": "TCH", "tooltip": "Touch sensitivity - response", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "texture",
+      "label": "TXT",
+      "tooltip": "Skin texture - surface quality",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "warmth",
+      "label": "WRM",
+      "tooltip": "Body warmth - temperature",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "uncanny",
+      "label": "UNC",
+      "tooltip": "Uncanny quality - wrongness",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "membrane",
+      "label": "MEM",
+      "tooltip": "Membrane flex - elasticity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "touch",
+      "label": "TCH",
+      "tooltip": "Touch sensitivity - response",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

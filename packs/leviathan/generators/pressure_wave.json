@@ -2,6 +2,7 @@
   "generator_id": "pressure_wave",
   "name": "Pressure Wave",
   "synthdef": "forge_leviathan_pressure_wave",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
     {
       "key": "tonnage",

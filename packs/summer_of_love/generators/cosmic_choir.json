@@ -2,12 +2,58 @@
   "generator_id": "cosmic_choir",
   "name": "Cosmic Choir",
   "synthdef": "forge_summer_of_love_cosmic_choir",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "vowel", "label": "VOW", "tooltip": "Vowel shape - oo to ah to ee", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "transcend", "label": "TRN", "tooltip": "Ethereal shimmer - earthly to cosmic", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "unity", "label": "UNI", "tooltip": "Voice unison - solo to full choir", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "breath", "label": "BRH", "tooltip": "Breathy air in voices - pure to airy", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ascend", "label": "ASC", "tooltip": "Pitch drift upward - grounded to ascending", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "vowel",
+      "label": "VOW",
+      "tooltip": "Vowel shape - oo to ah to ee",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "transcend",
+      "label": "TRN",
+      "tooltip": "Ethereal shimmer - earthly to cosmic",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unity",
+      "label": "UNI",
+      "tooltip": "Voice unison - solo to full choir",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "breath",
+      "label": "BRH",
+      "tooltip": "Breathy air in voices - pure to airy",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ascend",
+      "label": "ASC",
+      "tooltip": "Pitch drift upward - grounded to ascending",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

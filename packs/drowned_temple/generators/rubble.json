@@ -2,12 +2,58 @@
   "generator_id": "rubble",
   "name": "RUBBLE",
   "synthdef": "forge_drowned_temple_rubble",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "crumble", "label": "CRM", "tooltip": "Crumble rate - falling debris", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "impact", "label": "IMP", "tooltip": "Impact weight - stone heaviness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "scatter", "label": "SCT", "tooltip": "Scatter density - small debris", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "grind", "label": "GRD", "tooltip": "Grinding - friction texture", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "settle", "label": "SET", "tooltip": "Settling dust - atmosphere", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "crumble",
+      "label": "CRM",
+      "tooltip": "Crumble rate - falling debris",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "impact",
+      "label": "IMP",
+      "tooltip": "Impact weight - stone heaviness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "scatter",
+      "label": "SCT",
+      "tooltip": "Scatter density - small debris",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "grind",
+      "label": "GRD",
+      "tooltip": "Grinding - friction texture",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "settle",
+      "label": "SET",
+      "tooltip": "Settling dust - atmosphere",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

@@ -2,6 +2,7 @@
   "generator_id": "canopy_tone",
   "name": "Canopy Tone",
   "synthdef": "forge_moss_root_canopy_tone",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "glow",

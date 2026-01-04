@@ -2,12 +2,58 @@
   "generator_id": "boom",
   "name": "BOOM",
   "synthdef": "forge_bed_stuy_boom",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "sub", "label": "SUB", "tooltip": "Sub level - deep bass", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "punch", "label": "PUN", "tooltip": "Attack punch - transient hit", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "length", "label": "LEN", "tooltip": "Decay length - sustain time", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "drive", "label": "DRV", "tooltip": "Saturation drive - analog heat", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "click", "label": "CLK", "tooltip": "Click transient - beater attack", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "sub",
+      "label": "SUB",
+      "tooltip": "Sub level - deep bass",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "punch",
+      "label": "PUN",
+      "tooltip": "Attack punch - transient hit",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "length",
+      "label": "LEN",
+      "tooltip": "Decay length - sustain time",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drive",
+      "label": "DRV",
+      "tooltip": "Saturation drive - analog heat",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "click",
+      "label": "CLK",
+      "tooltip": "Click transient - beater attack",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

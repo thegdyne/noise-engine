@@ -2,12 +2,58 @@
   "generator_id": "gentle_giant",
   "name": "Gentle Giant",
   "synthdef": "forge_seagrass_bay_gentle_giant",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "mass", "label": "MAS", "tooltip": "Mass - size and weight presence", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "grace", "label": "GRC", "tooltip": "Grace - smooth movement quality", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "skin", "label": "SKN", "tooltip": "Skin - surface texture", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "breath", "label": "BRH", "tooltip": "Breath - slow breathing modulation", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "swim", "label": "SWM", "tooltip": "Swim - gentle motion character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "mass",
+      "label": "MAS",
+      "tooltip": "Mass - size and weight presence",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "grace",
+      "label": "GRC",
+      "tooltip": "Grace - smooth movement quality",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "skin",
+      "label": "SKN",
+      "tooltip": "Skin - surface texture",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "breath",
+      "label": "BRH",
+      "tooltip": "Breath - slow breathing modulation",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "swim",
+      "label": "SWM",
+      "tooltip": "Swim - gentle motion character",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

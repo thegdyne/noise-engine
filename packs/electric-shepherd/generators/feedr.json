@@ -1,57 +1,58 @@
 {
-    "name": "FEEDR",
-    "synthdef": "feedr",
-    "custom_params": [
-        {
-            "key": "hum",
-            "label": "HUM",
-            "tooltip": "Transformer hum intensity",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "cycle",
-            "label": "CYC",
-            "tooltip": "Power cycling rhythm",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "transfer",
-            "label": "TFR",
-            "tooltip": "Energy transfer pulse",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "surge",
-            "label": "SRG",
-            "tooltip": "Power surge intensity",
-            "default": 0.2,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "age",
-            "label": "AGE",
-            "tooltip": "Equipment decay (noise/artifacts)",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "FEEDR",
+  "synthdef": "feedr",
+  "synthesis_method": "subtractive/filtered_osc",
+  "custom_params": [
+    {
+      "key": "hum",
+      "label": "HUM",
+      "tooltip": "Transformer hum intensity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cycle",
+      "label": "CYC",
+      "tooltip": "Power cycling rhythm",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "transfer",
+      "label": "TFR",
+      "tooltip": "Energy transfer pulse",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "surge",
+      "label": "SRG",
+      "tooltip": "Power surge intensity",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "age",
+      "label": "AGE",
+      "tooltip": "Equipment decay (noise/artifacts)",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

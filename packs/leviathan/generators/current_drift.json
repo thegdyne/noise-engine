@@ -2,6 +2,7 @@
   "generator_id": "current_drift",
   "name": "Current Drift",
   "synthdef": "forge_leviathan_current_drift",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "flow",

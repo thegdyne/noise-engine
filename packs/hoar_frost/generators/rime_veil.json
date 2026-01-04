@@ -2,12 +2,58 @@
   "generator_id": "rime_veil",
   "name": "RIME VEIL",
   "synthdef": "forge_hoar_frost_rime_veil",
+  "synthesis_method": "spectral/spectral_drone",
   "custom_params": [
-    {"key": "shimmer", "label": "SHM", "tooltip": "Shimmer rate - crystal glinting speed", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "density", "label": "DEN", "tooltip": "Harmonic density - frost complexity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "brightness", "label": "BRT", "tooltip": "Brightness - high partial emphasis", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "spread", "label": "SPR", "tooltip": "Stereo spread - spatial width", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "drift", "label": "DFT", "tooltip": "Pitch drift - subtle detuning", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "shimmer",
+      "label": "SHM",
+      "tooltip": "Shimmer rate - crystal glinting speed",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "density",
+      "label": "DEN",
+      "tooltip": "Harmonic density - frost complexity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "brightness",
+      "label": "BRT",
+      "tooltip": "Brightness - high partial emphasis",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spread",
+      "label": "SPR",
+      "tooltip": "Stereo spread - spatial width",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drift",
+      "label": "DFT",
+      "tooltip": "Pitch drift - subtle detuning",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

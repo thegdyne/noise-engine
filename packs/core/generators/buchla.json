@@ -1,56 +1,57 @@
 {
-    "name": "Buchla",
-    "synthdef": "buchla",
-    "custom_params": [
-        {
-            "key": "timbre",
-            "label": "TMB",
-            "tooltip": "Wavefolder amount (timbre)",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "symmetry",
-            "label": "SYM",
-            "tooltip": "Waveform symmetry",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "modindex",
-            "label": "MOD",
-            "tooltip": "Internal modulation index",
-            "default": 0.2,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "lpg_decay",
-            "label": "LPG",
-            "tooltip": "Low-pass gate decay (vactrol style)",
-            "default": 0.3,
-            "min": 0.01,
-            "max": 2.0,
-            "curve": "exp",
-            "unit": "s"
-        },
-        {
-            "key": "chaos",
-            "label": "CHS",
-            "tooltip": "Chaotic modulation amount",
-            "default": 0.0,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ]
+  "name": "Buchla",
+  "synthdef": "buchla",
+  "synthesis_method": "subtractive/filtered_osc",
+  "custom_params": [
+    {
+      "key": "timbre",
+      "label": "TMB",
+      "tooltip": "Wavefolder amount (timbre)",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "symmetry",
+      "label": "SYM",
+      "tooltip": "Waveform symmetry",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "modindex",
+      "label": "MOD",
+      "tooltip": "Internal modulation index",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "lpg_decay",
+      "label": "LPG",
+      "tooltip": "Low-pass gate decay (vactrol style)",
+      "default": 0.3,
+      "min": 0.01,
+      "max": 2.0,
+      "curve": "exp",
+      "unit": "s"
+    },
+    {
+      "key": "chaos",
+      "label": "CHS",
+      "tooltip": "Chaotic modulation amount",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
 }

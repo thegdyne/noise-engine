@@ -2,12 +2,58 @@
   "generator_id": "ava",
   "name": "AVA",
   "synthdef": "forge_ex_machina_ava",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "aware", "label": "AWR", "tooltip": "Awareness level - consciousness", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "question", "label": "QST", "tooltip": "Questioning - inflection drift", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "soft", "label": "SFT", "tooltip": "Softness - filter warmth", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "human", "label": "HUM", "tooltip": "Human breath - organic texture", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "machine", "label": "MCH", "tooltip": "Machine undertone - digital edge", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "aware",
+      "label": "AWR",
+      "tooltip": "Awareness level - consciousness",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "question",
+      "label": "QST",
+      "tooltip": "Questioning - inflection drift",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "soft",
+      "label": "SFT",
+      "tooltip": "Softness - filter warmth",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "human",
+      "label": "HUM",
+      "tooltip": "Human breath - organic texture",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "machine",
+      "label": "MCH",
+      "tooltip": "Machine undertone - digital edge",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

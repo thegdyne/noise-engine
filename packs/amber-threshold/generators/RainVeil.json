@@ -1,57 +1,58 @@
 {
-    "name": "RAINVEIL",
-    "synthdef": "rainveil",
-    "custom_params": [
-        {
-            "key": "density",
-            "label": "DNS",
-            "tooltip": "Rain density",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "soft",
-            "label": "SFT",
-            "tooltip": "Gentle softness",
-            "default": 0.6,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "distant",
-            "label": "DST",
-            "tooltip": "Distance/diffusion",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "trickle",
-            "label": "TRK",
-            "tooltip": "Water trickling",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "mist",
-            "label": "MST",
-            "tooltip": "Misty atmosphere",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "RAINVEIL",
+  "synthdef": "rainveil",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": [
+    {
+      "key": "density",
+      "label": "DNS",
+      "tooltip": "Rain density",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "soft",
+      "label": "SFT",
+      "tooltip": "Gentle softness",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "distant",
+      "label": "DST",
+      "tooltip": "Distance/diffusion",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "trickle",
+      "label": "TRK",
+      "tooltip": "Water trickling",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mist",
+      "label": "MST",
+      "tooltip": "Misty atmosphere",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

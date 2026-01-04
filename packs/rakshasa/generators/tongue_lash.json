@@ -1,60 +1,61 @@
 {
-    "generator_id": "tongue_lash",
-    "name": "Tongue Lash",
-    "synthdef": "forge_rakshasa_tongue_lash",
-    "custom_params": [
-        {
-            "key": "fork",
-            "label": "FRK",
-            "tooltip": "Forked split -- how far the two tongues detune apart",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "lash",
-            "label": "LSH",
-            "tooltip": "Lash intensity -- pitch dive depth on attack",
-            "default": 0.6,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "slime",
-            "label": "SLM",
-            "tooltip": "Sliminess -- wet squelchy FM modulation",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "curl",
-            "label": "CRL",
-            "tooltip": "Tongue curl -- vibrato and wavering movement",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "drip",
-            "label": "DRP",
-            "tooltip": "Drip -- how the sound decays and drools off",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -6.0,
-    "midi_retrig": false,
-    "pitch_target": null
+  "generator_id": "tongue_lash",
+  "name": "Tongue Lash",
+  "synthdef": "forge_rakshasa_tongue_lash",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": [
+    {
+      "key": "fork",
+      "label": "FRK",
+      "tooltip": "Forked split -- how far the two tongues detune apart",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "lash",
+      "label": "LSH",
+      "tooltip": "Lash intensity -- pitch dive depth on attack",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "slime",
+      "label": "SLM",
+      "tooltip": "Sliminess -- wet squelchy FM modulation",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "curl",
+      "label": "CRL",
+      "tooltip": "Tongue curl -- vibrato and wavering movement",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drip",
+      "label": "DRP",
+      "tooltip": "Drip -- how the sound decays and drools off",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
 }

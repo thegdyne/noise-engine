@@ -2,12 +2,58 @@
   "generator_id": "thumb_piano",
   "name": "Thumb Piano",
   "synthdef": "forge_wax_print_thumb_piano",
+  "synthesis_method": "physical/resonant_model",
   "custom_params": [
-    {"key": "tine", "label": "TIN", "tooltip": "Tine - metal brightness and shimmer", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "buzz", "label": "BUZ", "tooltip": "Buzz - bottle cap rattle, traditional buzz", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "box", "label": "BOX", "tooltip": "Box - resonating body size", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "pluck", "label": "PLK", "tooltip": "Pluck - attack intensity", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "damp", "label": "DMP", "tooltip": "Damp - palm damping, decay time", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "tine",
+      "label": "TIN",
+      "tooltip": "Tine - metal brightness and shimmer",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "buzz",
+      "label": "BUZ",
+      "tooltip": "Buzz - bottle cap rattle, traditional buzz",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "box",
+      "label": "BOX",
+      "tooltip": "Box - resonating body size",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pluck",
+      "label": "PLK",
+      "tooltip": "Pluck - attack intensity",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "damp",
+      "label": "DMP",
+      "tooltip": "Damp - palm damping, decay time",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": true,

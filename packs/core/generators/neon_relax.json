@@ -1,63 +1,64 @@
 {
-    "name": "Neon",
-    "synthdef": "neonRelax",
-    "output_trim_db": -6.0,
-    "custom_params": [
-        {
-            "key": "rc_time",
-            "label": "RC",
-            "tooltip": "RC Time Constant (base period)",
-            "default": 0.5,
-            "min": 0.001,
-            "max": 1.0,
-            "curve": "exp",
-            "unit": ""
-        },
-        {
-            "key": "breakdown_v",
-            "label": "Vb",
-            "tooltip": "Breakdown Voltage (fire threshold)",
-            "default": 0.8,
-            "min": 0.5,
-            "max": 0.95,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "extinguish_v",
-            "label": "Vd",
-            "tooltip": "Extinguish Voltage (off threshold)",
-            "default": 0.3,
-            "min": 0.1,
-            "max": 0.6,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "supply_voltage",
-            "label": "V0",
-            "tooltip": "Supply Voltage (period modifier)",
-            "default": 0.9,
-            "min": 0.5,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "hysteresis",
-            "label": "HYS",
-            "tooltip": "Hysteresis Profile (pulse character)",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "reference": {
-        "source": "Elektor Magazine",
-        "issue": "November 2014",
-        "article": "Neon bulb article",
-        "notes": "RC neon relaxation oscillator with breakdown/extinguish hysteresis behavior"
+  "name": "Neon",
+  "synthdef": "neonRelax",
+  "synthesis_method": "texture/noise_texture",
+  "output_trim_db": -6.0,
+  "custom_params": [
+    {
+      "key": "rc_time",
+      "label": "RC",
+      "tooltip": "RC Time Constant (base period)",
+      "default": 0.5,
+      "min": 0.001,
+      "max": 1.0,
+      "curve": "exp",
+      "unit": ""
+    },
+    {
+      "key": "breakdown_v",
+      "label": "Vb",
+      "tooltip": "Breakdown Voltage (fire threshold)",
+      "default": 0.8,
+      "min": 0.5,
+      "max": 0.95,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "extinguish_v",
+      "label": "Vd",
+      "tooltip": "Extinguish Voltage (off threshold)",
+      "default": 0.3,
+      "min": 0.1,
+      "max": 0.6,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "supply_voltage",
+      "label": "V0",
+      "tooltip": "Supply Voltage (period modifier)",
+      "default": 0.9,
+      "min": 0.5,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hysteresis",
+      "label": "HYS",
+      "tooltip": "Hysteresis Profile (pulse character)",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
     }
+  ],
+  "reference": {
+    "source": "Elektor Magazine",
+    "issue": "November 2014",
+    "article": "Neon bulb article",
+    "notes": "RC neon relaxation oscillator with breakdown/extinguish hysteresis behavior"
+  }
 }

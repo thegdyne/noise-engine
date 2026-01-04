@@ -1,59 +1,60 @@
 {
-    "name": "Wavetable",
-    "synthdef": "wavetable",
-    "output_trim_db": -6.0,
-    "custom_params": [
-        {
-            "key": "table_index",
-            "label": "TBL",
-            "tooltip": "Wavetable Position",
-            "default": 0.0,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "scan_rate",
-            "label": "SCN",
-            "tooltip": "Table Scan Rate",
-            "default": 0.001,
-            "min": 0.001,
-            "max": 10.0,
-            "curve": "exp",
-            "unit": "Hz"
-        },
-        {
-            "key": "unison_detune",
-            "label": "DTN",
-            "tooltip": "Unison Detune Spread",
-            "default": 0.1,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "unison_voices",
-            "label": "UNI",
-            "tooltip": "Unison Voices",
-            "default": 1,
-            "min": 1,
-            "max": 8,
-            "steps": 8,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "interpolation",
-            "label": "INT",
-            "tooltip": "Interpolation Mode (none/linear/cubic)",
-            "default": 1,
-            "min": 0,
-            "max": 2,
-            "steps": 3,
-            "curve": "lin",
-            "unit": ""
-        }
-    ]
+  "name": "Wavetable",
+  "synthdef": "wavetable",
+  "synthesis_method": "subtractive/filtered_osc",
+  "output_trim_db": -6.0,
+  "custom_params": [
+    {
+      "key": "table_index",
+      "label": "TBL",
+      "tooltip": "Wavetable Position",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "scan_rate",
+      "label": "SCN",
+      "tooltip": "Table Scan Rate",
+      "default": 0.001,
+      "min": 0.001,
+      "max": 10.0,
+      "curve": "exp",
+      "unit": "Hz"
+    },
+    {
+      "key": "unison_detune",
+      "label": "DTN",
+      "tooltip": "Unison Detune Spread",
+      "default": 0.1,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unison_voices",
+      "label": "UNI",
+      "tooltip": "Unison Voices",
+      "default": 1,
+      "min": 1,
+      "max": 8,
+      "steps": 8,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "interpolation",
+      "label": "INT",
+      "tooltip": "Interpolation Mode (none/linear/cubic)",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "steps": 3,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
 }

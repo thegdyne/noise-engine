@@ -2,12 +2,58 @@
   "generator_id": "golden_haze",
   "name": "Golden Haze",
   "synthdef": "forge_summer_of_love_golden_haze",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "warmth", "label": "WRM", "tooltip": "Harmonic warmth - adds even harmonics like afternoon sun", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "drift", "label": "DFT", "tooltip": "Slow pitch drift - eucalyptus sway in the breeze", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "haze", "label": "HAZ", "tooltip": "High frequency softening - golden hour glow", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "layers", "label": "LAY", "tooltip": "Voice layering thickness - crowd density", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "spread", "label": "SPR", "tooltip": "Stereo field width - park panorama", "default": 0.7, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "warmth",
+      "label": "WRM",
+      "tooltip": "Harmonic warmth - adds even harmonics like afternoon sun",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "drift",
+      "label": "DFT",
+      "tooltip": "Slow pitch drift - eucalyptus sway in the breeze",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "haze",
+      "label": "HAZ",
+      "tooltip": "High frequency softening - golden hour glow",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "layers",
+      "label": "LAY",
+      "tooltip": "Voice layering thickness - crowd density",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spread",
+      "label": "SPR",
+      "tooltip": "Stereo field width - park panorama",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

@@ -1,57 +1,58 @@
 {
-    "name": "AMBERGLOW",
-    "synthdef": "amberglow",
-    "custom_params": [
-        {
-            "key": "warmth",
-            "label": "WRM",
-            "tooltip": "Golden warmth intensity",
-            "default": 0.6,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "shimmer",
-            "label": "SHM",
-            "tooltip": "Light dancing/flickering",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "spread",
-            "label": "SPR",
-            "tooltip": "Light diffusion",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "dust",
-            "label": "DST",
-            "tooltip": "Particles in light",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "ancient",
-            "label": "ANC",
-            "tooltip": "Aged quality",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "AMBERGLOW",
+  "synthdef": "amberglow",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": [
+    {
+      "key": "warmth",
+      "label": "WRM",
+      "tooltip": "Golden warmth intensity",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "shimmer",
+      "label": "SHM",
+      "tooltip": "Light dancing/flickering",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spread",
+      "label": "SPR",
+      "tooltip": "Light diffusion",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "dust",
+      "label": "DST",
+      "tooltip": "Particles in light",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ancient",
+      "label": "ANC",
+      "tooltip": "Aged quality",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

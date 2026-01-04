@@ -2,12 +2,58 @@
   "generator_id": "acid_bloom",
   "name": "Acid Bloom",
   "synthdef": "forge_summer_of_love_acid_bloom",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "squelch", "label": "SQL", "tooltip": "Filter envelope intensity - acid squelch", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "bloom", "label": "BLM", "tooltip": "Filter decay time - quick stab to long bloom", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "trip", "label": "TRP", "tooltip": "Resonance intensity - mild to screaming", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "dose", "label": "DOS", "tooltip": "Distortion amount - clean to overdriven", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "sub", "label": "SUB", "tooltip": "Sub oscillator level - bottom weight", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "squelch",
+      "label": "SQL",
+      "tooltip": "Filter envelope intensity - acid squelch",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "bloom",
+      "label": "BLM",
+      "tooltip": "Filter decay time - quick stab to long bloom",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "trip",
+      "label": "TRP",
+      "tooltip": "Resonance intensity - mild to screaming",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "dose",
+      "label": "DOS",
+      "tooltip": "Distortion amount - clean to overdriven",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sub",
+      "label": "SUB",
+      "tooltip": "Sub oscillator level - bottom weight",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -15.0,
   "midi_retrig": false,

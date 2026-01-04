@@ -2,12 +2,58 @@
   "generator_id": "sodium",
   "name": "SODIUM",
   "synthdef": "forge_vapor_station_sodium",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "hum", "label": "HUM", "tooltip": "60Hz hum - mains frequency buzz", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "warmth", "label": "WRM", "tooltip": "Warm harmonics - orange glow tone", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "flicker", "label": "FLK", "tooltip": "Flicker amount - lamp instability", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ballast", "label": "BAL", "tooltip": "Ballast whine - high frequency buzz", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "glow", "label": "GLO", "tooltip": "Warm glow - underlying pad", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "hum",
+      "label": "HUM",
+      "tooltip": "60Hz hum - mains frequency buzz",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "warmth",
+      "label": "WRM",
+      "tooltip": "Warm harmonics - orange glow tone",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "flicker",
+      "label": "FLK",
+      "tooltip": "Flicker amount - lamp instability",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ballast",
+      "label": "BAL",
+      "tooltip": "Ballast whine - high frequency buzz",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "glow",
+      "label": "GLO",
+      "tooltip": "Warm glow - underlying pad",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

@@ -2,12 +2,58 @@
   "generator_id": "rib",
   "name": "RIB",
   "synthdef": "forge_scorn_rib",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "bone", "label": "BON", "tooltip": "Bone resonance - structure", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "hollow", "label": "HLW", "tooltip": "Hollow spacing - cavity", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "crack", "label": "CRK", "tooltip": "Crack rate - stress sounds", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "tension", "label": "TEN", "tooltip": "Structural tension - stress", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "marrow", "label": "MRW", "tooltip": "Inner marrow - deep warmth", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "bone",
+      "label": "BON",
+      "tooltip": "Bone resonance - structure",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hollow",
+      "label": "HLW",
+      "tooltip": "Hollow spacing - cavity",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "crack",
+      "label": "CRK",
+      "tooltip": "Crack rate - stress sounds",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tension",
+      "label": "TEN",
+      "tooltip": "Structural tension - stress",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "marrow",
+      "label": "MRW",
+      "tooltip": "Inner marrow - deep warmth",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

@@ -2,12 +2,58 @@
   "generator_id": "frozen_breath",
   "name": "FROZEN BREATH",
   "synthdef": "forge_hoar_frost_frozen_breath",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "airiness", "label": "AIR", "tooltip": "Air - noise breathiness", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "formant1", "label": "FR1", "tooltip": "Formant 1 - lower resonance", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "formant2", "label": "FR2", "tooltip": "Formant 2 - upper resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "breathrate", "label": "BTH", "tooltip": "Breath - modulation rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "tonal", "label": "TON", "tooltip": "Tone - pitched undertone", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "airiness",
+      "label": "AIR",
+      "tooltip": "Air - noise breathiness",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "formant1",
+      "label": "FR1",
+      "tooltip": "Formant 1 - lower resonance",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "formant2",
+      "label": "FR2",
+      "tooltip": "Formant 2 - upper resonance",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "breathrate",
+      "label": "BTH",
+      "tooltip": "Breath - modulation rate",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tonal",
+      "label": "TON",
+      "tooltip": "Tone - pitched undertone",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

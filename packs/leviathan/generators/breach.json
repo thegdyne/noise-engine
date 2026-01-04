@@ -2,6 +2,7 @@
   "generator_id": "breach",
   "name": "Breach",
   "synthdef": "forge_leviathan_breach",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
     {
       "key": "mass",

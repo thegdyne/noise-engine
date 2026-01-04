@@ -1,5 +1,6 @@
 {
-    "name": "Test Synth",
-    "synthdef": "testSynth",
-    "custom_params": []
+  "name": "Test Synth",
+  "synthdef": "testSynth",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": []
 }

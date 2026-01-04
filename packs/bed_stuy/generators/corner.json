@@ -2,12 +2,58 @@
   "generator_id": "corner",
   "name": "CORNER",
   "synthdef": "forge_bed_stuy_corner",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "traffic", "label": "TRF", "tooltip": "Traffic drone - cars passing", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "voices", "label": "VOX", "tooltip": "Distant voices - street chatter", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "sirens", "label": "SRN", "tooltip": "Siren wail - emergency", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "subway", "label": "SUB", "tooltip": "Subway rumble - underground", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "night", "label": "NIT", "tooltip": "Night filter - darkness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "traffic",
+      "label": "TRF",
+      "tooltip": "Traffic drone - cars passing",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "voices",
+      "label": "VOX",
+      "tooltip": "Distant voices - street chatter",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sirens",
+      "label": "SRN",
+      "tooltip": "Siren wail - emergency",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "subway",
+      "label": "SUB",
+      "tooltip": "Subway rumble - underground",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "night",
+      "label": "NIT",
+      "tooltip": "Night filter - darkness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,
