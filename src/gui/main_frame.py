@@ -1941,8 +1941,6 @@ class MainFrame(QMainWindow):
                 filepath = Path(filepath)
                 state = self.preset_manager.load(filepath)
                 self._apply_preset(state)
-                # Safety: reset master to 0 so presets don't blast audio
-                self.master_section.set_volume(0.0)
                 self.preset_name.setText(state.name)
                 logger.info(f"Preset loaded: {state.name}", component="PRESET")
                 self._clear_dirty(state.name, filepath)
