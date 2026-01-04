@@ -118,46 +118,76 @@ DEFAULT_FX = {
     },
 }
 
-# Mod slot defaults - one of each modulator type
+# =============================================================================
+# Modulator Defaults
+# =============================================================================
+# These match what modulator_slot.py get_state() returns and set_state() expects.
+#
+# MOD_CLOCK_RATES = ['/64', '/32', '/16', '/8', '/4', '/2', '1', 'x2', 'x4', 'x8', 'x16', 'x32']
+#                     0      1      2      3     4     5    6    7     8     9     10     11
+#
+# Rate mapping: idx = round(rate_norm * 11) for 12 items (indices 0-11)
+#   /32 → idx 1 → rate_norm = 1/11 ≈ 0.091
+#   /8  → idx 3 → rate_norm = 3/11 ≈ 0.273
+#
+# Waveforms (output_wave): 0=SAW, 1=TRI, 2=SQR, 3=SIN, 4=S&H
+# Phases (output_phase): 0=0°, 1=45°, 2=90°, 3=135°, 4=180°, 5=225°, 6=270°, 7=315°
+# Sloth modes: 0=Torpor (15-30s), 1=Apathy (60-90s), 2=Inertia (30-40min)
+# Polarity: 0=NORM, 1=INV
+# =============================================================================
+
+# LFO: Has wave, phase, polarity per output
 DEFAULT_MOD_SLOT_LFO = {
     "generator_name": "LFO",
-    "params": {"mode": 0, "rate": 0.5, "shape": 0.0},
-    "output_wave": [0, 0, 0, 0],
-    "output_phase": [0, 3, 5, 6],
-    "output_polarity": [0, 0, 0, 0],
+    "params": {
+        "mode": 0,           # 0=CLK
+        "rate": 0.091,       # /32 (index 1 of 12)
+    },
+    "output_wave": [3, 3, 3, 3],      # TRI on all 4
+    "output_phase": [0, 2, 4, 6],     # 0°, 90°, 180°, 270° (quadrature)
+    "output_polarity": [0, 0, 0, 0],  # NORM on all 4
 }
 
+# Sloth: Only mode param, polarity per output
 DEFAULT_MOD_SLOT_SLOTH = {
     "generator_name": "Sloth",
-    "params": {"rate": 0.5},
-    "output_wave": [0, 0, 0, 0],
-    "output_phase": [0, 0, 0, 0],
-    "output_polarity": [0, 0, 0, 0],
+    "params": {
+        "mode": 1,           # 1=Apathy (60-90s cycles)
+    },
+    "output_polarity": [0, 0, 0, 0],  # X=NORM, Y=NORM, Z=NORM, R=NORM
 }
 
+# ARSEq+: mode, clock_mode, rate params; envelope settings per output
 DEFAULT_MOD_SLOT_ARSEQ = {
     "generator_name": "ARSEq+",
-    "params": {"mode": 0, "rate": 0.5},
-    "output_wave": [0, 0, 0, 0],
-    "output_phase": [0, 0, 0, 0],
-    "output_polarity": [0, 0, 0, 0],
+    "params": {
+        "mode": 0,           # 0=SEQ
+        "clock_mode": 0,     # 0=CLK
+        "rate": 0.489,       # /8 (index 3 of 12)
+    },
+    "output_polarity": [0, 0, 0, 0],  # NORM on all 4
+    "env_attack": [0.0, 0.0, 0.0, 0.0],       # Fast attack
+    "env_release": [0.2, 0.2, 0.2, 0.2],      # Medium release
+    "env_curve": [0.5, 0.5, 0.5, 0.5],        # Linear (0.5 = center)
+    "env_sync_mode": [0, 0, 0, 0],            # All SYN (follow master)
+    "env_loop_rate": [6, 6, 6, 6],            # 1:1 rate if in LOP mode
 }
 
+# SauceOfGrav: Has tension, mass, polarity per output
 DEFAULT_MOD_SLOT_SAUCEGRAV = {
     "generator_name": "SauceOfGrav",
     "params": {
+        "clock_mode": 0,     # 0=CLK
         "rate": 0.5,
         "depth": 0.5,
-        "gravity": 0.4,      # Lower = more hub influence, interesting drift
-        "resonance": 0.6,    # Ensure motion stays alive
-        "excursion": 0.6,    # Wider hub travel, more expressive
-        "calm": 0.55         # Slightly toward wild for visible motion
+        "gravity": 0.5,
+        "resonance": 0.5,
+        "excursion": 0.5,
+        "calm": 0.5,
     },
-    "output_wave": [0, 0, 0, 0],      # N/A for SauceOfGrav
-    "output_phase": [0, 0, 0, 0],     # N/A for SauceOfGrav
     "output_polarity": [0, 0, 0, 0],
-    "output_tension": [0.45, 0.55, 0.50, 0.60],  # Asymmetric = more interesting
-    "output_mass": [0.40, 0.55, 0.45, 0.60],     # Different arc speeds
+    "output_tension": [0.30, 0.45, 0.55, 0.70],  # Matches builder defaults
+    "output_mass": [0.65, 0.55, 0.45, 0.35],     # Matches builder defaults
 }
 
 

@@ -211,52 +211,46 @@ class ModulatorSlot(QWidget):
         normalized = value / 1000.0
         self.mass_changed.emit(self.slot_id, output_idx, normalized)
 
-    # ARSEq+ envelope handlers
-    def _on_env_attack_changed(self, env_idx, slider_value):
-        """Handle envelope attack time change."""
-        normalized = slider_value / 1000.0
+    def _on_env_attack_changed(self, env_idx, value):
+        """Handle ARSEq+ envelope attack change."""
+        normalized = value / 1000.0
         self.env_attack_changed.emit(self.slot_id, env_idx, normalized)
 
-    def _on_env_release_changed(self, env_idx, slider_value):
-        """Handle envelope release time change."""
-        normalized = slider_value / 1000.0
+    def _on_env_release_changed(self, env_idx, value):
+        """Handle ARSEq+ envelope release change."""
+        normalized = value / 1000.0
         self.env_release_changed.emit(self.slot_id, env_idx, normalized)
 
-    def _on_env_curve_changed(self, env_idx, slider_value):
-        """Handle envelope curve change."""
-        normalized = slider_value / 1000.0
+    def _on_env_curve_changed(self, env_idx, value):
+        """Handle ARSEq+ envelope curve change."""
+        normalized = value / 1000.0
         self.env_curve_changed.emit(self.slot_id, env_idx, normalized)
 
-    def _on_env_sync_mode_changed(self, env_idx, mode_idx):
-        """Handle SYN/LOP toggle."""
-        self.env_sync_mode_changed.emit(self.slot_id, env_idx, mode_idx)
-        # Rate selector visibility now controlled by shift+click on MODE button
+    def _on_env_sync_mode_changed(self, env_idx, mode):
+        """Handle ARSEq+ envelope sync mode change (0=SYNC, 1=LOOP)."""
+        self.env_sync_mode_changed.emit(self.slot_id, env_idx, mode)
 
     def _on_env_loop_rate_changed(self, env_idx, rate_idx):
-        """Handle envelope loop rate change."""
+        """Handle ARSEq+ envelope loop rate change."""
         self.env_loop_rate_changed.emit(self.slot_id, env_idx, rate_idx)
 
     def _update_style_for_generator(self, gen_name):
-        """Update slot styling based on generator type."""
-        if gen_name == "LFO":
-            border_color = COLORS['accent_mod_lfo']
-        elif gen_name == "Sloth":
-            border_color = COLORS['accent_mod_sloth']
-        elif gen_name == "ARSEq+":
-            border_color = COLORS.get('accent_mod_arseq_plus', '#00CCCC')
-        elif gen_name == "SauceOfGrav":
-            border_color = COLORS.get('accent_mod_sauce_of_grav', '#FF6600')
-        else:
-            border_color = COLORS['border']
-            
+        """Apply styling based on generator type."""
+        accent_key = {
+            "LFO": "accent_mod_lfo",
+            "Sloth": "accent_mod_sloth",
+            "ARSEq+": "accent_mod_arseq_plus",
+            "SauceOfGrav": "accent_mod_sauce_of_grav",
+        }.get(gen_name, "accent_mod_lfo")
+        accent = COLORS.get(accent_key, COLORS['accent_mod_lfo'])
+        
         self.setStyleSheet(f"""
             ModulatorSlot {{
-                border: 2px solid {border_color};
+                border: 2px solid {accent};
                 border-radius: 6px;
                 background-color: {COLORS['background_light']};
             }}
         """)
-        # Enable and clear scope for active generator
         self.scope.setEnabled(True)
         self.scope.clear()
         
@@ -287,6 +281,13 @@ class ModulatorSlot(QWidget):
         output_polarity = []
         output_tension = []
         output_mass = []
+        
+        # ARSEq+ envelope states
+        env_attack = []
+        env_release = []
+        env_curve = []
+        env_sync_mode = []
+        env_loop_rate = []
 
         for row_widgets in self.output_rows:
             # Wave (if present)
@@ -319,6 +320,32 @@ class ModulatorSlot(QWidget):
             else:
                 output_mass.append(0.5)
 
+            # ARSEq+ envelope params
+            if 'atk' in row_widgets:
+                env_attack.append(row_widgets['atk'].value() / 1000.0)
+            else:
+                env_attack.append(0.5)
+                
+            if 'rel' in row_widgets:
+                env_release.append(row_widgets['rel'].value() / 1000.0)
+            else:
+                env_release.append(0.5)
+                
+            if 'curve' in row_widgets:
+                env_curve.append(row_widgets['curve'].value() / 1000.0)
+            else:
+                env_curve.append(0.5)
+                
+            if 'sync_mode' in row_widgets:
+                env_sync_mode.append(row_widgets['sync_mode'].index)
+            else:
+                env_sync_mode.append(0)
+                
+            if 'loop_rate' in row_widgets:
+                env_loop_rate.append(row_widgets['loop_rate'].index)
+            else:
+                env_loop_rate.append(6)
+
         # Pad to 4 outputs if fewer
         while len(output_wave) < 4:
             output_wave.append(0)
@@ -326,12 +353,20 @@ class ModulatorSlot(QWidget):
             output_phase.append(0)
         while len(output_polarity) < 4:
             output_polarity.append(0)
-
-        # Pad to 4 outputs
         while len(output_tension) < 4:
             output_tension.append(0.5)
         while len(output_mass) < 4:
             output_mass.append(0.5)
+        while len(env_attack) < 4:
+            env_attack.append(0.5)
+        while len(env_release) < 4:
+            env_release.append(0.5)
+        while len(env_curve) < 4:
+            env_curve.append(0.5)
+        while len(env_sync_mode) < 4:
+            env_sync_mode.append(0)
+        while len(env_loop_rate) < 4:
+            env_loop_rate.append(6)
 
         return {
             "generator_name": self.generator_name,
@@ -341,6 +376,11 @@ class ModulatorSlot(QWidget):
             "output_polarity": output_polarity[:4],
             "output_tension": output_tension[:4],
             "output_mass": output_mass[:4],
+            "env_attack": env_attack[:4],
+            "env_release": env_release[:4],
+            "env_curve": env_curve[:4],
+            "env_sync_mode": env_sync_mode[:4],
+            "env_loop_rate": env_loop_rate[:4],
         }
 
     def set_state(self, state: dict):
@@ -380,6 +420,13 @@ class ModulatorSlot(QWidget):
         output_polarity = state.get("output_polarity", [0, 0, 0, 0])
         output_tension = state.get("output_tension", [0.5, 0.5, 0.5, 0.5])
         output_mass = state.get("output_mass", [0.5, 0.5, 0.5, 0.5])
+        
+        # ARSEq+ envelope states
+        env_attack = state.get("env_attack", [0.5, 0.5, 0.5, 0.5])
+        env_release = state.get("env_release", [0.5, 0.5, 0.5, 0.5])
+        env_curve = state.get("env_curve", [0.5, 0.5, 0.5, 0.5])
+        env_sync_mode = state.get("env_sync_mode", [0, 0, 0, 0])
+        env_loop_rate = state.get("env_loop_rate", [6, 6, 6, 6])
 
         for i, row_widgets in enumerate(self.output_rows):
             if i >= 4:
@@ -417,6 +464,36 @@ class ModulatorSlot(QWidget):
                     row_widgets['mass'].setValue(int(output_mass[i] * 1000))
                     row_widgets['mass'].blockSignals(False)
 
+            # ARSEq+ envelope attack
+            if 'atk' in row_widgets and i < len(env_attack):
+                row_widgets['atk'].blockSignals(True)
+                row_widgets['atk'].setValue(int(env_attack[i] * 1000))
+                row_widgets['atk'].blockSignals(False)
+
+            # ARSEq+ envelope release
+            if 'rel' in row_widgets and i < len(env_release):
+                row_widgets['rel'].blockSignals(True)
+                row_widgets['rel'].setValue(int(env_release[i] * 1000))
+                row_widgets['rel'].blockSignals(False)
+
+            # ARSEq+ envelope curve
+            if 'curve' in row_widgets and i < len(env_curve):
+                row_widgets['curve'].blockSignals(True)
+                row_widgets['curve'].setValue(int(env_curve[i] * 1000))
+                row_widgets['curve'].blockSignals(False)
+
+            # ARSEq+ envelope sync mode
+            if 'sync_mode' in row_widgets and i < len(env_sync_mode):
+                row_widgets['sync_mode'].blockSignals(True)
+                row_widgets['sync_mode'].set_index(env_sync_mode[i])
+                row_widgets['sync_mode'].blockSignals(False)
+
+            # ARSEq+ envelope loop rate
+            if 'loop_rate' in row_widgets and i < len(env_loop_rate):
+                row_widgets['loop_rate'].blockSignals(True)
+                row_widgets['loop_rate'].set_index(env_loop_rate[i])
+                row_widgets['loop_rate'].blockSignals(False)
+
         # Send all state to SC
         self._send_all_state_to_osc()
 
@@ -451,5 +528,14 @@ class ModulatorSlot(QWidget):
                 self.tension_changed.emit(self.slot_id, i, row_widgets['tension'].value() / 1000.0)
             if 'mass' in row_widgets:
                 self.mass_changed.emit(self.slot_id, i, row_widgets['mass'].value() / 1000.0)
-
-
+            # ARSEq+ envelope signals
+            if 'atk' in row_widgets:
+                self.env_attack_changed.emit(self.slot_id, i, row_widgets['atk'].value() / 1000.0)
+            if 'rel' in row_widgets:
+                self.env_release_changed.emit(self.slot_id, i, row_widgets['rel'].value() / 1000.0)
+            if 'curve' in row_widgets:
+                self.env_curve_changed.emit(self.slot_id, i, row_widgets['curve'].value() / 1000.0)
+            if 'sync_mode' in row_widgets:
+                self.env_sync_mode_changed.emit(self.slot_id, i, row_widgets['sync_mode'].index)
+            if 'loop_rate' in row_widgets:
+                self.env_loop_rate_changed.emit(self.slot_id, i, row_widgets['loop_rate'].index)

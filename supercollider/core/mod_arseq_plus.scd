@@ -3,7 +3,7 @@ Mod ARSEq+ SynthDef
 4-output AR envelope sequencer with SEQ/PAR modes
 
 Each output has independent AR envelope with:
-- Attack time (0.1ms - 10s SYNC, 0.1ms - 120s LOOP)
+- Attack time (10ms - 5s SYNC, 100ms - 30s LOOP)
 - Release time (same ranges)
 - Curve shape (LOG/LIN/EXP)
 - Sync mode (SYNC: follow master, LOOP: self-cycle)
@@ -67,8 +67,8 @@ SynthDef(\modARSeqPlus, {
     var bpm;
 
     // Time mapping functions
-    var mapSyncTime = { |norm| norm.linexp(0, 1, 0.0001, 10.0) };
-    var mapLoopTime = { |norm| norm.linexp(0, 1, 0.0001, 120.0) };
+    var mapSyncTime = { |norm| norm.linexp(0, 1, 0.01, 5.0) };    // 10ms - 5s
+    var mapLoopTime = { |norm| norm.linexp(0, 1, 0.1, 30.0) };    // 100ms - 30s
     var mapCurve = { |norm| (norm * 2.0) - 1.0 };  // 0-1 → -1 to +1
 
     // Envelope generator function
