@@ -171,7 +171,7 @@ def get_layout(gen_name):
 # Mode labels
 MOD_SLOTH_MODES = ["TOR", "APA", "INE"]
 ARSEQ_SYNC_MODES = ["SYN", "LOP"]
-LFO_ROTATE_PHASES = ["0Â°", "45Â°", "90Â°", "135Â°", "180Â°", "225Â°", "270Â°", "315Â°"]
+LFO_ROTATE_PHASES = ["0", "45", "90", "135", "180", "225", "270", "315"]
 
 
 class ModulatorSlot(QWidget):
@@ -366,12 +366,12 @@ class ModulatorSlot(QWidget):
 
         # Phase
         default_phases = [0, 3, 5, 6]
-        phase_labels = [f"{p}Â°" for p in MOD_LFO_PHASES]
+        phase_labels = [f"{p}" for p in MOD_LFO_PHASES]
         phase_btn = CycleButton(phase_labels, initial_index=default_phases[idx] if idx < 4 else 0, parent=self)
         phase_btn.setGeometry(L['phase_x'], y, L['phase_w'], 22)
         phase_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         phase_btn.setStyleSheet(button_style('submenu'))
-        phase_btn.setToolTip("Phase offset\n0Â° to 315Â° in 45Â° steps")
+        phase_btn.setToolTip("Phase offset\n0 to 315 in 45 steps")
         phase_btn.value_changed.connect(lambda p, i=idx, pl=phase_labels: self._on_phase_changed(i, pl.index(p)))
         self.output_widgets.append(phase_btn)
         row_widgets['phase'] = phase_btn
