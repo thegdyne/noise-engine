@@ -98,7 +98,7 @@ class GeneratorSlot(QWidget):
         self.generator_type = generator_type
         self.active = False
         self.clock_enabled = False  # Legacy
-        self.env_source = 0  # 0=OFF, 1=CLK, 2=MIDI
+        self.env_source = 2  # 0=OFF, 1=CLK, 2=MIDI (default to MIDI)
         self.muted = False
         self.midi_channel = 0  # 0 = OFF, 1-16 = channels
         self.transpose = 0  # Semitones (-24 to +24)

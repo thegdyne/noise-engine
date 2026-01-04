@@ -33,7 +33,7 @@ DEFAULT_SLOT = {
         "custom_4": 0.5,
     },
     "filter_type": 0,
-    "env_source": 0,
+    "env_source": 2,
     "clock_rate": 6,
     "midi_channel": 0,
     "transpose": 2,
