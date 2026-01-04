@@ -306,7 +306,8 @@ class GeneratorSlot(QWidget):
                 slider.valueChanged.connect(
                     lambda v, k=key, pc=param_config: self.on_param_changed(k, v / 1000.0, pc)
                 )
-            
+
+            slider.setEnabled(False)  # Disabled until generator loaded
             self.sliders[key] = slider
         
         # ----- BUTTONS -----
@@ -317,42 +318,49 @@ class GeneratorSlot(QWidget):
         self.filter_btn.value_changed.connect(self.on_filter_changed)
         self.filter_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         self.filter_btn.setStyleSheet(button_style('submenu'))
-        
+        self.filter_btn.setEnabled(False)
+
         self.env_btn = CycleButton(ENV_SOURCES, parent=self)
         self.env_btn.setGeometry(btn_x, L['btn_env_y'], btn_w, btn_h)
         self.env_btn.value_changed.connect(self.on_env_source_changed)
         self.env_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        self.env_btn.setEnabled(False)
         
         self.rate_btn = CycleButton(CLOCK_RATES, parent=self)
         self.rate_btn.setGeometry(btn_x, L['btn_rate_y'], btn_w, btn_h)
         self.rate_btn.value_changed.connect(self.on_rate_changed)
         self.rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         self.rate_btn.set_index(4)  # Default to 1/4
-        
+        self.rate_btn.setEnabled(False)
+
         self.transpose_btn = CycleButton([str(s) for s in TRANSPOSE_SEMITONES], parent=self)
         self.transpose_btn.setGeometry(btn_x, L['btn_trans_y'], btn_w, btn_h)
         self.transpose_btn.value_changed.connect(self.on_transpose_changed)
         self.transpose_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         self.transpose_btn.setStyleSheet(button_style('submenu'))
         self.transpose_btn.set_index(2)  # Default to 0 semitones
-        
+        self.transpose_btn.setEnabled(False)
+
         midi_values = ['OFF'] + [str(i) for i in range(1, 17)]
         self.midi_btn = CycleButton(midi_values, parent=self)
         self.midi_btn.setGeometry(btn_x, L['btn_midi_y'], btn_w, btn_h)
         self.midi_btn.value_changed.connect(self.on_midi_channel_changed)
         self.midi_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         self.midi_btn.setStyleSheet(midi_channel_style(False))
+        self.midi_btn.setEnabled(False)
         
         self.mute_btn = CycleButton(['M', 'M'], parent=self)
         self.mute_btn.setGeometry(btn_x, L['btn_mute_y'], btn_w, btn_h)
         self.mute_btn.value_changed.connect(self.toggle_mute)
         self.mute_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
         self.mute_btn.setStyleSheet(mute_button_style(False))
+        self.mute_btn.setEnabled(False)
         
         # ----- GATE INDICATOR -----
         self.gate_led = QLabel(self)
         self.gate_led.setGeometry(L['gate_x'], L['gate_y'], L['gate_w'], L['gate_h'])
         self.gate_led.setStyleSheet(gate_indicator_style(False))
+        self.gate_led.setEnabled(False)
 
         # ----- PORTAMENTO -----
         self.port_label = QLabel("PORT", self)
@@ -368,6 +376,7 @@ class GeneratorSlot(QWidget):
         self.portamento_knob.setObjectName(f"gen{self.slot_id}_port")
         self.portamento_knob.setToolTip("Portamento")
         self.portamento_knob.valueChanged.connect(self.on_portamento_changed)
+        self.portamento_knob.setEnabled(False)
         
         # ----- SCOPE -----
         self.scope = GenScope(self)
