@@ -2,7 +2,7 @@
 Generator Slot v3 - Flat absolute positioning with full functionality
 Styled like ModulatorSlot - green accent border when loaded
 """
-from PyQt5.QtWidgets import QWidget, QLabel, QFrame
+from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QPainter, QPen, QPainterPath, QColor
 
@@ -209,8 +209,10 @@ class GeneratorSlot(QWidget):
         self.midi_channel = 0  # 0 = OFF, 1-16 = channels
         self.transpose = 0  # Semitones (-24 to +24)
         self.portamento = 0  # Portamento time (0-1)
-        
-        self.setFixedSize(L['slot_width'], L['slot_height'])
+
+        self.setFixedWidth(L['slot_width'])
+        self.setMinimumHeight(L['slot_height'])
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         
         # Gate indicator flash timer
         self.gate_timer = QTimer()

@@ -5,6 +5,7 @@ Run with: python -c "from src.gui.debug_dump import dump_ui; dump_ui()"
 
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtCore import QSize
+import os
 
 
 def widget_info(w):
@@ -12,6 +13,7 @@ def widget_info(w):
     info = {
         'class': w.__class__.__name__,
         'objectName': w.objectName() or '(unnamed)',
+        'pos': f"{w.x()},{w.y()}",
         'size': f"{w.width()}x{w.height()}",
         'sizeHint': fmt_size(w.sizeHint()),
         'minimumSizeHint': fmt_size(w.minimumSizeHint()),
@@ -74,7 +76,7 @@ def dump_widget_tree(widget, indent=0, lines=None, filter_name=None):
 
     # Compact format
     fixed_marker = f" ⚠️{info['fixedSize']}" if info['fixedSize'] else ""
-    line = f"{prefix}{info['objectName']} ({info['class']}) {info['size']}{fixed_marker}"
+    line = f"{prefix}{info['objectName']} ({info['class']}) @{info['pos']} {info['size']}{fixed_marker}"
     lines.append(line)
 
     # Details on next line if interesting
@@ -111,14 +113,43 @@ def dump_mod_slots():
                     output = '\n'.join(lines)
 
                     # Write to file
-                    with open('/tmp/mod_slots_dump.txt', 'w') as f:
+                    outpath = os.path.expanduser('~/Downloads/mod_slots_dump.txt')
+                    with open(outpath, 'w') as f:
                         f.write(output)
 
                     print(output)
-                    print(f"\n\nSaved to /tmp/mod_slots_dump.txt")
+                    print(f"\n\nSaved to {outpath}")
                     return
 
     print("ModulatorGrid not found")
+
+
+def dump_gen_slots():
+    """Dump just the generator slot hierarchy."""
+    app = QApplication.instance()
+    if not app:
+        print("No QApplication running")
+        return
+
+    # Find main window
+    for w in app.topLevelWidgets():
+        if w.__class__.__name__ == 'MainFrame':
+            # Find GeneratorGrid
+            for child in w.findChildren(QWidget):
+                if child.__class__.__name__ == 'GeneratorGrid':
+                    lines = dump_widget_tree(child)
+                    output = '\n'.join(lines)
+
+                    # Write to file
+                    outpath = os.path.expanduser('~/Downloads/gen_slots_dump.txt')
+                    with open(outpath, 'w') as f:
+                        f.write(output)
+
+                    print(output)
+                    print(f"\n\nSaved to {outpath}")
+                    return
+
+    print("GeneratorGrid not found")
 
 
 def dump_ui():
@@ -142,10 +173,15 @@ def dump_ui():
 
 # Hook into running app - call from console or add hotkey
 def install_dump_hotkey(main_window):
-    """Install F12 hotkey to dump mod slots."""
+    """Install F8/F12 hotkeys to dump widget hierarchies."""
     from PyQt5.QtWidgets import QShortcut
     from PyQt5.QtGui import QKeySequence
 
-    shortcut = QShortcut(QKeySequence('F12'), main_window)
-    shortcut.activated.connect(dump_mod_slots)
+    shortcut_mod = QShortcut(QKeySequence('F12'), main_window)
+    shortcut_mod.activated.connect(dump_mod_slots)
+
+    shortcut_gen = QShortcut(QKeySequence('F8'), main_window)
+    shortcut_gen.activated.connect(dump_gen_slots)
+
+    print("F8 hotkey installed - press to dump generator slot hierarchy")
     print("F12 hotkey installed - press to dump mod slot hierarchy")
