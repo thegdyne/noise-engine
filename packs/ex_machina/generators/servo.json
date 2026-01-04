@@ -2,12 +2,58 @@
   "generator_id": "servo",
   "name": "SERVO",
   "synthdef": "forge_ex_machina_servo",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "motor", "label": "MTR", "tooltip": "Motor whir - mechanical noise", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "precision", "label": "PRC", "tooltip": "Precision - movement clicks", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "focus", "label": "FCS", "tooltip": "Focus mechanism - lens adjust", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "track", "label": "TRK", "tooltip": "Tracking rate - eye movement", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "idle", "label": "IDL", "tooltip": "Idle hum - resting state", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "motor",
+      "label": "MTR",
+      "tooltip": "Motor whir - mechanical noise",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "precision",
+      "label": "PRC",
+      "tooltip": "Precision - movement clicks",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "focus",
+      "label": "FCS",
+      "tooltip": "Focus mechanism - lens adjust",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "track",
+      "label": "TRK",
+      "tooltip": "Tracking rate - eye movement",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "idle",
+      "label": "IDL",
+      "tooltip": "Idle hum - resting state",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

@@ -1,57 +1,58 @@
 {
-    "name": "STONERAIN",
-    "synthdef": "stonerain",
-    "custom_params": [
-        {
-            "key": "drops",
-            "label": "DRP",
-            "tooltip": "Rain density",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "stone",
-            "label": "STN",
-            "tooltip": "Stone surface resonance",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "pool",
-            "label": "POL",
-            "tooltip": "Pooled water splashes",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "distance",
-            "label": "DST",
-            "tooltip": "Spatial depth",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "flow",
-            "label": "FLW",
-            "tooltip": "Running water",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "STONERAIN",
+  "synthdef": "stonerain",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": [
+    {
+      "key": "drops",
+      "label": "DRP",
+      "tooltip": "Rain density",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "stone",
+      "label": "STN",
+      "tooltip": "Stone surface resonance",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pool",
+      "label": "POL",
+      "tooltip": "Pooled water splashes",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "distance",
+      "label": "DST",
+      "tooltip": "Spatial depth",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "flow",
+      "label": "FLW",
+      "tooltip": "Running water",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

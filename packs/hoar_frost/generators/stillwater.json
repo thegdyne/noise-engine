@@ -2,12 +2,58 @@
   "generator_id": "stillwater",
   "name": "STILLWATER",
   "synthdef": "forge_hoar_frost_stillwater",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "depth", "label": "DPT", "tooltip": "Depth - sub octave ratio", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ice", "label": "ICE", "tooltip": "Ice - high harmonic shimmer", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "movement", "label": "MOV", "tooltip": "Movement - slow drift rate", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "sub", "label": "SUB", "tooltip": "Sub level - deep bass presence", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "clarity", "label": "CLR", "tooltip": "Clarity - waveform sharpness", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "depth",
+      "label": "DPT",
+      "tooltip": "Depth - sub octave ratio",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ice",
+      "label": "ICE",
+      "tooltip": "Ice - high harmonic shimmer",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "movement",
+      "label": "MOV",
+      "tooltip": "Movement - slow drift rate",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sub",
+      "label": "SUB",
+      "tooltip": "Sub level - deep bass presence",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "clarity",
+      "label": "CLR",
+      "tooltip": "Clarity - waveform sharpness",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

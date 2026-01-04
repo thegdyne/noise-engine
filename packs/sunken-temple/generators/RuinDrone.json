@@ -1,57 +1,58 @@
 {
-    "name": "RUINDRONE",
-    "synthdef": "ruindrone",
-    "custom_params": [
-        {
-            "key": "mass",
-            "label": "MAS",
-            "tooltip": "Stone mass and weight",
-            "default": 0.6,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "space",
-            "label": "SPC",
-            "tooltip": "Cathedral vastness",
-            "default": 0.7,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "crack",
-            "label": "CRK",
-            "tooltip": "Structural fractures",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "age",
-            "label": "AGE",
-            "tooltip": "Ancient decay",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "hollow",
-            "label": "HLW",
-            "tooltip": "Empty resonance",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "RUINDRONE",
+  "synthdef": "ruindrone",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": [
+    {
+      "key": "mass",
+      "label": "MAS",
+      "tooltip": "Stone mass and weight",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "space",
+      "label": "SPC",
+      "tooltip": "Cathedral vastness",
+      "default": 0.7,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "crack",
+      "label": "CRK",
+      "tooltip": "Structural fractures",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "age",
+      "label": "AGE",
+      "tooltip": "Ancient decay",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hollow",
+      "label": "HLW",
+      "tooltip": "Empty resonance",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

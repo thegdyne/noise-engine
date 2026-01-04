@@ -2,12 +2,58 @@
   "generator_id": "glass",
   "name": "GLASS",
   "synthdef": "forge_ex_machina_glass",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "pane", "label": "PAN", "tooltip": "Glass pane - resonance level", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "cold", "label": "CLD", "tooltip": "Cold brightness - high frequency", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "touch", "label": "TCH", "tooltip": "Touch rate - tap events", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "hum", "label": "HUM", "tooltip": "Facility hum - electrical drone", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "sterile", "label": "STR", "tooltip": "Sterile air - clinical atmosphere", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "pane",
+      "label": "PAN",
+      "tooltip": "Glass pane - resonance level",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cold",
+      "label": "CLD",
+      "tooltip": "Cold brightness - high frequency",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "touch",
+      "label": "TCH",
+      "tooltip": "Touch rate - tap events",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hum",
+      "label": "HUM",
+      "tooltip": "Facility hum - electrical drone",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sterile",
+      "label": "STR",
+      "tooltip": "Sterile air - clinical atmosphere",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

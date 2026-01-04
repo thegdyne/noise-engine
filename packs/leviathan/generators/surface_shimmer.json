@@ -2,6 +2,7 @@
   "generator_id": "surface_shimmer",
   "name": "Surface Shimmer",
   "synthdef": "forge_leviathan_surface_shimmer",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "sun",

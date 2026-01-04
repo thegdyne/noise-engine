@@ -418,14 +418,14 @@ class DragSlider(QSlider):
                 self.setValue(new_value)
                 self.normalizedValueChanged.emit(new_value / 1000.0)
                 self._update_popup()
-                
+
     def mouseReleaseEvent(self, event):
         """End drag."""
         if event.button() == Qt.LeftButton:
             self.dragging = False
             if self._popup:
                 self._popup.hide_value()
-    
+
     def setDoubleClickValue(self, value):
         """Enable double-click to reset slider to specified value."""
         self._double_click_value = value
@@ -561,7 +561,7 @@ class DragValue(QLabel):
                 self._value = new_value
                 self._update_display()
                 self.value_changed.emit(self._value)
-                
+
     def mouseReleaseEvent(self, event):
         """End drag."""
         if event.button() == Qt.LeftButton:
@@ -742,12 +742,16 @@ class CycleButton(QPushButton):
                 self.index = new_index
                 self._update_display()
                 self._emit_signals()
-                
+
     def mouseReleaseEvent(self, event):
-        """End drag. If no movement, cycle forward."""
+        """End drag. If no movement, cycle forward. Shift+click calls special handler if set."""
         if event.button() == Qt.LeftButton:
             if not self.moved_during_press:
-                self.cycle_forward()
+                modifiers = QApplication.keyboardModifiers()
+                if modifiers & Qt.ShiftModifier and hasattr(self, 'shift_click_callback') and self.shift_click_callback:
+                    self.shift_click_callback()
+                else:
+                    self.cycle_forward()
             self.dragging = False
             self.moved_during_press = False
 

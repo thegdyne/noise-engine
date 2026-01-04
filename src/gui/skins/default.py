@@ -55,6 +55,11 @@ SKIN = {
     'accent_mod_arseq_plus': '#00CCCC',      # Cyan
     'accent_mod_arseq_plus_dim': '#007777',  # Dimmed cyan
 
+    # Mod SauceOfGrav
+    'accent_mod_sauce_of_grav': '#FF00FF',
+    'accent_mod_sauce_of_grav_dim': '#990099',
+    'reset_button': '#CC3333',
+
     # Effects - Purple
     'accent_effect': '#aa88ff',
     'accent_effect_dim': '#6644aa',

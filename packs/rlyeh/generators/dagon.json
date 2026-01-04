@@ -2,12 +2,58 @@
   "generator_id": "dagon",
   "name": "DAGON",
   "synthdef": "forge_rlyeh_dagon",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "bubble", "label": "BUB", "tooltip": "Bubble rate - underwater texture", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "depth", "label": "DPT", "tooltip": "Ocean depth - low pass darkness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "scale", "label": "SCL", "tooltip": "Fish scale - harmonic shimmer", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "call", "label": "CAL", "tooltip": "Deep one call - eerie vocalization", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ancient", "label": "ANC", "tooltip": "Ancient presence - fundamental drone", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "bubble",
+      "label": "BUB",
+      "tooltip": "Bubble rate - underwater texture",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "depth",
+      "label": "DPT",
+      "tooltip": "Ocean depth - low pass darkness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "scale",
+      "label": "SCL",
+      "tooltip": "Fish scale - harmonic shimmer",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "call",
+      "label": "CAL",
+      "tooltip": "Deep one call - eerie vocalization",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ancient",
+      "label": "ANC",
+      "tooltip": "Ancient presence - fundamental drone",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

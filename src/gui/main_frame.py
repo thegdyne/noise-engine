@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLabel, QFrame, QShortcut, QApplication)
-from PyQt5.QtCore import Qt, QEvent, QTimer
+from PyQt5.QtCore import Qt, QEvent, QTimer, QSettings
 from PyQt5.QtGui import QFont, QKeySequence
 
 from src.gui.generator_grid import GeneratorGrid
@@ -48,7 +48,7 @@ class MainFrame(QMainWindow):
         
         self.setWindowTitle("Noise Engine")
         self.setMinimumSize(1200, 700)
-        self.setGeometry(100, 50, 1400, 800)
+        self._restore_window_geometry()
         
         self.setAttribute(Qt.WA_AcceptTouchEvents, False)
         
@@ -63,6 +63,9 @@ class MainFrame(QMainWindow):
         self._cc_timer = QTimer(self)
         self._cc_timer.timeout.connect(self._process_pending_cc)
         self._cc_timer.start(16)  # ~60Hz
+
+        # Preset menu
+        self._setup_preset_menu()
 
         # MIDI menu
         self._setup_midi_menu()
@@ -111,6 +114,11 @@ class MainFrame(QMainWindow):
         # Dirty state tracking (unsaved changes indicator)
         self._dirty = False
         self._current_preset_name = None
+        self._current_preset_path = None  # Full path to loaded/saved preset
+        
+        # MIDI mapping tracking
+        self._current_midi_mapping_name = None
+        self._current_midi_mapping_path = None
 
 
         # Scope repaint throttling (~30fps instead of per-message)
@@ -122,6 +130,10 @@ class MainFrame(QMainWindow):
         # Install event filter for keyboard overlay
         self.installEventFilter(self)
 
+        # Debug hotkey
+        from .debug_dump import install_dump_hotkey
+        install_dump_hotkey(self)
+
     # Dirty State Tracking
 
     def _mark_dirty(self):
@@ -130,10 +142,11 @@ class MainFrame(QMainWindow):
             self._dirty = True
             self._update_window_title()
 
-    def _clear_dirty(self, preset_name: str = None):
+    def _clear_dirty(self, preset_name: str = None, preset_path = None):
         """Clear dirty flag after save/load."""
         self._dirty = False
         self._current_preset_name = preset_name
+        self._current_preset_path = preset_path
         self._update_window_title()
 
     def _update_window_title(self):
@@ -144,6 +157,23 @@ class MainFrame(QMainWindow):
         if self._dirty:
             base = f"• {base}"
         self.setWindowTitle(base)
+
+    # ── Window Geometry Persistence ──────────────────────────────────
+
+    def _restore_window_geometry(self):
+        """Restore window geometry from settings, or use defaults."""
+        settings = QSettings("NoiseEngine", "NoiseEngine")
+        geometry = settings.value("window/geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+        else:
+            # First run defaults
+            self.setGeometry(100, 50, 1400, 800)
+
+    def _save_window_geometry(self):
+        """Save window geometry to settings."""
+        settings = QSettings("NoiseEngine", "NoiseEngine")
+        settings.setValue("window/geometry", self.saveGeometry())
 
     def setup_ui(self):
         """Create the main interface layout."""
@@ -184,6 +214,10 @@ class MainFrame(QMainWindow):
         self.modulator_grid.env_curve_changed.connect(self.on_mod_env_curve)
         self.modulator_grid.env_sync_mode_changed.connect(self.on_mod_env_sync_mode)
         self.modulator_grid.env_loop_rate_changed.connect(self.on_mod_env_loop_rate)
+
+        # SauceOfGrav output signals
+        self.modulator_grid.tension_changed.connect(self.on_mod_tension)
+        self.modulator_grid.mass_changed.connect(self.on_mod_mass)
         content_layout.addWidget(self.modulator_grid)
         
         # Scope repaint timer (~30fps)
@@ -275,6 +309,10 @@ class MainFrame(QMainWindow):
         # Shortcut: save preset (Ctrl+S / Cmd+S)
         save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         save_shortcut.activated.connect(self._save_preset)
+
+        # Shortcut: save preset as (Ctrl+Shift+S / Cmd+Shift+S)
+        save_as_shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self)
+        save_as_shortcut.activated.connect(self._save_preset_as)
 
         # Shortcut: load preset (Ctrl+O / Cmd+O)
         load_shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
@@ -372,11 +410,19 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.preset_name)
 
         self.save_btn = QPushButton("Save")
+        self.save_btn.setToolTip("Save preset (Ctrl+S)")
         self.save_btn.setStyleSheet(button_style('submenu'))
         self.save_btn.clicked.connect(self._save_preset)
         layout.addWidget(self.save_btn)
 
+        self.save_as_btn = QPushButton("Save As")
+        self.save_as_btn.setToolTip("Save preset as new file (Ctrl+Shift+S)")
+        self.save_as_btn.setStyleSheet(button_style('submenu'))
+        self.save_as_btn.clicked.connect(self._save_preset_as)
+        layout.addWidget(self.save_as_btn)
+
         self.load_btn = QPushButton("Load")
+        self.load_btn.setToolTip("Load preset (Ctrl+O)")
         self.load_btn.setStyleSheet(button_style('submenu'))
         self.load_btn.clicked.connect(self._load_preset)
         layout.addWidget(self.load_btn)
@@ -866,6 +912,12 @@ class MainFrame(QMainWindow):
                 self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, out_idx, row['phase'].get_index()])
             if 'polarity' in row:
                 self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, out_idx, row['polarity'].get_index()])
+            if 'tension' in row:
+                tension_val = row['tension'].value() / 1000.0
+                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"tension{out_idx + 1}", tension_val])
+            if 'mass' in row:
+                mass_val = row['mass'].value() / 1000.0
+                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"mass{out_idx + 1}", mass_val])
         
         # Sync custom params from UI sliders/buttons
         for param in get_mod_generator_custom_params(gen_name):
@@ -959,6 +1011,20 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(rate_idx)])
         logger.debug(f"Mod {slot_id} env {env_idx} loop_rate: {rate_idx}", component="OSC")
+
+    def on_mod_tension(self, slot_id, output_idx, normalized):
+        """Handle SauceOfGrav tension change."""
+        param_name = f"tension{output_idx + 1}"
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, normalized])
+        logger.debug(f"Mod {slot_id} tension{output_idx + 1}: {normalized:.3f}", component="OSC")
+
+    def on_mod_mass(self, slot_id, output_idx, normalized):
+        """Handle SauceOfGrav mass change."""
+        param_name = f"mass{output_idx + 1}"
+        if self.osc_connected:
+            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, normalized])
+        logger.debug(f"Mod {slot_id} mass{output_idx + 1}: {normalized:.3f}", component="OSC")
 
     def on_mod_bus_value(self, bus_idx, value):
         """Handle mod bus value from SC - route to appropriate scope."""
@@ -1639,6 +1705,9 @@ class MainFrame(QMainWindow):
         if dialog.exec_() != QDialog.Accepted:
             return
         
+        # Save window position before restart
+        self._save_window_geometry()
+        
         logger.info("Restarting Noise Engine...", component="APP")
         
         # Disconnect OSC cleanly
@@ -1740,10 +1809,56 @@ class MainFrame(QMainWindow):
     # === Preset Save/Load ===
 
     def _save_preset(self):
-        """Save current state to preset file."""
-        from PyQt5.QtWidgets import QFileDialog, QMessageBox
+        """Save current state - dialog pre-fills with current preset name."""
+        from PyQt5.QtWidgets import QFileDialog
         from pathlib import Path
+
+        # Pre-fill with current preset name
+        if self._current_preset_name:
+            default_path = self.preset_manager.presets_dir / f"{self._current_preset_name}.json"
+        else:
+            # Fallback to what's shown in the UI
+            current_name = self.preset_name.text()
+            default_path = self.preset_manager.presets_dir / f"{current_name}.json"
+
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Preset",
+            str(default_path),
+            "Preset Files (*.json)",
+        )
+
+        if filepath:
+            if not filepath.endswith('.json'):
+                filepath += '.json'
+            name = Path(filepath).stem
+            self._do_save_preset(name, Path(filepath))
+
+    def _save_preset_as(self):
+        """Save current state as new preset - dialog starts blank."""
+        from PyQt5.QtWidgets import QFileDialog
+        from pathlib import Path
+
+        # Always start with just the directory (no pre-filled name)
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Preset As",
+            str(self.preset_manager.presets_dir),
+            "Preset Files (*.json)",
+        )
+
+        if filepath:
+            if not filepath.endswith('.json'):
+                filepath += '.json'
+            name = Path(filepath).stem
+            self._do_save_preset(name, Path(filepath))
+
+    def _do_save_preset(self, name: str, filepath):
+        """Internal: actually save the preset to the specified filepath."""
+        from PyQt5.QtWidgets import QMessageBox
         from src.config import get_current_pack
+        from src.presets.preset_schema import PRESET_VERSION
+        from datetime import datetime
 
         # Collect generator slot states
         slots = []
@@ -1782,6 +1897,7 @@ class MainFrame(QMainWindow):
         current_pack = get_current_pack()
 
         state = PresetState(
+            name=name,
             pack=current_pack,
             slots=slots,
             mixer=mixer,
@@ -1792,29 +1908,21 @@ class MainFrame(QMainWindow):
             fx=fx,
             midi_mappings=midi_mappings,
         )
+        
+        # Set metadata
+        state.version = PRESET_VERSION
+        state.created = datetime.now().isoformat()
 
-        # Get filename from user
-        filepath, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Preset",
-            str(self.preset_manager.presets_dir),
-            "Preset Files (*.json)",
-        )
-
-        if filepath:
-            try:
-                # Ensure .json extension
-                if not filepath.endswith('.json'):
-                    filepath += '.json'
-                name = Path(filepath).stem
-                state.name = name
-                saved_path = self.preset_manager.save(state, name)
-                self.preset_name.setText(name)
-                logger.info(f"Preset saved: {saved_path}", component="PRESET")
-                self._clear_dirty(name)
-            except Exception as e:
-                logger.error(f"Failed to save preset: {e}", component="PRESET")
-                QMessageBox.warning(self, "Error", f"Failed to save preset:\n{e}")
+        try:
+            # Write directly to the user-chosen filepath
+            with open(filepath, "w") as f:
+                f.write(state.to_json(indent=2))
+            self.preset_name.setText(name)
+            logger.info(f"Preset saved: {filepath}", component="PRESET")
+            self._clear_dirty(name, filepath)
+        except Exception as e:
+            logger.error(f"Failed to save preset: {e}", component="PRESET")
+            QMessageBox.warning(self, "Error", f"Failed to save preset:\n{e}")
 
     def _load_preset(self):
         """Load preset from file."""
@@ -1830,13 +1938,12 @@ class MainFrame(QMainWindow):
 
         if filepath:
             try:
-                state = self.preset_manager.load(Path(filepath))
+                filepath = Path(filepath)
+                state = self.preset_manager.load(filepath)
                 self._apply_preset(state)
-                # Safety: reset master to 0 so presets don't blast audio
-                self.master_section.set_volume(0.0)
                 self.preset_name.setText(state.name)
                 logger.info(f"Preset loaded: {state.name}", component="PRESET")
-                self._clear_dirty(state.name)
+                self._clear_dirty(state.name, filepath)
             except Exception as e:
                 logger.error(f"Failed to load preset: {e}", component="PRESET")
                 QMessageBox.warning(self, "Error", f"Failed to load preset:\n{e}")
@@ -1881,6 +1988,8 @@ class MainFrame(QMainWindow):
         # Phase 3: Mod sources
         if state.version >= 2:
             self.modulator_grid.set_state(state.mod_sources.to_dict())
+            # Force full sync to SC (recreates synths with fresh init)
+            self._sync_mod_sources()
 
         # Phase 4: Mod routing (only if has connections)
         if state.mod_routing.get("connections"):
@@ -1930,8 +2039,8 @@ class MainFrame(QMainWindow):
         # Update preset name display
         self.preset_name.setText("Init")
 
-        # Clear dirty flag
-        self._clear_dirty("Init")
+        # Clear dirty flag and path (Init is not a saved preset)
+        self._clear_dirty("Init", None)
 
         logger.info("Preset initialized to defaults", component="PRESET")
 
@@ -2023,6 +2132,7 @@ class MainFrame(QMainWindow):
         # Buttons/widgets that require SC connection
         sc_dependent = [
             self.save_btn,  # Preset save
+            self.save_as_btn,  # Preset save as
             self.load_btn,  # Preset load
             self.pack_selector,  # Pack selector
             self.matrix_btn,  # Mod matrix
@@ -2039,6 +2149,9 @@ class MainFrame(QMainWindow):
 
     def closeEvent(self, event):
         """Handle window close - cleanup OSC to prevent signal spam."""
+        # Save window position for next launch
+        self._save_window_geometry()
+        
         # Stop OSC bridge first to prevent signals on deleted objects
         if hasattr(self, 'osc') and self.osc:
             self.osc.shutdown()
@@ -2155,10 +2268,11 @@ class MainFrame(QMainWindow):
         return self.findChild(QWidget, name)
 
     def save_midi_mappings(self):
-        """Save MIDI mappings to file."""
+        """Save MIDI mappings - dialog pre-fills with current name."""
         from PyQt5.QtWidgets import QFileDialog
         import json
         import os
+        from pathlib import Path
 
         data = self.cc_mapping_manager.to_dict()
         if not data:
@@ -2169,14 +2283,50 @@ class MainFrame(QMainWindow):
         midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
         os.makedirs(midi_dir, exist_ok=True)
 
+        # Pre-fill with current mapping name if we have one
+        if self._current_midi_mapping_name:
+            default_path = os.path.join(midi_dir, f"{self._current_midi_mapping_name}.json")
+        else:
+            default_path = midi_dir
+
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save MIDI Mappings", midi_dir, "JSON Files (*.json)"
+            self, "Save MIDI Mappings", default_path, "JSON Files (*.json)"
         )
         if path:
             if not path.endswith('.json'):
                 path += '.json'
             with open(path, 'w') as f:
                 json.dump(data, f, indent=2)
+            self._current_midi_mapping_name = Path(path).stem
+            self._current_midi_mapping_path = path
+            logger.info(f"Saved MIDI mappings to {path}", component="MIDI")
+
+    def save_midi_mappings_as(self):
+        """Save MIDI mappings as new file - dialog starts blank."""
+        from PyQt5.QtWidgets import QFileDialog
+        import json
+        import os
+        from pathlib import Path
+
+        data = self.cc_mapping_manager.to_dict()
+        if not data:
+            logger.info("No MIDI mappings to save", component="MIDI")
+            return
+
+        # Default to midi_mappings folder (no pre-filled name)
+        midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
+        os.makedirs(midi_dir, exist_ok=True)
+
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save MIDI Mappings As", midi_dir, "JSON Files (*.json)"
+        )
+        if path:
+            if not path.endswith('.json'):
+                path += '.json'
+            with open(path, 'w') as f:
+                json.dump(data, f, indent=2)
+            self._current_midi_mapping_name = Path(path).stem
+            self._current_midi_mapping_path = path
             logger.info(f"Saved MIDI mappings to {path}", component="MIDI")
 
     def load_midi_mappings(self):
@@ -2184,6 +2334,7 @@ class MainFrame(QMainWindow):
         from PyQt5.QtWidgets import QFileDialog
         import json
         import os
+        from pathlib import Path
 
         # Default to midi_mappings folder
         midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
@@ -2196,6 +2347,8 @@ class MainFrame(QMainWindow):
             with open(path, 'r') as f:
                 data = json.load(f)
             self.cc_mapping_manager.from_dict(data, self._find_control_by_name)
+            self._current_midi_mapping_name = Path(path).stem
+            self._current_midi_mapping_path = path
             logger.info(f"Loaded MIDI mappings from {path}", component="MIDI")
         self._update_midi_status()
 
@@ -2207,15 +2360,40 @@ class MainFrame(QMainWindow):
                 if hasattr(control, 'set_midi_mapped'):
                     control.set_midi_mapped(False)
         self.cc_mapping_manager.clear_all()
+        self._current_midi_mapping_name = None
+        self._current_midi_mapping_path = None
         logger.info("Cleared all MIDI mappings", component="MIDI")
         self._update_midi_status()
+
+    def _setup_preset_menu(self):
+        """Create Preset menu in menu bar."""
+        menu_bar = self.menuBar()
+        preset_menu = menu_bar.addMenu("Preset")
+
+        save_action = preset_menu.addAction("Save", self._save_preset)
+        save_action.setShortcut(QKeySequence("Ctrl+S"))
+
+        save_as_action = preset_menu.addAction("Save As...", self._save_preset_as)
+        save_as_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+
+        preset_menu.addSeparator()
+
+        load_action = preset_menu.addAction("Load...", self._load_preset)
+        load_action.setShortcut(QKeySequence("Ctrl+O"))
+
+        preset_menu.addSeparator()
+
+        init_action = preset_menu.addAction("Init (New)", self._init_preset)
+        init_action.setShortcut(QKeySequence("Ctrl+N"))
 
     def _setup_midi_menu(self):
         """Create MIDI menu in menu bar."""
         menu_bar = self.menuBar()
         midi_menu = menu_bar.addMenu("MIDI")
 
-        midi_menu.addAction("Save Mappings...", self.save_midi_mappings)
+        midi_menu.addAction("Save Mappings", self.save_midi_mappings)
+        midi_menu.addAction("Save Mappings As...", self.save_midi_mappings_as)
+        midi_menu.addSeparator()
         midi_menu.addAction("Load Mappings...", self.load_midi_mappings)
         midi_menu.addSeparator()
         midi_menu.addAction("Clear All Mappings", self.clear_all_midi_mappings)

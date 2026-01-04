@@ -2,6 +2,7 @@
   "generator_id": "branch_snap",
   "name": "Branch Snap",
   "synthdef": "forge_moss_root_branch_snap",
+  "synthesis_method": "physical/resonant_model",
   "custom_params": [
     {
       "key": "crack",

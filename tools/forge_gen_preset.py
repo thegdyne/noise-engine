@@ -33,7 +33,7 @@ DEFAULT_SLOT = {
         "custom_4": 0.5,
     },
     "filter_type": 0,
-    "env_source": 0,
+    "env_source": 2,
     "clock_rate": 6,
     "midi_channel": 0,
     "transpose": 2,
@@ -41,7 +41,7 @@ DEFAULT_SLOT = {
 }
 
 DEFAULT_CHANNEL = {
-    "volume": 0.8,
+    "volume": 0.0,
     "pan": 0.5,
     "mute": False,
     "solo": False,
@@ -55,31 +55,153 @@ DEFAULT_CHANNEL = {
     "hi_cut": False,
 }
 
+# Match MasterState defaults from preset_schema.py
 DEFAULT_MASTER = {
     "volume": 0.8,
+    # EQ
     "eq_hi": 120,
     "eq_mid": 120,
     "eq_lo": 120,
-    "comp_threshold": 0.8,
-    "comp_ratio": 2.0,
-    "limiter": True,
+    "eq_hi_kill": 0,
+    "eq_mid_kill": 0,
+    "eq_lo_kill": 0,
+    "eq_locut": 0,
+    "eq_bypass": 0,
+    # Compressor
+    "comp_threshold": 100,   # 0-400, 200=0dB, 100 is gentle
+    "comp_makeup": 0,        # 0-200
+    "comp_ratio": 1,         # index: 0=2:1, 1=4:1, 2=10:1
+    "comp_attack": 4,        # index 0-5
+    "comp_release": 4,       # index 0-4
+    "comp_sc": 0,            # index 0-5
+    "comp_bypass": 0,        # 0=on, 1=bypassed
+    # Limiter
+    "limiter_ceiling": 590,  # 0-600, 590=-0.1dB
+    "limiter_bypass": 0,     # 0=on, 1=bypassed
 }
 
+# Match FXState defaults from preset_schema.py
+DEFAULT_FX = {
+    "heat": {
+        "bypass": True,
+        "circuit": 0,
+        "drive": 0,
+        "mix": 100,
+    },
+    "echo": {
+        "time": 40,
+        "feedback": 30,
+        "tone": 70,
+        "wow": 10,
+        "spring": 0,
+        "verb_send": 0,
+        "return_level": 50,
+    },
+    "reverb": {
+        "size": 50,
+        "decay": 50,
+        "tone": 70,
+        "return_level": 30,
+    },
+    "dual_filter": {
+        "bypass": True,
+        "drive": 0,
+        "freq1": 50,
+        "reso1": 0,
+        "mode1": 1,
+        "freq2": 35,
+        "reso2": 0,
+        "mode2": 1,
+        "harmonics": 0,
+        "routing": 0,
+        "mix": 100,
+    },
+}
+
+# =============================================================================
+# Modulator Defaults
+# =============================================================================
+# These match what modulator_slot.py get_state() returns and set_state() expects.
+#
+# MOD_CLOCK_RATES = ['/64', '/32', '/16', '/8', '/4', '/2', '1', 'x2', 'x4', 'x8', 'x16', 'x32']
+#                     0      1      2      3     4     5    6    7     8     9     10     11
+#
+# Rate mapping: idx = round(rate_norm * 11) for 12 items (indices 0-11)
+#   /32 → idx 1 → rate_norm = 1/11 ≈ 0.091
+#   /8  → idx 3 → rate_norm = 3/11 ≈ 0.273
+#
+# Waveforms (output_wave): 0=SAW, 1=TRI, 2=SQR, 3=SIN, 4=S&H
+# Phases (output_phase): 0=0°, 1=45°, 2=90°, 3=135°, 4=180°, 5=225°, 6=270°, 7=315°
+# Sloth modes: 0=Torpor (15-30s), 1=Apathy (60-90s), 2=Inertia (30-40min)
+# Polarity: 0=NORM, 1=INV
+# =============================================================================
+
+# LFO: Has wave, phase, polarity per output
 DEFAULT_MOD_SLOT_LFO = {
     "generator_name": "LFO",
-    "params": {"mode": 0, "rate": 0.5, "shape": 0.0},
-    "output_wave": [0, 0, 0, 0],
-    "output_phase": [0, 3, 5, 6],
-    "output_polarity": [0, 0, 0, 0],
+    "params": {
+        "mode": 0,           # 0=CLK
+        "rate": 0.091,       # /32 (index 1 of 12)
+    },
+    "output_wave": [3, 3, 3, 3],      # TRI on all 4
+    "output_phase": [0, 2, 4, 6],     # 0°, 90°, 180°, 270° (quadrature)
+    "output_polarity": [0, 0, 0, 0],  # NORM on all 4
 }
 
+# Sloth: Only mode param, polarity per output
 DEFAULT_MOD_SLOT_SLOTH = {
     "generator_name": "Sloth",
-    "params": {"rate": 0.5},
-    "output_wave": [0, 0, 0, 0],
-    "output_phase": [0, 0, 0, 0],
-    "output_polarity": [0, 0, 0, 0],
+    "params": {
+        "mode": 1,           # 1=Apathy (60-90s cycles)
+    },
+    "output_polarity": [0, 0, 0, 0],  # X=NORM, Y=NORM, Z=NORM, R=NORM
 }
+
+# ARSEq+: mode, clock_mode, rate params; envelope settings per output
+DEFAULT_MOD_SLOT_ARSEQ = {
+    "generator_name": "ARSEq+",
+    "params": {
+        "mode": 0,           # 0=SEQ
+        "clock_mode": 0,     # 0=CLK
+        "rate": 0.489,       # /8 (index 3 of 12)
+    },
+    "output_polarity": [0, 0, 0, 0],  # NORM on all 4
+    "env_attack": [0.0, 0.0, 0.0, 0.0],       # Fast attack
+    "env_release": [0.2, 0.2, 0.2, 0.2],      # Medium release
+    "env_curve": [0.5, 0.5, 0.5, 0.5],        # Linear (0.5 = center)
+    "env_sync_mode": [0, 0, 0, 0],            # All SYN (follow master)
+    "env_loop_rate": [6, 6, 6, 6],            # 1:1 rate if in LOP mode
+}
+
+# SauceOfGrav: Has tension, mass, polarity per output
+DEFAULT_MOD_SLOT_SAUCEGRAV = {
+    "generator_name": "SauceOfGrav",
+    "params": {
+        "clock_mode": 0,     # 0=CLK
+        "rate": 0.5,
+        "depth": 0.5,
+        "gravity": 0.5,
+        "resonance": 0.5,
+        "excursion": 0.5,
+        "calm": 0.5,
+    },
+    "output_polarity": [0, 0, 0, 0],
+    "output_tension": [0.30, 0.45, 0.55, 0.70],  # Matches builder defaults
+    "output_mass": [0.65, 0.55, 0.45, 0.35],     # Matches builder defaults
+}
+
+
+def _deep_copy_fx():
+    """Deep copy DEFAULT_FX to avoid mutation."""
+    import copy
+    return copy.deepcopy(DEFAULT_FX)
+
+
+def _deep_copy_mod_slot(slot_dict):
+    """Deep copy a mod slot dict to avoid mutation."""
+    import copy
+    return copy.deepcopy(slot_dict)
+
 
 def get_generator_names(pack_path: Path) -> list[str]:
     """Read generator display names from pack."""
@@ -140,13 +262,14 @@ def generate_preset(pack_path: Path) -> dict:
         "master": DEFAULT_MASTER.copy(),
         "mod_sources": {
             "slots": [
-                DEFAULT_MOD_SLOT_LFO.copy(),
-                DEFAULT_MOD_SLOT_SLOTH.copy(),
-                DEFAULT_MOD_SLOT_LFO.copy(),
-                DEFAULT_MOD_SLOT_SLOTH.copy(),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_LFO),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_SLOTH),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_ARSEQ),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_SAUCEGRAV),
             ]
         },
         "mod_routing": {"connections": []},
+        "fx": _deep_copy_fx(),
     }
 
     return preset

@@ -2,12 +2,58 @@
   "generator_id": "radio",
   "name": "RADIO",
   "synthdef": "forge_bed_stuy_radio",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "blown", "label": "BLN", "tooltip": "Blown speaker - saturation drive", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "bass", "label": "BAS", "tooltip": "Bass boost - low end", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "treble", "label": "TRE", "tooltip": "Treble cutoff - brightness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "static", "label": "STA", "tooltip": "Static noise - interference", "default": 0.2, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "battery", "label": "BAT", "tooltip": "Battery wobble - power sag", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "blown",
+      "label": "BLN",
+      "tooltip": "Blown speaker - saturation drive",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "bass",
+      "label": "BAS",
+      "tooltip": "Bass boost - low end",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "treble",
+      "label": "TRE",
+      "tooltip": "Treble cutoff - brightness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "static",
+      "label": "STA",
+      "tooltip": "Static noise - interference",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "battery",
+      "label": "BAT",
+      "tooltip": "Battery wobble - power sag",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

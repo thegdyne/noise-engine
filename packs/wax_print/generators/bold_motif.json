@@ -2,12 +2,58 @@
   "generator_id": "bold_motif",
   "name": "Bold Motif",
   "synthdef": "forge_wax_print_bold_motif",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
-    {"key": "geometry", "label": "GEO", "tooltip": "Geometry - pattern complexity, harmonic layers", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "repeat", "label": "REP", "tooltip": "Repeat - motif repetition rate", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "contrast", "label": "CON", "tooltip": "Contrast - light/dark dynamics", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "symmetry", "label": "SYM", "tooltip": "Symmetry - pattern balance, phase relationships", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ink", "label": "INK", "tooltip": "Ink - color saturation, timbral richness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "geometry",
+      "label": "GEO",
+      "tooltip": "Geometry - pattern complexity, harmonic layers",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "repeat",
+      "label": "REP",
+      "tooltip": "Repeat - motif repetition rate",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "contrast",
+      "label": "CON",
+      "tooltip": "Contrast - light/dark dynamics",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "symmetry",
+      "label": "SYM",
+      "tooltip": "Symmetry - pattern balance, phase relationships",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ink",
+      "label": "INK",
+      "tooltip": "Ink - color saturation, timbral richness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

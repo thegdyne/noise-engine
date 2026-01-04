@@ -122,6 +122,7 @@ s.waitForBoot({
     (~basePath +/+ "core/mod_lfo.scd").load;
     (~basePath +/+ "core/mod_sloth.scd").load;
     (~basePath +/+ "core/mod_arseq_plus.scd").load;
+    (~basePath +/+ "core/mod_sauce_of_grav.scd").load;
     
     // Load cross-mod buses BEFORE mod_apply (provides ~getModSourceBus resolver)
     (~basePath +/+ "core/crossmod_buses.scd").load;

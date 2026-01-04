@@ -2,6 +2,7 @@
   "generator_id": "spore_drift",
   "name": "Spore Drift",
   "synthdef": "forge_moss_root_spore_drift",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "density",

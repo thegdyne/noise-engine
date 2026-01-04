@@ -2,12 +2,58 @@
   "generator_id": "talking_skin",
   "name": "Talking Skin",
   "synthdef": "forge_wax_print_talking_skin",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "talk", "label": "TLK", "tooltip": "Talk - pitch bend range, speech-like movement", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "squeeze", "label": "SQZ", "tooltip": "Squeeze - tension change rate, how fast pitch moves", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "tongue", "label": "TNG", "tooltip": "Tongue - articulation, syllable definition", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "stick", "label": "STK", "tooltip": "Stick - beater hardness, attack character", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "say", "label": "SAY", "tooltip": "Say - phrase complexity, melodic contour", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "talk",
+      "label": "TLK",
+      "tooltip": "Talk - pitch bend range, speech-like movement",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "squeeze",
+      "label": "SQZ",
+      "tooltip": "Squeeze - tension change rate, how fast pitch moves",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tongue",
+      "label": "TNG",
+      "tooltip": "Tongue - articulation, syllable definition",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "stick",
+      "label": "STK",
+      "tooltip": "Stick - beater hardness, attack character",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "say",
+      "label": "SAY",
+      "tooltip": "Say - phrase complexity, melodic contour",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

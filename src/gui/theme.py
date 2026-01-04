@@ -142,6 +142,9 @@ COLORS = {
     'accent_effect': get('accent_effect'),
     'accent_mod_arseq_plus': get('accent_mod_arseq_plus'),
     'accent_mod_arseq_plus_dim': get('accent_mod_arseq_plus_dim'),
+    'accent_mod_sauce_of_grav': get('accent_mod_sauce_of_grav'),
+    'accent_mod_sauce_of_grav_dim': get('accent_mod_sauce_of_grav_dim'),
+    'reset_button': get('reset_button'),
     'accent_effect_dim': get('accent_effect_dim'),
     
     # Scope
@@ -290,6 +293,7 @@ def slider_style():
             background: {COLORS['border']};
         }}
     """
+
 def slider_style_center_notch():
     """
     Vertical slider with center notch mark.
@@ -568,7 +572,7 @@ GENERATOR_THEME = {
     'param_label_font': MONO_FONT,
     'param_label_size': FONT_SIZES['tiny'],
     'param_label_bold': True,
-    'param_label_height': 14,
+    'param_label_height': 10,
     'param_label_color': get('text_mid'),
     'param_label_color_dim': get('text_dim'),
     'param_label_color_active': get('accent_generator'),
@@ -730,7 +734,7 @@ MODULATOR_THEME = {
     'mode_button_width': 48,          # wider for text like "FREE", "CLK"
     'mode_button_height': 22,
     'slider_row_spacing': 8,          # horizontal gap between columns
-    'slider_section_margins': (0, 4, 0, 4),
+    'slider_section_margins': (0, 2, 0, 2),
     'slider_width': 25,
     'slider_height': 60,
     

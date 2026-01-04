@@ -2,12 +2,58 @@
   "generator_id": "palm_strike",
   "name": "Palm Strike",
   "synthdef": "forge_wax_print_palm_strike",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "skin", "label": "SKN", "tooltip": "Skin - membrane tension, pitch scaling", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "slap", "label": "SLP", "tooltip": "Slap - edge slap noise vs center tone", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "body", "label": "BOD", "tooltip": "Body - drum shell resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "size", "label": "SIZ", "tooltip": "Size - drum diameter, larger is deeper", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "hand", "label": "HND", "tooltip": "Hand - playing technique, finger articulation", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "skin",
+      "label": "SKN",
+      "tooltip": "Skin - membrane tension, pitch scaling",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "slap",
+      "label": "SLP",
+      "tooltip": "Slap - edge slap noise vs center tone",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "body",
+      "label": "BOD",
+      "tooltip": "Body - drum shell resonance",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "size",
+      "label": "SIZ",
+      "tooltip": "Size - drum diameter, larger is deeper",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hand",
+      "label": "HND",
+      "tooltip": "Hand - playing technique, finger articulation",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

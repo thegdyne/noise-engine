@@ -2,12 +2,58 @@
   "generator_id": "icebell",
   "name": "ICEBELL",
   "synthdef": "forge_glacialis_icebell",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "crystal", "label": "CRY", "tooltip": "Crystalline inharmonicity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ring", "label": "RNG", "tooltip": "Modal ring time", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "strike", "label": "STK", "tooltip": "Strike brightness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "frost", "label": "FRS", "tooltip": "High frequency shimmer", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "size", "label": "SIZ", "tooltip": "Modal spread/size", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "crystal",
+      "label": "CRY",
+      "tooltip": "Crystalline inharmonicity",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ring",
+      "label": "RNG",
+      "tooltip": "Modal ring time",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "strike",
+      "label": "STK",
+      "tooltip": "Strike brightness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "frost",
+      "label": "FRS",
+      "tooltip": "High frequency shimmer",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "size",
+      "label": "SIZ",
+      "tooltip": "Modal spread/size",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": 2.5,
   "midi_retrig": true,

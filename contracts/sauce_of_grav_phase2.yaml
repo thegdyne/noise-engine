@@ -1,0 +1,141 @@
+contract: sauce_of_grav_phase2
+cdd_spec: 1.1.5
+version: 1.0.0
+status: draft
+description: |
+  SauceOfGrav Phase 2: UI Components
+  - Output row builder function
+  - TENS/MASS sliders per output
+  - Polarity toggle (N/I) per output
+  - Output config case in build_output_row
+
+runner:
+  executor: shell
+  timeout_ms: 30000
+
+requirements:
+  - id: R001
+    priority: must
+    description: SauceOfGrav output row builder exists
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - build_saucegrav_output_row function defined
+
+  - id: R002
+    priority: must
+    description: Output row includes TENS slider
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - tension slider created per output
+
+  - id: R003
+    priority: must
+    description: Output row includes MASS slider
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - mass slider created per output
+
+  - id: R004
+    priority: must
+    description: Output row includes polarity toggle
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - polarity button (N/I) per output
+
+  - id: R005
+    priority: must
+    description: Output config case routes to builder
+    source_ref: SAUCE_OF_GRAV_SPEC_v1_4_3.md
+    acceptance_criteria:
+      - sauce_of_grav case in build_output_row
+
+tests:
+  - id: T001
+    name: builder_function_exists
+    requirement: R001
+    type: unit
+    files: ../src/gui/modulator_slot_builder.py
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "def build_saucegrav_output_row"
+          - ../src/gui/modulator_slot_builder.py
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: build_saucegrav_output_row function must exist
+
+  - id: T002
+    name: tension_slider_created
+    requirement: R002
+    type: unit
+    files: ../src/gui/modulator_slot_builder.py
+    steps:
+      - action: shell
+        command:
+          - grep
+          - tension
+          - ../src/gui/modulator_slot_builder.py
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: tension slider must be created
+
+  - id: T003
+    name: mass_slider_created
+    requirement: R003
+    type: unit
+    files: ../src/gui/modulator_slot_builder.py
+    steps:
+      - action: shell
+        command:
+          - grep
+          - mass
+          - ../src/gui/modulator_slot_builder.py
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: mass slider must be created
+
+  - id: T004
+    name: polarity_in_saucegrav_row
+    requirement: R004
+    type: unit
+    files: ../src/gui/modulator_slot_builder.py
+    steps:
+      - action: shell
+        command:
+          - sh
+          - "-c"
+          - "grep -A50 'def build_saucegrav_output_row' ../src/gui/modulator_slot_builder.py | grep -c polarity"
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: polarity toggle must be in saucegrav row
+
+  - id: T005
+    name: output_config_case_exists
+    requirement: R005
+    type: unit
+    files: ../src/gui/modulator_slot_builder.py
+    steps:
+      - action: shell
+        command:
+          - grep
+          - "sauce_of_grav"
+          - ../src/gui/modulator_slot_builder.py
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: sauce_of_grav output config case must exist

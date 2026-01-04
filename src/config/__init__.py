@@ -557,7 +557,8 @@ def _load_generator_configs():
                             "custom_params": config.get('custom_params', [])[:MAX_CUSTOM_PARAMS],
                             "pitch_target": config.get('pitch_target'),  # None if not specified
                             "midi_retrig": config.get('midi_retrig', False),  # For struck/plucked generators
-                            "output_trim_db": config.get('output_trim_db', 0.0)  # Loudness normalization
+                            "output_trim_db": config.get('output_trim_db', 0.0),  # Loudness normalization
+                            "synthesis_method": config.get('synthesis_method', '')  # For SynthesisIcon display
                         }
                         _GENERATOR_SOURCES[name] = None  # Mark as core
                         if synthdef:
@@ -659,6 +660,7 @@ def _load_generator_configs():
                 "pitch_target": config.get('pitch_target'),
                 "midi_retrig": config.get('midi_retrig', False),
                 "output_trim_db": config.get('output_trim_db', 0.0),
+                "synthesis_method": config.get('synthesis_method', ''),  # For SynthesisIcon display
                 "pack": pack['id'],  # Track source pack
                 "pack_path": pack['path'],
             }
@@ -797,6 +799,22 @@ def get_generator_output_trim_db(name):
     config = _GENERATOR_CONFIGS.get(name, {})
     return config.get('output_trim_db', 0.0)
 
+
+def get_generator_synthesis_category(name):
+    """Get synthesis method category for a generator.
+
+    Returns:
+        str: Category like 'fm', 'physical', 'texture', etc.
+             Returns 'empty' for Empty generator, 'unknown' if not found.
+    """
+    if name == 'Empty':
+        return 'empty'
+    config = _GENERATOR_CONFIGS.get(name, {})
+    method = config.get('synthesis_method', '')
+    if '/' in method:
+        return method.split('/')[0]
+    return 'unknown'
+
 # Legacy GENERATORS dict for compatibility (built from JSON)
 GENERATORS = {name: cfg['synthdef'] for name, cfg in _GENERATOR_CONFIGS.items()}
 
@@ -825,6 +843,7 @@ MOD_GENERATOR_CYCLE = [
     "LFO",
     "Sloth",
     "ARSEq+",
+    "SauceOfGrav",
 ]
 
 # LFO waveforms (TTLFO v2 inspired)
@@ -861,6 +880,93 @@ ARSEQ_SYNC_TIME_MAX = 10.0     # 10s
 ARSEQ_LOOP_TIME_MIN = 0.0001   # 0.1ms
 ARSEQ_LOOP_TIME_MAX = 120.0    # 2 minutes
 
+# === SauceOfGrav v1.4.3 Config Constants ===
+
+# Rate ranges
+SAUCE_FREE_RATE_MIN = 0.001    # Hz
+SAUCE_FREE_RATE_MAX = 100.0    # Hz
+SAUCE_RATE_DEADBAND = 0.05     # 0-0.05 = OFF
+
+# Noise / thresholds
+SAUCE_NOISE_RATE = 0.012
+SAUCE_VELOCITY_EPSILON = 0.001
+
+# Mass mapping
+MASS_BASE = 0.25
+MASS_GAIN = 2.1
+
+# Coupling
+HUB_COUPLE_BASE = 0.0
+HUB_COUPLE_GAIN = 6.0
+HUB_TENSION_EXP = 0.70
+RING_COUPLE_BASE = 0.0
+RING_COUPLE_GAIN = 3.5
+RING_TENSION_EXP = 1.30
+
+# Non-reciprocal ring
+RING_SKEW = 0.015
+
+# Gravity stiffness
+GRAV_STIFF_BASE = 0.0
+GRAV_STIFF_GAIN = 6.0
+
+# Excursion
+EXCURSION_MIN = 0.60
+EXCURSION_MAX = 1.60
+
+# CALM macro (v1.4.3)
+CALM_DAMP_CALM = 1.30
+CALM_DAMP_WILD = 0.75
+CALM_VDP_CALM = 0.90
+CALM_VDP_WILD = 1.15
+CALM_KICK_CALM = 0.60
+
+# Van der Pol
+VDP_INJECT = 0.8
+VDP_THRESHOLD = 0.35
+VDP_HUB_MOD = 0.05
+VDP_THRESHOLD_FLOOR = 0.05
+
+# Calibration trims
+TENSION_TRIM = [+0.012, -0.008, +0.015, -0.018]
+MASS_TRIM = [-0.010, +0.014, -0.006, +0.011]
+
+# Damping
+SAUCE_DAMPING_BASE = 0.10
+SAUCE_DAMPING_TENSION = 0.40
+
+# Rails
+SAUCE_RAIL_ZONE = 0.08
+SAUCE_RAIL_ABSORB = 0.35
+
+# Resonance
+RESO_FLOOR_MIN = 0.0002
+RESO_FLOOR_MAX = 0.0040
+RESO_DRIVE_GAIN = 6.0
+RESO_DELTAE_MAX = 0.01
+RESO_RAIL_EXP = 1.4
+
+# Kickstart
+RESO_KICK_GAIN = 2.8
+RESO_KICK_MAXF = 0.30
+RESO_KICK_COOLDOWN_S = 0.20
+KICK_PATTERNS = [
+    [+1, -1, +1, -1],
+    [+1, +1, -1, -1],
+    [+1, -1, -1, +1],
+]
+
+# Hub dynamics
+OVERSHOOT_TO_HUB_GAIN = 0.6
+OVERSHOOT_MAX = 0.25
+HUB_LIMIT = 2.0
+DEPTH_DAMP_MIN = 0.005
+DEPTH_DAMP_MAX = 2.50
+
+# Hub feed
+HUB_FEED_GAIN = 8.0
+HUB_FEED_MAX = 0.35
+
 # Sloth speed modes (NLC Triple Sloth inspired)
 MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
 MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
@@ -890,6 +996,7 @@ MOD_OUTPUT_LABELS = {
     "LFO": ["A", "B", "C", "D"],      # Quadrature phases
     "Sloth": ["X", "Y", "Z", "R"],  # R = rectified gate
     "ARSEq+": ["1", "2", "3", "4"],  # Envelope outputs
+    "SauceOfGrav": ["1", "2", "3", "4"],  # Coupled outputs
 }
 
 # Mod generator configs loaded from JSON files
@@ -963,17 +1070,71 @@ def _load_mod_generator_configs():
 # Load on import
 _load_mod_generator_configs()
 
+# LFO config (programmatic registration)
+_MOD_GENERATOR_CONFIGS["LFO"] = {
+    "internal_id": "lfo",
+    "synthdef": "ne_mod_lfo",
+    "custom_params": [
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0,
+         "tooltip": "CLK: sync to clock divisions\nFREE: manual frequency (0.01-100Hz)"},
+        {"key": "rate", "label": "RATE", "default": 0.5,
+         "tooltip": "LFO speed\nCLK: division, FREE: frequency"},
+    ],
+    "output_config": "waveform_phase",
+    "output_labels": ["A", "B", "C", "D"],
+}
+
+# Sloth config (programmatic registration)
+_MOD_GENERATOR_CONFIGS["Sloth"] = {
+    "internal_id": "sloth",
+    "synthdef": "ne_mod_sloth",
+    "custom_params": [
+        {"key": "mode", "label": "MODE", "steps": 3, "default": 0.0,
+         "tooltip": "Torpor: 15-30s\nApathy: 60-90s\nInertia: 30-40min"},
+    ],
+    "output_config": "fixed",
+    "output_labels": ["X", "Y", "Z", "R"],
+}
+
 # ARSEq+ config (programmatic registration)
 _MOD_GENERATOR_CONFIGS["ARSEq+"] = {
     "internal_id": "arseq_plus",
     "synthdef": "ne_mod_arseq_plus",
     "custom_params": [
-        {"key": "mode", "label": "MODE", "steps": 2, "default": 0.0},
-        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0},
-        {"key": "rate", "label": "RATE", "default": 0.5},
+        {"key": "mode", "label": "MODE", "steps": 2, "default": 0.0,
+         "tooltip": "SEQ: envelopes fire in sequence (1→2→3→4)\nPAR: all fire together"},
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0,
+         "tooltip": "CLK: sync to clock divisions\nFREE: manual rate control"},
+        {"key": "rate", "label": "RATE", "default": 0.5,
+         "tooltip": "Envelope cycle speed\nCLK: division, FREE: frequency"},
     ],
     "output_config": "arseq_plus",
     "outputs": ["1", "2", "3", "4"],
+}
+
+# SauceOfGrav config (programmatic registration)
+_MOD_GENERATOR_CONFIGS["SauceOfGrav"] = {
+    "internal_id": "sauce_of_grav",
+    "synthdef": "ne_mod_sauce_of_grav",
+    "custom_params": [
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0,
+         "tooltip": "CLK: sync to transport\nFREE: free-running"},
+        {"key": "rate", "label": "RATE", "label_top": "FAST", "label_bottom": "SLOW", "default": 0.5,
+         "tooltip": "Refresh event timing\nLow = slower evolution"},
+        {"key": "depth", "label": "DEPTH", "label_top": "WIDE", "label_bottom": "NAR", "default": 0.5,
+         "tooltip": "Hub friction\nHigh = hub loses bias faster"},
+        {"key": "gravity", "label": "GRAV", "label_top": "PULL+", "label_bottom": "INDI", "default": 0.5,
+         "tooltip": "Center pull strength\nLow = free drift, High = tight orbit"},
+        {"key": "resonance", "label": "RESO", "label_top": "FBK+", "label_bottom": "FBK-", "default": 0.5,
+         "tooltip": "Sustained motion\nHigher = more energy, prevents starvation"},
+        {"key": "excursion", "label": "EXCUR", "label_top": "LOW", "label_bottom": "HI", "default": 0.5,
+         "tooltip": "Range/expressiveness\nHow far outputs can travel"},
+        {"key": "calm", "label_top": "WILD", "label_bottom": "CALM", "default": 0.5, "bipolar": True,
+         "tooltip": "Energy macro\nCALM = tighter, WILD = bigger swings"},
+    ],
+    "output_config": "sauce_of_grav",
+    "output_labels": ["1", "2", "3", "4"],
+    "has_reset": True,
 }
 
 def get_mod_generator_synthdef(name):

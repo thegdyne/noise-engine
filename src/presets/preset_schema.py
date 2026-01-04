@@ -2,7 +2,7 @@
 Preset schema definition and validation.
 v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 2: BPM + Master section (EQ, compressor, limiter)
-   - Phase 3: Modulation sources (4 slots × 4 outputs)
+   - Phase 3: Modulation sources (4 slots Ãƒâ€” 4 outputs)
    - Phase 4: Modulation routing (connections)
    - Phase 5: FX state (Heat, Echo, Reverb, Dual Filter)
 """
@@ -36,11 +36,11 @@ COMP_SC_FREQS = 6     # 0-5: Off, 30, 60, 90, 120, 185Hz
 NUM_MOD_SLOTS = 4
 NUM_MOD_OUTPUTS = 4
 MOD_WAVEFORMS = 5     # saw, tri, sqr, sin, s&h
-MOD_PHASES = 8        # 0°, 45°, 90°, ... 315°
+MOD_PHASES = 8        # 0Ã‚Â°, 45Ã‚Â°, 90Ã‚Â°, ... 315Ã‚Â°
 MOD_POLARITIES = 2    # 0=NORM, 1=INV
 
 # Phase 4: Modulation routing constants
-NUM_MOD_BUSES = 16    # 4 slots × 4 outputs
+NUM_MOD_BUSES = 16    # 4 slots Ãƒâ€” 4 outputs
 MOD_POLARITIES_ROUTING = 3  # 0=bipolar, 1=uni+, 2=uni-
 
 # Phase 5: FX constants
@@ -278,6 +278,15 @@ class ModSlotState:
     output_wave: list = field(default_factory=lambda: [0, 0, 0, 0])  # 4 outputs
     output_phase: list = field(default_factory=lambda: [0, 3, 5, 6])  # Default phases for LFO
     output_polarity: list = field(default_factory=lambda: [0, 0, 0, 0])  # 0=NORM, 1=INV
+    # SauceOfGrav-specific per-output params
+    output_tension: list = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.5])
+    output_mass: list = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.5])
+    # ARSEq+ envelope params (per envelope, 4 total)
+    env_attack: list = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.5])
+    env_release: list = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.5])
+    env_curve: list = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.5])
+    env_sync_mode: list = field(default_factory=lambda: [0, 0, 0, 0])  # 0=SYN, 1=LOP
+    env_loop_rate: list = field(default_factory=lambda: [6, 6, 6, 6])  # Index into MOD_CLOCK_RATES
     
     def to_dict(self) -> dict:
         return {
@@ -286,6 +295,13 @@ class ModSlotState:
             "output_wave": list(self.output_wave),
             "output_phase": list(self.output_phase),
             "output_polarity": list(self.output_polarity),
+            "output_tension": list(self.output_tension),
+            "output_mass": list(self.output_mass),
+            "env_attack": list(self.env_attack),
+            "env_release": list(self.env_release),
+            "env_curve": list(self.env_curve),
+            "env_sync_mode": list(self.env_sync_mode),
+            "env_loop_rate": list(self.env_loop_rate),
         }
     
     @classmethod
@@ -296,6 +312,13 @@ class ModSlotState:
             output_wave=list(data.get("output_wave", [0, 0, 0, 0])),
             output_phase=list(data.get("output_phase", [0, 3, 5, 6])),
             output_polarity=list(data.get("output_polarity", [0, 0, 0, 0])),
+            output_tension=list(data.get("output_tension", [0.5, 0.5, 0.5, 0.5])),
+            output_mass=list(data.get("output_mass", [0.5, 0.5, 0.5, 0.5])),
+            env_attack=list(data.get("env_attack", [0.5, 0.5, 0.5, 0.5])),
+            env_release=list(data.get("env_release", [0.5, 0.5, 0.5, 0.5])),
+            env_curve=list(data.get("env_curve", [0.5, 0.5, 0.5, 0.5])),
+            env_sync_mode=list(data.get("env_sync_mode", [0, 0, 0, 0])),
+            env_loop_rate=list(data.get("env_loop_rate", [6, 6, 6, 6])),
         )
 
 
@@ -331,8 +354,8 @@ class ModSourcesState:
 @dataclass
 class ARSeqEnvelopeState:
     """State for a single ARSEq+ envelope."""
-    attack: float = 0.5  # Normalized 0–1
-    release: float = 0.5  # Normalized 0–1
+    attack: float = 0.5  # Normalized 0Ã¢â‚¬â€œ1
+    release: float = 0.5  # Normalized 0Ã¢â‚¬â€œ1
     curve: float = 0.5  # 0=LOG, 0.5=LIN, 1=EXP
     sync_mode: int = 0  # 0=SYNC, 1=LOOP
     loop_rate: int = 6  # Index into MOD_CLOCK_RATES
@@ -344,7 +367,7 @@ class ARSeqPlusState:
     """Full ARSEq+ modulator state."""
     mode: int = 0  # 0=SEQ, 1=PAR
     clock_mode: int = 0  # 0=CLK, 1=FREE
-    rate: float = 0.5  # Normalized 0–1
+    rate: float = 0.5  # Normalized 0Ã¢â‚¬â€œ1
     envelopes: list = field(default_factory=lambda: [
         ARSeqEnvelopeState() for _ in range(4)
     ])
@@ -378,6 +401,74 @@ class ARSeqPlusState:
             clock_mode=data.get("clock_mode", 0),
             rate=data.get("rate", 0.5),
             envelopes=envelopes,
+        )
+@dataclass
+class SauceOfGravOutputState:
+    """State for a single SauceOfGrav output."""
+    tension: float = 0.5       # Normalized 0Ã¢â‚¬â€œ1
+    mass: float = 0.5          # Normalized 0Ã¢â‚¬â€œ1
+    polarity: int = 0          # 0=NORM, 1=INV
+
+    def to_dict(self) -> dict:
+        return {
+            "tension": self.tension,
+            "mass": self.mass,
+            "polarity": self.polarity,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SauceOfGravOutputState":
+        return cls(
+            tension=data.get("tension", 0.5),
+            mass=data.get("mass", 0.5),
+            polarity=data.get("polarity", 0),
+        )
+
+
+@dataclass
+class SauceOfGravState:
+    """Full SauceOfGrav modulator state."""
+    clock_mode: int = 0        # 0=CLK, 1=FREE
+    rate: float = 0.5          # Normalized 0Ã¢â‚¬â€œ1 (0Ã¢â‚¬â€œ0.05 = OFF)
+    depth: float = 0.5         # Normalized 0Ã¢â‚¬â€œ1
+    gravity: float = 0.5       # Normalized 0Ã¢â‚¬â€œ1
+    resonance: float = 0.5     # Normalized 0Ã¢â‚¬â€œ1
+    excursion: float = 0.5     # Normalized 0Ã¢â‚¬â€œ1
+    calm: float = 0.5          # Normalized 0Ã¢â‚¬â€œ1 (0.5 = neutral)
+    outputs: list = field(default_factory=lambda: [
+        SauceOfGravOutputState() for _ in range(4)
+    ])
+
+    def to_dict(self) -> dict:
+        return {
+            "clock_mode": self.clock_mode,
+            "rate": self.rate,
+            "depth": self.depth,
+            "gravity": self.gravity,
+            "resonance": self.resonance,
+            "excursion": self.excursion,
+            "calm": self.calm,
+            "outputs": [o.to_dict() for o in self.outputs],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SauceOfGravState":
+        raw_outputs = data.get("outputs", [])
+        outputs = []
+        for i in range(4):
+            if i < len(raw_outputs):
+                outputs.append(SauceOfGravOutputState.from_dict(raw_outputs[i]))
+            else:
+                outputs.append(SauceOfGravOutputState())
+        return cls(
+            clock_mode=data.get("clock_mode", 0),
+            rate=data.get("rate", 0.5),
+            depth=data.get("depth", 0.5),
+            gravity=data.get("gravity", 0.5),
+            resonance=data.get("resonance", 0.5),
+            excursion=data.get("excursion", 0.5),
+            calm=data.get("calm", 0.5),
+            outputs=outputs,
         )
 
 # Phase 5: FX State dataclasses

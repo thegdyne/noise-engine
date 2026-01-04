@@ -2,6 +2,7 @@
   "generator_id": "tidal_breath",
   "name": "Tidal Breath",
   "synthdef": "forge_leviathan_tidal_breath",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "lung",

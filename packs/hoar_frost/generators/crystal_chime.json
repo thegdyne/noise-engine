@@ -2,12 +2,58 @@
   "generator_id": "crystal_chime",
   "name": "CRYSTAL CHIME",
   "synthdef": "forge_hoar_frost_crystal_chime",
+  "synthesis_method": "physical/resonant_model",
   "custom_params": [
-    {"key": "metallic", "label": "MTL", "tooltip": "Metallic - inharmonic stretch", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "ringtime", "label": "RNG", "tooltip": "Ring - decay time", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "spread", "label": "SPR", "tooltip": "Spread - stereo width", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "attack", "label": "ATT", "tooltip": "Attack - strike sharpness", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "brightness", "label": "BRT", "tooltip": "Bright - high partial level", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "metallic",
+      "label": "MTL",
+      "tooltip": "Metallic - inharmonic stretch",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "ringtime",
+      "label": "RNG",
+      "tooltip": "Ring - decay time",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spread",
+      "label": "SPR",
+      "tooltip": "Spread - stereo width",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "attack",
+      "label": "ATT",
+      "tooltip": "Attack - strike sharpness",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "brightness",
+      "label": "BRT",
+      "tooltip": "Bright - high partial level",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": true,

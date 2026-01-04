@@ -50,13 +50,14 @@ class PresetManager:
         self.presets_dir = presets_dir or self.DEFAULT_DIR
         self.presets_dir.mkdir(parents=True, exist_ok=True)
     
-    def save(self, state: PresetState, name: Optional[str] = None) -> Path:
+    def save(self, state: PresetState, name: Optional[str] = None, overwrite: bool = False) -> Path:
         """
         Save preset to file.
         
         Args:
             state: PresetState to save
             name: Optional filename (without extension). If None, auto-generates.
+            overwrite: If True, overwrite existing file. If False, add numeric suffix.
         
         Returns:
             Path to saved file
@@ -76,8 +77,8 @@ class PresetManager:
         
         filepath = self.presets_dir / filename
         
-        # Handle existing file
-        if filepath.exists():
+        # Handle existing file (only add suffix if not overwriting)
+        if filepath.exists() and not overwrite:
             # Add numeric suffix
             base = filepath.stem
             counter = 1

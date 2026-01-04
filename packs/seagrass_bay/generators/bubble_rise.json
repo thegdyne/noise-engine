@@ -2,12 +2,58 @@
   "generator_id": "bubble_rise",
   "name": "Bubble Rise",
   "synthdef": "forge_seagrass_bay_bubble_rise",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
-    {"key": "size", "label": "SIZ", "tooltip": "Size - bubble diameter affects pitch", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "rise", "label": "RSE", "tooltip": "Rise - ascent rate/glide", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "cluster", "label": "CLU", "tooltip": "Cluster - multiple bubble density", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "pop", "label": "POP", "tooltip": "Pop - surface break transient", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "air", "label": "AIR", "tooltip": "Air - breathiness/noise content", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "size",
+      "label": "SIZ",
+      "tooltip": "Size - bubble diameter affects pitch",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "rise",
+      "label": "RSE",
+      "tooltip": "Rise - ascent rate/glide",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cluster",
+      "label": "CLU",
+      "tooltip": "Cluster - multiple bubble density",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pop",
+      "label": "POP",
+      "tooltip": "Pop - surface break transient",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "air",
+      "label": "AIR",
+      "tooltip": "Air - breathiness/noise content",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": true,

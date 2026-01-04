@@ -1,57 +1,58 @@
 {
-    "name": "HUSK",
-    "synthdef": "husk",
-    "custom_params": [
-        {
-            "key": "breath",
-            "label": "BRH",
-            "tooltip": "Hollow breath through mask",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "cavity",
-            "label": "CAV",
-            "tooltip": "Body cavity resonance",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "servo",
-            "label": "SRV",
-            "tooltip": "Servo/mechanical movement",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "empty",
-            "label": "EMP",
-            "tooltip": "Emptiness (filtered void)",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "twitch",
-            "label": "TWC",
-            "tooltip": "Involuntary twitches",
-            "default": 0.2,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "HUSK",
+  "synthdef": "husk",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": [
+    {
+      "key": "breath",
+      "label": "BRH",
+      "tooltip": "Hollow breath through mask",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cavity",
+      "label": "CAV",
+      "tooltip": "Body cavity resonance",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "servo",
+      "label": "SRV",
+      "tooltip": "Servo/mechanical movement",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "empty",
+      "label": "EMP",
+      "tooltip": "Emptiness (filtered void)",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "twitch",
+      "label": "TWC",
+      "tooltip": "Involuntary twitches",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

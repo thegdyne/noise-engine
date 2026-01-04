@@ -2,12 +2,58 @@
   "generator_id": "psyche_swirl",
   "name": "Psyche Swirl",
   "synthdef": "forge_summer_of_love_psyche_swirl",
+  "synthesis_method": "spectral/spectral_drone",
   "custom_params": [
-    {"key": "spin", "label": "SPN", "tooltip": "Rotation speed - gentle drift to rapid spin", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "depth", "label": "DPT", "tooltip": "Modulation depth - subtle shimmer to deep swirl", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "spiral", "label": "SPL", "tooltip": "Spiral complexity - simple to complex patterns", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "kaleid", "label": "KAL", "tooltip": "Kaleidoscope effect - fold and mirror harmonics", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
-    {"key": "cosmos", "label": "COS", "tooltip": "Cosmic reverb tail - earthbound to infinite", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+    {
+      "key": "spin",
+      "label": "SPN",
+      "tooltip": "Rotation speed - gentle drift to rapid spin",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "depth",
+      "label": "DPT",
+      "tooltip": "Modulation depth - subtle shimmer to deep swirl",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "spiral",
+      "label": "SPL",
+      "tooltip": "Spiral complexity - simple to complex patterns",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "kaleid",
+      "label": "KAL",
+      "tooltip": "Kaleidoscope effect - fold and mirror harmonics",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "cosmos",
+      "label": "COS",
+      "tooltip": "Cosmic reverb tail - earthbound to infinite",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
   ],
   "output_trim_db": -6.0,
   "midi_retrig": false,

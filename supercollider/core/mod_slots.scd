@@ -137,7 +137,38 @@ Empty generator = no synth, buses zeroed.
                 \clockIndex, ~modClockSourceIndex,
                 \bpmBus, ~clockBus.index
             ], ~modGroup);
-            ("  Mod slot " ++ slot ++ " → ARSEq+").postln;
+("  Mod slot " ++ slot ++ " → ARSEq+").postln;
+        }
+        { genName == "SauceOfGrav" } {
+            ~modNodes[idx] = Synth(\ne_mod_sauce_of_grav, [
+                \out1, busA,
+                \out2, busB,
+                \out3, busC,
+                \out4, busD,
+                \clockMode, params[\clockMode] ? 0,
+                \rate, params[\rate] ? 0.5,
+                \depth, params[\depth] ? 0.5,
+                \gravity, params[\gravity] ? 0.5,
+                \resonance, params[\resonance] ? 0.5,
+                \excursion, params[\excursion] ? 0.5,
+                \calm, params[\calm] ? 0.5,
+                \tension1, params[\tension1] ? 0.5,
+                \tension2, params[\tension2] ? 0.5,
+                \tension3, params[\tension3] ? 0.5,
+                \tension4, params[\tension4] ? 0.5,
+                \mass1, params[\mass1] ? 0.5,
+                \mass2, params[\mass2] ? 0.5,
+                \mass3, params[\mass3] ? 0.5,
+                \mass4, params[\mass4] ? 0.5,
+                \polarity1, outState[0][\polarity] ? 0,
+                \polarity2, outState[1][\polarity] ? 0,
+                \polarity3, outState[2][\polarity] ? 0,
+                \polarity4, outState[3][\polarity] ? 0,
+                \clockTrigBus, ~clockTrigBus.index,
+                \clockIndex, ~modClockSourceIndex,
+                \bpmBus, ~clockBus.index
+            ], ~modGroup);
+            ("  Mod slot " ++ slot ++ " → SauceOfGrav").postln;
         }
         { /* Empty - node stays nil, buses already zeroed */
             ("  Mod slot " ++ slot ++ " → Empty").postln;
@@ -147,6 +178,7 @@ Empty generator = no synth, buses zeroed.
     // Update parameter on existing synth
     ~setModParam = { |slot, key, value|
         var idx = slot - 1;
+        ("  Mod " ++ slot ++ " param: " ++ key ++ " = " ++ value).postln;
         ~modParams[idx][key.asSymbol] = value;
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(key.asSymbol, value);
@@ -173,13 +205,17 @@ Empty generator = no synth, buses zeroed.
         
         ~modOutputState[idx][output][\polarity] = polarity;
         
-        // Parameter name depends on generator type
-        if((genName == "LFO") || (genName == "ARSEq+")) {
+    // Parameter name depends on generator type
+        case
+        { (genName == "LFO") || (genName == "ARSEq+") } {
             paramName = [\polarityA, \polarityB, \polarityC, \polarityD][output];
-        } {
+        }
+        { genName == "SauceOfGrav" } {
+            paramName = [\polarity1, \polarity2, \polarity3, \polarity4][output];
+        }
+        { /* Sloth */
             paramName = [\polarityX, \polarityY, \polarityZ, \polarityR][output];
         };
-        
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(paramName, polarity);
         };
@@ -190,3 +226,4 @@ Empty generator = no synth, buses zeroed.
     
     "  ✓ Mod slots ready (4 slots × 4 outputs)".postln;
 };
+

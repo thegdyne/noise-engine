@@ -1,57 +1,58 @@
 {
-    "name": "STONEPATH",
-    "synthdef": "stonepath",
-    "custom_params": [
-        {
-            "key": "steps",
-            "label": "STP",
-            "tooltip": "Footstep rate",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "stone",
-            "label": "STN",
-            "tooltip": "Stone hardness",
-            "default": 0.6,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "grit",
-            "label": "GRT",
-            "tooltip": "Sand and gravel",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "hall",
-            "label": "HLL",
-            "tooltip": "Chamber echo",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "weight",
-            "label": "WGT",
-            "tooltip": "Footfall heaviness",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "STONEPATH",
+  "synthdef": "stonepath",
+  "synthesis_method": "texture/noise_texture",
+  "custom_params": [
+    {
+      "key": "steps",
+      "label": "STP",
+      "tooltip": "Footstep rate",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "stone",
+      "label": "STN",
+      "tooltip": "Stone hardness",
+      "default": 0.6,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "grit",
+      "label": "GRT",
+      "tooltip": "Sand and gravel",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "hall",
+      "label": "HLL",
+      "tooltip": "Chamber echo",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "weight",
+      "label": "WGT",
+      "tooltip": "Footfall heaviness",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

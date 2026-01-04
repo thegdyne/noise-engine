@@ -2,6 +2,7 @@
   "generator_id": "abyss_drone",
   "name": "Abyss Drone",
   "synthdef": "forge_leviathan_abyss_drone",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "void_depth",

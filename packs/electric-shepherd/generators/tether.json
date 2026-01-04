@@ -1,57 +1,58 @@
 {
-    "name": "TETHER",
-    "synthdef": "tether",
-    "custom_params": [
-        {
-            "key": "flow",
-            "label": "FLO",
-            "tooltip": "Air/fluid flow through tube",
-            "default": 0.5,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "pressure",
-            "label": "PRS",
-            "tooltip": "Pressure fluctuations",
-            "default": 0.4,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "pulse",
-            "label": "PLS",
-            "tooltip": "Connection pulse rhythm",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "flex",
-            "label": "FLX",
-            "tooltip": "Cable flex/movement",
-            "default": 0.3,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        },
-        {
-            "key": "data",
-            "label": "DAT",
-            "tooltip": "Data transfer sounds",
-            "default": 0.2,
-            "min": 0.0,
-            "max": 1.0,
-            "curve": "lin",
-            "unit": ""
-        }
-    ],
-    "output_trim_db": -3.0
+  "name": "TETHER",
+  "synthdef": "tether",
+  "synthesis_method": "subtractive/filtered_osc",
+  "custom_params": [
+    {
+      "key": "flow",
+      "label": "FLO",
+      "tooltip": "Air/fluid flow through tube",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pressure",
+      "label": "PRS",
+      "tooltip": "Pressure fluctuations",
+      "default": 0.4,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pulse",
+      "label": "PLS",
+      "tooltip": "Connection pulse rhythm",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "flex",
+      "label": "FLX",
+      "tooltip": "Cable flex/movement",
+      "default": 0.3,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "data",
+      "label": "DAT",
+      "tooltip": "Data transfer sounds",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ],
+  "output_trim_db": -3.0
 }

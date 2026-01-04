@@ -2,6 +2,7 @@
   "generator_id": "biolume_ping",
   "name": "Biolume Ping",
   "synthdef": "forge_leviathan_biolume_ping",
+  "synthesis_method": "texture/noise_texture",
   "custom_params": [
     {
       "key": "glow",

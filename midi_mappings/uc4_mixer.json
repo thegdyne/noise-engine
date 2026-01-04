@@ -1,0 +1,38 @@
+{
+  "mixer1_fader": {
+    "channel": 1,
+    "cc": 32
+  },
+  "mixer1_pan": {
+    "channel": 1,
+    "cc": 112
+  },
+  "mixer2_fader": {
+    "channel": 1,
+    "cc": 33
+  },
+  "mixer3_fader": {
+    "channel": 1,
+    "cc": 34
+  },
+  "mixer4_fader": {
+    "channel": 1,
+    "cc": 35
+  },
+  "mixer5_fader": {
+    "channel": 1,
+    "cc": 36
+  },
+  "mixer6_fader": {
+    "channel": 1,
+    "cc": 37
+  },
+  "mixer7_fader": {
+    "channel": 1,
+    "cc": 38
+  },
+  "mixer8_fader": {
+    "channel": 1,
+    "cc": 39
+  }
+}

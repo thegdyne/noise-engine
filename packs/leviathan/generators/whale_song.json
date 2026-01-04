@@ -2,6 +2,7 @@
   "generator_id": "whale_song",
   "name": "Whale Song",
   "synthdef": "forge_leviathan_whale_song",
+  "synthesis_method": "subtractive/filtered_osc",
   "custom_params": [
     {
       "key": "call",
