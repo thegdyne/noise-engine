@@ -226,6 +226,7 @@ def build_param_slider(slot, param):
             lambda idx, k=key: slot._on_mode_changed(k, idx)
         )
         container.addWidget(btn)
+        slot.param_sliders[key] = btn
         return col
 
     # DragSlider for continuous params
@@ -263,6 +264,7 @@ def build_param_slider(slot, param):
     bottom_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
     container.addWidget(bottom_label)
 
+    slot.param_sliders[key] = slider
     return col
 
 
