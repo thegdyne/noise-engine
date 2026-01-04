@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
-from .generator_slot import GeneratorSlot
+from .generator_slot_new import GeneratorSlot
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES
 from src.config import SIZES
 
