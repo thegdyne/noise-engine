@@ -331,7 +331,19 @@ def build_output_row(slot, output_idx, label, output_config):
             phase_btn.value_changed.connect(
                 lambda p, idx=output_idx, plabels=phase_labels: slot._on_phase_changed(idx, plabels.index(p))
             )
-            row.addWidget(phase_btn)
+            if output_idx == 0:
+                phase_container = QVBoxLayout()
+                phase_container.setSpacing(2)
+                phase_container.setContentsMargins(0, 0, 0, 0)
+                phase_label = QLabel("PHASE")
+                phase_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+                phase_label.setAlignment(Qt.AlignCenter)
+                phase_label.setStyleSheet(f"color: {COLORS['text']};")
+                phase_container.addWidget(phase_label)
+                phase_container.addWidget(phase_btn)
+                row.addLayout(phase_container)
+            else:
+                row.addWidget(phase_btn)
             row_widgets['phase'] = phase_btn
 
     elif output_config == "arseq_plus":

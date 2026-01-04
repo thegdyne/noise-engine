@@ -2,7 +2,7 @@
 Preset schema definition and validation.
 v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 2: BPM + Master section (EQ, compressor, limiter)
-   - Phase 3: Modulation sources (4 slots × 4 outputs)
+   - Phase 3: Modulation sources (4 slots Ã— 4 outputs)
    - Phase 4: Modulation routing (connections)
    - Phase 5: FX state (Heat, Echo, Reverb, Dual Filter)
 """
@@ -36,11 +36,11 @@ COMP_SC_FREQS = 6     # 0-5: Off, 30, 60, 90, 120, 185Hz
 NUM_MOD_SLOTS = 4
 NUM_MOD_OUTPUTS = 4
 MOD_WAVEFORMS = 5     # saw, tri, sqr, sin, s&h
-MOD_PHASES = 8        # 0°, 45°, 90°, ... 315°
+MOD_PHASES = 8        # 0Â°, 45Â°, 90Â°, ... 315Â°
 MOD_POLARITIES = 2    # 0=NORM, 1=INV
 
 # Phase 4: Modulation routing constants
-NUM_MOD_BUSES = 16    # 4 slots × 4 outputs
+NUM_MOD_BUSES = 16    # 4 slots Ã— 4 outputs
 MOD_POLARITIES_ROUTING = 3  # 0=bipolar, 1=uni+, 2=uni-
 
 # Phase 5: FX constants
@@ -278,6 +278,9 @@ class ModSlotState:
     output_wave: list = field(default_factory=lambda: [0, 0, 0, 0])  # 4 outputs
     output_phase: list = field(default_factory=lambda: [0, 3, 5, 6])  # Default phases for LFO
     output_polarity: list = field(default_factory=lambda: [0, 0, 0, 0])  # 0=NORM, 1=INV
+    # SauceOfGrav-specific per-output params
+    output_tension: list = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.5])
+    output_mass: list = field(default_factory=lambda: [0.5, 0.5, 0.5, 0.5])
     
     def to_dict(self) -> dict:
         return {
@@ -286,6 +289,8 @@ class ModSlotState:
             "output_wave": list(self.output_wave),
             "output_phase": list(self.output_phase),
             "output_polarity": list(self.output_polarity),
+            "output_tension": list(self.output_tension),
+            "output_mass": list(self.output_mass),
         }
     
     @classmethod
@@ -296,6 +301,8 @@ class ModSlotState:
             output_wave=list(data.get("output_wave", [0, 0, 0, 0])),
             output_phase=list(data.get("output_phase", [0, 3, 5, 6])),
             output_polarity=list(data.get("output_polarity", [0, 0, 0, 0])),
+            output_tension=list(data.get("output_tension", [0.5, 0.5, 0.5, 0.5])),
+            output_mass=list(data.get("output_mass", [0.5, 0.5, 0.5, 0.5])),
         )
 
 
@@ -331,8 +338,8 @@ class ModSourcesState:
 @dataclass
 class ARSeqEnvelopeState:
     """State for a single ARSEq+ envelope."""
-    attack: float = 0.5  # Normalized 0–1
-    release: float = 0.5  # Normalized 0–1
+    attack: float = 0.5  # Normalized 0â€“1
+    release: float = 0.5  # Normalized 0â€“1
     curve: float = 0.5  # 0=LOG, 0.5=LIN, 1=EXP
     sync_mode: int = 0  # 0=SYNC, 1=LOOP
     loop_rate: int = 6  # Index into MOD_CLOCK_RATES
@@ -344,7 +351,7 @@ class ARSeqPlusState:
     """Full ARSEq+ modulator state."""
     mode: int = 0  # 0=SEQ, 1=PAR
     clock_mode: int = 0  # 0=CLK, 1=FREE
-    rate: float = 0.5  # Normalized 0–1
+    rate: float = 0.5  # Normalized 0â€“1
     envelopes: list = field(default_factory=lambda: [
         ARSeqEnvelopeState() for _ in range(4)
     ])
@@ -382,8 +389,8 @@ class ARSeqPlusState:
 @dataclass
 class SauceOfGravOutputState:
     """State for a single SauceOfGrav output."""
-    tension: float = 0.5       # Normalized 0–1
-    mass: float = 0.5          # Normalized 0–1
+    tension: float = 0.5       # Normalized 0â€“1
+    mass: float = 0.5          # Normalized 0â€“1
     polarity: int = 0          # 0=NORM, 1=INV
 
     def to_dict(self) -> dict:
@@ -406,12 +413,12 @@ class SauceOfGravOutputState:
 class SauceOfGravState:
     """Full SauceOfGrav modulator state."""
     clock_mode: int = 0        # 0=CLK, 1=FREE
-    rate: float = 0.5          # Normalized 0–1 (0–0.05 = OFF)
-    depth: float = 0.5         # Normalized 0–1
-    gravity: float = 0.5       # Normalized 0–1
-    resonance: float = 0.5     # Normalized 0–1
-    excursion: float = 0.5     # Normalized 0–1
-    calm: float = 0.5          # Normalized 0–1 (0.5 = neutral)
+    rate: float = 0.5          # Normalized 0â€“1 (0â€“0.05 = OFF)
+    depth: float = 0.5         # Normalized 0â€“1
+    gravity: float = 0.5       # Normalized 0â€“1
+    resonance: float = 0.5     # Normalized 0â€“1
+    excursion: float = 0.5     # Normalized 0â€“1
+    calm: float = 0.5          # Normalized 0â€“1 (0.5 = neutral)
     outputs: list = field(default_factory=lambda: [
         SauceOfGravOutputState() for _ in range(4)
     ])

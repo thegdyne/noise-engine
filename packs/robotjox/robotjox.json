@@ -176,7 +176,7 @@
   "mixer": {
     "channels": [
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -190,7 +190,7 @@
         "hi_cut": false
       },
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -204,7 +204,7 @@
         "hi_cut": false
       },
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -218,7 +218,7 @@
         "hi_cut": false
       },
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -232,7 +232,7 @@
         "hi_cut": false
       },
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -246,7 +246,7 @@
         "hi_cut": false
       },
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -260,7 +260,7 @@
         "hi_cut": false
       },
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -274,7 +274,7 @@
         "hi_cut": false
       },
       {
-        "volume": 0.8,
+        "volume": 0.0,
         "pan": 0.5,
         "mute": false,
         "solo": false,
@@ -296,9 +296,20 @@
     "eq_hi": 120,
     "eq_mid": 120,
     "eq_lo": 120,
-    "comp_threshold": 0.8,
-    "comp_ratio": 2.0,
-    "limiter": true
+    "eq_hi_kill": 0,
+    "eq_mid_kill": 0,
+    "eq_lo_kill": 0,
+    "eq_locut": 0,
+    "eq_bypass": 0,
+    "comp_threshold": 100,
+    "comp_makeup": 0,
+    "comp_ratio": 1,
+    "comp_attack": 4,
+    "comp_release": 4,
+    "comp_sc": 0,
+    "comp_bypass": 0,
+    "limiter_ceiling": 590,
+    "limiter_bypass": 0
   },
   "mod_sources": {
     "slots": [
@@ -353,34 +364,9 @@
         ]
       },
       {
-        "generator_name": "LFO",
+        "generator_name": "ARSEq+",
         "params": {
           "mode": 0,
-          "rate": 0.5,
-          "shape": 0.0
-        },
-        "output_wave": [
-          0,
-          0,
-          0,
-          0
-        ],
-        "output_phase": [
-          0,
-          3,
-          5,
-          6
-        ],
-        "output_polarity": [
-          0,
-          0,
-          0,
-          0
-        ]
-      },
-      {
-        "generator_name": "Sloth",
-        "params": {
           "rate": 0.5
         },
         "output_wave": [
@@ -401,10 +387,87 @@
           0,
           0
         ]
+      },
+      {
+        "generator_name": "SauceOfGrav",
+        "params": {
+          "rate": 0.5,
+          "depth": 0.5,
+          "gravity": 0.4,
+          "resonance": 0.6,
+          "excursion": 0.6,
+          "calm": 0.55
+        },
+        "output_wave": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_phase": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_polarity": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_tension": [
+          0.45,
+          0.55,
+          0.5,
+          0.6
+        ],
+        "output_mass": [
+          0.4,
+          0.55,
+          0.45,
+          0.6
+        ]
       }
     ]
   },
   "mod_routing": {
     "connections": []
+  },
+  "fx": {
+    "heat": {
+      "bypass": true,
+      "circuit": 0,
+      "drive": 0,
+      "mix": 100
+    },
+    "echo": {
+      "time": 40,
+      "feedback": 30,
+      "tone": 70,
+      "wow": 10,
+      "spring": 0,
+      "verb_send": 0,
+      "return_level": 50
+    },
+    "reverb": {
+      "size": 50,
+      "decay": 50,
+      "tone": 70,
+      "return_level": 30
+    },
+    "dual_filter": {
+      "bypass": true,
+      "drive": 0,
+      "freq1": 50,
+      "reso1": 0,
+      "mode1": 1,
+      "freq2": 35,
+      "reso2": 0,
+      "mode2": 1,
+      "harmonics": 0,
+      "routing": 0,
+      "mix": 100
+    }
   }
 }

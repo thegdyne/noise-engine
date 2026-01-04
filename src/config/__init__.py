@@ -1070,14 +1070,43 @@ def _load_mod_generator_configs():
 # Load on import
 _load_mod_generator_configs()
 
+# LFO config (programmatic registration)
+_MOD_GENERATOR_CONFIGS["LFO"] = {
+    "internal_id": "lfo",
+    "synthdef": "ne_mod_lfo",
+    "custom_params": [
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0,
+         "tooltip": "CLK: sync to clock divisions\nFREE: manual frequency (0.01-100Hz)"},
+        {"key": "rate", "label": "RATE", "default": 0.5,
+         "tooltip": "LFO speed\nCLK: division, FREE: frequency"},
+    ],
+    "output_config": "waveform_phase",
+    "output_labels": ["A", "B", "C", "D"],
+}
+
+# Sloth config (programmatic registration)
+_MOD_GENERATOR_CONFIGS["Sloth"] = {
+    "internal_id": "sloth",
+    "synthdef": "ne_mod_sloth",
+    "custom_params": [
+        {"key": "mode", "label": "MODE", "steps": 3, "default": 0.0,
+         "tooltip": "Torpor: 15-30s\nApathy: 60-90s\nInertia: 30-40min"},
+    ],
+    "output_config": "fixed",
+    "output_labels": ["X", "Y", "Z", "R"],
+}
+
 # ARSEq+ config (programmatic registration)
 _MOD_GENERATOR_CONFIGS["ARSEq+"] = {
     "internal_id": "arseq_plus",
     "synthdef": "ne_mod_arseq_plus",
     "custom_params": [
-        {"key": "mode", "label": "MODE", "steps": 2, "default": 0.0},
-        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0},
-        {"key": "rate", "label": "RATE", "default": 0.5},
+        {"key": "mode", "label": "MODE", "steps": 2, "default": 0.0,
+         "tooltip": "SEQ: envelopes fire in sequence (1→2→3→4)\nPAR: all fire together"},
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0,
+         "tooltip": "CLK: sync to clock divisions\nFREE: manual rate control"},
+        {"key": "rate", "label": "RATE", "default": 0.5,
+         "tooltip": "Envelope cycle speed\nCLK: division, FREE: frequency"},
     ],
     "output_config": "arseq_plus",
     "outputs": ["1", "2", "3", "4"],
@@ -1088,13 +1117,20 @@ _MOD_GENERATOR_CONFIGS["SauceOfGrav"] = {
     "internal_id": "sauce_of_grav",
     "synthdef": "ne_mod_sauce_of_grav",
     "custom_params": [
-        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0},
-        {"key": "rate", "label": "RATE", "label_top": "FAST", "label_bottom": "SLOW", "default": 0.5},
-        {"key": "depth", "label": "DEPTH", "label_top": "WIDE", "label_bottom": "NAR", "default": 0.5},
-        {"key": "gravity", "label": "GRAV", "label_top": "PULL+", "label_bottom": "INDI", "default": 0.5},
-        {"key": "resonance", "label": "RESO", "label_top": "FBK+", "label_bottom": "FBK-", "default": 0.5},
-        {"key": "excursion", "label": "EXCUR", "label_top": "LOW", "label_bottom": "HI", "default": 0.5},
-        {"key": "calm", "label_top": "WILD", "label_bottom": "CALM", "default": 0.5, "bipolar": True},
+        {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0,
+         "tooltip": "CLK: sync to transport\nFREE: free-running"},
+        {"key": "rate", "label": "RATE", "label_top": "FAST", "label_bottom": "SLOW", "default": 0.5,
+         "tooltip": "Refresh event timing\nLow = slower evolution"},
+        {"key": "depth", "label": "DEPTH", "label_top": "WIDE", "label_bottom": "NAR", "default": 0.5,
+         "tooltip": "Hub friction\nHigh = hub loses bias faster"},
+        {"key": "gravity", "label": "GRAV", "label_top": "PULL+", "label_bottom": "INDI", "default": 0.5,
+         "tooltip": "Center pull strength\nLow = free drift, High = tight orbit"},
+        {"key": "resonance", "label": "RESO", "label_top": "FBK+", "label_bottom": "FBK-", "default": 0.5,
+         "tooltip": "Sustained motion\nHigher = more energy, prevents starvation"},
+        {"key": "excursion", "label": "EXCUR", "label_top": "LOW", "label_bottom": "HI", "default": 0.5,
+         "tooltip": "Range/expressiveness\nHow far outputs can travel"},
+        {"key": "calm", "label_top": "WILD", "label_bottom": "CALM", "default": 0.5, "bipolar": True,
+         "tooltip": "Energy macro\nCALM = tighter, WILD = bigger swings"},
     ],
     "output_config": "sauce_of_grav",
     "output_labels": ["1", "2", "3", "4"],

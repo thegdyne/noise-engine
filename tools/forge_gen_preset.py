@@ -41,7 +41,7 @@ DEFAULT_SLOT = {
 }
 
 DEFAULT_CHANNEL = {
-    "volume": 0.8,
+    "volume": 0.0,
     "pan": 0.5,
     "mute": False,
     "solo": False,
@@ -55,16 +55,70 @@ DEFAULT_CHANNEL = {
     "hi_cut": False,
 }
 
+# Match MasterState defaults from preset_schema.py
 DEFAULT_MASTER = {
     "volume": 0.8,
+    # EQ
     "eq_hi": 120,
     "eq_mid": 120,
     "eq_lo": 120,
-    "comp_threshold": 0.8,
-    "comp_ratio": 2.0,
-    "limiter": True,
+    "eq_hi_kill": 0,
+    "eq_mid_kill": 0,
+    "eq_lo_kill": 0,
+    "eq_locut": 0,
+    "eq_bypass": 0,
+    # Compressor
+    "comp_threshold": 100,   # 0-400, 200=0dB, 100 is gentle
+    "comp_makeup": 0,        # 0-200
+    "comp_ratio": 1,         # index: 0=2:1, 1=4:1, 2=10:1
+    "comp_attack": 4,        # index 0-5
+    "comp_release": 4,       # index 0-4
+    "comp_sc": 0,            # index 0-5
+    "comp_bypass": 0,        # 0=on, 1=bypassed
+    # Limiter
+    "limiter_ceiling": 590,  # 0-600, 590=-0.1dB
+    "limiter_bypass": 0,     # 0=on, 1=bypassed
 }
 
+# Match FXState defaults from preset_schema.py
+DEFAULT_FX = {
+    "heat": {
+        "bypass": True,
+        "circuit": 0,
+        "drive": 0,
+        "mix": 100,
+    },
+    "echo": {
+        "time": 40,
+        "feedback": 30,
+        "tone": 70,
+        "wow": 10,
+        "spring": 0,
+        "verb_send": 0,
+        "return_level": 50,
+    },
+    "reverb": {
+        "size": 50,
+        "decay": 50,
+        "tone": 70,
+        "return_level": 30,
+    },
+    "dual_filter": {
+        "bypass": True,
+        "drive": 0,
+        "freq1": 50,
+        "reso1": 0,
+        "mode1": 1,
+        "freq2": 35,
+        "reso2": 0,
+        "mode2": 1,
+        "harmonics": 0,
+        "routing": 0,
+        "mix": 100,
+    },
+}
+
+# Mod slot defaults - one of each modulator type
 DEFAULT_MOD_SLOT_LFO = {
     "generator_name": "LFO",
     "params": {"mode": 0, "rate": 0.5, "shape": 0.0},
@@ -80,6 +134,44 @@ DEFAULT_MOD_SLOT_SLOTH = {
     "output_phase": [0, 0, 0, 0],
     "output_polarity": [0, 0, 0, 0],
 }
+
+DEFAULT_MOD_SLOT_ARSEQ = {
+    "generator_name": "ARSEq+",
+    "params": {"mode": 0, "rate": 0.5},
+    "output_wave": [0, 0, 0, 0],
+    "output_phase": [0, 0, 0, 0],
+    "output_polarity": [0, 0, 0, 0],
+}
+
+DEFAULT_MOD_SLOT_SAUCEGRAV = {
+    "generator_name": "SauceOfGrav",
+    "params": {
+        "rate": 0.5,
+        "depth": 0.5,
+        "gravity": 0.4,      # Lower = more hub influence, interesting drift
+        "resonance": 0.6,    # Ensure motion stays alive
+        "excursion": 0.6,    # Wider hub travel, more expressive
+        "calm": 0.55         # Slightly toward wild for visible motion
+    },
+    "output_wave": [0, 0, 0, 0],      # N/A for SauceOfGrav
+    "output_phase": [0, 0, 0, 0],     # N/A for SauceOfGrav
+    "output_polarity": [0, 0, 0, 0],
+    "output_tension": [0.45, 0.55, 0.50, 0.60],  # Asymmetric = more interesting
+    "output_mass": [0.40, 0.55, 0.45, 0.60],     # Different arc speeds
+}
+
+
+def _deep_copy_fx():
+    """Deep copy DEFAULT_FX to avoid mutation."""
+    import copy
+    return copy.deepcopy(DEFAULT_FX)
+
+
+def _deep_copy_mod_slot(slot_dict):
+    """Deep copy a mod slot dict to avoid mutation."""
+    import copy
+    return copy.deepcopy(slot_dict)
+
 
 def get_generator_names(pack_path: Path) -> list[str]:
     """Read generator display names from pack."""
@@ -140,13 +232,14 @@ def generate_preset(pack_path: Path) -> dict:
         "master": DEFAULT_MASTER.copy(),
         "mod_sources": {
             "slots": [
-                DEFAULT_MOD_SLOT_LFO.copy(),
-                DEFAULT_MOD_SLOT_SLOTH.copy(),
-                DEFAULT_MOD_SLOT_LFO.copy(),
-                DEFAULT_MOD_SLOT_SLOTH.copy(),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_LFO),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_SLOTH),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_ARSEQ),
+                _deep_copy_mod_slot(DEFAULT_MOD_SLOT_SAUCEGRAV),
             ]
         },
         "mod_routing": {"connections": []},
+        "fx": _deep_copy_fx(),
     }
 
     return preset
