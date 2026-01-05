@@ -7,6 +7,7 @@ Common patterns include:
 - Ã© Ã¨ Ã¼ etc (from accented characters)
 - Zero-width and invisible characters
 - Smart quotes in code files
+
 """
 
 import os
@@ -14,6 +15,8 @@ import re
 import pytest
 from pathlib import Path
 
+# cdd-utils: utf8-ignore - This file contains deliberate corruption for testing
+"""Test encoding detection and repair."""
 
 # Common mojibake patterns - UTF-8 decoded as Windows-1252
 MOJIBAKE_PATTERNS = [
@@ -175,7 +178,7 @@ class TestEncoding:
 
     def test_main_frame_status_strings(self, project_root):
         """Specifically check main_frame.py status indicator strings."""
-        main_frame = project_root / 'src' / 'gui' / 'main_frame.py'
+        main_frame = project_root / 'src' / 'gui' / 'controllers' / 'connection_controller.py'
         if not main_frame.exists():
             pytest.skip("main_frame.py not found")
         
@@ -200,7 +203,7 @@ class TestEncoding:
 
     def test_expected_unicode_chars_valid(self, project_root):
         """Verify that proper Unicode characters are used, not corrupted versions."""
-        main_frame = project_root / 'src' / 'gui' / 'main_frame.py'
+        main_frame = project_root / 'src' / 'gui' / 'controllers' / 'connection_controller.py'
         if not main_frame.exists():
             pytest.skip("main_frame.py not found")
         

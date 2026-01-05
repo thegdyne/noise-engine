@@ -339,7 +339,7 @@ class TestChannelStripOSC:
     def test_pan_sends_osc_on_change(self, project_root):
         """Pan change handler must send OSC via gen_pan path."""
         import re
-        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        filepath = os.path.join(project_root, 'src', 'gui', 'controllers', 'mixer_controller.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
@@ -355,7 +355,7 @@ class TestChannelStripOSC:
     def test_eq_sends_osc_on_change(self, project_root):
         """EQ change handler must send OSC messages via SSOT path."""
         import re
-        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        filepath = os.path.join(project_root, 'src', 'gui', 'controllers', 'mixer_controller.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
@@ -386,7 +386,7 @@ class TestModSlotSync:
     
     def test_sync_handles_cyclebutton_and_slider(self, project_root):
         """Mod slot sync must handle both CycleButton (mode) and DragSlider (rate/shape)."""
-        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        filepath = os.path.join(project_root, 'src', 'gui', 'controllers', 'modulation_controller.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
@@ -419,7 +419,7 @@ class TestStripStatePersistence:
     def test_strip_state_sync_exists(self, project_root):
         """_sync_strip_state_to_sc must exist and send pan/EQ/mute/solo/gain."""
         import re
-        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        filepath = os.path.join(project_root, 'src', 'gui', 'controllers', 'generator_controller.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
@@ -438,7 +438,7 @@ class TestStripStatePersistence:
     def test_strip_sync_called_on_generator_change(self, project_root):
         """on_generator_changed must call _sync_strip_state_to_sc."""
         import re
-        filepath = os.path.join(project_root, 'src', 'gui', 'main_frame.py')
+        filepath = os.path.join(project_root, 'src', 'gui', 'controllers', 'generator_controller.py')
         with open(filepath, 'r') as f:
             content = f.read()
         
