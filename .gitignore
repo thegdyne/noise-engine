@@ -7,6 +7,7 @@ __pycache__/
 venv/
 env/
 ENV/
+patches/
 
 #ignore contract artifacts
 artifacts/
@@ -117,3 +118,4 @@ PROJECT_CONTEXT.md
 _utf8_backups_*/
 .context-cache/
 analysis/
+/patches/
