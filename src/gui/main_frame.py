@@ -42,6 +42,7 @@ from src.gui.controllers.midi_cc_controller import MidiCCController
 from src.gui.controllers.generator_controller import GeneratorController
 from src.gui.controllers.mixer_controller import MixerController
 from src.gui.controllers.master_controller import MasterController
+from src.gui.controllers.connection_controller import ConnectionController
 
 class MainFrame(QMainWindow):
     """Main application window."""
@@ -69,6 +70,9 @@ class MainFrame(QMainWindow):
 
         # Connect MIDI CC signal from OSC (wrapper forwards to controller)
         self.osc.midi_cc_received.connect(self._on_midi_cc)
+
+        # Connection controller
+        self.connection = ConnectionController(self)
 
         # Mixer controller
         self.mixer = MixerController(self)
@@ -636,145 +640,26 @@ class MainFrame(QMainWindow):
             self.connect_btn.setText("Connecting...")
             QTimer.singleShot(3000, self._try_auto_connect)
 
+    # ── Connection Controller Wrappers ──────────────────────────────────
+    # Method bodies moved to ConnectionController (Phase 5 refactor)
+
     def _try_auto_connect(self):
-        """Attempt auto-connect once."""
-        self.connect_btn.setEnabled(True)
-        if not self.osc_connected:
-            self.toggle_connection()
+        return self.connection._try_auto_connect()
 
     def _sc_is_ready(self):
-        """Check if SC ready.json exists and is fresh (< 60s old)."""
-        import os as _os
-        import time as _time
-        import json as _json
-        ready_path = _os.path.expanduser("~/Library/Application Support/NoiseEngine/state/ready.json")
-        try:
-            if _os.path.exists(ready_path):
-                age = _time.time() - _os.path.getmtime(ready_path)
-                if age < 60:
-                    with open(ready_path) as f:
-                        data = _json.load(f)
-                    return data.get("status") == "ready"
-        except Exception:  # Ready file may not exist or be corrupt - that's fine
-            pass
-        return False
+        return self.connection._sc_is_ready()
 
     def toggle_connection(self):
-        """Connect/disconnect to SuperCollider."""
-        if not self.osc_connected:
-            # Connect signals before connecting
-            self.osc.gate_triggered.connect(self.on_gate_trigger)
-            self.osc.levels_received.connect(self.on_levels_received)
-            self.osc.channel_levels_received.connect(self.on_channel_levels_received)
-            self.osc.connection_lost.connect(self.on_connection_lost)
-            self.osc.connection_restored.connect(self.on_connection_restored)
-            self.osc.audio_devices_received.connect(self.on_audio_devices_received)
-            self.osc.audio_device_changing.connect(self.on_audio_device_changing)
-            self.osc.audio_device_ready.connect(self.on_audio_device_ready)
-            self.osc.comp_gr_received.connect(self.on_comp_gr_received)
-            self.osc.mod_bus_value_received.connect(self.on_mod_bus_value)
-            self.osc.mod_values_received.connect(self.on_mod_values_received)
-            
-            if self.osc.connect():
-                self.osc_connected = True
-                # Initialize crossmod OSC bridge
-                if self.crossmod_osc is None:
-                    self.crossmod_osc = CrossmodOSCBridge(self.crossmod_state, self.osc.client)
-                self._set_header_buttons_enabled(True)
-                self.master_section.set_osc_bridge(self.osc)
-                self.inline_fx.set_osc_bridge(self.osc)
-                self.inline_fx.sync_state()
-                if self.fx_window:
-                    self.fx_window.set_osc_bridge(self.osc)
-                self.connect_btn.setText("Disconnect")
-                self.status_label.setText("Connected")
-                self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
-                
-                self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
-                
-                # Send initial master volume
-                self.osc.client.send_message(OSC_PATHS['master_volume'], [self.master_section.get_volume()])
-                
-                # Query audio devices
-                self.osc.query_audio_devices()
-                
-                # Send current MIDI device if one is selected
-                current_midi = self.midi_selector.get_current_device()
-                if current_midi:
-                    port_index = self.midi_selector.get_port_index(current_midi)
-                    if port_index >= 0:
-                        self.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
-                
-                # Send initial mod source state
-                self._sync_mod_sources()
-            else:
-                self.status_label.setText("Connection Failed")
-                self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
-        else:
-            try:
-                # Disconnect all signals connected in toggle_connection
-                self.osc.gate_triggered.disconnect(self.on_gate_trigger)
-                self.osc.levels_received.disconnect(self.on_levels_received)
-                self.osc.channel_levels_received.disconnect(self.on_channel_levels_received)
-                self.osc.connection_lost.disconnect(self.on_connection_lost)
-                self.osc.connection_restored.disconnect(self.on_connection_restored)
-                self.osc.audio_devices_received.disconnect(self.on_audio_devices_received)
-                self.osc.audio_device_changing.disconnect(self.on_audio_device_changing)
-                self.osc.audio_device_ready.disconnect(self.on_audio_device_ready)
-                self.osc.comp_gr_received.disconnect(self.on_comp_gr_received)
-                self.osc.mod_bus_value_received.disconnect(self.on_mod_bus_value)
-                self.osc.mod_values_received.disconnect(self.on_mod_values_received)
-            except TypeError:
-                pass  # Signals weren't connected
-            self.osc.disconnect()
-            self.osc_connected = False
-            self._set_header_buttons_enabled(False)
-            self.connect_btn.setText("Connect SuperCollider")
-            self.status_label.setText("Disconnected")
-            self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
-    
+        return self.connection.toggle_connection()
+
     def on_connection_lost(self):
-        """Handle connection lost - show prominent warning."""
-        self.osc_connected = False
-        self._set_header_buttons_enabled(False)
-        self.connect_btn.setText("RECONNECT")
-        self.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
-        self.status_label.setText("CONNECTION LOST")
-        self.status_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: bold;")
-    
+        return self.connection.on_connection_lost()
+
     def on_connection_restored(self):
-        """Handle connection restored after reconnect."""
-        self.osc_connected = True
-        self._set_header_buttons_enabled(True)
-        self.master_section.set_osc_bridge(self.osc)
-        self.inline_fx.set_osc_bridge(self.osc)
-        self.inline_fx.sync_state()
-        if self.fx_window:
-            self.fx_window.set_osc_bridge(self.osc)
-        self.connect_btn.setText("Disconnect")
-        self.connect_btn.setStyleSheet(self._connect_btn_style())  # Restore original style
-        self.status_label.setText("Connected")
-        self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
-        
-        # Resend current state
-        self.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.master_bpm])
-        
-        # Clear mod routing (SC has fresh state after restart)
-        self.mod_routing.clear()
-    
+        return self.connection.on_connection_restored()
+
     def _connect_btn_style(self):
-        """Return the standard connect button stylesheet."""
-        return f"""
-            QPushButton {{
-                background-color: {COLORS['border_light']};
-                color: white;
-                padding: 5px 15px;
-                border-radius: 3px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['text']};
-            }}
-        """
+        return self.connection._connect_btn_style()
 
     # ── Generator Controller Wrappers ───────────────────────────────────
     # Method bodies moved to GeneratorController (Phase 3 refactor)
