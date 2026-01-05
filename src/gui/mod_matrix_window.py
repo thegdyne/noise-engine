@@ -210,6 +210,10 @@ class ModMatrixWindow(QMainWindow):
         
         scroll.setWidget(matrix_widget)
         layout.addWidget(scroll)
+
+        # Extended Routes Section (new)
+        ext_section = self._build_extended_routes_section()
+        layout.addWidget(ext_section)
         
         # Legend
         legend = self._build_legend()
@@ -502,6 +506,10 @@ class ModMatrixWindow(QMainWindow):
         # Close popup if it was showing this connection
         if hasattr(self, '_open_popup') and self._open_popup:
             self._open_popup.close()
+        
+        # Update extended routes list if this was an extended route
+        if conn.is_extended:
+            self._update_ext_routes_list()
     
     def _on_connection_changed(self, conn: ModConnection):
         """Update cell and popup when connection parameters change."""
@@ -782,6 +790,220 @@ class ModMatrixWindow(QMainWindow):
         else:
             self.resize(1000, 550)
     
+    def _build_extended_routes_section(self):
+        """Build the extended routes management section."""
+        from PyQt5.QtWidgets import QGroupBox, QListWidget, QListWidgetItem
+        
+        group = QGroupBox("Extended Routes (FX / Modulators / Sends)")
+        group.setStyleSheet(f"""
+            QGroupBox {{
+                color: {COLORS['text_bright']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 4px;
+                margin-top: 8px;
+                padding-top: 12px;
+                font-family: '{MONO_FONT}';
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 4px;
+            }}
+        """)
+        
+        layout = QVBoxLayout(group)
+        layout.setSpacing(6)
+        layout.setContentsMargins(8, 8, 8, 8)
+        
+        # Top row: Add button + counter
+        top_layout = QHBoxLayout()
+        
+        self.add_ext_route_btn = QPushButton("+ Add Extended Route")
+        self.add_ext_route_btn.setFixedHeight(28)
+        self.add_ext_route_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {COLORS['enabled']};
+                color: {COLORS['background']};
+                border: none;
+                border-radius: 3px;
+                padding: 4px 12px;
+                font-family: '{MONO_FONT}';
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['accent']};
+            }}
+            QPushButton:pressed {{
+                background-color: {COLORS['enabled_dim']};
+            }}
+        """)
+        self.add_ext_route_btn.clicked.connect(self._on_add_extended_route_clicked)
+        top_layout.addWidget(self.add_ext_route_btn)
+        
+        top_layout.addStretch()
+        
+        self.ext_route_counter = QLabel("0 extended routes")
+        self.ext_route_counter.setStyleSheet(f"color: {COLORS['text']}; font-size: {FONT_SIZES['small']}px;")
+        top_layout.addWidget(self.ext_route_counter)
+        
+        layout.addLayout(top_layout)
+        
+        # List of extended routes
+        self.ext_routes_list = QListWidget()
+        self.ext_routes_list.setFixedHeight(120)
+        self.ext_routes_list.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {COLORS['background_light']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 3px;
+                font-family: '{MONO_FONT}';
+                font-size: {FONT_SIZES['small']}px;
+                padding: 2px;
+            }}
+            QListWidget::item {{
+                padding: 4px;
+                border-radius: 2px;
+            }}
+            QListWidget::item:hover {{
+                background-color: {COLORS['background_highlight']};
+            }}
+            QListWidget::item:selected {{
+                background-color: {COLORS['enabled_dim']};
+                color: {COLORS['text_bright']};
+            }}
+        """)
+        self.ext_routes_list.itemDoubleClicked.connect(self._on_ext_route_double_clicked)
+        layout.addWidget(self.ext_routes_list)
+        
+        return group
+    
+    def _on_add_extended_route_clicked(self):
+        """Open popup to create a new extended route."""
+        from .mod_connection_popup_ext import ExtModConnectionPopup
+        
+        # Close any existing popup
+        if hasattr(self, '_open_ext_popup') and self._open_ext_popup:
+            self._open_ext_popup.close()
+        
+        # Show source selection popup (for now, just use mod slot 1, bus A = 0)
+        # TODO: Add source selection dialog
+        source_bus = 0  # M1.A for testing
+        source_label = "M1.A"
+        
+        popup = ExtModConnectionPopup(
+            source_bus=source_bus,
+            source_label=source_label,
+            connection=None,  # Create mode
+            parent=self
+        )
+        popup.connection_created.connect(self._on_ext_route_created)
+        popup.show()
+        
+        self._open_ext_popup = popup
+    
+    def _on_ext_route_created(self, conn):
+        """Handle new extended route creation."""
+        # Add to routing state (will trigger OSC via modulation_controller)
+        self.routing_state.add_connection(conn)
+        
+        # Update the list
+        self._update_ext_routes_list()
+    
+    def _on_ext_route_double_clicked(self, item):
+        """Open edit popup for an extended route."""
+        from .mod_connection_popup_ext import ExtModConnectionPopup
+        
+        # Extract connection from item data
+        conn = item.data(Qt.UserRole)
+        if not conn:
+            return
+        
+        # Get source label
+        mod_slot = conn.source_bus // 4
+        output_idx = conn.source_bus % 4
+        output_labels = ['A', 'B', 'C', 'D']
+        source_label = f"M{mod_slot + 1}.{output_labels[output_idx]}"
+        
+        # Close any existing popup
+        if hasattr(self, '_open_ext_popup') and self._open_ext_popup:
+            self._open_ext_popup.close()
+        
+        popup = ExtModConnectionPopup(
+            source_bus=conn.source_bus,
+            source_label=source_label,
+            connection=conn,  # Edit mode
+            parent=self
+        )
+        popup.connection_changed.connect(lambda c: self._update_ext_routes_list())
+        popup.remove_requested.connect(lambda: self._on_ext_route_remove_requested(conn))
+        popup.show()
+        
+        self._open_ext_popup = popup
+    
+    def _on_ext_route_remove_requested(self, conn):
+        """Remove an extended route."""
+        self.routing_state.remove_connection(
+            conn.source_bus,
+            target_str=conn.target_str
+        )
+        self._update_ext_routes_list()
+    
+    def _update_ext_routes_list(self):
+        """Refresh the extended routes list widget."""
+        self.ext_routes_list.clear()
+        
+        ext_conns = self.routing_state.get_extended_connections()
+        
+        # Update counter
+        self.ext_route_counter.setText(f"{len(ext_conns)} extended route{'s' if len(ext_conns) != 1 else ''}")
+        
+        # Populate list
+        for conn in ext_conns:
+            # Get source label
+            mod_slot = conn.source_bus // 4
+            output_idx = conn.source_bus % 4
+            output_labels = ['A', 'B', 'C', 'D']
+            source_label = f"M{mod_slot + 1}.{output_labels[output_idx]}"
+            
+            # Get target label
+            target_label = self._get_ext_target_label(conn.target_str)
+            
+            # Format: "M1.A → HEAT Drive [50%]"
+            text = f"{source_label} → {target_label} [{int(conn.amount * 100)}%]"
+            
+            item = QListWidgetItem(text)
+            item.setData(Qt.UserRole, conn)  # Store connection for later
+            self.ext_routes_list.addItem(item)
+    
+    def _get_ext_target_label(self, target_str: str) -> str:
+        """Convert target string to human-readable label."""
+        parts = target_str.split(':')
+        if len(parts) < 3:
+            return target_str
+        
+        target_type, identifier, param = parts[0], parts[1], parts[2]
+        
+        if target_type == 'fx':
+            fx_labels = {'heat': 'HEAT', 'echo': 'ECHO', 'reverb': 'REVERB', 'dual_filter': 'DUAL_FILTER'}
+            fx_name = fx_labels.get(identifier, identifier.upper())
+            param_label = param.replace('_', ' ').title()
+            return f"{fx_name} {param_label}"
+        
+        elif target_type == 'mod':
+            param_label = param.replace('_', ' ').title()
+            return f"MOD {identifier} {param_label}"
+        
+        elif target_type == 'send':
+            send_labels = {'ec': 'Echo', 'vb': 'Verb'}
+            send_name = send_labels.get(param, param.upper())
+            return f"CH{identifier} {send_name}"
+        
+        return target_str
+
     def _save_settings(self):
         """Save window geometry to settings."""
         settings = QSettings("NoiseEngine", "ModMatrix")
