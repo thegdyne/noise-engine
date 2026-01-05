@@ -79,7 +79,9 @@ class MainFrame(QMainWindow):
         self.cc_learn_manager.learn_cancelled.connect(self._on_learn_cancelled)
 
         self.osc_connected = False
-        
+        self._auto_connect_tried = False
+        self._auto_connect_attempts = 0
+
         self.active_generators = {}
         self.active_effects = {}
 
@@ -630,6 +632,38 @@ class MainFrame(QMainWindow):
             from src.presets.preset_schema import PresetState
             self._apply_preset(PresetState())
             self.preset_name.setText("Init")
+
+    def showEvent(self, event):
+        """Auto-connect if SC is ready (launched via ne-run)."""
+        super().showEvent(event)
+        if not self._auto_connect_tried and not self.osc_connected and self._sc_is_ready():
+            self._auto_connect_tried = True
+            self.connect_btn.setEnabled(False)
+            self.connect_btn.setText("Connecting...")
+            QTimer.singleShot(3000, self._try_auto_connect)
+
+    def _try_auto_connect(self):
+        """Attempt auto-connect once."""
+        self.connect_btn.setEnabled(True)
+        if not self.osc_connected:
+            self.toggle_connection()
+
+    def _sc_is_ready(self):
+        """Check if SC ready.json exists and is fresh (< 60s old)."""
+        import os as _os
+        import time as _time
+        import json as _json
+        ready_path = _os.path.expanduser("~/Library/Application Support/NoiseEngine/state/ready.json")
+        try:
+            if _os.path.exists(ready_path):
+                age = _time.time() - _os.path.getmtime(ready_path)
+                if age < 60:
+                    with open(ready_path) as f:
+                        data = _json.load(f)
+                    return data.get("status") == "ready"
+        except Exception:
+            pass
+        return False
 
     def toggle_connection(self):
         """Connect/disconnect to SuperCollider."""

@@ -76,6 +76,7 @@ GENERATOR_PARAMS = [
 # Build lookup dict for quick access
 GENERATOR_PARAMS_BY_KEY = {p['key']: p for p in GENERATOR_PARAMS}
 
+
 # Custom params (P1-P5) config for modulation
 CUSTOM_PARAM_CONFIG = {
     'min': 0.0,
@@ -1241,6 +1242,7 @@ OSC_PATHS = {
     # MIDI
     'midi_device': '/noise/midi/device',
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash
+    'midi_cc': '/noise/midi/cc',  # SC -> Python for CC mapping
     'midi_retrig': '/noise/gen/midiRetrig',  # Flag for MIDI continuous retriggering
     # Connection management
     'ping': '/noise/ping',
@@ -1287,6 +1289,7 @@ OSC_PATHS = {
     'mod_output_phase': '/noise/mod/out/phase',     # /noise/mod/out/phase/{slot}/{output}
     'mod_output_polarity': '/noise/mod/out/pol',    # /noise/mod/out/pol/{slot}/{output}
     'mod_bus_value': '/noise/mod/bus/value',        # /noise/mod/bus/value/{bus} (SC → Python)
+    'mod_values': '/noise/mod/values',
     'mod_scope_enable': '/noise/mod/scope/enable',  # /noise/mod/scope/enable/{slot} (Python → SC)
     
     # Mod routing (connections between mod buses and generator params)
