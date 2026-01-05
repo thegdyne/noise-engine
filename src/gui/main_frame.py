@@ -44,6 +44,8 @@ from src.gui.controllers.mixer_controller import MixerController
 from src.gui.controllers.master_controller import MasterController
 from src.gui.controllers.connection_controller import ConnectionController
 from src.gui.controllers.modulation_controller import ModulationController
+from src.gui.controllers.midi_mode_controller import MidiModeController
+from src.gui.controllers.keyboard_controller import KeyboardController
 
 class MainFrame(QMainWindow):
     """Main application window."""
@@ -74,6 +76,11 @@ class MainFrame(QMainWindow):
 
         # Connection controller
         self.connection = ConnectionController(self)
+
+        # MIDI mode controller
+        self.midi_mode = MidiModeController(self)
+        # Keyboard controller
+        self.keyboard = KeyboardController(self)
 
         # Modulation controller
         self.modulation = ModulationController(self)
@@ -1014,85 +1021,20 @@ class MainFrame(QMainWindow):
 
     # === MIDI Mode Toggle ===
 
+    # ── MIDI Mode Controller Wrappers ───────────────────────────────────
+    # Method bodies moved to MidiModeController (Phase 7 refactor)
+
     def _midi_mode_btn_style(self, active):
-        """Return style for MIDI mode button."""
-        if active:
-            return f"""
-                QPushButton {{
-                    background-color: #660066;
-                    color: #ff00ff;
-                    border: 1px solid #ff00ff;
-                    border-radius: 3px;
-                    font-family: 'Courier New', monospace;
-                    font-size: {FONT_SIZES['small']}px;
-                    font-weight: bold;
-                }}
-                QPushButton:disabled {{
-                    background-color: #220022;
-                    color: #440044;
-                    border-color: #330033;
-                }}
-            """
-        else:
-            return f"""
-                QPushButton {{
-                    background-color: {COLORS['background']};
-                    color: {COLORS['text']};
-                    border: 1px solid {COLORS['border']};
-                    border-radius: 3px;
-                    font-family: 'Courier New', monospace;
-                    font-size: {FONT_SIZES['small']}px;
-                    font-weight: bold;
-                }}
-                QPushButton:hover {{
-                    background-color: #330033;
-                    color: #ff00ff;
-                    border-color: #aa00aa;
-                }}
-                QPushButton:disabled {{
-                    background-color: {COLORS['background']};
-                    color: {COLORS['border']};
-                    border-color: {COLORS['border']};
-                }}
-            """
+        return self.midi_mode._midi_mode_btn_style(active)
+
     def _toggle_midi_mode(self):
-        """Toggle all generators to/from MIDI mode."""
-        if not self._midi_mode_active:
-            # Activate: save states, set all to MIDI
-            self._midi_mode_changing = True
-            for i, slot in enumerate(self.generator_grid.slots.values()):
-                self._midi_mode_saved_states[i] = slot.env_source
-                if slot.env_source != 2:  # Not already MIDI
-                    slot.env_btn.set_index(2)  # Update visual
-                    slot.on_env_source_changed("MIDI")   # Trigger full state update
-            self._midi_mode_changing = False
-            self._midi_mode_active = True
-            logger.info("MIDI mode activated", component="APP")
-        else:
-            # Deactivate: restore saved states
-            self._restore_midi_mode_states()
-        
-        self.midi_mode_btn.setChecked(self._midi_mode_active)
-        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(self._midi_mode_active))
+        return self.midi_mode._toggle_midi_mode()
 
     def _restore_midi_mode_states(self):
-        """Restore saved env_source states."""
-        from src.config import ENV_SOURCES
-        self._midi_mode_changing = True
-        for i, slot in enumerate(self.generator_grid.slots.values()):
-            saved = self._midi_mode_saved_states[i]
-            slot.env_btn.set_index(saved)  # Update visual
-            slot.on_env_source_changed(ENV_SOURCES[saved])  # Trigger full state update
-        self._midi_mode_changing = False
-        self._midi_mode_active = False
-        logger.info("MIDI mode deactivated", component="APP")
+        return self.midi_mode._restore_midi_mode_states()
 
     def _deactivate_midi_mode(self):
-        """Deactivate MIDI mode without restoring (user made manual change)."""
-        self._midi_mode_active = False
-        self.midi_mode_btn.setChecked(False)
-        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(False))
-        logger.info("MIDI mode cancelled (manual change)", component="APP")
+        return self.midi_mode._deactivate_midi_mode()
 
     # ── Preset Controller Wrappers ──────────────────────────────────────
     # Method bodies moved to PresetController (Phase 1 refactor)
@@ -1119,11 +1061,10 @@ class MainFrame(QMainWindow):
 
     def eventFilter(self, obj, event):
         """Forward key events to keyboard overlay when visible."""
-        # Cancel MIDI Learn on Escape
         if event.type() == QEvent.KeyPress:
             if event.key() == Qt.Key_Escape:
-                if hasattr(self, 'cc_learn_manager') and self.cc_learn_manager.is_learning():
-                    self.cc_learn_manager.cancel_learn()
+                if self.midi_cc.cc_learn_manager.is_learning():
+                    self.midi_cc.cc_learn_manager.cancel_learn()
                     return True
 
         if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
@@ -1136,63 +1077,22 @@ class MainFrame(QMainWindow):
         return super().eventFilter(obj, event)
 
     def _toggle_keyboard_mode(self):
-        """Toggle the keyboard overlay for QWERTY-to-MIDI input."""
-        # If overlay exists and is visible, just toggle it off
-        if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
-            self._keyboard_overlay._dismiss()
-            return
-        
-        focus_widget = QApplication.focusWidget()
-        if focus_widget is not None:
-            from PyQt5.QtWidgets import QLineEdit, QTextEdit, QSpinBox
-            if isinstance(focus_widget, (QLineEdit, QTextEdit, QSpinBox)):
-                return
-        
-        # Create overlay on first use
-        if self._keyboard_overlay is None:
-            self._keyboard_overlay = KeyboardOverlay(
-                parent=self,
-                send_note_on_fn=self._send_midi_note_on,
-                send_note_off_fn=self._send_midi_note_off,
-                send_all_notes_off_fn=self._send_all_notes_off,
-                get_focused_slot_fn=self._get_focused_slot,
-                is_slot_midi_mode_fn=self._is_slot_midi_mode,
-            )
-        
-        # Position at bottom-center of main window
-        overlay_width = self._keyboard_overlay.width()
-        x = self.x() + (self.width() - overlay_width) // 2
-        y = self.y() + self.height() - self._keyboard_overlay.height() - 24
-        self._keyboard_overlay.move(x, y)
-        self._keyboard_overlay.show()
-        self._keyboard_overlay.raise_()
-        self._keyboard_overlay.activateWindow()
+        return self.keyboard._toggle_keyboard_mode()
 
-    def _send_midi_note_on(self, slot: int, note: int, velocity: int):
-        """Send MIDI note-on via OSC. Slot is 0-indexed."""
-        if self.osc is not None and self.osc.client is not None:
-            self.osc.client.send_message(f"/noise/slot/{slot}/midi/note_on", [note, velocity])
+    def _send_midi_note_on(self, slot, note, velocity):
+        return self.keyboard._send_midi_note_on(slot, note, velocity)
 
-    def _send_midi_note_off(self, slot: int, note: int):
-        """Send MIDI note-off via OSC. Slot is 0-indexed."""
-        if self.osc is not None and self.osc.client is not None:
-            self.osc.client.send_message(f"/noise/slot/{slot}/midi/note_off", [note])
+    def _send_midi_note_off(self, slot, note):
+        return self.keyboard._send_midi_note_off(slot, note)
 
-    def _send_all_notes_off(self, slot: int):
-        if self.osc is not None and self.osc.client is not None:
-            self.osc.client.send_message(f"/noise/slot/{slot}/midi/all_notes_off", [])
+    def _send_all_notes_off(self, slot):
+        return self.keyboard._send_all_notes_off(slot)
 
-    def _get_focused_slot(self) -> int:
-        """Return currently focused slot (1-indexed for UI)."""
-        # TODO: Track actual focused slot when we add slot focus tracking
-        return 1
+    def _get_focused_slot(self):
+        return self.keyboard._get_focused_slot()
 
-    def _is_slot_midi_mode(self, slot_id: int) -> bool:
-        """Check if slot is in MIDI envelope mode. Slot is 1-indexed (UI)."""
-        if slot_id < 1 or slot_id > 8:
-            return False
-        slot = self.generator_grid.slots[slot_id]
-        return slot.env_source == 2 or slot.env_source == "MIDI"
+    def _is_slot_midi_mode(self, slot_id):
+        return self.keyboard._is_slot_midi_mode(slot_id)
 
     def _set_header_buttons_enabled(self, enabled: bool) -> None:
         """Enable/disable header buttons that require SC connection.
