@@ -293,7 +293,7 @@ class ExtModConnectionPopup(QDialog):
                     min-width: 80px;
                 }}
                 QPushButton:hover {{
-                    background-color: {COLORS['accent']};
+                    background-color: {COLORS['enabled_hover']};
                 }}
             """)
             create_btn.clicked.connect(self._on_create_clicked)
