@@ -72,7 +72,7 @@ class MainFrame(QMainWindow):
         self.midi_cc._setup_midi_menu()
 
         # Connect MIDI CC signal from OSC (wrapper forwards to controller)
-        self.osc.midi_cc_received.connect(self._on_midi_cc)
+        self.osc.midi_cc_received.connect(self.midi_cc._on_midi_cc)
 
         # Connection controller
         self.connection = ConnectionController(self)
@@ -91,9 +91,9 @@ class MainFrame(QMainWindow):
         self.master = MasterController(self)
 
         # Connect learn manager signals for visual feedback (wrappers forward to controller)
-        self.midi_cc.cc_learn_manager.learn_started.connect(self._on_learn_started)
-        self.midi_cc.cc_learn_manager.learn_completed.connect(self._on_learn_completed)
-        self.midi_cc.cc_learn_manager.learn_cancelled.connect(self._on_learn_cancelled)
+        self.midi_cc.cc_learn_manager.learn_started.connect(self.midi_cc._on_learn_started)
+        self.midi_cc.cc_learn_manager.learn_completed.connect(self.midi_cc._on_learn_completed)
+        self.midi_cc.cc_learn_manager.learn_cancelled.connect(self.midi_cc._on_learn_cancelled)
 
         self.osc_connected = False
         self._auto_connect_tried = False
@@ -106,7 +106,7 @@ class MainFrame(QMainWindow):
 
         # Mod routing state
         self.mod_routing = ModRoutingState()
-        self._connect_mod_routing_signals()
+        self.modulation._connect_mod_routing_signals()
         
         # Mod matrix window (created on first open)
         self.mod_matrix_window = None
@@ -225,56 +225,56 @@ class MainFrame(QMainWindow):
         # Left - MODULATOR GRID
         self.modulator_grid = ModulatorGrid()
         self.modulator_grid.setFixedWidth(320)  # 2 columns
-        self.modulator_grid.generator_changed.connect(self.on_mod_generator_changed)
-        self.modulator_grid.parameter_changed.connect(self.on_mod_param_changed)
-        self.modulator_grid.output_wave_changed.connect(self.on_mod_output_wave)
-        self.modulator_grid.output_phase_changed.connect(self.on_mod_output_phase)
-        self.modulator_grid.output_polarity_changed.connect(self.on_mod_output_polarity)
+        self.modulator_grid.generator_changed.connect(self.modulation.on_mod_generator_changed)
+        self.modulator_grid.parameter_changed.connect(self.modulation.on_mod_param_changed)
+        self.modulator_grid.output_wave_changed.connect(self.modulation.on_mod_output_wave)
+        self.modulator_grid.output_phase_changed.connect(self.modulation.on_mod_output_phase)
+        self.modulator_grid.output_polarity_changed.connect(self.modulation.on_mod_output_polarity)
 
         # ARSEq+ envelope signals
-        self.modulator_grid.env_attack_changed.connect(self.on_mod_env_attack)
-        self.modulator_grid.env_release_changed.connect(self.on_mod_env_release)
-        self.modulator_grid.env_curve_changed.connect(self.on_mod_env_curve)
-        self.modulator_grid.env_sync_mode_changed.connect(self.on_mod_env_sync_mode)
-        self.modulator_grid.env_loop_rate_changed.connect(self.on_mod_env_loop_rate)
+        self.modulator_grid.env_attack_changed.connect(self.modulation.on_mod_env_attack)
+        self.modulator_grid.env_release_changed.connect(self.modulation.on_mod_env_release)
+        self.modulator_grid.env_curve_changed.connect(self.modulation.on_mod_env_curve)
+        self.modulator_grid.env_sync_mode_changed.connect(self.modulation.on_mod_env_sync_mode)
+        self.modulator_grid.env_loop_rate_changed.connect(self.modulation.on_mod_env_loop_rate)
 
         # SauceOfGrav output signals
-        self.modulator_grid.tension_changed.connect(self.on_mod_tension)
-        self.modulator_grid.mass_changed.connect(self.on_mod_mass)
+        self.modulator_grid.tension_changed.connect(self.modulation.on_mod_tension)
+        self.modulator_grid.mass_changed.connect(self.modulation.on_mod_mass)
         content_layout.addWidget(self.modulator_grid)
         
         # Scope repaint timer (~30fps)
         from PyQt5.QtCore import QTimer
         self._mod_scope_timer = QTimer(self)
-        self._mod_scope_timer.timeout.connect(self._flush_mod_scopes)
+        self._mod_scope_timer.timeout.connect(self.modulation._flush_mod_scopes)
         self._mod_scope_timer.start(33)  # ~30fps
         
         # Center - GENERATORS
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
-        self.generator_grid.generator_selected.connect(self.on_generator_selected)  # Legacy
-        self.generator_grid.generator_changed.connect(self.on_generator_changed)
-        self.generator_grid.generator_parameter_changed.connect(self.on_generator_param_changed)
-        self.generator_grid.generator_custom_parameter_changed.connect(self.on_generator_custom_param_changed)
-        self.generator_grid.generator_filter_changed.connect(self.on_generator_filter_changed)
-        self.generator_grid.generator_clock_enabled_changed.connect(self.on_generator_clock_enabled)
-        self.generator_grid.generator_env_source_changed.connect(self.on_generator_env_source)
-        self.generator_grid.generator_clock_rate_changed.connect(self.on_generator_clock_rate)
-        self.generator_grid.generator_transpose_changed.connect(self.on_generator_transpose)
-        self.generator_grid.generator_portamento_changed.connect(self.on_generator_portamento)  # ADD THIS
-        self.generator_grid.generator_mute_changed.connect(self.on_generator_mute)
-        self.generator_grid.generator_midi_channel_changed.connect(self.on_generator_midi_channel)
+        self.generator_grid.generator_selected.connect(self.generator.on_generator_selected)  # Legacy
+        self.generator_grid.generator_changed.connect(self.generator.on_generator_changed)
+        self.generator_grid.generator_parameter_changed.connect(self.generator.on_generator_param_changed)
+        self.generator_grid.generator_custom_parameter_changed.connect(self.generator.on_generator_custom_param_changed)
+        self.generator_grid.generator_filter_changed.connect(self.generator.on_generator_filter_changed)
+        self.generator_grid.generator_clock_enabled_changed.connect(self.generator.on_generator_clock_enabled)
+        self.generator_grid.generator_env_source_changed.connect(self.generator.on_generator_env_source)
+        self.generator_grid.generator_clock_rate_changed.connect(self.generator.on_generator_clock_rate)
+        self.generator_grid.generator_transpose_changed.connect(self.generator.on_generator_transpose)
+        self.generator_grid.generator_portamento_changed.connect(self.generator.on_generator_portamento)  # ADD THIS
+        self.generator_grid.generator_mute_changed.connect(self.generator.on_generator_mute)
+        self.generator_grid.generator_midi_channel_changed.connect(self.generator.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
         # Right - MIXER only (full height now)
         self.mixer_panel = MixerPanel(num_generators=8)
-        self.mixer_panel.generator_volume_changed.connect(self.on_generator_volume_changed)
-        self.mixer_panel.generator_muted.connect(self.on_generator_muted)
-        self.mixer_panel.generator_solo.connect(self.on_generator_solo)
-        self.mixer_panel.generator_gain_changed.connect(self.on_generator_gain_changed)
-        self.mixer_panel.generator_pan_changed.connect(self.on_generator_pan_changed)
-        self.mixer_panel.generator_eq_changed.connect(self.on_generator_eq_changed)
-        self.mixer_panel.generator_echo_send_changed.connect(self.on_generator_echo_send)
-        self.mixer_panel.generator_verb_send_changed.connect(self.on_generator_verb_send)
+        self.mixer_panel.generator_volume_changed.connect(self.mixer.on_generator_volume_changed)
+        self.mixer_panel.generator_muted.connect(self.mixer.on_generator_muted)
+        self.mixer_panel.generator_solo.connect(self.mixer.on_generator_solo)
+        self.mixer_panel.generator_gain_changed.connect(self.mixer.on_generator_gain_changed)
+        self.mixer_panel.generator_pan_changed.connect(self.mixer.on_generator_pan_changed)
+        self.mixer_panel.generator_eq_changed.connect(self.mixer.on_generator_eq_changed)
+        self.mixer_panel.generator_echo_send_changed.connect(self.mixer.on_generator_echo_send)
+        self.mixer_panel.generator_verb_send_changed.connect(self.mixer.on_generator_verb_send)
         content_layout.addWidget(self.mixer_panel, stretch=1)
         
         content_outer.addWidget(content_widget, stretch=1)
@@ -298,26 +298,26 @@ class MainFrame(QMainWindow):
         
         # Master section (right side)
         self.master_section = MasterSection()
-        self.master_section.master_volume_changed.connect(self.on_master_volume_from_master)
-        self.master_section.meter_mode_changed.connect(self.on_meter_mode_changed)
-        self.master_section.limiter_ceiling_changed.connect(self.on_limiter_ceiling_changed)
-        self.master_section.limiter_bypass_changed.connect(self.on_limiter_bypass_changed)
-        self.master_section.eq_lo_changed.connect(self.on_eq_lo_changed)
-        self.master_section.eq_mid_changed.connect(self.on_eq_mid_changed)
-        self.master_section.eq_hi_changed.connect(self.on_eq_hi_changed)
-        self.master_section.eq_lo_kill_changed.connect(self.on_eq_lo_kill_changed)
-        self.master_section.eq_mid_kill_changed.connect(self.on_eq_mid_kill_changed)
-        self.master_section.eq_hi_kill_changed.connect(self.on_eq_hi_kill_changed)
-        self.master_section.eq_locut_changed.connect(self.on_eq_locut_changed)
-        self.master_section.eq_bypass_changed.connect(self.on_eq_bypass_changed)
+        self.master_section.master_volume_changed.connect(self.master.on_master_volume_from_master)
+        self.master_section.meter_mode_changed.connect(self.master.on_meter_mode_changed)
+        self.master_section.limiter_ceiling_changed.connect(self.master.on_limiter_ceiling_changed)
+        self.master_section.limiter_bypass_changed.connect(self.master.on_limiter_bypass_changed)
+        self.master_section.eq_lo_changed.connect(self.master.on_eq_lo_changed)
+        self.master_section.eq_mid_changed.connect(self.master.on_eq_mid_changed)
+        self.master_section.eq_hi_changed.connect(self.master.on_eq_hi_changed)
+        self.master_section.eq_lo_kill_changed.connect(self.master.on_eq_lo_kill_changed)
+        self.master_section.eq_mid_kill_changed.connect(self.master.on_eq_mid_kill_changed)
+        self.master_section.eq_hi_kill_changed.connect(self.master.on_eq_hi_kill_changed)
+        self.master_section.eq_locut_changed.connect(self.master.on_eq_locut_changed)
+        self.master_section.eq_bypass_changed.connect(self.master.on_eq_bypass_changed)
         # Compressor signals
-        self.master_section.comp_threshold_changed.connect(self.on_comp_threshold_changed)
-        self.master_section.comp_ratio_changed.connect(self.on_comp_ratio_changed)
-        self.master_section.comp_attack_changed.connect(self.on_comp_attack_changed)
-        self.master_section.comp_release_changed.connect(self.on_comp_release_changed)
-        self.master_section.comp_makeup_changed.connect(self.on_comp_makeup_changed)
-        self.master_section.comp_sc_hpf_changed.connect(self.on_comp_sc_hpf_changed)
-        self.master_section.comp_bypass_changed.connect(self.on_comp_bypass_changed)
+        self.master_section.comp_threshold_changed.connect(self.master.on_comp_threshold_changed)
+        self.master_section.comp_ratio_changed.connect(self.master.on_comp_ratio_changed)
+        self.master_section.comp_attack_changed.connect(self.master.on_comp_attack_changed)
+        self.master_section.comp_release_changed.connect(self.master.on_comp_release_changed)
+        self.master_section.comp_makeup_changed.connect(self.master.on_comp_makeup_changed)
+        self.master_section.comp_sc_hpf_changed.connect(self.master.on_comp_sc_hpf_changed)
+        self.master_section.comp_bypass_changed.connect(self.master.on_comp_bypass_changed)
         bottom_layout.addWidget(self.master_section, stretch=3)
         
         main_layout.addWidget(bottom_container)
@@ -328,35 +328,35 @@ class MainFrame(QMainWindow):
         
         # Shortcut: open mod matrix window (Ctrl+M / Cmd+M)
         mod_matrix_shortcut = QShortcut(QKeySequence("Ctrl+M"), self)
-        mod_matrix_shortcut.activated.connect(self._open_mod_matrix)
+        mod_matrix_shortcut.activated.connect(self.modulation._open_mod_matrix)
 
         # Shortcut: save preset (Ctrl+S / Cmd+S)
         save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
-        save_shortcut.activated.connect(self._save_preset)
+        save_shortcut.activated.connect(self.preset._save_preset)
 
         # Shortcut: save preset as (Ctrl+Shift+S / Cmd+Shift+S)
         save_as_shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self)
-        save_as_shortcut.activated.connect(self._save_preset_as)
+        save_as_shortcut.activated.connect(self.preset._save_preset_as)
 
         # Shortcut: load preset (Ctrl+O / Cmd+O)
         load_shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
-        load_shortcut.activated.connect(self._load_preset)
+        load_shortcut.activated.connect(self.preset._load_preset)
 
         # Shortcut: init preset (Ctrl+N / Cmd+N)
         init_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
-        init_shortcut.activated.connect(self._init_preset)
+        init_shortcut.activated.connect(self.preset._init_preset)
 
         # Shortcut: keyboard mode (Ctrl+K / Cmd+K)
         keyboard_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
-        keyboard_shortcut.activated.connect(self._toggle_keyboard_mode)
+        keyboard_shortcut.activated.connect(self.keyboard._toggle_keyboard_mode)
 
         # Shortcut: FX window (Ctrl+F / Cmd+F)
         fx_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
-        fx_shortcut.activated.connect(self._open_fx_window)
+        fx_shortcut.activated.connect(self.modulation._open_fx_window)
 
         # Shortcut: crossmod matrix (Ctrl+X / Cmd+X)
         crossmod_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
-        crossmod_shortcut.activated.connect(self._open_crossmod_matrix)
+        crossmod_shortcut.activated.connect(self.modulation._open_crossmod_matrix)
 
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
@@ -412,14 +412,14 @@ class MainFrame(QMainWindow):
         # Audio device selector
         from src.gui.audio_device_selector import AudioDeviceSelector
         self.audio_selector = AudioDeviceSelector()
-        self.audio_selector.device_changed.connect(self.on_audio_device_changed)
+        self.audio_selector.device_changed.connect(self.master.on_audio_device_changed)
         layout.addWidget(self.audio_selector)
         
         layout.addSpacing(10)
         
         # MIDI device selector
         self.midi_selector = MIDISelector()
-        self.midi_selector.device_changed.connect(self.on_midi_device_changed)
+        self.midi_selector.device_changed.connect(self.generator.on_midi_device_changed)
         layout.addWidget(self.midi_selector)
         
         layout.addStretch()
@@ -436,19 +436,19 @@ class MainFrame(QMainWindow):
         self.save_btn = QPushButton("Save")
         self.save_btn.setToolTip("Save preset (Ctrl+S)")
         self.save_btn.setStyleSheet(button_style('submenu'))
-        self.save_btn.clicked.connect(self._save_preset)
+        self.save_btn.clicked.connect(self.preset._save_preset)
         layout.addWidget(self.save_btn)
 
         self.save_as_btn = QPushButton("Save As")
         self.save_as_btn.setToolTip("Save preset as new file (Ctrl+Shift+S)")
         self.save_as_btn.setStyleSheet(button_style('submenu'))
-        self.save_as_btn.clicked.connect(self._save_preset_as)
+        self.save_as_btn.clicked.connect(self.preset._save_preset_as)
         layout.addWidget(self.save_as_btn)
 
         self.load_btn = QPushButton("Load")
         self.load_btn.setToolTip("Load preset (Ctrl+O)")
         self.load_btn.setStyleSheet(button_style('submenu'))
-        self.load_btn.clicked.connect(self._load_preset)
+        self.load_btn.clicked.connect(self.preset._load_preset)
         layout.addWidget(self.load_btn)
         
         # Matrix button - opens mod matrix window
@@ -476,7 +476,7 @@ class MainFrame(QMainWindow):
                 border-color: #002200;
             }}
         """)
-        self.matrix_btn.clicked.connect(self._open_mod_matrix)
+        self.matrix_btn.clicked.connect(self.modulation._open_mod_matrix)
         layout.addWidget(self.matrix_btn)
 
         # Clear mod button - clears all modulation routes
@@ -504,7 +504,7 @@ class MainFrame(QMainWindow):
                 border-color: #331111;
             }}
         """)
-        self.clear_mod_btn.clicked.connect(self._clear_all_mod_routes)
+        self.clear_mod_btn.clicked.connect(self.modulation._clear_all_mod_routes)
         layout.addWidget(self.clear_mod_btn)
 
         # MIDI mode button - sets all generators to MIDI trigger mode
@@ -512,16 +512,16 @@ class MainFrame(QMainWindow):
         self.midi_mode_btn.setToolTip("Set all generators to MIDI mode (toggle)")
         self.midi_mode_btn.setFixedSize(50, 27)
         self.midi_mode_btn.setCheckable(True)
-        self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(False))
-        self.midi_mode_btn.clicked.connect(self._toggle_midi_mode)
+        self.midi_mode_btn.setStyleSheet(self.midi_mode._midi_mode_btn_style(False))
+        self.midi_mode_btn.clicked.connect(self.midi_mode._toggle_midi_mode)
         layout.addWidget(self.midi_mode_btn)
         
         layout.addStretch()
         
         self.connect_btn = QPushButton("Connect SuperCollider")
         self.connect_btn.setFixedWidth(180)  # FIXED: fits "Connect SuperCollider"
-        self.connect_btn.setStyleSheet(self._connect_btn_style())
-        self.connect_btn.clicked.connect(self.toggle_connection)
+        self.connect_btn.setStyleSheet(self.connection._connect_btn_style())
+        self.connect_btn.clicked.connect(self.connection.toggle_connection)
         layout.addWidget(self.connect_btn)
 
         self.status_label = QLabel("Disconnected")
@@ -626,307 +626,31 @@ class MainFrame(QMainWindow):
                 try:
                     manager = PresetManager()
                     state = manager.load(preset_path)
-                    self._apply_preset(state)
+                    self.preset._apply_preset(state)
                     self.preset_name.setText(state.name)
                     logger.info(f"Auto-loaded preset for pack '{pack_id}'", component="PACK")
                 except Exception as e:
                     logger.warning(f"Failed to load pack preset: {e}", component="PACK")
-                    self._apply_preset(PresetState(pack=pack_id))
+                    self.preset._apply_preset(PresetState(pack=pack_id))
                     self.preset_name.setText("Init")
             else:
-                self._apply_preset(PresetState(pack=pack_id))
+                self.preset._apply_preset(PresetState(pack=pack_id))
                 self.preset_name.setText("Init")
         else:
             # Core - clean state
             from src.presets.preset_schema import PresetState
-            self._apply_preset(PresetState())
+            self.preset._apply_preset(PresetState())
             self.preset_name.setText("Init")
 
     def showEvent(self, event):
         """Auto-connect if SC is ready (launched via ne-run)."""
         super().showEvent(event)
-        if not self._auto_connect_tried and not self.osc_connected and self._sc_is_ready():
+        if not self._auto_connect_tried and not self.osc_connected and self.connection._sc_is_ready():
             self._auto_connect_tried = True
             self.connect_btn.setEnabled(False)
             self.connect_btn.setText("Connecting...")
-            QTimer.singleShot(3000, self._try_auto_connect)
+            QTimer.singleShot(3000, self.connection._try_auto_connect)
 
-    # ── Connection Controller Wrappers ──────────────────────────────────
-    # Method bodies moved to ConnectionController (Phase 5 refactor)
-
-    def _try_auto_connect(self):
-        return self.connection._try_auto_connect()
-
-    def _sc_is_ready(self):
-        return self.connection._sc_is_ready()
-
-    def toggle_connection(self):
-        return self.connection.toggle_connection()
-
-    def on_connection_lost(self):
-        return self.connection.on_connection_lost()
-
-    def on_connection_restored(self):
-        return self.connection.on_connection_restored()
-
-    def _connect_btn_style(self):
-        return self.connection._connect_btn_style()
-
-    # ── Generator Controller Wrappers ───────────────────────────────────
-    # Method bodies moved to GeneratorController (Phase 3 refactor)
-
-    def on_gate_trigger(self, slot_id):
-        return self.generator.on_gate_trigger(slot_id)
-
-    def on_midi_device_changed(self, device_name):
-        return self.generator.on_midi_device_changed(device_name)
-
-    def on_generator_param_changed(self, slot_id, param_name, value):
-        return self.generator.on_generator_param_changed(slot_id, param_name, value)
-
-    def on_generator_custom_param_changed(self, slot_id, param_index, value):
-        return self.generator.on_generator_custom_param_changed(slot_id, param_index, value)
-
-    def on_generator_filter_changed(self, slot_id, filter_type):
-        return self.generator.on_generator_filter_changed(slot_id, filter_type)
-
-    def on_generator_clock_enabled(self, slot_id, enabled):
-        return self.generator.on_generator_clock_enabled(slot_id, enabled)
-
-    def on_generator_transpose(self, slot_id, semitones):
-        return self.generator.on_generator_transpose(slot_id, semitones)
-
-    def on_generator_env_source(self, slot_id, source):
-        return self.generator.on_generator_env_source(slot_id, source)
-
-    def on_generator_clock_rate(self, slot_id, rate):
-        return self.generator.on_generator_clock_rate(slot_id, rate)
-
-    def on_generator_mute(self, slot_id, muted):
-        return self.generator.on_generator_mute(slot_id, muted)
-
-    def on_generator_midi_channel(self, slot_id, channel):
-        return self.generator.on_generator_midi_channel(slot_id, channel)
-
-    def on_generator_portamento(self, slot_id, value):
-        return self.generator.on_generator_portamento(slot_id, value)
-
-    def on_generator_selected(self, slot_id):
-        return self.generator.on_generator_selected(slot_id)
-
-    def on_generator_changed(self, slot_id, new_type):
-        return self.generator.on_generator_changed(slot_id, new_type)
-
-    # ── Modulation Controller Wrappers ──────────────────────────────────
-    # Method bodies moved to ModulationController (Phase 6 refactor)
-
-    def _sync_mod_slot_state(self, slot_id, send_generator=True):
-        return self.modulation._sync_mod_slot_state(slot_id, send_generator)
-
-    def _sync_mod_sources(self):
-        return self.modulation._sync_mod_sources()
-
-    def on_mod_generator_changed(self, slot_id, gen_name):
-        return self.modulation.on_mod_generator_changed(slot_id, gen_name)
-
-    def on_mod_param_changed(self, slot_id, key, value):
-        return self.modulation.on_mod_param_changed(slot_id, key, value)
-
-    def on_mod_output_wave(self, slot_id, output_idx, wave_index):
-        return self.modulation.on_mod_output_wave(slot_id, output_idx, wave_index)
-
-    def on_mod_output_phase(self, slot_id, output_idx, phase_index):
-        return self.modulation.on_mod_output_phase(slot_id, output_idx, phase_index)
-
-    def on_mod_output_polarity(self, slot_id, output_idx, polarity):
-        return self.modulation.on_mod_output_polarity(slot_id, output_idx, polarity)
-
-    def on_mod_env_attack(self, slot_id, env_idx, value):
-        return self.modulation.on_mod_env_attack(slot_id, env_idx, value)
-
-    def on_mod_env_release(self, slot_id, env_idx, value):
-        return self.modulation.on_mod_env_release(slot_id, env_idx, value)
-
-    def on_mod_env_curve(self, slot_id, env_idx, value):
-        return self.modulation.on_mod_env_curve(slot_id, env_idx, value)
-
-    def on_mod_env_sync_mode(self, slot_id, env_idx, mode):
-        return self.modulation.on_mod_env_sync_mode(slot_id, env_idx, mode)
-
-    def on_mod_env_loop_rate(self, slot_id, env_idx, rate_idx):
-        return self.modulation.on_mod_env_loop_rate(slot_id, env_idx, rate_idx)
-
-    def on_mod_tension(self, slot_id, output_idx, normalized):
-        return self.modulation.on_mod_tension(slot_id, output_idx, normalized)
-
-    def on_mod_mass(self, slot_id, output_idx, normalized):
-        return self.modulation.on_mod_mass(slot_id, output_idx, normalized)
-
-    def on_mod_bus_value(self, bus_idx, value):
-        return self.modulation.on_mod_bus_value(bus_idx, value)
-
-    def on_mod_values_received(self, values):
-        return self.modulation.on_mod_values_received(values)
-
-    def _flush_mod_scopes(self):
-        return self.modulation._flush_mod_scopes()
-
-    def _connect_mod_routing_signals(self):
-        return self.modulation._connect_mod_routing_signals()
-
-    def _on_mod_route_added(self, conn):
-        return self.modulation._on_mod_route_added(conn)
-
-    def _on_mod_route_removed(self, source_bus, target_slot, target_param):
-        return self.modulation._on_mod_route_removed(source_bus, target_slot, target_param)
-
-    def _on_mod_route_changed(self, conn):
-        return self.modulation._on_mod_route_changed(conn)
-
-    def _get_slot_slider(self, slot, param):
-        return self.modulation._get_slot_slider(slot, param)
-
-    def _update_slider_mod_range(self, slot_id, param):
-        return self.modulation._update_slider_mod_range(slot_id, param)
-
-    def _on_mod_routes_cleared(self):
-        return self.modulation._on_mod_routes_cleared()
-
-    def _sync_mod_routing_to_sc(self):
-        return self.modulation._sync_mod_routing_to_sc()
-
-    def _open_mod_matrix(self):
-        return self.modulation._open_mod_matrix()
-
-    def _open_crossmod_matrix(self):
-        return self.modulation._open_crossmod_matrix()
-
-    def _open_fx_window(self):
-        return self.modulation._open_fx_window()
-
-    def _clear_all_mod_routes(self):
-        return self.modulation._clear_all_mod_routes()
-
-    def _get_target_slider_value(self, slot_id, param):
-        return self.modulation._get_target_slider_value(slot_id, param)
-
-    def _on_mod_slot_type_changed_for_matrix(self, slot_id, gen_name):
-        return self.modulation._on_mod_slot_type_changed_for_matrix(slot_id, gen_name)
-
-    # ── Mixer Controller Wrappers ───────────────────────────────────────
-    # Method bodies moved to MixerController (Phase 4 refactor)
-
-    def on_generator_volume_changed(self, gen_id, volume):
-        return self.mixer.on_generator_volume_changed(gen_id, volume)
-
-    def on_generator_muted(self, gen_id, muted):
-        return self.mixer.on_generator_muted(gen_id, muted)
-
-    def on_generator_solo(self, gen_id, solo):
-        return self.mixer.on_generator_solo(gen_id, solo)
-
-    def on_generator_gain_changed(self, gen_id, gain_db):
-        return self.mixer.on_generator_gain_changed(gen_id, gain_db)
-
-    def on_generator_pan_changed(self, gen_id, pan):
-        return self.mixer.on_generator_pan_changed(gen_id, pan)
-
-    def on_generator_eq_changed(self, gen_id, band, value):
-        return self.mixer.on_generator_eq_changed(gen_id, band, value)
-
-    def on_generator_echo_send(self, gen_id, value):
-        return self.mixer.on_generator_echo_send(gen_id, value)
-
-    def on_generator_verb_send(self, gen_id, value):
-        return self.mixer.on_generator_verb_send(gen_id, value)
-
-    def _sync_strip_state_to_sc(self, slot_id):
-        return self.generator._sync_strip_state_to_sc(slot_id)
-
-    def _sync_generator_slot_state_to_sc(self, slot_id):
-        return self.generator._sync_generator_slot_state_to_sc(slot_id)
-
-    # ── Master Controller Wrappers ──────────────────────────────────────
-    # Method bodies moved to MasterController (Phase 4 refactor)
-
-    def on_master_volume_from_master(self, volume):
-        return self.master.on_master_volume_from_master(volume)
-
-    def on_meter_mode_changed(self, mode):
-        return self.master.on_meter_mode_changed(mode)
-
-    def on_limiter_ceiling_changed(self, db):
-        return self.master.on_limiter_ceiling_changed(db)
-
-    def on_limiter_bypass_changed(self, bypass):
-        return self.master.on_limiter_bypass_changed(bypass)
-
-    def on_eq_lo_changed(self, db):
-        return self.master.on_eq_lo_changed(db)
-
-    def on_eq_mid_changed(self, db):
-        return self.master.on_eq_mid_changed(db)
-
-    def on_eq_hi_changed(self, db):
-        return self.master.on_eq_hi_changed(db)
-
-    def on_eq_lo_kill_changed(self, kill):
-        return self.master.on_eq_lo_kill_changed(kill)
-
-    def on_eq_mid_kill_changed(self, kill):
-        return self.master.on_eq_mid_kill_changed(kill)
-
-    def on_eq_hi_kill_changed(self, kill):
-        return self.master.on_eq_hi_kill_changed(kill)
-
-    def on_eq_locut_changed(self, enabled):
-        return self.master.on_eq_locut_changed(enabled)
-
-    def on_eq_bypass_changed(self, bypass):
-        return self.master.on_eq_bypass_changed(bypass)
-
-    def on_comp_threshold_changed(self, db):
-        return self.master.on_comp_threshold_changed(db)
-
-    def on_comp_ratio_changed(self, idx):
-        return self.master.on_comp_ratio_changed(idx)
-
-    def on_comp_attack_changed(self, idx):
-        return self.master.on_comp_attack_changed(idx)
-
-    def on_comp_release_changed(self, idx):
-        return self.master.on_comp_release_changed(idx)
-
-    def on_comp_makeup_changed(self, db):
-        return self.master.on_comp_makeup_changed(db)
-
-    def on_comp_sc_hpf_changed(self, idx):
-        return self.master.on_comp_sc_hpf_changed(idx)
-
-    def on_comp_bypass_changed(self, bypass):
-        return self.master.on_comp_bypass_changed(bypass)
-
-    def on_comp_gr_received(self, gr_db):
-        return self.master.on_comp_gr_received(gr_db)
-
-    def on_audio_device_changed(self, device_name):
-        return self.master.on_audio_device_changed(device_name)
-
-    def on_audio_devices_received(self, devices, current):
-        return self.master.on_audio_devices_received(devices, current)
-
-    def on_audio_device_changing(self, device_name):
-        return self.master.on_audio_device_changing(device_name)
-
-    def on_audio_device_ready(self, device_name):
-        return self.master.on_audio_device_ready(device_name)
-
-    def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
-        return self.master.on_levels_received(amp_l, amp_r, peak_l, peak_r)
-
-    def on_channel_levels_received(self, slot_id, amp_l, amp_r):
-        return self.master.on_channel_levels_received(slot_id, amp_l, amp_r)
-    
     def toggle_console(self):
         """Toggle console panel visibility."""
         self.console_panel.toggle_panel()
@@ -1019,46 +743,6 @@ class MainFrame(QMainWindow):
         # Restart the process
         os.execv(python, [python, script])
 
-    # === MIDI Mode Toggle ===
-
-    # ── MIDI Mode Controller Wrappers ───────────────────────────────────
-    # Method bodies moved to MidiModeController (Phase 7 refactor)
-
-    def _midi_mode_btn_style(self, active):
-        return self.midi_mode._midi_mode_btn_style(active)
-
-    def _toggle_midi_mode(self):
-        return self.midi_mode._toggle_midi_mode()
-
-    def _restore_midi_mode_states(self):
-        return self.midi_mode._restore_midi_mode_states()
-
-    def _deactivate_midi_mode(self):
-        return self.midi_mode._deactivate_midi_mode()
-
-    # ── Preset Controller Wrappers ──────────────────────────────────────
-    # Method bodies moved to PresetController (Phase 1 refactor)
-
-    def _save_preset(self):
-        return self.preset._save_preset()
-
-    def _save_preset_as(self):
-        return self.preset._save_preset_as()
-
-    def _do_save_preset(self, name: str, filepath):
-        return self.preset._do_save_preset(name, filepath)
-
-    def _load_preset(self):
-        return self.preset._load_preset()
-
-    def _apply_preset(self, state):
-        return self.preset._apply_preset(state)
-
-    def _init_preset(self):
-        return self.preset._init_preset()
-
-    # Keyboard Mode
-
     def eventFilter(self, obj, event):
         """Forward key events to keyboard overlay when visible."""
         if event.type() == QEvent.KeyPress:
@@ -1075,24 +759,6 @@ class MainFrame(QMainWindow):
                 self._keyboard_overlay.keyReleaseEvent(event)
                 return True
         return super().eventFilter(obj, event)
-
-    def _toggle_keyboard_mode(self):
-        return self.keyboard._toggle_keyboard_mode()
-
-    def _send_midi_note_on(self, slot, note, velocity):
-        return self.keyboard._send_midi_note_on(slot, note, velocity)
-
-    def _send_midi_note_off(self, slot, note):
-        return self.keyboard._send_midi_note_off(slot, note)
-
-    def _send_all_notes_off(self, slot):
-        return self.keyboard._send_all_notes_off(slot)
-
-    def _get_focused_slot(self):
-        return self.keyboard._get_focused_slot()
-
-    def _is_slot_midi_mode(self, slot_id):
-        return self.keyboard._is_slot_midi_mode(slot_id)
 
     def _set_header_buttons_enabled(self, enabled: bool) -> None:
         """Enable/disable header buttons that require SC connection.
@@ -1129,48 +795,6 @@ class MainFrame(QMainWindow):
 
         # Accept the close event
         event.accept()
-
-    # ── MIDI CC Controller Wrappers ─────────────────────────────────────
-    # Method bodies moved to MidiCCController (Phase 2 refactor)
-
-    def _on_midi_cc(self, channel, cc, value):
-        return self.midi_cc._on_midi_cc(channel, cc, value)
-
-    def _process_pending_cc(self):
-        return self.midi_cc._process_pending_cc()
-
-    def _apply_cc_to_control(self, control, channel, cc, value):
-        return self.midi_cc._apply_cc_to_control(control, channel, cc, value)
-
-    def _on_learn_started(self, control):
-        return self.midi_cc._on_learn_started(control)
-
-    def _on_learn_completed(self, channel, cc, control):
-        return self.midi_cc._on_learn_completed(channel, cc, control)
-
-    def _on_learn_cancelled(self, control):
-        return self.midi_cc._on_learn_cancelled(control)
-
-    def _find_control_by_name(self, name):
-        return self.midi_cc._find_control_by_name(name)
-
-    def save_midi_mappings(self):
-        return self.midi_cc.save_midi_mappings()
-
-    def save_midi_mappings_as(self):
-        return self.midi_cc.save_midi_mappings_as()
-
-    def load_midi_mappings(self):
-        return self.midi_cc.load_midi_mappings()
-
-    def clear_all_midi_mappings(self):
-        return self.midi_cc.clear_all_midi_mappings()
-
-    def _setup_midi_menu(self):
-        return self.midi_cc._setup_midi_menu()
-
-    def _update_midi_status(self):
-        return self.midi_cc._update_midi_status()
 
     @property
     def cc_mapping_manager(self):
