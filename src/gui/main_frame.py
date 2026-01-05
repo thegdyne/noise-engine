@@ -39,6 +39,7 @@ from src.utils.logger import logger
 from src.presets import PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
 from src.gui.controllers.preset_controller import PresetController
 from src.gui.controllers.midi_cc_controller import MidiCCController
+from src.gui.controllers.generator_controller import GeneratorController
 
 class MainFrame(QMainWindow):
     """Main application window."""
@@ -60,6 +61,8 @@ class MainFrame(QMainWindow):
 
         # MIDI CC controller (pre-UI - handles menu setup)
         self.midi_cc = MidiCCController(self)
+        # Generator controller
+        self.generator = GeneratorController(self)
         self.midi_cc._setup_midi_menu()
 
         # Connect MIDI CC signal from OSC (wrapper forwards to controller)
@@ -765,149 +768,51 @@ class MainFrame(QMainWindow):
                 background-color: {COLORS['text']};
             }}
         """
-    
+
+    # ── Generator Controller Wrappers ───────────────────────────────────
+    # Method bodies moved to GeneratorController (Phase 3 refactor)
+
     def on_gate_trigger(self, slot_id):
-        """Handle gate trigger from SC - flash LED."""
-        slot = self.generator_grid.get_slot(slot_id)
-        if slot:
-            slot.flash_gate()
-    
+        return self.generator.on_gate_trigger(slot_id)
+
     def on_midi_device_changed(self, device_name):
-        """Handle MIDI device selection change."""
-        if self.osc_connected:
-            if device_name:
-                port_index = self.midi_selector.get_port_index(device_name)
-                if port_index >= 0:
-                    self.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
-                    logger.info(f"MIDI device: {device_name} (port {port_index})", component="MIDI")
-            else:
-                self.osc.client.send_message(OSC_PATHS['midi_device'], [-1])  # -1 = disconnect
-                logger.info("MIDI device: None", component="MIDI")
-        
+        return self.generator.on_midi_device_changed(device_name)
+
     def on_generator_param_changed(self, slot_id, param_name, value):
-        """Handle per-generator parameter change."""
-        if self.osc_connected:
-            path = OSC_PATHS.get(f'gen_{param_name}', f'/noise/gen/{param_name}')
-            self.osc.client.send_message(path, [slot_id, value])
-        self._mark_dirty()
-    
+        return self.generator.on_generator_param_changed(slot_id, param_name, value)
+
     def on_generator_custom_param_changed(self, slot_id, param_index, value):
-        """Handle per-generator custom parameter change."""
-        if self.osc_connected:
-            # Safety clamp to prevent OSC float overflow
-            value = max(-1e30, min(1e30, float(value)))
-            path = f"{OSC_PATHS['gen_custom']}/{slot_id}/{param_index}"
-            self.osc.client.send_message(path, [value])
-        self._mark_dirty()
+        return self.generator.on_generator_custom_param_changed(slot_id, param_index, value)
 
     def on_generator_filter_changed(self, slot_id, filter_type):
-        """Handle generator filter type change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
-        self._mark_dirty()
+        return self.generator.on_generator_filter_changed(slot_id, filter_type)
 
     def on_generator_clock_enabled(self, slot_id, enabled):
-        """Handle generator envelope ON/OFF (legacy)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_env_enabled'], [slot_id, 1 if enabled else 0])
+        return self.generator.on_generator_clock_enabled(slot_id, enabled)
 
     def on_generator_transpose(self, slot_id, semitones):
-        """Send transpose to SuperCollider."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_transpose'], [slot_id, semitones])
-        self._mark_dirty()
+        return self.generator.on_generator_transpose(slot_id, semitones)
 
     def on_generator_env_source(self, slot_id, source):
-        """Handle generator ENV source change (0=OFF, 1=CLK, 2=MIDI)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_env_source'], [slot_id, source])
-        logger.gen(slot_id, f"env source: {['OFF', 'CLK', 'MIDI'][source]}")
-        
-        # Detect manual change while MIDI mode is active
-        if self._midi_mode_active and not self._midi_mode_changing:
-            self._deactivate_midi_mode()
-        self._mark_dirty()
+        return self.generator.on_generator_env_source(slot_id, source)
 
     def on_generator_clock_rate(self, slot_id, rate):
-        """Handle generator clock rate change - send index."""
-        rate_index = CLOCK_RATE_INDEX.get(rate, 3)  # Default to CLK
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
-        logger.gen(slot_id, f"rate: {rate} (index {rate_index})")
-        self._mark_dirty()
+        return self.generator.on_generator_clock_rate(slot_id, rate)
 
     def on_generator_mute(self, slot_id, muted):
-        """Handle generator mute from slot button."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1 if muted else 0])
-        logger.gen(slot_id, f"mute: {muted}")
-    
-    def on_generator_midi_channel(self, slot_id, channel):
-        """Handle generator MIDI channel change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_midi_channel'], [slot_id, channel])
-        logger.gen(slot_id, f"MIDI channel: {channel}")
+        return self.generator.on_generator_mute(slot_id, muted)
 
-    def on_generator_portamento(self, slot_id, value):  # ADD FROM HERE
-        """Handle portamento knob change - send normalized value via OSC."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_portamento'], [slot_id, value])
-        logger.gen(slot_id, f"portamento: {value:.3f}")
-        self._mark_dirty()
+    def on_generator_midi_channel(self, slot_id, channel):
+        return self.generator.on_generator_midi_channel(slot_id, channel)
+
+    def on_generator_portamento(self, slot_id, value):
+        return self.generator.on_generator_portamento(slot_id, value)
 
     def on_generator_selected(self, slot_id):
-        """Handle generator slot selection (legacy click handler)."""
-        # Legacy - cycles through generators on click
-        # New behavior uses on_generator_changed from CycleButton
-        pass
-    
+        return self.generator.on_generator_selected(slot_id)
+
     def on_generator_changed(self, slot_id, new_type):
-        """Handle generator type change from CycleButton."""
-        from src.config import get_generator_midi_retrig, get_generator_output_trim_db
-        
-        synth_name = GENERATORS.get(new_type)
-        
-        # Update the slot (custom params, etc)
-        self.generator_grid.set_generator_type(slot_id, new_type)
-        
-        if synth_name:
-            if self.osc_connected:
-                self.osc.client.send_message(OSC_PATHS['start_generator'], [slot_id, synth_name])
-                # Tell SC if this generator needs MIDI retriggering
-                midi_retrig = 1 if get_generator_midi_retrig(new_type) else 0
-                self.osc.client.send_message(OSC_PATHS['midi_retrig'], [slot_id, midi_retrig])
-                # Send output trim for loudness normalization (from generator JSON config)
-                trim_db = get_generator_output_trim_db(new_type)
-                self.osc.client.send_message(OSC_PATHS['gen_trim'], [slot_id, trim_db])
-                # Re-sync strip state (pan/EQ/mute/solo/gain) so UI values persist
-                self._sync_strip_state_to_sc(slot_id)
-                # Re-sync generator slot state (mute/env/rate/midi/filter persist across type changes)
-                self._sync_generator_slot_state_to_sc(slot_id)
-            
-            self.generator_grid.set_generator_active(slot_id, True)
-            slot = self.generator_grid.get_slot(slot_id)
-            if slot:
-                slot.set_audio_status(True)
-            self.active_generators[slot_id] = synth_name
-            
-            # Update mixer channel active state
-            self.mixer_panel.set_channel_active(slot_id, True)
-        else:
-            if self.osc_connected:
-                self.osc.client.send_message(OSC_PATHS['stop_generator'], [slot_id])
-                # Clear midi_retrig flag
-                self.osc.client.send_message(OSC_PATHS['midi_retrig'], [slot_id, 0])
-            
-            self.generator_grid.set_generator_active(slot_id, False)
-            slot = self.generator_grid.get_slot(slot_id)
-            if slot:
-                slot.set_audio_status(False)
-            if slot_id in self.active_generators:
-                del self.active_generators[slot_id]
-            
-            # Update mixer channel active state
-            self.mixer_panel.set_channel_active(slot_id, False)
-        self._mark_dirty()
+        return self.generator.on_generator_changed(slot_id, new_type)
 
     # -------------------------------------------------------------------------
     # Mod Source Handlers
@@ -1439,74 +1344,13 @@ class MainFrame(QMainWindow):
         if self.osc_connected:
             self.osc.client.send_message(OSC_PATHS['strip_verb_send'], [gen_id, value])
         logger.debug(f"Gen {gen_id} verb send: {value:.2f}", component="OSC")
-    
+
     def _sync_strip_state_to_sc(self, slot_id):
-        """Re-sync mixer strip state to SC after generator change.
-        
-        This ensures pan/EQ/mute/solo/gain persist when switching generators,
-        since SC creates a fresh synth with default values.
-        """
-        if not self.osc_connected:
-            return
-        
-        state = self.mixer_panel.get_channel_strip_state(slot_id)
-        if not state:
-            return
-        
-        # Re-send all strip parameters to SC
-        self.osc.client.send_message(OSC_PATHS['gen_pan'], [slot_id, state['pan']])
-        self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1 if state['muted'] else 0])
-        self.osc.client.send_message(OSC_PATHS['gen_strip_solo'], [slot_id, 1 if state['soloed'] else 0])
-        self.osc.client.send_message(OSC_PATHS['gen_gain'], [slot_id, state['gain_db']])
-        
-        # EQ bands
-        for band in ['lo', 'mid', 'hi']:
-            osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
-            self.osc.client.send_message(osc_path, [slot_id, state[f'eq_{band}']])
-        
-        logger.debug(f"Gen {slot_id} strip state synced (pan={state['pan']:.2f})", component="OSC")
-    
+        return self.generator._sync_strip_state_to_sc(slot_id)
+
     def _sync_generator_slot_state_to_sc(self, slot_id):
-        """Re-sync generator slot control state to SC after type change.
-        
-        This ensures mute/env/rate/midi/filter persist when switching generators,
-        since SC creates a fresh synth with default values.
-        
-        Note: The slot's mute button state is separate from mixer strip mute.
-        If slot is muted, we send mute=1 regardless of mixer strip state.
-        """
-        if not self.osc_connected:
-            return
-        
-        slot = self.generator_grid.get_slot(slot_id)
-        if not slot:
-            return
-        
-        # Generator slot mute (overrides strip mute if set)
-        if slot.muted:
-            self.osc.client.send_message(OSC_PATHS['gen_mute'], [slot_id, 1])
-        
-        # Envelope source (0=OFF, 1=CLK, 2=MIDI)
-        self.osc.client.send_message(OSC_PATHS['gen_env_source'], [slot_id, slot.env_source])
-        
-        # Clock rate (only relevant when env_source=CLK)
-        if slot.env_source == 1 and hasattr(slot, 'rate_btn'):
-            rate = slot.rate_btn.get_value()
-            rate_index = CLOCK_RATE_INDEX.get(rate, 3)
-            self.osc.client.send_message(OSC_PATHS['gen_clock_rate'], [slot_id, rate_index])
-        
-        # MIDI channel (only relevant when env_source=MIDI)
-        if slot.env_source == 2:
-            self.osc.client.send_message(OSC_PATHS['gen_midi_channel'], [slot_id, slot.midi_channel])
-        
-        # Filter type
-        if hasattr(slot, 'filter_btn'):
-            filter_type = slot.filter_btn.get_value()
-            self.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
-        
-        logger.debug(f"Gen {slot_id} slot state synced (mute={slot.muted}, env={slot.env_source})", component="OSC")
-        
-        
+        return self.generator._sync_generator_slot_state_to_sc(slot_id)
+
     def on_master_volume_from_master(self, volume):
         """Handle master volume change from master section."""
         if self.osc_connected:
