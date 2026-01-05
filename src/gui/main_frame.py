@@ -40,6 +40,8 @@ from src.presets import PresetState, SlotState, MixerState, ChannelState, Master
 from src.gui.controllers.preset_controller import PresetController
 from src.gui.controllers.midi_cc_controller import MidiCCController
 from src.gui.controllers.generator_controller import GeneratorController
+from src.gui.controllers.mixer_controller import MixerController
+from src.gui.controllers.master_controller import MasterController
 
 class MainFrame(QMainWindow):
     """Main application window."""
@@ -67,6 +69,11 @@ class MainFrame(QMainWindow):
 
         # Connect MIDI CC signal from OSC (wrapper forwards to controller)
         self.osc.midi_cc_received.connect(self._on_midi_cc)
+
+        # Mixer controller
+        self.mixer = MixerController(self)
+        # Master controller
+        self.master = MasterController(self)
 
         # Connect learn manager signals for visual feedback (wrappers forward to controller)
         self.midi_cc.cc_learn_manager.learn_started.connect(self._on_learn_started)
@@ -1292,58 +1299,33 @@ class MainFrame(QMainWindow):
         """Update matrix window when mod slot type changes."""
         if self.mod_matrix_window:
             self.mod_matrix_window.update_mod_slot_type(slot_id, gen_name)
-        
+
+    # ── Mixer Controller Wrappers ───────────────────────────────────────
+    # Method bodies moved to MixerController (Phase 4 refactor)
+
     def on_generator_volume_changed(self, gen_id, volume):
-        """Handle generator volume change from mixer."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_volume'], [gen_id, volume])
-        logger.debug(f"Gen {gen_id} volume: {volume:.2f}", component="OSC")
-        self._mark_dirty()
+        return self.mixer.on_generator_volume_changed(gen_id, volume)
 
     def on_generator_muted(self, gen_id, muted):
-        """Handle generator mute from mixer."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_mute'], [gen_id, 1 if muted else 0])
-        logger.debug(f"Gen {gen_id} mute: {muted}", component="OSC")
-        
+        return self.mixer.on_generator_muted(gen_id, muted)
+
     def on_generator_solo(self, gen_id, solo):
-        """Handle generator solo from mixer."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_strip_solo'], [gen_id, 1 if solo else 0])
-        logger.debug(f"Gen {gen_id} solo: {solo}", component="OSC")
-    
+        return self.mixer.on_generator_solo(gen_id, solo)
+
     def on_generator_gain_changed(self, gen_id, gain_db):
-        """Handle generator gain stage change from mixer."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_gain'], [gen_id, gain_db])
-        logger.debug(f"Gen {gen_id} gain: +{gain_db}dB", component="OSC")
-    
+        return self.mixer.on_generator_gain_changed(gen_id, gain_db)
+
     def on_generator_pan_changed(self, gen_id, pan):
-        """Handle generator pan change from mixer."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['gen_pan'], [gen_id, pan])
-        logger.debug(f"Gen {gen_id} pan: {pan:.2f}", component="OSC")
-        self._mark_dirty()
+        return self.mixer.on_generator_pan_changed(gen_id, pan)
 
     def on_generator_eq_changed(self, gen_id, band, value):
-        """Handle generator EQ change from mixer. band: 'lo'/'mid'/'hi', value: 0-2 linear."""
-        if self.osc_connected:
-            osc_path = f"{OSC_PATHS['gen_strip_eq_base']}/{band}"
-            self.osc.client.send_message(osc_path, [gen_id, value])
-        logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
-        self._mark_dirty()
+        return self.mixer.on_generator_eq_changed(gen_id, band, value)
 
     def on_generator_echo_send(self, gen_id, value):
-        """Handle generator echo send change from mixer. value: 0-1."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['strip_echo_send'], [gen_id, value])
-        logger.debug(f"Gen {gen_id} echo send: {value:.2f}", component="OSC")
-    
+        return self.mixer.on_generator_echo_send(gen_id, value)
+
     def on_generator_verb_send(self, gen_id, value):
-        """Handle generator verb send change from mixer. value: 0-1."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['strip_verb_send'], [gen_id, value])
-        logger.debug(f"Gen {gen_id} verb send: {value:.2f}", component="OSC")
+        return self.mixer.on_generator_verb_send(gen_id, value)
 
     def _sync_strip_state_to_sc(self, slot_id):
         return self.generator._sync_strip_state_to_sc(slot_id)
@@ -1351,161 +1333,86 @@ class MainFrame(QMainWindow):
     def _sync_generator_slot_state_to_sc(self, slot_id):
         return self.generator._sync_generator_slot_state_to_sc(slot_id)
 
+    # ── Master Controller Wrappers ──────────────────────────────────────
+    # Method bodies moved to MasterController (Phase 4 refactor)
+
     def on_master_volume_from_master(self, volume):
-        """Handle master volume change from master section."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_volume'], [volume])
-        logger.info(f"Master volume: {volume:.2f}", component="OSC")
-        self._mark_dirty()
+        return self.master.on_master_volume_from_master(volume)
 
     def on_meter_mode_changed(self, mode):
-        """Handle meter mode toggle (PRE=0, POST=1)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_meter_toggle'], [mode])
-        mode_name = "POST" if mode == 1 else "PRE"
-        logger.info(f"Master meter: {mode_name}", component="OSC")
-    
+        return self.master.on_meter_mode_changed(mode)
+
     def on_limiter_ceiling_changed(self, db):
-        """Handle limiter ceiling change (dB value)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_limiter_ceiling'], [db])
-        logger.debug(f"Limiter ceiling: {db:.1f}dB", component="OSC")
-    
+        return self.master.on_limiter_ceiling_changed(db)
+
     def on_limiter_bypass_changed(self, bypass):
-        """Handle limiter bypass toggle (0=on, 1=bypassed)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_limiter_bypass'], [bypass])
-        state = "BYPASSED" if bypass == 1 else "ON"
-        logger.info(f"Limiter: {state}", component="OSC")
-    
-    # === EQ Handlers ===
-    
+        return self.master.on_limiter_bypass_changed(bypass)
+
     def on_eq_lo_changed(self, db):
-        """Handle EQ LO change (dB value)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_lo'], [db])
-    
+        return self.master.on_eq_lo_changed(db)
+
     def on_eq_mid_changed(self, db):
-        """Handle EQ MID change (dB value)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_mid'], [db])
-    
+        return self.master.on_eq_mid_changed(db)
+
     def on_eq_hi_changed(self, db):
-        """Handle EQ HI change (dB value)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_hi'], [db])
-    
+        return self.master.on_eq_hi_changed(db)
+
     def on_eq_lo_kill_changed(self, kill):
-        """Handle EQ LO kill toggle."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_lo_kill'], [kill])
-        state = "KILLED" if kill == 1 else "OFF"
-        logger.info(f"EQ LO Kill: {state}", component="OSC")
-    
+        return self.master.on_eq_lo_kill_changed(kill)
+
     def on_eq_mid_kill_changed(self, kill):
-        """Handle EQ MID kill toggle."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_mid_kill'], [kill])
-        state = "KILLED" if kill == 1 else "OFF"
-        logger.info(f"EQ MID Kill: {state}", component="OSC")
-    
+        return self.master.on_eq_mid_kill_changed(kill)
+
     def on_eq_hi_kill_changed(self, kill):
-        """Handle EQ HI kill toggle."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_hi_kill'], [kill])
-        state = "KILLED" if kill == 1 else "OFF"
-        logger.info(f"EQ HI Kill: {state}", component="OSC")
-    
+        return self.master.on_eq_hi_kill_changed(kill)
+
     def on_eq_locut_changed(self, enabled):
-        """Handle EQ lo cut toggle (0=off, 1=on)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_locut'], [enabled])
-        state = "ON" if enabled == 1 else "OFF"
-        logger.info(f"EQ Lo Cut: {state}", component="OSC")
-    
+        return self.master.on_eq_locut_changed(enabled)
+
     def on_eq_bypass_changed(self, bypass):
-        """Handle EQ bypass toggle (0=on, 1=bypassed)."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_eq_bypass'], [bypass])
-        state = "BYPASSED" if bypass == 1 else "ON"
-        logger.info(f"EQ: {state}", component="OSC")
-    
-    # === Compressor Handlers ===
-    
+        return self.master.on_eq_bypass_changed(bypass)
+
     def on_comp_threshold_changed(self, db):
-        """Handle compressor threshold change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_comp_threshold'], [db])
-    
+        return self.master.on_comp_threshold_changed(db)
+
     def on_comp_ratio_changed(self, idx):
-        """Handle compressor ratio change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_comp_ratio'], [idx])
-    
+        return self.master.on_comp_ratio_changed(idx)
+
     def on_comp_attack_changed(self, idx):
-        """Handle compressor attack change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_comp_attack'], [idx])
-    
+        return self.master.on_comp_attack_changed(idx)
+
     def on_comp_release_changed(self, idx):
-        """Handle compressor release change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_comp_release'], [idx])
-    
+        return self.master.on_comp_release_changed(idx)
+
     def on_comp_makeup_changed(self, db):
-        """Handle compressor makeup change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_comp_makeup'], [db])
-    
+        return self.master.on_comp_makeup_changed(db)
+
     def on_comp_sc_hpf_changed(self, idx):
-        """Handle compressor SC HPF change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_comp_sc_hpf'], [idx])
-    
+        return self.master.on_comp_sc_hpf_changed(idx)
+
     def on_comp_bypass_changed(self, bypass):
-        """Handle compressor bypass toggle."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['master_comp_bypass'], [bypass])
-        state = "BYPASSED" if bypass == 1 else "ON"
-        logger.info(f"Compressor: {state}", component="OSC")
-    
+        return self.master.on_comp_bypass_changed(bypass)
+
     def on_comp_gr_received(self, gr_db):
-        """Handle compressor GR meter update."""
-        self.master_section.set_comp_gr(gr_db)
-    
+        return self.master.on_comp_gr_received(gr_db)
+
     def on_audio_device_changed(self, device_name):
-        """Handle audio device selection from dropdown - disabled for now."""
-        # Device switching disabled - SC reboot is too fragile
-        # Dropdown is display-only to show available devices
-        pass
-    
+        return self.master.on_audio_device_changed(device_name)
+
     def on_audio_devices_received(self, devices, current):
-        """Handle audio device list from SC."""
-        logger.info(f"Audio devices: {len(devices)} available, current: {current}", component="OSC")
-        self.audio_selector.set_devices(devices, current)
-    
+        return self.master.on_audio_devices_received(devices, current)
+
     def on_audio_device_changing(self, device_name):
-        """Handle notification that SC is changing audio device."""
-        logger.info(f"Audio device changing to: {device_name}...", component="OSC")
-        self.status_label.setText("Switching...")
-        self.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
-    
+        return self.master.on_audio_device_changing(device_name)
+
     def on_audio_device_ready(self, device_name):
-        """Handle notification that SC finished changing device."""
-        logger.info(f"Audio device ready: {device_name}", component="OSC")
-        self.status_label.setText("Connected")
-        self.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
-        self.audio_selector.set_enabled(True)
-        # Re-query to confirm
-        self.osc.query_audio_devices()
-        
+        return self.master.on_audio_device_ready(device_name)
+
     def on_levels_received(self, amp_l, amp_r, peak_l, peak_r):
-        """Handle level meter data from SuperCollider."""
-        self.master_section.set_levels(amp_l, amp_r, peak_l, peak_r)
-    
+        return self.master.on_levels_received(amp_l, amp_r, peak_l, peak_r)
+
     def on_channel_levels_received(self, slot_id, amp_l, amp_r):
-        """Handle per-channel level meter data from SuperCollider."""
-        self.mixer_panel.set_channel_levels(slot_id, amp_l, amp_r)
+        return self.master.on_channel_levels_received(slot_id, amp_l, amp_r)
     
     def toggle_console(self):
         """Toggle console panel visibility."""
