@@ -6,7 +6,7 @@
 // FIXES:
 // - Writes config/state under ~/Library/Application Support/NoiseEngine (NOT SuperCollider app support)
 // - Default config sets autoPython:false + pythonCmd:nil (prevents double Python instances)
-// - Keeps launchPython machinery (won’t run unless user enables it)
+// - Keeps launchPython machinery (won't run unless user enables it)
 // - Makes ready.json device string nil-safe
 // - Forces fixed sclang OSC listen port via thisProcess.openUDPPort (Python targets known port)
 // - ready.json reports BOTH sclang port (sc_port) + scsynth port (scsynth_port)
