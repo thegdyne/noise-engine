@@ -6,6 +6,7 @@ Phase 2: MidiCCController
 Phase 3: GeneratorController
 Phase 4: MixerController, MasterController
 Phase 5: ConnectionController
+Phase 6: ModulationController
 """
 
 from .preset_controller import PresetController
@@ -14,6 +15,7 @@ from .generator_controller import GeneratorController
 from .mixer_controller import MixerController
 from .master_controller import MasterController
 from .connection_controller import ConnectionController
+from .modulation_controller import ModulationController
 
 __all__ = [
     'PresetController', 
@@ -22,4 +24,5 @@ __all__ = [
     'MixerController',
     'MasterController',
     'ConnectionController',
+    'ModulationController',
 ]

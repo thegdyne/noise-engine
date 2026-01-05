@@ -43,6 +43,7 @@ from src.gui.controllers.generator_controller import GeneratorController
 from src.gui.controllers.mixer_controller import MixerController
 from src.gui.controllers.master_controller import MasterController
 from src.gui.controllers.connection_controller import ConnectionController
+from src.gui.controllers.modulation_controller import ModulationController
 
 class MainFrame(QMainWindow):
     """Main application window."""
@@ -73,6 +74,9 @@ class MainFrame(QMainWindow):
 
         # Connection controller
         self.connection = ConnectionController(self)
+
+        # Modulation controller
+        self.modulation = ModulationController(self)
 
         # Mixer controller
         self.mixer = MixerController(self)
@@ -706,484 +710,101 @@ class MainFrame(QMainWindow):
     def on_generator_changed(self, slot_id, new_type):
         return self.generator.on_generator_changed(slot_id, new_type)
 
-    # -------------------------------------------------------------------------
-    # Mod Source Handlers
-    # -------------------------------------------------------------------------
-    
+    # ── Modulation Controller Wrappers ──────────────────────────────────
+    # Method bodies moved to ModulationController (Phase 6 refactor)
+
     def _sync_mod_slot_state(self, slot_id, send_generator=True):
-        """Push full UI state for one mod slot to SC (SSOT)."""
-        if not self.osc_connected:
-            return
-        from src.config import get_mod_generator_custom_params, map_value
-        
-        slot = self.modulator_grid.get_slot(slot_id)
-        if not slot:
-            return
-        
-        gen_name = slot.generator_name
-        
-        if send_generator:
-            self.osc.client.send_message(OSC_PATHS['mod_generator'], [slot_id, gen_name])
-        
-        # Enable/disable scope
-        enabled = 1 if gen_name != "Empty" else 0
-        self.osc.client.send_message(OSC_PATHS['mod_scope_enable'], [slot_id, enabled])
-        
-        if gen_name == "Empty":
-            return
-        
-        # Sync outputs (wave/phase/polarity) from UI
-        for out_idx, row in enumerate(slot.output_rows):
-            if 'wave' in row:
-                self.osc.client.send_message(OSC_PATHS['mod_output_wave'], [slot_id, out_idx, row['wave'].get_index()])
-            if 'phase' in row:
-                self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, out_idx, row['phase'].get_index()])
-            if 'polarity' in row:
-                self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, out_idx, row['polarity'].get_index()])
-            if 'tension' in row:
-                tension_val = row['tension'].value() / 1000.0
-                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"tension{out_idx + 1}", tension_val])
-            if 'mass' in row:
-                mass_val = row['mass'].value() / 1000.0
-                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, f"mass{out_idx + 1}", mass_val])
-        
-        # Sync custom params from UI sliders/buttons
-        for param in get_mod_generator_custom_params(gen_name):
-            key = param['key']
-            control = slot.param_sliders.get(key)
-            if control:
-                # CycleButton (mode) vs DragSlider (rate, shape, etc)
-                if hasattr(control, 'get_index'):
-                    # CycleButton - index is the value (0=CLK, 1=FREE)
-                    real_value = float(control.get_index())
-                else:
-                    # DragSlider - normalize and map
-                    normalized = control.value() / 1000.0
-                    real_value = map_value(normalized, param)
-                self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, real_value])
-    
+        return self.modulation._sync_mod_slot_state(slot_id, send_generator)
+
     def _sync_mod_sources(self):
-        """Send current mod source state to SC on connect."""
-        from src.config import MOD_SLOT_COUNT
-        
-        for slot_id in range(1, MOD_SLOT_COUNT + 1):
-            self._sync_mod_slot_state(slot_id, send_generator=True)
-            slot = self.modulator_grid.get_slot(slot_id)
-            if slot:
-                logger.debug(f"Synced mod {slot_id}: {slot.generator_name}", component="OSC")
-    
+        return self.modulation._sync_mod_sources()
+
     def on_mod_generator_changed(self, slot_id, gen_name):
-        """Handle mod source generator change - full sync to SC."""
-        if self.osc_connected:
-            # Full push to SC so UI is SSOT after rebuild
-            self._sync_mod_slot_state(slot_id, send_generator=True)
-        logger.debug(f"Mod {slot_id} generator: {gen_name}", component="OSC")
-        self._mark_dirty()
+        return self.modulation.on_mod_generator_changed(slot_id, gen_name)
 
     def on_mod_param_changed(self, slot_id, key, value):
-        """Handle mod source parameter change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, key, value])
-        logger.debug(f"Mod {slot_id} {key}: {value:.3f}", component="OSC")
-        
+        return self.modulation.on_mod_param_changed(slot_id, key, value)
+
     def on_mod_output_wave(self, slot_id, output_idx, wave_index):
-        """Handle mod output waveform change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_output_wave'], [slot_id, output_idx, wave_index])
-        logger.debug(f"Mod {slot_id} out {output_idx} wave: {wave_index}", component="OSC")
-        
+        return self.modulation.on_mod_output_wave(slot_id, output_idx, wave_index)
+
     def on_mod_output_phase(self, slot_id, output_idx, phase_index):
-        """Handle mod output phase change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_output_phase'], [slot_id, output_idx, phase_index])
-        logger.debug(f"Mod {slot_id} out {output_idx} phase: {phase_index}", component="OSC")
+        return self.modulation.on_mod_output_phase(slot_id, output_idx, phase_index)
 
     def on_mod_output_polarity(self, slot_id, output_idx, polarity):
-        """Handle mod output polarity change."""
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, output_idx, polarity])
-        logger.debug(f"Mod {slot_id} out {output_idx} polarity: {polarity}", component="OSC")
+        return self.modulation.on_mod_output_polarity(slot_id, output_idx, polarity)
 
-    # ARSEq+ envelope handlers
     def on_mod_env_attack(self, slot_id, env_idx, value):
-        """Handle ARSEq+ envelope attack change."""
-        param_name = ["atkA", "atkB", "atkC", "atkD"][env_idx]
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
-        logger.debug(f"Mod {slot_id} env {env_idx} attack: {value:.3f}", component="OSC")
+        return self.modulation.on_mod_env_attack(slot_id, env_idx, value)
 
     def on_mod_env_release(self, slot_id, env_idx, value):
-        """Handle ARSEq+ envelope release change."""
-        param_name = ["relA", "relB", "relC", "relD"][env_idx]
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
-        logger.debug(f"Mod {slot_id} env {env_idx} release: {value:.3f}", component="OSC")
+        return self.modulation.on_mod_env_release(slot_id, env_idx, value)
 
     def on_mod_env_curve(self, slot_id, env_idx, value):
-        """Handle ARSEq+ envelope curve change."""
-        param_name = ["curveA", "curveB", "curveC", "curveD"][env_idx]
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, value])
-        logger.debug(f"Mod {slot_id} env {env_idx} curve: {value:.3f}", component="OSC")
+        return self.modulation.on_mod_env_curve(slot_id, env_idx, value)
 
     def on_mod_env_sync_mode(self, slot_id, env_idx, mode):
-        """Handle ARSEq+ envelope sync mode change."""
-        param_name = ["syncModeA", "syncModeB", "syncModeC", "syncModeD"][env_idx]
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(mode)])
-        logger.debug(f"Mod {slot_id} env {env_idx} sync_mode: {mode}", component="OSC")
+        return self.modulation.on_mod_env_sync_mode(slot_id, env_idx, mode)
 
     def on_mod_env_loop_rate(self, slot_id, env_idx, rate_idx):
-        """Handle ARSEq+ envelope loop rate change."""
-        param_name = ["loopRateA", "loopRateB", "loopRateC", "loopRateD"][env_idx]
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, float(rate_idx)])
-        logger.debug(f"Mod {slot_id} env {env_idx} loop_rate: {rate_idx}", component="OSC")
+        return self.modulation.on_mod_env_loop_rate(slot_id, env_idx, rate_idx)
 
     def on_mod_tension(self, slot_id, output_idx, normalized):
-        """Handle SauceOfGrav tension change."""
-        param_name = f"tension{output_idx + 1}"
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, normalized])
-        logger.debug(f"Mod {slot_id} tension{output_idx + 1}: {normalized:.3f}", component="OSC")
+        return self.modulation.on_mod_tension(slot_id, output_idx, normalized)
 
     def on_mod_mass(self, slot_id, output_idx, normalized):
-        """Handle SauceOfGrav mass change."""
-        param_name = f"mass{output_idx + 1}"
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_param'], [slot_id, param_name, normalized])
-        logger.debug(f"Mod {slot_id} mass{output_idx + 1}: {normalized:.3f}", component="OSC")
+        return self.modulation.on_mod_mass(slot_id, output_idx, normalized)
 
     def on_mod_bus_value(self, bus_idx, value):
-        """Handle mod bus value from SC - route to appropriate scope."""
-        # Calculate slot from bus index: bus 0-3 slot 1, bus 4-7 slot 2, etc.
-        slot_id = (bus_idx // 4) + 1
-        output_idx = bus_idx % 4
-        
-        slot = self.modulator_grid.get_slot(slot_id)
-        if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
-            slot.scope.push_value(output_idx, value)
-            self._mod_scope_dirty.add(slot_id)  # Mark for repaint
-    
+        return self.modulation.on_mod_bus_value(bus_idx, value)
+
     def on_mod_values_received(self, values):
-        """Handle batched modulated parameter values from SC - update sliders.
-        
-        Args:
-            values: List of (slot, param, raw_value) tuples where raw_value is
-                    the actual mapped parameter value (Hz, seconds, etc.)
-        """
-        for slot_id, param, raw_value in values:
-            slot = self.generator_grid.get_slot(slot_id)
-            if slot:
-                slider = self._get_slot_slider(slot, param)
-                if slider:
-                    # Convert raw mapped value to normalized 0-1 for slider display
-                    param_config = get_param_config(param)
-                    norm_value = unmap_value(raw_value, param_config)
-                    slider.set_modulated_value(norm_value)
-        
+        return self.modulation.on_mod_values_received(values)
+
     def _flush_mod_scopes(self):
-        """Repaint dirty scopes at throttled rate (~30fps)."""
-        for slot_id in list(self._mod_scope_dirty):
-            slot = self.modulator_grid.get_slot(slot_id)
-            if slot and hasattr(slot, 'scope') and slot.scope.isEnabled():
-                slot.scope.update()
-        self._mod_scope_dirty.clear()
-    
+        return self.modulation._flush_mod_scopes()
+
     def _connect_mod_routing_signals(self):
-        """Connect mod routing state signals to OSC."""
-        self.mod_routing.connection_added.connect(self._on_mod_route_added)
-        self.mod_routing.connection_removed.connect(self._on_mod_route_removed)
-        self.mod_routing.connection_changed.connect(self._on_mod_route_changed)
-        self.mod_routing.all_cleared.connect(self._on_mod_routes_cleared)
-    
+        return self.modulation._connect_mod_routing_signals()
+
     def _on_mod_route_added(self, conn):
-        """Send new mod route to SC and update slider visualization."""
-        if self.osc_connected:
-            self.osc.client.send_message(
-                OSC_PATHS['mod_route_add'],
-                [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
-            )
-            logger.debug(f"Mod route added: bus {conn.source_bus} → slot {conn.target_slot}.{conn.target_param} "
-                        f"(d={conn.depth}, a={conn.amount}, o={conn.offset}, p={conn.polarity.name}, i={conn.invert})", component="MOD")
-        
-        # Update slider visualization
-        self._update_slider_mod_range(conn.target_slot, conn.target_param)
-        self._mark_dirty()
+        return self.modulation._on_mod_route_added(conn)
 
     def _on_mod_route_removed(self, source_bus, target_slot, target_param):
-        """Send mod route removal to SC and update slider visualization."""
-        if self.osc_connected:
-            self.osc.client.send_message(
-                OSC_PATHS['mod_route_remove'],
-                [source_bus, target_slot, target_param]
-            )
-            logger.debug(f"Mod route removed: bus {source_bus} → slot {target_slot}.{target_param}", component="MOD")
-        
-        # Update slider visualization (may clear if no more routes)
-        self._update_slider_mod_range(target_slot, target_param)
-        self._mark_dirty()
+        return self.modulation._on_mod_route_removed(source_bus, target_slot, target_param)
 
     def _on_mod_route_changed(self, conn):
-        """Send mod route parameter change to SC."""
-        if self.osc_connected:
-            # Send all params via set message
-            self.osc.client.send_message(
-                OSC_PATHS['mod_route_set'],
-                [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
-            )
-        
-        # Update slider visualization (deferred to ensure state is fully updated)
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, lambda: self._update_slider_mod_range(conn.target_slot, conn.target_param))
-    
+        return self.modulation._on_mod_route_changed(conn)
+
     def _get_slot_slider(self, slot, param):
-        """Get slider for a param, handling both standard and custom (P1-P5) params.
-        
-        Args:
-            slot: Generator slot widget
-            param: Parameter name ('cutoff', 'p1', etc.)
-            
-        Returns:
-            FaderSlider or None if not found
-        """
-        # Check for custom params (p1-p5)
-        if param.startswith('p') and len(param) == 2 and param[1].isdigit():
-            idx = int(param[1]) - 1  # p1 -> 0, p2 -> 1, etc.
-            if hasattr(slot, 'custom_sliders') and 0 <= idx < len(slot.custom_sliders):
-                return slot.custom_sliders[idx]
-            return None
-        
-        # Standard params
-        if hasattr(slot, 'sliders') and param in slot.sliders:
-            return slot.sliders[param]
-        return None
-    
+        return self.modulation._get_slot_slider(slot, param)
+
     def _update_slider_mod_range(self, slot_id, param):
-        """Update slider modulation range visualization based on active connections.
-        
-        Computes modulation range in real parameter units using the same math as SC,
-        then unmaps back to 0-1 slider space for display.
-        """
-        from PyQt5.QtGui import QColor
-        from src.config import map_value
-        import math
-        
-        slot = self.generator_grid.get_slot(slot_id)
-        if not slot:
-            return
-        
-        slider = self._get_slot_slider(slot, param)
-        if not slider:
-            return
-        
-        # Get all connections to this param
-        connections = self.mod_routing.get_connections_for_target(slot_id, param)
-        
-        if not connections:
-            # No modulation - clear visualization
-            slider.clear_modulation()
-            return
-        
-        # Get param config for this parameter
-        param_config = get_param_config(param)
-        min_val = param_config.get('min', 0.0)
-        max_val = param_config.get('max', 1.0)
-        curve = param_config.get('curve', 'lin')
-        oct_range = param_config.get('oct_range', 0)
-        
-        # Get current slider position and convert to real value
-        slider_norm = slider.value() / 1000.0  # Normalized 0-1
-        base_real = map_value(slider_norm, param_config)
-        
-        # Sum up total amount and offset from all connections
-        # Sum per-connection extrema respecting polarity mode
-        from src.gui.mod_routing_state import Polarity
-        
-        delta_min = 0.0
-        delta_max = 0.0
-        
-        for c in connections:
-            r = c.effective_range  # depth * amount
-            
-            if c.polarity == Polarity.BIPOLAR:
-                mn, mx = -r, +r
-            elif c.polarity == Polarity.UNI_POS:
-                mn, mx = 0.0, +r
-            else:  # Polarity.UNI_NEG
-                mn, mx = -r, 0.0
-            
-            mn += c.offset
-            mx += c.offset
-            
-            delta_min += mn
-            delta_max += mx
-        
-        # Apply modulation curve to get real value range
-        if curve == 'exp' and oct_range > 0:
-            # Exponential: out = base * 2^(delta * octRange)
-            # Protect against invalid base values
-            if base_real <= 0:
-                base_real = min_val if min_val > 0 else 0.001
-            mod_max_real = base_real * math.pow(2, delta_max * oct_range)
-            mod_min_real = base_real * math.pow(2, delta_min * oct_range)
-        else:
-            # Linear: out = base + delta * range
-            param_range = max_val - min_val
-            mod_max_real = base_real + delta_max * param_range
-            mod_min_real = base_real + delta_min * param_range
-        
-        # Clamp to param limits
-        mod_max_real = max(min_val, min(max_val, mod_max_real))
-        mod_min_real = max(min_val, min(max_val, mod_min_real))
-        
-        # Ensure min <= max
-        if mod_min_real > mod_max_real:
-            mod_min_real, mod_max_real = mod_max_real, mod_min_real
-        
-        # Unmap back to 0-1 slider space for display
-        range_min = unmap_value(mod_min_real, param_config)
-        range_max = unmap_value(mod_max_real, param_config)
-        
-        # Get color: mixed if multiple sources, else based on first source type
-        if len(connections) > 1:
-            # Multiple sources - use cyan to indicate mixed
-            color = QColor('#00cccc')
-        else:
-            # Single source - color by type
-            conn = connections[0]
-            mod_slot = conn.source_bus // 4 + 1
-            source_slot = self.modulator_grid.get_slot(mod_slot)
-            if source_slot and source_slot.generator_name == 'Sloth':
-                color = QColor('#ff8800')  # Orange
-            else:
-                color = QColor('#00ff66')  # Green
-        
-        # Pass same values for outer and inner (single bracket pair now)
-        slider.set_modulation_range(range_min, range_max, range_min, range_max, color)
+        return self.modulation._update_slider_mod_range(slot_id, param)
 
     def _on_mod_routes_cleared(self):
-        """Handle all routes cleared - send OSC and clear all slider brackets."""
-        # Send OSC to SuperCollider
-        if self.osc_connected:
-            self.osc.client.send_message(OSC_PATHS['mod_route_clear_all'], [])
+        return self.modulation._on_mod_routes_cleared()
 
-        logger.debug("All mod routes cleared", component="MOD")
-
-        # Clear all slider modulation visualizations
-        for slot_id in range(1, 9):
-            slot = self.generator_grid.get_slot(slot_id)
-            if slot:
-                # Standard params
-                for param, slider in slot.sliders.items():
-                    slider.clear_modulation()
-                # Custom params (P1-P5)
-                if hasattr(slot, 'custom_sliders'):
-                    for slider in slot.custom_sliders:
-                        slider.clear_modulation()
-    
     def _sync_mod_routing_to_sc(self):
-        """Sync all mod routing state to SC (called on reconnect)."""
-        if not self.osc_connected:
-            return
-        for conn in self.mod_routing.get_all_connections():
-            self.osc.client.send_message(
-                OSC_PATHS['mod_route_add'],
-                [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
-            )
-        logger.debug(f"Synced {len(self.mod_routing)} mod routes to SC", component="MOD")
-    
+        return self.modulation._sync_mod_routing_to_sc()
+
     def _open_mod_matrix(self):
-        """Toggle the mod routing matrix window (Cmd+M)."""
-        if self.mod_matrix_window is None:
-            self.mod_matrix_window = ModMatrixWindow(
-                self.mod_routing, 
-                get_target_value_callback=self._get_target_slider_value,
-                parent=self
-            )
-            # Connect mod slot type changes to update matrix
-            self.modulator_grid.generator_changed.connect(self._on_mod_slot_type_changed_for_matrix)
-        
-        # Toggle visibility
-        if self.mod_matrix_window.isVisible():
-            self.mod_matrix_window.hide()
-            logger.info("Mod matrix window closed", component="MOD")
-        else:
-            self.mod_matrix_window.show()
-            # Center on main window
-            main_geo = self.geometry()
-            window_geo = self.mod_matrix_window.geometry()
-            x = main_geo.x() + (main_geo.width() - window_geo.width()) // 2
-            y = main_geo.y() + (main_geo.height() - window_geo.height()) // 2
-            self.mod_matrix_window.move(x, y)
-            self.mod_matrix_window.raise_()
-            self.mod_matrix_window.activateWindow()
-            logger.info("Mod matrix window opened", component="MOD")
+        return self.modulation._open_mod_matrix()
 
     def _open_crossmod_matrix(self):
-        """Toggle the crossmod routing matrix window (Cmd+X)."""
-        # Create OSC bridge on first use (needs osc.client)
-        if self.crossmod_osc is None and self.osc_connected:
-            self.crossmod_osc = CrossmodOSCBridge(self.crossmod_state, self.osc.client)
-
-        if self.crossmod_window is None:
-            self.crossmod_window = CrossmodMatrixWindow(self.crossmod_state, parent=self)
-
-        # Toggle visibility
-        if self.crossmod_window.isVisible():
-            self.crossmod_window.hide()
-            logger.info("Crossmod matrix window closed", component="CROSSMOD")
-        else:
-            self.crossmod_window.show()
-            # Center on main window
-            main_geo = self.geometry()
-            window_geo = self.crossmod_window.geometry()
-            x = main_geo.x() + (main_geo.width() - window_geo.width()) // 2
-            y = main_geo.y() + (main_geo.height() - window_geo.height()) // 2
-            self.crossmod_window.move(x, y)
-            self.crossmod_window.raise_()
-            self.crossmod_window.activateWindow()
-            logger.info("Crossmod matrix window opened", component="CROSSMOD")
+        return self.modulation._open_crossmod_matrix()
 
     def _open_fx_window(self):
-        """Toggle the FX controls window (Cmd+F)."""
-        if self.fx_window is None:
-            self.fx_window = FXWindow(self.osc if self.osc_connected else None, parent=self)
-        
-        # Toggle visibility
-        if self.fx_window.isVisible():
-            self.fx_window.hide()
-            logger.info("FX window closed", component="FX")
-        else:
-            self.fx_window.show()
-            self.fx_window.raise_()
-            self.fx_window.activateWindow()
-            logger.info("FX window opened", component="FX")
+        return self.modulation._open_fx_window()
 
     def _clear_all_mod_routes(self):
-        """Clear all modulation routes."""
-        self.mod_routing.clear()
-        logger.info("Cleared all mod routes", component="MOD")
+        return self.modulation._clear_all_mod_routes()
 
-    def _get_target_slider_value(self, slot_id: int, param: str) -> float:
-        """Get normalized 0-1 value of a generator parameter slider.
-        
-        Used by mod popup to calculate depth limits.
-        """
-        slot = self.generator_grid.get_slot(slot_id)
-        if slot:
-            slider = self._get_slot_slider(slot, param)
-            if slider:
-                return slider.value() / 1000.0
-        return 0.5  # Default to center if not found
-    
-    def _on_mod_slot_type_changed_for_matrix(self, slot_id: int, gen_name: str):
-        """Update matrix window when mod slot type changes."""
-        if self.mod_matrix_window:
-            self.mod_matrix_window.update_mod_slot_type(slot_id, gen_name)
+    def _get_target_slider_value(self, slot_id, param):
+        return self.modulation._get_target_slider_value(slot_id, param)
+
+    def _on_mod_slot_type_changed_for_matrix(self, slot_id, gen_name):
+        return self.modulation._on_mod_slot_type_changed_for_matrix(slot_id, gen_name)
 
     # ── Mixer Controller Wrappers ───────────────────────────────────────
     # Method bodies moved to MixerController (Phase 4 refactor)
