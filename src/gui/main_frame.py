@@ -1177,6 +1177,11 @@ class MainFrame(QMainWindow):
         """Compatibility property - cc_mapping_manager now lives in MidiCCController."""
         return self.midi_cc.cc_mapping_manager
 
+    @property
+    def cc_learn_manager(self):
+        """Compatibility property - cc_learn_manager now lives in MidiCCController."""
+        return self.midi_cc.cc_learn_manager
+
     def _show_toast(self, message, duration=3000):
         """Show brief toast notification."""
         from PyQt5.QtWidgets import QLabel
