@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+if [[ ! -d "$ROOT/venv" ]]; then
+  echo "ERROR: venv not found at: $ROOT/venv"
+  echo "Fix:"
+  echo "  cd \"$ROOT\""
+  echo "  python3 -m venv venv"
+  echo "  source venv/bin/activate"
+  echo "  pip install -r requirements.txt"
+  exit 1
+fi
+
+source "$ROOT/venv/bin/activate"
+exec python "$ROOT/src/main.py" "$@"

@@ -5,6 +5,9 @@ Launches the main frame with all components.
 
 import sys
 import os
+import signal
+import subprocess
+import atexit
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -12,7 +15,43 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 
 
+def cleanup_sc():
+    """Gracefully stop SuperCollider."""
+    import time
+
+    # Stop OSC server first (prevents "deleted object" errors)
+    try:
+        from src.audio.osc_bridge import osc_bridge
+        if osc_bridge:
+            osc_bridge.stop()
+    except Exception:
+        pass
+
+    # Fade master volume
+    try:
+        from pythonosc import udp_client
+        client = udp_client.SimpleUDPClient("127.0.0.1", 57120)
+        client.send_message("/ne/master/volume", 0.0)
+        time.sleep(0.15)
+    except Exception:
+        pass
+
+    subprocess.run(['pkill', '-9', 'sclang'], capture_output=True)
+    subprocess.run(['pkill', '-9', 'scsynth'], capture_output=True)
+
+
+def signal_handler(signum, frame):
+    """Handle SIGTERM/SIGINT - cleanup then exit."""
+    cleanup_sc()
+    sys.exit(0)
+
+
 def main():
+    # Register SC cleanup handlers
+    atexit.register(cleanup_sc)
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
     # Initialize logger first
     from src.utils.logger import logger
     

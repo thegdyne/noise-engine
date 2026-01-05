@@ -76,8 +76,10 @@ class OSCBridge(QObject):
         self._shutdown = False
 
     def shutdown(self):
-        """Mark bridge as shutting down to prevent signal emission."""
+        """Stop the OSC bridge completely."""
         self._shutdown = True
+        self._deleted = True
+        self._cleanup()
         
     def connect(self, host=None, port=None):
         """Connect to SuperCollider with verification."""

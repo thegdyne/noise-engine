@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CFG_DIR="$HOME/Library/Application Support/NoiseEngine"
+STATE_DIR="$CFG_DIR/state"
+READY="$STATE_DIR/ready.json"
+SC_LOG="$STATE_DIR/sclang.log"
+
+mkdir -p "$STATE_DIR"
+rm -f "$READY"
+
+# Kill any stale SC processes (clean start)
+pkill -9 sclang 2>/dev/null || true
+pkill -9 scsynth 2>/dev/null || true
+sleep 0.3
+
+# ---- find sclang ----
+if command -v sclang >/dev/null 2>&1; then
+  SCLANG="sclang"
+elif [[ -x "/Applications/SuperCollider.app/Contents/MacOS/sclang" ]]; then
+  SCLANG="/Applications/SuperCollider.app/Contents/MacOS/sclang"
+else
+  echo "ERROR: sclang not found."
+  exit 1
+fi
+
+BOOT="$ROOT/supercollider/bootstrap/noise_engine_startup.scd"
+
+echo "Starting SuperCollider..."
+"$SCLANG" "$BOOT" >"$SC_LOG" 2>&1 &
+SC_PID=$!
+echo "SuperCollider pid: $SC_PID"
+
+trap 'kill "$SC_PID" 2>/dev/null || true' EXIT
+
+echo "Waiting for ready.json (30s)..."
+deadline=$((SECONDS+30))
+while (( SECONDS < deadline )); do
+  if [[ -f "$READY" ]] && grep -q '"status"[[:space:]]*:[[:space:]]*"ready"' "$READY"; then
+    echo "NoiseEngine READY"
+    break
+  fi
+  sleep 0.2
+done
+
+if [[ ! -f "$READY" ]] || ! grep -q '"status"[[:space:]]*:[[:space:]]*"ready"' "$READY"; then
+  echo "ERROR: NoiseEngine not ready (timeout)."
+  tail -n 40 "$SC_LOG" || true
+  exit 1
+fi
+
+echo "Launching Python..."
+cd "$ROOT"
+exec "$ROOT/tools/ne-py"

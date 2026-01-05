@@ -47,7 +47,6 @@ class SynthesisIcon(QWidget):
     def set_category(self, category: str):
         """Set the synthesis category to display."""
         self.category = category if category else 'empty'
-        print(f"DEBUG SynthesisIcon.set_category: {category} -> {self.category}")
         self.phase = 0.0
         
         # Initialize particles for texture
