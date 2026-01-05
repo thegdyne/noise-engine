@@ -1298,6 +1298,11 @@ OSC_PATHS = {
     'mod_route_set': '/noise/mod/route/set',        # [bus, slot, param, depth, amount, offset, polarity, invert]
     'mod_route_remove': '/noise/mod/route/remove',  # [bus, slot, param]
     'mod_route_clear_all': '/noise/mod/route/clear_all',  # Clear all routes
+    # Extended modulation (mod matrix expansion)
+    'extmod_add_route': '/noise/extmod/add_route',
+    'extmod_remove_route': '/noise/extmod/remove_route',
+    'extmod_set_user_param': '/noise/extmod/set_user_param',
+    'extmod_clear_all': '/noise/extmod/clear_all',
 }
 
 # === WIDGET SIZES ===

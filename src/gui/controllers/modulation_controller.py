@@ -195,39 +195,68 @@ class ModulationController:
     def _on_mod_route_added(self, conn):
         """Send new mod route to SC and update slider visualization."""
         if self.main.osc_connected:
-            self.main.osc.client.send_message(
-                OSC_PATHS['mod_route_add'],
-                [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
-            )
-            logger.debug(f"Mod route added: bus {conn.source_bus} -> slot {conn.target_slot}.{conn.target_param}", component="MOD")
+            if conn.is_extended:
+                # Extended route: use /noise/extmod/add_route
+                self.main.osc.client.send_message(
+                    OSC_PATHS['extmod_add_route'],
+                    [conn.source_bus, conn.target_str,
+                     conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
+                )
+                logger.debug(f"Extended mod route added: bus {conn.source_bus} -> {conn.target_str}", component="MOD")
+            else:
+                # Generator route: use /noise/mod/route/add
+                self.main.osc.client.send_message(
+                    OSC_PATHS['mod_route_add'],
+                    [conn.source_bus, conn.target_slot, conn.target_param,
+                     conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
+                )
+                logger.debug(f"Mod route added: bus {conn.source_bus} -> slot {conn.target_slot}.{conn.target_param}", component="MOD")
+                # Only update slider visualization for generator routes
+                self._update_slider_mod_range(conn.target_slot, conn.target_param)
         
-        self._update_slider_mod_range(conn.target_slot, conn.target_param)
         self.main._mark_dirty()
 
-    def _on_mod_route_removed(self, source_bus, target_slot, target_param):
+    def _on_mod_route_removed(self, conn):
         """Send mod route removal to SC and update slider visualization."""
         if self.main.osc_connected:
-            self.main.osc.client.send_message(
-                OSC_PATHS['mod_route_remove'],
-                [source_bus, target_slot, target_param]
-            )
-            logger.debug(f"Mod route removed: bus {source_bus} -> slot {target_slot}.{target_param}", component="MOD")
+            if conn.is_extended:
+                # Extended route: use /noise/extmod/remove_route
+                self.main.osc.client.send_message(
+                    OSC_PATHS['extmod_remove_route'],
+                    [conn.source_bus, conn.target_str]
+                )
+                logger.debug(f"Extended mod route removed: bus {conn.source_bus} -> {conn.target_str}", component="MOD")
+            else:
+                # Generator route: use /noise/mod/route/remove
+                self.main.osc.client.send_message(
+                    OSC_PATHS['mod_route_remove'],
+                    [conn.source_bus, conn.target_slot, conn.target_param]
+                )
+                logger.debug(f"Mod route removed: bus {conn.source_bus} -> slot {conn.target_slot}.{conn.target_param}", component="MOD")
+                # Only update slider visualization for generator routes
+                self._update_slider_mod_range(conn.target_slot, conn.target_param)
         
-        self._update_slider_mod_range(target_slot, target_param)
         self.main._mark_dirty()
 
     def _on_mod_route_changed(self, conn):
         """Send mod route parameter change to SC."""
         if self.main.osc_connected:
-            self.main.osc.client.send_message(
-                OSC_PATHS['mod_route_set'],
-                [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
-            )
-        
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, lambda: self._update_slider_mod_range(conn.target_slot, conn.target_param))
+            if conn.is_extended:
+                # Extended route: use /noise/extmod/add_route (upsert)
+                self.main.osc.client.send_message(
+                    OSC_PATHS['extmod_add_route'],
+                    [conn.source_bus, conn.target_str,
+                     conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
+                )
+            else:
+                # Generator route: use /noise/mod/route/set
+                self.main.osc.client.send_message(
+                    OSC_PATHS['mod_route_set'],
+                    [conn.source_bus, conn.target_slot, conn.target_param,
+                     conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
+                )
+                from PyQt5.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self._update_slider_mod_range(conn.target_slot, conn.target_param))
     
     def _get_slot_slider(self, slot, param):
         """Get slider for a param, handling both standard and custom (P1-P5) params."""

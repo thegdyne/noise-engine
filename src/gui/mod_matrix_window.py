@@ -492,11 +492,13 @@ class ModMatrixWindow(QMainWindow):
         if cell:
             cell.set_connection(True, conn.amount)
     
-    def _on_connection_removed(self, source_bus: int, target_slot: int, target_param: str):
+    def _on_connection_removed(self, conn):
         """Update cell when connection removed."""
-        cell = self.cells.get((source_bus, target_slot, target_param))
-        if cell:
-            cell.set_connection(False)
+        # Only update UI for generator routes (extended routes have no cells)
+        if not conn.is_extended:
+            cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
+            if cell:
+                cell.set_connection(False)
         # Close popup if it was showing this connection
         if hasattr(self, '_open_popup') and self._open_popup:
             self._open_popup.close()

@@ -1,0 +1,676 @@
+# Mod Matrix Expansion Contract
+# Reference: MOD_MATRIX_EXPANSION_SPEC_v1.6.1.md
+
+contract: mod_matrix_expansion
+cdd_spec: 1.1.5
+version: 1.0.0
+status: draft
+description: |
+  Extends modulation matrix to route mod sources to FX parameters, modulator
+  parameters, and send levels (not just generator parameters). Uses 50Hz
+  polling with snapshot system for extended target application.
+
+runner:
+  executor: shell
+  timeout_ms: 10000
+
+requirements:
+  - id: R001
+    priority: must
+    description: Snapshot system infrastructure exists
+    acceptance_criteria:
+      - ~modSnapshotBus variable declared
+      - ~modSnapshotSynth variable declared
+      - ~modBusSnapshot array (16 elements)
+      - ~setupModBusSnapshot function defined
+      - ~snapshotModBuses function defined
+
+  - id: R002
+    priority: must
+    description: Snapshot SynthDef defined with guards
+    acceptance_criteria:
+      - SynthDef(\modBusSnapshot) exists
+      - Guards check ~modBuses not nil
+      - Guards check ~modBuses.size >= 16
+      - Guards check ~modGroup not nil
+      - Uses ReplaceOut.kr (not FreeSelf)
+
+  - id: R003
+    priority: must
+    description: Extended modulation dictionaries exist
+    acceptance_criteria:
+      - ~extTargets = IdentityDictionary.new
+      - ~extUserParams = Dictionary.new
+      - ~extParamConfig = Dictionary.new
+
+  - id: R004
+    priority: must
+    description: Parameter configs for mod params
+    acceptance_criteria:
+      - ~extParamConfig[\mod_rate] defined
+      - ~extParamConfig[\mod_wave] = [0, 7, true, 0]
+      - ~extParamConfig[\mod_phase] = [0, 23, true, 0]
+      - ~extParamConfig[\mod_pol] = [0, 2, true, 0]
+
+  - id: R005
+    priority: must
+    description: Parameter configs for FX params
+    acceptance_criteria:
+      - ~extParamConfig[\fx_drive] defined
+      - ~extParamConfig[\fx_circuit] = [0, 3, true, 0]
+      - ~extParamConfig[\fx_feedback] defined
+      - ~extParamConfig[\fx_spring] defined
+
+  - id: R006
+    priority: must
+    description: Parameter configs for send params
+    acceptance_criteria:
+      - ~extParamConfig[\send_ec] = [0, 1, false, 0.0]
+      - ~extParamConfig[\send_vb] = [0, 1, false, 0.0]
+
+  - id: R007
+    priority: must
+    description: Param name mapping function exists
+    acceptance_criteria:
+      - ~getParamConfigKey function defined
+      - Maps wave_1 to mod_wave
+      - Maps pol_1 to mod_pol
+      - Maps fbk to fx_feedback
+      - Maps spr to fx_spring
+
+  - id: R008
+    priority: must
+    description: Target parsing functions exist
+    acceptance_criteria:
+      - ~parseExtTarget function defined
+      - Handles mod:N:param format
+      - Handles fx:type:param format
+      - Handles send:N:type format
+
+  - id: R009
+    priority: must
+    description: Route management functions exist
+    acceptance_criteria:
+      - ~addExtModRoute function defined
+      - ~removeExtModRoute function defined
+      - ~setExtModRoute function defined
+      - ~ensureExtTarget function defined
+
+  - id: R010
+    priority: must
+    description: Value application with param mapping
+    acceptance_criteria:
+      - ~setExtTargetValue function defined
+      - Maps pol_1 to polarityA
+      - Maps wave_1 to waveA
+      - Maps atk_1 to atkA
+      - Maps tens_1 to tension1
+      - Maps type to circuit (HEAT)
+      - Maps fbk to feedback (ECHO)
+      - Maps siz to size (REVERB)
+
+  - id: R011
+    priority: must
+    description: Apply task with 50Hz polling
+    acceptance_criteria:
+      - ~startExtModApplyTask function defined
+      - ~stopExtModApplyTask function defined
+      - ~applyExtTarget function defined
+      - Task runs at 50Hz (1/50 wait)
+      - Calls ~snapshotModBuses
+      - Auto-starts snapshot system if needed
+
+  - id: R012
+    priority: must
+    description: Discrete parameter handling
+    acceptance_criteria:
+      - isDiscrete flag in config used
+      - Uses .round for discrete params
+      - No rounding for continuous params
+
+  - id: R013
+    priority: must
+    description: OSC handlers for extended routes
+    acceptance_criteria:
+      - /noise/extmod/add_route handler
+      - /noise/extmod/remove_route handler
+      - /noise/extmod/set_user_param handler
+      - /noise/extmod/clear_all handler
+
+  - id: R014
+    priority: must
+    description: Python OSC paths defined
+    acceptance_criteria:
+      - extmod_add_route path in OSC_PATHS
+      - extmod_remove_route path in OSC_PATHS
+      - extmod_set_user_param path in OSC_PATHS
+      - extmod_clear_all path in OSC_PATHS
+
+  - id: R015
+    priority: must
+    description: Init.scd loads all files
+    acceptance_criteria:
+      - Loads mod_snapshot.scd
+      - Loads ext_mod.scd
+      - Loads ext_mod_osc.scd
+      - Load order after mod_sources.scd
+
+tests:
+  # === Snapshot System ===
+  - id: T001
+    name: snapshot_bus_variable
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~modSnapshotBus.*=.*nil", "../supercollider/core/mod_snapshot.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~modSnapshotBus must be declared"
+
+  - id: T002
+    name: snapshot_array_init
+    requirement: R001
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~modBusSnapshot.*=.*Array.fill(16", "../supercollider/core/mod_snapshot.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~modBusSnapshot must be 16-element array"
+
+  - id: T003
+    name: snapshot_synthdef
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "SynthDef.*modBusSnapshot", "../supercollider/core/mod_snapshot.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "SynthDef modBusSnapshot must exist"
+
+  - id: T004
+    name: snapshot_guards_modbuses
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~modBuses.isNil", "../supercollider/core/mod_snapshot.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must guard against nil ~modBuses"
+
+  - id: T005
+    name: snapshot_guards_modgroup
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~modGroup.isNil", "../supercollider/core/mod_snapshot.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must guard against nil ~modGroup"
+
+  - id: T006
+    name: snapshot_no_freeself
+    requirement: R002
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "ReplaceOut.kr", "../supercollider/core/mod_snapshot.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must use ReplaceOut.kr (persistent synth)"
+
+  # === Extended Modulation Infrastructure ===
+  - id: T007
+    name: ext_targets_dict
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~extTargets.*=.*IdentityDictionary", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~extTargets must be IdentityDictionary"
+
+  - id: T008
+    name: ext_user_params_dict
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~extUserParams.*=.*Dictionary", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~extUserParams must be Dictionary"
+
+  - id: T009
+    name: ext_param_config_dict
+    requirement: R003
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~extParamConfig.*=.*Dictionary", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~extParamConfig must be Dictionary"
+
+  # === Parameter Configs ===
+  - id: T010
+    name: mod_wave_config
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~extParamConfig.*mod_wave.*=.*0.*7.*true", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "mod_wave must be discrete 0-7"
+
+  - id: T011
+    name: mod_phase_config
+    requirement: R004
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~extParamConfig.*mod_phase.*=.*0.*23.*true", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "mod_phase must be discrete 0-23"
+
+  - id: T012
+    name: fx_circuit_config
+    requirement: R005
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~extParamConfig.*fx_circuit.*=.*0.*3.*true", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "fx_circuit must be discrete 0-3"
+
+  - id: T013
+    name: send_ec_config
+    requirement: R006
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~extParamConfig.*send_ec.*=.*0.*1.*false", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "send_ec must be continuous 0-1"
+
+  # === Param Name Mapping ===
+  - id: T014
+    name: get_param_config_key_exists
+    requirement: R007
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~getParamConfigKey.*=", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~getParamConfigKey must be defined"
+
+  - id: T015
+    name: mapping_wave_to_mod_wave
+    requirement: R007
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "beginsWith.*wave", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must map wave prefix"
+
+  - id: T016
+    name: mapping_fbk_to_feedback
+    requirement: R007
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "fbk.*feedback", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must map fbk to feedback"
+
+  # === Target Parsing ===
+  - id: T017
+    name: parse_ext_target_exists
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~parseExtTarget.*=", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~parseExtTarget must be defined"
+
+  - id: T018
+    name: parse_handles_mod_format
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "tt.*==.*mod", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must handle mod:N:param format"
+
+  - id: T019
+    name: parse_handles_fx_format
+    requirement: R008
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "tt.*==.*fx", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must handle fx:type:param format"
+
+  # === Route Management ===
+  - id: T020
+    name: add_ext_mod_route_exists
+    requirement: R009
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~addExtModRoute.*=", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~addExtModRoute must be defined"
+
+  - id: T021
+    name: remove_ext_mod_route_exists
+    requirement: R009
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~removeExtModRoute.*=", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~removeExtModRoute must be defined"
+
+  # === Value Application ===
+  - id: T022
+    name: set_ext_target_value_exists
+    requirement: R010
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~setExtTargetValue.*=", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~setExtTargetValue must be defined"
+
+  - id: T023
+    name: mapping_pol_to_polarity
+    requirement: R010
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "pol_1.*polarityA", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must map pol_1 to polarityA"
+
+  - id: T024
+    name: mapping_type_to_circuit
+    requirement: R010
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "type.*circuit", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must map type to circuit (HEAT)"
+
+  # === Apply Task ===
+  - id: T025
+    name: start_ext_mod_apply_task_exists
+    requirement: R011
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~startExtModApplyTask.*=", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "~startExtModApplyTask must be defined"
+
+  - id: T026
+    name: apply_task_50hz_polling
+    requirement: R011
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "1.*/.50.*wait", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must poll at 50Hz"
+
+  - id: T027
+    name: apply_task_snapshots
+    requirement: R011
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "~snapshotModBuses", "../supercollider/core/ext_mod.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must call ~snapshotModBuses"
+
+  # === Discrete Parameter Handling ===
+  - id: T028
+    name: discrete_uses_round
+    requirement: R012
+    type: unit
+    steps:
+      - action: shell
+        command: ["sh", "-c", "grep -A1 'if(isDiscrete)' ../supercollider/core/ext_mod.scd | grep -q 'round' && echo found"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "Must use .round for discrete params"
+
+  # === OSC Handlers ===
+  - id: T029
+    name: osc_add_route
+    requirement: R013
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "/noise/extmod/add_route", "../supercollider/core/ext_mod_osc.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/extmod/add_route handler required"
+
+  - id: T030
+    name: osc_remove_route
+    requirement: R013
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "/noise/extmod/remove_route", "../supercollider/core/ext_mod_osc.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/extmod/remove_route handler required"
+
+  - id: T031
+    name: osc_clear_all
+    requirement: R013
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "/noise/extmod/clear_all", "../supercollider/core/ext_mod_osc.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "/noise/extmod/clear_all handler required"
+
+  # === Python OSC Paths ===
+  - id: T032
+    name: python_osc_add_route
+    requirement: R014
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "extmod_add_route", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "extmod_add_route must be in OSC_PATHS"
+
+  - id: T033
+    name: python_osc_remove_route
+    requirement: R014
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "extmod_remove_route", "../src/config/__init__.py"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "extmod_remove_route must be in OSC_PATHS"
+
+  # === Integration: init.scd ===
+  - id: T034
+    name: init_loads_mod_snapshot
+    requirement: R015
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "mod_snapshot.scd", "../supercollider/init.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "init.scd must load mod_snapshot.scd"
+
+  - id: T035
+    name: init_loads_ext_mod
+    requirement: R015
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "ext_mod.scd", "../supercollider/init.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "init.scd must load ext_mod.scd"
+
+  - id: T036
+    name: init_loads_ext_mod_osc
+    requirement: R015
+    type: unit
+    steps:
+      - action: shell
+        command: ["grep", "ext_mod_osc.scd", "../supercollider/init.scd"]
+        save_as: result
+    assert:
+      - op: eq
+        actual: $.result.ok
+        expected: true
+        message: "init.scd must load ext_mod_osc.scd"
+
+change_log:
+  - 1.0.0: Initial contract based on MOD_MATRIX_EXPANSION_SPEC_v1.6.1

@@ -147,6 +147,12 @@ s.waitForBoot({
     ~setupCrossModFollowers.();
     (~basePath +/+ "core/crossmod_osc.scd").load;
     ~setupCrossModOSC.();
+
+    // Load extended modulation system (mod matrix expansion)
+    (~basePath +/+ "core/mod_snapshot.scd").load;
+    ~setupModBusSnapshot.();
+    (~basePath +/+ "core/ext_mod.scd").load;
+    (~basePath +/+ "core/ext_mod_osc.scd").load;
     
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
