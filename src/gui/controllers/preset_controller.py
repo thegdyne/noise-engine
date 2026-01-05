@@ -1,0 +1,222 @@
+"""
+PresetController - Handles preset save/load/apply/init.
+
+Extracted from MainFrame as Phase 1 of the god-file refactor.
+Method names intentionally unchanged from MainFrame for wrapper compatibility.
+"""
+from __future__ import annotations
+
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtGui import QKeySequence
+from pathlib import Path
+
+from src.presets import (
+    PresetManager, PresetState, SlotState, MixerState, 
+    ChannelState, MasterState, ModSourcesState, FXState
+)
+from src.utils.logger import logger
+
+
+class PresetController:
+    """Handles preset save/load/apply/init operations."""
+    
+    def __init__(self, main_frame):
+        self.main = main_frame
+        self.preset_manager = PresetManager()
+    
+    def _setup_preset_menu(self):
+        """Create Preset menu in menu bar."""
+        menu_bar = self.main.menuBar()
+        preset_menu = menu_bar.addMenu("Preset")
+
+        save_action = preset_menu.addAction("Save", self._save_preset)
+        save_action.setShortcut(QKeySequence("Ctrl+S"))
+
+        save_as_action = preset_menu.addAction("Save As...", self._save_preset_as)
+        save_as_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+
+        preset_menu.addSeparator()
+
+        load_action = preset_menu.addAction("Load...", self._load_preset)
+        load_action.setShortcut(QKeySequence("Ctrl+O"))
+
+        preset_menu.addSeparator()
+
+        init_action = preset_menu.addAction("Init (New)", self._init_preset)
+        init_action.setShortcut(QKeySequence("Ctrl+N"))
+
+    def _save_preset(self):
+        """Save current state - dialog pre-fills with current preset name."""
+        if self.main._current_preset_name:
+            default_path = self.preset_manager.presets_dir / f"{self.main._current_preset_name}.json"
+        else:
+            current_name = self.main.preset_name.text()
+            default_path = self.preset_manager.presets_dir / f"{current_name}.json"
+
+        filepath, _ = QFileDialog.getSaveFileName(
+            self.main,
+            "Save Preset",
+            str(default_path),
+            "Preset Files (*.json)",
+        )
+
+        if filepath:
+            if not filepath.endswith('.json'):
+                filepath += '.json'
+            name = Path(filepath).stem
+            self._do_save_preset(name, Path(filepath))
+
+    def _save_preset_as(self):
+        """Save current state as new preset - dialog starts blank."""
+        filepath, _ = QFileDialog.getSaveFileName(
+            self.main,
+            "Save Preset As",
+            str(self.preset_manager.presets_dir),
+            "Preset Files (*.json)",
+        )
+
+        if filepath:
+            if not filepath.endswith('.json'):
+                filepath += '.json'
+            name = Path(filepath).stem
+            self._do_save_preset(name, Path(filepath))
+
+    def _do_save_preset(self, name: str, filepath):
+        """Internal: actually save the preset to the specified filepath."""
+        from src.config import get_current_pack
+        from src.presets.preset_schema import PRESET_VERSION
+        from datetime import datetime
+
+        slots = []
+        for slot_id in range(1, 9):
+            slot_widget = self.main.generator_grid.slots[slot_id]
+            slots.append(SlotState.from_dict(slot_widget.get_state()))
+
+        channels = []
+        for ch_id in range(1, 9):
+            ch_widget = self.main.mixer_panel.channels[ch_id]
+            channels.append(ChannelState.from_dict(ch_widget.get_state()))
+
+        mixer = MixerState(
+            channels=channels,
+            master_volume=self.main.master_section.get_volume(),
+        )
+
+        bpm = self.main.bpm_display.get_bpm()
+        master = MasterState.from_dict(self.main.master_section.get_state())
+        mod_sources = ModSourcesState.from_dict(self.main.modulator_grid.get_state())
+        mod_routing = self.main.mod_routing.to_dict()
+        fx = self.main.fx_window.get_state() if self.main.fx_window else FXState()
+        midi_mappings = self.main.cc_mapping_manager.to_dict()
+        current_pack = get_current_pack()
+
+        state = PresetState(
+            name=name,
+            pack=current_pack,
+            slots=slots,
+            mixer=mixer,
+            bpm=bpm,
+            master=master,
+            mod_sources=mod_sources,
+            mod_routing=mod_routing,
+            fx=fx,
+            midi_mappings=midi_mappings,
+        )
+        
+        state.version = PRESET_VERSION
+        state.created = datetime.now().isoformat()
+
+        try:
+            with open(filepath, "w") as f:
+                f.write(state.to_json(indent=2))
+            self.main.preset_name.setText(name)
+            logger.info(f"Preset saved: {filepath}", component="PRESET")
+            self.main._clear_dirty(name, filepath)
+        except Exception as e:
+            logger.error(f"Failed to save preset: {e}", component="PRESET")
+            QMessageBox.warning(self.main, "Error", f"Failed to save preset:\n{e}")
+
+    def _load_preset(self):
+        """Load preset from file."""
+        filepath, _ = QFileDialog.getOpenFileName(
+            self.main,
+            "Load Preset",
+            str(self.preset_manager.presets_dir),
+            "Preset Files (*.json)",
+        )
+
+        if filepath:
+            try:
+                filepath = Path(filepath)
+                state = self.preset_manager.load(filepath)
+                self._apply_preset(state)
+                self.main.preset_name.setText(state.name)
+                logger.info(f"Preset loaded: {state.name}", component="PRESET")
+                self.main._clear_dirty(state.name, filepath)
+            except Exception as e:
+                logger.error(f"Failed to load preset: {e}", component="PRESET")
+                QMessageBox.warning(self.main, "Error", f"Failed to load preset:\n{e}")
+
+    def _apply_preset(self, state: PresetState):
+        """Apply preset state to all components."""
+        if state.pack is not None:
+            if not self.main.pack_selector.set_pack(state.pack):
+                logger.warning(f"Pack '{state.pack}' not found, using Core", component="PRESET")
+        
+        for i, slot_state in enumerate(state.slots):
+            slot_id = i + 1
+            if slot_id <= 8:
+                slot_widget = self.main.generator_grid.slots[slot_id]
+                slot_widget.set_state(slot_state.to_dict())
+
+        for i, channel_state in enumerate(state.mixer.channels):
+            ch_id = i + 1
+            if ch_id in self.main.mixer_panel.channels:
+                self.main.mixer_panel.channels[ch_id].set_state(channel_state.to_dict())
+
+        self.main.master_section.set_volume(state.mixer.master_volume)
+        
+        if state.bpm != 120:
+            self.main.bpm_display.set_bpm(state.bpm)
+            self.main.on_bpm_changed(state.bpm)
+        
+        if state.version >= 2 and hasattr(state, 'master'):
+            self.main.master_section.set_state(state.master.to_dict())
+        
+        if state.version >= 2:
+            self.main.modulator_grid.set_state(state.mod_sources.to_dict())
+            self.main._sync_mod_sources()
+
+        if state.mod_routing.get("connections"):
+            self.main.mod_routing.from_dict(state.mod_routing)
+            if self.main.mod_matrix_window:
+                self.main.mod_matrix_window.sync_from_state()
+        
+        if self.main.fx_window:
+            self.main.fx_window.set_state(state.fx)
+
+        if state.midi_mappings:
+            for controls in self.main.cc_mapping_manager.get_all_mappings().values():
+                for control in controls:
+                    if hasattr(control, 'set_midi_mapped'):
+                        control.set_midi_mapped(False)
+            self.main.cc_mapping_manager.from_dict(state.midi_mappings, self.main._find_control_by_name)
+            self.main._update_midi_status()
+            self.main._show_toast("MIDI mappings loaded from preset")
+
+    def _init_preset(self):
+        """Reset to default empty state (Cmd+N / Ctrl+N)."""
+        state = PresetState()
+        self._apply_preset(state)
+        self.main.mod_routing.clear()
+
+        if self.main.mod_matrix_window:
+            self.main.mod_matrix_window.sync_from_state()
+
+        if self.main.fx_window:
+            self.main.fx_window.set_state(FXState())
+
+        self.main.pack_selector.set_pack("")
+        self.main.preset_name.setText("Init")
+        self.main._clear_dirty("Init", None)
+        logger.info("Preset initialized to defaults", component="PRESET")

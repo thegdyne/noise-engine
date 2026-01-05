@@ -36,9 +36,9 @@ from src.config import (
     BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
 )
 from src.utils.logger import logger
-from src.presets import PresetManager, PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
+from src.presets import PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
 from src.midi import MidiCCMappingManager, MidiCCLearnManager
-
+from src.gui.controllers.preset_controller import PresetController
 
 class MainFrame(QMainWindow):
     """Main application window."""
@@ -64,8 +64,9 @@ class MainFrame(QMainWindow):
         self._cc_timer.timeout.connect(self._process_pending_cc)
         self._cc_timer.start(16)  # ~60Hz
 
-        # Preset menu
-        self._setup_preset_menu()
+        # Preset controller (pre-UI - handles menu setup)
+        self.preset = PresetController(self)
+        self.preset._setup_preset_menu()
 
         # MIDI menu
         self._setup_midi_menu()
@@ -86,9 +87,6 @@ class MainFrame(QMainWindow):
         self.active_effects = {}
 
         self.master_bpm = BPM_DEFAULT
-
-        # Preset manager
-        self.preset_manager = PresetManager()
 
         # Mod routing state
         self.mod_routing = ModRoutingState()
@@ -1853,243 +1851,26 @@ class MainFrame(QMainWindow):
         self.midi_mode_btn.setStyleSheet(self._midi_mode_btn_style(False))
         logger.info("MIDI mode cancelled (manual change)", component="APP")
 
-    # === Preset Save/Load ===
+    # ── Preset Controller Wrappers ──────────────────────────────────────
+    # Method bodies moved to PresetController (Phase 1 refactor)
 
     def _save_preset(self):
-        """Save current state - dialog pre-fills with current preset name."""
-        from PyQt5.QtWidgets import QFileDialog
-        from pathlib import Path
-
-        # Pre-fill with current preset name
-        if self._current_preset_name:
-            default_path = self.preset_manager.presets_dir / f"{self._current_preset_name}.json"
-        else:
-            # Fallback to what's shown in the UI
-            current_name = self.preset_name.text()
-            default_path = self.preset_manager.presets_dir / f"{current_name}.json"
-
-        filepath, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Preset",
-            str(default_path),
-            "Preset Files (*.json)",
-        )
-
-        if filepath:
-            if not filepath.endswith('.json'):
-                filepath += '.json'
-            name = Path(filepath).stem
-            self._do_save_preset(name, Path(filepath))
+        return self.preset._save_preset()
 
     def _save_preset_as(self):
-        """Save current state as new preset - dialog starts blank."""
-        from PyQt5.QtWidgets import QFileDialog
-        from pathlib import Path
-
-        # Always start with just the directory (no pre-filled name)
-        filepath, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Preset As",
-            str(self.preset_manager.presets_dir),
-            "Preset Files (*.json)",
-        )
-
-        if filepath:
-            if not filepath.endswith('.json'):
-                filepath += '.json'
-            name = Path(filepath).stem
-            self._do_save_preset(name, Path(filepath))
+        return self.preset._save_preset_as()
 
     def _do_save_preset(self, name: str, filepath):
-        """Internal: actually save the preset to the specified filepath."""
-        from PyQt5.QtWidgets import QMessageBox
-        from src.config import get_current_pack
-        from src.presets.preset_schema import PRESET_VERSION
-        from datetime import datetime
-
-        # Collect generator slot states
-        slots = []
-        for slot_id in range(1, 9):
-            slot_widget = self.generator_grid.slots[slot_id]
-            slots.append(SlotState.from_dict(slot_widget.get_state()))
-
-        # Collect mixer channel states
-        channels = []
-        for ch_id in range(1, 9):
-            ch_widget = self.mixer_panel.channels[ch_id]
-            channels.append(ChannelState.from_dict(ch_widget.get_state()))
-
-        mixer = MixerState(
-            channels=channels,
-            master_volume=self.master_section.get_volume(),
-        )
-
-        # Phase 2: BPM and master section
-        bpm = self.bpm_display.get_bpm()
-        master = MasterState.from_dict(self.master_section.get_state())
-        
-        # Phase 3: Mod sources
-        mod_sources = ModSourcesState.from_dict(self.modulator_grid.get_state())
-        
-        # Phase 4: Mod routing
-        mod_routing = self.mod_routing.to_dict()
-        
-        # Phase 5: FX state
-        fx = self.fx_window.get_state() if self.fx_window else FXState()
-
-        # Phase 6: MIDI mappings
-        midi_mappings = self.cc_mapping_manager.to_dict()
-        
-        # Get current pack
-        current_pack = get_current_pack()
-
-        state = PresetState(
-            name=name,
-            pack=current_pack,
-            slots=slots,
-            mixer=mixer,
-            bpm=bpm,
-            master=master,
-            mod_sources=mod_sources,
-            mod_routing=mod_routing,
-            fx=fx,
-            midi_mappings=midi_mappings,
-        )
-        
-        # Set metadata
-        state.version = PRESET_VERSION
-        state.created = datetime.now().isoformat()
-
-        try:
-            # Write directly to the user-chosen filepath
-            with open(filepath, "w") as f:
-                f.write(state.to_json(indent=2))
-            self.preset_name.setText(name)
-            logger.info(f"Preset saved: {filepath}", component="PRESET")
-            self._clear_dirty(name, filepath)
-        except Exception as e:
-            logger.error(f"Failed to save preset: {e}", component="PRESET")
-            QMessageBox.warning(self, "Error", f"Failed to save preset:\n{e}")
+        return self.preset._do_save_preset(name, filepath)
 
     def _load_preset(self):
-        """Load preset from file."""
-        from PyQt5.QtWidgets import QFileDialog, QMessageBox
-        from pathlib import Path
+        return self.preset._load_preset()
 
-        filepath, _ = QFileDialog.getOpenFileName(
-            self,
-            "Load Preset",
-            str(self.preset_manager.presets_dir),
-            "Preset Files (*.json)",
-        )
-
-        if filepath:
-            try:
-                filepath = Path(filepath)
-                state = self.preset_manager.load(filepath)
-                self._apply_preset(state)
-                self.preset_name.setText(state.name)
-                logger.info(f"Preset loaded: {state.name}", component="PRESET")
-                self._clear_dirty(state.name, filepath)
-            except Exception as e:
-                logger.error(f"Failed to load preset: {e}", component="PRESET")
-                QMessageBox.warning(self, "Error", f"Failed to load preset:\n{e}")
-
-    def _apply_preset(self, state: PresetState):
-        """Apply preset state to all components."""
-        # Handle pack switching FIRST (before loading slots)
-        if state.pack is not None:
-            # Preset specifies a pack - switch to it
-            if not self.pack_selector.set_pack(state.pack):
-                logger.warning(f"Pack '{state.pack}' not found, using Core", component="PRESET")
-        else:
-            # Preset is for Core (or old preset without pack field)
-            # Don't auto-switch to Core - leave current pack as is for backward compat
-            pass
-        
-        # Apply to generator slots
-        for i, slot_state in enumerate(state.slots):
-            slot_id = i + 1
-            if slot_id <= 8:
-                slot_widget = self.generator_grid.slots[slot_id]
-                slot_widget.set_state(slot_state.to_dict())
-
-        # Apply to mixer channels
-        for i, channel_state in enumerate(state.mixer.channels):
-            ch_id = i + 1
-            if ch_id in self.mixer_panel.channels:
-                self.mixer_panel.channels[ch_id].set_state(channel_state.to_dict())
-
-        # Apply master volume (legacy field)
-        self.master_section.set_volume(state.mixer.master_volume)
-        
-        # Phase 2: BPM (only if preset had bpm saved)
-        if state.bpm != 120:  # Non-default means it was explicitly saved
-            self.bpm_display.set_bpm(state.bpm)
-            self.on_bpm_changed(state.bpm)  # Send to SC
-        
-        # Phase 2: Master section (only if preset version >= 2)
-        if state.version >= 2 and hasattr(state, 'master'):
-            self.master_section.set_state(state.master.to_dict())
-        
-        # Phase 3: Mod sources
-        if state.version >= 2:
-            self.modulator_grid.set_state(state.mod_sources.to_dict())
-            # Force full sync to SC (recreates synths with fresh init)
-            self._sync_mod_sources()
-
-        # Phase 4: Mod routing (only if has connections)
-        if state.mod_routing.get("connections"):
-            self.mod_routing.from_dict(state.mod_routing)
-            # Update mod matrix window if open
-            if self.mod_matrix_window:
-                self.mod_matrix_window.sync_from_state()
-        
-        # Phase 5: FX state
-        if self.fx_window:
-            self.fx_window.set_state(state.fx)
-
-        # Phase 6: MIDI mappings (if preset contains them)
-        if state.midi_mappings:
-            # Clear existing visual badges
-            for controls in self.cc_mapping_manager.get_all_mappings().values():
-                for control in controls:
-                    if hasattr(control, 'set_midi_mapped'):
-                        control.set_midi_mapped(False)
-            # Load new mappings
-            self.cc_mapping_manager.from_dict(state.midi_mappings, self._find_control_by_name)
-            self._update_midi_status()
-            self._show_toast("MIDI mappings loaded from preset")
+    def _apply_preset(self, state):
+        return self.preset._apply_preset(state)
 
     def _init_preset(self):
-        """Reset to default empty state (Cmd+N / Ctrl+N)."""
-        # Create fresh default state
-        state = PresetState()
-
-        # Apply to all components
-        self._apply_preset(state)
-
-        # Clear mod routing
-        self.mod_routing.clear()
-
-        # Update mod matrix window if open
-        if self.mod_matrix_window:
-            self.mod_matrix_window.sync_from_state()
-
-        # Reset FX to defaults
-        if self.fx_window:
-            self.fx_window.set_state(FXState())
-
-        # Reset pack selector to Core (empty string = Core)
-        self.pack_selector.set_pack("")
-
-        # Update preset name display
-        self.preset_name.setText("Init")
-
-        # Clear dirty flag and path (Init is not a saved preset)
-        self._clear_dirty("Init", None)
-
-        logger.info("Preset initialized to defaults", component="PRESET")
+        return self.preset._init_preset()
 
     # Keyboard Mode
 
@@ -2411,27 +2192,6 @@ class MainFrame(QMainWindow):
         self._current_midi_mapping_path = None
         logger.info("Cleared all MIDI mappings", component="MIDI")
         self._update_midi_status()
-
-    def _setup_preset_menu(self):
-        """Create Preset menu in menu bar."""
-        menu_bar = self.menuBar()
-        preset_menu = menu_bar.addMenu("Preset")
-
-        save_action = preset_menu.addAction("Save", self._save_preset)
-        save_action.setShortcut(QKeySequence("Ctrl+S"))
-
-        save_as_action = preset_menu.addAction("Save As...", self._save_preset_as)
-        save_as_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
-
-        preset_menu.addSeparator()
-
-        load_action = preset_menu.addAction("Load...", self._load_preset)
-        load_action.setShortcut(QKeySequence("Ctrl+O"))
-
-        preset_menu.addSeparator()
-
-        init_action = preset_menu.addAction("Init (New)", self._init_preset)
-        init_action.setShortcut(QKeySequence("Ctrl+N"))
 
     def _setup_midi_menu(self):
         """Create MIDI menu in menu bar."""
