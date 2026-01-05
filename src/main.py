@@ -24,7 +24,7 @@ def cleanup_sc():
         from src.audio.osc_bridge import osc_bridge
         if osc_bridge:
             osc_bridge.stop()
-    except Exception:
+    except Exception:  # Expected during shutdown - OSC may already be gone
         pass
 
     # Fade master volume
@@ -33,7 +33,7 @@ def cleanup_sc():
         client = udp_client.SimpleUDPClient("127.0.0.1", 57120)
         client.send_message("/ne/master/volume", 0.0)
         time.sleep(0.15)
-    except Exception:
+    except Exception:  # Expected during shutdown - SC may not be running
         pass
 
     subprocess.run(['pkill', '-9', 'sclang'], capture_output=True)

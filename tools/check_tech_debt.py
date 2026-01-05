@@ -55,6 +55,9 @@ SKIP_FILES = ['__pycache__']
 # These are intentional patterns that look like issues but aren't
 ALLOWLIST = [
     ('logger.py', 56, 'exception_no_binding'),  # Uses self.handleError() - standard logging pattern
+    ('main.py', 27, 'exception_no_binding'),  # Cleanup - OSC may already be gone
+    ('main.py', 36, 'exception_no_binding'),  # Cleanup - SC may not be running
+    ('main_frame.py', 664, 'exception_no_binding'),  # Startup check - file may not exist
 ]
 
 

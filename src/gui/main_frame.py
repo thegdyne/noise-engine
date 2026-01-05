@@ -661,7 +661,7 @@ class MainFrame(QMainWindow):
                     with open(ready_path) as f:
                         data = _json.load(f)
                     return data.get("status") == "ready"
-        except Exception:
+        except Exception:  # Ready file may not exist or be corrupt - that's fine
             pass
         return False
 
