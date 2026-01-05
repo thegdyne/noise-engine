@@ -45,17 +45,17 @@ class ConnectionController:
         """Connect/disconnect to SuperCollider."""
         if not self.main.osc_connected:
             # Connect signals before connecting
-            self.main.osc.gate_triggered.connect(self.main.on_gate_trigger)
-            self.main.osc.levels_received.connect(self.main.on_levels_received)
-            self.main.osc.channel_levels_received.connect(self.main.on_channel_levels_received)
-            self.main.osc.connection_lost.connect(self.main.on_connection_lost)
-            self.main.osc.connection_restored.connect(self.main.on_connection_restored)
-            self.main.osc.audio_devices_received.connect(self.main.on_audio_devices_received)
-            self.main.osc.audio_device_changing.connect(self.main.on_audio_device_changing)
-            self.main.osc.audio_device_ready.connect(self.main.on_audio_device_ready)
-            self.main.osc.comp_gr_received.connect(self.main.on_comp_gr_received)
-            self.main.osc.mod_bus_value_received.connect(self.main.on_mod_bus_value)
-            self.main.osc.mod_values_received.connect(self.main.on_mod_values_received)
+            self.main.osc.gate_triggered.connect(self.main.generator.on_gate_trigger)
+            self.main.osc.levels_received.connect(self.main.master.on_levels_received)
+            self.main.osc.channel_levels_received.connect(self.main.master.on_channel_levels_received)
+            self.main.osc.connection_lost.connect(self.on_connection_lost)
+            self.main.osc.connection_restored.connect(self.on_connection_restored)
+            self.main.osc.audio_devices_received.connect(self.main.master.on_audio_devices_received)
+            self.main.osc.audio_device_changing.connect(self.main.master.on_audio_device_changing)
+            self.main.osc.audio_device_ready.connect(self.main.master.on_audio_device_ready)
+            self.main.osc.comp_gr_received.connect(self.main.master.on_comp_gr_received)
+            self.main.osc.mod_bus_value_received.connect(self.main.modulation.on_mod_bus_value)
+            self.main.osc.mod_values_received.connect(self.main.modulation.on_mod_values_received)
             
             if self.main.osc.connect():
                 self.main.osc_connected = True
@@ -82,30 +82,32 @@ class ConnectionController:
                 
                 # Send current MIDI device if one is selected
                 current_midi = self.main.midi_selector.get_current_device()
+                logger.info(f"MIDI device at connect: {current_midi!r}", component="OSC")
                 if current_midi:
                     port_index = self.main.midi_selector.get_port_index(current_midi)
+                    logger.info(f"MIDI port index: {port_index}", component="OSC")
                     if port_index >= 0:
                         self.main.osc.client.send_message(OSC_PATHS['midi_device'], [port_index])
                 
                 # Send initial mod source state
-                self.main._sync_mod_sources()
+                self.main.modulation._sync_mod_sources()
             else:
                 self.main.status_label.setText("Connection Failed")
                 self.main.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         else:
             try:
                 # Disconnect all signals connected in toggle_connection
-                self.main.osc.gate_triggered.disconnect(self.main.on_gate_trigger)
-                self.main.osc.levels_received.disconnect(self.main.on_levels_received)
-                self.main.osc.channel_levels_received.disconnect(self.main.on_channel_levels_received)
-                self.main.osc.connection_lost.disconnect(self.main.on_connection_lost)
-                self.main.osc.connection_restored.disconnect(self.main.on_connection_restored)
-                self.main.osc.audio_devices_received.disconnect(self.main.on_audio_devices_received)
-                self.main.osc.audio_device_changing.disconnect(self.main.on_audio_device_changing)
-                self.main.osc.audio_device_ready.disconnect(self.main.on_audio_device_ready)
-                self.main.osc.comp_gr_received.disconnect(self.main.on_comp_gr_received)
-                self.main.osc.mod_bus_value_received.disconnect(self.main.on_mod_bus_value)
-                self.main.osc.mod_values_received.disconnect(self.main.on_mod_values_received)
+                self.main.osc.gate_triggered.disconnect(self.main.generator.on_gate_trigger)
+                self.main.osc.levels_received.disconnect(self.main.master.on_levels_received)
+                self.main.osc.channel_levels_received.disconnect(self.main.master.on_channel_levels_received)
+                self.main.osc.connection_lost.disconnect(self.on_connection_lost)
+                self.main.osc.connection_restored.disconnect(self.on_connection_restored)
+                self.main.osc.audio_devices_received.disconnect(self.main.master.on_audio_devices_received)
+                self.main.osc.audio_device_changing.disconnect(self.main.master.on_audio_device_changing)
+                self.main.osc.audio_device_ready.disconnect(self.main.master.on_audio_device_ready)
+                self.main.osc.comp_gr_received.disconnect(self.main.master.on_comp_gr_received)
+                self.main.osc.mod_bus_value_received.disconnect(self.main.modulation.on_mod_bus_value)
+                self.main.osc.mod_values_received.disconnect(self.main.modulation.on_mod_values_received)
             except TypeError:
                 pass  # Signals weren't connected
             self.main.osc.disconnect()

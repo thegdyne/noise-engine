@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.QtGui import QKeySequence
 from pathlib import Path
 
+from src.config import OSC_PATHS
 from src.presets import (
     PresetManager, PresetState, SlotState, MixerState, 
     ChannelState, MasterState, ModSourcesState, FXState
@@ -185,7 +186,7 @@ class PresetController:
         
         if state.version >= 2:
             self.main.modulator_grid.set_state(state.mod_sources.to_dict())
-            self.main._sync_mod_sources()
+            self.main.modulation._sync_mod_sources()
 
         if state.mod_routing.get("connections"):
             self.main.mod_routing.from_dict(state.mod_routing)
@@ -200,9 +201,18 @@ class PresetController:
                 for control in controls:
                     if hasattr(control, 'set_midi_mapped'):
                         control.set_midi_mapped(False)
-            self.main.cc_mapping_manager.from_dict(state.midi_mappings, self.main._find_control_by_name)
-            self.main._update_midi_status()
+            self.main.cc_mapping_manager.from_dict(state.midi_mappings, self.main.midi_cc._find_control_by_name)
+            self.main.midi_cc._update_midi_status()
             self.main._show_toast("MIDI mappings loaded from preset")
+
+        # Resend MIDI device to SC after preset load
+        if self.main.osc_connected:
+            current_midi = self.main.midi_selector.get_current_device()
+            if current_midi:
+                port_index = self.main.midi_selector.get_port_index(current_midi)
+                if port_index >= 0:
+                    self.main.osc.client.send_message(OSC_PATHS["midi_device"], [port_index])
+                    logger.debug(f"Resent MIDI device: {current_midi} (port {port_index})", component="PRESET")
 
     def _init_preset(self):
         """Reset to default empty state (Cmd+N / Ctrl+N)."""
