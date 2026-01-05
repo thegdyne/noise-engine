@@ -37,12 +37,12 @@ from src.config import (
 )
 from src.utils.logger import logger
 from src.presets import PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
-from src.midi import MidiCCMappingManager, MidiCCLearnManager
 from src.gui.controllers.preset_controller import PresetController
+from src.gui.controllers.midi_cc_controller import MidiCCController
 
 class MainFrame(QMainWindow):
     """Main application window."""
-    
+
     def __init__(self):
         super().__init__()
         
@@ -54,30 +54,21 @@ class MainFrame(QMainWindow):
         
         self.osc = OSCBridge()
 
-        # MIDI CC mapping (Phase 1+2)
-        self.cc_mapping_manager = MidiCCMappingManager()
-        self.cc_learn_manager = MidiCCLearnManager(self.cc_mapping_manager)
-
-        # MIDI CC flood control (~60Hz update rate)
-        self._pending_cc = {}  # (channel, cc) -> value
-        self._cc_timer = QTimer(self)
-        self._cc_timer.timeout.connect(self._process_pending_cc)
-        self._cc_timer.start(16)  # ~60Hz
-
         # Preset controller (pre-UI - handles menu setup)
         self.preset = PresetController(self)
         self.preset._setup_preset_menu()
 
-        # MIDI menu
-        self._setup_midi_menu()
+        # MIDI CC controller (pre-UI - handles menu setup)
+        self.midi_cc = MidiCCController(self)
+        self.midi_cc._setup_midi_menu()
 
-        # Connect MIDI CC signal from OSC
+        # Connect MIDI CC signal from OSC (wrapper forwards to controller)
         self.osc.midi_cc_received.connect(self._on_midi_cc)
 
-        # Connect learn manager signals for visual feedback
-        self.cc_learn_manager.learn_started.connect(self._on_learn_started)
-        self.cc_learn_manager.learn_completed.connect(self._on_learn_completed)
-        self.cc_learn_manager.learn_cancelled.connect(self._on_learn_cancelled)
+        # Connect learn manager signals for visual feedback (wrappers forward to controller)
+        self.midi_cc.cc_learn_manager.learn_started.connect(self._on_learn_started)
+        self.midi_cc.cc_learn_manager.learn_completed.connect(self._on_learn_completed)
+        self.midi_cc.cc_learn_manager.learn_cancelled.connect(self._on_learn_cancelled)
 
         self.osc_connected = False
         self._auto_connect_tried = False
@@ -116,11 +107,6 @@ class MainFrame(QMainWindow):
         self._current_preset_name = None
         self._current_preset_path = None  # Full path to loaded/saved preset
         
-        # MIDI mapping tracking
-        self._current_midi_mapping_name = None
-        self._current_midi_mapping_path = None
-
-
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
         
@@ -1987,233 +1973,52 @@ class MainFrame(QMainWindow):
         # Accept the close event
         event.accept()
 
-    # ─────────────────────────────────────────────────────────────
-    # MIDI CC Handling (Phase 2)
-    # ─────────────────────────────────────────────────────────────
+    # ── MIDI CC Controller Wrappers ─────────────────────────────────────
+    # Method bodies moved to MidiCCController (Phase 2 refactor)
 
     def _on_midi_cc(self, channel, cc, value):
-        """Handle MIDI CC from OSC bridge."""
-        # If learning, handle immediately (don't buffer)
-        if self.cc_learn_manager.is_learning():
-            self.cc_learn_manager.on_cc_received(channel, cc, value)
-        else:
-            # Buffer all CCs - process in timer
-            self._pending_cc[(channel, cc)] = value
+        return self.midi_cc._on_midi_cc(channel, cc, value)
 
     def _process_pending_cc(self):
-        """Process buffered CC updates (~60Hz)."""
-        if not self._pending_cc:
-            return
-
-        pending = dict(self._pending_cc)
-        self._pending_cc.clear()
-
-        for (channel, cc), value in pending.items():
-            controls = self.cc_mapping_manager.get_controls(channel, cc)
-            for control in controls:
-                self._apply_cc_to_control(control, channel, cc, value)
+        return self.midi_cc._process_pending_cc()
 
     def _apply_cc_to_control(self, control, channel, cc, value):
-        """Apply CC value to a control with pickup mode."""
-        # Handle buttons
-        if hasattr(control, 'handle_cc'):
-            should_activate = control.handle_cc(value)
-            if should_activate:
-                if hasattr(control, 'cycle_forward'):
-                    control.cycle_forward()
-                else:
-                    control.click()
-            return
-
-        # Handle sliders/knobs
-        if not hasattr(control, 'minimum') or not hasattr(control, 'maximum'):
-            return
-
-        min_val = control.minimum()
-        max_val = control.maximum()
-        param_range = max_val - min_val
-
-        # Scale CC 0-127 to control range
-        cc_scaled = min_val + (value / 127.0) * param_range
-
-        # Pickup threshold: 3 CC steps for easier catching
-        eps = (param_range / 127.0) * 3
-
-        # Get current caught state
-        is_caught = self.cc_mapping_manager.is_caught(channel, cc, control)
-
-        if not is_caught:
-            # Check if CC catches current value
-            current_val = control.value()
-            if abs(cc_scaled - current_val) <= eps:
-                # Caught! Start controlling
-                self.cc_mapping_manager.set_caught(channel, cc, control, True)
-                control.setValue(int(cc_scaled))
-                # Clear ghost
-                if hasattr(control, 'set_cc_ghost'):
-                    control.set_cc_ghost(None)
-            else:
-                # Not caught - show ghost indicator
-                if hasattr(control, 'set_cc_ghost'):
-                    ghost_norm = value / 127.0
-                    control.set_cc_ghost(ghost_norm)
-        else:
-            # Already caught - apply value directly
-            control.setValue(int(cc_scaled))
+        return self.midi_cc._apply_cc_to_control(control, channel, cc, value)
 
     def _on_learn_started(self, control):
-        """Visual feedback when MIDI Learn starts."""
-        if hasattr(control, 'set_midi_armed'):
-            control.set_midi_armed(True)
-        logger.info(f"MIDI Learn armed: {control.objectName()}", component="MIDI")
+        return self.midi_cc._on_learn_started(control)
 
     def _on_learn_completed(self, channel, cc, control):
-        """Visual feedback when MIDI Learn completes."""
-        if hasattr(control, 'set_midi_armed'):
-            control.set_midi_armed(False)
-        if hasattr(control, 'set_midi_mapped'):
-            control.set_midi_mapped(True)
-
-        # Check for duplicate mappings
-        existing = self.cc_mapping_manager.get_controls(channel, cc)
-        other_controls = [c for c in existing if c != control]
-        if other_controls:
-            names = [c.objectName() for c in other_controls if c.objectName()]
-            if names:
-                self._show_toast(f"CC{cc} also mapped to: {', '.join(names)}")
-
-        logger.info(f"MIDI mapped: Ch{channel} CC{cc} -> {control.objectName()}", component="MIDI")
-        self._update_midi_status()
+        return self.midi_cc._on_learn_completed(channel, cc, control)
 
     def _on_learn_cancelled(self, control):
-        """Visual feedback when MIDI Learn cancelled."""
-        if control and hasattr(control, 'set_midi_armed'):
-            control.set_midi_armed(False)
-        logger.info("MIDI Learn cancelled", component="MIDI")
+        return self.midi_cc._on_learn_cancelled(control)
 
     def _find_control_by_name(self, name):
-        """Find a control widget by objectName."""
-        return self.findChild(QWidget, name)
+        return self.midi_cc._find_control_by_name(name)
 
     def save_midi_mappings(self):
-        """Save MIDI mappings - dialog pre-fills with current name."""
-        from PyQt5.QtWidgets import QFileDialog
-        import json
-        import os
-        from pathlib import Path
-
-        data = self.cc_mapping_manager.to_dict()
-        if not data:
-            logger.info("No MIDI mappings to save", component="MIDI")
-            return
-
-        # Default to midi_mappings folder
-        midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
-        os.makedirs(midi_dir, exist_ok=True)
-
-        # Pre-fill with current mapping name if we have one
-        if self._current_midi_mapping_name:
-            default_path = os.path.join(midi_dir, f"{self._current_midi_mapping_name}.json")
-        else:
-            default_path = midi_dir
-
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Save MIDI Mappings", default_path, "JSON Files (*.json)"
-        )
-        if path:
-            if not path.endswith('.json'):
-                path += '.json'
-            with open(path, 'w') as f:
-                json.dump(data, f, indent=2)
-            self._current_midi_mapping_name = Path(path).stem
-            self._current_midi_mapping_path = path
-            logger.info(f"Saved MIDI mappings to {path}", component="MIDI")
+        return self.midi_cc.save_midi_mappings()
 
     def save_midi_mappings_as(self):
-        """Save MIDI mappings as new file - dialog starts blank."""
-        from PyQt5.QtWidgets import QFileDialog
-        import json
-        import os
-        from pathlib import Path
-
-        data = self.cc_mapping_manager.to_dict()
-        if not data:
-            logger.info("No MIDI mappings to save", component="MIDI")
-            return
-
-        # Default to midi_mappings folder (no pre-filled name)
-        midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
-        os.makedirs(midi_dir, exist_ok=True)
-
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Save MIDI Mappings As", midi_dir, "JSON Files (*.json)"
-        )
-        if path:
-            if not path.endswith('.json'):
-                path += '.json'
-            with open(path, 'w') as f:
-                json.dump(data, f, indent=2)
-            self._current_midi_mapping_name = Path(path).stem
-            self._current_midi_mapping_path = path
-            logger.info(f"Saved MIDI mappings to {path}", component="MIDI")
+        return self.midi_cc.save_midi_mappings_as()
 
     def load_midi_mappings(self):
-        """Load MIDI mappings from file."""
-        from PyQt5.QtWidgets import QFileDialog
-        import json
-        import os
-        from pathlib import Path
-
-        # Default to midi_mappings folder
-        midi_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'midi_mappings')
-        os.makedirs(midi_dir, exist_ok=True)
-
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Load MIDI Mappings", midi_dir, "JSON Files (*.json)"
-        )
-        if path:
-            with open(path, 'r') as f:
-                data = json.load(f)
-            self.cc_mapping_manager.from_dict(data, self._find_control_by_name)
-            self._current_midi_mapping_name = Path(path).stem
-            self._current_midi_mapping_path = path
-            logger.info(f"Loaded MIDI mappings from {path}", component="MIDI")
-        self._update_midi_status()
+        return self.midi_cc.load_midi_mappings()
 
     def clear_all_midi_mappings(self):
-        """Clear all MIDI mappings."""
-        # Clear visual badges first
-        for controls in self.cc_mapping_manager.get_all_mappings().values():
-            for control in controls:
-                if hasattr(control, 'set_midi_mapped'):
-                    control.set_midi_mapped(False)
-        self.cc_mapping_manager.clear_all()
-        self._current_midi_mapping_name = None
-        self._current_midi_mapping_path = None
-        logger.info("Cleared all MIDI mappings", component="MIDI")
-        self._update_midi_status()
+        return self.midi_cc.clear_all_midi_mappings()
 
     def _setup_midi_menu(self):
-        """Create MIDI menu in menu bar."""
-        menu_bar = self.menuBar()
-        midi_menu = menu_bar.addMenu("MIDI")
-
-        midi_menu.addAction("Save Mappings", self.save_midi_mappings)
-        midi_menu.addAction("Save Mappings As...", self.save_midi_mappings_as)
-        midi_menu.addSeparator()
-        midi_menu.addAction("Load Mappings...", self.load_midi_mappings)
-        midi_menu.addSeparator()
-        midi_menu.addAction("Clear All Mappings", self.clear_all_midi_mappings)
+        return self.midi_cc._setup_midi_menu()
 
     def _update_midi_status(self):
-        """Update MIDI status label with mapping count."""
-        count = len(self.cc_mapping_manager.to_dict())
-        if count == 0:
-            self.midi_status_label.setText("MIDI: Ready")
-            self.midi_status_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        else:
-            self.midi_status_label.setText(f"MIDI: {count} mapped")
-            self.midi_status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
+        return self.midi_cc._update_midi_status()
+
+    @property
+    def cc_mapping_manager(self):
+        """Compatibility property - cc_mapping_manager now lives in MidiCCController."""
+        return self.midi_cc.cc_mapping_manager
 
     def _show_toast(self, message, duration=3000):
         """Show brief toast notification."""
@@ -2233,3 +2038,4 @@ class MainFrame(QMainWindow):
         toast.show()
 
         QTimer.singleShot(duration, toast.deleteLater)
+
