@@ -7,6 +7,10 @@ Phase B additions:
 - Hub impulses: overshoot events feed into hub velocity
 - tanh smoothing: soft saturation instead of hard clip for hubBias
 
+Global overrides (for mod matrix P1-P4):
+- globalTension: when >= 0, overrides all tension1/2/3/4
+- globalPolarity: when >= 0, overrides all polarity1/2/3/4
+
 Reference: docs/SAUCE_OF_GRAV_SPEC_v1_4_3.md
 */
 
@@ -22,6 +26,8 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	    tension1 = 0.5, tension2 = 0.5, tension3 = 0.5, tension4 = 0.5,
 	    mass1 = 0.5, mass2 = 0.5, mass3 = 0.5, mass4 = 0.5,
 	    polarity1 = 0, polarity2 = 0, polarity3 = 0, polarity4 = 0,
+	    globalTension = -1,            // P2: when >= 0, overrides all tension params
+	    globalPolarity = -1,           // P4: when >= 0, overrides all polarity params
 	    clockTrigBus = 0,
 	    clockIndex = 12,
 	    bpmBus = 0;
@@ -29,10 +35,14 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	// === CONSTANTS (v1.4.3) ===
 	var dt = ControlDur.ir;
 
-	// Rate (refresh events)
-	var rateDeadband = 0.05;
-	var freeRateMin = 0.001;
-	var freeRateMax = 100.0;
+	// Rate (time-scale multiplier, NOT refresh Hz)
+	var rateMinMul   = 0.001;   // rate=0 -> dtStep = dt * 0.001  (slow but alive)
+	var rateCurveExp = 0.2;     // <1 lifts the low end so 0.1 is usable
+	var dtStepMaxMul = 0.95;    // safety cap: dtStep <= dt * 0.95
+
+	// Clock scaling
+	var bpmRef       = 120.0;   // 120 bpm == 1.0x
+	var bpmMaxMul    = 4.0;     // cap tempo influence
 
 	// Mass
 	var massBase = 0.25;
@@ -131,7 +141,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 
 	var didInit;
 	var clk, atrig, trig, clockRunning, clkGate;
-	var bpm, rateClamped, rateActive, baseHz, clkMult, refreshHz, refreshTrig, refreshPulse, fadeFactor;
+	var bpm, rateClamped, rateActive, baseHz, clkMult, refreshHz, fadeFactor;
 	var railAbsorbEff, railZoneEff;
 
 	// Phase B: Overshoot working variables
@@ -144,10 +154,32 @@ SynthDef(\ne_mod_sauce_of_grav, {
     var excHubMul;
     var noiseRateEff, lowRateBoost;
 
+	// Global override variables
+	var gTens, gPol;
+	var effTens1, effTens2, effTens3, effTens4;
+	var effPol1, effPol2, effPol3, effPol4;
+	var dtStep, cr;
+
+	// Global override values (clipped)
+	gTens = globalTension.clip(0, 1);
+	gPol = globalPolarity.clip(0, 1).round(1);
+
+	// Effective tension values
+	effTens1 = Select.kr(globalTension >= 0, [tension1.clip(0, 1), gTens]);
+	effTens2 = Select.kr(globalTension >= 0, [tension2.clip(0, 1), gTens]);
+	effTens3 = Select.kr(globalTension >= 0, [tension3.clip(0, 1), gTens]);
+	effTens4 = Select.kr(globalTension >= 0, [tension4.clip(0, 1), gTens]);
+
+	// Effective polarity values
+	effPol1 = Select.kr(globalPolarity >= 0, [polarity1.clip(0, 1).round(1), gPol]);
+	effPol2 = Select.kr(globalPolarity >= 0, [polarity2.clip(0, 1).round(1), gPol]);
+	effPol3 = Select.kr(globalPolarity >= 0, [polarity3.clip(0, 1).round(1), gPol]);
+	effPol4 = Select.kr(globalPolarity >= 0, [polarity4.clip(0, 1).round(1), gPol]);
+
 	// === CLOCK INPUT ===
 	clk = In.ar(clockTrigBus + clockIndex);
-	atrig = Trig1.ar(clk > 0.5, 0.001);
-	trig = Trig1.kr(A2K.kr(atrig), 0.001);
+	atrig = Trig1.ar(clk > 0.5, ControlDur.ir * 2);
+	trig = Trig1.kr(A2K.kr(atrig), ControlDur.ir * 2);
 	bpm = In.kr(bpmBus).max(1);
 	clockRunning = Decay.kr(trig, 0.2);
 	clkGate = clockRunning.sign;
@@ -162,7 +194,6 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	calmKickMul = 1 + (tCalm * (calmKickCalm - 1));
 
 	// === PARAMETER MAPPING ===
-	gravInfluence = 1.0 - gravity;
 	excursionGain = excursionMin + (excursion * (excursionMax - excursionMin));
 
 	// === EXCURSION SCALING ===
@@ -187,11 +218,12 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		massBase + (massGain * (mass4 + massTrim[3]).clip(0, 1))
 	];
 
+	// Use effective tension values with trims
 	tensionEff = [
-		(tension1 + tensionTrim[0]).clip(0, 1),
-		(tension2 + tensionTrim[1]).clip(0, 1),
-		(tension3 + tensionTrim[2]).clip(0, 1),
-		(tension4 + tensionTrim[3]).clip(0, 1)
+		(effTens1 + tensionTrim[0]).clip(0, 1),
+		(effTens2 + tensionTrim[1]).clip(0, 1),
+		(effTens3 + tensionTrim[2]).clip(0, 1),
+		(effTens4 + tensionTrim[3]).clip(0, 1)
 	];
 
 	kHub = hubCoupleGain * (tensionEff ** hubTensionExp);
@@ -224,65 +256,68 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	pos3 = Select.kr(didInit, [0.5, pos3]);
 	pos4 = Select.kr(didInit, [0.5, pos4]);
 
-	vel1 = Select.kr(didInit, [0.0, vel1]);
+    vel1 = Select.kr(didInit, [0.0, vel1]);
 	vel2 = Select.kr(didInit, [0.0, vel2]);
 	vel3 = Select.kr(didInit, [0.0, vel3]);
 	vel4 = Select.kr(didInit, [0.0, vel4]);
+
 
 	hubBias = Select.kr(didInit, [0.0, hubBias]);
 	hubVel  = Select.kr(didInit, [0.0, hubVel]);
 
 	kickCooldown = Select.kr(didInit, [0.0, kickCooldown]);
 	kickToggle   = Select.kr(didInit, [1.0, kickToggle]);
-	kickIndex    = Select.kr(didInit, [0.0, kickIndex]);
+	kickIndex    = Select.kr(didInit, [0, kickIndex]);
 
-	// Phase B init: overshoot tracking
-	osActive1 = Select.kr(didInit, [0.0, osActive1]);
-	osActive2 = Select.kr(didInit, [0.0, osActive2]);
-	osActive3 = Select.kr(didInit, [0.0, osActive3]);
-	osActive4 = Select.kr(didInit, [0.0, osActive4]);
+    // Phase B: init overshoot state
+    prevSide1 = Select.kr(didInit, [0, prevSide1]);
+    prevSide2 = Select.kr(didInit, [0, prevSide2]);
+    prevSide3 = Select.kr(didInit, [0, prevSide3]);
+    prevSide4 = Select.kr(didInit, [0, prevSide4]);
 
-	osTarget1 = Select.kr(didInit, [0.5, osTarget1]);
-	osTarget2 = Select.kr(didInit, [0.5, osTarget2]);
-	osTarget3 = Select.kr(didInit, [0.5, osTarget3]);
-	osTarget4 = Select.kr(didInit, [0.5, osTarget4]);
+    osActive1 = Select.kr(didInit, [0, osActive1]);
+    osActive2 = Select.kr(didInit, [0, osActive2]);
+    osActive3 = Select.kr(didInit, [0, osActive3]);
+    osActive4 = Select.kr(didInit, [0, osActive4]);
 
-	osPeak1 = Select.kr(didInit, [0.0, osPeak1]);
-	osPeak2 = Select.kr(didInit, [0.0, osPeak2]);
-	osPeak3 = Select.kr(didInit, [0.0, osPeak3]);
-	osPeak4 = Select.kr(didInit, [0.0, osPeak4]);
+    osTarget1 = Select.kr(didInit, [0.5, osTarget1]);
+    osTarget2 = Select.kr(didInit, [0.5, osTarget2]);
+    osTarget3 = Select.kr(didInit, [0.5, osTarget3]);
+    osTarget4 = Select.kr(didInit, [0.5, osTarget4]);
 
-	// === REFRESH EVENTS ===
+    osPeak1 = Select.kr(didInit, [0, osPeak1]);
+    osPeak2 = Select.kr(didInit, [0, osPeak2]);
+    osPeak3 = Select.kr(didInit, [0, osPeak3]);
+    osPeak4 = Select.kr(didInit, [0, osPeak4]);
+
+	// === RATE / CLOCK TIMESCALE (continuous dt scaling) ===
 	rateClamped = rate.clip(0, 1);
-	rateActive = ((rateClamped - rateDeadband) / (1 - rateDeadband)).clip(0, 1);
 
-	baseHz = bpm / 60;
-	clkMult = Select.kr(
-		(rateActive * 11).round.clip(0, 11),
-		[1/64, 1/32, 1/16, 1/8, 1/4, 1/2, 1, 2, 4, 8, 16, 32]
-	);
+	// lift low end: x = rate^0.2  (0.1 -> ~0.63)
+	baseHz = rateClamped.pow(rateCurveExp);   // just a 0..1 curve now
 
-	refreshHz = rateActive.linexp(0, 1, freeRateMin, freeRateMax);
+	// map curve -> multiplier [rateMinMul .. 1]
+	rateActive = baseHz.linexp(0, 1, rateMinMul, 1.0);
 
-	refreshTrig = Select.kr(rateClamped < rateDeadband, [
-		Select.kr(clockMode.round.clip(0, 1), [
-			Impulse.kr(baseHz * clkMult) * clkGate,
-			Impulse.kr(refreshHz)
-		]),
-		0
+	// clockMode: 0 = clocked (only run when clock present), 1 = free
+	clkMult = Select.kr(clockMode.round.clip(0, 1), [
+		((bpm / bpmRef).clip(0, bpmMaxMul)) * clkGate,
+		1.0
 	]);
 
-	refreshPulse = refreshTrig.sign;
+	// final timestep (safety clipped)
+	dtStep = (dt * rateActive * clkMult).clip(0, dt * dtStepMaxMul);
 
-	fadeFactor = 0.95 - (depth.clip(0,1) * 0.95);
-	hubBias = hubBias * (1 + (refreshPulse * (fadeFactor - 1)));
-	hubVel  = hubVel  * (1 + (refreshPulse * (fadeFactor - 1)));
+	// keep your existing hub fade behaviour
+	fadeFactor = Slew.kr(1 - rateClamped, 10, 10).clip(0.1, 1);
+
 
 	// === HUB TARGET ===
-	hubTarget = (0.5 + (hubBias * gravInfluence * (excursionGain ** excursionHubExp) * excHubMul)).clip(0, 1);
+	hubTarget = (0.5 + (hubBias * excHubMul * fadeFactor)).clip(0, 1);
 
-	// === VAN DER POL DAMPING ===
-	vdpThresholdEff = (vdpThreshold * (1 + (vdpHubMod * hubBias / hubLimit))).max(vdpThresholdFloor);
+	// === VAN DER POL THRESHOLD ===
+	vdpThresholdEff = (vdpThreshold + (vdpHubMod * hubBias.abs)).max(vdpThresholdFloor);
+
 	amp = ([pos1, pos2, pos3, pos4] - 0.5).abs;
 	vdpFactor = (vdpInject * calmVdpMul) * (1 - ((amp / vdpThresholdEff) ** 2));
 	dampingEff = dampingBaseMapped - vdpFactor;
@@ -292,16 +327,17 @@ SynthDef(\ne_mod_sauce_of_grav, {
     lowRateBoost = ((0.2 - rateClamped) / 0.2).clip(0, 1);  // 0 at >=0.2, 0.5 at 0.1, 1 at 0
     noiseRateEff = noiseRate * (1 + (lowRateBoost * 0.9));  // was 0.6
 
-    noise = [
-        WhiteNoise.kr(noiseRateEff * 0.9) * dt.sqrt,
-        WhiteNoise.kr(noiseRateEff * 1.1) * dt.sqrt,
-        WhiteNoise.kr(noiseRateEff * 1.0) * dt.sqrt,
-        WhiteNoise.kr(noiseRateEff * 1.2) * dt.sqrt
-    ];
+	noise = [
+		WhiteNoise.kr(noiseRateEff * 0.9) * dtStep.sqrt,
+		WhiteNoise.kr(noiseRateEff * 1.1) * dtStep.sqrt,
+		WhiteNoise.kr(noiseRateEff * 1.0) * dtStep.sqrt,
+		WhiteNoise.kr(noiseRateEff * 1.2) * dtStep.sqrt
+	];
 	vel1 = vel1 + noise[0];
 	vel2 = vel2 + noise[1];
 	vel3 = vel3 + noise[2];
 	vel4 = vel4 + noise[3];
+
 
 	// === FORCES ===
 	fGrav = kGrav * (0.5 - [pos1, pos2, pos3, pos4]);
@@ -325,7 +361,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	]);
 
 	// === KICKSTART ===
-	kickCooldown = (kickCooldown - dt).max(0);
+	kickCooldown = (kickCooldown - dtStep).max(0);
 
 	fKick = Select.kr((energy < eFloor) * (kickCooldown < 0.001) * (resonance > 0.01), [
 		[0, 0, 0, 0],
@@ -342,26 +378,29 @@ SynthDef(\ne_mod_sauce_of_grav, {
 		kickToggle.neg
 	]);
 
+
 	// === TOTAL FORCE & ACCELERATION ===
 	fTotal = fGrav + fHub + fRing + fReso + fKick;
 	accel = fTotal / mass;
 
-	vel1 = vel1 + (accel[0] * dt);
-	vel2 = vel2 + (accel[1] * dt);
-	vel3 = vel3 + (accel[2] * dt);
-	vel4 = vel4 + (accel[3] * dt);
+	// integrate velocity (only on refresh pulses)
+	vel1 = vel1 + (accel[0] * dtStep);
+	vel2 = vel2 + (accel[1] * dtStep);
+	vel3 = vel3 + (accel[2] * dtStep);
+	vel4 = vel4 + (accel[3] * dtStep);
 
 	// === DAMPING ===
-	vel1 = vel1 * (dampingEff[0] * dt).neg.exp;
-	vel2 = vel2 * (dampingEff[1] * dt).neg.exp;
-	vel3 = vel3 * (dampingEff[2] * dt).neg.exp;
-	vel4 = vel4 * (dampingEff[3] * dt).neg.exp;
+	vel1 = vel1 * (dampingEff[0] * dtStep).neg.exp;
+	vel2 = vel2 * (dampingEff[1] * dtStep).neg.exp;
+	vel3 = vel3 * (dampingEff[2] * dtStep).neg.exp;
+	vel4 = vel4 * (dampingEff[3] * dtStep).neg.exp;
 
 	// === INTEGRATE POSITION ===
-	pos1 = pos1 + (vel1 * dt);
-	pos2 = pos2 + (vel2 * dt);
-	pos3 = pos3 + (vel3 * dt);
-	pos4 = pos4 + (vel4 * dt);
+	pos1 = pos1 + (vel1 * dtStep);
+	pos2 = pos2 + (vel2 * dtStep);
+	pos3 = pos3 + (vel3 * dtStep);
+	pos4 = pos4 + (vel4 * dtStep);
+
 
 	// === RAIL BUMPERS ===
 	pos1 = pos1.clip(0, 1);
@@ -413,7 +452,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
         (vel4.abs > velocityEpsilon) *
         (osActive4 < 0.5);
 
-    // latch target and activate on crossing
+    // latch target + activate on crossing
     osTarget1 = Select.kr(didCross1, [osTarget1, hubTarget]);
     osTarget2 = Select.kr(didCross2, [osTarget2, hubTarget]);
     osTarget3 = Select.kr(didCross3, [osTarget3, hubTarget]);
@@ -425,10 +464,10 @@ SynthDef(\ne_mod_sauce_of_grav, {
     osActive4 = Select.kr(didCross4, [osActive4, 1]);
 
     // seed peak on crossing with current excursion (signed)
-    osPeak1 = Select.kr(didCross1, [osPeak1, pos1 - osTarget1]);
-    osPeak2 = Select.kr(didCross2, [osPeak2, pos2 - osTarget2]);
-    osPeak3 = Select.kr(didCross3, [osPeak3, pos3 - osTarget3]);
-    osPeak4 = Select.kr(didCross4, [osPeak4, pos4 - osTarget4]);
+    osPeak1 = Select.kr(didCross1, [osPeak1, pos1 - hubTarget]);
+    osPeak2 = Select.kr(didCross2, [osPeak2, pos2 - hubTarget]);
+    osPeak3 = Select.kr(didCross3, [osPeak3, pos3 - hubTarget]);
+    osPeak4 = Select.kr(didCross4, [osPeak4, pos4 - hubTarget]);
 
     // while active: track max |excursion| beyond frozen target
     excursion1 = pos1 - osTarget1;
@@ -485,9 +524,10 @@ SynthDef(\ne_mod_sauce_of_grav, {
     hubFeed = (hubFeedGain * excHubMul * workSum)
         .clip((hubFeedMax * excHubMul).neg, (hubFeedMax * excHubMul));
 
-	hubVel = hubVel + ((hubImpulse + hubFeed) * dt);
-	hubVel = hubVel * (hubDamp * dt).neg.exp;
-	hubBias = hubBias + (hubVel * dt);
+	hubVel = hubVel + ((hubImpulse + hubFeed) * dtStep);
+	hubVel = hubVel * (hubDamp * dtStep).neg.exp;
+	hubBias = hubBias + (hubVel * dtStep);
+
 
 	// Phase B: tanh soft saturation instead of clip
 	hubBias = hubLimit * (hubBias / hubLimit).tanh;
@@ -505,11 +545,11 @@ SynthDef(\ne_mod_sauce_of_grav, {
     ]);
 
 
-	// === OUTPUT WITH POLARITY ===
-	sig1 = Select.kr(polarity1.round.clip(0, 1), [pos1, pos1.neg]);
-	sig2 = Select.kr(polarity2.round.clip(0, 1), [pos2, pos2.neg]);
-	sig3 = Select.kr(polarity3.round.clip(0, 1), [pos3, pos3.neg]);
-	sig4 = Select.kr(polarity4.round.clip(0, 1), [pos4, pos4.neg]);
+	// === OUTPUT WITH EFFECTIVE POLARITY ===
+	sig1 = Select.kr(effPol1, [pos1, pos1.neg]);
+	sig2 = Select.kr(effPol2, [pos2, pos2.neg]);
+	sig3 = Select.kr(effPol3, [pos3, pos3.neg]);
+	sig4 = Select.kr(effPol4, [pos4, pos4.neg]);
 
 	Out.kr(out1, sig1);
 	Out.kr(out2, sig2);
@@ -517,4 +557,4 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	Out.kr(out4, sig4);
 }).add;
 
-"  ✓ ne_mod_sauce_of_grav SynthDef loaded (Phase B v1 - overshoot + tanh)".postln;
+"  ✓ ne_mod_sauce_of_grav SynthDef loaded (Phase B v1 - overshoot + tanh, globalTension, globalPolarity)".postln;
