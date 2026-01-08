@@ -1,10 +1,17 @@
 // ============================================================================
-// EXTENDED MODULATION SYSTEM (v1.6.1 - VERIFIED PARAM MAPPINGS)
+// EXTENDED MODULATION SYSTEM (v1.7 - P1-P4 CROSS-MODULATION)
 // ============================================================================
 //
 // Purpose: Route modulation to FX/modulator/send parameters (not just generators)
 // Features: Per-target summing, discrete param handling, base value restoration
 // Usage: ~addExtModRoute.(bus, "fx:heat:drive", depth, amt, off, pol, inv)
+//        ~addExtModRoute.(bus, "mod:2:p2", depth, amt, off, pol, inv)  // NEW
+//
+// P1-P4 targets use ~setModParam which does type-aware mapping:
+//   mod:N:p1 → rate (all types)
+//   mod:N:p2 → globalWave (LFO) / globalAtk (ARSeq+) / globalTension (Sauce)
+//   mod:N:p3 → pattern (LFO) / globalRel (ARSeq+) / calm (Sauce)
+//   mod:N:p4 → globalPolarity (all types)
 //
 // Part of: Mod Matrix Expansion (MOD_MATRIX_EXPANSION_SPEC_v1.6.1)
 // ============================================================================
@@ -33,6 +40,13 @@
 ~extParamConfig[\mod_pattern] = [0, 5, true, 0];   // LFO only (6 patterns)
 ~extParamConfig[\mod_mode] = [0, 1, true, 0];      // LFO/ARSeq+ mode
 
+// P1-P4 standardized params (v1.7 - cross-modulation)
+// Range is 0-1, actual mapping handled by ~setModParam in mod_slots.scd
+~extParamConfig[\mod_p1] = [0, 1, false, 0.5];     // rate (all types)
+~extParamConfig[\mod_p2] = [0, 1, false, 0.5];     // globalWave/globalAtk/globalTension
+~extParamConfig[\mod_p3] = [0, 1, false, 0.5];     // pattern/globalRel/calm
+~extParamConfig[\mod_p4] = [0, 1, false, 0.5];     // globalPolarity (all types)
+
 // FX params (VERIFIED v1.6.1)
 ~extParamConfig[\fx_drive] = [0, 1, false, 0.0];
 ~extParamConfig[\fx_mix] = [0, 1, false, 1.0];
@@ -55,7 +69,10 @@
 ~extParamConfig[\send_ec] = [0, 1, false, 0.0];
 ~extParamConfig[\send_vb] = [0, 1, false, 0.0];
 
-// Get param config key (v1.6.1 - updated for verified names)
+// Channel strip pan (v1.7)
+~extParamConfig[\chan_pan] = [-1, 1, false, 0.0];
+
+// Get param config key (v1.7 - added P1-P4)
 ~getParamConfigKey = { |targetStr|
     var parts = targetStr.split($:);
     var tt = parts[0];
@@ -63,6 +80,13 @@
     
     if(tt == "mod") {
         p = parts[2];
+        
+        // P1-P4 standardized params (v1.7)
+        if(p == "p1") { ^(\mod_p1) };
+        if(p == "p2") { ^(\mod_p2) };
+        if(p == "p3") { ^(\mod_p3) };
+        if(p == "p4") { ^(\mod_p4) };
+        
         // Prefix matches
         if(p.beginsWith("wave"))    { key = \mod_wave };
         if(p.beginsWith("polarity") or: { p.beginsWith("pol") }) { key = \mod_pol };
@@ -111,6 +135,12 @@
         ^("send_" ++ parts[2]).asSymbol;
     };
     
+    if(tt == "chan") {
+        p = parts[2];
+        if(p == "pan") { ^(\chan_pan) };
+        ^("chan_" ++ p).asSymbol;
+    };
+    
     ^\unknown;
 };
 
@@ -134,6 +164,11 @@
         var slot = parts[1].asInteger - 1;
         var sendType = parts[2].asSymbol;
         [\send, slot, sendType]
+    }
+    { tt == \chan } {
+        var slot = parts[1].asInteger - 1;
+        var param = parts[2].asSymbol;
+        [\chan, slot, param]
     }
 };
 
@@ -239,7 +274,7 @@
     ~extUserParams[targetStr] = value;
 };
 
-// Set target value (v1.6.1 - VERIFIED PARAM NAMES)
+// Set target value (v1.7 - P1-P4 support via ~setModParam)
 ~setExtTargetValue = { |parsed, value|
     var targetType = parsed[0];
     var paramSym;
@@ -248,6 +283,13 @@
     { targetType == \mod } {
         var slot = parsed[1];
         var param = parsed[2];
+        
+        // v1.7: P1-P4 use ~setModParam for type-aware mapping
+        if(#[\p1, \p2, \p3, \p4].includes(param)) {
+            // slot is 0-indexed here, ~setModParam expects 1-indexed
+            ~setModParam.(slot + 1, param.asString, value);
+            ^nil;
+        };
         
         // v1.6.1: Map UI names to actual SC synth args
         paramSym = switch(param,
@@ -330,6 +372,16 @@
             switch(sendType,
                 \ec, { ~channelStrips[slot].set(\echoSend, value) },
                 \vb, { ~channelStrips[slot].set(\verbSend, value) }
+            );
+        };
+    }
+    { targetType == \chan } {
+        var slot = parsed[1];
+        var param = parsed[2];
+        
+        if(~channelStrips[slot].notNil) {
+            switch(param,
+                \pan, { ~channelStrips[slot].set(\pan, value) }
             );
         };
     }
@@ -435,4 +487,4 @@
     "All extended routes cleared and restored".postln;
 };
 
-"Extended modulation system loaded".postln;
+"Extended modulation system loaded (v1.7 - P1-P4 cross-mod)".postln;

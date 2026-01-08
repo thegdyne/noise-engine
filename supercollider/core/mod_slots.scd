@@ -5,6 +5,14 @@ Manages mod source synth lifecycle (create/free per slot)
 Each slot can have one active synth writing to 4 mod buses (quadrature).
 Switching generators frees old synth and creates new one.
 Empty generator = no synth, buses zeroed.
+
+P1-P4 standardized params for mod matrix cross-modulation:
+  | Param | LFO          | ARSeq+         | SauceOfGrav    | Sloth |
+  |-------|--------------|----------------|----------------|-------|
+  | P1    | rate         | rate           | rate           | -     |
+  | P2    | globalWave   | globalAtk      | globalTension  | -     |
+  | P3    | pattern      | globalRel      | calm           | -     |
+  | P4    | globalPolarity| globalPolarity| globalPolarity | -     |
 */
 
 ~setupModSlots = {
@@ -29,6 +37,46 @@ Empty generator = no synth, buses zeroed.
             Dictionary.newFrom([\wave, 0, \polarity, 0])   // D/R
         ]
     });
+    
+    // P1-P4 mapping per generator type
+    // Returns [actualParamSymbol, isDiscrete, min, max] or nil if not supported
+    ~mapP1P4Param = { |genName, pKey|
+        var mapping;
+        
+        case
+        { genName == "LFO" } {
+            mapping = switch(pKey.asSymbol,
+                \p1, { [\rate, false, 0, 1] },
+                \p2, { [\globalWave, true, -1, 7] },      // -1=off, 0-7=waveform
+                \p3, { [\pattern, true, 0, 5] },          // 0-5 patterns
+                \p4, { [\globalPolarity, true, -1, 1] },  // -1=off, 0-1=polarity
+                { nil }
+            );
+        }
+        { genName == "ARSEq+" } {
+            mapping = switch(pKey.asSymbol,
+                \p1, { [\rate, false, 0, 1] },
+                \p2, { [\globalAtk, false, -1, 1] },      // -1=off, 0-1=attack
+                \p3, { [\globalRel, false, -1, 1] },      // -1=off, 0-1=release
+                \p4, { [\globalPolarity, true, -1, 1] },  // -1=off, 0-1=polarity
+                { nil }
+            );
+        }
+        { genName == "SauceOfGrav" } {
+            mapping = switch(pKey.asSymbol,
+                \p1, { [\rate, false, 0, 1] },
+                \p2, { [\globalTension, false, -1, 1] },  // -1=off, 0-1=tension
+                \p3, { [\calm, false, 0, 1] },
+                \p4, { [\globalPolarity, true, -1, 1] },  // -1=off, 0-1=polarity
+                { nil }
+            );
+        }
+        { /* Sloth or Empty - no P1-P4 support */ 
+            mapping = nil;
+        };
+        
+        mapping;
+    };
     
     // Free mod slot synth and zero buses
     ~freeModSlot = { |slot|
@@ -79,6 +127,8 @@ Empty generator = no synth, buses zeroed.
                 \polarityB, outState[1][\polarity] ? 0,
                 \polarityC, outState[2][\polarity] ? 0,
                 \polarityD, outState[3][\polarity] ? 0,
+                \globalWave, params[\globalWave] ? -1,
+                \globalPolarity, params[\globalPolarity] ? -1,
                 \clockTrigBus, ~clockTrigBus.index,
                 \clockIndex, ~modClockSourceIndex,  // From config.scd
                 \bpmBus, ~clockBus.index
@@ -133,6 +183,9 @@ Empty generator = no synth, buses zeroed.
                 \polarityB, outState[1][\polarity] ? 0,
                 \polarityC, outState[2][\polarity] ? 0,
                 \polarityD, outState[3][\polarity] ? 0,
+                \globalAtk, params[\globalAtk] ? -1,
+                \globalRel, params[\globalRel] ? -1,
+                \globalPolarity, params[\globalPolarity] ? -1,
                 \clockTrigBus, ~clockTrigBus.index,
                 \clockIndex, ~modClockSourceIndex,
                 \bpmBus, ~clockBus.index
@@ -164,6 +217,8 @@ Empty generator = no synth, buses zeroed.
                 \polarity2, outState[1][\polarity] ? 0,
                 \polarity3, outState[2][\polarity] ? 0,
                 \polarity4, outState[3][\polarity] ? 0,
+                \globalTension, params[\globalTension] ? -1,
+                \globalPolarity, params[\globalPolarity] ? -1,
                 \clockTrigBus, ~clockTrigBus.index,
                 \clockIndex, ~modClockSourceIndex,
                 \bpmBus, ~clockBus.index
@@ -176,12 +231,31 @@ Empty generator = no synth, buses zeroed.
     };
     
     // Update parameter on existing synth
+    // Handles P1-P4 mapping to underlying params
     ~setModParam = { |slot, key, value|
         var idx = slot - 1;
-        ("  Mod " ++ slot ++ " param: " ++ key ++ " = " ++ value).postln;
-        ~modParams[idx][key.asSymbol] = value;
+        var genName = ~modGenNames[idx];
+        var actualKey = key.asSymbol;
+        var mapping;
+        
+        // Check if this is a P1-P4 param that needs mapping
+        if(#[\p1, \p2, \p3, \p4].includes(actualKey)) {
+            mapping = ~mapP1P4Param.(genName, actualKey);
+            if(mapping.notNil) {
+                actualKey = mapping[0];  // Get actual param symbol
+                // Clamp value to valid range
+                value = value.clip(mapping[2], mapping[3]);
+                if(mapping[1]) { value = value.round };  // Round if discrete
+            } {
+                // No mapping for this mod type - ignore
+                ^nil;
+            };
+        };
+        
+        ("  Mod " ++ slot ++ " param: " ++ actualKey ++ " = " ++ value).postln;
+        ~modParams[idx][actualKey] = value;
         if(~modNodes[idx].notNil) {
-            ~modNodes[idx].set(key.asSymbol, value);
+            ~modNodes[idx].set(actualKey, value);
         };
     };
     
@@ -224,6 +298,5 @@ Empty generator = no synth, buses zeroed.
     // Create mod group (runs before generators)
     ~modGroup = Group.after(~clockGroup);  // After clock for proper sync
     
-    "  ✓ Mod slots ready (4 slots × 4 outputs)".postln;
+    "  ✓ Mod slots ready (4 slots × 4 outputs, P1-P4 cross-mod support)".postln;
 };
-
