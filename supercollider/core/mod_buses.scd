@@ -1,6 +1,6 @@
 /*
 Mod Buses
-Control buses for modulation sources (4 slots × 4 outputs = 16 buses)
+Control buses for modulation sources (4 slots x 4 outputs = 16 buses)
 
 SSOT: Bus count matches Python MOD_BUS_COUNT = 16
 Index domains:
@@ -12,7 +12,7 @@ Index domains:
 ~setupModBuses = {
     "Setting up mod buses...".postln;
     
-    // 16 control buses for mod outputs (4 slots × 4 outputs)
+    // 16 control buses for mod outputs (4 slots x 4 outputs)
     ~modBuses = Array.fill(16, { Bus.control(s, 1).set(0) });
     
     // Helper to calculate bus index from slot and output
@@ -33,5 +33,5 @@ Index domains:
         };
     };
     
-    "  ✓ Mod buses ready (16 control buses)".postln;
+    "  [x] Mod buses ready (16 control buses)".postln;
 };

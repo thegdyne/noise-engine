@@ -146,5 +146,5 @@ Reusable functions for generator management
         ~stopChannelStrip.(slotID);
     };
     
-    "  ✓ Helpers ready".postln;
+    "  [x] Helpers ready".postln;
 };

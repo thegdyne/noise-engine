@@ -2,7 +2,7 @@
 Channel Strips
 Per-generator volume, mute, solo, and EQ processing
 
-Signal flow: ~genBus[n] → channelStrip → ~masterBus
+Signal flow: ~genBus[n] -> channelStrip -> ~masterBus
 
 Each generator slot gets its own channel strip synth that runs
 after the generator but before master effects.
@@ -122,7 +122,7 @@ EQ: 3-band DJ isolator
     ~stripEchoSendState = Array.fill(8, { 0.0 }); // Echo send (0-1)
     ~stripVerbSendState = Array.fill(8, { 0.0 }); // Verb send (0-1)
     
-    "  ✓ Channel strip SynthDef ready (EQ: %Hz / %Hz, smooth: %ms)".format(
+    "  [x] Channel strip SynthDef ready (EQ: %Hz / %Hz, smooth: %ms)".format(
         ~eqLoXover, ~eqHiXover, (~eqSmoothTime * 1000).asInteger
     ).postln;
 };
@@ -239,5 +239,5 @@ EQ: 3-band DJ isolator
         // msg format: ['/noise/gen/levels', node_id, reply_id, slotID, ampL, ampR]
         ~pythonAddr.sendMsg('/noise/gen/levels', msg[3].asInteger, msg[4], msg[5]);
     }, '/noise/gen/levels');
-    "  ✓ Channel meter forwarding ready".postln;
+    "  [x] Channel meter forwarding ready".postln;
 };

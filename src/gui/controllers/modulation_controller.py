@@ -369,13 +369,26 @@ class ModulationController:
         """Sync all mod routing state to SC (called on reconnect)."""
         if not self.main.osc_connected:
             return
+        gen_count = 0
+        ext_count = 0
         for conn in self.main.mod_routing.get_all_connections():
-            self.main.osc.client.send_message(
-                OSC_PATHS['mod_route_add'],
-                [conn.source_bus, conn.target_slot, conn.target_param,
-                 conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
-            )
-        logger.debug(f"Synced {len(self.main.mod_routing)} mod routes to SC", component="MOD")
+            if conn.is_extended:
+                # Extended route: use /noise/extmod/add_route
+                self.main.osc.client.send_message(
+                    OSC_PATHS['extmod_add_route'],
+                    [conn.source_bus, conn.target_str,
+                     conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
+                )
+                ext_count += 1
+            else:
+                # Generator route: use /noise/mod/route/add
+                self.main.osc.client.send_message(
+                    OSC_PATHS['mod_route_add'],
+                    [conn.source_bus, conn.target_slot, conn.target_param,
+                     conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
+                )
+                gen_count += 1
+        logger.debug(f"Synced {gen_count} gen + {ext_count} ext mod routes to SC", component="MOD")
     
     def _open_mod_matrix(self):
         """Toggle the mod routing matrix window (Cmd+M)."""

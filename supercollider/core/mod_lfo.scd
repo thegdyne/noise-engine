@@ -162,7 +162,7 @@ SynthDef(\modLFO, {
     // Read high-res clock (x32 = index 12 = 32 ticks per quarter)
     clk = In.ar(clockTrigBus + clockIndex);
 
-	// ensure atrig spans >= 1–2 control blocks so A2K can't miss it
+	// ensure atrig spans >= 1-2 control blocks so A2K can't miss it
 	atrig = Trig1.ar(clk > 0.5, ControlDur.ir * 2);
 	trig  = Trig1.kr(A2K.kr(atrig) > 0, ControlDur.ir);
 
@@ -237,4 +237,4 @@ SynthDef(\modLFO, {
     Out.kr(outD, sigD);
 }).add;
 
-"  ✓ modLFO SynthDef loaded (4 outputs, quadrature patterns, rotate, globalWave, globalPolarity)".postln;
+"  [x] modLFO SynthDef loaded (4 outputs, quadrature patterns, rotate, globalWave, globalPolarity)".postln;

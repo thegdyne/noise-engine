@@ -49,7 +49,7 @@ Where:
         // Apply modulation: base + (mod * depth * range)
         // depth of 1.0 means full range sweep
         // depth of -1.0 means inverted full range
-        offset = modVal * depth * range * 0.5;  // *0.5 because mod is ±1
+        offset = modVal * depth * range * 0.5;  // *0.5 because mod is +/-1
         
         // Linear vs exponential curves
         outVal = Select.kr(curve, [
@@ -99,7 +99,7 @@ Where:
             \curve, curve
         ], ~modGroup, \addAfter);  // Run after mod sources
         
-        ("Mod route: bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++ 
+        ("Mod route: bus " ++ sourceBus ++ " -> slot " ++ targetSlot ++ " " ++ targetParam ++ 
          " (base=" ++ baseVal.round(0.01) ++ ", depth=" ++ depth ++ ")").postln;
         
         // Start value stream if this is the first route
@@ -127,7 +127,7 @@ Where:
             ~modBaseValues[key] = nil;
         };
         
-        ("Mod route removed: bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam).postln;
+        ("Mod route removed: bus " ++ sourceBus ++ " -> slot " ++ targetSlot ++ " " ++ targetParam).postln;
         
         // Stop value stream if no more routes
         if(~modRouteSynths.select({ |v| v.notNil }).size == 0) {
@@ -150,7 +150,7 @@ Where:
     
     ~testModulation = {
         "=== MODULATION TEST ===".postln;
-        "Routing: MOD1 output A (bus 0) → GEN1 cutoff @ 50% depth".postln;
+        "Routing: MOD1 output A (bus 0) -> GEN1 cutoff @ 50% depth".postln;
         "Make sure GEN1 has a generator loaded (e.g. Subtractive)".postln;
         
         // Route mod bus 0 (MOD1 output A) to gen slot 1 cutoff
@@ -242,5 +242,5 @@ Where:
     // Auto-start streaming when first route is added
     // (will be checked in ~addModRoute)
     
-    "  ✓ Mod apply ready (run ~testModulation.() to test)".postln;
+    "  [x] Mod apply ready (run ~testModulation.() to test)".postln;
 };

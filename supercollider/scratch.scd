@@ -1,7 +1,88 @@
 /*
 SUPERCOLLIDER SCRATCH PAD - Execute with Cmd+Return
 */
+// Clear it first
+~addExtModRoute = nil;
 
+// Load with error checking
+try {
+    (~basePath +/+ "core/ext_mod.scd").load;
+} { |err|
+    "ERROR loading ext_mod.scd:".postln;
+    err.postln;
+};
+
+// Check result
+~addExtModRoute.postcs;
+
+(~basePath +/+ "core/ext_mod.scd").load;
+~addExtModRoute.postcs;
+
+OSCdef(\extModAddRoute, { |msg|
+    var sourceBus = msg[1].asInteger;
+    var targetStr = msg[2].asString;
+    var depth = msg[3].asFloat;
+    var amount = msg[4].asFloat;
+    var offset = msg[5].asFloat;
+    var polarity = msg[6].asInteger;
+    var invert = msg[7].asInteger;
+
+    "ExtMod ADD: bus % -> %".format(sourceBus, targetStr).postln;
+    ~addExtModRoute.(sourceBus, targetStr, depth, amount, offset, polarity, invert);
+
+    if(~extModApplyTask.isNil) {
+        ~startExtModApplyTask.();
+    };
+}, '/noise/extmod/add_route');
+
+~addExtModRoute.isNil.postln;
+
+(PathName(thisProcess.nowExecutingPath).pathOnly +/+ "core/ext_mod.scd").load;
+
+~addExtModRoute.isNil.postln;
+~extModRoutes.postln;
+
+~extModRoutes = Dictionary.new;
+~extTargets = Dictionary.new;
+
+~extModRoutes.postln;
+
+NetAddr.langPort.postln;
+
+~addExtModRoute.(0, "mod:1:p1", 1.0, 0.5, 0.0, 0, 0);
+
+~extModRoutes.postln;
+
+~addExtModRoute.postcs;
+(
+var path = PathName(thisProcess.nowExecutingPath).pathOnly +/+ "core/ext_mod.scd";
+path.postln;
+path.load;
+)
+
+
+
+~addExtModRoute.isNil.postln;  // Should be false if loaded
+(PathName(thisProcess.nowExecutingPath).pathOnly +/+ "core/ext_mod.scd").load;
+
+thisProcess.recvOSCfunc.postln;
+
+
+OSCdef(\extModAdd).postln;
+OSCdef.all.keys.postln;
+
+~extModRoutes.postln;
+~extModApplyTask.isPlaying.postln;
+
+
+~extModRoutes ?? { ~extModRoutes = Dictionary.new };
+~extModRoutes.postln;
+
+~setModParam.(1, "p1", 0.7);  // Should change M1 rate
+
+~addExtModRoute.(0, "mod:1:p1", 1.0, 0.5, 0.0, 0, 0);
+
+~extModRoutes.postln;
 // === MOST USED ===
 s.reboot;                    // Full restart (clears everything)
 s.freeAll;                   // Stop all synths, keep server

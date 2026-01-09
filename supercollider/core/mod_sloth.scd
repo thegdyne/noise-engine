@@ -41,9 +41,9 @@ SynthDef(\modSloth, {
     
     // Per-mode bias scaling to hit exact timing windows
     // bias 0 = slow end (scaleLo), bias 1 = fast end (scaleHi)
-    // Torpor: 15-30s → scaleLo=0.75 (30s), scaleHi=1.5 (15s)
-    // Apathy: 60-90s → scaleLo=0.833 (90s), scaleHi=1.25 (60s)
-    // Inertia: 30-40min → scaleLo=0.875 (40min), scaleHi=1.167 (30min)
+    // Torpor: 15-30s -> scaleLo=0.75 (30s), scaleHi=1.5 (15s)
+    // Apathy: 60-90s -> scaleLo=0.833 (90s), scaleHi=1.25 (60s)
+    // Inertia: 30-40min -> scaleLo=0.875 (40min), scaleHi=1.167 (30min)
     scaleLo = Select.kr(mode.clip(0, 2), [0.75, 0.833333, 0.875]);
     scaleHi = Select.kr(mode.clip(0, 2), [1.5, 1.25, 1.166667]);
     
@@ -89,4 +89,4 @@ SynthDef(\modSloth, {
     Out.kr(outR, sigR);
 }).add;
 
-"  ✓ modSloth SynthDef loaded (4 outputs: X/Y/Z + R gate)".postln;
+"  [x] modSloth SynthDef loaded (4 outputs: X/Y/Z + R gate)".postln;

@@ -22,4 +22,4 @@ All ports and shared settings in one place
 // === Create Python address ===
 ~pythonAddr = NetAddr("127.0.0.1", ~pythonListenPort);
 
-"✓ Config loaded: SC listens on %, Python on %".format(~scListenPort, ~pythonListenPort).postln;
+"[x] Config loaded: SC listens on %, Python on %".format(~scListenPort, ~pythonListenPort).postln;

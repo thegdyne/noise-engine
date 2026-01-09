@@ -8,10 +8,10 @@ Each output has independent AR envelope with:
 - Curve shape (LOG/LIN/EXP)
 - Sync mode (SYNC: follow master, LOOP: self-cycle)
 - Loop rate (when LOOP mode)
-- Polarity (NORM: 0→+1, INV: 0→-1)
+- Polarity (NORM: 0->+1, INV: 0->-1)
 
 Master controls:
-- Mode: SEQ (sequential 1→2→3→4) or PAR (parallel, all at once)
+- Mode: SEQ (sequential 1->2->3->4) or PAR (parallel, all at once)
 - Clock mode: CLK (sync to clock) or FREE (manual rate)
 - Rate: master trigger rate
 
@@ -116,7 +116,7 @@ SynthDef(\modARSeqPlus, {
     // Time mapping functions
     mapSyncTime = { |norm| norm.clip(0, 1).linexp(0, 1, 0.01, 5.0) };    // 10ms - 5s
     mapLoopTime = { |norm| norm.clip(0, 1).linexp(0, 1, 0.1, 30.0) };    // 100ms - 30s
-    mapCurve = { |norm| (norm.clip(0, 1) * 2.0) - 1.0 };  // 0-1 → -1 to +1
+    mapCurve = { |norm| (norm.clip(0, 1) * 2.0) - 1.0 };  // 0-1 -> -1 to +1
 
     // Envelope generator function
     makeEnv = { |gate, atkNorm, relNorm, curveNorm, isLoop|
@@ -215,7 +215,7 @@ SynthDef(\modARSeqPlus, {
         [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]).max(1));
 
     // ---- ENVELOPE GENERATION ----
-    // SYNC: A-H-R using gate (matches hardware “sustain if attack finishes early”)
+    // SYNC: A-H-R using gate (matches hardware "sustain if attack finishes early")
     // LOOP: one-shot AR (self-trigger)
 
     envA = Select.kr(syncModeA.round.clip(0, 1), [
@@ -252,8 +252,8 @@ SynthDef(\modARSeqPlus, {
 
     // ---- OUTPUT SCALING ----
     // Convert 0-1 envelope to bipolar based on effective polarity
-    // NORM (0): 0 to +1 → output 0 to +1
-    // INV (1): 0 to +1 → output 0 to -1
+    // NORM (0): 0 to +1 -> output 0 to +1
+    // INV (1): 0 to +1 -> output 0 to -1
     sigA = Select.kr(effPolA, [envA, envA.neg]);
     sigB = Select.kr(effPolB, [envB, envB.neg]);
     sigC = Select.kr(effPolC, [envC, envC.neg]);
@@ -266,4 +266,4 @@ SynthDef(\modARSeqPlus, {
     Out.kr(outD, sigD);
 }).add;
 
-"  ✓ modARSeqPlus SynthDef loaded (4 AR envelopes, SEQ/PAR modes, globalAtk, globalRel, globalPolarity)".postln;
+"  [x] modARSeqPlus SynthDef loaded (4 AR envelopes, SEQ/PAR modes, globalAtk, globalRel, globalPolarity)".postln;

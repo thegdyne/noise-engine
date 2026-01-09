@@ -25,7 +25,7 @@ Rate indices match CLOCK_RATES in Python config:
         Out.ar(outBus, trigs);
     }).add;
     
-    "  ✓ Clock SynthDef ready (% rates)".format(~clockRates.size).postln;
+    "  [x] Clock SynthDef ready (% rates)".format(~clockRates.size).postln;
 };
 
 ~startClock = {
@@ -41,6 +41,6 @@ Rate indices match CLOCK_RATES in Python config:
         \outBus, ~clockTrigBus.index
     ], ~clockGroup);
     
-    "  ✓ Clock running".postln;
-    "  ✓ Groups: clock -> gen -> strips -> fx".postln;
+    "  [x] Clock running".postln;
+    "  [x] Groups: clock -> gen -> strips -> fx".postln;
 };

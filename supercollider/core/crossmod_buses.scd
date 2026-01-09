@@ -64,7 +64,7 @@ SSOT: CROSSMOD_BUS_OFFSET = 16, CROSSMOD_BUS_COUNT = 8
     // slot: 1-8 (1-indexed)
     // returns: 16-23 (source ID for mod_apply_v2)
     ~crossModBusIndex = { |slot|
-        ~crossmodBusOffset + slot - 1;  // slot 1 → 16, slot 8 → 23
+        ~crossmodBusOffset + slot - 1;  // slot 1 -> 16, slot 8 -> 23
     };
     
     // Helper: get actual bus for a slot (0-indexed internal)
@@ -77,6 +77,6 @@ SSOT: CROSSMOD_BUS_OFFSET = 16, CROSSMOD_BUS_COUNT = 8
         };
     };
     
-    "  ✓ Cross-mod buses ready (8 control buses, source IDs 16-23)".postln;
-    "  ✓ Unified mod source resolver (~getModSourceBus) ready".postln;
+    "  [x] Cross-mod buses ready (8 control buses, source IDs 16-23)".postln;
+    "  [x] Unified mod source resolver (~getModSourceBus) ready".postln;
 };

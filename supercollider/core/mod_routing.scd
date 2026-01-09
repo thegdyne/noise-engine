@@ -20,7 +20,7 @@ Depends on: mod_apply_v2.scd (~addModRoute, ~removeModRoute, ~setModRoute)
 ~setupModRouting = {
     "Setting up mod routing OSC handlers...".postln;
     
-    // Add a mod route: source_bus → slot.param with full params
+    // Add a mod route: source_bus -> slot.param with full params
     OSCdef(\modRouteAdd, { |msg|
         var sourceBus = msg[1].asInteger;
         var targetSlot = msg[2].asInteger;
@@ -31,7 +31,7 @@ Depends on: mod_apply_v2.scd (~addModRoute, ~removeModRoute, ~setModRoute)
         var polarity = msg[7].asInteger;
         var invert = msg[8].asInteger;
         
-        ("OSC: Add route bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++
+        ("OSC: Add route bus " ++ sourceBus ++ " -> slot " ++ targetSlot ++ " " ++ targetParam ++
          " [d=" ++ depth ++ ", a=" ++ amount ++ ", o=" ++ offset ++ ", p=" ++ polarity ++ ", i=" ++ invert ++ "]").postln;
         ~addModRoute.(sourceBus, targetSlot, targetParam.asSymbol, depth, amount, offset, polarity, invert);
     }, '/noise/mod/route/add');
@@ -56,7 +56,7 @@ Depends on: mod_apply_v2.scd (~addModRoute, ~removeModRoute, ~setModRoute)
         var targetSlot = msg[2].asInteger;
         var targetParam = msg[3].asString;
         
-        ("OSC: Remove route bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam).postln;
+        ("OSC: Remove route bus " ++ sourceBus ++ " -> slot " ++ targetSlot ++ " " ++ targetParam).postln;
         ~removeModRoute.(sourceBus, targetSlot, targetParam.asSymbol);
     }, '/noise/mod/route/remove');
 
@@ -66,5 +66,5 @@ Depends on: mod_apply_v2.scd (~addModRoute, ~removeModRoute, ~setModRoute)
             ~clearAllModRoutes.();
         }, '/noise/mod/route/clear_all');
 
-    "  ✓ Mod routing OSC handlers ready".postln;
+    "  [x] Mod routing OSC handlers ready".postln;
 };

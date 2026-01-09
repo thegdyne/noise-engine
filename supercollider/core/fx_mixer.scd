@@ -4,9 +4,9 @@ Sums dry signal + FX returns into masterBus
 Part of FX System Phase 1
 
 Signal flow:
-  ~drySumBus (channel strips) ──┐
-  ~echoReturnBus × echoReturn ──┼──► ~masterBus
-  ~verbReturnBus × verbReturn ──┘
+  ~drySumBus (channel strips) ???
+  ~echoReturnBus x echoReturn ?????? ~masterBus
+  ~verbReturnBus x verbReturn ???
 */
 
 ~setupFxMixer = {
@@ -32,7 +32,7 @@ Signal flow:
         ReplaceOut.ar(outBus, mixed);
     }).add;
     
-    "  ✓ FX mixer SynthDef ready".postln;
+    "  [x] FX mixer SynthDef ready".postln;
 };
 
 ~startFxMixer = {
@@ -45,7 +45,7 @@ Signal flow:
         \verbReturn, ~verbReturnLevel
     ], ~mixerGroup, \addToTail);
     
-    "  ✓ FX mixer running".postln;
+    "  [x] FX mixer running".postln;
 };
 
 // OSC handlers for return levels
@@ -66,5 +66,5 @@ Signal flow:
         };
     }, '/noise/master/verb/return');
     
-    "  ✓ FX mixer OSC handlers ready".postln;
+    "  [x] FX mixer OSC handlers ready".postln;
 };

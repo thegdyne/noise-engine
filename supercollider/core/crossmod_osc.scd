@@ -39,8 +39,8 @@ Signal Range Note:
     - uni-: -r..-0.5r (lower half)
   
   Simplest recipes:
-    - Positive mod: bipolar, invert=0 → silence=0, loud=+r
-    - Negative mod (duck): bipolar, invert=1 → silence=0, loud=-r
+    - Positive mod: bipolar, invert=0 -> silence=0, loud=+r
+    - Negative mod (duck): bipolar, invert=1 -> silence=0, loud=-r
 
 Route Slot Competition:
   Crossmod routes use source IDs 16-23 and compete with standard mod routes
@@ -74,7 +74,7 @@ Route Slot Competition:
         ~setCrossModEnabled.(slot, enabled);
     }, '/noise/crossmod/enabled');
     
-    // Route cross-mod: source_slot → target_slot.param
+    // Route cross-mod: source_slot -> target_slot.param
     // Uses standard ~addModRoute with source ID 16-23
     OSCdef(\crossModRoute, { |msg|
         var sourceSlot = msg[1].asInteger;
@@ -96,7 +96,7 @@ Route Slot Competition:
         // Calculate source bus ID (16-23 for crossmod)
         sourceBus = ~crossModBusIndex.(sourceSlot);
         
-        ("Cross-mod route: GEN" ++ sourceSlot ++ " (bus " ++ sourceBus ++ ") → slot " ++ targetSlot ++ " " ++ targetParam ++
+        ("Cross-mod route: GEN" ++ sourceSlot ++ " (bus " ++ sourceBus ++ ") -> slot " ++ targetSlot ++ " " ++ targetParam ++
          " [d=" ++ depth ++ ", a=" ++ amount ++ ", o=" ++ offset ++ ", p=" ++ polarity ++ ", i=" ++ invert ++ "]").postln;
         
         // Use standard mod routing (bus resolver handles 16-23)
@@ -154,7 +154,7 @@ Route Slot Competition:
         ~debugCrossModRoutes.();
     }, '/noise/crossmod/debug');
     
-    "  ✓ Cross-mod OSC handlers ready".postln;
+    "  [x] Cross-mod OSC handlers ready".postln;
 };
 
 // Debug helper
@@ -169,7 +169,7 @@ Route Slot Competition:
                 var sourceSlot = parts[0].asInteger;
                 var targetSlot = parts[1].asInteger;
                 var targetParam = parts[2];
-                "  GEN% → slot % % (bus %)".format(sourceSlot, targetSlot, targetParam, sourceBus).postln;
+                "  GEN% -> slot % % (bus %)".format(sourceSlot, targetSlot, targetParam, sourceBus).postln;
             };
         };
     };

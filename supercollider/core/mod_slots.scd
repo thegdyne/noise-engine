@@ -133,7 +133,7 @@ P1-P4 standardized params for mod matrix cross-modulation:
                 \clockIndex, ~modClockSourceIndex,  // From config.scd
                 \bpmBus, ~clockBus.index
             ], ~modGroup);
-            ("  Mod slot " ++ slot ++ " → LFO").postln;
+            ("  Mod slot " ++ slot ++ " -> LFO").postln;
         }
         { genName == "Sloth" } {
             ~modNodes[idx] = Synth(\modSloth, [
@@ -148,7 +148,7 @@ P1-P4 standardized params for mod matrix cross-modulation:
                 \polarityZ, outState[2][\polarity] ? 0,
                 \polarityR, outState[3][\polarity] ? 0  // R defaults NORM
             ], ~modGroup);
-("  Mod slot " ++ slot ++ " → Sloth").postln;
+("  Mod slot " ++ slot ++ " -> Sloth").postln;
         }
         { genName == "ARSEq+" } {
             ~modNodes[idx] = Synth(\modARSeqPlus, [
@@ -190,7 +190,7 @@ P1-P4 standardized params for mod matrix cross-modulation:
                 \clockIndex, ~modClockSourceIndex,
                 \bpmBus, ~clockBus.index
             ], ~modGroup);
-("  Mod slot " ++ slot ++ " → ARSEq+").postln;
+("  Mod slot " ++ slot ++ " -> ARSEq+").postln;
         }
         { genName == "SauceOfGrav" } {
             ~modNodes[idx] = Synth(\ne_mod_sauce_of_grav, [
@@ -223,10 +223,10 @@ P1-P4 standardized params for mod matrix cross-modulation:
                 \clockIndex, ~modClockSourceIndex,
                 \bpmBus, ~clockBus.index
             ], ~modGroup);
-            ("  Mod slot " ++ slot ++ " → SauceOfGrav").postln;
+            ("  Mod slot " ++ slot ++ " -> SauceOfGrav").postln;
         }
         { /* Empty - node stays nil, buses already zeroed */
-            ("  Mod slot " ++ slot ++ " → Empty").postln;
+            ("  Mod slot " ++ slot ++ " -> Empty").postln;
         };
     };
     
@@ -252,7 +252,7 @@ P1-P4 standardized params for mod matrix cross-modulation:
             };
         };
         
-        ("  Mod " ++ slot ++ " param: " ++ actualKey ++ " = " ++ value).postln;
+//         ("  Mod " ++ slot ++ " param: " ++ actualKey ++ " = " ++ value).postln;
         ~modParams[idx][actualKey] = value;
         if(~modNodes[idx].notNil) {
             ~modNodes[idx].set(actualKey, value);
@@ -298,5 +298,5 @@ P1-P4 standardized params for mod matrix cross-modulation:
     // Create mod group (runs before generators)
     ~modGroup = Group.after(~clockGroup);  // After clock for proper sync
     
-    "  ✓ Mod slots ready (4 slots × 4 outputs, P1-P4 cross-mod support)".postln;
+    "  [x] Mod slots ready (4 slots x 4 outputs, P1-P4 cross-mod support)".postln;
 };

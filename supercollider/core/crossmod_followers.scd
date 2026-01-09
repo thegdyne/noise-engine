@@ -2,19 +2,19 @@
 Cross-Mod Envelope Followers
 Track amplitude of each generator's output and write to cross-mod buses
 
-Signal flow: ~genBus[n] → Amplitude.kr → ~crossModBus[n]
+Signal flow: ~genBus[n] -> Amplitude.kr -> ~crossModBus[n]
 
 OUTPUT RANGE: 0 to 1 (UNIPOLAR)
-  - Silence → 0
-  - Max amplitude → 1
+  - Silence -> 0
+  - Max amplitude -> 1
 
 This is intentionally different from LFO/Sloth sources (-1 to +1).
 Rationale: silence=0 is intuitive; users expect "no audio = no modulation."
 
 Polarity mode behavior with 0..1 input:
   - bipolar: Treats 0..1 as half-range (0=center, 1=max)
-  - uni+: Maps 0..1 → 0.5..1 (use offset=-0.5 for full 0..1)
-  - uni-: Maps 0..1 → 0.5..0 (use offset=+0.5 for full 0..-1)
+  - uni+: Maps 0..1 -> 0.5..1 (use offset=-0.5 for full 0..1)
+  - uni-: Maps 0..1 -> 0.5..0 (use offset=+0.5 for full 0..-1)
   - For sidechain ducking: use uni- with amount=1, offset=0.5
 
 Trim: Applies ~crossModTrim[idx] to normalize loud/quiet generators.
@@ -53,7 +53,7 @@ Group: Runs in ~genGroup at tail (after generator, before strip group).
         ReplaceOut.kr(outBus, out);
     }).add;
     
-    "  ✓ Cross-mod follower SynthDef ready (unipolar output 0..1)".postln;
+    "  [x] Cross-mod follower SynthDef ready (unipolar output 0..1)".postln;
 };
 
 // Start envelope follower for a slot (called when generator starts)

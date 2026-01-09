@@ -201,7 +201,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	// hubTarget multiplies by (excursionGain ** excursionHubExp) again.
 	// (Because hubTarget also multiplies by excursionGain ** excursionHubExp downstream.)
 	// This is intentional: stronger response in the upper range without making low excursion feel dead.
-	// With excursionHubExp=1.7, effective power ~= 3.4.
+	// With excursionHubExp=1.7, effective power ≈ 3.4.
     excHubMul =
         (excursionGain ** excursionHubExp) /
         (((excursionMin + excursionMax) * 0.5) ** excursionHubExp);
@@ -557,4 +557,4 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	Out.kr(out4, sig4);
 }).add;
 
-"  [x] ne_mod_sauce_of_grav SynthDef loaded (Phase B v1 - overshoot + tanh, globalTension, globalPolarity)".postln;
+"  ✓ ne_mod_sauce_of_grav SynthDef loaded (Phase B v1 - overshoot + tanh, globalTension, globalPolarity)".postln;

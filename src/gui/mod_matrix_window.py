@@ -55,9 +55,38 @@ NUM_GEN_SLOTS = 8
 NUM_MOD_SLOTS = 4
 OUTPUTS_PER_MOD_SLOT = 4
 
+# Modulator P1-P4 params for cross-modulation
+MOD_PARAMS = [
+    ('p1', 'P1'),  # rate (all types)
+    ('p2', 'P2'),  # globalWave/globalAtk/globalTension
+    ('p3', 'P3'),  # pattern/globalRel/calm
+    ('p4', 'P4'),  # globalPolarity (all types)
+]
+
+# Channel strip params  
+CHAN_PARAMS = [
+    ('ec', 'EC'),   # Echo send
+    ('vb', 'VB'),   # Verb send
+    ('pan', 'PAN'), # Pan
+]
+
+NUM_CHAN_SLOTS = 8
+
+# Column counts
+GEN_COLS = NUM_GEN_SLOTS * len(GEN_PARAMS)          # 80
+MOD_COLS = NUM_MOD_SLOTS * len(MOD_PARAMS)          # 16  
+CHAN_COLS = NUM_CHAN_SLOTS * len(CHAN_PARAMS)       # 24
+
 # Total rows and columns for navigation
 TOTAL_ROWS = NUM_MOD_SLOTS * OUTPUTS_PER_MOD_SLOT  # 16
-TOTAL_COLS = NUM_GEN_SLOTS * len(GEN_PARAMS)        # 80 (8 slots * 10 params)
+TOTAL_COLS = GEN_COLS + MOD_COLS + CHAN_COLS        # 120
+
+# Section background colors for alternating slots
+SECTION_COLORS = {
+    'gen': {'odd': '#1a1a1a', 'even': '#141414'},
+    'mod': {'odd': '#1a1a22', 'even': '#14141a'},    # Blue tint
+    'chan': {'odd': '#1a221a', 'even': '#141a14'},   # Green tint
+}
 
 
 class ModMatrixWindow(QMainWindow):
@@ -212,8 +241,8 @@ class ModMatrixWindow(QMainWindow):
         layout.addWidget(scroll)
 
         # Extended Routes Section (new)
-        ext_section = self._build_extended_routes_section()
-        layout.addWidget(ext_section)
+        # ext_section = self._build_extended_routes_section()
+        # layout.addWidget(ext_section)
         
         # Legend
         legend = self._build_legend()
@@ -248,6 +277,68 @@ class ModMatrixWindow(QMainWindow):
             
             # Add separator after each generator's params
             if gen_slot < NUM_GEN_SLOTS:
+                sep = QFrame()
+                sep.setFixedWidth(3)
+                sep.setStyleSheet(f"background-color: {COLORS['background']}; border: none;")
+                layout.addWidget(sep, 0, col)
+                col += 1
+        
+        # === SECTION SEPARATOR: Gen → Mod ===
+        sep = QFrame()
+        sep.setFixedWidth(6)
+        sep.setStyleSheet(f"background-color: #333366; border: none;")
+        layout.addWidget(sep, 0, col)
+        col += 1
+        
+        # === MODULATOR COLUMNS (P1-P4) ===
+        for mod_slot in range(1, NUM_MOD_SLOTS + 1):
+            tint = SECTION_COLORS['mod']['odd'] if mod_slot % 2 == 1 else SECTION_COLORS['mod']['even']
+            
+            for param_key, param_label in MOD_PARAMS:
+                header = QLabel(f"M{mod_slot}\n{param_label}")
+                header.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+                header.setAlignment(Qt.AlignCenter)
+                header.setFixedSize(28, 36)
+                header.setStyleSheet(f"""
+                    color: #8888cc;
+                    background-color: {tint};
+                    border-bottom: 1px solid {COLORS['border']};
+                """)
+                layout.addWidget(header, 0, col)
+                col += 1
+            
+            if mod_slot < NUM_MOD_SLOTS:
+                sep = QFrame()
+                sep.setFixedWidth(3)
+                sep.setStyleSheet(f"background-color: {COLORS['background']}; border: none;")
+                layout.addWidget(sep, 0, col)
+                col += 1
+        
+        # === SECTION SEPARATOR: Mod → Chan ===
+        sep = QFrame()
+        sep.setFixedWidth(6)
+        sep.setStyleSheet(f"background-color: #336633; border: none;")
+        layout.addWidget(sep, 0, col)
+        col += 1
+        
+        # === CHANNEL STRIP COLUMNS ===
+        for chan_slot in range(1, NUM_CHAN_SLOTS + 1):
+            tint = SECTION_COLORS['chan']['odd'] if chan_slot % 2 == 1 else SECTION_COLORS['chan']['even']
+            
+            for param_key, param_label in CHAN_PARAMS:
+                header = QLabel(f"C{chan_slot}\n{param_label}")
+                header.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+                header.setAlignment(Qt.AlignCenter)
+                header.setFixedSize(28, 36)
+                header.setStyleSheet(f"""
+                    color: #88cc88;
+                    background-color: {tint};
+                    border-bottom: 1px solid {COLORS['border']};
+                """)
+                layout.addWidget(header, 0, col)
+                col += 1
+            
+            if chan_slot < NUM_CHAN_SLOTS:
                 sep = QFrame()
                 sep.setFixedWidth(3)
                 sep.setStyleSheet(f"background-color: {COLORS['background']}; border: none;")
@@ -308,15 +399,87 @@ class ModMatrixWindow(QMainWindow):
                         layout.addWidget(sep, row, col)
                         col += 1
                 
+                # === SECTION SEPARATOR: Gen → Mod ===
+                sep = QFrame()
+                sep.setFixedWidth(6)
+                sep.setStyleSheet(f"background-color: #333366; border: none;")
+                layout.addWidget(sep, row, col)
+                col += 1
+                
+                # === MODULATOR CELLS (P1-P4) ===
+                for target_mod_slot in range(1, NUM_MOD_SLOTS + 1):
+                    for param_key, param_label in MOD_PARAMS:
+                        target_str = f"mod:{target_mod_slot}:{param_key}"
+                        
+                        cell = ModMatrixCell(bus_idx, target_mod_slot, param_key)
+                        cell.set_source_type(slot_type)
+                        cell._gen_tint = 'odd' if target_mod_slot % 2 == 1 else 'even'
+                        cell.clicked.connect(
+                            lambda b=bus_idx, ts=target_str: self._on_ext_cell_clicked(b, ts)
+                        )
+                        cell.right_clicked.connect(
+                            lambda b=bus_idx, ts=target_str: self._on_ext_cell_right_clicked(b, ts)
+                        )
+                        layout.addWidget(cell, row, col)
+                        
+                        key = (bus_idx, target_str)
+                        self.cells[key] = cell
+                        row_cells.append(key)
+                        col += 1
+                    
+                    if target_mod_slot < NUM_MOD_SLOTS:
+                        sep = QFrame()
+                        sep.setFixedWidth(3)
+                        sep.setStyleSheet(f"background-color: {COLORS['background']}; border: none;")
+                        layout.addWidget(sep, row, col)
+                        col += 1
+                
+                # === SECTION SEPARATOR: Mod → Chan ===
+                sep = QFrame()
+                sep.setFixedWidth(6)
+                sep.setStyleSheet(f"background-color: #336633; border: none;")
+                layout.addWidget(sep, row, col)
+                col += 1
+                
+                # === CHANNEL STRIP CELLS ===
+                for chan_slot in range(1, NUM_CHAN_SLOTS + 1):
+                    for param_key, param_label in CHAN_PARAMS:
+                        if param_key in ('ec', 'vb'):
+                            target_str = f"send:{chan_slot}:{param_key}"
+                        else:  # pan
+                            target_str = f"chan:{chan_slot}:{param_key}"
+                        
+                        cell = ModMatrixCell(bus_idx, chan_slot, param_key)
+                        cell.set_source_type(slot_type)
+                        cell._gen_tint = 'odd' if chan_slot % 2 == 1 else 'even'
+                        cell.clicked.connect(
+                            lambda b=bus_idx, ts=target_str: self._on_ext_cell_clicked(b, ts)
+                        )
+                        cell.right_clicked.connect(
+                            lambda b=bus_idx, ts=target_str: self._on_ext_cell_right_clicked(b, ts)
+                        )
+                        layout.addWidget(cell, row, col)
+                        
+                        key = (bus_idx, target_str)
+                        self.cells[key] = cell
+                        row_cells.append(key)
+                        col += 1
+                    
+                    if chan_slot < NUM_CHAN_SLOTS:
+                        sep = QFrame()
+                        sep.setFixedWidth(3)
+                        sep.setStyleSheet(f"background-color: {COLORS['background']}; border: none;")
+                        layout.addWidget(sep, row, col)
+                        col += 1
+                
                 self.cell_grid.append(row_cells)
                 row += 1
                 nav_row += 1
             
             # Add separator row between mod slots
             if mod_slot < NUM_MOD_SLOTS - 1:
-                sep_col = 0
-                total_cols = 1 + NUM_GEN_SLOTS * len(GEN_PARAMS) + (NUM_GEN_SLOTS - 1)
-                for c in range(total_cols):
+                # col already has correct count after building all cells
+                for c in range(col):
                     sep = QFrame()
                     sep.setFixedHeight(2)
                     sep.setStyleSheet(f"background-color: {COLORS['border']};")
@@ -372,7 +535,12 @@ class ModMatrixWindow(QMainWindow):
     def sync_from_state(self):
         """Sync cell states from routing state."""
         for conn in self.routing_state.get_all_connections():
-            cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
+            if conn.is_extended:
+                key = (conn.source_bus, conn.target_str)
+            else:
+                key = (conn.source_bus, conn.target_slot, conn.target_param)
+            
+            cell = self.cells.get(key)
             if cell:
                 cell.set_connection(True, conn.amount)
 
@@ -490,32 +658,148 @@ class ModMatrixWindow(QMainWindow):
         """Handle remove from popup."""
         self.routing_state.remove_connection(bus, slot, param)
     
+    def _on_ext_cell_clicked(self, bus: int, target_str: str):
+        """Handle extended cell left-click: toggle connection."""
+        key = (bus, target_str)
+        self._select_cell_by_key(key)
+        
+        conn = self.routing_state.get_connection(bus, target_str=target_str)
+        
+        if conn:
+            self.routing_state.remove_connection(bus, target_str=target_str)
+        else:
+            new_conn = ModConnection(
+                source_bus=bus,
+                target_str=target_str,
+                depth=1.0,
+                amount=0.5
+            )
+            self.routing_state.add_connection(new_conn)
+    
+    def _on_ext_cell_right_clicked(self, bus: int, target_str: str):
+        """Handle extended cell right-click: show depth popup."""
+        key = (bus, target_str)
+        self._select_cell_by_key(key)
+        
+        conn = self.routing_state.get_connection(bus, target_str=target_str)
+        
+        if not conn:
+            conn = ModConnection(
+                source_bus=bus,
+                target_str=target_str,
+                depth=1.0,
+                amount=0.5
+            )
+            self.routing_state.add_connection(conn)
+        
+        # Get source label
+        mod_slot = bus // OUTPUTS_PER_MOD_SLOT
+        output_idx = bus % OUTPUTS_PER_MOD_SLOT
+        slot_type = self.mod_slot_types[mod_slot]
+        output_labels = self._get_output_labels(slot_type)
+        source_label = f"M{mod_slot + 1}.{output_labels[output_idx]}"
+        
+        # Get target label
+        target_label = self._get_ext_target_label(target_str)
+        
+        # Close existing popup
+        if hasattr(self, '_open_popup') and self._open_popup:
+            self._open_popup.close()
+        
+        popup = ModConnectionPopup(
+            conn, source_label, target_label,
+            get_target_value=None,
+            parent=self
+        )
+        popup.connection_changed.connect(
+            lambda c, ts=target_str: self._on_ext_popup_connection_changed(bus, ts, c)
+        )
+        popup.remove_requested.connect(
+            lambda ts=target_str: self._on_ext_popup_remove(bus, ts)
+        )
+        popup.finished.connect(self._on_popup_closed)
+        
+        self._open_popup = popup
+        
+        cell = self.cells.get(key)
+        if cell:
+            global_pos = cell.mapToGlobal(cell.rect().center())
+            popup.move(global_pos.x() + 20, global_pos.y() - 50)
+        
+        popup.show()
+    
+    def _on_ext_popup_connection_changed(self, bus: int, target_str: str, conn: ModConnection):
+        """Handle extended connection change from popup."""
+        self.routing_state.update_connection(
+            bus, target_str=target_str,
+            depth=conn.depth,
+            amount=conn.amount,
+            offset=conn.offset,
+            polarity=conn.polarity,
+            invert=conn.invert
+        )
+    
+    def _on_ext_popup_remove(self, bus: int, target_str: str):
+        """Handle extended remove from popup."""
+        self.routing_state.remove_connection(bus, target_str=target_str)
+    
+    def _select_cell_by_key(self, key):
+        """Update selection to cell by key (tuple or extended)."""
+        self._update_selection_visual(False)
+        
+        for row_idx, row_cells in enumerate(self.cell_grid):
+            for col_idx, cell_key in enumerate(row_cells):
+                if cell_key == key:
+                    self.selected_row = row_idx
+                    self.selected_col = col_idx
+                    self._update_selection_visual(True)
+                    return
+    
     def _on_connection_added(self, conn: ModConnection):
         """Update cell when connection added."""
-        cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
+        if conn.is_extended:
+            key = (conn.source_bus, conn.target_str)
+        else:
+            key = (conn.source_bus, conn.target_slot, conn.target_param)
+        
+        cell = self.cells.get(key)
         if cell:
             cell.set_connection(True, conn.amount)
+        
+        # Update ext routes list if extended
+        if conn.is_extended:
+            self._update_ext_routes_list()
     
     def _on_connection_removed(self, conn):
         """Update cell when connection removed."""
-        # Only update UI for generator routes (extended routes have no cells)
-        if not conn.is_extended:
-            cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
-            if cell:
-                cell.set_connection(False)
+        if conn.is_extended:
+            key = (conn.source_bus, conn.target_str)
+        else:
+            key = (conn.source_bus, conn.target_slot, conn.target_param)
+        
+        cell = self.cells.get(key)
+        if cell:
+            cell.set_connection(False)
+        
         # Close popup if it was showing this connection
         if hasattr(self, '_open_popup') and self._open_popup:
             self._open_popup.close()
         
-        # Update extended routes list if this was an extended route
+        # Update ext routes list if extended
         if conn.is_extended:
             self._update_ext_routes_list()
     
     def _on_connection_changed(self, conn: ModConnection):
         """Update cell and popup when connection parameters change."""
-        cell = self.cells.get((conn.source_bus, conn.target_slot, conn.target_param))
+        if conn.is_extended:
+            key = (conn.source_bus, conn.target_str)
+        else:
+            key = (conn.source_bus, conn.target_slot, conn.target_param)
+        
+        cell = self.cells.get(key)
         if cell:
             cell.set_connection(True, conn.amount)
+        
         # Sync popup if open
         if hasattr(self, '_open_popup') and self._open_popup:
             self._open_popup.sync_from_state(conn)
@@ -559,12 +843,10 @@ class ModMatrixWindow(QMainWindow):
                         padding-right: 6px;
                     """)
                 
-                # Update cell colours
-                for gen_slot in range(1, NUM_GEN_SLOTS + 1):
-                    for param_key, _ in GEN_PARAMS:
-                        cell = self.cells.get((bus_idx, gen_slot, param_key))
-                        if cell:
-                            cell.set_source_type(slot_type)
+                # Update ALL cell colours for this row (gen, mod, chan)
+                for key, cell in self.cells.items():
+                    if key[0] == bus_idx:
+                        cell.set_source_type(slot_type)
     
     # ========================================
     # KEYBOARD NAVIGATION
@@ -737,41 +1019,67 @@ class ModMatrixWindow(QMainWindow):
         key = self._get_selected_key()
         if key:
             self._on_cell_right_clicked(*key)
-    
+
     def _set_selected_amount(self, amount: float):
         """Set amount for selected cell (creates connection if needed)."""
         key = self._get_selected_key()
         if not key:
             return
-        
-        bus, slot, param = key
-        conn = self.routing_state.get_connection(bus, slot, param)
-        
-        if conn:
-            self.routing_state.set_amount(bus, slot, param, amount)
+
+        if len(key) == 3:
+            # Generator route: (bus, slot, param)
+            bus, slot, param = key
+            conn = self.routing_state.get_connection(bus, slot, param)
+
+            if conn:
+                self.routing_state.set_amount(bus, slot, param, amount)
+            else:
+                new_conn = ModConnection(
+                    source_bus=bus,
+                    target_slot=slot,
+                    target_param=param,
+                    amount=amount
+                )
+                self.routing_state.add_connection(new_conn)
         else:
-            # Create new connection with this amount
-            new_conn = ModConnection(
-                source_bus=bus,
-                target_slot=slot,
-                target_param=param,
-                amount=amount
-            )
-            self.routing_state.add_connection(new_conn)
+            # Extended route: (bus, target_str)
+            bus, target_str = key
+            conn = self.routing_state.get_connection(bus, target_str=target_str)
+
+            if conn:
+                self.routing_state.update_connection(bus, target_str=target_str, amount=amount)
+            else:
+                new_conn = ModConnection(
+                    source_bus=bus,
+                    target_str=target_str,
+                    amount=amount
+                )
+                self.routing_state.add_connection(new_conn)
 
     def _adjust_selected_offset(self, delta: int):
         """Adjust offset for selected cell by delta (-10 or +10)."""
         key = self._get_selected_key()
         if not key:
             return
-        
-        bus, slot, param = key
-        conn = self.routing_state.get_connection(bus, slot, param)
-        
-        if conn:
-            current = int(conn.offset * 100)
-            new_offset = max(-100, min(100, current + delta))
-            self.routing_state.set_offset(bus, slot, param, new_offset / 100.0) 
+
+        if len(key) == 3:
+            # Generator route: (bus, slot, param)
+            bus, slot, param = key
+            conn = self.routing_state.get_connection(bus, slot, param)
+
+            if conn:
+                current = int(conn.offset * 100)
+                new_offset = max(-100, min(100, current + delta))
+                self.routing_state.set_offset(bus, slot, param, new_offset / 100.0)
+        else:
+            # Extended route: (bus, target_str)
+            bus, target_str = key
+            conn = self.routing_state.get_connection(bus, target_str=target_str)
+
+            if conn:
+                current = int(conn.offset * 100)
+                new_offset = max(-100, min(100, current + delta))
+                self.routing_state.update_connection(bus, target_str=target_str, offset=new_offset / 100.0)
 
     def _clear_selection(self):
         """Clear selection visual."""
@@ -951,11 +1259,13 @@ class ModMatrixWindow(QMainWindow):
             target_str=conn.target_str
         )
         self._update_ext_routes_list()
-    
+
     def _update_ext_routes_list(self):
         """Refresh the extended routes list widget."""
+        if not hasattr(self, 'ext_routes_list'):
+            return  # Section hidden - using grid columns instead
         self.ext_routes_list.clear()
-        
+
         ext_conns = self.routing_state.get_extended_connections()
         
         # Update counter
@@ -994,13 +1304,19 @@ class ModMatrixWindow(QMainWindow):
             return f"{fx_name} {param_label}"
         
         elif target_type == 'mod':
-            param_label = param.replace('_', ' ').title()
-            return f"MOD {identifier} {param_label}"
+            param_labels = {'p1': 'P1', 'p2': 'P2', 'p3': 'P3', 'p4': 'P4'}
+            param_label = param_labels.get(param, param.upper())
+            return f"M{identifier} {param_label}"
         
         elif target_type == 'send':
             send_labels = {'ec': 'Echo', 'vb': 'Verb'}
             send_name = send_labels.get(param, param.upper())
-            return f"CH{identifier} {send_name}"
+            return f"C{identifier} {send_name}"
+        
+        elif target_type == 'chan':
+            param_labels = {'pan': 'Pan'}
+            param_label = param_labels.get(param, param.upper())
+            return f"C{identifier} {param_label}"
         
         return target_str
 

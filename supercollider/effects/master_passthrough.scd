@@ -189,7 +189,7 @@ Compressor sidechain:
         Out.ar(outBus, sigPost);
     }).add;
     
-    "  ✓ Master passthrough SynthDef ready (EQ, compressor, limiter)".postln;
+    "  [x] Master passthrough SynthDef ready (EQ, compressor, limiter)".postln;
 };
 
 ~startMasterPassthrough = {
@@ -417,5 +417,5 @@ Compressor sidechain:
         \compBypass, ~compBypass
     ], ~masterGroup, \addToTail);
     
-    "  ✓ Master passthrough running (EQ ON, compressor ON, limiter ON)".postln;
+    "  [x] Master passthrough running (EQ ON, compressor ON, limiter ON)".postln;
 };

@@ -8,10 +8,10 @@
 //        ~addExtModRoute.(bus, "mod:2:p2", depth, amt, off, pol, inv)  // NEW
 //
 // P1-P4 targets use ~setModParam which does type-aware mapping:
-//   mod:N:p1 → rate (all types)
-//   mod:N:p2 → globalWave (LFO) / globalAtk (ARSeq+) / globalTension (Sauce)
-//   mod:N:p3 → pattern (LFO) / globalRel (ARSeq+) / calm (Sauce)
-//   mod:N:p4 → globalPolarity (all types)
+//   mod:N:p1 -> rate (all types)
+//   mod:N:p2 -> globalWave (LFO) / globalAtk (ARSeq+) / globalTension (Sauce)
+//   mod:N:p3 -> pattern (LFO) / globalRel (ARSeq+) / calm (Sauce)
+//   mod:N:p4 -> globalPolarity (all types)
 //
 // Part of: Mod Matrix Expansion (MOD_MATRIX_EXPANSION_SPEC_v1.6.1)
 // ============================================================================
@@ -215,7 +215,7 @@
         invert: invert
     );
     
-    ("Extended mod route added: bus % → % [slot %]".format(sourceBus, targetStr, idx)).postln;
+    ("Extended mod route added: bus % -> % [slot %]".format(sourceBus, targetStr, idx)).postln;
     
     if(~extTargets.size == 1 and: { ~extModApplyTask.isNil }) {
         ~startExtModApplyTask.();
@@ -286,8 +286,8 @@
         
         // v1.7: P1-P4 use ~setModParam for type-aware mapping
         if(#[\p1, \p2, \p3, \p4].includes(param)) {
-            // slot is 0-indexed here, ~setModParam expects 1-indexed
-            ~setModParam.(slot + 1, param.asString, value);
+            // slot is already 1-indexed from target string (mod:1:p1 = M1)
+            ~setModParam.(slot, param.asString, value);
             ^nil;
         };
         
@@ -333,11 +333,11 @@
         
         // v1.6.1: Map UI names to actual SC synth args
         paramSym = switch(param,
-            \type,   { \circuit },   // HEAT: type → circuit
-            \fbk,    { \feedback },  // ECHO: fbk → feedback
-            \spr,    { \spring },    // ECHO: spr → spring  
-            \siz,    { \size },      // REVERB: siz → size
-            \dec,    { \decay },     // REVERB: dec → decay
+            \type,   { \circuit },   // HEAT: type -> circuit
+            \fbk,    { \feedback },  // ECHO: fbk -> feedback
+            \spr,    { \spring },    // ECHO: spr -> spring  
+            \siz,    { \size },      // REVERB: siz -> size
+            \dec,    { \decay },     // REVERB: dec -> decay
             { param }
         );
         

@@ -64,7 +64,7 @@ Handles device listing, selection, and switching
                     ~setupChannelMeterForward.();  // Note: was misspelled as ~startChannelMeterForwarding
                     
                     "".postln;
-                    ("✓ Audio device now: " ++ deviceName).postln;
+                    ("[x] Audio device now: " ++ deviceName).postln;
                     "========================================".postln;
                     
                     // Notify Python we're ready
@@ -72,10 +72,10 @@ Handles device listing, selection, and switching
                 };
             };
         }, {
-            ("  ⚠ Device not found: " ++ deviceName).postln;
+            ("  ? Device not found: " ++ deviceName).postln;
             ~pythonAddr.sendMsg('/noise/audio/device/error', "Device not found: " ++ deviceName);
         });
     }, '/noise/audio/device/set');
     
-    "  ✓ Audio device handlers ready".postln;
+    "  [x] Audio device handlers ready".postln;
 };

@@ -60,13 +60,13 @@ OSC messages to Python:
         try {
             MIDIClient.init;
             MIDIIn.disconnectAll;  // Disconnect again after init
-            "  ✓ MIDI client initialized (all inputs disconnected)".postln;
+            "  [x] MIDI client initialized (all inputs disconnected)".postln;
         } { |error|
-            "  ✗ MIDI client init failed".postln;
+            "  [ ] MIDI client init failed".postln;
         };
     }.defer(0.5);
     
-    "  ✓ MIDI setup complete".postln;
+    "  [x] MIDI setup complete".postln;
 };
 
 // Connect MIDI and set up handlers
@@ -102,7 +102,7 @@ OSC messages to Python:
             ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val);
         });
         
-        "  ✓ MIDI handlers active".postln;
+        "  [x] MIDI handlers active".postln;
     }, {
         ~midiConnected = false;
         ~midiPortIndex = -1;
@@ -136,7 +136,7 @@ OSC messages to Python:
         ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val);
     });
 
-    "  ✓ MIDI handlers active (all devices)".postln;
+    "  [x] MIDI handlers active (all devices)".postln;
 };
 
 // Handle MIDI note on
@@ -274,5 +274,5 @@ SynthDef(\midiRetrigContinuous, { |trigBus=0, rate=30, amp=1|
         });
     }, '/noise/gen/midiRetrig');
     
-    "  ✓ MIDI OSC handlers ready".postln;
+    "  [x] MIDI OSC handlers ready".postln;
 };

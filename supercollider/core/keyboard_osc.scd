@@ -93,7 +93,7 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
         }, path);
     };
     
-    "  ✓ Keyboard Overlay OSC handlers ready".postln;
+    "  [x] Keyboard Overlay OSC handlers ready".postln;
 };
 
 // Call setup (safe to call multiple times - OSCdef replaces existing)

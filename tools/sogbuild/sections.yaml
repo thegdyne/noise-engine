@@ -1,0 +1,8 @@
+assemble:
+  out_file: build/00_all.scd
+  order:
+    - 00_all.scd
+
+lint:
+  forbid_words: true
+  forbid_unary_assign: true

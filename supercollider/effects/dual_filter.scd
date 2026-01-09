@@ -3,8 +3,8 @@ Dual Filter - Sherman-inspired
 Dual resonant filters with tube overdrive, INSERT-only
 
 Signal flow:
-  masterBus → HPF(dc) → Drive → Filter1 ─┬─ Serial ─→ Filter2 → Mix → Output
-                                         └─ Parallel → Mix → Output
+  masterBus -> HPF(dc) -> Drive -> Filter1 ??? Serial ?-> Filter2 -> Mix -> Output
+                                         ?? Parallel -> Mix -> Output
 
 Features:
   - Tube-style drive stage
@@ -92,7 +92,7 @@ Features:
         f2base = freq2.linexp(0, 1, 20, 20000);
         
         // Apply sync modulation: sweeps from (1-amt)*freq up to freq
-        // amt=0 → no sweep, amt=1 → full sweep from near-zero to freq
+        // amt=0 -> no sweep, amt=1 -> full sweep from near-zero to freq
         f1hz = f1base * ((1 - syncAmt) + (syncAmt * lfo1));
         f2hz = f2base * ((1 - syncAmt) + (syncAmt * lfo2));
         
@@ -131,14 +131,14 @@ Features:
             RHPF.ar(sig, f1hz, rq1)    // HP
         ]);
         
-        // Filter 2 - Serial path (Filter1 → Filter2)
+        // Filter 2 - Serial path (Filter1 -> Filter2)
         filtSerial = Select.ar(mode2, [
             RLPF.ar(filt1, f2hz, rq2),
             BPF.ar(filt1, f2hz, rq2),
             RHPF.ar(filt1, f2hz, rq2)
         ]);
         
-        // Filter 2 - Parallel path (input → Filter2, then mix with Filter1)
+        // Filter 2 - Parallel path (input -> Filter2, then mix with Filter1)
         filt2 = Select.ar(mode2, [
             RLPF.ar(sig, f2hz, rq2),
             BPF.ar(sig, f2hz, rq2),
@@ -161,7 +161,7 @@ Features:
         ReplaceOut.ar(outBus, sig);
     }).add;
     
-    "  ✓ Dual Filter SynthDef ready".postln;
+    "  [x] Dual Filter SynthDef ready".postln;
 };
 
 ~startDualFilter = {
@@ -191,7 +191,7 @@ Features:
         \bypass, ~fbBypass
     ], target, action);
     
-    "  ✓ Dual Filter running (bypassed)".postln;
+    "  [x] Dual Filter running (bypassed)".postln;
 };
 
 ~setupDualFilterOSC = {
@@ -288,5 +288,5 @@ Features:
         ("  Dual Filter: " ++ if(val == 0, "ON", "BYPASSED")).postln;
     }, '/noise/master/fb/bypass');
     
-    "  ✓ Dual Filter OSC handlers ready".postln;
+    "  [x] Dual Filter OSC handlers ready".postln;
 };

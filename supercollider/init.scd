@@ -20,7 +20,7 @@ s.options.memSize = 65536;  // More memory for buffers
 // This ensures SC always listens on configured port
 (
 thisProcess.openUDPPort(~scListenPort);
-("✓ OSC port forced to " ++ ~scListenPort).postln;
+("[x] OSC port forced to " ++ ~scListenPort).postln;
 );
 
 s.waitForBoot({
@@ -96,7 +96,7 @@ s.waitForBoot({
                         ("  Pack: " ++ packDir.folderName).postln;
                         packFiles.do({ |file|
                             file.fullPath.load;
-                            ("    ✓ " ++ file.fileNameWithoutExtension).postln;
+                            ("    [x] " ++ file.fileNameWithoutExtension).postln;
                         });
                         ~packGeneratorCount = ~packGeneratorCount + packFiles.size;
                     });
@@ -111,7 +111,7 @@ s.waitForBoot({
     ~generatorFiles = PathName(~generatorPath).files.select({ |f| f.extension == "scd" });
     ~generatorFiles.do({ |file|
         file.fullPath.load;
-        ("  ✓ " ++ file.fileNameWithoutExtension).postln;
+        ("  [x] " ++ file.fileNameWithoutExtension).postln;
     });
     
     // Load mod slots (after clock exists for ~clockTrigBus reference)
@@ -194,15 +194,15 @@ s.waitForBoot({
     
     "".postln;
     "========================================".postln;
-    "✓ Noise Engine ready!".postln;
-    "✓ Core modules loaded".postln;
-    ("✓ " ++ ~generatorFiles.size ++ " core generators loaded").postln;
+    "[x] Noise Engine ready!".postln;
+    "[x] Core modules loaded".postln;
+    ("[x] " ++ ~generatorFiles.size ++ " core generators loaded").postln;
     if(~packGeneratorCount.notNil && (~packGeneratorCount > 0), {
-        ("✓ " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
+        ("[x] " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
     });
-    "✓ 4 mod source slots ready".postln;
-    "✓ 8 cross-mod buses ready".postln;
-    ("✓ OSC listening on port " ++ ~scListenPort).postln;
+    "[x] 4 mod source slots ready".postln;
+    "[x] 8 cross-mod buses ready".postln;
+    ("[x] OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
     "".postln;
 });

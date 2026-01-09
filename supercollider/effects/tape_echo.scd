@@ -3,8 +3,8 @@ Tape Echo - RE-201 Inspired Delay
 Tape delay with degradation, spring reverb, and verb bus cross-feed
 
 Signal flow:
-  echoSendBus → PreEQ → Delay+Feedback(sat+LPF+wow) → Spring → Output
-                                                          ↓
+  echoSendBus -> PreEQ -> Delay+Feedback(sat+LPF+wow) -> Spring -> Output
+                                                          v
                                                     verbSendBus (cross-feed)
 
 Features:
@@ -87,7 +87,7 @@ Features:
         Out.ar(verbSendBus, output * verbSend);
     }).add;
     
-    "  ✓ Tape Echo SynthDef ready".postln;
+    "  [x] Tape Echo SynthDef ready".postln;
 };
 
 ~startTapeEcho = {
@@ -103,7 +103,7 @@ Features:
         \verbSend, ~echoVerbSend
     ], ~fxGroup, \addToTail);
     
-    "  ✓ Tape Echo running".postln;
+    "  [x] Tape Echo running".postln;
 };
 
 ~setupTapeEchoOSC = {
@@ -156,5 +156,5 @@ Features:
         };
     }, '/noise/master/echo/verb_send');
     
-    "  ✓ Tape Echo OSC handlers ready".postln;
+    "  [x] Tape Echo OSC handlers ready".postln;
 };

@@ -114,5 +114,5 @@ Paths:
         "  Mod scope streaming stopped".postln;
     };
     
-    "  ✓ Mod OSC handlers ready (4 outputs per slot)".postln;
+    "  [x] Mod OSC handlers ready (4 outputs per slot)".postln;
 };

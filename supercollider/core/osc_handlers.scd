@@ -308,5 +308,5 @@ All OSC message routing
             });
         });
     }, '/noise/strip/verb/send');
-    "  ✓ OSC handlers ready".postln;
+    "  [x] OSC handlers ready".postln;
 };

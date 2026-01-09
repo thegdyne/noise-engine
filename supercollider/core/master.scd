@@ -11,7 +11,7 @@ See docs/MASTER_OUT.md for full roadmap
     // Master volume (linear, 0-1)
     ~masterVolume = 0.8;
     
-    "  ✓ Master section ready".postln;
+    "  [x] Master section ready".postln;
 };
 
 // OSC handler for master volume
@@ -27,5 +27,5 @@ See docs/MASTER_OUT.md for full roadmap
         };
     }, '/noise/master/volume');
     
-    "  ✓ Master OSC handlers ready".postln;
+    "  [x] Master OSC handlers ready".postln;
 };

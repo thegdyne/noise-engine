@@ -99,7 +99,7 @@ scListenPort = (cfg[\scListenPort] ? 57120).asInteger.max(1024);
 
 try {
     thisProcess.openUDPPort(scListenPort);
-    ("✓ OSC port forced to " ++ scListenPort ++ " (NetAddr.langPort=" ++ NetAddr.langPort ++ ")").postln;
+    ("[x] OSC port forced to " ++ scListenPort ++ " (NetAddr.langPort=" ++ NetAddr.langPort ++ ")").postln;
 } { |e|
     "NoiseEngine: openUDPPort FAILED".warn;
     e.reportError;

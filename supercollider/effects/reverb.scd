@@ -3,7 +3,7 @@ Reverb - Clean Plate/Room
 Spatial ambience separate from Tape Echo character
 
 Signal flow:
-  verbSendBus → HPF (80Hz) → FreeVerb → LPF (tone) → verbReturnBus
+  verbSendBus -> HPF (80Hz) -> FreeVerb -> LPF (tone) -> verbReturnBus
 */
 
 ~setupReverb = {
@@ -45,7 +45,7 @@ Signal flow:
         Out.ar(outBus, verb);
     }).add;
     
-    "  ✓ Reverb SynthDef ready".postln;
+    "  [x] Reverb SynthDef ready".postln;
 };
 
 ~startReverb = {
@@ -57,7 +57,7 @@ Signal flow:
         \tone, ~verbTone
     ], ~fxGroup, \addToTail);
     
-    "  ✓ Reverb running".postln;
+    "  [x] Reverb running".postln;
 };
 
 ~setupReverbOSC = {
@@ -85,5 +85,5 @@ Signal flow:
         };
     }, '/noise/master/verb/tone');
     
-    "  ✓ Reverb OSC handlers ready".postln;
+    "  [x] Reverb OSC handlers ready".postln;
 };

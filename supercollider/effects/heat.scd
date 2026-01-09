@@ -3,7 +3,7 @@ Heat - Saturation Module
 Analog-style saturation with 4 circuit presets
 
 Signal flow:
-  Input → HPF (DC) → PreGain → Waveshaper → LPF (HF loss) → PostGain → Mix → Output
+  Input -> HPF (DC) -> PreGain -> Waveshaper -> LPF (HF loss) -> PostGain -> Mix -> Output
 
 Circuits (same topology, different coefficients):
   0: CLEAN  - Subtle mixer warmth
@@ -91,7 +91,7 @@ Circuits (same topology, different coefficients):
         ReplaceOut.ar(outBus, sig);
     }).add;
     
-    "  ✓ Heat SynthDef ready".postln;
+    "  [x] Heat SynthDef ready".postln;
 };
 
 ~startHeat = {
@@ -104,7 +104,7 @@ Circuits (same topology, different coefficients):
         \bypass, ~heatBypass
     ], ~masterGroup, \addToHead);  // Head of master = first in chain
     
-    "  ✓ Heat running (bypassed)".postln;
+    "  [x] Heat running (bypassed)".postln;
 };
 
 ~setupHeatOSC = {
@@ -142,5 +142,5 @@ Circuits (same topology, different coefficients):
         ("  Heat: " ++ if(val == 0, "ON", "BYPASSED")).postln;
     }, '/noise/master/heat/bypass');
     
-    "  ✓ Heat OSC handlers ready".postln;
+    "  [x] Heat OSC handlers ready".postln;
 };

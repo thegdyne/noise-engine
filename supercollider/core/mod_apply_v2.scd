@@ -30,7 +30,7 @@ Mapped-space modulation:
     
     // Parameter config: [minVal, maxVal, curve, octRange]
     // curve: 0=linear, 1=exponential (for modulation behavior)
-    // octRange: octaves of sweep for exp mod (e.g. 4 = ±4 octaves at 100% depth)
+    // octRange: octaves of sweep for exp mod (e.g. 4 = +/-4 octaves at 100% depth)
     // MUST MATCH Python GENERATOR_PARAMS - Python is SSOT
     ~paramConfig = Dictionary.new;
     ~paramConfig[\cutoff] = [20, 16000, 1, 4];      // exp mod, 4 octaves
@@ -190,7 +190,7 @@ Mapped-space modulation:
         synth;
     };
     
-    // Initialize passthrough synths for all slots × params
+    // Initialize passthrough synths for all slots x params
     ~initPassthroughs = {
         "Creating passthrough synths (40 total, .set() only updates)...".postln;
         8.do { |i|
@@ -199,7 +199,7 @@ Mapped-space modulation:
                 ~createModApply.(slot, param);
             };
         };
-        "  ✓ 40 modApply synths created (never rebuilt)".postln;
+        "  [x] 40 modApply synths created (never rebuilt)".postln;
     };
     
     // Find slot index for a source bus, or first free slot
@@ -258,7 +258,7 @@ Mapped-space modulation:
             ("invert" ++ slotIdx).asSymbol, invert
         );
         
-        ("Mod route: bus " ++ sourceBus ++ " → slot " ++ targetSlot ++ " " ++ targetParam ++ 
+        ("Mod route: bus " ++ sourceBus ++ " -> slot " ++ targetSlot ++ " " ++ targetParam ++ 
          " [idx=" ++ slotIdx ++ ", d=" ++ depth ++ ", a=" ++ amount ++ ", o=" ++ offset ++
          ", p=" ++ polarity ++ ", i=" ++ invert ++ "]").postln;
         
@@ -396,7 +396,7 @@ Mapped-space modulation:
         "1. Set CUT slider to different positions".postln;
         "2. Modulation should center around slider position".postln;
         ~addModRoute.(0, 1, \cutoff, 0.5, 1.0, 0.0, 0, 0);  // bipolar, no offset, no invert
-        "Route: MOD1.A → GEN1 cutoff (bipolar, depth=0.5)".postln;
+        "Route: MOD1.A -> GEN1 cutoff (bipolar, depth=0.5)".postln;
         "Run ~stopRelativeMod.() to stop.".postln;
     };
     
@@ -423,5 +423,5 @@ Mapped-space modulation:
         "Run ~stopRelativeMod.() to stop.".postln;
     };
     
-    "  ✓ Mod apply ready (40 synths, .set() only, 4 slots per target)".postln;
+    "  [x] Mod apply ready (40 synths, .set() only, 4 slots per target)".postln;
 };

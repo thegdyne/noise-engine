@@ -107,5 +107,5 @@ Default values are real values (not normalized):
     ~mixerGroup = nil;
     ~masterGroup = nil;
     
-    "  ✓ Buses ready (% clock rates, % gen buses, user params for relative mod)".format(~clockRates.size, ~genBus.size).postln;
+    "  [x] Buses ready (% clock rates, % gen buses, user params for relative mod)".format(~clockRates.size, ~genBus.size).postln;
 };
