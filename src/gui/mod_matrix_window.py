@@ -539,11 +539,9 @@ class ModMatrixWindow(QMainWindow):
         return legend
     
     def _get_output_labels(self, slot_type: str) -> list:
-        """Get output labels for a mod slot type."""
-        if slot_type == 'Sloth':
-            return ['X', 'Y', 'Z', 'R']
-        else:  # LFO or Empty
-            return ['A', 'B', 'C', 'D']
+        """Get output labels for a mod slot type (from SSOT config)."""
+        from src.config import MOD_OUTPUT_LABELS
+        return MOD_OUTPUT_LABELS.get(slot_type, ['A', 'B', 'C', 'D'])
     
     def _get_slot_color(self, slot_type: str) -> str:
         """Get colour for a mod slot type."""
