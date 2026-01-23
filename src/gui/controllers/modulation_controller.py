@@ -621,6 +621,18 @@ class ModulationController:
         return 0.5
     
     def _on_mod_slot_type_changed_for_matrix(self, slot_id: int, gen_name: str):
-        """Update matrix window when mod slot type changes."""
+        """Update matrix window and re-apply modulation visualization when mod slot type changes."""
         if self.main.mod_matrix_window:
             self.main.mod_matrix_window.update_mod_slot_type(slot_id, gen_name)
+
+        # Re-apply modulation visualization for any extended routes targeting this slot
+        # The sliders are recreated when the type changes, so we need to re-set the ranges
+        for param in ["p1", "p2", "p3", "p4"]:
+            target_str = f"mod:{slot_id}:{param}"
+            # Check if any routes target this
+            connections = [c for c in self.main.mod_routing.get_extended_connections()
+                          if c.target_str == target_str]
+            if connections:
+                # Use QTimer to let the new UI settle before updating
+                from PyQt5.QtCore import QTimer
+                QTimer.singleShot(50, lambda t=target_str: self._update_mod_slider_mod_range(t))
