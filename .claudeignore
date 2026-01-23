@@ -1,0 +1,192 @@
+# ============================================================
+# Noise Engine .claudeignore
+# Purpose: Reduce context noise for Claude AI sessions
+# Philosophy: Include what's needed for active development,
+#             exclude what's reference-only or generated
+# ============================================================
+
+# ----------------------------------------------------------
+# PYTHON BUILD ARTIFACTS
+# ----------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv312/
+.venv/
+env/
+ENV/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# ----------------------------------------------------------
+# IDE & EDITOR
+# ----------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# ----------------------------------------------------------
+# OS FILES
+# ----------------------------------------------------------
+.DS_Store
+._*
+Thumbs.db
+
+# ----------------------------------------------------------
+# GENERATED / CACHE
+# ----------------------------------------------------------
+.context-cache/
+_utf8_backups_*/
+artifacts/
+PROJECT_CONTEXT.md
+
+# ----------------------------------------------------------
+# PACKS (massive context cost, rarely need full content)
+# Include: core, _example for reference patterns
+# ----------------------------------------------------------
+packs/*/
+!packs/core/
+!packs/_example/
+
+# ----------------------------------------------------------
+# DOCS - ARCHIVED (historical, not active development)
+# ----------------------------------------------------------
+docs/archive/
+
+# ----------------------------------------------------------
+# DOCS - DEMOS (HTML visualizations, not needed for code)
+# ----------------------------------------------------------
+docs/demos/
+
+# ----------------------------------------------------------
+# DOCS - TERTIARY IDEAS (speculative, not active)
+# ----------------------------------------------------------
+docs/TERTIARY IDEA/
+
+# ----------------------------------------------------------
+# DOCS - SESSION SUMMARIES (historical context, read on-demand)
+# ----------------------------------------------------------
+docs/SESSION_SUMMARY_*.md
+docs/rollout/SESSION_SUMMARY_*.md
+docs/rollout/DISCORD_*.md
+
+# ----------------------------------------------------------
+# DOCS - GENERATED HTML (rendered output, not source)
+# ----------------------------------------------------------
+docs/index.html
+docs/noise-engine-manual.html
+docs/process.html
+docs/imaginarium_mindmap.html
+index.html
+
+# ----------------------------------------------------------
+# ANALYSIS (pattern extraction artifacts, not active code)
+# ----------------------------------------------------------
+analysis/
+
+# ----------------------------------------------------------
+# TOOLS - TEST RUNNERS (verbose SC test scaffolding)
+# ----------------------------------------------------------
+tools/sogbuild/
+tools/sauce_of_grav_test_*.scd
+tools/running_source_tests.scd
+
+# ----------------------------------------------------------
+# IMAGINARIUM - TEST IMAGES (binary data, no context value)
+# ----------------------------------------------------------
+imaginarium/test_images/
+
+# ----------------------------------------------------------
+# REFERENCE (static lookups, rarely changes)
+# ----------------------------------------------------------
+reference/
+
+# ----------------------------------------------------------
+# TEST INPUTS (fixture data)
+# ----------------------------------------------------------
+test_inputs/
+
+# ----------------------------------------------------------
+# BRANDING (assets, not code)
+# ----------------------------------------------------------
+branding/
+
+# ----------------------------------------------------------
+# ASSETS (images, static files)
+# ----------------------------------------------------------
+assets/
+
+# ----------------------------------------------------------
+# SCRIPTS - VERIFICATION (one-off validation scripts)
+# ----------------------------------------------------------
+scripts/imaginarium_*.scd
+scripts/imaginarium_*.py
+
+# ----------------------------------------------------------
+# MIDI MAPPINGS (JSON config, rarely changes)
+# ----------------------------------------------------------
+midi_mappings/
+
+# ----------------------------------------------------------
+# PRESETS (user data, not code)
+# ----------------------------------------------------------
+presets/
+
+# ----------------------------------------------------------
+# PATCHES (user data)
+# ----------------------------------------------------------
+patches/
+
+# ----------------------------------------------------------
+# RECORDINGS
+# ----------------------------------------------------------
+supercollider/recordings/
+
+# ----------------------------------------------------------
+# DEBUG / TEMP FILES
+# ----------------------------------------------------------
+spatial_debug.json
+*.log
+
+# ----------------------------------------------------------
+# LOCK FILES
+# ----------------------------------------------------------
+package-lock.json
+yarn.lock
+poetry.lock
+
+# ----------------------------------------------------------
+# AUDIO FILES (never useful as context)
+# ----------------------------------------------------------
+*.wav
+*.aif
+*.aiff
+*.mp3
+*.ogg
+*.flac
+
+# ----------------------------------------------------------
+# LARGE DATA
+# ----------------------------------------------------------
+*.csv
+*.json.gz
+*.sql
+
+# ----------------------------------------------------------
+# GITHUB WORKFLOWS (rarely edited)
+# ----------------------------------------------------------
+.github/
+
+# ----------------------------------------------------------
+# OPTIONAL: Uncomment if NOT working on these systems
+# ----------------------------------------------------------
+# contracts/              # CDD contracts (enable when doing CDD)
+# imaginarium/tests/      # Imaginarium tests (enable when testing)
+# tests/                  # Main tests (enable when testing)
