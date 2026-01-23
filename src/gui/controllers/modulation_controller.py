@@ -253,6 +253,9 @@ class ModulationController:
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
                 logger.debug(f"Extended mod route added: bus {conn.source_bus} -> {conn.target_str}", component="MOD")
+                # Update modulator slider visualization for mod targets
+                if conn.target_str.startswith("mod:"):
+                    self._update_mod_slider_mod_range(conn.target_str)
             else:
                 # Generator route: use /noise/mod/route/add
                 self.main.osc.client.send_message(
@@ -276,6 +279,9 @@ class ModulationController:
                     [conn.source_bus, conn.target_str]
                 )
                 logger.debug(f"Extended mod route removed: bus {conn.source_bus} -> {conn.target_str}", component="MOD")
+                # Update modulator slider visualization for mod targets
+                if conn.target_str.startswith("mod:"):
+                    self._update_mod_slider_mod_range(conn.target_str)
             else:
                 # Generator route: use /noise/mod/route/remove
                 self.main.osc.client.send_message(
@@ -298,6 +304,11 @@ class ModulationController:
                     [conn.source_bus, conn.target_str,
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
+                # Update modulator slider visualization for mod targets
+                if conn.target_str.startswith("mod:"):
+                    from PyQt5.QtCore import QTimer
+                    target = conn.target_str
+                    QTimer.singleShot(0, lambda t=target: self._update_mod_slider_mod_range(t))
             else:
                 # Generator route: use /noise/mod/route/set
                 self.main.osc.client.send_message(
@@ -399,6 +410,85 @@ class ModulationController:
         
         slider.set_modulation_range(range_min, range_max, range_min, range_max, color)
 
+    def _update_mod_slider_mod_range(self, target_str: str):
+        """Update modulator slider modulation range visualization based on active extended connections.
+
+        Args:
+            target_str: Extended target like "mod:1:p1"
+        """
+        parts = target_str.split(":")
+        if len(parts) < 3 or parts[0] != "mod":
+            return
+
+        slot_id = int(parts[1])
+        param = parts[2]  # e.g., "p1"
+
+        slot = self.main.modulator_grid.get_slot(slot_id)
+        if not slot:
+            return
+
+        # Map p1-p4 to actual slider key
+        slider_key = self._map_mod_param_to_slider(slot.generator_name, param)
+        if not slider_key or slider_key not in slot.param_sliders:
+            return
+
+        slider = slot.param_sliders[slider_key]
+        if not hasattr(slider, 'set_modulation_range'):
+            return
+
+        # Get all extended connections targeting this target_str
+        connections = [c for c in self.main.mod_routing.get_extended_connections()
+                      if c.target_str == target_str]
+
+        if not connections:
+            slider.clear_modulation()
+            return
+
+        # Modulator params are normalized 0-1, linear
+        # Calculate combined modulation range
+        delta_min = 0.0
+        delta_max = 0.0
+
+        for c in connections:
+            r = c.effective_range
+
+            if c.polarity == Polarity.BIPOLAR:
+                mn, mx = -r, +r
+            elif c.polarity == Polarity.UNI_POS:
+                mn, mx = 0.0, +r
+            else:  # UNI_NEG
+                mn, mx = -r, 0.0
+
+            mn += c.offset
+            mx += c.offset
+
+            delta_min += mn
+            delta_max += mx
+
+        # Get current slider normalized value
+        slider_norm = slider.value() / 1000.0
+
+        # Calculate range (clamp to 0-1)
+        range_min = max(0.0, min(1.0, slider_norm + delta_min))
+        range_max = max(0.0, min(1.0, slider_norm + delta_max))
+
+        if range_min > range_max:
+            range_min, range_max = range_max, range_min
+
+        # Color based on source
+        if len(connections) > 1:
+            color = QColor('#00cccc')  # Cyan for multi-source
+        else:
+            conn = connections[0]
+            mod_slot = conn.source_bus // 4 + 1
+            source_slot = self.main.modulator_grid.get_slot(mod_slot)
+            if source_slot and source_slot.generator_name == 'Sloth':
+                color = QColor('#ff8800')  # Orange for Sloth
+            else:
+                color = QColor('#00ff66')  # Green default
+
+        slider.set_modulation_range(range_min, range_max, range_min, range_max, color)
+
     def _on_mod_routes_cleared(self):
         """Handle all routes cleared - send OSC and clear all slider brackets."""
         if self.main.osc_connected:
@@ -406,6 +496,7 @@ class ModulationController:
 
         logger.debug("All mod routes cleared", component="MOD")
 
+        # Clear generator slider modulation
         for slot_id in range(1, 9):
             slot = self.main.generator_grid.get_slot(slot_id)
             if slot:
@@ -414,7 +505,16 @@ class ModulationController:
                 if hasattr(slot, 'custom_sliders'):
                     for slider in slot.custom_sliders:
                         slider.clear_modulation()
-    
+
+        # Clear modulator slider modulation
+        from src.config import MOD_SLOT_COUNT
+        for slot_id in range(1, MOD_SLOT_COUNT + 1):
+            slot = self.main.modulator_grid.get_slot(slot_id)
+            if slot and hasattr(slot, 'param_sliders'):
+                for key, widget in slot.param_sliders.items():
+                    if hasattr(widget, 'clear_modulation'):
+                        widget.clear_modulation()
+
     def _sync_mod_routing_to_sc(self):
         """Sync all mod routing state to SC (called on reconnect)."""
         if not self.main.osc_connected:
