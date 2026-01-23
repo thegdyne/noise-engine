@@ -29,7 +29,10 @@ from PyQt5.QtCore import Qt, pyqtSignal, QSettings, QTimer
 from PyQt5.QtGui import QFont, QColor, QKeySequence
 
 from .mod_matrix_cell import ModMatrixCell
-from .mod_routing_state import ModRoutingState, ModConnection, Polarity
+from .mod_routing_state import (
+    ModRoutingState, ModConnection, Polarity,
+    create_default_connection, DEFAULT_ROUTE_PARAMS
+)
 from .mod_connection_popup import ModConnectionPopup
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT
 
@@ -115,6 +118,15 @@ class ModMatrixWindow(QMainWindow):
         self._nav_direction = (0, 0)  # (row_delta, col_delta)
         self._nav_step = 1  # Step size (modified by Shift/Ctrl)
         self._held_arrow = None
+
+        # ================================================================
+        # Rapid Toggle Coalescing (per spec: Error Handling)
+        # Dirty keys are flushed at end of tick via zero-delay timer
+        # ================================================================
+        self._dirty_ext_keys = {}  # ExtKey -> desired_state (True=add, False=remove)
+        self._coalesce_timer = QTimer(self)
+        self._coalesce_timer.setSingleShot(True)
+        self._coalesce_timer.timeout.connect(self._flush_dirty_ext_keys)
  
         self.setWindowTitle("Mod Matrix")
         self.setMinimumSize(800, 500)
@@ -527,11 +539,9 @@ class ModMatrixWindow(QMainWindow):
         return legend
     
     def _get_output_labels(self, slot_type: str) -> list:
-        """Get output labels for a mod slot type."""
-        if slot_type == 'Sloth':
-            return ['X', 'Y', 'Z', 'R']
-        else:  # LFO or Empty
-            return ['A', 'B', 'C', 'D']
+        """Get output labels for a mod slot type (from SSOT config)."""
+        from src.config import MOD_OUTPUT_LABELS
+        return MOD_OUTPUT_LABELS.get(slot_type, ['A', 'B', 'C', 'D'])
     
     def _get_slot_color(self, slot_type: str) -> str:
         """Get colour for a mod slot type."""
@@ -564,15 +574,19 @@ class ModMatrixWindow(QMainWindow):
         conn = self.routing_state.get_connection(bus, slot, param)
 
         if conn:
+            # Delete-while-open contract: dispose popup first if bound to this key
+            key = (bus, slot, param)
+            if hasattr(self, '_open_popup') and self._open_popup:
+                if hasattr(self._open_popup, 'bound_key') and self._open_popup.bound_key == key:
+                    self._open_popup.dispose()
+                    self._open_popup = None
+
             # Remove existing connection
             self.routing_state.remove_connection(bus, slot, param)
         else:
-            # Add new connection with default depth
-            new_conn = ModConnection(
-                source_bus=bus,
-                target_slot=slot,
-                target_param=param,
-                depth=0.5
+            # Add new connection with shared defaults (Invariant #6)
+            new_conn = create_default_connection(
+                bus, target_slot=slot, target_param=param
             )
             self.routing_state.add_connection(new_conn)
 
@@ -640,16 +654,13 @@ class ModMatrixWindow(QMainWindow):
         """Handle cell right-click: show depth popup for existing connection, or create new."""
         # Update selection to clicked cell
         self._select_cell(bus, slot, param)
-        
+
         conn = self.routing_state.get_connection(bus, slot, param)
-        
+
         if not conn:
-            # No connection - create one first, then open popup
-            conn = ModConnection(
-                source_bus=bus,
-                target_slot=slot,
-                target_param=param,
-                depth=0.5
+            # No connection - create using shared defaults (Invariant #6)
+            conn = create_default_connection(
+                bus, target_slot=slot, target_param=param
             )
             self.routing_state.add_connection(conn)
         
@@ -717,53 +728,82 @@ class ModMatrixWindow(QMainWindow):
         self.routing_state.remove_connection(bus, slot, param)
     
     def _on_ext_cell_clicked(self, bus: int, target_str: str):
-        """Handle extended cell left-click: toggle connection."""
+        """
+        Handle extended cell left-click: toggle connection.
+
+        Per spec:
+        - Mutate routing_state immediately (UI responsive)
+        - If toggling off with popup open: dispose popup synchronously (Delete-while-open)
+        - Track dirty keys for coalescing (OSC via signals is handled by controller)
+        """
         key = (bus, target_str)
         self._select_cell_by_key(key)
-        
+
         conn = self.routing_state.get_connection(bus, target_str=target_str)
-        
+
         if conn:
+            # Delete-while-open contract (per spec): dispose popup first if bound to this key
+            if hasattr(self, '_open_popup') and self._open_popup:
+                if hasattr(self._open_popup, 'bound_key') and self._open_popup.bound_key == key:
+                    self._open_popup.dispose()
+                    self._open_popup = None
+
+            # Remove locally (triggers signal → controller → OSC)
             self.routing_state.remove_connection(bus, target_str=target_str)
         else:
-            new_conn = ModConnection(
-                source_bus=bus,
-                target_str=target_str,
-                depth=1.0,
-                amount=0.5
-            )
+            # Add locally using shared defaults (Invariant #6)
+            new_conn = create_default_connection(bus, target_str=target_str)
             self.routing_state.add_connection(new_conn)
+
+    def _flush_dirty_ext_keys(self):
+        """
+        Flush dirty extended keys at end of tick (coalescing).
+
+        Note: Currently OSC is sent via signals immediately. This method
+        is a placeholder for future optimization to batch OSC operations.
+        """
+        self._dirty_ext_keys.clear()
     
     def _on_ext_cell_right_clicked(self, bus: int, target_str: str):
-        """Handle extended cell right-click: show depth popup."""
+        """
+        Handle extended cell right-click: show depth popup.
+
+        Per spec (Right-click Inactive → Create + Popup):
+        - If route absent: create locally using defaults
+        - OSC add is sent via signal (synchronous in single-threaded Qt)
+        - Only show popup after route exists
+        """
         key = (bus, target_str)
         self._select_cell_by_key(key)
-        
+
         conn = self.routing_state.get_connection(bus, target_str=target_str)
-        
+
         if not conn:
-            conn = ModConnection(
-                source_bus=bus,
-                target_str=target_str,
-                depth=1.0,
-                amount=0.5
-            )
+            # Create route using shared defaults (Invariant #6)
+            conn = create_default_connection(bus, target_str=target_str)
             self.routing_state.add_connection(conn)
-        
+            # Note: OSC add is sent synchronously via signal → controller
+            # Re-fetch to ensure we have the stored connection
+            conn = self.routing_state.get_connection(bus, target_str=target_str)
+            if not conn:
+                # Add failed, don't show popup
+                return
+
         # Get source label
         mod_slot = bus // OUTPUTS_PER_MOD_SLOT
         output_idx = bus % OUTPUTS_PER_MOD_SLOT
         slot_type = self.mod_slot_types[mod_slot]
         output_labels = self._get_output_labels(slot_type)
         source_label = f"M{mod_slot + 1}.{output_labels[output_idx]}"
-        
-        # Get target label
+
+        # Get target label (using spec formatting)
         target_label = self._get_ext_target_label(target_str)
-        
-        # Close existing popup
+
+        # Close existing popup (dispose if open)
         if hasattr(self, '_open_popup') and self._open_popup:
-            self._open_popup.close()
-        
+            self._open_popup.dispose()
+            self._open_popup = None
+
         popup = ModConnectionPopup(
             conn, source_label, target_label,
             get_target_value=None,
@@ -776,14 +816,14 @@ class ModMatrixWindow(QMainWindow):
             lambda ts=target_str: self._on_ext_popup_remove(bus, ts)
         )
         popup.finished.connect(self._on_popup_closed)
-        
+
         self._open_popup = popup
-        
+
         cell = self.cells.get(key)
         if cell:
             global_pos = cell.mapToGlobal(cell.rect().center())
             popup.move(global_pos.x() + 20, global_pos.y() - 50)
-        
+
         popup.show()
     
     def _on_ext_popup_connection_changed(self, bus: int, target_str: str, conn: ModConnection):
@@ -799,6 +839,9 @@ class ModMatrixWindow(QMainWindow):
     
     def _on_ext_popup_remove(self, bus: int, target_str: str):
         """Handle extended remove from popup."""
+        # Popup will close itself (accept()), but we clear reference
+        if hasattr(self, '_open_popup'):
+            self._open_popup = None
         self.routing_state.remove_connection(bus, target_str=target_str)
     
     def _select_cell_by_key(self, key):
@@ -836,15 +879,17 @@ class ModMatrixWindow(QMainWindow):
             key = (conn.source_bus, conn.target_str)
         else:
             key = (conn.source_bus, conn.target_slot, conn.target_param)
-        
+
         cell = self.cells.get(key)
         if cell:
             cell.set_connection(False)
-        
-        # Close popup if it was showing this connection
+
+        # Dispose popup if it was showing this connection (per spec: Delete-while-open)
         if hasattr(self, '_open_popup') and self._open_popup:
-            self._open_popup.close()
-        
+            if hasattr(self._open_popup, 'bound_key') and self._open_popup.bound_key == key:
+                self._open_popup.dispose()
+                self._open_popup = None
+
         # Update ext routes list if extended
         if conn.is_extended:
             self._update_ext_routes_list()
@@ -1062,23 +1107,57 @@ class ModMatrixWindow(QMainWindow):
         return self.cell_grid[self.selected_row][self.selected_col]
     
     def _toggle_selected(self):
-        """Toggle connection at selected cell."""
+        """Toggle connection at selected cell (generator or extended)."""
         key = self._get_selected_key()
-        if key:
+        if not key:
+            return
+
+        if len(key) == 3:
+            # Generator route: (bus, slot, param)
             self._on_cell_clicked(*key)
+        else:
+            # Extended route: (bus, target_str)
+            bus, target_str = key
+            self._on_ext_cell_clicked(bus, target_str)
     
     def _remove_selected(self):
-        """Remove connection at selected cell."""
+        """Remove connection at selected cell (generator or extended)."""
         key = self._get_selected_key()
-        if key:
+        if not key:
+            return
+
+        if len(key) == 3:
+            # Generator route: (bus, slot, param)
             bus, slot, param = key
+            # Delete-while-open contract
+            if hasattr(self, '_open_popup') and self._open_popup:
+                if hasattr(self._open_popup, 'bound_key') and self._open_popup.bound_key == key:
+                    self._open_popup.dispose()
+                    self._open_popup = None
             self.routing_state.remove_connection(bus, slot, param)
+        else:
+            # Extended route: (bus, target_str)
+            bus, target_str = key
+            # Delete-while-open contract
+            if hasattr(self, '_open_popup') and self._open_popup:
+                if hasattr(self._open_popup, 'bound_key') and self._open_popup.bound_key == key:
+                    self._open_popup.dispose()
+                    self._open_popup = None
+            self.routing_state.remove_connection(bus, target_str=target_str)
     
     def _open_depth_popup_for_selected(self):
-        """Open depth popup for selected cell."""
+        """Open depth popup for selected cell (generator or extended)."""
         key = self._get_selected_key()
-        if key:
+        if not key:
+            return
+
+        if len(key) == 3:
+            # Generator route: (bus, slot, param)
             self._on_cell_right_clicked(*key)
+        else:
+            # Extended route: (bus, target_str)
+            bus, target_str = key
+            self._on_ext_cell_right_clicked(bus, target_str)
 
     def _set_selected_amount(self, amount: float):
         """Set amount for selected cell (creates connection if needed)."""
@@ -1094,12 +1173,11 @@ class ModMatrixWindow(QMainWindow):
             if conn:
                 self.routing_state.set_amount(bus, slot, param, amount)
             else:
-                new_conn = ModConnection(
-                    source_bus=bus,
-                    target_slot=slot,
-                    target_param=param,
-                    amount=amount
+                # Create with shared defaults, then set amount
+                new_conn = create_default_connection(
+                    bus, target_slot=slot, target_param=param
                 )
+                new_conn.amount = amount
                 self.routing_state.add_connection(new_conn)
         else:
             # Extended route: (bus, target_str)
@@ -1109,11 +1187,9 @@ class ModMatrixWindow(QMainWindow):
             if conn:
                 self.routing_state.update_connection(bus, target_str=target_str, amount=amount)
             else:
-                new_conn = ModConnection(
-                    source_bus=bus,
-                    target_str=target_str,
-                    amount=amount
-                )
+                # Create with shared defaults, then set amount
+                new_conn = create_default_connection(bus, target_str=target_str)
+                new_conn.amount = amount
                 self.routing_state.add_connection(new_conn)
 
     def _adjust_selected_offset(self, delta: int):
@@ -1369,14 +1445,16 @@ class ModMatrixWindow(QMainWindow):
             return f"M{identifier} {param_label}"
         
         elif target_type == 'send':
+            # Per spec: send:N:ec → CH{N} Echo, send:N:vb → CH{N} Verb
             send_labels = {'ec': 'Echo', 'vb': 'Verb'}
             send_name = send_labels.get(param, param.upper())
-            return f"C{identifier} {send_name}"
-        
+            return f"CH{identifier} {send_name}"
+
         elif target_type == 'chan':
+            # Per spec: chan:N:pan → CH{N} Pan
             param_labels = {'pan': 'Pan'}
             param_label = param_labels.get(param, param.upper())
-            return f"C{identifier} {param_label}"
+            return f"CH{identifier} {param_label}"
         
         return target_str
 

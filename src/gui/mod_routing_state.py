@@ -14,9 +14,83 @@ Supports two routing systems:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Set, Tuple
 from enum import Enum
 from PyQt5.QtCore import QObject, pyqtSignal
+
+
+# ============================================================================
+# EXTENDED_PARAMS: Canonical definition of all extended modulation targets
+# Wire key format: "type:index:param"
+# ============================================================================
+
+# Modulator params: mod:1..4:p1..p4 (16 entries)
+MOD_PARAMS = [
+    (f"mod:{slot}:{param}", f"M{slot} P{param[-1]}")
+    for slot in range(1, 5)
+    for param in ['p1', 'p2', 'p3', 'p4']
+]
+
+# Channel params: sends + pan (24 entries)
+CHAN_PARAMS = [
+    (f"send:{ch}:ec", f"CH{ch} Echo") for ch in range(1, 9)
+] + [
+    (f"send:{ch}:vb", f"CH{ch} Verb") for ch in range(1, 9)
+] + [
+    (f"chan:{ch}:pan", f"CH{ch} Pan") for ch in range(1, 9)
+]
+
+# All extended params: 16 mod + 24 chan = 40 total
+EXTENDED_PARAMS: List[Tuple[str, str]] = MOD_PARAMS + CHAN_PARAMS
+
+# Set of valid extended target wire keys for validation
+VALID_EXT_TARGETS: Set[str] = {wire_key for wire_key, _ in EXTENDED_PARAMS}
+
+
+# ============================================================================
+# DEFAULT_ROUTE_PARAMS: Shared defaults for all new routes (Invariant #6)
+# ============================================================================
+DEFAULT_ROUTE_PARAMS = {
+    'depth': 1.0,
+    'amount': 0.5,
+    'offset': 0.0,
+    'polarity': 0,  # BIPOLAR
+    'invert': False,
+}
+
+
+def make_default_route_params() -> Dict[str, Any]:
+    """Factory function for route defaults (alternative to constant)."""
+    return dict(DEFAULT_ROUTE_PARAMS)
+
+
+def create_default_connection(source_bus: int, *,
+                               target_slot: Optional[int] = None,
+                               target_param: Optional[str] = None,
+                               target_str: Optional[str] = None) -> 'ModConnection':
+    """
+    Create a new ModConnection with default parameters (Invariant #6).
+
+    Use this factory function instead of creating ModConnection directly
+    to ensure consistent defaults across all route creation paths.
+    """
+    params = make_default_route_params()
+    return ModConnection(
+        source_bus=source_bus,
+        target_slot=target_slot,
+        target_param=target_param,
+        target_str=target_str,
+        depth=params['depth'],
+        amount=params['amount'],
+        offset=params['offset'],
+        polarity=Polarity(params['polarity']),
+        invert=params['invert'],
+    )
+
+
+def is_valid_ext_target(target_str: str) -> bool:
+    """Check if target_str is a valid extended target wire key."""
+    return target_str in VALID_EXT_TARGETS
 
 
 class Polarity(Enum):
@@ -44,20 +118,25 @@ def build_send_target(slot: int, send_type: str) -> str:
 
 @dataclass
 class ModConnection:
-    """A single modulation routing connection."""
+    """
+    A single modulation routing connection.
+
+    Default values are derived from DEFAULT_ROUTE_PARAMS (Invariant #6).
+    """
     source_bus: int       # 0-15 (4 slots × 4 outputs)
-    
+
     # Generator targets (existing)
     target_slot: Optional[int] = None      # 1-8 (generator slot)
     target_param: Optional[str] = None     # 'cutoff', 'frequency', 'resonance', etc.
-    
+
     # Extended targets (new)
-    target_str: Optional[str] = None       # 'mod:1:rate', 'fx:heat:drive', 'send:3:ec'
-    
+    target_str: Optional[str] = None       # 'mod:1:p1', 'send:3:ec', 'chan:1:pan'
+
+    # Connection parameters (defaults match DEFAULT_ROUTE_PARAMS)
     depth: float = 1.0    # Always 1.0 (kept for SC compat, not user-facing)
     amount: float = 0.5   # 0.0 to 1.0 (modulation range)
     offset: float = 0.0   # -1.0 to 1.0 (shifts mod range up/down)
-    polarity: Polarity = Polarity.BIPOLAR
+    polarity: Polarity = Polarity.BIPOLAR  # Polarity(0)
     invert: bool = False  # Flip signal before polarity
     
     @property
@@ -309,44 +388,177 @@ class ModRoutingState(QObject):
         self.all_cleared.emit()
     
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize all connections for preset saving."""
+        """
+        Serialize all connections for preset saving.
+
+        Per spec: Generator routes in 'connections', extended in 'ext_mod_routes'.
+        """
         gen_conns = [c.to_dict() for c in self._connections.values() if not c.is_extended]
         ext_conns = [c.to_dict() for c in self._connections.values() if c.is_extended]
-        
+
         return {
             'connections': gen_conns,           # Generator routes (backward compat)
-            'ext_connections': ext_conns,       # Extended routes (new)
+            'ext_mod_routes': ext_conns,        # Extended routes (per spec)
         }
     
     def from_dict(self, data: Dict[str, Any]) -> None:
         """
-        Load connections from preset data.
-        
-        Clears existing connections first.
-        Handles backward compatibility with old format.
+        Load connections from preset data with exact replacement semantics.
+
+        Per spec (5.2 Load):
+        1. Parse preset into desired route sets (validate, deduplicate)
+        2. Clear local state
+        3. Add all desired routes
+        4. Emit signals for each (OSC projection happens via signal handlers)
+
+        Backward compatibility:
+        - Accepts both 'ext_mod_routes' (new) and 'ext_connections' (legacy)
+        - Missing ext field treated as [] (Invariant #11)
+        - Duplicates: later entry overwrites earlier (Invariant #12)
         """
-        self.clear()
-        
-        # Load generator connections (backward compatible)
+        # ----------------------------------------------------------------
+        # 1. Parse preset into desired route sets
+        # ----------------------------------------------------------------
+        desired_gen_conns: Dict[str, ModConnection] = {}  # key -> conn
+        desired_ext_conns: Dict[str, ModConnection] = {}  # key -> conn
+
+        # Generator connections
         for conn_data in data.get('connections', []):
             try:
                 conn = ModConnection.from_dict(conn_data)
-                self._connections[conn.key] = conn
-                self.connection_added.emit(conn)
+                if not conn.is_extended:
+                    # Later entries overwrite earlier (Invariant #12)
+                    desired_gen_conns[conn.key] = conn
             except (KeyError, TypeError, ValueError) as e:
-                print(f"Warning: Invalid connection data: {conn_data} ({e})")
-        
-        # Load extended connections (new)
-        for conn_data in data.get('ext_connections', []):
+                print(f"Warning: Invalid generator connection data: {conn_data} ({e})")
+
+        # Extended connections - try new key first, then legacy
+        ext_data = data.get('ext_mod_routes', data.get('ext_connections', []))
+        for conn_data in ext_data:
             try:
                 conn = ModConnection.from_dict(conn_data)
-                self._connections[conn.key] = conn
-                self.connection_added.emit(conn)
+                if conn.is_extended:
+                    # Validate extended target (Error Handling #1)
+                    target_str = conn.target_str
+                    if not is_valid_ext_target(target_str):
+                        print(f"Warning: Invalid extended target '{target_str}', skipping")
+                        continue
+                    # Later entries overwrite earlier (Invariant #12)
+                    desired_ext_conns[conn.key] = conn
             except (KeyError, TypeError, ValueError) as e:
                 print(f"Warning: Invalid extended connection data: {conn_data} ({e})")
+
+        # ----------------------------------------------------------------
+        # 2. Clear local state (don't emit individual remove signals)
+        # ----------------------------------------------------------------
+        self._connections.clear()
+
+        # ----------------------------------------------------------------
+        # 3. Add all desired routes
+        # ----------------------------------------------------------------
+        for conn in desired_gen_conns.values():
+            self._connections[conn.key] = conn
+            self.connection_added.emit(conn)
+
+        for conn in desired_ext_conns.values():
+            self._connections[conn.key] = conn
+            self.connection_added.emit(conn)
+
+        # Signal that all routes were cleared and replaced
+        self.all_cleared.emit()
     
+    def load_from_preset(self, data: Dict[str, Any]) -> Tuple[
+        List['ModConnection'],  # removed_gen: generator routes to remove from SC
+        List['ModConnection'],  # removed_ext: extended routes to remove from SC
+        List['ModConnection'],  # added_gen: generator routes to add/upsert in SC
+        List['ModConnection'],  # added_ext: extended routes to add/upsert in SC
+    ]:
+        """
+        Load connections from preset with exact replacement semantics.
+
+        Per spec (5.2 Load - exact replacement):
+        1. Parse preset into desired route sets (validate, deduplicate)
+        2. Snapshot current state
+        3. Compute removal sets (key-disjoint from desired)
+        4. Replace local state
+        5. Return deltas for OSC projection
+
+        Returns tuple of (removed_gen, removed_ext, added_gen, added_ext)
+        for the controller to project to the backend.
+        """
+        # ----------------------------------------------------------------
+        # 1. Parse preset into desired route sets
+        # ----------------------------------------------------------------
+        desired_gen: Dict[str, ModConnection] = {}  # key -> conn
+        desired_ext: Dict[str, ModConnection] = {}  # key -> conn
+
+        # Generator connections
+        for conn_data in data.get('connections', []):
+            try:
+                conn = ModConnection.from_dict(conn_data)
+                if not conn.is_extended:
+                    desired_gen[conn.key] = conn  # Later overwrites earlier
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"Warning: Invalid generator connection data: {conn_data} ({e})")
+
+        # Extended connections - try new key first, then legacy
+        ext_data = data.get('ext_mod_routes', data.get('ext_connections', []))
+        for conn_data in ext_data:
+            try:
+                conn = ModConnection.from_dict(conn_data)
+                if conn.is_extended:
+                    # Validate extended target
+                    if conn.target_str and not is_valid_ext_target(conn.target_str):
+                        print(f"Warning: Invalid extended target '{conn.target_str}', skipping")
+                        continue
+                    desired_ext[conn.key] = conn  # Later overwrites earlier
+            except (KeyError, TypeError, ValueError) as e:
+                print(f"Warning: Invalid extended connection data: {conn_data} ({e})")
+
+        # ----------------------------------------------------------------
+        # 2. Snapshot current state
+        # ----------------------------------------------------------------
+        current_gen_keys = {k for k, c in self._connections.items() if not c.is_extended}
+        current_ext_keys = {k for k, c in self._connections.items() if c.is_extended}
+
+        # ----------------------------------------------------------------
+        # 3. Compute removal sets (key-disjoint from desired by construction)
+        # ----------------------------------------------------------------
+        remove_gen_keys = current_gen_keys - set(desired_gen.keys())
+        remove_ext_keys = current_ext_keys - set(desired_ext.keys())
+
+        removed_gen = [self._connections[k] for k in remove_gen_keys]
+        removed_ext = [self._connections[k] for k in remove_ext_keys]
+
+        # ----------------------------------------------------------------
+        # 4. Replace local state (clear then add)
+        # ----------------------------------------------------------------
+        self._connections.clear()
+
+        for conn in desired_gen.values():
+            self._connections[conn.key] = conn
+
+        for conn in desired_ext.values():
+            self._connections[conn.key] = conn
+
+        # ----------------------------------------------------------------
+        # 5. Return deltas for OSC projection
+        # ----------------------------------------------------------------
+        return (
+            removed_gen,
+            removed_ext,
+            list(desired_gen.values()),
+            list(desired_ext.values()),
+        )
+
+    def get_all_keys(self) -> Tuple[Set[str], Set[str]]:
+        """Return (generator_keys, extended_keys) for current connections."""
+        gen_keys = {k for k, c in self._connections.items() if not c.is_extended}
+        ext_keys = {k for k, c in self._connections.items() if c.is_extended}
+        return gen_keys, ext_keys
+
     def __len__(self) -> int:
         return len(self._connections)
-    
+
     def __contains__(self, key: str) -> bool:
         return key in self._connections

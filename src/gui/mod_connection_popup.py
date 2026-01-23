@@ -27,22 +27,39 @@ from .theme import COLORS, FONT_SIZES, MONO_FONT
 
 
 class ModConnectionPopup(QDialog):
-    """Popup dialog for adjusting mod connection parameters."""
-    
+    """
+    Popup dialog for adjusting mod connection parameters.
+
+    Implements the disposal guard contract (per spec):
+    - disposed flag checked first in every handler
+    - disposed prevents all further state changes and OSC sends
+    """
+
     # Signals
     connection_changed = pyqtSignal(object)  # Emits ModConnection on any change
     remove_requested = pyqtSignal()          # Remove connection
-    
-    def __init__(self, connection: ModConnection, source_label: str, target_label: str, 
+
+    def __init__(self, connection: ModConnection, source_label: str, target_label: str,
                  get_target_value=None, parent=None):
         super().__init__(parent)
-        
+
         self.connection = connection
         self.source_label = source_label  # e.g. "M1.A"
         self.target_label = target_label  # e.g. "G1 CUT"
         self.get_target_value = get_target_value  # Callback returning 0-1 slider value
         self._syncing = False  # Prevent feedback during sync
-        
+
+        # Disposal guard flag (per spec: Popup State & Lifecycle)
+        self._disposed = False
+
+        # Key for identity binding (per spec: Invariant #7)
+        # Generator: (source_bus, target_slot, target_param)
+        # Extended: (source_bus, target_str)
+        if connection.is_extended:
+            self._bound_key = (connection.source_bus, connection.target_str)
+        else:
+            self._bound_key = (connection.source_bus, connection.target_slot, connection.target_param)
+
         # Throttle timer for OSC updates
         self._pending_update = False
         self._throttle_timer = QTimer(self)
@@ -210,10 +227,15 @@ class ModConnectionPopup(QDialog):
     
     def sync_from_state(self, conn: ModConnection):
         """Update popup to reflect external changes to the connection."""
-        # Only update if this is our connection
-        if (conn.source_bus == self.connection.source_bus and
-            conn.target_slot == self.connection.target_slot and
-            conn.target_param == self.connection.target_param):
+        # Disposal guard: check first (per spec)
+        if self._disposed:
+            return
+
+        # Only update if this is our connection (check bound key)
+        conn_key = (conn.source_bus, conn.target_str) if conn.is_extended else \
+                   (conn.source_bus, conn.target_slot, conn.target_param)
+
+        if conn_key == self._bound_key:
             self.connection = conn
             self._sync_from_connection()
         
@@ -225,32 +247,82 @@ class ModConnectionPopup(QDialog):
         sign = "+" if offset_pct > 0 else ""
         self.offset_value.setText(f"{sign}{offset_pct}%")
         
+    def dispose(self):
+        """
+        Dispose the popup instance (per spec: Popup State & Lifecycle).
+
+        - Sets disposed = true synchronously
+        - Disables UI input immediately
+        - Stops pending updates
+        - Schedules widget destruction
+        """
+        if self._disposed:
+            return
+
+        self._disposed = True
+
+        # Stop pending updates
+        self._throttle_timer.stop()
+        self._pending_update = False
+
+        # Disable all input
+        self.setEnabled(False)
+
+        # Schedule destruction
+        self.close()
+
+    @property
+    def bound_key(self):
+        """Return the identity key this popup is bound to."""
+        return self._bound_key
+
     def _schedule_update(self):
         """Schedule a throttled update emission."""
+        # Disposal guard: check first (per spec)
+        if self._disposed:
+            return
+
         self._pending_update = True
         if not self._throttle_timer.isActive():
             self._throttle_timer.start(self._throttle_ms)
-            
+
     def _flush_update(self):
         """Emit the pending update."""
+        # Disposal guard: check first (per spec)
+        if self._disposed:
+            self._pending_update = False
+            return
+
         if self._pending_update:
             self._pending_update = False
             self.connection_changed.emit(self.connection)
-            
+
     def _on_amount_changed(self, value: int):
         """Handle amount slider change."""
+        # Disposal guard: check first (per spec)
+        if self._disposed:
+            return
+
         self.connection.amount = value / 100.0
         self._update_value_labels()
         self._schedule_update()
-    
+
     def _on_offset_changed(self, value: int):
         """Handle offset slider change."""
+        # Disposal guard: check first (per spec)
+        if self._disposed:
+            return
+
         self.connection.offset = value / 100.0
         self._update_value_labels()
         self._schedule_update()
-        
+
     def _on_remove_clicked(self):
         """Request connection removal."""
+        # Disposal guard: check first (per spec)
+        if self._disposed:
+            return
+
         self.remove_requested.emit()
         self.accept()
     
@@ -263,8 +335,13 @@ class ModConnectionPopup(QDialog):
     
     def keyPressEvent(self, event):
         """Handle number keys to set amount."""
+        # Disposal guard: check first (per spec)
+        if self._disposed:
+            super().keyPressEvent(event)
+            return
+
         key = event.key()
-        
+
         # 1-9: set amount (10%-90%)
         if Qt.Key_1 <= key <= Qt.Key_9:
             value = (key - Qt.Key_0) * 10  # 10-90

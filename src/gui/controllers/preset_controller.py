@@ -188,8 +188,14 @@ class PresetController:
             self.main.modulator_grid.set_state(state.mod_sources.to_dict())
             self.main.modulation._sync_mod_sources()
 
-        if state.mod_routing.get("connections"):
-            self.main.mod_routing.from_dict(state.mod_routing)
+        # Load mod routing with exact replacement semantics (per spec 5.2)
+        if state.mod_routing.get("connections") or state.mod_routing.get("ext_mod_routes"):
+            self._load_mod_routing_with_osc_projection(state.mod_routing)
+            if self.main.mod_matrix_window:
+                self.main.mod_matrix_window.sync_from_state()
+        elif not state.mod_routing.get("connections"):
+            # Empty preset - clear all routes
+            self.main.mod_routing.clear()
             if self.main.mod_matrix_window:
                 self.main.mod_matrix_window.sync_from_state()
         
@@ -257,3 +263,70 @@ class PresetController:
             name: Preset name
         """
         self._do_save_preset(name, filepath)
+
+    def _load_mod_routing_with_osc_projection(self, mod_routing_data: dict):
+        """
+        Load mod routing with exact replacement semantics and OSC projection.
+
+        Per spec (5.2 Load + 5.5 Backend Projection):
+        1. Parse preset into desired route sets
+        2. Compute removal sets (key-disjoint from desired)
+        3. Replace local state
+        4. Project to backend: removes then adds
+
+        Removes are key-specific (Invariant #13), so even if packets arrive
+        out-of-order, removes cannot delete desired routes.
+        """
+        # Get deltas from load operation
+        removed_gen, removed_ext, added_gen, added_ext = \
+            self.main.mod_routing.load_from_preset(mod_routing_data)
+
+        # Project to backend (best-effort, exceptions logged not fatal)
+        if self.main.osc_connected:
+            # Send removes first
+            for conn in removed_gen:
+                try:
+                    self.main.osc.client.send_message(
+                        OSC_PATHS['mod_route_remove'],
+                        [conn.source_bus, conn.target_slot, conn.target_param]
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send gen route remove: {e}", component="PRESET")
+
+            for conn in removed_ext:
+                try:
+                    self.main.osc.client.send_message(
+                        OSC_PATHS['extmod_remove_route'],
+                        [conn.source_bus, conn.target_str]
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send ext route remove: {e}", component="PRESET")
+
+            # Send adds/upserts
+            for conn in added_gen:
+                try:
+                    self.main.osc.client.send_message(
+                        OSC_PATHS['mod_route_add'],
+                        [conn.source_bus, conn.target_slot, conn.target_param,
+                         conn.depth, conn.amount, conn.offset,
+                         conn.polarity.value, int(conn.invert)]
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send gen route add: {e}", component="PRESET")
+
+            for conn in added_ext:
+                try:
+                    self.main.osc.client.send_message(
+                        OSC_PATHS['extmod_add_route'],
+                        [conn.source_bus, conn.target_str,
+                         conn.depth, conn.amount, conn.offset,
+                         conn.polarity.value, int(conn.invert)]
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send ext route add: {e}", component="PRESET")
+
+            logger.debug(
+                f"Mod routing loaded: -{len(removed_gen)}/{len(removed_ext)} gen/ext, "
+                f"+{len(added_gen)}/{len(added_ext)} gen/ext",
+                component="PRESET"
+            )
