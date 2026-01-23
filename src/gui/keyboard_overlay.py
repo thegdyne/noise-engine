@@ -17,6 +17,7 @@ from PyQt5.QtGui import QFont
 from typing import Optional, Callable, Set
 
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES
+from .widgets import CycleButton
 from .arp_engine import (
     ArpEngine, ArpPattern, ArpSettings,
     ARP_RATE_LABELS, ARP_DEFAULT_RATE_INDEX
@@ -263,44 +264,46 @@ class KeyboardOverlay(QWidget):
         layout.setContentsMargins(12, 4, 12, 4)
         layout.setSpacing(8)
 
-        # Rate button
+        # Rate button (CycleButton with drag support)
         rate_label = QLabel("Rate:")
         rate_label.setFont(QFont(FONT_FAMILY, 10))
         layout.addWidget(rate_label)
 
-        self._arp_rate_btn = QPushButton(ARP_RATE_LABELS[ARP_DEFAULT_RATE_INDEX])
+        self._arp_rate_btn = CycleButton(list(ARP_RATE_LABELS), ARP_DEFAULT_RATE_INDEX)
         self._arp_rate_btn.setFixedSize(50, 24)
         self._arp_rate_btn.setFont(QFont(FONT_FAMILY, 9))
-        self._arp_rate_btn.setToolTip("ARP rate (click to cycle)")
-        self._arp_rate_btn.clicked.connect(self._on_rate_click)
+        self._arp_rate_btn.setToolTip("ARP rate (click or drag)")
+        self._arp_rate_btn.invert_drag = True  # Drag up = faster (higher index)
+        self._arp_rate_btn.index_changed.connect(self._on_rate_changed)
         layout.addWidget(self._arp_rate_btn)
 
         layout.addSpacing(8)
 
-        # Pattern button
+        # Pattern button (CycleButton with drag support)
         pattern_label = QLabel("Pattern:")
         pattern_label.setFont(QFont(FONT_FAMILY, 10))
         layout.addWidget(pattern_label)
 
-        self._arp_pattern_btn = QPushButton("UP")
+        pattern_labels = [ARP_PATTERN_LABELS[p] for p in ARP_PATTERN_ORDER]
+        self._arp_pattern_btn = CycleButton(pattern_labels, 0)
         self._arp_pattern_btn.setFixedSize(44, 24)
         self._arp_pattern_btn.setFont(QFont(FONT_FAMILY, 9))
-        self._arp_pattern_btn.setToolTip("UP/DOWN/UPDOWN/RANDOM/ORDER")
-        self._arp_pattern_btn.clicked.connect(self._on_pattern_click)
+        self._arp_pattern_btn.setToolTip("Pattern (click or drag)")
+        self._arp_pattern_btn.index_changed.connect(self._on_pattern_changed)
         layout.addWidget(self._arp_pattern_btn)
 
         layout.addSpacing(8)
 
-        # Octaves button
+        # Octaves button (CycleButton with drag support)
         oct_label = QLabel("Oct:")
         oct_label.setFont(QFont(FONT_FAMILY, 10))
         layout.addWidget(oct_label)
 
-        self._arp_octaves_btn = QPushButton("1")
+        self._arp_octaves_btn = CycleButton(["1", "2", "3", "4"], 0)
         self._arp_octaves_btn.setFixedSize(32, 24)
         self._arp_octaves_btn.setFont(QFont(FONT_FAMILY, 9))
-        self._arp_octaves_btn.setToolTip("Octave range 1-4")
-        self._arp_octaves_btn.clicked.connect(self._on_octaves_click)
+        self._arp_octaves_btn.setToolTip("Octave range (click or drag)")
+        self._arp_octaves_btn.index_changed.connect(self._on_octaves_changed)
         layout.addWidget(self._arp_octaves_btn)
 
         layout.addSpacing(8)
@@ -558,28 +561,19 @@ class KeyboardOverlay(QWidget):
         # Update UI state
         self._update_arp_ui()
 
-    def _on_rate_click(self):
-        """Cycle through ARP rates."""
-        settings = self._arp_engine.get_settings()
-        new_index = (settings.rate_index + 1) % len(ARP_RATE_LABELS)
-        self._arp_engine.set_rate(new_index)
-        self._arp_rate_btn.setText(ARP_RATE_LABELS[new_index])
+    def _on_rate_changed(self, index: int):
+        """Handle ARP rate change from CycleButton."""
+        self._arp_engine.set_rate(index)
 
-    def _on_pattern_click(self):
-        """Cycle through ARP patterns."""
-        settings = self._arp_engine.get_settings()
-        current_idx = ARP_PATTERN_ORDER.index(settings.pattern)
-        new_idx = (current_idx + 1) % len(ARP_PATTERN_ORDER)
-        new_pattern = ARP_PATTERN_ORDER[new_idx]
+    def _on_pattern_changed(self, index: int):
+        """Handle ARP pattern change from CycleButton."""
+        new_pattern = ARP_PATTERN_ORDER[index]
         self._arp_engine.set_pattern(new_pattern)
-        self._arp_pattern_btn.setText(ARP_PATTERN_LABELS[new_pattern])
 
-    def _on_octaves_click(self):
-        """Cycle through ARP octave range."""
-        settings = self._arp_engine.get_settings()
-        new_octaves = (settings.octaves % 4) + 1
+    def _on_octaves_changed(self, index: int):
+        """Handle ARP octaves change from CycleButton."""
+        new_octaves = index + 1  # Index 0 = 1 octave, etc.
         self._arp_engine.set_octaves(new_octaves)
-        self._arp_octaves_btn.setText(str(new_octaves))
 
     def _on_hold_toggle(self):
         """Toggle ARP hold/latch mode."""
@@ -590,9 +584,10 @@ class KeyboardOverlay(QWidget):
         """Update ARP UI elements to match engine state."""
         settings = self._arp_engine.get_settings()
         self._arp_toggle_btn.setChecked(settings.enabled)
-        self._arp_rate_btn.setText(ARP_RATE_LABELS[settings.rate_index])
-        self._arp_pattern_btn.setText(ARP_PATTERN_LABELS[settings.pattern])
-        self._arp_octaves_btn.setText(str(settings.octaves))
+        self._arp_rate_btn.set_index(settings.rate_index)
+        pattern_idx = ARP_PATTERN_ORDER.index(settings.pattern)
+        self._arp_pattern_btn.set_index(pattern_idx)
+        self._arp_octaves_btn.set_index(settings.octaves - 1)  # Octaves 1-4 -> index 0-3
         self._arp_hold_btn.setChecked(settings.hold)
 
     # -------------------------------------------------------------------------
