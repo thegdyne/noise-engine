@@ -142,7 +142,7 @@ class GeneratorSlot(QWidget):
         self.type_btn.value_changed.connect(self.on_generator_type_changed)
         self.type_btn.setFont(QFont(MONO_FONT, FONT_SIZES["small"]))
         self.type_btn.setStyleSheet(button_style("submenu"))
-        self.type_btn.setToolTip(generator_type)  # R1.1: tooltip shows full name
+        self.type_btn.setToolTip(self.generator_type)  # R1.1: tooltip shows full name
 
         # ----- SEPARATOR -----
         self.separator = QFrame(self)
