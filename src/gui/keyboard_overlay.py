@@ -425,23 +425,28 @@ class KeyboardOverlay(QWidget):
         return frame
 
     def _apply_style(self):
-        """Apply dark theme styling."""
+        """Apply modern themed styling with accent colors."""
+        # Keyboard accent color - magenta/pink for performance energy
+        accent = '#ff00ff'
+        accent_dim = '#aa00aa'
+        accent_bg = '#1a0a1a'
+
         self.setStyleSheet(f"""
             KeyboardOverlay {{
-                background: {COLORS['background']};
-                border: 1px solid {COLORS['border']};
+                background: {COLORS['background_dark']};
+                border: 2px solid {accent_dim};
                 border-radius: 8px;
             }}
 
             #keyboard_header {{
-                background: {COLORS['background_highlight']};
-                border-bottom: 1px solid {COLORS['border']};
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
+                background: {accent_bg};
+                border-bottom: 1px solid {accent_dim};
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
             }}
 
             #keyboard_header QLabel {{
-                color: {COLORS['text_bright']};
+                color: {accent};
             }}
 
             #keyboard_header QPushButton {{
@@ -451,87 +456,117 @@ class KeyboardOverlay(QWidget):
                 color: {COLORS['text']};
             }}
 
+            #keyboard_header QPushButton:hover {{
+                border-color: {accent_dim};
+            }}
+
             #keyboard_header QPushButton:checked {{
-                background: {COLORS['selected']};
-                border-color: {COLORS['selected']};
-                color: {COLORS['background']};
+                background: {accent_bg};
+                border: 1px solid {accent};
+                color: {accent};
             }}
 
             #keyboard_arp_controls {{
-                background: {COLORS['background_dark']};
+                background: {COLORS['background']};
                 border-bottom: 1px solid {COLORS['border']};
             }}
 
             #keyboard_arp_controls QLabel {{
-                color: {COLORS['text']};
+                color: {COLORS['text_bright']};
             }}
 
             #keyboard_arp_controls QPushButton {{
-                background: {COLORS['background']};
+                background: {COLORS['background_highlight']};
                 border: 1px solid {COLORS['border_light']};
                 border-radius: 4px;
-                color: {COLORS['text']};
+                color: {accent};
+            }}
+
+            #keyboard_arp_controls QPushButton:hover {{
+                border-color: {accent_dim};
+                background: {accent_bg};
             }}
 
             #keyboard_arp_controls QPushButton:checked {{
-                background: {COLORS['selected']};
-                border-color: {COLORS['selected']};
-                color: {COLORS['background']};
+                background: {accent_bg};
+                border: 1px solid {accent};
+                color: {accent};
             }}
 
             #keyboard_keys {{
-                background: {COLORS['background']};
+                background: {COLORS['background_dark']};
             }}
 
             #white_key {{
-                background: #e8e8e8;
-                border: 1px solid #999;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #f5f5f5, stop:0.1 #e8e8e8, stop:0.9 #d8d8d8, stop:1 #c8c8c8);
+                border: 1px solid #888;
                 border-radius: 4px;
                 color: #333;
             }}
 
+            #white_key:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #ffffff, stop:0.1 #f0f0f0, stop:0.9 #e0e0e0, stop:1 #d0d0d0);
+                border-color: {accent_dim};
+            }}
+
             #white_key:pressed, #white_key[pressed="true"] {{
-                background: {COLORS['selected']};
-                border-color: {COLORS['border_light']};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 {accent}, stop:0.2 #dd00dd, stop:0.8 #bb00bb, stop:1 #990099);
+                border: 2px solid {accent};
+                color: #fff;
             }}
 
             #black_key {{
-                background: #333;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #404040, stop:0.1 #333333, stop:0.9 #222222, stop:1 #1a1a1a);
                 border: 1px solid #555;
                 border-radius: 4px;
-                color: #ccc;
+                color: #999;
+            }}
+
+            #black_key:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #505050, stop:0.1 #404040, stop:0.9 #303030, stop:1 #252525);
+                border-color: {accent_dim};
             }}
 
             #black_key:pressed, #black_key[pressed="true"] {{
-                background: {COLORS['selected']};
-                border-color: {COLORS['border_light']};
-                color: #000;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 {accent}, stop:0.2 #dd00dd, stop:0.8 #990099, stop:1 #770077);
+                border: 2px solid {accent};
+                color: #fff;
             }}
 
             #keyboard_targets {{
-                background: {COLORS['background']};
+                background: {COLORS['background_dark']};
                 border-top: 1px solid {COLORS['border']};
             }}
 
             #keyboard_targets QLabel {{
-                color: {COLORS['text']};
+                color: {COLORS['text_bright']};
             }}
 
             #keyboard_targets QPushButton {{
-                background: {COLORS['background_highlight']};
+                background: {COLORS['background']};
                 border: 1px solid {COLORS['border_light']};
                 border-radius: 4px;
                 color: {COLORS['text_dim']};
             }}
 
+            #keyboard_targets QPushButton:hover {{
+                border-color: {accent_dim};
+            }}
+
             #keyboard_targets QPushButton:checked {{
-                background: {COLORS['selected']};
-                border-color: {COLORS['border_light']};
-                color: {COLORS['background']};
+                background: {accent_bg};
+                border: 1px solid {accent};
+                color: {accent};
             }}
 
             #keyboard_targets QPushButton:disabled {{
-                background: {COLORS['background']};
+                background: {COLORS['background_dark']};
                 border-color: {COLORS['border']};
                 color: {COLORS['border']};
             }}
