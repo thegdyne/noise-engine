@@ -16,10 +16,11 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 
 class ModMatrixCell(QWidget):
     """A single cell in the mod routing matrix."""
-    
+
     # Signals
     clicked = pyqtSignal()           # Left click
     right_clicked = pyqtSignal()     # Right click (for depth popup)
+    shift_clicked = pyqtSignal()     # R1.1: Shift+Left click (polarity toggle)
     
     # Colours by mod source type
     SOURCE_COLORS = {
@@ -140,8 +141,12 @@ class ModMatrixCell(QWidget):
         top_window = self.window()
         if top_window:
             top_window.setFocus(Qt.MouseFocusReason)
-        
+
         if event.button() == Qt.LeftButton:
-            self.clicked.emit()
+            # R1.1: Shift+Click cycles polarity
+            if event.modifiers() & Qt.ShiftModifier:
+                self.shift_clicked.emit()
+            else:
+                self.clicked.emit()
         elif event.button() == Qt.RightButton:
             self.right_clicked.emit()

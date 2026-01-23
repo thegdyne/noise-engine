@@ -28,6 +28,7 @@ from src.gui.crossmod_routing_state import CrossmodRoutingState
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
 from src.gui.crossmod_matrix_window import CrossmodMatrixWindow
 from src.gui.keyboard_overlay import KeyboardOverlay
+from src.gui.preset_browser import PresetBrowser
 from src.gui.mod_debug import install_mod_debug_hotkey
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
@@ -121,6 +122,9 @@ class MainFrame(QMainWindow):
         
         # Keyboard overlay (created on first open)
         self._keyboard_overlay = None
+
+        # Preset browser (R1.1, created on first open)
+        self._preset_browser = None
         
         # MIDI mode toggle state
         self._midi_mode_active = False
@@ -357,6 +361,10 @@ class MainFrame(QMainWindow):
         # Shortcut: crossmod matrix (Ctrl+X / Cmd+X)
         crossmod_shortcut = QShortcut(QKeySequence("Ctrl+X"), self)
         crossmod_shortcut.activated.connect(self.modulation._open_crossmod_matrix)
+
+        # Shortcut: preset browser (Ctrl+P / Cmd+P) - R1.1
+        preset_browser_shortcut = QShortcut(QKeySequence("Ctrl+P"), self)
+        preset_browser_shortcut.activated.connect(self._toggle_preset_browser)
 
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
@@ -655,7 +663,41 @@ class MainFrame(QMainWindow):
         """Toggle console panel visibility."""
         self.console_panel.toggle_panel()
         self.console_btn.setChecked(self.console_panel.is_open)
-    
+
+    def _toggle_preset_browser(self):
+        """Toggle preset browser panel visibility (R1.1)."""
+        if self._preset_browser is None:
+            # Create browser on first open
+            from src.presets.preset_manager import PresetManager
+            manager = PresetManager()
+            self._preset_browser = PresetBrowser(manager, self)
+            self._preset_browser.preset_load_requested.connect(self._on_browser_load_requested)
+            self._preset_browser.preset_save_requested.connect(self._on_browser_save_requested)
+            # Position as a floating panel on the right side
+            self._preset_browser.setWindowFlags(Qt.Tool | Qt.WindowStaysOnTopHint)
+            self._preset_browser.setWindowTitle("Preset Browser")
+            self._preset_browser.resize(320, 600)
+            # Position relative to main window
+            main_geo = self.geometry()
+            self._preset_browser.move(main_geo.right() + 10, main_geo.top())
+
+        if self._preset_browser.isVisible():
+            self._preset_browser.hide()
+        else:
+            self._preset_browser.show()
+            self._preset_browser.raise_()
+            self._preset_browser.activateWindow()
+
+    def _on_browser_load_requested(self, file_path: str):
+        """Handle load request from preset browser."""
+        from pathlib import Path
+        self.preset._apply_preset_from_path(Path(file_path))
+
+    def _on_browser_save_requested(self, file_path: str, name: str):
+        """Handle save request from preset browser."""
+        from pathlib import Path
+        self.preset._save_preset_to_path(Path(file_path), name)
+
     def restart_app(self):
         """Restart the application with confirmation."""
         from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton

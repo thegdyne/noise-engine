@@ -29,7 +29,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QSettings, QTimer
 from PyQt5.QtGui import QFont, QColor, QKeySequence
 
 from .mod_matrix_cell import ModMatrixCell
-from .mod_routing_state import ModRoutingState, ModConnection
+from .mod_routing_state import ModRoutingState, ModConnection, Polarity
 from .mod_connection_popup import ModConnectionPopup
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT
 
@@ -385,6 +385,10 @@ class ModMatrixWindow(QMainWindow):
                         cell.right_clicked.connect(
                             lambda b=bus_idx, s=gen_slot, p=param_key: self._on_cell_right_clicked(b, s, p)
                         )
+                        # R1.1: Shift+Click cycles polarity
+                        cell.shift_clicked.connect(
+                            lambda b=bus_idx, s=gen_slot, p=param_key: self._on_cell_shift_clicked(b, s, p)
+                        )
                         layout.addWidget(cell, row, col)
                         self.cells[(bus_idx, gen_slot, param_key)] = cell
                         row_cells.append((bus_idx, gen_slot, param_key))
@@ -410,7 +414,7 @@ class ModMatrixWindow(QMainWindow):
                 for target_mod_slot in range(1, NUM_MOD_SLOTS + 1):
                     for param_key, param_label in MOD_PARAMS:
                         target_str = f"mod:{target_mod_slot}:{param_key}"
-                        
+
                         cell = ModMatrixCell(bus_idx, target_mod_slot, param_key)
                         cell.set_source_type(slot_type)
                         cell._gen_tint = 'odd' if target_mod_slot % 2 == 1 else 'even'
@@ -420,8 +424,12 @@ class ModMatrixWindow(QMainWindow):
                         cell.right_clicked.connect(
                             lambda b=bus_idx, ts=target_str: self._on_ext_cell_right_clicked(b, ts)
                         )
+                        # R1.1: Shift+Click cycles polarity
+                        cell.shift_clicked.connect(
+                            lambda b=bus_idx, ts=target_str: self._on_ext_cell_shift_clicked(b, ts)
+                        )
                         layout.addWidget(cell, row, col)
-                        
+
                         key = (bus_idx, target_str)
                         self.cells[key] = cell
                         row_cells.append(key)
@@ -448,7 +456,7 @@ class ModMatrixWindow(QMainWindow):
                             target_str = f"send:{chan_slot}:{param_key}"
                         else:  # pan
                             target_str = f"chan:{chan_slot}:{param_key}"
-                        
+
                         cell = ModMatrixCell(bus_idx, chan_slot, param_key)
                         cell.set_source_type(slot_type)
                         cell._gen_tint = 'odd' if chan_slot % 2 == 1 else 'even'
@@ -458,8 +466,12 @@ class ModMatrixWindow(QMainWindow):
                         cell.right_clicked.connect(
                             lambda b=bus_idx, ts=target_str: self._on_ext_cell_right_clicked(b, ts)
                         )
+                        # R1.1: Shift+Click cycles polarity
+                        cell.shift_clicked.connect(
+                            lambda b=bus_idx, ts=target_str: self._on_ext_cell_shift_clicked(b, ts)
+                        )
                         layout.addWidget(cell, row, col)
-                        
+
                         key = (bus_idx, target_str)
                         self.cells[key] = cell
                         row_cells.append(key)
@@ -548,9 +560,9 @@ class ModMatrixWindow(QMainWindow):
         """Handle cell left-click: toggle connection."""
         # Update selection to clicked cell
         self._select_cell(bus, slot, param)
-        
+
         conn = self.routing_state.get_connection(bus, slot, param)
-        
+
         if conn:
             # Remove existing connection
             self.routing_state.remove_connection(bus, slot, param)
@@ -563,7 +575,53 @@ class ModMatrixWindow(QMainWindow):
                 depth=0.5
             )
             self.routing_state.add_connection(new_conn)
-    
+
+    def _on_cell_shift_clicked(self, bus: int, slot: int, param: str):
+        """
+        R1.1: Handle Shift+Click on generator cell - cycle polarity.
+
+        Per spec: BI → UNI → INV → BI
+        Mapping: BIPOLAR (0) → UNI_POS (1) → UNI_NEG (2) → BIPOLAR (0)
+
+        Only affects existing connections; no-op if cell has no routing.
+        """
+        conn = self.routing_state.get_connection(bus, slot, param)
+        if not conn:
+            return  # No routing, no-op
+
+        # Cycle polarity: BIPOLAR → UNI_POS → UNI_NEG → BIPOLAR
+        current = conn.polarity
+        if current == Polarity.BIPOLAR:
+            new_polarity = Polarity.UNI_POS
+        elif current == Polarity.UNI_POS:
+            new_polarity = Polarity.UNI_NEG
+        else:  # UNI_NEG
+            new_polarity = Polarity.BIPOLAR
+
+        self.routing_state.set_polarity(bus, slot, param, new_polarity)
+
+    def _on_ext_cell_shift_clicked(self, bus: int, target_str: str):
+        """
+        R1.1: Handle Shift+Click on extended cell - cycle polarity.
+
+        Per spec: BI → UNI → INV → BI
+        Only affects existing connections; no-op if cell has no routing.
+        """
+        conn = self.routing_state.get_connection(bus, target_str=target_str)
+        if not conn:
+            return  # No routing, no-op
+
+        # Cycle polarity: BIPOLAR → UNI_POS → UNI_NEG → BIPOLAR
+        current = conn.polarity
+        if current == Polarity.BIPOLAR:
+            new_polarity = Polarity.UNI_POS
+        elif current == Polarity.UNI_POS:
+            new_polarity = Polarity.UNI_NEG
+        else:  # UNI_NEG
+            new_polarity = Polarity.BIPOLAR
+
+        self.routing_state.update_connection(bus, target_str=target_str, polarity=new_polarity)
+
     def _select_cell(self, bus: int, slot: int, param: str):
         """Update selection to specific cell."""
         # Clear old selection

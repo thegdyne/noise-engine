@@ -34,8 +34,8 @@ SLOT_LAYOUT = {
     # Header
     'gen_label_x': 5, 'gen_label_y': 5,
     'gen_label_w': 40, 'gen_label_h': 20,
-    'selector_x': 66, 'selector_y': 2,
-    'selector_w': 110, 'selector_h': 22,
+    'selector_x': 36, 'selector_y': 2,  # R1.1: adjusted x for wider button
+    'selector_w': 140, 'selector_h': 22,  # R1.1: increased from 110 to 140px
 
     # Slider sizing
     'slider_w': 18, 'slider_h': 100, 'slider_label_h': 12,
@@ -142,6 +142,7 @@ class GeneratorSlot(QWidget):
         self.type_btn.value_changed.connect(self.on_generator_type_changed)
         self.type_btn.setFont(QFont(MONO_FONT, FONT_SIZES["small"]))
         self.type_btn.setStyleSheet(button_style("submenu"))
+        self.type_btn.setToolTip(generator_type)  # R1.1: tooltip shows full name
 
         # ----- SEPARATOR -----
         self.separator = QFrame(self)
@@ -593,6 +594,7 @@ class GeneratorSlot(QWidget):
     def on_generator_type_changed(self, gen_type):
         """Handle generator type change from CycleButton."""
         self.generator_type = gen_type
+        self.type_btn.setToolTip(gen_type)  # R1.1: update tooltip with full name
         logger.gen(self.slot_id, f"type: {gen_type}")
         self.generator_changed.emit(self.slot_id, gen_type)
         self.update_custom_params(gen_type)

@@ -230,3 +230,30 @@ class PresetController:
         self.main.preset_name.setText("Init")
         self.main._clear_dirty("Init", None)
         logger.info("Preset initialized to defaults", component="PRESET")
+
+    def _apply_preset_from_path(self, filepath: Path):
+        """
+        Load and apply preset from a specific path (R1.1 - used by PresetBrowser).
+
+        Args:
+            filepath: Path to preset file
+        """
+        try:
+            state = self.preset_manager.load(filepath)
+            self._apply_preset(state)
+            self.main.preset_name.setText(state.name)
+            logger.info(f"Preset loaded: {state.name}", component="PRESET")
+            self.main._clear_dirty(state.name, filepath)
+        except Exception as e:
+            logger.error(f"Failed to load preset: {e}", component="PRESET")
+            QMessageBox.warning(self.main, "Error", f"Failed to load preset:\n{e}")
+
+    def _save_preset_to_path(self, filepath: Path, name: str):
+        """
+        Save current state to a specific path (R1.1 - used by PresetBrowser).
+
+        Args:
+            filepath: Destination path
+            name: Preset name
+        """
+        self._do_save_preset(name, filepath)

@@ -1,8 +1,12 @@
 """
 Preset manager - handles save/load operations.
+
+R1.1: Added atomic writes, timestamp application, and write_preset_file.
 """
 
 import json
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -15,6 +19,7 @@ from .preset_schema import (
     validate_preset,
     PRESET_VERSION,
 )
+from .preset_utils import TimestampProvider, canonical_path
 
 
 class PresetError(Exception):
@@ -25,10 +30,15 @@ class PresetError(Exception):
 class PresetManager:
     """
     Manages preset save/load operations.
-    
+
+    R1.1 features:
+    - Atomic writes via write_preset_file
+    - Timestamp application for created/updated
+    - Support for preset browser operations
+
     Usage:
         manager = PresetManager()
-        
+
         # Save current state
         state = PresetState(
             name="My Patch",
@@ -36,36 +46,117 @@ class PresetManager:
             mixer=mixer_panel.get_state(),
         )
         filepath = manager.save(state)
-        
+
         # Load preset
         state = manager.load(filepath)
         for i, slot_state in enumerate(state.slots):
             generator_slots[i].set_state(slot_state)
         mixer_panel.set_state(state.mixer)
     """
-    
+
     DEFAULT_DIR = Path.home() / "noise-engine-presets"
-    
+
     def __init__(self, presets_dir: Optional[Path] = None):
         self.presets_dir = presets_dir or self.DEFAULT_DIR
         self.presets_dir.mkdir(parents=True, exist_ok=True)
-    
+
+    def write_preset_file(
+        self,
+        dest_path: Path,
+        preset_state: PresetState,
+        *,
+        allow_overwrite: bool = True
+    ) -> None:
+        """
+        Write preset to file atomically.
+
+        R1.1 canonical write entry point per spec:
+        1. Serialize full preset state via to_dict() then json.dumps(indent=2)
+        2. Write temp file in dirname(dest_path)
+        3. Commit using os.replace(temp, dest_path) if allow_overwrite=True
+        4. If allow_overwrite=False, fail if dest_path already exists
+
+        Args:
+            dest_path: Destination file path
+            preset_state: PresetState to write
+            allow_overwrite: If False, raise PresetError if dest_path exists
+
+        Raises:
+            PresetError: If write fails or file exists when allow_overwrite=False
+        """
+        dest_path = Path(dest_path)
+
+        # Check overwrite permission
+        if not allow_overwrite and dest_path.exists():
+            raise PresetError(f"File already exists: {dest_path}")
+
+        # Ensure directory exists
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Serialize
+        data = preset_state.to_dict()
+        json_str = json.dumps(data, indent=2)
+
+        # Atomic write: temp file in same directory, then os.replace
+        try:
+            # Create temp file in same directory for atomic replace
+            fd, temp_path = tempfile.mkstemp(
+                suffix='.tmp',
+                prefix='.preset_',
+                dir=dest_path.parent
+            )
+            try:
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                    f.write(json_str)
+                os.replace(temp_path, dest_path)
+            except Exception:
+                # Clean up temp file on failure
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+                raise
+        except OSError as e:
+            raise PresetError(f"Failed to write preset: {e}")
+
+    def apply_timestamps(
+        self,
+        state: PresetState,
+        operation_timestamp: str
+    ) -> None:
+        """
+        Apply timestamp rules to preset state per R1.1 spec.
+
+        - If state.created is empty: set state.created = operation_timestamp
+        - Set state.updated = operation_timestamp
+
+        Args:
+            state: PresetState to modify in-place
+            operation_timestamp: ISO 8601 timestamp from TimestampProvider
+        """
+        if not state.created:
+            state.created = operation_timestamp
+        state.updated = operation_timestamp
+
     def save(self, state: PresetState, name: Optional[str] = None, overwrite: bool = False) -> Path:
         """
         Save preset to file.
-        
+
         Args:
             state: PresetState to save
             name: Optional filename (without extension). If None, auto-generates.
             overwrite: If True, overwrite existing file. If False, add numeric suffix.
-        
+
         Returns:
             Path to saved file
         """
+        # Generate timestamp
+        operation_timestamp = TimestampProvider.now()
+
         # Set metadata
         state.version = PRESET_VERSION
-        state.created = datetime.now().isoformat()
-        
+        self.apply_timestamps(state, operation_timestamp)
+
         if name:
             state.name = name
             filename = self._sanitize_filename(name) + ".json"
@@ -74,9 +165,9 @@ class PresetManager:
             filename = f"preset_{timestamp}.json"
             if not state.name or state.name == "Untitled":
                 state.name = f"Preset {timestamp}"
-        
+
         filepath = self.presets_dir / filename
-        
+
         # Handle existing file (only add suffix if not overwriting)
         if filepath.exists() and not overwrite:
             # Add numeric suffix
@@ -85,14 +176,10 @@ class PresetManager:
             while filepath.exists():
                 filepath = self.presets_dir / f"{base}_{counter}.json"
                 counter += 1
-        
-        # Write file
-        try:
-            with open(filepath, "w") as f:
-                f.write(state.to_json(indent=2))
-        except IOError as e:
-            raise PresetError(f"Failed to save preset: {e}")
-        
+
+        # Write file atomically
+        self.write_preset_file(filepath, state, allow_overwrite=overwrite or not filepath.exists())
+
         return filepath
     
     def load(self, filepath: Path) -> PresetState:

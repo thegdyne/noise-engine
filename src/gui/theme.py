@@ -604,8 +604,8 @@ GENERATOR_THEME = {
 
     # Header
     'header_spacing': 4,
-    # 'header_type_width': 70,      # FIXED: wider for long names like "Subtractive"
-    'header_type_width': 110,      # FIXED: wider for long names like "Subtractive"
+    # R1.1: increased from 110px to 140px for pack-prefixed names
+    'header_type_width': 140,
     'header_type_height': 20,     # shorter height
     
     # GeneratorFrame (inner container for sliders + buttons)

@@ -652,7 +652,12 @@ class PresetState:
     # Phase 5 additions
     fx: FXState = field(default_factory=FXState)
     midi_mappings: dict = field(default_factory=dict)  # Optional MIDI CC mappings
-    
+    # R1.1 metadata additions
+    tags: list = field(default_factory=list)  # list[str]
+    rating: int = 0  # 0-5 integer rating
+    notes: str = ""  # User notes
+    updated: str = ""  # ISO 8601 timestamp of last update
+
     def to_dict(self) -> dict:
         return {
             "version": self.version,
@@ -668,17 +673,31 @@ class PresetState:
             "mod_routing": self.mod_routing,
             "fx": self.fx.to_dict(),
             "midi_mappings": self.midi_mappings,
+            # R1.1 metadata
+            "tags": self.tags,
+            "rating": self.rating,
+            "notes": self.notes,
+            "updated": self.updated,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "PresetState":
         slots = [
-            SlotState.from_dict(s) 
+            SlotState.from_dict(s)
             for s in data.get("slots", [{}] * NUM_SLOTS)
         ]
         # Pad to NUM_SLOTS if fewer slots saved
         while len(slots) < NUM_SLOTS:
             slots.append(SlotState())
+
+        # R1.1: rating coercion and clamping per spec
+        raw_rating = data.get("rating", 0)
+        try:
+            rating = int(raw_rating)
+        except (TypeError, ValueError):
+            rating = 0
+        rating = max(0, min(5, rating))  # Clamp to [0, 5]
+
         return cls(
             version=data.get("version", PRESET_VERSION),
             mapping_version=data.get("mapping_version", MAPPING_VERSION),
@@ -693,6 +712,11 @@ class PresetState:
             mod_routing=data.get("mod_routing", {"connections": []}),
             fx=FXState.from_dict(data.get("fx", {})),
             midi_mappings=data.get("midi_mappings", {}),
+            # R1.1 metadata
+            tags=list(data.get("tags", [])),
+            rating=rating,
+            notes=str(data.get("notes", "")),
+            updated=str(data.get("updated", "")),
         )
     
     def to_json(self, indent: int = 2) -> str:

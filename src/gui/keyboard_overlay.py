@@ -416,15 +416,22 @@ class KeyboardOverlay(QWidget):
             self._target_slots.add(slot)
     
     def _update_slot_buttons(self):
-        """Update slot button states based on MIDI mode."""
+        """
+        Update slot button states based on MIDI mode.
+
+        Per R1.1 spec:
+        - ENABLED: slot exists and is MIDI envelope mode - button is interactive
+        - DISABLED: slot exists but not MIDI mode - button is non-interactive
+        - UNKNOWN: slot not yet present - treated as disabled
+        """
         focused = self._get_focused_slot()  # Returns 1-8
         self._target_slots.clear()
-        
+
         for i, btn in enumerate(self._slot_buttons):
             slot_id = i + 1  # 1-indexed
             is_midi = self._is_slot_midi_mode(slot_id)
             btn.setEnabled(is_midi)
-            
+
             # Auto-select focused slot if it's in MIDI mode
             if slot_id == focused and is_midi:
                 btn.setChecked(True)
@@ -432,17 +439,14 @@ class KeyboardOverlay(QWidget):
             else:
                 btn.setChecked(False)
 
-        # If focused slot wasn't MIDI mode, select first available
+        # If focused slot wasn't MIDI mode, select first available MIDI slot
         if not self._target_slots:
             for slot_id in range(1, 9):
                 if self._is_slot_midi_mode(slot_id):
                     self._slot_buttons[slot_id - 1].setChecked(True)
                     self._target_slots.add(slot_id)
                     break
-            else:
-                # No MIDI mode slots, default to slot 1
-                self._slot_buttons[0].setChecked(True)
-                self._target_slots.add(1)
+            # If no MIDI slots available, leave all unchecked (no default to disabled slot)
     
     # ─────────────────────────────────────────────────────────────────
     # Toggle / Show / Hide
