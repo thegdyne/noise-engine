@@ -176,6 +176,25 @@ class ModulationController:
                     param_config = get_param_config(param)
                     norm_value = unmap_value(raw_value, param_config)
                     slider.set_modulated_value(norm_value)
+
+    def on_extmod_values_received(self, values):
+        print(f"[EXTMOD] {values}")
+        """Handle batched extended mod values from SC - update UI widgets."""
+        for target_str, norm_value in values:
+            parts = target_str.split(":")
+            if len(parts) < 3:
+                continue
+            
+            target_type, identifier, param = parts[0], parts[1], parts[2]
+            
+            if target_type == "mod":
+                slot_id = int(identifier)
+                slot = self.main.modulator_grid.get_slot(slot_id)
+                if slot and param in slot.param_sliders:
+                    slider = slot.param_sliders[param]
+                    if hasattr(slider, "set_modulated_value"):
+                        slider.set_modulated_value(norm_value)
+
         
     def _flush_mod_scopes(self):
         """Repaint dirty scopes at throttled rate (~30fps)."""

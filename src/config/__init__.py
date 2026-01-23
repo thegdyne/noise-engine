@@ -1303,6 +1303,8 @@ OSC_PATHS = {
     'extmod_remove_route': '/noise/extmod/remove_route',
     'extmod_set_user_param': '/noise/extmod/set_user_param',
     'extmod_clear_all': '/noise/extmod/clear_all',
+    'extmod_values': '/noise/extmod/values',  # SC → Python: extended mod value stream
+
 }
 
 # === WIDGET SIZES ===

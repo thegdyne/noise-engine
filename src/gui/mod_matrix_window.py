@@ -754,22 +754,24 @@ class ModMatrixWindow(QMainWindow):
                     self.selected_col = col_idx
                     self._update_selection_visual(True)
                     return
-    
+
     def _on_connection_added(self, conn: ModConnection):
         """Update cell when connection added."""
         if conn.is_extended:
             key = (conn.source_bus, conn.target_str)
+            print(f"[DEBUG] Extended connection added: key={key}")
         else:
             key = (conn.source_bus, conn.target_slot, conn.target_param)
-        
+
         cell = self.cells.get(key)
+        print(f"[DEBUG] Cell lookup: key={key}, found={cell is not None}")
         if cell:
             cell.set_connection(True, conn.amount)
-        
+
         # Update ext routes list if extended
         if conn.is_extended:
             self._update_ext_routes_list()
-    
+
     def _on_connection_removed(self, conn):
         """Update cell when connection removed."""
         if conn.is_extended:

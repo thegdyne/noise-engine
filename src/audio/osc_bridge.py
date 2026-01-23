@@ -34,6 +34,7 @@ class OSCBridge(QObject):
     comp_gr_received = pyqtSignal(float)  # compressor gain reduction in dB
     mod_bus_value_received = pyqtSignal(int, float)  # bus_idx, value (for mod scope)
     mod_values_received = pyqtSignal(list)  # [(slot, param, value), ...] for slider visualization
+    extmod_values_received = pyqtSignal(list)  # [(target_str, value), ...] for extended mod visualization
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_lost_reason = pyqtSignal(str)  # Reason: "heartbeat_missed", "ping_timeout", etc.
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
@@ -269,6 +270,7 @@ class OSCBridge(QObject):
 
         # Handle mod bus values from SC (for scope display)
         dispatcher.map(OSC_PATHS['mod_bus_value'], self._handle_mod_bus_value)
+        dispatcher.map(OSC_PATHS['extmod_values'], self._handle_extmod_values)
 
         # Handle batched mod values from SC (for slider visualization) (SSOT: use OSC_PATHS)
         dispatcher.map(OSC_PATHS['mod_values'], self._handle_mod_values)
@@ -454,8 +456,29 @@ class OSCBridge(QObject):
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""
         # Uncomment for debugging:
-        # print(f"DEFAULT: {address} {args}")
+        print(f"DEFAULT: {address} {args}")
         pass
+
+
+    # New handler (matching existing pattern):
+    def _handle_extmod_values(self, address, *args):
+        """Handle batched extended mod values from SC (for UI visualization).
+        Format: [targetStr1, val1, targetStr2, val2, ...]
+        Emits: [(target_str, value), ...]
+        """
+        print(f"[OSC EXTMOD RAW] {address} {args}")
+        if self._shutdown or self._deleted:
+            return
+        # Parse pairs
+        values = []
+        i = 0
+        while i + 1 < len(args):
+            target_str = str(args[i])
+            value = float(args[i + 1])
+            values.append((target_str, value))
+            i += 2
+        if values:
+            self.extmod_values_received.emit(values)
 
     def send(self, path_key, args):
         """Send OSC message using SSOT path key.
