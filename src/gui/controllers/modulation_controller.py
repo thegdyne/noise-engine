@@ -178,22 +178,53 @@ class ModulationController:
                     slider.set_modulated_value(norm_value)
 
     def on_extmod_values_received(self, values):
-        print(f"[EXTMOD] {values}")
         """Handle batched extended mod values from SC - update UI widgets."""
         for target_str, norm_value in values:
             parts = target_str.split(":")
             if len(parts) < 3:
                 continue
-            
+
             target_type, identifier, param = parts[0], parts[1], parts[2]
-            
+
             if target_type == "mod":
                 slot_id = int(identifier)
                 slot = self.main.modulator_grid.get_slot(slot_id)
-                if slot and param in slot.param_sliders:
-                    slider = slot.param_sliders[param]
+                if not slot:
+                    continue
+
+                # Map p1-p4 to actual slider key based on generator type
+                slider_key = self._map_mod_param_to_slider(slot.generator_name, param)
+                if slider_key and slider_key in slot.param_sliders:
+                    slider = slot.param_sliders[slider_key]
                     if hasattr(slider, "set_modulated_value"):
                         slider.set_modulated_value(norm_value)
+
+    def _map_mod_param_to_slider(self, gen_name: str, param: str) -> str:
+        """
+        Map p1-p4 wire params to actual slider keys.
+
+        Must match the ~mapP1P4Param function in mod_slots.scd.
+        """
+        # P1-P4 mapping per generator type (matches SC)
+        mappings = {
+            "LFO": {
+                "p1": "rate",
+                # p2=globalWave, p3=pattern, p4=globalPolarity - no direct sliders
+            },
+            "ARSEq+": {
+                "p1": "rate",
+                # p2=globalAtk, p3=globalRel, p4=globalPolarity - no direct sliders
+            },
+            "SauceOfGrav": {
+                "p1": "rate",
+                "p3": "calm",
+                # p2=globalTension, p4=globalPolarity - no direct sliders
+            },
+            # Sloth has no p1-p4 support
+        }
+
+        gen_mapping = mappings.get(gen_name, {})
+        return gen_mapping.get(param)
 
         
     def _flush_mod_scopes(self):
