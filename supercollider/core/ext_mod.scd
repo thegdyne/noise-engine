@@ -1,4 +1,4 @@
-// ext_mod.scd - Extended Modulation System (v2.4 - minimal value stream)
+// ext_mod.scd - Extended Modulation System (v2.5 - pan clamping per spec)
 ~extTargets = Dictionary.new;
 ~extUserParams = Dictionary.new;
 ~extParamConfig = Dictionary.new;
@@ -229,8 +229,12 @@
         if(~channelStrips.notNil and: { stripIdx >= 0 } and: { stripIdx < 8 }) {
             var strip = ~channelStrips[stripIdx];
             if(strip.notNil) {
-                if(param == \pan) { strip.set(\pan, value) };
+                // Per spec: explicit clamping immediately before application
+                if(param == \pan) { strip.set(\pan, value.clip(-1.0, 1.0)) };
             };
+        } {
+            // Channel strip not found - log and ignore (per spec: do not crash)
+            // "ExtMod: Channel strip % not found".format(slotOrType).postln;
         };
     };
 };
@@ -428,4 +432,4 @@ OSCdef(\extModClearAll, { |msg|
     ~clearAllExtModRoutes.();
 }, '/noise/extmod/clear_all');
 
-"ext_mod v2.4 loaded (500Hz apply, 20Hz value stream)".postln;
+"ext_mod v2.5 loaded (500Hz apply, 20Hz value stream, pan clamping)".postln;
