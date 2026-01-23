@@ -557,6 +557,8 @@ class ModulationController:
             logger.info("Mod matrix window closed", component="MOD")
         else:
             self.main.mod_matrix_window.show()
+            # Sync current modulator types to the matrix window
+            self._sync_mod_slot_types_to_matrix()
             main_geo = self.main.geometry()
             window_geo = self.main.mod_matrix_window.geometry()
             x = main_geo.x() + (main_geo.width() - window_geo.width()) // 2
@@ -636,3 +638,14 @@ class ModulationController:
                 # Use QTimer to let the new UI settle before updating
                 from PyQt5.QtCore import QTimer
                 QTimer.singleShot(50, lambda t=target_str: self._update_mod_slider_mod_range(t))
+
+    def _sync_mod_slot_types_to_matrix(self):
+        """Sync current modulator types to the matrix window row labels."""
+        if not self.main.mod_matrix_window:
+            return
+        from src.config import MOD_SLOT_COUNT
+        for slot_id in range(1, MOD_SLOT_COUNT + 1):
+            slot = self.main.modulator_grid.get_slot(slot_id)
+            if slot:
+                gen_name = slot.generator_name or 'Empty'
+                self.main.mod_matrix_window.update_mod_slot_type(slot_id, gen_name)
