@@ -5,6 +5,7 @@ Extracted from MainFrame as Phase 7 of the god-file refactor.
 Method names intentionally unchanged from MainFrame for wrapper compatibility.
 
 R1.1: Added focused slot tracking and deferred refresh mechanism.
+R1.2: Added ARP support with BPM integration.
 """
 from __future__ import annotations
 
@@ -28,6 +29,10 @@ class KeyboardController:
             # Also track env_source changes for live updates
             self.main.generator_grid.generator_env_source_changed.connect(self._on_env_source_changed)
 
+        # Connect to BPM changes for ARP clock sync
+        if hasattr(self.main, 'bpm_display') and self.main.bpm_display is not None:
+            self.main.bpm_display.bpm_changed.connect(self._on_bpm_changed)
+
     def _on_slot_selected(self, slot_id: int):
         """Track which slot was last selected/clicked (1-indexed)."""
         if 1 <= slot_id <= 8:
@@ -38,6 +43,20 @@ class KeyboardController:
         if (self.main._keyboard_overlay is not None and
             self.main._keyboard_overlay.isVisible()):
             self.main._keyboard_overlay._update_slot_buttons()
+
+    def _on_bpm_changed(self, bpm: int):
+        """Handle BPM changes - notify overlay for ARP clock sync."""
+        if (self.main._keyboard_overlay is not None and
+            self.main._keyboard_overlay.isVisible()):
+            self.main._keyboard_overlay.notify_bpm_changed(float(bpm))
+
+    def _get_current_bpm(self) -> float:
+        """Get current BPM from main frame's BPM display or master_bpm."""
+        if hasattr(self.main, 'bpm_display') and self.main.bpm_display is not None:
+            return float(self.main.bpm_display.get_bpm())
+        elif hasattr(self.main, 'master_bpm'):
+            return float(self.main.master_bpm)
+        return 120.0  # Default
 
     def _toggle_keyboard_mode(self):
         """Toggle the keyboard overlay for QWERTY-to-MIDI input."""
@@ -59,6 +78,7 @@ class KeyboardController:
                 send_all_notes_off_fn=self._send_all_notes_off,
                 get_focused_slot_fn=self._get_focused_slot,
                 is_slot_midi_mode_fn=self._is_slot_midi_mode,
+                get_bpm_fn=self._get_current_bpm,
             )
 
         overlay_width = self.main._keyboard_overlay.width()
