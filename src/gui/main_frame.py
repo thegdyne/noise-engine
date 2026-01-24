@@ -47,6 +47,8 @@ from src.gui.controllers.connection_controller import ConnectionController
 from src.gui.controllers.modulation_controller import ModulationController
 from src.gui.controllers.midi_mode_controller import MidiModeController
 from src.gui.controllers.keyboard_controller import KeyboardController
+from src.gui.boid_panel import BoidPanel
+from src.boids import BoidController
 
 class MainFrame(QMainWindow):
     """Main application window."""
@@ -85,6 +87,9 @@ class MainFrame(QMainWindow):
 
         # Modulation controller
         self.modulation = ModulationController(self)
+
+        # Boid controller
+        self.boid = BoidController(self.osc.client, self)
 
         # Mixer controller
         self.mixer = MixerController(self)
@@ -226,9 +231,15 @@ class MainFrame(QMainWindow):
         content_layout.setContentsMargins(5, 5, 5, 5)
         content_layout.setSpacing(10)
         
-        # Left - MODULATOR GRID
+        # Left column - MODULATOR GRID + BOID PANEL
+        left_column = QWidget()
+        left_column.setFixedWidth(320)
+        left_layout = QVBoxLayout(left_column)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(5)
+
+        # Modulator grid
         self.modulator_grid = ModulatorGrid()
-        self.modulator_grid.setFixedWidth(320)  # 2 columns
         self.modulator_grid.generator_changed.connect(self.modulation.on_mod_generator_changed)
         self.modulator_grid.parameter_changed.connect(self.modulation.on_mod_param_changed)
         self.modulator_grid.output_wave_changed.connect(self.modulation.on_mod_output_wave)
@@ -245,7 +256,14 @@ class MainFrame(QMainWindow):
         # SauceOfGrav output signals
         self.modulator_grid.tension_changed.connect(self.modulation.on_mod_tension)
         self.modulator_grid.mass_changed.connect(self.modulation.on_mod_mass)
-        content_layout.addWidget(self.modulator_grid)
+        left_layout.addWidget(self.modulator_grid, stretch=1)
+
+        # Boid panel
+        self.boid_panel = BoidPanel()
+        self._connect_boid_signals()
+        left_layout.addWidget(self.boid_panel)
+
+        content_layout.addWidget(left_column)
         
         # Scope repaint timer (~30fps)
         from PyQt5.QtCore import QTimer
@@ -697,6 +715,36 @@ class MainFrame(QMainWindow):
         """Handle save request from preset browser."""
         from pathlib import Path
         self.preset._save_preset_to_path(Path(file_path), name)
+
+    def _connect_boid_signals(self):
+        """Wire boid panel signals to boid controller."""
+        # Panel -> Controller
+        self.boid_panel.enabled_changed.connect(self._on_boid_enabled_changed)
+        self.boid_panel.count_changed.connect(self.boid.set_boid_count)
+        self.boid_panel.dispersion_changed.connect(self.boid.set_dispersion)
+        self.boid_panel.energy_changed.connect(self.boid.set_energy)
+        self.boid_panel.fade_changed.connect(self.boid.set_fade)
+        self.boid_panel.depth_changed.connect(self.boid.set_depth)
+        self.boid_panel.seed_lock_changed.connect(self.boid.set_seed_locked)
+        self.boid_panel.reseed_clicked.connect(self.boid.reseed)
+        self.boid_panel.zone_gen_changed.connect(self.boid.set_zone_gen)
+        self.boid_panel.zone_mod_changed.connect(self.boid.set_zone_mod)
+        self.boid_panel.zone_chan_changed.connect(self.boid.set_zone_chan)
+        self.boid_panel.zone_fx_changed.connect(self.boid.set_zone_fx)
+
+        # Controller -> Panel (visualization updates)
+        self.boid.positions_updated.connect(self.boid_panel.set_positions)
+        self.boid.cells_updated.connect(self.boid_panel.set_cells)
+        self.boid.seed_changed.connect(self.boid_panel.set_seed)
+        self.boid.enabled_changed.connect(self.boid_panel.set_enabled)
+
+    def _on_boid_enabled_changed(self, enabled: bool):
+        """Handle boid enable/disable from panel."""
+        if enabled:
+            self.boid.start()
+        else:
+            self.boid.stop()
+        self._mark_dirty()
 
     def restart_app(self):
         """Restart the application with confirmation."""

@@ -652,6 +652,8 @@ class PresetState:
     # Phase 5 additions
     fx: FXState = field(default_factory=FXState)
     midi_mappings: dict = field(default_factory=dict)  # Optional MIDI CC mappings
+    # Boid modulation state
+    boids: dict = field(default_factory=dict)  # BoidState.to_dict() or empty
     # R1.1 metadata additions
     tags: list = field(default_factory=list)  # list[str]
     rating: int = 0  # 0-5 integer rating
@@ -673,6 +675,7 @@ class PresetState:
             "mod_routing": self.mod_routing,
             "fx": self.fx.to_dict(),
             "midi_mappings": self.midi_mappings,
+            "boids": self.boids,
             # R1.1 metadata
             "tags": self.tags,
             "rating": self.rating,
@@ -712,6 +715,7 @@ class PresetState:
             mod_routing=data.get("mod_routing", {"connections": []}),
             fx=FXState.from_dict(data.get("fx", {})),
             midi_mappings=data.get("midi_mappings", {}),
+            boids=data.get("boids", {}),
             # R1.1 metadata
             tags=list(data.get("tags", [])),
             rating=rating,

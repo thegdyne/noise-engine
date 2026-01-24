@@ -109,6 +109,7 @@ class PresetController:
         mod_routing = self.main.mod_routing.to_dict()
         fx = self.main.fx_window.get_state() if self.main.fx_window else FXState()
         midi_mappings = self.main.cc_mapping_manager.to_dict()
+        boids = self.main.boid.get_state_dict() if hasattr(self.main, 'boid') else {}
         current_pack = get_current_pack()
 
         state = PresetState(
@@ -122,6 +123,7 @@ class PresetController:
             mod_routing=mod_routing,
             fx=fx,
             midi_mappings=midi_mappings,
+            boids=boids,
         )
         
         state.version = PRESET_VERSION
@@ -201,6 +203,24 @@ class PresetController:
         
         if self.main.fx_window:
             self.main.fx_window.set_state(state.fx)
+
+        # Load boid state if present
+        if state.boids and hasattr(self.main, 'boid'):
+            self.main.boid.load_state_dict(state.boids)
+            # Update panel from state
+            if hasattr(self.main, 'boid_panel'):
+                s = self.main.boid.state
+                self.main.boid_panel.set_count(s.boid_count)
+                self.main.boid_panel.set_dispersion(s.dispersion)
+                self.main.boid_panel.set_energy(s.energy)
+                self.main.boid_panel.set_fade(s.fade)
+                self.main.boid_panel.set_depth(s.depth)
+                self.main.boid_panel.set_seed(s.seed)
+                self.main.boid_panel.set_seed_locked(s.seed_locked)
+                self.main.boid_panel.set_zone_gen(s.zone_gen)
+                self.main.boid_panel.set_zone_mod(s.zone_mod)
+                self.main.boid_panel.set_zone_chan(s.zone_chan)
+                self.main.boid_panel.set_zone_fx(s.zone_fx)
 
         if state.midi_mappings:
             for controls in self.main.cc_mapping_manager.get_all_mappings().values():
