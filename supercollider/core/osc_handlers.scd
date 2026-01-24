@@ -180,8 +180,8 @@ All OSC message routing
     ~genBoidScales = Dictionary.new;
 
     // Oscillator frequency (Hz) - range: 20-1000 Hz
-    // 500 = ±500 Hz (~1 octave swing)
-    ~genBoidScales[\frequency] = 500;
+    // 0 = disabled, 500 = ±500 Hz (~1 octave swing)
+    ~genBoidScales[\frequency] = 0;
 
     // Filter cutoff (Hz) - range: 100-16000 Hz
     // 8000 = ±8000 Hz (half the filter range)
