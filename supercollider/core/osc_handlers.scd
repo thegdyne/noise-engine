@@ -162,64 +162,85 @@ All OSC message routing
         };
     };
 
-    // === GENERATOR BOID OFFSET HANDLERS ===
-    // Standard params: /noise/gen/{param}/boid_offset [slot, offset]
-    [\frequency, \cutoff, \resonance, \attack, \decay].do { |param|
-        OSCdef(("genBoid_" ++ param).asSymbol, { |msg|
-            var slot = msg[1].asInteger.clip(1, 8);
-            var offset = msg[2].asFloat;
-            var base, bus;
+    // === GENERATOR BOID OFFSET HANDLER (BATCHED) ===
+    // Format: /noise/gen/boid/offsets [slot1, paramIdx1, val1, slot2, paramIdx2, val2, ...]
+    // paramIdx: 0=freq, 1=cutoff, 2=resonance, 3=attack, 4=decay, 5-9=custom0-4
+    // Empty message clears all offsets
+
+    // Map param index to symbol for standard params
+    ~genParamSymbols = [\frequency, \cutoff, \resonance, \attack, \decay];
+
+    // Track which (slot, paramIdx) pairs have active offsets
+    ~genBoidActiveOffsets = Set.new;
+
+    OSCdef(\genBoidOffsets).free;
+    OSCdef(\genBoidOffsets, { |msg|
+        var i = 1;
+        var tripleCount = 0;
+        var maxTriples = 100;
+        var newActiveOffsets = Set.new;
+
+        // Parse triples: [slot, paramIdx, offset, ...]
+        while({ (i + 2) < msg.size && (tripleCount < maxTriples) }, {
+            var slot = msg[i].asInteger.clip(1, 8);
+            var paramIdx = msg[i+1].asInteger.clip(0, 9);
+            var offset = msg[i+2].asFloat;
+            var base, bus, effective;
+
             if(offset.isNaN.not && (offset.abs < inf), {
-                ~genBoidOffsets[slot][param] = offset;
-                base = ~genBaseValues[slot][param] ? 0;
-                bus = ~genUserParams[slot][param];
-                if(bus.notNil, { bus.set(base + offset) });
-            });
-        }, "/noise/gen/" ++ param ++ "/boid_offset");
-    };
+                newActiveOffsets.add([slot, paramIdx]);
 
-    // Custom params: /noise/gen/custom/{slot}/{index}/boid_offset [offset]
-    8.do { |i|
-        var slot = i + 1;
-        5.do { |p|
-            OSCdef(("genBoidCustom" ++ slot ++ "_" ++ p).asSymbol, { |msg|
-                var offset = msg[1].asFloat;
-                var base, effective, bus1, bus2;
-                if(offset.isNaN.not && (offset.abs < inf), {
-                    ~genBoidOffsets[slot][\custom][p] = offset;
-                    base = ~genBaseValues[slot][\custom][p] ? 0.5;
+                if(paramIdx < 5, {
+                    // Standard param (freq, cutoff, resonance, attack, decay)
+                    var param = ~genParamSymbols[paramIdx];
+                    ~genBoidOffsets[slot][param] = offset;
+                    base = ~genBaseValues[slot][param] ? 0;
+                    bus = ~genUserParams[slot][param];
+                    if(bus.notNil, { bus.set(base + offset) });
+                }, {
+                    // Custom param (5-9 -> custom0-4)
+                    var customIdx = paramIdx - 5;
+                    ~genBoidOffsets[slot][\custom][customIdx] = offset;
+                    base = ~genBaseValues[slot][\custom][customIdx] ? 0.5;
                     effective = base + offset;
-                    bus1 = ~genParams[slot][\custom][p];
-                    bus2 = ~genUserParams[slot][\custom][p];
-                    if(bus1.notNil, { bus1.set(effective) });
-                    if(bus2.notNil, { bus2.set(effective) });
+                    bus = ~genParams[slot][\custom][customIdx];
+                    if(bus.notNil, { bus.set(effective) });
+                    bus = ~genUserParams[slot][\custom][customIdx];
+                    if(bus.notNil, { bus.set(effective) });
                 });
-            }, "/noise/gen/custom/" ++ slot ++ "/" ++ p ++ "/boid_offset");
-        };
-    };
+            });
 
-    // Clear all generator boid offsets
-    OSCdef(\genBoidClear, { |msg|
-        8.do { |i|
-            var slot = i + 1;
-            var base, bus;
-            [\frequency, \cutoff, \resonance, \attack, \decay].do { |param|
-                ~genBoidOffsets[slot][param] = 0;
-                base = ~genBaseValues[slot][param] ? 0;
-                bus = ~genUserParams[slot][param];
-                if(bus.notNil, { bus.set(base) });
-            };
-            5.do { |p|
-                var bus1, bus2;
-                ~genBoidOffsets[slot][\custom][p] = 0;
-                base = ~genBaseValues[slot][\custom][p] ? 0.5;
-                bus1 = ~genParams[slot][\custom][p];
-                bus2 = ~genUserParams[slot][\custom][p];
-                if(bus1.notNil, { bus1.set(base) });
-                if(bus2.notNil, { bus2.set(base) });
-            };
+            tripleCount = tripleCount + 1;
+            i = i + 3;
+        });
+
+        // Clear offsets that are no longer active
+        ~genBoidActiveOffsets.do { |pair|
+            if(newActiveOffsets.includes(pair).not, {
+                var slot = pair[0];
+                var paramIdx = pair[1];
+                var base, bus;
+
+                if(paramIdx < 5, {
+                    var param = ~genParamSymbols[paramIdx];
+                    ~genBoidOffsets[slot][param] = 0;
+                    base = ~genBaseValues[slot][param] ? 0;
+                    bus = ~genUserParams[slot][param];
+                    if(bus.notNil, { bus.set(base) });
+                }, {
+                    var customIdx = paramIdx - 5;
+                    ~genBoidOffsets[slot][\custom][customIdx] = 0;
+                    base = ~genBaseValues[slot][\custom][customIdx] ? 0.5;
+                    bus = ~genParams[slot][\custom][customIdx];
+                    if(bus.notNil, { bus.set(base) });
+                    bus = ~genUserParams[slot][\custom][customIdx];
+                    if(bus.notNil, { bus.set(base) });
+                });
+            });
         };
-    }, '/noise/gen/boid/clear');
+
+        ~genBoidActiveOffsets = newActiveOffsets;
+    }, '/noise/gen/boid/offsets');
 
     "  [x] Generator boid offset handlers ready".postln;
 
