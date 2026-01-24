@@ -226,9 +226,9 @@ class BoidBusSender:
             # Empty snapshot - send clear
             self.osc_client.send_message('/noise/boid/clear')
         else:
-            # Send offsets
+            # Send offsets as flat list [busIndex1, offset1, busIndex2, offset2, ...]
             args = prepare_offsets_message(snapshot)
-            self.osc_client.send_message('/noise/boid/offsets', *args)
+            self.osc_client.send_message('/noise/boid/offsets', args)
 
     def clear(self):
         """Clear all boid offsets without disabling."""
