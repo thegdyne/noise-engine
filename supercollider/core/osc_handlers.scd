@@ -168,10 +168,11 @@ All OSC message routing
         OSCdef(("genBoid_" ++ param).asSymbol, { |msg|
             var slot = msg[1].asInteger;
             var offset = msg[2].asFloat;
+            var base;
             if(offset.isNaN.not && (offset.abs < inf), {
                 ~genBoidOffsets[slot][param] = offset;
                 // Reapply with current base + new offset
-                var base = ~genBaseValues[slot][param] ? 0;
+                base = ~genBaseValues[slot][param] ? 0;
                 ~genUserParams[slot][param].set(base + offset);
             });
         }, "/noise/gen/" ++ param ++ "/boid_offset");
@@ -183,11 +184,12 @@ All OSC message routing
         5.do { |p|
             OSCdef(("genBoidCustom" ++ slot ++ "_" ++ p).asSymbol, { |msg|
                 var offset = msg[1].asFloat;
+                var base, effective;
                 if(offset.isNaN.not && (offset.abs < inf), {
                     ~genBoidOffsets[slot][\custom][p] = offset;
                     // Reapply with current base + new offset
-                    var base = ~genBaseValues[slot][\custom][p] ? 0.5;
-                    var effective = base + offset;
+                    base = ~genBaseValues[slot][\custom][p] ? 0.5;
+                    effective = base + offset;
                     ~genParams[slot][\custom][p].set(effective);
                     ~genUserParams[slot][\custom][p].set(effective);
                 });
@@ -199,14 +201,15 @@ All OSC message routing
     OSCdef(\genBoidClear, { |msg|
         8.do { |i|
             var slot = i + 1;
+            var base;
             [\frequency, \cutoff, \resonance, \attack, \decay].do { |param|
                 ~genBoidOffsets[slot][param] = 0;
-                var base = ~genBaseValues[slot][param] ? 0;
+                base = ~genBaseValues[slot][param] ? 0;
                 ~genUserParams[slot][param].set(base);
             };
             5.do { |p|
                 ~genBoidOffsets[slot][\custom][p] = 0;
-                var base = ~genBaseValues[slot][\custom][p] ? 0.5;
+                base = ~genBaseValues[slot][\custom][p] ? 0.5;
                 ~genParams[slot][\custom][p].set(base);
                 ~genUserParams[slot][\custom][p].set(base);
             };
