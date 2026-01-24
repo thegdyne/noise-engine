@@ -17,6 +17,7 @@ from src.utils.logger import logger
 from .boid_engine import BoidEngine, SIM_HZ
 from .boid_state import BoidState, generate_random_seed
 from ..utils.boid_bus import BoidBusSender
+from ..utils.boid_gen_router import BoidGenRouter
 
 
 class BoidController(QObject):
@@ -38,12 +39,13 @@ class BoidController(QObject):
 
         self._main = main_frame
         self._bus_sender: Optional[BoidBusSender] = None
+        self._gen_router: Optional[BoidGenRouter] = None
 
         # Core components
         self._engine = BoidEngine()
         self._state = BoidState()
 
-        # Generator routing callback (set by modulation controller)
+        # Generator routing callback (set by modulation controller) - legacy
         self._gen_route_callback: Optional[Callable] = None
 
         # Simulation timer (50ms = 20Hz)
@@ -59,6 +61,12 @@ class BoidController(QObject):
         if self._bus_sender is None and self._main.osc_connected:
             self._bus_sender = BoidBusSender(self._main.osc.client)
         return self._bus_sender
+
+    def _get_gen_router(self) -> Optional[BoidGenRouter]:
+        """Get or create generator router (lazy init after OSC connects)."""
+        if self._gen_router is None and self._main.osc_connected:
+            self._gen_router = BoidGenRouter(self._main.osc.client)
+        return self._gen_router
 
     @property
     def engine(self) -> BoidEngine:
@@ -127,9 +135,10 @@ class BoidController(QObject):
         if bus_sender:
             bus_sender.disable()
 
-        # Clear generator routes if callback set
-        if self._gen_route_callback:
-            self._gen_route_callback([])
+        # Clear generator offsets
+        gen_router = self._get_gen_router()
+        if gen_router:
+            gen_router.clear()
 
         # Reset engine
         self._engine.reset()
@@ -182,9 +191,10 @@ class BoidController(QObject):
         if bus_sender:
             bus_sender.send_offsets(unified_contributions)
 
-        # Send generator routes if callback set
-        if self._gen_route_callback and gen_contributions:
-            self._gen_route_callback(gen_contributions)
+        # Send generator parameter offsets
+        gen_router = self._get_gen_router()
+        if gen_router and gen_contributions:
+            gen_router.route_contributions(gen_contributions)
 
         # Emit signals for visualization
         self.positions_updated.emit(self._engine.get_positions())

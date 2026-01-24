@@ -5,7 +5,48 @@ All OSC message routing
 
 ~setupOSC = {
     "Setting up OSC handlers...".postln;
-    
+
+    // === GENERATOR BOID OFFSET SUPPORT ===
+    // Store base values and offsets separately, compute effective = base + offset
+    ~genBaseValues = Dictionary.new;
+    ~genBoidOffsets = Dictionary.new;
+    8.do { |i|
+        var slot = i + 1;
+        ~genBaseValues[slot] = Dictionary.new;
+        ~genBoidOffsets[slot] = Dictionary.new;
+        // Initialize with defaults
+        ~genBaseValues[slot][\frequency] = 400;
+        ~genBaseValues[slot][\cutoff] = 16000;
+        ~genBaseValues[slot][\resonance] = 1.0;
+        ~genBaseValues[slot][\attack] = 0.0001;
+        ~genBaseValues[slot][\decay] = 1.0;
+        ~genBoidOffsets[slot][\frequency] = 0;
+        ~genBoidOffsets[slot][\cutoff] = 0;
+        ~genBoidOffsets[slot][\resonance] = 0;
+        ~genBoidOffsets[slot][\attack] = 0;
+        ~genBoidOffsets[slot][\decay] = 0;
+        // Custom params
+        ~genBaseValues[slot][\custom] = Array.fill(5, { 0.5 });
+        ~genBoidOffsets[slot][\custom] = Array.fill(5, { 0.0 });
+    };
+
+    // Helper to apply base + offset to bus
+    ~applyGenParam = { |slot, param, baseValue|
+        var offset = ~genBoidOffsets[slot][param] ? 0;
+        var effective = baseValue + offset;
+        ~genBaseValues[slot][param] = baseValue;
+        ~genUserParams[slot][param].set(effective);
+    };
+
+    // Helper for custom params
+    ~applyGenCustom = { |slot, paramIdx, baseValue|
+        var offset = ~genBoidOffsets[slot][\custom][paramIdx] ? 0;
+        var effective = baseValue + offset;
+        ~genBaseValues[slot][\custom][paramIdx] = baseValue;
+        ~genParams[slot][\custom][paramIdx].set(effective);
+        ~genUserParams[slot][\custom][paramIdx].set(effective);
+    };
+
     // === CONNECTION MANAGEMENT ===
     // Ping/pong for connection verification
     // Python sends /noise/ping, SC responds with /noise/pong
@@ -37,37 +78,38 @@ All OSC message routing
     
     // Per-generator parameters
     // Write to ~genUserParams ONLY - modApply passthrough handles ~genParams
+    // Now uses boid offset support: stores base, applies offset
     OSCdef(\genFrequency, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat;
         var transpose = ~genTranspose[slot - 1];
         var ratio = 2 ** (transpose / 12);
         var transposed = value * ratio;
-        ~genUserParams[slot][\frequency].set(transposed);
+        ~applyGenParam.(slot, \frequency, transposed);
     }, '/noise/gen/frequency');
-    
+
     OSCdef(\genCutoff, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat;
-        ~genUserParams[slot][\cutoff].set(value);
+        ~applyGenParam.(slot, \cutoff, value);
     }, '/noise/gen/cutoff');
-    
+
     OSCdef(\genResonance, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat;
-        ~genUserParams[slot][\resonance].set(value);
+        ~applyGenParam.(slot, \resonance, value);
     }, '/noise/gen/resonance');
-    
+
     OSCdef(\genAttack, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat;
-        ~genUserParams[slot][\attack].set(value);
+        ~applyGenParam.(slot, \attack, value);
     }, '/noise/gen/attack');
-    
+
     OSCdef(\genDecay, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat;
-        ~genUserParams[slot][\decay].set(value);
+        ~applyGenParam.(slot, \decay, value);
     }, '/noise/gen/decay');
     
     OSCdef(\genFilterType, { |msg|
@@ -109,18 +151,70 @@ All OSC message routing
 
     // Per-generator custom parameters
     // Path format: /noise/gen/custom/{slot}/{param_index}
-    // Write to both genParams (output) and genUserParams (base for relative modulation)
+    // Now uses boid offset support
     8.do { |i|
         var slot = i + 1;
         5.do { |p|
             OSCdef(("genCustom" ++ slot ++ "_" ++ p).asSymbol, { |msg|
                 var val = msg[1].asFloat;
-                ~genParams[slot][\custom][p].set(val);
-                ~genUserParams[slot][\custom][p].set(val);
+                ~applyGenCustom.(slot, p, val);
             }, "/noise/gen/custom/" ++ slot ++ "/" ++ p);
         };
     };
-    
+
+    // === GENERATOR BOID OFFSET HANDLERS ===
+    // Standard params: /noise/gen/{param}/boid_offset [slot, offset]
+    [\frequency, \cutoff, \resonance, \attack, \decay].do { |param|
+        OSCdef(("genBoid_" ++ param).asSymbol, { |msg|
+            var slot = msg[1].asInteger;
+            var offset = msg[2].asFloat;
+            if(offset.isNaN.not && (offset.abs < inf), {
+                ~genBoidOffsets[slot][param] = offset;
+                // Reapply with current base + new offset
+                var base = ~genBaseValues[slot][param] ? 0;
+                ~genUserParams[slot][param].set(base + offset);
+            });
+        }, "/noise/gen/" ++ param ++ "/boid_offset");
+    };
+
+    // Custom params: /noise/gen/custom/{slot}/{index}/boid_offset [offset]
+    8.do { |i|
+        var slot = i + 1;
+        5.do { |p|
+            OSCdef(("genBoidCustom" ++ slot ++ "_" ++ p).asSymbol, { |msg|
+                var offset = msg[1].asFloat;
+                if(offset.isNaN.not && (offset.abs < inf), {
+                    ~genBoidOffsets[slot][\custom][p] = offset;
+                    // Reapply with current base + new offset
+                    var base = ~genBaseValues[slot][\custom][p] ? 0.5;
+                    var effective = base + offset;
+                    ~genParams[slot][\custom][p].set(effective);
+                    ~genUserParams[slot][\custom][p].set(effective);
+                });
+            }, "/noise/gen/custom/" ++ slot ++ "/" ++ p ++ "/boid_offset");
+        };
+    };
+
+    // Clear all generator boid offsets
+    OSCdef(\genBoidClear, { |msg|
+        8.do { |i|
+            var slot = i + 1;
+            [\frequency, \cutoff, \resonance, \attack, \decay].do { |param|
+                ~genBoidOffsets[slot][param] = 0;
+                var base = ~genBaseValues[slot][param] ? 0;
+                ~genUserParams[slot][param].set(base);
+            };
+            5.do { |p|
+                ~genBoidOffsets[slot][\custom][p] = 0;
+                var base = ~genBaseValues[slot][\custom][p] ? 0.5;
+                ~genParams[slot][\custom][p].set(base);
+                ~genUserParams[slot][\custom][p].set(base);
+            };
+        };
+    }, '/noise/gen/boid/clear');
+
+    "  [x] Generator boid offset handlers ready".postln;
+
     // Generator control
     OSCdef(\startGenerator, { |msg|
         ~startGenerator.(msg[1].asInteger, msg[2].asSymbol);
