@@ -67,7 +67,6 @@ class BoidGenRouter:
         """
         self.osc_client = osc_client
         self._last_offsets: Dict[Tuple[int, str], float] = {}
-        self._send_count = 0
 
     def route_contributions(self, contributions: List[Tuple[int, int, float]]) -> None:
         """
@@ -106,16 +105,6 @@ class BoidGenRouter:
                 self._send_param_offset(slot_id, param_name, 0.0)
 
         self._last_offsets = offsets
-
-        # Debug logging every second
-        self._send_count += 1
-        if self._send_count % 20 == 1 and offsets:
-            from src.utils.logger import logger
-            sample_key = next(iter(offsets))
-            logger.info(
-                f"Gen offsets: {len(offsets)} params (e.g. slot{sample_key[0]} {sample_key[1]}={offsets[sample_key]:.3f})",
-                component="BOID"
-            )
 
     def _send_param_offset(self, slot_id: int, param_name: str, offset: float) -> None:
         """Send offset for a single generator parameter."""

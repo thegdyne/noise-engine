@@ -95,7 +95,6 @@ class BoidController(QObject):
 
         # Check OSC connection
         if not self._main.osc_connected:
-            from src.utils.logger import logger
             logger.warning("Cannot start boids: OSC not connected", component="BOID")
             return
 
@@ -155,12 +154,6 @@ class BoidController(QObject):
 
     def _tick(self) -> None:
         """Simulation tick (called at 20Hz)."""
-        # Track tick count for debugging
-        if not hasattr(self, '_tick_count'):
-            self._tick_count = 0
-            logger.info("Boid timer firing", component="BOID")
-        self._tick_count += 1
-
         if not self._state.enabled:
             return
 
@@ -169,12 +162,6 @@ class BoidController(QObject):
 
         # Get contributions
         contributions = self._engine.get_contributions()
-
-        # Debug: log contribution counts every second
-        if self._tick_count % 20 == 0:
-            gen_count = sum(1 for r, c, v in contributions if c < 80)
-            unified_count = sum(1 for r, c, v in contributions if c >= 80)
-            logger.info(f"Boid tick {self._tick_count}: {len(contributions)} total ({gen_count} GEN, {unified_count} unified)", component="BOID")
 
         # Split by column range
         gen_contributions = []

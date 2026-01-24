@@ -235,13 +235,6 @@ class BoidBusSender:
         else:
             # Send offsets as flat list [busIndex1, offset1, busIndex2, offset2, ...]
             args = prepare_offsets_message(snapshot)
-            # Log periodically (every 20 calls = ~1 second at 20Hz)
-            if not hasattr(self, '_send_count'):
-                self._send_count = 0
-            self._send_count += 1
-            if self._send_count % 20 == 1:
-                from src.utils.logger import logger
-                logger.info(f"Sending {len(args)//2} offsets to SC (e.g. bus {args[0]}={args[1]:.3f})", component="BOID")
             self.osc_client.send_message('/noise/boid/offsets', args)
 
     def clear(self):
