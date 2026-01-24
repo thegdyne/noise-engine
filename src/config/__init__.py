@@ -1327,7 +1327,7 @@ OSC_PATHS = {
     'bus_echo_tone': '/noise/fx/bus/echo/tone',
     'bus_echo_wow': '/noise/fx/bus/echo/wow',
     'bus_echo_spring': '/noise/fx/bus/echo/spring',
-    'bus_echo_verbSend': '/noise/fx/bus/echo/verbSend',
+    'bus_echo_verb_send': '/noise/fx/bus/echo/verbSend',
     # FX: Reverb
     'bus_verb_size': '/noise/fx/bus/reverb/size',
     'bus_verb_decay': '/noise/fx/bus/reverb/decay',
@@ -1338,7 +1338,7 @@ OSC_PATHS = {
     'bus_fb_freq2': '/noise/fx/bus/fb/freq2',
     'bus_fb_reso1': '/noise/fx/bus/fb/reso1',
     'bus_fb_reso2': '/noise/fx/bus/fb/reso2',
-    'bus_fb_syncAmt': '/noise/fx/bus/fb/syncAmt',
+    'bus_fb_sync_amt': '/noise/fx/bus/fb/syncAmt',
     'bus_fb_harmonics': '/noise/fx/bus/fb/harmonics',
     'bus_fb_mix': '/noise/fx/bus/fb/mix',
     # Route operations

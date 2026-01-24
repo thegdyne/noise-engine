@@ -263,33 +263,45 @@ def bus_index_to_target_key(bus_index: int) -> Optional[str]:
     if not is_valid_unified_bus_index(bus_index):
         return None
 
-    # Mod slot params: 1000-1027 (4 slots x 7 params)
-    if 1000 <= bus_index <= 1027:
-        offset = bus_index - 1000
+    # Bus layout relative to UNIFIED_BUS_BASE:
+    # - base+0 to base+27: mod slot params (4 slots x 7 params)
+    # - base+28 to base+51: channel params (8 channels x 3 params)
+    # - base+52 to base+70: FX params
+
+    mod_start = UNIFIED_BUS_BASE
+    mod_end = UNIFIED_BUS_BASE + 27
+    chan_start = UNIFIED_BUS_BASE + 28
+    chan_end = UNIFIED_BUS_BASE + 51
+    fx_start = UNIFIED_BUS_BASE + 52
+    fx_end = UNIFIED_BUS_BASE + 70
+
+    # Mod slot params
+    if mod_start <= bus_index <= mod_end:
+        offset = bus_index - mod_start
         slot = (offset // 7) + 1
         param = offset % 7
         return f"mod_{slot}_p{param}"
 
-    # Channel params: 1028-1051 (8 channels x 3 params)
-    elif 1028 <= bus_index <= 1051:
-        offset = bus_index - 1028
+    # Channel params
+    elif chan_start <= bus_index <= chan_end:
+        offset = bus_index - chan_start
         channel = (offset // 3) + 1
         param_idx = offset % 3
         param_names = ['echo', 'verb', 'pan']
         return f"chan_{channel}_{param_names[param_idx]}"
 
-    # FX params: 1052-1070
-    elif 1052 <= bus_index <= 1070:
+    # FX params
+    elif fx_start <= bus_index <= fx_end:
         fx_keys = [
-            'fx_heat_drive', 'fx_heat_mix',  # 1052-1053
-            'fx_echo_time', 'fx_echo_feedback', 'fx_echo_tone',  # 1054-1056
-            'fx_echo_wow', 'fx_echo_spring', 'fx_echo_verbSend',  # 1057-1059
-            'fx_verb_size', 'fx_verb_decay', 'fx_verb_tone',  # 1060-1062
-            'fx_fb_drive', 'fx_fb_freq1', 'fx_fb_freq2',  # 1063-1065
-            'fx_fb_reso1', 'fx_fb_reso2', 'fx_fb_syncAmt',  # 1066-1068
-            'fx_fb_harmonics', 'fx_fb_mix'  # 1069-1070
+            'fx_heat_drive', 'fx_heat_mix',
+            'fx_echo_time', 'fx_echo_feedback', 'fx_echo_tone',
+            'fx_echo_wow', 'fx_echo_spring', 'fx_echo_verb_send',
+            'fx_verb_size', 'fx_verb_decay', 'fx_verb_tone',
+            'fx_fb_drive', 'fx_fb_freq1', 'fx_fb_freq2',
+            'fx_fb_reso1', 'fx_fb_reso2', 'fx_fb_sync_amt',
+            'fx_fb_harmonics', 'fx_fb_mix'
         ]
-        idx = bus_index - 1052
+        idx = bus_index - fx_start
         if idx < len(fx_keys):
             return fx_keys[idx]
 

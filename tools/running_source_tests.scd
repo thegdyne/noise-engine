@@ -5,7 +5,7 @@
 )
 
 (
-// quick “movement per second” probe for RATE
+// quick "movement per second" probe for RATE
 // higher = more movement within the same wall-clock time
 var slot = 0;        // 0..3
 var lane = 0;        // 0..3

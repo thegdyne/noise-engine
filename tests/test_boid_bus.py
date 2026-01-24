@@ -21,6 +21,9 @@ from src.utils.boid_bus import (
     bus_index_to_target_key,
     BoidBusSender,
     MAX_OFFSET_PAIRS,
+    UNIFIED_BUS_BASE,
+    UNIFIED_BUS_MIN,
+    UNIFIED_BUS_MAX,
 )
 
 
@@ -28,28 +31,28 @@ class TestGridToBusMapping:
     """Test grid_to_bus mapping per spec v4 acceptance criteria."""
 
     def test_mod_slot_start(self):
-        """grid_to_bus(0, 80) == 1000"""
-        assert grid_to_bus(0, 80) == 1000
+        """grid_to_bus(0, 80) == UNIFIED_BUS_BASE"""
+        assert grid_to_bus(0, 80) == UNIFIED_BUS_BASE
 
     def test_mod_slot_end(self):
-        """grid_to_bus(0, 107) == 1027"""
-        assert grid_to_bus(0, 107) == 1027
+        """grid_to_bus(0, 107) == UNIFIED_BUS_BASE + 27"""
+        assert grid_to_bus(0, 107) == UNIFIED_BUS_BASE + 27
 
     def test_channel_start(self):
-        """grid_to_bus(0, 108) == 1028"""
-        assert grid_to_bus(0, 108) == 1028
+        """grid_to_bus(0, 108) == UNIFIED_BUS_BASE + 28"""
+        assert grid_to_bus(0, 108) == UNIFIED_BUS_BASE + 28
 
     def test_channel_end(self):
-        """grid_to_bus(0, 131) == 1051"""
-        assert grid_to_bus(0, 131) == 1051
+        """grid_to_bus(0, 131) == UNIFIED_BUS_BASE + 51"""
+        assert grid_to_bus(0, 131) == UNIFIED_BUS_BASE + 51
 
     def test_fx_start(self):
-        """grid_to_bus(0, 132) == 1052"""
-        assert grid_to_bus(0, 132) == 1052
+        """grid_to_bus(0, 132) == UNIFIED_BUS_BASE + 52"""
+        assert grid_to_bus(0, 132) == UNIFIED_BUS_BASE + 52
 
     def test_fx_end(self):
-        """grid_to_bus(0, 150) == 1070"""
-        assert grid_to_bus(0, 150) == 1070
+        """grid_to_bus(0, 150) == UNIFIED_BUS_BASE + 70"""
+        assert grid_to_bus(0, 150) == UNIFIED_BUS_BASE + 70
 
     def test_generator_column(self):
         """grid_to_bus(0, 79) is None"""
@@ -72,22 +75,22 @@ class TestBusIndexValidation:
     """Test bus index validation."""
 
     def test_valid_range_start(self):
-        assert is_valid_unified_bus_index(1000) is True
+        assert is_valid_unified_bus_index(UNIFIED_BUS_MIN) is True
 
     def test_valid_range_end(self):
-        assert is_valid_unified_bus_index(1070) is True
+        assert is_valid_unified_bus_index(UNIFIED_BUS_MAX) is True
 
     def test_valid_range_middle(self):
-        assert is_valid_unified_bus_index(1035) is True
+        assert is_valid_unified_bus_index(UNIFIED_BUS_BASE + 35) is True
 
     def test_below_range(self):
-        assert is_valid_unified_bus_index(999) is False
+        assert is_valid_unified_bus_index(UNIFIED_BUS_MIN - 1) is False
 
     def test_above_range(self):
-        assert is_valid_unified_bus_index(1071) is False
+        assert is_valid_unified_bus_index(UNIFIED_BUS_MAX + 1) is False
 
     def test_non_integer(self):
-        assert is_valid_unified_bus_index(1000.5) is False  # type: ignore
+        assert is_valid_unified_bus_index(UNIFIED_BUS_BASE + 0.5) is False  # type: ignore
 
 
 class TestDownselectionDeterminism:
@@ -95,53 +98,58 @@ class TestDownselectionDeterminism:
 
     def test_under_limit_unchanged(self):
         """Snapshot with <= 100 entries is unchanged"""
-        snapshot = {1000 + i: 0.1 * i for i in range(50)}
+        snapshot = {UNIFIED_BUS_BASE + i: 0.1 * i for i in range(50)}
         result = downselect_snapshot(snapshot)
         assert result == snapshot
 
     def test_exact_limit_unchanged(self):
         """Snapshot with exactly 100 entries is unchanged"""
-        snapshot = {1000 + i: 0.1 for i in range(100)}
+        snapshot = {UNIFIED_BUS_BASE + i: 0.1 for i in range(100)}
         result = downselect_snapshot(snapshot)
         assert len(result) == 100
 
     def test_over_limit_downselects(self):
         """Snapshot with > 100 entries is downselected to 100"""
-        snapshot = {i: 0.1 for i in range(1000, 1071)}  # 71 entries
-        # Add more entries (using arbitrary indices for test)
+        snapshot = {i: 0.1 for i in range(UNIFIED_BUS_BASE, UNIFIED_BUS_BASE + 71)}
+        # Add more entries
         for i in range(71, 150):
-            snapshot[2000 + i] = 0.05  # These should be filtered by validation anyway
+            snapshot[UNIFIED_BUS_BASE + 1000 + i] = 0.05
         # But for this test, let's use valid indices
-        snapshot = {1000 + (i % 71): 0.01 * i for i in range(150)}
+        snapshot = {UNIFIED_BUS_BASE + (i % 71): 0.01 * i for i in range(150)}
         result = downselect_snapshot(snapshot)
         assert len(result) <= MAX_OFFSET_PAIRS
 
     def test_tie_break_by_bus_index(self):
         """Entries with same abs(offset) are ordered by busIndex ascending"""
-        # Create snapshot with ties
+        # Create snapshot with ties (under 100 entries - no downselection)
         snapshot = {
-            1050: 0.5,   # Higher bus index
-            1010: 0.5,   # Lower bus index - should be kept over 1050 in tie
-            1030: 0.5,   # Middle
-            1060: 0.3,   # Lower magnitude
-            1005: 0.3,   # Same magnitude, lower index
+            UNIFIED_BUS_BASE + 50: 0.5,   # Higher bus index
+            UNIFIED_BUS_BASE + 10: 0.5,   # Lower bus index
+            UNIFIED_BUS_BASE + 30: 0.5,   # Middle
+            UNIFIED_BUS_BASE + 60: 0.3,   # Lower magnitude
+            UNIFIED_BUS_BASE + 5: 0.3,    # Same magnitude, lower index
         }
 
-        # When size is under limit, no downselection needed
-        # Test with a larger snapshot that requires downselection
+        # No downselection needed for small snapshots
+        result = downselect_snapshot(snapshot)
+        assert len(result) == 5  # All entries preserved
+
+        # Test with a larger snapshot that requires downselection (> 100 entries)
+        # Use indices outside the valid range so we can create > 100 unique entries
         large_snapshot = {}
-        # Fill with 100 entries of magnitude 0.1
-        for i in range(100):
-            large_snapshot[1000 + (i % 71)] = 0.1
-        # Add 2 entries with higher magnitude that should definitely be kept
-        large_snapshot[1070] = 0.9
-        large_snapshot[1000] = 0.8
+        # Create 120 entries with varying magnitudes
+        for i in range(120):
+            large_snapshot[i * 10] = 0.01 * (i + 1)  # Use arbitrary indices
+
+        # Override some to have known high values
+        large_snapshot[UNIFIED_BUS_BASE + 70] = 0.9
+        large_snapshot[UNIFIED_BUS_BASE] = 0.8
 
         result = downselect_snapshot(large_snapshot)
         assert len(result) == MAX_OFFSET_PAIRS
         # The two highest magnitude entries should be present
-        assert 1070 in result
-        assert 1000 in result
+        assert UNIFIED_BUS_BASE + 70 in result
+        assert UNIFIED_BUS_BASE in result
 
     def test_primary_sort_by_abs_offset_descending(self):
         """Primary sort is by abs(offset) descending"""
@@ -149,19 +157,19 @@ class TestDownselectionDeterminism:
         snapshot = {}
         for i in range(120):
             # Varying magnitudes
-            snapshot[1000 + (i % 71)] = 0.01 * (i + 1)
+            snapshot[UNIFIED_BUS_BASE + (i % 71)] = 0.01 * (i + 1)
 
         # Override some to have known high values
-        snapshot[1050] = 1.0
-        snapshot[1020] = 0.9
-        snapshot[1010] = 0.8
+        snapshot[UNIFIED_BUS_BASE + 50] = 1.0
+        snapshot[UNIFIED_BUS_BASE + 20] = 0.9
+        snapshot[UNIFIED_BUS_BASE + 10] = 0.8
 
         result = downselect_snapshot(snapshot)
 
         # The highest magnitude entries should be present
-        assert 1050 in result
-        assert 1020 in result
-        assert 1010 in result
+        assert UNIFIED_BUS_BASE + 50 in result
+        assert UNIFIED_BUS_BASE + 20 in result
+        assert UNIFIED_BUS_BASE + 10 in result
 
 
 class TestNonFiniteWireContract:
@@ -176,9 +184,9 @@ class TestNonFiniteWireContract:
         ]
         result = aggregate_contributions(contributions)
 
-        assert 1000 in result  # col 80 -> bus 1000
-        assert 1001 not in result  # col 81 -> bus 1001, but NaN
-        assert 1002 in result  # col 82 -> bus 1002
+        assert UNIFIED_BUS_BASE in result  # col 80 -> bus base+0
+        assert UNIFIED_BUS_BASE + 1 not in result  # col 81 -> bus base+1, but NaN
+        assert UNIFIED_BUS_BASE + 2 in result  # col 82 -> bus base+2
 
     def test_inf_filtered_in_aggregation(self):
         """Infinity offsets are filtered during aggregation"""
@@ -189,9 +197,9 @@ class TestNonFiniteWireContract:
         ]
         result = aggregate_contributions(contributions)
 
-        assert 1000 in result
-        assert 1001 not in result
-        assert 1002 not in result
+        assert UNIFIED_BUS_BASE in result
+        assert UNIFIED_BUS_BASE + 1 not in result
+        assert UNIFIED_BUS_BASE + 2 not in result
 
     def test_sum_becomes_nonfinite_filtered(self):
         """If sum becomes non-finite, that entry is filtered"""
@@ -203,8 +211,8 @@ class TestNonFiniteWireContract:
         result = aggregate_contributions(contributions)
 
         # If sum is finite, it's kept; if not, filtered
-        if 1000 in result:
-            assert is_finite(result[1000])
+        if UNIFIED_BUS_BASE in result:
+            assert is_finite(result[UNIFIED_BUS_BASE])
 
     def test_is_finite_helper(self):
         """Test is_finite helper function"""
@@ -228,9 +236,9 @@ class TestAggregation:
         ]
         result = aggregate_contributions(contributions)
 
-        assert result[1000] == 0.1
-        assert result[1001] == 0.2
-        assert result[1002] == 0.3
+        assert result[UNIFIED_BUS_BASE] == 0.1
+        assert result[UNIFIED_BUS_BASE + 1] == 0.2
+        assert result[UNIFIED_BUS_BASE + 2] == 0.3
 
     def test_same_bus_index_summed(self):
         """Multiple contributions to same bus are summed"""
@@ -241,7 +249,7 @@ class TestAggregation:
         ]
         result = aggregate_contributions(contributions)
 
-        assert result[1000] == pytest.approx(0.6)
+        assert result[UNIFIED_BUS_BASE] == pytest.approx(0.6)
 
     def test_generator_columns_ignored(self):
         """Columns < 80 are ignored (generator path)"""
@@ -253,7 +261,7 @@ class TestAggregation:
         result = aggregate_contributions(contributions)
 
         assert len(result) == 1
-        assert 1000 in result
+        assert UNIFIED_BUS_BASE in result
 
 
 class TestPrepareOffsetsMessage:
@@ -266,40 +274,40 @@ class TestPrepareOffsetsMessage:
 
     def test_single_entry(self):
         """Single entry produces two args"""
-        result = prepare_offsets_message({1000: 0.5})
-        assert result == [1000, 0.5]
+        result = prepare_offsets_message({UNIFIED_BUS_BASE: 0.5})
+        assert result == [UNIFIED_BUS_BASE, 0.5]
 
     def test_ordered_by_bus_index(self):
         """Entries are ordered by bus index ascending"""
-        snapshot = {1050: 0.1, 1000: 0.2, 1030: 0.3}
+        snapshot = {UNIFIED_BUS_BASE + 50: 0.1, UNIFIED_BUS_BASE: 0.2, UNIFIED_BUS_BASE + 30: 0.3}
         result = prepare_offsets_message(snapshot)
 
-        assert result == [1000, 0.2, 1030, 0.3, 1050, 0.1]
+        assert result == [UNIFIED_BUS_BASE, 0.2, UNIFIED_BUS_BASE + 30, 0.3, UNIFIED_BUS_BASE + 50, 0.1]
 
 
 class TestBusIndexToTargetKey:
     """Test bus index to target key conversion."""
 
     def test_mod_slot_params(self):
-        assert bus_index_to_target_key(1000) == "mod_1_p0"
-        assert bus_index_to_target_key(1006) == "mod_1_p6"
-        assert bus_index_to_target_key(1007) == "mod_2_p0"
-        assert bus_index_to_target_key(1027) == "mod_4_p6"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE) == "mod_1_p0"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 6) == "mod_1_p6"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 7) == "mod_2_p0"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 27) == "mod_4_p6"
 
     def test_channel_params(self):
-        assert bus_index_to_target_key(1028) == "chan_1_echo"
-        assert bus_index_to_target_key(1029) == "chan_1_verb"
-        assert bus_index_to_target_key(1030) == "chan_1_pan"
-        assert bus_index_to_target_key(1031) == "chan_2_echo"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 28) == "chan_1_echo"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 29) == "chan_1_verb"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 30) == "chan_1_pan"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 31) == "chan_2_echo"
 
     def test_fx_params(self):
-        assert bus_index_to_target_key(1052) == "fx_heat_drive"
-        assert bus_index_to_target_key(1053) == "fx_heat_mix"
-        assert bus_index_to_target_key(1054) == "fx_echo_time"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 52) == "fx_heat_drive"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 53) == "fx_heat_mix"
+        assert bus_index_to_target_key(UNIFIED_BUS_BASE + 54) == "fx_echo_time"
 
     def test_invalid_index(self):
-        assert bus_index_to_target_key(999) is None
-        assert bus_index_to_target_key(1071) is None
+        assert bus_index_to_target_key(UNIFIED_BUS_MIN - 1) is None
+        assert bus_index_to_target_key(UNIFIED_BUS_MAX + 1) is None
 
 
 class TestBoidBusSender:
@@ -338,7 +346,7 @@ class TestBoidBusSender:
         calls = mock_client.send_message.call_args_list
         assert len(calls) == 2
         assert calls[0][0] == ('/noise/boid/enable', 0)
-        assert calls[1][0] == ('/noise/boid/clear',)
+        assert calls[1][0] == ('/noise/boid/clear', 1)
         assert sender.is_enabled is False
 
     def test_disable_idempotent(self):
@@ -391,7 +399,7 @@ class TestBoidBusSender:
 
         sender.send_offsets([])
 
-        mock_client.send_message.assert_called_with('/noise/boid/clear')
+        mock_client.send_message.assert_called_with('/noise/boid/clear', 1)
 
     def test_clear_sends_message(self):
         """clear() sends clear message"""
@@ -400,4 +408,4 @@ class TestBoidBusSender:
 
         sender.clear()
 
-        mock_client.send_message.assert_called_with('/noise/boid/clear')
+        mock_client.send_message.assert_called_with('/noise/boid/clear', 1)
