@@ -16,7 +16,7 @@ Controls:
 from typing import List, Tuple
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-    QPushButton, QSpinBox, QSizePolicy
+    QPushButton, QSpinBox, QSizePolicy, QComboBox
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QBrush
@@ -114,6 +114,11 @@ class BoidPanel(QWidget):
     zone_mod_changed = pyqtSignal(bool)
     zone_chan_changed = pyqtSignal(bool)
     zone_fx_changed = pyqtSignal(bool)
+    row_slot1_changed = pyqtSignal(bool)
+    row_slot2_changed = pyqtSignal(bool)
+    row_slot3_changed = pyqtSignal(bool)
+    row_slot4_changed = pyqtSignal(bool)
+    preset_changed = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -121,7 +126,7 @@ class BoidPanel(QWidget):
         self._enabled = False
         self._seed_locked = False
 
-        self.setMinimumHeight(220)
+        self.setMinimumHeight(245)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
         self._setup_ui()
@@ -213,6 +218,75 @@ class BoidPanel(QWidget):
         zone_layout.addStretch()
         layout.addLayout(zone_layout)
 
+        # === ROW RESTRICTIONS ===
+        row_layout = QHBoxLayout()
+        row_layout.setSpacing(4)
+
+        row_label = QLabel("SLOTS:")
+        row_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        row_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        row_label.setToolTip("Which mod slot outputs boids can use as sources")
+        row_layout.addWidget(row_label)
+
+        self._row_slot1_btn = self._make_zone_button("1", "Slot 1 outputs (rows 0-3)", True)
+        self._row_slot1_btn.clicked.connect(lambda: self._on_row_clicked(1))
+        row_layout.addWidget(self._row_slot1_btn)
+
+        self._row_slot2_btn = self._make_zone_button("2", "Slot 2 outputs (rows 4-7)", True)
+        self._row_slot2_btn.clicked.connect(lambda: self._on_row_clicked(2))
+        row_layout.addWidget(self._row_slot2_btn)
+
+        self._row_slot3_btn = self._make_zone_button("3", "Slot 3 outputs (rows 8-11)", True)
+        self._row_slot3_btn.clicked.connect(lambda: self._on_row_clicked(3))
+        row_layout.addWidget(self._row_slot3_btn)
+
+        self._row_slot4_btn = self._make_zone_button("4", "Slot 4 outputs (rows 12-15)", True)
+        self._row_slot4_btn.clicked.connect(lambda: self._on_row_clicked(4))
+        row_layout.addWidget(self._row_slot4_btn)
+
+        row_layout.addSpacing(12)
+
+        # Behavior preset dropdown
+        preset_label = QLabel("BEHAVE:")
+        preset_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        preset_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        preset_label.setToolTip("Behavior preset (sets DISP/ENGY/FADE together)")
+        row_layout.addWidget(preset_label)
+
+        self._preset_combo = QComboBox()
+        self._preset_combo.addItems(['custom', 'swarm', 'scatter', 'drift', 'chaos'])
+        self._preset_combo.setFixedWidth(70)
+        self._preset_combo.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        self._preset_combo.setToolTip(
+            "Behavior presets:\n"
+            "• custom: Manual control\n"
+            "• swarm: Tight flock, medium speed\n"
+            "• scatter: High dispersion, fast\n"
+            "• drift: Slow, cohesive movement\n"
+            "• chaos: Fast, erratic")
+        self._preset_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {COLORS['background_dark']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 2px;
+                padding: 2px 4px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {COLORS['background_dark']};
+                color: {COLORS['text']};
+                selection-background-color: #cc66ff;
+            }}
+        """)
+        self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
+        row_layout.addWidget(self._preset_combo)
+
+        row_layout.addStretch()
+        layout.addLayout(row_layout)
+
         # === SEPARATOR ===
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
@@ -230,9 +304,7 @@ class BoidPanel(QWidget):
             "Low = tight flock\n"
             "High = scattered boids")
         self._dispersion_slider = disp_col['slider']
-        self._dispersion_slider.valueChanged.connect(
-            lambda v: self.dispersion_changed.emit(v / 1000.0)
-        )
+        self._dispersion_slider.valueChanged.connect(self._on_dispersion_changed)
         params_layout.addLayout(disp_col['layout'])
 
         # Energy
@@ -241,9 +313,7 @@ class BoidPanel(QWidget):
             "Low = slow drift\n"
             "High = fast, chaotic")
         self._energy_slider = energy_col['slider']
-        self._energy_slider.valueChanged.connect(
-            lambda v: self.energy_changed.emit(v / 1000.0)
-        )
+        self._energy_slider.valueChanged.connect(self._on_energy_changed)
         params_layout.addLayout(energy_col['layout'])
 
         # Fade
@@ -252,9 +322,7 @@ class BoidPanel(QWidget):
             "Low = fast fade (0.1s)\n"
             "High = slow fade (2s)")
         self._fade_slider = fade_col['slider']
-        self._fade_slider.valueChanged.connect(
-            lambda v: self.fade_changed.emit(v / 1000.0)
-        )
+        self._fade_slider.valueChanged.connect(self._on_fade_changed)
         params_layout.addLayout(fade_col['layout'])
 
         # Depth
@@ -371,6 +439,51 @@ class BoidPanel(QWidget):
         elif zone == 'fx':
             self._update_zone_button_style(self._zone_fx_btn)
             self.zone_fx_changed.emit(self._zone_fx_btn.isChecked())
+
+    def _on_row_clicked(self, slot: int) -> None:
+        """Handle row slot button click."""
+        if slot == 1:
+            self._update_zone_button_style(self._row_slot1_btn)
+            self.row_slot1_changed.emit(self._row_slot1_btn.isChecked())
+        elif slot == 2:
+            self._update_zone_button_style(self._row_slot2_btn)
+            self.row_slot2_changed.emit(self._row_slot2_btn.isChecked())
+        elif slot == 3:
+            self._update_zone_button_style(self._row_slot3_btn)
+            self.row_slot3_changed.emit(self._row_slot3_btn.isChecked())
+        elif slot == 4:
+            self._update_zone_button_style(self._row_slot4_btn)
+            self.row_slot4_changed.emit(self._row_slot4_btn.isChecked())
+        # When user manually adjusts, switch to custom preset
+        self._preset_combo.blockSignals(True)
+        self._preset_combo.setCurrentText('custom')
+        self._preset_combo.blockSignals(False)
+
+    def _on_preset_changed(self, preset_name: str) -> None:
+        """Handle preset selection."""
+        self.preset_changed.emit(preset_name)
+
+    def _on_dispersion_changed(self, value: int) -> None:
+        """Handle dispersion slider change."""
+        self._switch_to_custom_preset()
+        self.dispersion_changed.emit(value / 1000.0)
+
+    def _on_energy_changed(self, value: int) -> None:
+        """Handle energy slider change."""
+        self._switch_to_custom_preset()
+        self.energy_changed.emit(value / 1000.0)
+
+    def _on_fade_changed(self, value: int) -> None:
+        """Handle fade slider change."""
+        self._switch_to_custom_preset()
+        self.fade_changed.emit(value / 1000.0)
+
+    def _switch_to_custom_preset(self) -> None:
+        """Switch to custom preset when user manually adjusts parameters."""
+        if self._preset_combo.currentText() != 'custom':
+            self._preset_combo.blockSignals(True)
+            self._preset_combo.setCurrentText('custom')
+            self._preset_combo.blockSignals(False)
 
     def _make_param_column(self, label: str, tooltip: str) -> dict:
         """Create a parameter column with label and slider."""
@@ -512,6 +625,36 @@ class BoidPanel(QWidget):
         self._zone_fx_btn.setChecked(enabled)
         self._zone_fx_btn.blockSignals(False)
         self._update_zone_button_style(self._zone_fx_btn)
+
+    def set_row_slot1(self, enabled: bool) -> None:
+        self._row_slot1_btn.blockSignals(True)
+        self._row_slot1_btn.setChecked(enabled)
+        self._row_slot1_btn.blockSignals(False)
+        self._update_zone_button_style(self._row_slot1_btn)
+
+    def set_row_slot2(self, enabled: bool) -> None:
+        self._row_slot2_btn.blockSignals(True)
+        self._row_slot2_btn.setChecked(enabled)
+        self._row_slot2_btn.blockSignals(False)
+        self._update_zone_button_style(self._row_slot2_btn)
+
+    def set_row_slot3(self, enabled: bool) -> None:
+        self._row_slot3_btn.blockSignals(True)
+        self._row_slot3_btn.setChecked(enabled)
+        self._row_slot3_btn.blockSignals(False)
+        self._update_zone_button_style(self._row_slot3_btn)
+
+    def set_row_slot4(self, enabled: bool) -> None:
+        self._row_slot4_btn.blockSignals(True)
+        self._row_slot4_btn.setChecked(enabled)
+        self._row_slot4_btn.blockSignals(False)
+        self._update_zone_button_style(self._row_slot4_btn)
+
+    def set_preset(self, preset_name: str) -> None:
+        """Set behavior preset dropdown."""
+        self._preset_combo.blockSignals(True)
+        self._preset_combo.setCurrentText(preset_name)
+        self._preset_combo.blockSignals(False)
 
     def set_positions(self, positions: list) -> None:
         """Update mini visualizer with boid positions."""

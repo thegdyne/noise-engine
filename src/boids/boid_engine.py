@@ -93,8 +93,8 @@ class BoidEngine:
         # Track which cells each boid occupies
         self._boid_cells: Dict[int, Tuple[int, int]] = {}
 
-        # Zone filter callback (set by controller)
-        self._column_filter: Optional[Callable[[int], bool]] = None
+        # Cell filter callback (set by controller, checks both row and column)
+        self._cell_filter: Optional[Callable[[int, int], bool]] = None
 
         # RNG
         self._rng: Optional[XorShift32] = None
@@ -119,9 +119,9 @@ class BoidEngine:
 
         self._initialized = True
 
-    def set_column_filter(self, filter_func: Callable[[int], bool]) -> None:
-        """Set callback to filter columns by zone."""
-        self._column_filter = filter_func
+    def set_cell_filter(self, filter_func: Callable[[int, int], bool]) -> None:
+        """Set callback to filter cells by row and column."""
+        self._cell_filter = filter_func
 
     def set_boid_count(self, count: int) -> None:
         """Change number of boids."""
@@ -321,9 +321,9 @@ class BoidEngine:
             col = max(0, min(self._grid_cols - 1, col))
             row = max(0, min(self._grid_rows - 1, row))
 
-            # Apply zone filter
-            if self._column_filter and not self._column_filter(col):
-                # Boid is in disallowed zone, don't contribute
+            # Apply cell filter (checks both row and column restrictions)
+            if self._cell_filter and not self._cell_filter(row, col):
+                # Boid is in disallowed cell, don't contribute
                 if i in self._boid_cells:
                     del self._boid_cells[i]
                 continue

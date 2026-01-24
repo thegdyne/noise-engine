@@ -731,6 +731,11 @@ class MainFrame(QMainWindow):
         self.boid_panel.zone_mod_changed.connect(self.boid.set_zone_mod)
         self.boid_panel.zone_chan_changed.connect(self.boid.set_zone_chan)
         self.boid_panel.zone_fx_changed.connect(self.boid.set_zone_fx)
+        self.boid_panel.row_slot1_changed.connect(self.boid.set_row_slot1)
+        self.boid_panel.row_slot2_changed.connect(self.boid.set_row_slot2)
+        self.boid_panel.row_slot3_changed.connect(self.boid.set_row_slot3)
+        self.boid_panel.row_slot4_changed.connect(self.boid.set_row_slot4)
+        self.boid_panel.preset_changed.connect(self.boid.apply_preset)
 
         # Controller -> Panel (visualization updates)
         self.boid.positions_updated.connect(self.boid_panel.set_positions)

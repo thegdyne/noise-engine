@@ -221,6 +221,11 @@ class PresetController:
                 self.main.boid_panel.set_zone_mod(s.zone_mod)
                 self.main.boid_panel.set_zone_chan(s.zone_chan)
                 self.main.boid_panel.set_zone_fx(s.zone_fx)
+                self.main.boid_panel.set_row_slot1(s.row_slot1)
+                self.main.boid_panel.set_row_slot2(s.row_slot2)
+                self.main.boid_panel.set_row_slot3(s.row_slot3)
+                self.main.boid_panel.set_row_slot4(s.row_slot4)
+                self.main.boid_panel.set_preset(s.behavior_preset)
 
         if state.midi_mappings:
             for controls in self.main.cc_mapping_manager.get_all_mappings().values():

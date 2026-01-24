@@ -51,7 +51,7 @@ class BoidController(QObject):
         self._timer.timeout.connect(self._tick)
 
         # Wire zone filter to engine
-        self._engine.set_column_filter(self._state.is_column_allowed)
+        self._engine.set_cell_filter(self._state.is_cell_allowed)
 
     def _get_bus_sender(self) -> Optional[BoidBusSender]:
         """Get or create bus sender (lazy init after OSC connects)."""
@@ -222,6 +222,34 @@ class BoidController(QObject):
         """Enable/disable FX zone (cols 132-150)."""
         self._state.zone_fx = enabled
 
+    # === Row control ===
+
+    def set_row_slot1(self, enabled: bool) -> None:
+        """Enable/disable row slot 1 (rows 0-3)."""
+        self._state.row_slot1 = enabled
+
+    def set_row_slot2(self, enabled: bool) -> None:
+        """Enable/disable row slot 2 (rows 4-7)."""
+        self._state.row_slot2 = enabled
+
+    def set_row_slot3(self, enabled: bool) -> None:
+        """Enable/disable row slot 3 (rows 8-11)."""
+        self._state.row_slot3 = enabled
+
+    def set_row_slot4(self, enabled: bool) -> None:
+        """Enable/disable row slot 4 (rows 12-15)."""
+        self._state.row_slot4 = enabled
+
+    # === Behavior presets ===
+
+    def apply_preset(self, preset_name: str) -> None:
+        """Apply a behavior preset (sets dispersion/energy/fade)."""
+        if self._state.apply_behavior_preset(preset_name):
+            # Update engine with new values
+            self._engine.set_dispersion(self._state.dispersion)
+            self._engine.set_energy(self._state.energy)
+            self._engine.set_fade(self._state.fade)
+
     # === Seed control ===
 
     def set_seed_locked(self, locked: bool) -> None:
@@ -252,7 +280,7 @@ class BoidController(QObject):
         self._state = BoidState.from_dict(data)
 
         # Re-wire zone filter
-        self._engine.set_column_filter(self._state.is_column_allowed)
+        self._engine.set_cell_filter(self._state.is_cell_allowed)
 
         # Restore parameters to engine
         self._engine.set_boid_count(self._state.boid_count)
@@ -275,5 +303,5 @@ class BoidController(QObject):
             self.stop()
 
         self._state = BoidState()
-        self._engine.set_column_filter(self._state.is_column_allowed)
+        self._engine.set_cell_filter(self._state.is_cell_allowed)
         self.seed_changed.emit(self._state.seed)
