@@ -442,6 +442,14 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                     // Get boid offset if enabled (lookup by busIndex per spec v4)
                     if(~boidEnabled, {
                         boidOffset = ~boidOffsets[meta.busIndex] ? 0.0;
+                        // Debug: log non-zero boid offsets periodically
+                        if(boidOffset.abs > 0.001, {
+                            if(~boidApplyCount.isNil, { ~boidApplyCount = 0 });
+                            ~boidApplyCount = ~boidApplyCount + 1;
+                            if(~boidApplyCount % 500 == 1, {
+                                ("BOID APPLY: bus" + meta.busIndex + "offset" + boidOffset.round(0.001)).postln;
+                            });
+                        });
                     });
 
                     // Compute effective value

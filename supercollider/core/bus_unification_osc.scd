@@ -265,8 +265,10 @@ to also enqueue through this system for backward compatibility.
     OSCdef(\boidEnable, { |msg|
         var enabled = if(msg.size > 1, { msg[1].asInteger }, { 0 });
         if(enabled == 1, {
+            "BOID: Enabled".postln;
             ~queueBoidOp.(\enable, nil);
         }, {
+            "BOID: Disabled".postln;
             ~queueBoidOp.(\disable, nil);
         });
     }, '/noise/boid/enable');
@@ -292,6 +294,12 @@ to also enqueue through this system for backward compatibility.
             });
             pairCount = pairCount + 1;
             i = i + 2;
+        });
+        // Debug: log receipt periodically (every ~1 second)
+        if(~boidMsgCount.isNil, { ~boidMsgCount = 0 });
+        ~boidMsgCount = ~boidMsgCount + 1;
+        if((~boidMsgCount % 20 == 1) && (offsets.size > 0), {
+            ("BOID: Received" + offsets.size + "offsets, first bus:" + offsets.keys.asArray.first).postln;
         });
         ~queueBoidOp.(\setOffsets, offsets);
     }, '/noise/boid/offsets');
