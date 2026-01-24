@@ -285,7 +285,7 @@ to also enqueue through this system for backward compatibility.
 
             // Validate bus index range (1000-1070) and non-finite offset
             if(~isValidUnifiedBusIndex.(busIndex), {
-                if(offset.isNaN.not && offset.abs.isInfinite.not, {
+                if(offset.isNaN.not && (offset.abs < inf), {
                     // Last occurrence wins for duplicate busIndex
                     offsets[busIndex] = offset;
                 });
