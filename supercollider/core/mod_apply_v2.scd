@@ -302,8 +302,8 @@ Mapped-space modulation:
         var routes = ~modRoutes[destKey];
         var slotIdx;
         
-        if(synth.isNil) { ^nil };
-        
+        if(synth.isNil or: { routes.isNil }) { ^nil };
+
         slotIdx = routes.indexOf(sourceBus);
         if(slotIdx.isNil) {
             // Create if missing
