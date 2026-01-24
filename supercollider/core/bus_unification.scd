@@ -408,7 +408,7 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
 
                 if(state.notNil && meta.notNil, {
                     // Compute modulation sum from routes
-                    if(routes.notNil && routes.size > 0, {
+                    if(routes.isKindOf(Collection) && (routes.size > 0), {
                         routes.do { |route|
                             var sourceVal = ~modSourceState[route.sourceKey] ? 0.0;
                             var delta;

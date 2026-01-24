@@ -27,11 +27,6 @@ Circuits (same topology, different coefficients):
         var curve, asymmetry, hfLoss, preGain, postGain;
         var shaped, filtered;
         var driveEff, mixEff;
-
-        // Bus unification: read from bus if valid index, otherwise use direct arg
-        driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
-        mixEff = Select.kr(mixBus >= 0, [mix, In.kr(mixBus)]);
-
         // Circuit coefficients [curve, asymmetry, hfLoss, preGain, postGain]
         // curve: 0=soft, 1=hard
         // asymmetry: 0=symmetric, 1=full asymmetric (even harmonics)
@@ -46,7 +41,11 @@ Circuits (same topology, different coefficients):
             // CRUNCH: hard clip, medium asymmetry, slight HF loss
             [0.7, 0.35, 10000, 3.0, 0.7]
         ];
-        
+
+        // Bus unification: read from bus if valid index, otherwise use direct arg
+        driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
+        mixEff = Select.kr(mixBus >= 0, [mix, In.kr(mixBus)]);
+
         // Select circuit coefficients with smoothing
         curve = Select.kr(circuit, circuits.flop[0]);
         asymmetry = Select.kr(circuit, circuits.flop[1]);
