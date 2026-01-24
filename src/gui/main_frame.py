@@ -88,8 +88,8 @@ class MainFrame(QMainWindow):
         # Modulation controller
         self.modulation = ModulationController(self)
 
-        # Boid controller
-        self.boid = BoidController(self.osc.client, self)
+        # Boid controller (pass main frame - gets osc client when connected)
+        self.boid = BoidController(self)
 
         # Mixer controller
         self.mixer = MixerController(self)

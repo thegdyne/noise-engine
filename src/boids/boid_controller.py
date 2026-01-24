@@ -32,15 +32,15 @@ class BoidController(QObject):
     seed_changed = pyqtSignal(int)
     enabled_changed = pyqtSignal(bool)
 
-    def __init__(self, osc_client, parent=None):
+    def __init__(self, main_frame, parent=None):
         super().__init__(parent)
 
-        self._osc_client = osc_client
+        self._main = main_frame
+        self._bus_sender: Optional[BoidBusSender] = None
 
         # Core components
         self._engine = BoidEngine()
         self._state = BoidState()
-        self._bus_sender = BoidBusSender(osc_client)
 
         # Generator routing callback (set by modulation controller)
         self._gen_route_callback: Optional[Callable] = None
@@ -52,6 +52,12 @@ class BoidController(QObject):
 
         # Wire zone filter to engine
         self._engine.set_column_filter(self._state.is_column_allowed)
+
+    def _get_bus_sender(self) -> Optional[BoidBusSender]:
+        """Get or create bus sender (lazy init after OSC connects)."""
+        if self._bus_sender is None and self._main.osc_connected:
+            self._bus_sender = BoidBusSender(self._main.osc.client)
+        return self._bus_sender
 
     @property
     def engine(self) -> BoidEngine:
@@ -78,6 +84,12 @@ class BoidController(QObject):
         if self._state.enabled:
             return
 
+        # Check OSC connection
+        if not self._main.osc_connected:
+            from src.utils.logger import logger
+            logger.warning("Cannot start boids: OSC not connected", component="BOID")
+            return
+
         # Get seed
         seed = self._state.get_active_seed()
         self.seed_changed.emit(self._state.seed)
@@ -91,7 +103,9 @@ class BoidController(QObject):
         self._engine.initialize(seed)
 
         # Enable bus sender
-        self._bus_sender.enable()
+        bus_sender = self._get_bus_sender()
+        if bus_sender:
+            bus_sender.enable()
 
         # Start timer
         self._timer.start()
@@ -108,7 +122,9 @@ class BoidController(QObject):
         self._timer.stop()
 
         # Disable bus sender (sends clear)
-        self._bus_sender.disable()
+        bus_sender = self._get_bus_sender()
+        if bus_sender:
+            bus_sender.disable()
 
         # Clear generator routes if callback set
         if self._gen_route_callback:
@@ -149,7 +165,9 @@ class BoidController(QObject):
                 unified_contributions.append((row, col, value))
 
         # Send unified bus offsets
-        self._bus_sender.send_offsets(unified_contributions)
+        bus_sender = self._get_bus_sender()
+        if bus_sender:
+            bus_sender.send_offsets(unified_contributions)
 
         # Send generator routes if callback set
         if self._gen_route_callback and gen_contributions:
