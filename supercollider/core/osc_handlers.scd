@@ -166,14 +166,14 @@ All OSC message routing
     // Standard params: /noise/gen/{param}/boid_offset [slot, offset]
     [\frequency, \cutoff, \resonance, \attack, \decay].do { |param|
         OSCdef(("genBoid_" ++ param).asSymbol, { |msg|
-            var slot = msg[1].asInteger;
+            var slot = msg[1].asInteger.clip(1, 8);
             var offset = msg[2].asFloat;
-            var base;
+            var base, bus;
             if(offset.isNaN.not && (offset.abs < inf), {
                 ~genBoidOffsets[slot][param] = offset;
-                // Reapply with current base + new offset
                 base = ~genBaseValues[slot][param] ? 0;
-                ~genUserParams[slot][param].set(base + offset);
+                bus = ~genUserParams[slot][param];
+                if(bus.notNil, { bus.set(base + offset) });
             });
         }, "/noise/gen/" ++ param ++ "/boid_offset");
     };
@@ -184,14 +184,15 @@ All OSC message routing
         5.do { |p|
             OSCdef(("genBoidCustom" ++ slot ++ "_" ++ p).asSymbol, { |msg|
                 var offset = msg[1].asFloat;
-                var base, effective;
+                var base, effective, bus1, bus2;
                 if(offset.isNaN.not && (offset.abs < inf), {
                     ~genBoidOffsets[slot][\custom][p] = offset;
-                    // Reapply with current base + new offset
                     base = ~genBaseValues[slot][\custom][p] ? 0.5;
                     effective = base + offset;
-                    ~genParams[slot][\custom][p].set(effective);
-                    ~genUserParams[slot][\custom][p].set(effective);
+                    bus1 = ~genParams[slot][\custom][p];
+                    bus2 = ~genUserParams[slot][\custom][p];
+                    if(bus1.notNil, { bus1.set(effective) });
+                    if(bus2.notNil, { bus2.set(effective) });
                 });
             }, "/noise/gen/custom/" ++ slot ++ "/" ++ p ++ "/boid_offset");
         };
@@ -201,17 +202,21 @@ All OSC message routing
     OSCdef(\genBoidClear, { |msg|
         8.do { |i|
             var slot = i + 1;
-            var base;
+            var base, bus;
             [\frequency, \cutoff, \resonance, \attack, \decay].do { |param|
                 ~genBoidOffsets[slot][param] = 0;
                 base = ~genBaseValues[slot][param] ? 0;
-                ~genUserParams[slot][param].set(base);
+                bus = ~genUserParams[slot][param];
+                if(bus.notNil, { bus.set(base) });
             };
             5.do { |p|
+                var bus1, bus2;
                 ~genBoidOffsets[slot][\custom][p] = 0;
                 base = ~genBaseValues[slot][\custom][p] ? 0.5;
-                ~genParams[slot][\custom][p].set(base);
-                ~genUserParams[slot][\custom][p].set(base);
+                bus1 = ~genParams[slot][\custom][p];
+                bus2 = ~genUserParams[slot][\custom][p];
+                if(bus1.notNil, { bus1.set(base) });
+                if(bus2.notNil, { bus2.set(base) });
             };
         };
     }, '/noise/gen/boid/clear');
