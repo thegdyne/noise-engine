@@ -306,3 +306,9 @@ def bus_index_to_target_key(bus_index: int) -> Optional[str]:
             return fx_keys[idx]
 
     return None
+
+
+# Aliases for backward compatibility with older test files
+# Some tests use different function names - these aliases ensure compatibility
+grid_to_offset_index = grid_to_bus
+offset_index_to_target_key = bus_index_to_target_key
