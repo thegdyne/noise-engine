@@ -153,6 +153,13 @@ s.waitForBoot({
     ~setupModBusSnapshot.();
     (~basePath +/+ "core/ext_mod.scd").load;
     (~basePath +/+ "core/ext_mod_osc.scd").load;
+
+    // Load Bus Unification (unified parameter control - replaces ext_mod)
+    (~basePath +/+ "core/bus_unification.scd").load;
+    ~setupBusUnification.();
+    (~basePath +/+ "core/bus_unification_osc.scd").load;
+    ~setupBusUnificationOSC.();
+    ~startApplyTick.();  // Start the 500Hz apply loop
     
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;

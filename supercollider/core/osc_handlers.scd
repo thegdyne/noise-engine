@@ -204,11 +204,15 @@ All OSC message routing
     OSCdef(\genPan, { |msg|
         var slot = msg[1].asInteger;
         var pan = msg[2].asFloat.clip(-1, 1);
-        
+
         ~withValidSlot.(slot, { |idx|
             ~stripPanState[idx] = pan;
             if(~channelStrips[idx].notNil, {
                 ~channelStrips[idx].set(\pan, pan);
+            });
+            // Bus unification
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(("chan_%_pan").format(slot).asSymbol, pan);
             });
         });
     }, '/noise/gen/pan');
@@ -287,24 +291,32 @@ All OSC message routing
     OSCdef(\stripEchoSend, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat.clip(0, 1);
-        
+
         ~withValidSlot.(slot, { |idx|
             ~stripEchoSendState[idx] = value;
             if(~channelStrips[idx].notNil, {
                 ~channelStrips[idx].set(\echoSend, value);
             });
+            // Bus unification
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(("chan_%_echo").format(slot).asSymbol, value);
+            });
         });
     }, '/noise/strip/echo/send');
-    
+
     // Per-channel Verb Send
     OSCdef(\stripVerbSend, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat.clip(0, 1);
-        
+
         ~withValidSlot.(slot, { |idx|
             ~stripVerbSendState[idx] = value;
             if(~channelStrips[idx].notNil, {
                 ~channelStrips[idx].set(\verbSend, value);
+            });
+            // Bus unification
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(("chan_%_verb").format(slot).asSymbol, value);
             });
         });
     }, '/noise/strip/verb/send');

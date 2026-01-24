@@ -59,11 +59,18 @@ EQ: 3-band DJ isolator
         });
     };
     
-    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan=0, 
+    SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan=0,
                               genTrim=0, soloActiveBus, slotID=1,
-                              eqLo=1, eqMid=1, eqHi=1, echoSend=0, verbSend=0, echoSendBus, verbSendBus|
+                              eqLo=1, eqMid=1, eqHi=1, echoSend=0, verbSend=0, echoSendBus, verbSendBus,
+                              echoSendModBus=(-1), verbSendModBus=(-1), panModBus=(-1)|
         var sig, soloActive, soloGate, ampL, ampR;
-        
+        var echoSendEff, verbSendEff, panEff;
+
+        // Bus unification: read from bus if valid index, otherwise use direct arg
+        echoSendEff = Select.kr(echoSendModBus >= 0, [echoSend, In.kr(echoSendModBus)]);
+        verbSendEff = Select.kr(verbSendModBus >= 0, [verbSend, In.kr(verbSendModBus)]);
+        panEff = Select.kr(panModBus >= 0, [pan, In.kr(panModBus)]);
+
         // Read stereo from per-generator bus (dual mono or true stereo)
         sig = In.ar(inBus, 2);
         
@@ -90,7 +97,7 @@ EQ: 3-band DJ isolator
         sig = sig * Lag.kr(gain, ~eqSmoothTime);
         
         // Pan using Balance2 (-1=L, 0=center, 1=R) with smoothing
-        sig = Balance2.ar(sig[0], sig[1], Lag.kr(pan, ~eqSmoothTime));
+        sig = Balance2.ar(sig[0], sig[1], Lag.kr(panEff, ~eqSmoothTime));
         
         // Volume with smoothing (applied last)
         sig = sig * Lag.kr(vol, ~eqSmoothTime);
@@ -101,8 +108,8 @@ EQ: 3-band DJ isolator
         SendReply.kr(Impulse.kr(24), '/noise/gen/levels', [slotID, ampL, ampR]);
         
         // FX Sends (post-fader)
-        Out.ar(echoSendBus, sig * Lag.kr(echoSend, 0.02));
-        Out.ar(verbSendBus, sig * Lag.kr(verbSend, 0.02));
+        Out.ar(echoSendBus, sig * Lag.kr(echoSendEff, 0.02));
+        Out.ar(verbSendBus, sig * Lag.kr(verbSendEff, 0.02));
         
         // Main output
         Out.ar(outBus, sig);
@@ -132,11 +139,23 @@ EQ: 3-band DJ isolator
     var idx = slotID - 1;  // 0-indexed
     var currentVol, currentMute, currentSolo, currentGain, currentPan, currentTrim, currentEchoSend, currentVerbSend;
     var currentEqLo, currentEqMid, currentEqHi;
-    
+    var echoModBusIdx, verbModBusIdx, panModBusIdx;
+
     // Bounds check
     if(idx < 0 || idx >= 8, {
         "ERROR: Invalid slot ID % for channel strip".format(slotID).postln;
     }, {
+        // Get bus indices from bus unification (if available)
+        echoModBusIdx = if(~getBusIndex.notNil, {
+            ~getBusIndex.(("chan_%_echo").format(slotID).asSymbol) ? -1
+        }, { -1 });
+        verbModBusIdx = if(~getBusIndex.notNil, {
+            ~getBusIndex.(("chan_%_verb").format(slotID).asSymbol) ? -1
+        }, { -1 });
+        panModBusIdx = if(~getBusIndex.notNil, {
+            ~getBusIndex.(("chan_%_pan").format(slotID).asSymbol) ? -1
+        }, { -1 });
+
         // Preserve ALL state before freeing
         currentVol = ~stripVolState[idx] ? 0.8;
         currentMute = ~stripMuteState[idx] ? 0;
@@ -149,13 +168,13 @@ EQ: 3-band DJ isolator
         currentEqHi = ~stripEqHiState[idx] ? 1.0;
         currentEchoSend = ~stripEchoSendState[idx] ? 0.0;
         currentVerbSend = ~stripVerbSendState[idx] ? 0.0;
-        
+
         // Free existing strip if any
         if(~channelStrips[idx].notNil, {
             ~channelStrips[idx].free;
             ~channelStrips[idx] = nil;
         });
-        
+
         // Create new strip with ALL preserved state
         ~channelStrips[idx] = Synth(\channelStrip, [
             \inBus, ~genBus[idx],
@@ -174,9 +193,12 @@ EQ: 3-band DJ isolator
             \echoSend, currentEchoSend,
             \verbSend, currentVerbSend,
             \echoSendBus, ~echoSendBus,
-            \verbSendBus, ~verbSendBus
+            \verbSendBus, ~verbSendBus,
+            \echoSendModBus, echoModBusIdx,
+            \verbSendModBus, verbModBusIdx,
+            \panModBus, panModBusIdx
         ], ~stripGroup, \addToTail);
-        
+
         "  Started strip % (vol:%, eq:[%,%,%])".format(
             slotID, currentVol.round(0.01),
             currentEqLo.round(0.01), currentEqMid.round(0.01), currentEqHi.round(0.01)

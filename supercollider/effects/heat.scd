@@ -21,11 +21,17 @@ Circuits (same topology, different coefficients):
     ~heatMix = 1.0;        // 0-1 wet/dry
     ~heatBypass = 1;       // 1 = bypassed
     
-    SynthDef(\heat, { |inBus, outBus, circuit=0, drive=0, mix=1, bypass=1|
+    SynthDef(\heat, { |inBus, outBus, circuit=0, drive=0, mix=1, bypass=1,
+                        driveBus=(-1), mixBus=(-1)|
         var sig, dry, wet;
         var curve, asymmetry, hfLoss, preGain, postGain;
         var shaped, filtered;
-        
+        var driveEff, mixEff;
+
+        // Bus unification: read from bus if valid index, otherwise use direct arg
+        driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
+        mixEff = Select.kr(mixBus >= 0, [mix, In.kr(mixBus)]);
+
         // Circuit coefficients [curve, asymmetry, hfLoss, preGain, postGain]
         // curve: 0=soft, 1=hard
         // asymmetry: 0=symmetric, 1=full asymmetric (even harmonics)
@@ -54,8 +60,8 @@ Circuits (same topology, different coefficients):
         hfLoss = VarLag.kr(hfLoss, 0.05, warp: \exp);
         preGain = VarLag.kr(preGain, 0.05);
         postGain = VarLag.kr(postGain, 0.05);
-        drive = Lag.kr(drive, 0.02);
-        mix = Lag.kr(mix, 0.02);
+        driveEff = Lag.kr(driveEff, 0.02);
+        mixEff = Lag.kr(mixEff, 0.02);
         
         // Read input
         sig = In.ar(inBus, 2);
@@ -65,7 +71,7 @@ Circuits (same topology, different coefficients):
         sig = HPF.ar(sig, 20);
         
         // Drive stage (drive 0-1 maps to 1x-4x additional gain)
-        sig = sig * preGain * (1 + (drive * 3));
+        sig = sig * preGain * (1 + (driveEff * 3));
         
         // Waveshaping with variable curve and asymmetry
         // Attempt: Combine tanh with asymmetry
@@ -83,7 +89,7 @@ Circuits (same topology, different coefficients):
         
         // Wet/dry mix
         wet = sig;
-        sig = (dry * (1 - mix)) + (wet * mix);
+        sig = (dry * (1 - mixEff)) + (wet * mixEff);
         
         // Bypass (click-free)
         sig = XFade2.ar(sig, dry, (Lag.kr(bypass, 0.02) * 2) - 1);  // Crossfade bypass
@@ -95,16 +101,22 @@ Circuits (same topology, different coefficients):
 };
 
 ~startHeat = {
+    // Get bus indices from bus unification (if available)
+    var driveBusIdx = if(~getBusIndex.notNil, { ~getBusIndex.(\fx_heat_drive) ? -1 }, { -1 });
+    var mixBusIdx = if(~getBusIndex.notNil, { ~getBusIndex.(\fx_heat_mix) ? -1 }, { -1 });
+
     ~heatSynth = Synth(\heat, [
         \inBus, ~masterBus,
         \outBus, ~masterBus,
         \circuit, ~heatCircuit,
         \drive, ~heatDrive,
         \mix, ~heatMix,
-        \bypass, ~heatBypass
+        \bypass, ~heatBypass,
+        \driveBus, driveBusIdx,
+        \mixBus, mixBusIdx
     ], ~masterGroup, \addToHead);  // Head of master = first in chain
-    
-    "  [x] Heat running (bypassed)".postln;
+
+    "  [x] Heat running (bypassed, buses: drive=%, mix=%)".format(driveBusIdx, mixBusIdx).postln;
 };
 
 ~setupHeatOSC = {
@@ -120,16 +132,24 @@ Circuits (same topology, different coefficients):
     OSCdef(\heatDrive, { |msg|
         var val = msg[1].asFloat.clip(0, 1);
         ~heatDrive = val;
+        // Dual-write: both legacy .set() and bus unification
         if(~heatSynth.notNil) {
             ~heatSynth.set(\drive, val);
         };
+        if(~queueBaseUpdate.notNil) {
+            ~queueBaseUpdate.(\fx_heat_drive, val);
+        };
     }, '/noise/master/heat/drive');
-    
+
     OSCdef(\heatMix, { |msg|
         var val = msg[1].asFloat.clip(0, 1);
         ~heatMix = val;
+        // Dual-write: both legacy .set() and bus unification
         if(~heatSynth.notNil) {
             ~heatSynth.set(\mix, val);
+        };
+        if(~queueBaseUpdate.notNil) {
+            ~queueBaseUpdate.(\fx_heat_mix, val);
         };
     }, '/noise/master/heat/mix');
     

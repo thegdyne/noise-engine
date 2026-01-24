@@ -1305,6 +1305,52 @@ OSC_PATHS = {
     'extmod_clear_all': '/noise/extmod/clear_all',
     'extmod_values': '/noise/extmod/values',  # SC → Python: extended mod value stream
 
+    # === BUS UNIFICATION ===
+    # Mod slot parameters (P0-P6 per slot)
+    'bus_mod_p0': '/noise/mod/bus/p0',  # [slot, value]
+    'bus_mod_p1': '/noise/mod/bus/p1',
+    'bus_mod_p2': '/noise/mod/bus/p2',
+    'bus_mod_p3': '/noise/mod/bus/p3',
+    'bus_mod_p4': '/noise/mod/bus/p4',
+    'bus_mod_p5': '/noise/mod/bus/p5',
+    'bus_mod_p6': '/noise/mod/bus/p6',
+    # Channel parameters
+    'bus_chan_echo': '/noise/channel/bus/echoSend',  # [channel, value]
+    'bus_chan_verb': '/noise/channel/bus/verbSend',
+    'bus_chan_pan': '/noise/channel/bus/pan',
+    # FX: Heat
+    'bus_heat_drive': '/noise/fx/bus/heat/drive',  # [value]
+    'bus_heat_mix': '/noise/fx/bus/heat/mix',
+    # FX: Echo
+    'bus_echo_time': '/noise/fx/bus/echo/time',
+    'bus_echo_feedback': '/noise/fx/bus/echo/feedback',
+    'bus_echo_tone': '/noise/fx/bus/echo/tone',
+    'bus_echo_wow': '/noise/fx/bus/echo/wow',
+    'bus_echo_spring': '/noise/fx/bus/echo/spring',
+    'bus_echo_verbSend': '/noise/fx/bus/echo/verbSend',
+    # FX: Reverb
+    'bus_verb_size': '/noise/fx/bus/reverb/size',
+    'bus_verb_decay': '/noise/fx/bus/reverb/decay',
+    'bus_verb_tone': '/noise/fx/bus/reverb/tone',
+    # FX: Dual Filter
+    'bus_fb_drive': '/noise/fx/bus/fb/drive',
+    'bus_fb_freq1': '/noise/fx/bus/fb/freq1',
+    'bus_fb_freq2': '/noise/fx/bus/fb/freq2',
+    'bus_fb_reso1': '/noise/fx/bus/fb/reso1',
+    'bus_fb_reso2': '/noise/fx/bus/fb/reso2',
+    'bus_fb_syncAmt': '/noise/fx/bus/fb/syncAmt',
+    'bus_fb_harmonics': '/noise/fx/bus/fb/harmonics',
+    'bus_fb_mix': '/noise/fx/bus/fb/mix',
+    # Route operations
+    'bus_route_set': '/noise/bus/route/set',  # [sourceKey, targetKey, depth, amount, offset, polarity, invert]
+    'bus_route_remove': '/noise/bus/route/remove',  # [sourceKey, targetKey]
+    'bus_route_clear': '/noise/bus/route/clear',  # [targetKey] or no args for clear all
+    # Boid operations
+    'bus_boid_enable': '/noise/bus/boid/enable',
+    'bus_boid_disable': '/noise/bus/boid/disable',
+    'bus_boid_offsets': '/noise/bus/boid/offsets',  # [targetKey1, offset1, ...]
+    # Value stream (SC → Python)
+    'bus_values': '/noise/bus/values',  # [targetKey1, value1, ...]
 }
 
 # === WIDGET SIZES ===
