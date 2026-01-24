@@ -182,6 +182,8 @@ class BoidBusSender:
         Per spec: Send enable before or in same tick as first offsets.
         """
         if not self._enabled:
+            from src.utils.logger import logger
+            logger.info("Boid modulation ENABLED", component="BOID")
             self.osc_client.send_message('/noise/boid/enable', 1)
             self._enabled = True
 
@@ -192,6 +194,8 @@ class BoidBusSender:
         Per spec: Also sends clear for faster convergence.
         """
         if self._enabled:
+            from src.utils.logger import logger
+            logger.info("Boid modulation DISABLED", component="BOID")
             self.osc_client.send_message('/noise/boid/enable', 0)
             self.osc_client.send_message('/noise/boid/clear', 1)
             self._enabled = False
@@ -228,6 +232,10 @@ class BoidBusSender:
         else:
             # Send offsets as flat list [busIndex1, offset1, busIndex2, offset2, ...]
             args = prepare_offsets_message(snapshot)
+            # Debug: log first few offsets
+            if len(args) >= 4:
+                from src.utils.logger import logger
+                logger.debug(f"Boid offsets: bus {args[0]}={args[1]:.3f}, bus {args[2]}={args[3]:.3f} (+{len(args)//2 - 2} more)", component="BOID")
             self.osc_client.send_message('/noise/boid/offsets', args)
 
     def clear(self):
