@@ -256,9 +256,11 @@ to also enqueue through this system for backward compatibility.
     // /noise/boid/clear - clear all offsets (equivalent to empty offsets message)
     // =========================================================================
 
-    // Validation: unified bus index range is 1000-1070
+    // Validation: unified bus index range (uses actual allocated base)
     ~isValidUnifiedBusIndex = { |busIndex|
-        busIndex.isInteger && (busIndex >= 1000) && (busIndex <= 1070);
+        var minBus = ~unifiedBusBase;
+        var maxBus = ~unifiedBusBase + 70;
+        busIndex.isInteger && (busIndex >= minBus) && (busIndex <= maxBus);
     };
 
     OSCdef(\boidEnable).free;
