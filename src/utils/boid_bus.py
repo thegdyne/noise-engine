@@ -193,7 +193,7 @@ class BoidBusSender:
         """
         if self._enabled:
             self.osc_client.send_message('/noise/boid/enable', 0)
-            self.osc_client.send_message('/noise/boid/clear')
+            self.osc_client.send_message('/noise/boid/clear', 1)
             self._enabled = False
             self._last_snapshot = {}
 
@@ -224,7 +224,7 @@ class BoidBusSender:
 
         if not snapshot:
             # Empty snapshot - send clear
-            self.osc_client.send_message('/noise/boid/clear')
+            self.osc_client.send_message('/noise/boid/clear', 1)
         else:
             # Send offsets as flat list [busIndex1, offset1, busIndex2, offset2, ...]
             args = prepare_offsets_message(snapshot)
@@ -232,7 +232,7 @@ class BoidBusSender:
 
     def clear(self):
         """Clear all boid offsets without disabling."""
-        self.osc_client.send_message('/noise/boid/clear')
+        self.osc_client.send_message('/noise/boid/clear', 1)
         self._last_snapshot = {}
 
     @property
