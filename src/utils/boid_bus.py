@@ -18,13 +18,16 @@ GRID_TOTAL_COLUMNS = 151  # 0..150
 
 # Column ranges
 GENERATOR_COLS = (0, 79)      # 80 cols: legacy path
-MOD_SLOT_COLS = (80, 107)     # 28 cols -> bus 1000-1027
-CHANNEL_COLS = (108, 131)     # 24 cols -> bus 1028-1051
-FX_COLS = (132, 150)          # 19 cols -> bus 1052-1070
+MOD_SLOT_COLS = (80, 107)     # 28 cols -> bus base+0 to base+27
+CHANNEL_COLS = (108, 131)     # 24 cols -> bus base+28 to base+51
+FX_COLS = (132, 150)          # 19 cols -> bus base+52 to base+70
 
 # Unified bus index range
-UNIFIED_BUS_MIN = 1000
-UNIFIED_BUS_MAX = 1070
+# NOTE: SC allocates dynamically - wanted 1000 but gets ~246
+# This must match what SC actually allocated (check SC post window)
+UNIFIED_BUS_BASE = 246  # Actual allocation from SC
+UNIFIED_BUS_MIN = UNIFIED_BUS_BASE
+UNIFIED_BUS_MAX = UNIFIED_BUS_BASE + 70
 
 # Protocol constraints
 MAX_OFFSET_PAIRS = 100
@@ -39,22 +42,22 @@ def grid_to_bus(row: int, col: int) -> Optional[int]:
         col: Grid column (0-150)
 
     Returns:
-        Bus index (1000-1070) for unified buses, or None for generator columns (0-79)
+        Bus index for unified buses, or None for generator columns (0-79)
 
-    Per spec v4:
+    Layout (relative to UNIFIED_BUS_BASE):
     - col 0-79: None (generator path, handled separately)
-    - col 80-107: bus 1000-1027 (mod slot params)
-    - col 108-131: bus 1028-1051 (channel params)
-    - col 132-150: bus 1052-1070 (FX params)
+    - col 80-107: bus base+0 to base+27 (mod slot params)
+    - col 108-131: bus base+28 to base+51 (channel params)
+    - col 132-150: bus base+52 to base+70 (FX params)
     """
     if col < 80:
         return None  # Generator path
     elif 80 <= col < 108:
-        return 1000 + (col - 80)
+        return UNIFIED_BUS_BASE + (col - 80)
     elif 108 <= col < 132:
-        return 1028 + (col - 108)
+        return UNIFIED_BUS_BASE + 28 + (col - 108)
     elif 132 <= col < 151:
-        return 1052 + (col - 132)
+        return UNIFIED_BUS_BASE + 52 + (col - 132)
     else:
         return None  # Out of range
 
