@@ -186,6 +186,61 @@ Mod Slot P0-P6 Mapping:
     ~boidEnabled = false;
     ~boidOffsets = Array.fill(71, { 0.0 });
 
+    // === BOID SCALES (per-parameter) ===
+    // How much boid depth affects each target (multiplier on depth 0-1)
+    // scale=1.0 means depth=1 can modulate full param range
+    // scale=0.3 means depth=1 can modulate 30% of param range
+    ~boidScales = Dictionary.new;
+
+    // Mod slot params (4 slots x 7 params = 28)
+    // P0=rate, P1=shape/atkA, P2=pattern/atkB, P3=rotate/atkC,
+    // P4=waveA/atkD, P5=waveB/relA, P6=waveC/relB
+    4.do { |slotIdx|
+        var slot = slotIdx + 1;
+        ~boidScales[("mod_%_p0").format(slot).asSymbol] = 0.4;  // rate
+        ~boidScales[("mod_%_p1").format(slot).asSymbol] = 0.5;  // shape/atkA
+        ~boidScales[("mod_%_p2").format(slot).asSymbol] = 0.5;  // pattern/atkB
+        ~boidScales[("mod_%_p3").format(slot).asSymbol] = 0.5;  // rotate/atkC
+        ~boidScales[("mod_%_p4").format(slot).asSymbol] = 0.5;  // waveA/atkD
+        ~boidScales[("mod_%_p5").format(slot).asSymbol] = 0.5;  // waveB/relA
+        ~boidScales[("mod_%_p6").format(slot).asSymbol] = 0.5;  // waveC/relB
+    };
+
+    // Channel params (8 channels x 3 params = 24)
+    8.do { |chanIdx|
+        var chan = chanIdx + 1;
+        ~boidScales[("chan_%_echo").format(chan).asSymbol] = 0.4;  // echo send
+        ~boidScales[("chan_%_verb").format(chan).asSymbol] = 0.4;  // verb send
+        ~boidScales[("chan_%_pan").format(chan).asSymbol] = 0.6;   // pan (-1 to 1)
+    };
+
+    // FX: Heat (2)
+    ~boidScales[\fx_heat_drive] = 0.5;
+    ~boidScales[\fx_heat_mix] = 0.4;
+
+    // FX: Echo (6)
+    ~boidScales[\fx_echo_time] = 0.3;      // time changes can be jarring
+    ~boidScales[\fx_echo_feedback] = 0.5;
+    ~boidScales[\fx_echo_tone] = 0.6;
+    ~boidScales[\fx_echo_wow] = 0.5;
+    ~boidScales[\fx_echo_spring] = 0.4;
+    ~boidScales[\fx_echo_verbSend] = 0.4;
+
+    // FX: Reverb (3)
+    ~boidScales[\fx_verb_size] = 0.4;
+    ~boidScales[\fx_verb_decay] = 0.5;
+    ~boidScales[\fx_verb_tone] = 0.6;
+
+    // FX: Dual Filter (8)
+    ~boidScales[\fx_fb_drive] = 0.5;
+    ~boidScales[\fx_fb_freq1] = 0.6;       // filter freq - more modulation is musical
+    ~boidScales[\fx_fb_freq2] = 0.6;
+    ~boidScales[\fx_fb_reso1] = 0.4;       // resonance - careful, can screech
+    ~boidScales[\fx_fb_reso2] = 0.4;
+    ~boidScales[\fx_fb_syncAmt] = 0.5;
+    ~boidScales[\fx_fb_harmonics] = 0.5;
+    ~boidScales[\fx_fb_mix] = 0.4;
+
     // === VERIFY BUS ALLOCATION ===
     "  Bus Unification allocated % buses at indices %-%.".format(
         ~unifiedBusCount,
@@ -449,15 +504,19 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                     });
 
                     // Get boid offset if enabled (array lookup by busIndex - base)
+                    // Apply per-parameter scale: boidOffset * scale * range
                     if(~boidEnabled, {
                         var idx = meta.busIndex - ~unifiedBusBase;
                         if((idx >= 0) && (idx < 71), {
-                            boidOffset = ~boidOffsets[idx] ? 0.0;
+                            var rawOffset = ~boidOffsets[idx] ? 0.0;
+                            var scale = ~boidScales[targetKey] ? 1.0;
+                            var range = meta.max - meta.min;
+                            boidOffset = rawOffset * scale * range;
                         });
                     });
 
                     // Compute effective value
-                    // For 0-1 params, modSum scales the range; for pan (-1 to 1), it's additive
+                    // modSum and boidOffset both already scaled by range
                     effective = state.baseValue + (modSum * (meta.max - meta.min)) + boidOffset;
                     effective = effective.clip(meta.min, meta.max);
 
