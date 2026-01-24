@@ -170,6 +170,11 @@ All OSC message routing
     // Map param index to symbol for standard params
     ~genParamSymbols = [\frequency, \cutoff, \resonance, \attack, \decay];
 
+    // Scaling factors: boid offsets are 0-1, scale to parameter ranges
+    // freq: ±400 Hz, cutoff: ±8000 Hz, resonance: ±0.5, attack: ±0.5s, decay: ±2s
+    ~genBoidScales = [400, 8000, 0.5, 0.5, 2.0];
+    ~genBoidCustomScale = 0.5;  // Custom params are typically 0-1
+
     // Track which (slot, paramIdx) pairs have active offsets
     ~genBoidActiveOffsets = Set.new;
 
@@ -184,25 +189,27 @@ All OSC message routing
         while({ (i + 2) < msg.size && (tripleCount < maxTriples) }, {
             var slot = msg[i].asInteger.clip(1, 8);
             var paramIdx = msg[i+1].asInteger.clip(0, 9);
-            var offset = msg[i+2].asFloat;
-            var base, bus, effective;
+            var rawOffset = msg[i+2].asFloat;
+            var base, bus, effective, scaledOffset;
 
-            if(offset.isNaN.not && (offset.abs < inf), {
+            if(rawOffset.isNaN.not && (rawOffset.abs < inf), {
                 newActiveOffsets.add([slot, paramIdx]);
 
                 if(paramIdx < 5, {
                     // Standard param (freq, cutoff, resonance, attack, decay)
                     var param = ~genParamSymbols[paramIdx];
-                    ~genBoidOffsets[slot][param] = offset;
+                    scaledOffset = rawOffset * ~genBoidScales[paramIdx];
+                    ~genBoidOffsets[slot][param] = scaledOffset;
                     base = ~genBaseValues[slot][param] ? 0;
                     bus = ~genUserParams[slot][param];
-                    if(bus.notNil, { bus.set(base + offset) });
+                    if(bus.notNil, { bus.set(base + scaledOffset) });
                 }, {
                     // Custom param (5-9 -> custom0-4)
                     var customIdx = paramIdx - 5;
-                    ~genBoidOffsets[slot][\custom][customIdx] = offset;
+                    scaledOffset = rawOffset * ~genBoidCustomScale;
+                    ~genBoidOffsets[slot][\custom][customIdx] = scaledOffset;
                     base = ~genBaseValues[slot][\custom][customIdx] ? 0.5;
-                    effective = base + offset;
+                    effective = base + scaledOffset;
                     bus = ~genParams[slot][\custom][customIdx];
                     if(bus.notNil, { bus.set(effective) });
                     bus = ~genUserParams[slot][\custom][customIdx];
