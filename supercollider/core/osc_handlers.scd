@@ -170,10 +170,13 @@ All OSC message routing
     // Map param index to symbol for standard params
     ~genParamSymbols = [\frequency, \cutoff, \resonance, \attack, \decay];
 
-    // Scaling factors: boid offsets are 0-1, scale to parameter ranges
-    // freq: ±400 Hz, cutoff: ±8000 Hz, resonance: ±0.5, attack: ±0.5s, decay: ±2s
-    ~genBoidScales = [400, 8000, 0.5, 0.5, 2.0];
-    ~genBoidCustomScale = 0.5;  // Custom params are typically 0-1
+    // Scaling factors: depth = percentage of full parameter range
+    // At depth 1.0, offset can swing the FULL usable range of each param
+    // User expectation: "depth at max = maximum possible modulation from base"
+    // freq: ±1000 Hz (~2 octaves), cutoff: ±16000 Hz (full filter range),
+    // resonance: ±1.0 (full), attack: ±2.0s (full), decay: ±10.0s (full)
+    ~genBoidScales = [1000, 16000, 1.0, 2.0, 10.0];
+    ~genBoidCustomScale = 1.0;  // Custom params are 0-1 normalized
 
     // Track which (slot, paramIdx) pairs have active offsets
     ~genBoidActiveOffsets = Set.new;
