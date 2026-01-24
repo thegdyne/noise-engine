@@ -1345,10 +1345,10 @@ OSC_PATHS = {
     'bus_route_set': '/noise/bus/route/set',  # [sourceKey, targetKey, depth, amount, offset, polarity, invert]
     'bus_route_remove': '/noise/bus/route/remove',  # [sourceKey, targetKey]
     'bus_route_clear': '/noise/bus/route/clear',  # [targetKey] or no args for clear all
-    # Boid operations
-    'bus_boid_enable': '/noise/bus/boid/enable',
-    'bus_boid_disable': '/noise/bus/boid/disable',
-    'bus_boid_offsets': '/noise/bus/boid/offsets',  # [targetKey1, offset1, ...]
+    # Boid operations (spec v4)
+    'boid_enable': '/noise/boid/enable',  # [int enabled] - 1=enable, 0=disable
+    'boid_offsets': '/noise/boid/offsets',  # [busIndex1, offset1, busIndex2, offset2, ...]
+    'boid_clear': '/noise/boid/clear',  # no args - clear all offsets
     # Value stream (SC → Python)
     'bus_values': '/noise/bus/values',  # [targetKey1, value1, ...]
 }

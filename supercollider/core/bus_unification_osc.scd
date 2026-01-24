@@ -250,34 +250,57 @@ to also enqueue through this system for backward compatibility.
     }, '/noise/bus/route/clear');
 
     // =========================================================================
-    // BOID OPERATIONS
-    // /noise/bus/boid/enable
-    // /noise/bus/boid/disable
-    // /noise/bus/boid/offsets [targetKey1, offset1, targetKey2, offset2, ...]
+    // BOID OPERATIONS (per spec v4)
+    // /noise/boid/enable [int enabled] - 1=enable, 0=disable (clears offsets)
+    // /noise/boid/offsets [busIndex1, offset1, busIndex2, offset2, ...] - complete snapshot
+    // /noise/boid/clear - clear all offsets (equivalent to empty offsets message)
     // =========================================================================
 
-    OSCdef(\busBoidEnable).free;
-    OSCdef(\busBoidEnable, { |msg|
-        ~queueBoidOp.(\enable, nil);
-    }, '/noise/bus/boid/enable');
+    // Validation: unified bus index range is 1000-1070
+    ~isValidUnifiedBusIndex = { |busIndex|
+        busIndex.isInteger && (busIndex >= 1000) && (busIndex <= 1070);
+    };
 
-    OSCdef(\busBoidDisable).free;
-    OSCdef(\busBoidDisable, { |msg|
-        ~queueBoidOp.(\disable, nil);
-    }, '/noise/bus/boid/disable');
+    OSCdef(\boidEnable).free;
+    OSCdef(\boidEnable, { |msg|
+        var enabled = if(msg.size > 1, { msg[1].asInteger }, { 0 });
+        if(enabled == 1, {
+            ~queueBoidOp.(\enable, nil);
+        }, {
+            ~queueBoidOp.(\disable, nil);
+        });
+    }, '/noise/boid/enable');
 
-    OSCdef(\busBoidOffsets).free;
-    OSCdef(\busBoidOffsets, { |msg|
+    OSCdef(\boidOffsets).free;
+    OSCdef(\boidOffsets, { |msg|
         var offsets = Dictionary.new;
         var i = 1;
-        while({ i < msg.size }, {
-            var key = msg[i].asString.asSymbol;
-            var val = msg[i+1].asFloat;
-            offsets[key] = val;
+        var pairCount = 0;
+        var maxPairs = 100;
+
+        // Parse pairs: [busIndex1, offset1, busIndex2, offset2, ...]
+        while({ (i + 1) < msg.size && (pairCount < maxPairs) }, {
+            var busIndex = msg[i].asInteger;
+            var offset = msg[i+1].asFloat;
+
+            // Validate bus index range (1000-1070) and non-finite offset
+            if(~isValidUnifiedBusIndex.(busIndex), {
+                if(offset.isNaN.not && offset.abs.isInfinite.not, {
+                    // Last occurrence wins for duplicate busIndex
+                    offsets[busIndex] = offset;
+                });
+            });
+            pairCount = pairCount + 1;
             i = i + 2;
         });
         ~queueBoidOp.(\setOffsets, offsets);
-    }, '/noise/bus/boid/offsets');
+    }, '/noise/boid/offsets');
+
+    OSCdef(\boidClear).free;
+    OSCdef(\boidClear, { |msg|
+        // Clear is equivalent to empty offsets snapshot
+        ~queueBoidOp.(\setOffsets, Dictionary.new);
+    }, '/noise/boid/clear');
 
     // =========================================================================
     // VALUE STREAM (for UI feedback)

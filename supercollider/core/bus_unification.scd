@@ -257,12 +257,14 @@ Mod Slot P0-P6 Mapping:
 /*
 Apply Tick (500Hz, Atomic, Non-yielding, Deterministic)
 
-1. Drain pending base updates (last-write-wins per target)
-2. Drain pending route ops (in queue order)
-3. Drain boid ops (enable first, then offsets replacement)
-4. Snapshot mod sources (iterate ordered source keys)
-5. Compute & write targets (iterate by ascending bus index)
-   effective = clamp(base + modSum + boidOffset, min, max)
+Uses swap-at-drain-start pattern for deterministic cutoff:
+1. Swap pending queues with fresh empty ones (defines cutoff)
+2. Drain base updates (last-write-wins per target)
+3. Drain route ops (in queue order)
+4. Drain boid ops FIFO (enable/disable, then offsets replacement)
+5. Snapshot mod sources (iterate ordered source keys)
+6. Compute & write targets (iterate by ascending bus index)
+   effective = clamp(baseValue + nonBoidModSum + boidOffset, min, max)
 */
 
 ~applyTickRoutine = nil;
@@ -275,8 +277,18 @@ Apply Tick (500Hz, Atomic, Non-yielding, Deterministic)
 
     ~applyTickRoutine = Routine({
         inf.do {
+            // === SWAP-AT-DRAIN-START (deterministic cutoff) ===
+            // Capture current queues and replace with fresh empty ones
+            var drainBaseUpdates = ~pendingBaseUpdates;
+            var drainRouteOps = ~pendingRouteOps;
+            var drainBoidOps = ~pendingBoidOps;
+
+            ~pendingBaseUpdates = Dictionary.new;
+            ~pendingRouteOps = List.new;
+            ~pendingBoidOps = List.new;
+
             // === PHASE 1: DRAIN BASE UPDATES ===
-            ~pendingBaseUpdates.keysValuesDo { |targetKey, value|
+            drainBaseUpdates.keysValuesDo { |targetKey, value|
                 var state = ~modTargetState[targetKey];
                 var meta = ~targetMeta[targetKey];
                 if(state.notNil && meta.notNil, {
@@ -284,10 +296,9 @@ Apply Tick (500Hz, Atomic, Non-yielding, Deterministic)
                     state.baseValue = value.clip(meta.min, meta.max);
                 });
             };
-            ~pendingBaseUpdates.clear;
 
             // === PHASE 2: DRAIN ROUTE OPS ===
-            ~pendingRouteOps.do { |routeOp|
+            drainRouteOps.do { |routeOp|
                 var op = routeOp.op;
                 var targetKey = routeOp.targetKey;
                 var sourceKey = routeOp.sourceKey;
@@ -341,10 +352,13 @@ Apply Tick (500Hz, Atomic, Non-yielding, Deterministic)
                     });
                 };
             };
-            ~pendingRouteOps.clear;
 
-            // === PHASE 3: DRAIN BOID OPS ===
-            ~pendingBoidOps.do { |boidOp|
+            // === PHASE 3: DRAIN BOID OPS (FIFO) ===
+            // Per spec: FIFO order is authoritative
+            // - [\enable, true]: ~boidEnabled := true
+            // - [\enable, false] (disable): ~boidEnabled := false AND ~boidOffsets := empty
+            // - [\setOffsets, snapshot]: ~boidOffsets := snapshot (full replacement)
+            drainBoidOps.do { |boidOp|
                 var op = boidOp.op;
                 case
                 { op == \enable } {
@@ -352,14 +366,13 @@ Apply Tick (500Hz, Atomic, Non-yielding, Deterministic)
                 }
                 { op == \disable } {
                     ~boidEnabled = false;
-                    ~boidOffsets.clear;  // Clear offsets on disable
+                    ~boidOffsets = Dictionary.new;  // Clear offsets on disable (Invariant 4)
                 }
                 { op == \setOffsets } {
-                    // Replace entire offsets dict
+                    // Replace entire offsets dict (Invariant 5: snapshot replacement)
                     ~boidOffsets = boidOp.offsets ?? Dictionary.new;
                 };
             };
-            ~pendingBoidOps.clear;
 
             // === PHASE 4: SNAPSHOT MOD SOURCES ===
             // Read current values from mod source buses
@@ -426,9 +439,9 @@ Apply Tick (500Hz, Atomic, Non-yielding, Deterministic)
                         };
                     });
 
-                    // Get boid offset if enabled
+                    // Get boid offset if enabled (lookup by busIndex per spec v4)
                     if(~boidEnabled, {
-                        boidOffset = ~boidOffsets[targetKey] ? 0.0;
+                        boidOffset = ~boidOffsets[meta.busIndex] ? 0.0;
                     });
 
                     // Compute effective value
