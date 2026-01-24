@@ -182,9 +182,9 @@ Mod Slot P0-P6 Mapping:
 
     // === BOID STATE ===
     // ~boidEnabled: true/false
-    // ~boidOffsets: targetKey -> offset value
+    // ~boidOffsets: Array indexed by (busIndex - ~unifiedBusBase), size 71
     ~boidEnabled = false;
-    ~boidOffsets = Dictionary.new;
+    ~boidOffsets = Array.fill(71, { 0.0 });
 
     // === VERIFY BUS ALLOCATION ===
     "  Bus Unification allocated % buses at indices %-%.".format(
@@ -366,11 +366,20 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                 }
                 { op == \disable } {
                     ~boidEnabled = false;
-                    ~boidOffsets = Dictionary.new;  // Clear offsets on disable (Invariant 4)
+                    ~boidOffsets = Array.fill(71, { 0.0 });  // Clear offsets on disable
                 }
                 { op == \setOffsets } {
-                    // Replace entire offsets dict (Invariant 5: snapshot replacement)
-                    ~boidOffsets = boidOp.offsets ?? Dictionary.new;
+                    // Convert offsets dict to array (indexed by busIndex - base)
+                    var newOffsets = Array.fill(71, { 0.0 });
+                    if(boidOp.offsets.notNil, {
+                        boidOp.offsets.keysValuesDo { |busIndex, offset|
+                            var idx = busIndex - ~unifiedBusBase;
+                            if((idx >= 0) && (idx < 71), {
+                                newOffsets[idx] = offset;
+                            });
+                        };
+                    });
+                    ~boidOffsets = newOffsets;
                 };
             };
 
@@ -439,9 +448,12 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                         };
                     });
 
-                    // Get boid offset if enabled (lookup by busIndex per spec v4)
+                    // Get boid offset if enabled (array lookup by busIndex - base)
                     if(~boidEnabled, {
-                        boidOffset = ~boidOffsets[meta.busIndex] ? 0.0;
+                        var idx = meta.busIndex - ~unifiedBusBase;
+                        if((idx >= 0) && (idx < 71), {
+                            boidOffset = ~boidOffsets[idx] ? 0.0;
+                        });
                     });
 
                     // Compute effective value
