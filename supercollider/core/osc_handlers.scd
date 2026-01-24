@@ -170,12 +170,12 @@ All OSC message routing
     // Map param index to symbol for standard params
     ~genParamSymbols = [\frequency, \cutoff, \resonance, \attack, \decay];
 
-    // === GENERATOR BOID SCALES (per-parameter) ===
-    // How much boid depth affects each generator parameter
+    // === GENERATOR BOID SCALES (per-parameter, all slots) ===
+    // How much boid depth affects each generator parameter type
     // Scale = max offset at depth=1.0 (in parameter's native units)
     //
     // At depth=1.0, boids can swing parameter by ± scale value from UI base
-    // Example: freq scale=500 means UI base 440Hz can swing 440±500 = -60 to 940Hz
+    // Set to 0 to disable boid modulation for that parameter type
     //
     ~genBoidScales = Dictionary.new;
 
