@@ -1,36 +1,8 @@
 """
 Tests for ModRoutingState class.
 
-PyQt5 is mocked to allow testing without Qt installation.
-The mock setup uses a simple stub class for QObject to avoid
-StopIteration errors from exhausted MagicMock iterators.
+PyQt5 mock is set up in conftest.py to avoid StopIteration errors.
 """
-
-import sys
-from unittest.mock import MagicMock
-
-
-# Create a simple QObject stub that doesn't interfere with Python magic methods
-class QObjectStub:
-    """Minimal QObject stub for testing."""
-    def __init__(self, parent=None):
-        pass
-
-
-def pyqtSignal_stub(*args, **kwargs):
-    """Return a MagicMock that acts as a signal."""
-    signal = MagicMock()
-    signal.emit = MagicMock()
-    signal.connect = MagicMock()
-    return signal
-
-
-# Mock PyQt5.QtCore BEFORE importing ModRoutingState
-mock_qt_core = MagicMock()
-mock_qt_core.QObject = QObjectStub  # Use stub class, not MagicMock
-mock_qt_core.pyqtSignal = pyqtSignal_stub
-sys.modules['PyQt5'] = MagicMock()
-sys.modules['PyQt5.QtCore'] = mock_qt_core
 
 import pytest
 from src.gui.mod_routing_state import (
