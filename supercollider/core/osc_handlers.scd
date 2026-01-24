@@ -170,13 +170,38 @@ All OSC message routing
     // Map param index to symbol for standard params
     ~genParamSymbols = [\frequency, \cutoff, \resonance, \attack, \decay];
 
-    // Scaling factors: depth = percentage of full parameter range
-    // At depth 1.0, offset can swing the FULL usable range of each param
-    // User expectation: "depth at max = maximum possible modulation from base"
-    // freq: ±1000 Hz (~2 octaves), cutoff: ±16000 Hz (full filter range),
-    // resonance: ±1.0 (full), attack: ±2.0s (full), decay: ±10.0s (full)
-    ~genBoidScales = [1000, 16000, 1.0, 2.0, 10.0];
-    ~genBoidCustomScale = 1.0;  // Custom params are 0-1 normalized
+    // === GENERATOR BOID SCALES (per-parameter) ===
+    // How much boid depth affects each generator parameter
+    // Scale = max offset at depth=1.0 (in parameter's native units)
+    //
+    // At depth=1.0, boids can swing parameter by ± scale value from UI base
+    // Example: freq scale=500 means UI base 440Hz can swing 440±500 = -60 to 940Hz
+    //
+    ~genBoidScales = Dictionary.new;
+
+    // Oscillator frequency (Hz) - range: 20-1000 Hz
+    // 500 = ±500 Hz (~1 octave swing)
+    ~genBoidScales[\frequency] = 500;
+
+    // Filter cutoff (Hz) - range: 100-16000 Hz
+    // 8000 = ±8000 Hz (half the filter range)
+    ~genBoidScales[\cutoff] = 8000;
+
+    // Filter resonance - range: 0-1
+    // 0.5 = ±50% of range (avoids extreme screech)
+    ~genBoidScales[\resonance] = 0.5;
+
+    // Envelope attack (seconds) - range: 0.001-2.0s
+    // 1.0 = ±1 second
+    ~genBoidScales[\attack] = 1.0;
+
+    // Envelope decay (seconds) - range: 0.01-10.0s
+    // 5.0 = ±5 seconds
+    ~genBoidScales[\decay] = 5.0;
+
+    // Custom params (normalized 0-1)
+    // 0.5 = ±50% of range
+    ~genBoidScales[\custom] = 0.5;
 
     // Track which (slot, paramIdx) pairs have active offsets
     ~genBoidActiveOffsets = Set.new;
@@ -201,7 +226,8 @@ All OSC message routing
                 if(paramIdx < 5, {
                     // Standard param (freq, cutoff, resonance, attack, decay)
                     var param = ~genParamSymbols[paramIdx];
-                    scaledOffset = rawOffset * ~genBoidScales[paramIdx];
+                    var scale = ~genBoidScales[param] ? 1.0;
+                    scaledOffset = rawOffset * scale;
                     ~genBoidOffsets[slot][param] = scaledOffset;
                     base = ~genBaseValues[slot][param] ? 0;
                     bus = ~genUserParams[slot][param];
@@ -209,7 +235,8 @@ All OSC message routing
                 }, {
                     // Custom param (5-9 -> custom0-4)
                     var customIdx = paramIdx - 5;
-                    scaledOffset = rawOffset * ~genBoidCustomScale;
+                    var scale = ~genBoidScales[\custom] ? 0.5;
+                    scaledOffset = rawOffset * scale;
                     ~genBoidOffsets[slot][\custom][customIdx] = scaledOffset;
                     base = ~genBaseValues[slot][\custom][customIdx] ? 0.5;
                     effective = base + scaledOffset;
