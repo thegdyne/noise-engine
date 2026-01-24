@@ -12,6 +12,7 @@ Runs simulation at 20Hz via QTimer.
 
 from typing import Optional, List, Tuple, Callable
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from src.utils.logger import logger
 
 from .boid_engine import BoidEngine, SIM_HZ
 from .boid_state import BoidState, generate_random_seed
@@ -153,6 +154,17 @@ class BoidController(QObject):
 
         # Get contributions
         contributions = self._engine.get_contributions()
+
+        # Debug: log contribution counts periodically
+        if hasattr(self, '_tick_count'):
+            self._tick_count += 1
+        else:
+            self._tick_count = 0
+
+        if self._tick_count % 20 == 0:  # Every second
+            gen_count = sum(1 for r, c, v in contributions if c < 80)
+            unified_count = sum(1 for r, c, v in contributions if c >= 80)
+            logger.debug(f"Contributions: {len(contributions)} total, {gen_count} GEN, {unified_count} unified", component="BOID")
 
         # Split by column range
         gen_contributions = []
