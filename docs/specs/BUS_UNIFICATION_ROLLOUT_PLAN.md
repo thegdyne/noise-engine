@@ -9,7 +9,9 @@
 
 ## 1. Objective
 
-Expand bus unification from 71 → 151 buses, bringing generator parameters into the unified system. This eliminates parallel modulation paths and enables boid/mod-matrix control of generator params.
+Expand bus unification from 71 → 149 buses, bringing generator parameters into the unified system. This eliminates parallel modulation paths and enables boid/mod-matrix control of generator params.
+
+**Design principle:** Only modulatable parameters go through unified buses. Mix controls remain as direct UI controls (manual only, not modulatable).
 
 ---
 
@@ -26,8 +28,9 @@ Expand bus unification from 71 → 151 buses, bringing generator parameters into
 - `mod_apply.scd` uses 40 synths for gen param modulation
 - UI writes directly to `~genUserParams` buses
 
-### Target State (151-bus system)
-- All 151 targets in `~targetMeta`
+### Target State (149-bus system)
+- 149 modulatable targets in `~targetMeta`
+- Mix params excluded (manual UI control only)
 - Generators read from unified buses
 - Single apply tick handles everything
 - `mod_apply.scd` retired
@@ -54,32 +57,39 @@ Expand bus unification from 71 → 151 buses, bringing generator parameters into
 
 **Changes:**
 - `bus_unification.scd`: Add to `~targetMeta`:
-  - `gen_<1-8>_frequency` (8 buses)
+  - `gen_<1-8>_freq` (8 buses)
   - `gen_<1-8>_cutoff` (8 buses)
-  - `gen_<1-8>_resonance` (8 buses)
+  - `gen_<1-8>_res` (8 buses)
   - `gen_<1-8>_attack` (8 buses)
   - `gen_<1-8>_decay` (8 buses)
   - `gen_<1-8>_custom<0-4>` (40 buses)
-- Update `~unifiedBusCount` from 71 → 151
+- Update `~unifiedBusCount` from 71 → 149
 - Add `~boidScales` entries for new targets (default 0 = disabled)
-- Update `~boidOffsets` array size from 71 → 151
+- Update `~boidOffsets` array size from 71 → 149
 
-**Bus Layout (new):**
-```
-Block A:  0-39   gen_<slot>_<param>     (8 slots × 5 core params)
-Block B: 40-79   gen_<slot>_custom<n>   (8 slots × 5 custom params)
-Block C: 80-107  mod_<slot>_p<n>        (4 slots × 7 params) [existing]
-Block D: 108-131 chan_<ch>_<param>      (8 channels × 3 params) [existing]
-Block E: 132-133 fx_heat_*              (2) [existing]
-Block F: 134-139 fx_echo_*              (6) [existing]
-Block G: 140-142 fx_verb_*              (3) [existing]
-Block H: 143-150 fx_fb_*                (8) [existing]
-```
+**Bus Layout (canonical - 149 buses):**
+
+| Index | Count | Keys | Description |
+|-------|-------|------|-------------|
+| 0-39 | 40 | `gen_1_freq` ... `gen_8_decay` | 8 slots × 5 core params (freq, cutoff, res, attack, decay) |
+| 40-79 | 40 | `gen_1_custom0` ... `gen_8_custom4` | 8 slots × 5 custom params |
+| 80-107 | 28 | `mod_1_p0` ... `mod_4_p6` | 4 slots × 7 params (p0-p6) |
+| 108-131 | 24 | `chan_1_echo` ... `chan_8_pan` | 8 channels × 3 params (echo, verb, pan) |
+| 132 | 1 | `fx_heat_drive` | Heat drive only |
+| 133 | — | *(gap)* | mix excluded - manual UI only |
+| 134-139 | 6 | `fx_echo_time`, `fx_echo_feedback`, `fx_echo_tone`, `fx_echo_wow`, `fx_echo_spring`, `fx_echo_verbSend` | Echo |
+| 140-142 | 3 | `fx_reverb_size`, `fx_reverb_decay`, `fx_reverb_tone` | Reverb |
+| 143-149 | 7 | `fx_dualFilter_drive`, `fx_dualFilter_freq1`, `fx_dualFilter_freq2`, `fx_dualFilter_reso1`, `fx_dualFilter_reso2`, `fx_dualFilter_syncAmt`, `fx_dualFilter_harmonics` | DualFilter |
+| 150 | — | *(gap)* | mix excluded - manual UI only |
+
+**Excluded from unified buses (manual UI control only):**
+- `fx_heat_mix`
+- `fx_dualFilter_mix`
 
 **Test:**
 - SC boots without errors
-- `~targetMeta.size` == 151
-- Existing 71 targets still work (mod matrix, boids)
+- `~targetMeta.size` == 149
+- Existing targets still work (mod matrix, boids)
 - No CPU increase
 
 **Risk:** Bus index collision with existing `~genParams`. Mitigation: unified buses are at index 1000+, gen params are dynamically allocated (typically < 500).
@@ -100,9 +110,9 @@ Block H: 143-150 fx_fb_*                (8) [existing]
 **Defaults (from buses.scd):**
 | Param | Default | Min | Max | Curve |
 |-------|---------|-----|-----|-------|
-| frequency | 400 | 20 | 8000 | exp |
+| freq | 400 | 20 | 8000 | exp |
 | cutoff | 16000 | 20 | 16000 | exp |
-| resonance | 1.0 | 0.1 | 1.0 | lin |
+| res | 1.0 | 0.1 | 1.0 | lin |
 | attack | 0.0001 | 0.0001 | 2.0 | exp |
 | decay | 1.0 | 0.01 | 10.0 | exp |
 | custom0-4 | 0.5 | 0 | 1 | lin |
@@ -124,7 +134,7 @@ Block H: 143-150 fx_fb_*                (8) [existing]
   ```supercollider
   if(slotID == 1, {
       // Use unified buses
-      \freqBus, ~busRegistry[\gen_1_frequency].index,
+      \freqBus, ~busRegistry[\gen_1_freq].index,
       \cutoffBus, ~busRegistry[\gen_1_cutoff].index,
       // ... etc
   }, {
@@ -281,7 +291,7 @@ Before merging each phase:
 
 ## 9. Success Criteria
 
-- [ ] 151 buses allocated and stable
+- [ ] 149 buses allocated and stable
 - [ ] All gen params controllable via mod matrix
 - [ ] Boid modulation works on gen params
 - [ ] No increase in CPU usage (should decrease)
