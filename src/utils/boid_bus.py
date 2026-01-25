@@ -25,6 +25,7 @@ OSC Protocol:
 from typing import Dict, List, Optional, Tuple
 import math
 
+from src.config import OSC_PATHS
 from src.utils.boid_scales import get_boid_scales
 
 
@@ -198,7 +199,7 @@ class BoidBusSender:
         if not self._enabled:
             from src.utils.logger import logger
             logger.info("Boid modulation ENABLED", component="BOID")
-            self.osc_client.send_message('/noise/boid/enable', 1)
+            self.osc_client.send_message(OSC_PATHS['boid_enable'], 1)
             self._enabled = True
 
     def disable(self):
@@ -210,8 +211,8 @@ class BoidBusSender:
         if self._enabled:
             from src.utils.logger import logger
             logger.info("Boid modulation DISABLED", component="BOID")
-            self.osc_client.send_message('/noise/boid/enable', 0)
-            self.osc_client.send_message('/noise/boid/clear', 1)
+            self.osc_client.send_message(OSC_PATHS['boid_enable'], 0)
+            self.osc_client.send_message(OSC_PATHS['boid_clear'], 1)
             self._enabled = False
             self._last_snapshot = {}
 
@@ -261,7 +262,7 @@ class BoidBusSender:
         # Uses OscMessageBuilder to ensure int32 for indices, float32 for offsets
         from pythonosc.osc_message_builder import OscMessageBuilder
 
-        builder = OscMessageBuilder(address='/noise/boid/offsets')
+        builder = OscMessageBuilder(address=OSC_PATHS['boid_offsets'])
         for target_index in sorted(snapshot.keys()):
             # Send target index directly (0-148), SC handles bus mapping
             builder.add_arg(int(target_index), arg_type='i')  # int32
@@ -272,7 +273,7 @@ class BoidBusSender:
 
     def clear(self):
         """Clear all boid offsets without disabling."""
-        self.osc_client.send_message('/noise/boid/clear', 1)
+        self.osc_client.send_message(OSC_PATHS['boid_clear'], 1)
         self._last_snapshot = {}
 
     @property
