@@ -4,6 +4,7 @@
 ## Author: Claude + User
 ## Date: 2025-01-25
 ## Base Branch: consistency
+## Related: TEST_SUITE_REBUILD_PLAN.md (separate deliverable for test cleanup/recreation)
 
 ---
 
@@ -51,26 +52,7 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 
 ## 4. Rollout Phases
 
-### Phase 0: Test Cleanup (Before Any Code Changes)
-
-**Goal:** Remove tests tied to 71-bus assumptions. Clean slate prevents cascading test fixes.
-
-**Delete ALL tests touching unified bus system:**
-- `tests/test_boid_bus.py` - hardcoded 71-bus layout, UNIFIED_BUS constants
-- `tests/test_mod_routing.py` - target key format tied to old system
-- `tests/test_mod_route_sync.py` - mod routing state serialization
-- `tests/test_channel_fx_modulation.py` - channel/FX target routing
-- `tests/test_presets_phase4.py` - preset mod routing
-- `tests/conftest.py` - PyQt5 mock infrastructure (recreate fresh)
-- `tests/test_mod_architecture.py` - quadrature config tests (recreate fresh)
-
-**Test:**
-- `pytest tests/` passes with remaining tests
-- No import errors from deleted files
-
-**Rationale:** The v1.3 attempt failed partly due to cascading test fixes. Fresh tests from frozen spec acceptance criteria are cleaner than patching old assumptions.
-
----
+**Prerequisites:** Execute TEST_SUITE_REBUILD_PLAN.md Phase A (delete tests) before starting Phase 1.
 
 ### Phase 1: Expand Bus Allocation (SC only)
 
@@ -248,40 +230,7 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 - Verify no CPU overload (the v1.3 bug)
 - Tune scales for musicality
 
----
-
-### Phase 8: Recreate Tests from Frozen Spec
-
-**Goal:** Comprehensive test coverage matching spec acceptance criteria.
-
-**New test files:**
-
-| File | Covers | Spec Sections |
-|------|--------|---------------|
-| `tests/conftest.py` | PyQt5 mock infrastructure, fixtures | — |
-| `tests/test_unified_bus.py` | Target set, indexing, mix exclusion, defaults, curve constraints | A, B, C, D, G |
-| `tests/test_unified_routing.py` | Apply tick atomicity, FIFO precedence, boid snapshot | E, F |
-| `tests/test_generator_switching.py` | Legacy↔unified routing, switch timing, handoff | H |
-| `tests/test_preset_loading.py` | Keyed presets, legacy array mapping, mix endpoints | I, J |
-| `tests/test_mod_architecture.py` | Quadrature config validation | — |
-
-**Acceptance criteria to implement as tests:**
-
-- **(A)** Target set: 149 targets, indices 0-148, canonical key→index mapping
-- **(B)** Mix exclusion: `fx_heat_mix` / `fx_dualFilter_mix` not in targetMeta, dedicated OSC endpoints work
-- **(C)** Defaults: bus values match spec after initialization
-- **(D)** Custom param constraints: curve=lin, range=0-1, default=0.5
-- **(E)** Apply tick atomicity: queue boundary, FIFO precedence
-- **(F)** Boid snapshot: double-buffer swap, contribution formula
-- **(G)** Exp curve safety: normToReal/realToNorm produce finite values
-- **(H)** Generator routing: instantiation-time switching, bounded gap
-- **(I)** Keyed preset load: unified + mix params restored correctly
-- **(J)** Legacy preset mapping: 71-element array → correct targets
-
-**Test:**
-- `pytest tests/` all pass
-- Coverage includes all 149 targets
-- Edge cases from spec covered (NaN, out-of-range, exp overflow)
+**Follow-up:** Execute TEST_SUITE_REBUILD_PLAN.md Phase B (recreate tests) after Phase 7.
 
 ---
 
@@ -289,13 +238,6 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 
 | File | Phase | Changes |
 |------|-------|---------|
-| `tests/test_boid_bus.py` | 0 | DELETE |
-| `tests/test_mod_routing.py` | 0 | DELETE |
-| `tests/test_mod_route_sync.py` | 0 | DELETE |
-| `tests/test_channel_fx_modulation.py` | 0 | DELETE |
-| `tests/test_presets_phase4.py` | 0 | DELETE |
-| `tests/conftest.py` | 0 | DELETE |
-| `tests/test_mod_architecture.py` | 0 | DELETE |
 | `supercollider/core/bus_unification.scd` | 1, 2, 7 | Expand targetMeta, modTargetState, boidScales |
 | `supercollider/core/bus_unification_osc.scd` | 4 | Verify/add gen param handlers |
 | `supercollider/core/helpers.scd` | 3, 5 | Wire generators to unified buses |
@@ -303,12 +245,8 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 | `supercollider/core/mod_apply.scd` | 6 | Remove or gut |
 | `src/gui/*.py` (gen controls) | 4, 5 | Route through /noise/bus/base |
 | `src/utils/boid_bus.py` | 7 | Update zone mapping for gen targets |
-| `tests/conftest.py` | 8 | NEW - PyQt5 mock infrastructure |
-| `tests/test_unified_bus.py` | 8 | NEW - target set, indexing, defaults |
-| `tests/test_unified_routing.py` | 8 | NEW - apply tick, boid snapshot |
-| `tests/test_generator_switching.py` | 8 | NEW - routing switch procedure |
-| `tests/test_preset_loading.py` | 8 | NEW - preset application |
-| `tests/test_mod_architecture.py` | 8 | NEW - quadrature config tests |
+
+**Note:** Test file changes are tracked in TEST_SUITE_REBUILD_PLAN.md
 
 ---
 
@@ -316,13 +254,13 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 
 Each phase is independently revertable:
 
-- **Phase 0:** `git checkout` deleted test files from previous commit
 - **Phase 1-2:** Revert SC changes, 71-bus system restored
 - **Phase 3:** Revert helpers.scd, slot 1 uses legacy
 - **Phase 4-5:** Revert Python + SC, all slots use legacy
 - **Phase 6:** Cannot easily rollback - don't merge until confident
 - **Phase 7:** Set boid scales to 0, effectively disabled
-- **Phase 8:** Tests are additive, can delete if needed
+
+**Note:** Test rollback is covered in TEST_SUITE_REBUILD_PLAN.md
 
 ---
 
