@@ -124,7 +124,7 @@
 // ============================================================================
 
 ~isFinite = { |v|
-    v.isNaN.not and: { v.isInfinite.not }
+    v.isNaN.not and: { v.abs < inf }
 };
 
 ~normalizeTargetIndex = { |x|
