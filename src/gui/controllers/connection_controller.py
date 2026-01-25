@@ -37,8 +37,9 @@ class ConnectionController:
                     with open(ready_path) as f:
                         data = _json.load(f)
                     return data.get("status") == "ready"
-        except Exception:
-            pass
+        except Exception as e:
+            from src.utils.logger import logger
+            logger.debug(f"SC ready check failed: {e}", component="OSC")
         return False
 
     def toggle_connection(self):
