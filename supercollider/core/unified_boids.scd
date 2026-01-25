@@ -43,10 +43,7 @@
 // ============================================================================
 
 ~buildTargetMetadata = {
-    ~targetMetaByIndex = Array.newClear(149);
-    ~targetMetaByKey = Dictionary.new;
-
-    // Helper to add entry
+    // Helper to add entry (var must be declared first in SC)
     var addMeta = { |idx, key, min, max, default|
         var entry = (
             targetIndex: idx,
@@ -58,6 +55,9 @@
         ~targetMetaByIndex[idx] = entry;
         ~targetMetaByKey[key] = entry;
     };
+
+    ~targetMetaByIndex = Array.newClear(149);
+    ~targetMetaByKey = Dictionary.new;
 
     // Gen Core (0-39): 8 slots x 5 params
     8.do { |s|
