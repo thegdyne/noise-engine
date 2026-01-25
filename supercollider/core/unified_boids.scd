@@ -32,9 +32,9 @@
 ~applyInProgress = false;      // Reentrancy guard
 ~needsFollowUpApply = false;   // Flag for deferred apply
 
-// Pending Update Buffers
-~pendingBaseUpdates = nil;     // Dictionary: Int -> Float
-~pendingOffsetUpdates = nil;   // Dictionary: Int -> Float
+// Pending Update Buffers (initialized as empty Dicts so they're safe before init)
+~pendingBaseUpdates = Dictionary.new;
+~pendingOffsetUpdates = Dictionary.new;
 ~pendingEnableState = nil;     // nil or Bool
 ~pendingClearOffsets = false;  // Bool flag
 
