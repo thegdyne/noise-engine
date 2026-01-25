@@ -110,11 +110,7 @@ to also enqueue through this system for backward compatibility.
         ~queueBaseUpdate.(\fx_heat_drive, value);
     }, '/noise/fx/bus/heat/drive');
 
-    OSCdef(\busHeatMix).free;
-    OSCdef(\busHeatMix, { |msg|
-        var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_heat_mix, value);
-    }, '/noise/fx/bus/heat/mix');
+    // NOTE: fx_heat_mix is NOT a unified target - manual only via /noise/master/heat/mix
 
     // =========================================================================
     // FX: ECHO
@@ -241,11 +237,7 @@ to also enqueue through this system for backward compatibility.
         ~queueBaseUpdate.(\fx_fb_harmonics, value);
     }, '/noise/fx/bus/fb/harmonics');
 
-    OSCdef(\busFbMix).free;
-    OSCdef(\busFbMix, { |msg|
-        var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_mix, value);
-    }, '/noise/fx/bus/fb/mix');
+    // NOTE: fx_fb_mix is NOT a unified target - manual only via /noise/master/fb/mix
 
     // =========================================================================
     // ROUTE OPERATIONS

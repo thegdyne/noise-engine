@@ -1320,7 +1320,7 @@ OSC_PATHS = {
     'bus_chan_pan': '/noise/channel/bus/pan',
     # FX: Heat
     'bus_heat_drive': '/noise/fx/bus/heat/drive',  # [value]
-    'bus_heat_mix': '/noise/fx/bus/heat/mix',
+    # NOTE: bus_heat_mix removed - mix is manual-only via 'heat_mix' path
     # FX: Echo
     'bus_echo_time': '/noise/fx/bus/echo/time',
     'bus_echo_feedback': '/noise/fx/bus/echo/feedback',
@@ -1340,7 +1340,7 @@ OSC_PATHS = {
     'bus_fb_reso2': '/noise/fx/bus/fb/reso2',
     'bus_fb_sync_amt': '/noise/fx/bus/fb/syncAmt',
     'bus_fb_harmonics': '/noise/fx/bus/fb/harmonics',
-    'bus_fb_mix': '/noise/fx/bus/fb/mix',
+    # NOTE: bus_fb_mix removed - mix is manual-only via 'fb_mix' path
     # Route operations
     'bus_route_set': '/noise/bus/route/set',  # [sourceKey, targetKey, depth, amount, offset, polarity, invert]
     'bus_route_remove': '/noise/bus/route/remove',  # [sourceKey, targetKey]
