@@ -57,7 +57,7 @@ class BoidState:
     zone_gen: bool = True    # Columns 0-79 (generator params)
     zone_mod: bool = False   # Columns 80-107 (mod slot params) - OFF by default!
     zone_chan: bool = True   # Columns 108-131 (channel params)
-    zone_fx: bool = True     # Columns 132-150 (FX params)
+    zone_fx: bool = True     # Columns 132-148 (FX params)
 
     # Row filtering (which source rows boids can use)
     # Each slot has 4 outputs, so 16 total rows
@@ -147,7 +147,7 @@ class BoidState:
         if self.zone_chan:
             ranges.append((108, 131))
         if self.zone_fx:
-            ranges.append((132, 150))
+            ranges.append((132, 148))
         return ranges
 
     def is_column_allowed(self, col: int) -> bool:
@@ -158,7 +158,7 @@ class BoidState:
             return True
         if self.zone_chan and 108 <= col <= 131:
             return True
-        if self.zone_fx and 132 <= col <= 150:
+        if self.zone_fx and 132 <= col <= 148:
             return True
         return False
 

@@ -70,10 +70,10 @@ class BoidMiniVisualizer(QWidget):
         # Draw trail cells (fading contributions)
         for (row, col), value in self._cells.items():
             # Map cell to pixel position
-            # Grid is 151 cols x 16 rows
-            cx = (col / 151.0) * w
+            # Grid is 149 cols x 16 rows (matches unified bus layout)
+            cx = (col / 149.0) * w
             cy = (row / 16.0) * h
-            cell_w = w / 151.0
+            cell_w = w / 149.0
             cell_h = h / 16.0
 
             alpha = int(value * 120)
@@ -211,7 +211,7 @@ class BoidPanel(QWidget):
         self._zone_chan_btn.clicked.connect(lambda: self._on_zone_clicked('chan'))
         zone_layout.addWidget(self._zone_chan_btn)
 
-        self._zone_fx_btn = self._make_zone_button("FX", "FX params: heat, echo, verb, feedback (cols 132-150)", True)
+        self._zone_fx_btn = self._make_zone_button("FX", "FX params: heat, echo, verb, feedback (cols 132-148)", True)
         self._zone_fx_btn.clicked.connect(lambda: self._on_zone_clicked('fx'))
         zone_layout.addWidget(self._zone_fx_btn)
 
