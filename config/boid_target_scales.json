@@ -3,10 +3,10 @@
     "description": "Global boid depth scaling per target category. Scale of 0.0 disables boid modulation, 0.5 is moderate, 1.0 is full range.",
 
     "generator_core": {
-        "freq": 0.3,
+        "freq": 0.0,
         "cutoff": 0.4,
         "res": 0.3,
-        "attack": 0.3,
+        "attack": 0.1,
         "decay": 0.3
     },
 
@@ -29,8 +29,8 @@
     },
 
     "channels": {
-        "echo": 0.4,
-        "verb": 0.4,
+        "echo": 0.0,
+        "verb": 0.0,
         "pan": 0.6
     },
 
@@ -39,8 +39,8 @@
     },
 
     "fx_echo": {
-        "time": 0.3,
-        "feedback": 0.5,
+        "time": 0.4,
+        "feedback": 0.2,
         "tone": 0.6,
         "wow": 0.5,
         "spring": 0.4,

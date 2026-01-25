@@ -1,4 +1,6 @@
 # Python
+config/boid_target_scales.json
+
 __pycache__/
 *.py[cod]
 *$py.class
