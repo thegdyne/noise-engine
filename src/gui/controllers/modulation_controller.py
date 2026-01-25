@@ -263,13 +263,14 @@ class ModulationController:
     def on_bus_values_received(self, values):
         """Handle batched unified bus values from SC - update generator sliders.
 
-        Uses curve-aware normalization via unmap_value() for correct slider
-        position display on exponential parameters (freq, cutoff, etc.).
+        SC sends linearly-normalized values. For exponential params (freq, cutoff),
+        we must reconstruct raw then unmap for correct slider position.
+        For custom params (p1-p5), use norm directly since they're 0-1 linear.
 
         Args:
             values: List of (targetKey, normalizedValue) tuples
                    targetKey format: "gen_{slot}_{param}" e.g., "gen_1_freq"
-                   normalizedValue: 0.0-1.0 already normalized by SC
+                   normalizedValue: 0.0-1.0 linearly normalized by SC
         """
         for target_key, norm_value in values:
             # Parse target key: "gen_{slot}_{param}"
@@ -294,8 +295,17 @@ class ModulationController:
 
             slider = self._get_slot_slider(slot, param)
             if slider and hasattr(slider, 'set_modulated_value'):
-                # norm_value is already 0-1 from SC, pass directly
-                slider.set_modulated_value(norm_value)
+                # Custom params (p1-p5): use norm directly (0-1 linear)
+                if param.startswith('p') and len(param) == 2 and param[1].isdigit():
+                    slider.set_modulated_value(norm_value)
+                else:
+                    # Standard params: reconstruct raw then unmap for curve-awareness
+                    param_config = get_param_config(param)
+                    min_val = param_config.get('min', 0.0)
+                    max_val = param_config.get('max', 1.0)
+                    raw_value = min_val + norm_value * (max_val - min_val)
+                    slider_norm = unmap_value(raw_value, param_config)
+                    slider.set_modulated_value(slider_norm)
 
     def _bus_param_to_slider_param(self, bus_param: str) -> str:
         """Map unified bus param key back to slider param name.

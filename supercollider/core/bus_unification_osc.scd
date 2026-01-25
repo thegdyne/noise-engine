@@ -258,8 +258,8 @@ to also enqueue through this system for backward compatibility.
 
         ~queueRouteOp.(\set, sourceKey, targetKey, depth, amount, offset, polarity, invert);
 
-        // Ensure value stream is running (for UI visualization)
-        ~refreshBusValueStream.();
+        // Ensure value stream is running (delayed to let apply tick process queued ops)
+        SystemClock.sched(0.05, { ~refreshBusValueStream.() });
     }, '/noise/bus/route/set');
 
     OSCdef(\busRouteRemove).free;
