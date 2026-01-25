@@ -537,6 +537,29 @@ class ModulationController:
                     [conn.source_bus, conn.target_slot, conn.target_param,
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
+
+    def refresh_all_mod_visualizations(self):
+        """Refresh all modulation slider visualizations based on current routing state.
+
+        Called after preset load to update slider brackets for all active routes.
+        """
+        # Track which targets we've updated to avoid duplicates
+        updated_gen_targets = set()
+        updated_ext_targets = set()
+
+        for conn in self.main.mod_routing.get_all_connections():
+            if conn.is_extended:
+                if conn.target_str not in updated_ext_targets:
+                    updated_ext_targets.add(conn.target_str)
+                    if conn.target_str.startswith("mod:"):
+                        self._update_mod_slider_mod_range(conn.target_str)
+                    elif conn.target_str.startswith("send:") or conn.target_str.startswith("chan:"):
+                        self._update_chan_slider_mod_range(conn.target_str)
+            else:
+                target_key = (conn.target_slot, conn.target_param)
+                if target_key not in updated_gen_targets:
+                    updated_gen_targets.add(target_key)
+                    self._update_slider_mod_range(conn.target_slot, conn.target_param)
                 gen_count += 1
         logger.debug(f"Synced {gen_count} gen + {ext_count} ext mod routes to SC", component="MOD")
     

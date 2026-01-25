@@ -195,6 +195,8 @@ class PresetController:
             self._load_mod_routing_with_osc_projection(state.mod_routing)
             if self.main.mod_matrix_window:
                 self.main.mod_matrix_window.sync_from_state()
+            # Refresh slider visualizations for loaded routes
+            self.main.modulation.refresh_all_mod_visualizations()
         elif not state.mod_routing.get("connections"):
             # Empty preset - clear all routes
             self.main.mod_routing.clear()
