@@ -236,16 +236,19 @@ They remain manual-only via dedicated OSC endpoints.
     // === BOID SCALES (per-parameter) ===
     ~boidScales = Dictionary.new;
 
-    // Generator params - default 0.0 (disabled until explicitly enabled)
+    // Generator params - boid modulation enabled (Phase 7)
+    // Scale values determine how much of param range boids can sweep:
+    // 0.3 = 30% of range, 0.4 = 40% of range, etc.
+    // Set to 0.0 to disable boid modulation for a param
     8.do { |slotIdx|
         var slot = slotIdx + 1;
-        ~boidScales[("gen_%_freq").format(slot).asSymbol] = 0.0;
-        ~boidScales[("gen_%_cutoff").format(slot).asSymbol] = 0.0;
-        ~boidScales[("gen_%_res").format(slot).asSymbol] = 0.0;
-        ~boidScales[("gen_%_attack").format(slot).asSymbol] = 0.0;
-        ~boidScales[("gen_%_decay").format(slot).asSymbol] = 0.0;
+        ~boidScales[("gen_%_freq").format(slot).asSymbol] = 0.3;      // Frequency: moderate sweep
+        ~boidScales[("gen_%_cutoff").format(slot).asSymbol] = 0.4;    // Cutoff: more range for filter sweeps
+        ~boidScales[("gen_%_res").format(slot).asSymbol] = 0.3;       // Resonance: subtle to avoid screech
+        ~boidScales[("gen_%_attack").format(slot).asSymbol] = 0.3;    // Attack: moderate
+        ~boidScales[("gen_%_decay").format(slot).asSymbol] = 0.3;     // Decay: moderate
         5.do { |k|
-            ~boidScales[("gen_%_custom%").format(slot, k).asSymbol] = 0.0;
+            ~boidScales[("gen_%_custom%").format(slot, k).asSymbol] = 0.4;  // Custom: moderate
         };
     };
 
