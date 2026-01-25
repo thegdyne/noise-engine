@@ -3,6 +3,11 @@ ModulationController - Handles mod sources, mod routing, and visualization.
 
 Extracted from MainFrame as Phase 6 of the god-file refactor.
 Method names intentionally unchanged from MainFrame for wrapper compatibility.
+
+Routes now use the unified bus system (Phase 6):
+- Generator routes use /noise/bus/route/set with string keys
+- Source key: "modBus_N" where N is 0-15
+- Target key: "gen_X_param" where X is slot 1-8
 """
 from __future__ import annotations
 
@@ -12,6 +17,34 @@ from src.config import OSC_PATHS, get_param_config, unmap_value
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
 from src.gui.mod_routing_state import Polarity
 from src.utils.logger import logger
+
+
+# === UNIFIED BUS KEY HELPERS ===
+# Map Python param names to unified bus param keys
+_PARAM_KEY_MAP = {
+    'frequency': 'freq',
+    'cutoff': 'cutoff',
+    'resonance': 'res',
+    'attack': 'attack',
+    'decay': 'decay',
+    # Custom params p1-p5 -> custom0-custom4
+    'p1': 'custom0',
+    'p2': 'custom1',
+    'p3': 'custom2',
+    'p4': 'custom3',
+    'p5': 'custom4',
+}
+
+
+def _build_source_key(source_bus: int) -> str:
+    """Convert mod bus index (0-15) to unified source key."""
+    return f"modBus_{source_bus}"
+
+
+def _build_target_key(target_slot: int, target_param: str) -> str:
+    """Convert slot + param to unified target key for generator routes."""
+    param_key = _PARAM_KEY_MAP.get(target_param, target_param)
+    return f"gen_{target_slot}_{param_key}"
 
 
 class ModulationController:
@@ -257,16 +290,18 @@ class ModulationController:
                 if conn.target_str.startswith("mod:"):
                     self._update_mod_slider_mod_range(conn.target_str)
             else:
-                # Generator route: use /noise/mod/route/add
+                # Generator route: use unified bus system /noise/bus/route/set
+                source_key = _build_source_key(conn.source_bus)
+                target_key = _build_target_key(conn.target_slot, conn.target_param)
                 self.main.osc.client.send_message(
-                    OSC_PATHS['mod_route_add'],
-                    [conn.source_bus, conn.target_slot, conn.target_param,
+                    OSC_PATHS['bus_route_set'],
+                    [source_key, target_key,
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
-                logger.debug(f"Mod route added: bus {conn.source_bus} -> slot {conn.target_slot}.{conn.target_param}", component="MOD")
+                logger.debug(f"Mod route added: {source_key} -> {target_key}", component="MOD")
                 # Only update slider visualization for generator routes
                 self._update_slider_mod_range(conn.target_slot, conn.target_param)
-        
+
         self.main._mark_dirty()
 
     def _on_mod_route_removed(self, conn):
@@ -283,15 +318,17 @@ class ModulationController:
                 if conn.target_str.startswith("mod:"):
                     self._update_mod_slider_mod_range(conn.target_str)
             else:
-                # Generator route: use /noise/mod/route/remove
+                # Generator route: use unified bus system /noise/bus/route/remove
+                source_key = _build_source_key(conn.source_bus)
+                target_key = _build_target_key(conn.target_slot, conn.target_param)
                 self.main.osc.client.send_message(
-                    OSC_PATHS['mod_route_remove'],
-                    [conn.source_bus, conn.target_slot, conn.target_param]
+                    OSC_PATHS['bus_route_remove'],
+                    [source_key, target_key]
                 )
-                logger.debug(f"Mod route removed: bus {conn.source_bus} -> slot {conn.target_slot}.{conn.target_param}", component="MOD")
+                logger.debug(f"Mod route removed: {source_key} -> {target_key}", component="MOD")
                 # Only update slider visualization for generator routes
                 self._update_slider_mod_range(conn.target_slot, conn.target_param)
-        
+
         self.main._mark_dirty()
 
     def _on_mod_route_changed(self, conn):
@@ -310,10 +347,12 @@ class ModulationController:
                     target = conn.target_str
                     QTimer.singleShot(0, lambda t=target: self._update_mod_slider_mod_range(t))
             else:
-                # Generator route: use /noise/mod/route/set
+                # Generator route: use unified bus system /noise/bus/route/set (upsert)
+                source_key = _build_source_key(conn.source_bus)
+                target_key = _build_target_key(conn.target_slot, conn.target_param)
                 self.main.osc.client.send_message(
-                    OSC_PATHS['mod_route_set'],
-                    [conn.source_bus, conn.target_slot, conn.target_param,
+                    OSC_PATHS['bus_route_set'],
+                    [source_key, target_key,
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
                 from PyQt5.QtCore import QTimer
@@ -492,7 +531,8 @@ class ModulationController:
     def _on_mod_routes_cleared(self):
         """Handle all routes cleared - send OSC and clear all slider brackets."""
         if self.main.osc_connected:
-            self.main.osc.client.send_message(OSC_PATHS['mod_route_clear_all'], [])
+            # Use unified bus system clear (clears all routes)
+            self.main.osc.client.send_message(OSC_PATHS['bus_route_clear'], [])
 
         logger.debug("All mod routes cleared", component="MOD")
 
@@ -531,10 +571,12 @@ class ModulationController:
                 )
                 ext_count += 1
             else:
-                # Generator route: use /noise/mod/route/add
+                # Generator route: use unified bus system /noise/bus/route/set
+                source_key = _build_source_key(conn.source_bus)
+                target_key = _build_target_key(conn.target_slot, conn.target_param)
                 self.main.osc.client.send_message(
-                    OSC_PATHS['mod_route_add'],
-                    [conn.source_bus, conn.target_slot, conn.target_param,
+                    OSC_PATHS['bus_route_set'],
+                    [source_key, target_key,
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
                 gen_count += 1

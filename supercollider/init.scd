@@ -124,23 +124,13 @@ s.waitForBoot({
     (~basePath +/+ "core/mod_arseq_plus.scd").load;
     (~basePath +/+ "core/mod_sauce_of_grav.scd").load;
 
-    // Load cross-mod buses BEFORE mod_apply (provides ~getModSourceBus resolver)
+    // Load cross-mod buses (provides ~getModSourceBus resolver)
     (~basePath +/+ "core/crossmod_buses.scd").load;
     ~setupCrossModBuses.();
 
-    // Load mod routing/apply system (uses ~getModSourceBus from crossmod_buses)
-    (~basePath +/+ "core/mod_apply_v2.scd").load;
-    ~setupModApply.();
-
-    // Sync to ensure \modApply SynthDef is registered before creating instances
-    s.sync;
-
-    // Initialize passthrough synths (must be after mod_apply and mod_slots)
-    ~initPassthroughs.();
-
-    // Load mod routing OSC handlers (depends on mod_apply)
-    (~basePath +/+ "core/mod_routing.scd").load;
-    ~setupModRouting.();
+    // NOTE: Legacy mod_apply_v2.scd and mod_routing.scd removed.
+    // Generator modulation routes now use the unified bus system (bus_unification.scd).
+    // Python sends routes via /noise/bus/route/set which queues to ~modRoutes.
 
     // Load cross-mod followers and OSC (after mod_apply)
     (~basePath +/+ "core/crossmod_followers.scd").load;

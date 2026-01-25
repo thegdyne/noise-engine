@@ -440,6 +440,16 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                 };
             });
 
+            // Read crossmod buses (envelope followers on generator audio)
+            if(~crossModBus.notNil, {
+                ~crossModBus.size.do { |i|
+                    var key = ("crossModBus_%").format(i).asSymbol;
+                    try {
+                        ~modSourceState[key] = ~crossModBus[i].getSynchronous;
+                    };
+                };
+            });
+
             // === PHASE 5: COMPUTE & WRITE TARGETS ===
             ~targetKeysOrderedByBusIndex.do { |targetKey|
                 var state = ~modTargetState[targetKey];
@@ -536,10 +546,19 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
     }
     { sourceIdOrKey.isString || sourceIdOrKey.isSymbol } {
         var key = sourceIdOrKey.asSymbol;
-        if(key.asString.beginsWith("modBus_"), {
-            var idx = key.asString[7..].asInteger;
+        var keyStr = key.asString;
+        if(keyStr.beginsWith("modBus_"), {
+            // Standard mod buses 0-15 (LFO/Sloth/ARSeq/SauceOfGrav outputs)
+            var idx = keyStr[7..].asInteger;
             if(~modBuses.notNil && idx >= 0 && idx < ~modBuses.size, {
                 result = ~modBuses[idx];
+            });
+        });
+        if(result.isNil && keyStr.beginsWith("crossModBus_"), {
+            // Cross-mod buses 0-7 (envelope followers on generator audio)
+            var idx = keyStr[12..].asInteger;
+            if(~crossModBus.notNil && idx >= 0 && idx < ~crossModBus.size, {
+                result = ~crossModBus[idx];
             });
         });
     };

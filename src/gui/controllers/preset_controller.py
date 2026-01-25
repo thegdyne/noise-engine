@@ -12,10 +12,11 @@ from pathlib import Path
 
 from src.config import OSC_PATHS
 from src.presets import (
-    PresetManager, PresetState, SlotState, MixerState, 
+    PresetManager, PresetState, SlotState, MixerState,
     ChannelState, MasterState, ModSourcesState, FXState
 )
 from src.utils.logger import logger
+from src.gui.controllers.modulation_controller import _build_source_key, _build_target_key
 
 
 class PresetController:
@@ -308,12 +309,14 @@ class PresetController:
 
         # Project to backend (best-effort, exceptions logged not fatal)
         if self.main.osc_connected:
-            # Send removes first
+            # Send removes first (generator routes use unified bus system)
             for conn in removed_gen:
                 try:
+                    source_key = _build_source_key(conn.source_bus)
+                    target_key = _build_target_key(conn.target_slot, conn.target_param)
                     self.main.osc.client.send_message(
-                        OSC_PATHS['mod_route_remove'],
-                        [conn.source_bus, conn.target_slot, conn.target_param]
+                        OSC_PATHS['bus_route_remove'],
+                        [source_key, target_key]
                     )
                 except Exception as e:
                     logger.warning(f"Failed to send gen route remove: {e}", component="PRESET")
@@ -327,12 +330,14 @@ class PresetController:
                 except Exception as e:
                     logger.warning(f"Failed to send ext route remove: {e}", component="PRESET")
 
-            # Send adds/upserts
+            # Send adds/upserts (generator routes use unified bus system)
             for conn in added_gen:
                 try:
+                    source_key = _build_source_key(conn.source_bus)
+                    target_key = _build_target_key(conn.target_slot, conn.target_param)
                     self.main.osc.client.send_message(
-                        OSC_PATHS['mod_route_add'],
-                        [conn.source_bus, conn.target_slot, conn.target_param,
+                        OSC_PATHS['bus_route_set'],
+                        [source_key, target_key,
                          conn.depth, conn.amount, conn.offset,
                          conn.polarity.value, int(conn.invert)]
                     )

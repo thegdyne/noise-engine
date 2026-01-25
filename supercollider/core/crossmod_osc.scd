@@ -9,7 +9,7 @@ OSC Paths:
   /noise/crossmod/route    [src, tgt, param, depth, amount, offset, polarity, invert]
   /noise/crossmod/unroute  [src, tgt, param] - Remove a cross-mod route
   /noise/crossmod/clear    []                - Clear all cross-mod routes
-  
+
 Route Semantics:
   /route is IDEMPOTENT - overwrites existing (src,tgt,param) route if present.
   No need to unroute before changing parameters.
@@ -18,7 +18,7 @@ Enabled Behavior:
   When disabled (enabled=0): follower synth is FREED (CPU efficient).
   Bus outputs 0 (silence). Routes remain configured but receive 0.
   Re-enabling recreates follower if generator is running.
-  
+
 Parameters:
   src, tgt: slot numbers 1-8
   param: frequency, cutoff, resonance, attack, decay, p1-p5
@@ -31,27 +31,49 @@ Parameters:
 Signal Range Note:
   Crossmod sources output UNIPOLAR 0..1 (silence=0, loud=1).
   This differs from LFO/Sloth sources which are bipolar -1..+1.
-  
-  The existing mod_apply_v2 polarity logic assumes bipolar sources,
+
+  The unified bus system polarity logic assumes bipolar sources,
   so crossmod produces half-range results:
     - bipolar: 0..r (positive only, use invert=1 for negative)
     - uni+: 0.5r..r (upper half)
     - uni-: -r..-0.5r (lower half)
-  
+
   Simplest recipes:
     - Positive mod: bipolar, invert=0 -> silence=0, loud=+r
     - Negative mod (duck): bipolar, invert=1 -> silence=0, loud=-r
 
-Route Slot Competition:
-  Crossmod routes use source IDs 16-23 and compete with standard mod routes
-  for the 4-slot limit per destination param. Adding fails if all 4 slots used.
+Routes use the unified bus system (bus_unification.scd) via ~queueRouteOp.
 */
 
 ~setupCrossModOSC = {
     "Setting up cross-mod OSC handlers...".postln;
-    
+
     // Track active cross-mod routes (for clear operation)
-    ~crossModRoutes = Dictionary.new;  // "sourceSlot_targetSlot_param" -> true
+    ~crossModRoutes = Dictionary.new;  // "sourceSlot_targetSlot_param" -> [sourceKey, targetKey]
+
+    // Helper: build source key for crossmod (slot 1-8 -> "crossModBus_0" to "crossModBus_7")
+    ~crossModSourceKey = { |slot|
+        ("crossModBus_%").format(slot - 1).asSymbol;
+    };
+
+    // Helper: build target key for unified bus system
+    // Maps param names to unified format
+    ~crossModTargetKey = { |targetSlot, targetParam|
+        var paramKey = switch(targetParam.asSymbol,
+            \frequency, { \freq },
+            \cutoff, { \cutoff },
+            \resonance, { \res },
+            \attack, { \attack },
+            \decay, { \decay },
+            \p1, { \custom0 },
+            \p2, { \custom1 },
+            \p3, { \custom2 },
+            \p4, { \custom3 },
+            \p5, { \custom4 },
+            { targetParam.asSymbol }  // fallback
+        );
+        ("gen_%_%").format(targetSlot, paramKey).asSymbol;
+    };
     
     // Set attack time (1ms - 2s)
     OSCdef(\crossModAttack, { |msg|
@@ -75,7 +97,7 @@ Route Slot Competition:
     }, '/noise/crossmod/enabled');
     
     // Route cross-mod: source_slot -> target_slot.param
-    // Uses standard ~addModRoute with source ID 16-23
+    // Uses unified bus system via ~queueRouteOp
     OSCdef(\crossModRoute, { |msg|
         var sourceSlot = msg[1].asInteger;
         var targetSlot = msg[2].asInteger;
@@ -85,27 +107,30 @@ Route Slot Competition:
         var offset = msg[6].asFloat;
         var polarity = msg[7].asInteger;
         var invert = msg[8].asInteger;
-        var sourceBus, routeKey, result;
-        
+        var sourceKey, targetKey, routeKey;
+
         // Validate slots
         if(sourceSlot < 1 || sourceSlot > 8 || targetSlot < 1 || targetSlot > 8) {
             "ERROR: Invalid slot in cross-mod route (%, %)".format(sourceSlot, targetSlot).postln;
             ^nil;
         };
-        
-        // Calculate source bus ID (16-23 for crossmod)
-        sourceBus = ~crossModBusIndex.(sourceSlot);
-        
-        ("Cross-mod route: GEN" ++ sourceSlot ++ " (bus " ++ sourceBus ++ ") -> slot " ++ targetSlot ++ " " ++ targetParam ++
+
+        // Build unified bus system keys
+        sourceKey = ~crossModSourceKey.(sourceSlot);
+        targetKey = ~crossModTargetKey.(targetSlot, targetParam);
+
+        ("Cross-mod route: GEN" ++ sourceSlot ++ " (" ++ sourceKey ++ ") -> " ++ targetKey ++
          " [d=" ++ depth ++ ", a=" ++ amount ++ ", o=" ++ offset ++ ", p=" ++ polarity ++ ", i=" ++ invert ++ "]").postln;
-        
-        // Use standard mod routing (bus resolver handles 16-23)
-        result = ~addModRoute.(sourceBus, targetSlot, targetParam.asSymbol, depth, amount, offset, polarity, invert);
-        
-        if(result.notNil) {
+
+        // Queue route via unified bus system
+        if(~queueRouteOp.notNil) {
+            ~queueRouteOp.(\set, sourceKey, targetKey, depth, amount, offset, polarity, invert);
+
             // Track for clear operation
             routeKey = "%_%_%".format(sourceSlot, targetSlot, targetParam);
-            ~crossModRoutes[routeKey] = sourceBus;
+            ~crossModRoutes[routeKey] = [sourceKey, targetKey];
+        } {
+            "ERROR: ~queueRouteOp not available (bus_unification not loaded?)".postln;
         };
     }, '/noise/crossmod/route');
     
@@ -114,20 +139,23 @@ Route Slot Competition:
         var sourceSlot = msg[1].asInteger;
         var targetSlot = msg[2].asInteger;
         var targetParam = msg[3].asString;
-        var sourceBus, routeKey;
-        
+        var sourceKey, targetKey, routeKey;
+
         if(sourceSlot < 1 || sourceSlot > 8 || targetSlot < 1 || targetSlot > 8) {
             "ERROR: Invalid slot in cross-mod unroute".postln;
             ^nil;
         };
-        
-        sourceBus = ~crossModBusIndex.(sourceSlot);
-        
-        ("Cross-mod unroute: GEN" ++ sourceSlot ++ " from slot " ++ targetSlot ++ " " ++ targetParam).postln;
-        
-        // Use standard mod routing
-        ~removeModRoute.(sourceBus, targetSlot, targetParam.asSymbol);
-        
+
+        sourceKey = ~crossModSourceKey.(sourceSlot);
+        targetKey = ~crossModTargetKey.(targetSlot, targetParam);
+
+        ("Cross-mod unroute: " ++ sourceKey ++ " from " ++ targetKey).postln;
+
+        // Remove via unified bus system
+        if(~queueRouteOp.notNil) {
+            ~queueRouteOp.(\remove, sourceKey, targetKey, 0, 0, 0, 0, 0);
+        };
+
         // Update tracking
         routeKey = "%_%_%".format(sourceSlot, targetSlot, targetParam);
         ~crossModRoutes.removeAt(routeKey);
@@ -136,12 +164,12 @@ Route Slot Competition:
     // Clear all cross-mod routes
     OSCdef(\crossModClear, { |msg|
         "Clearing all cross-mod routes...".postln;
-        ~crossModRoutes.keysValuesDo { |key, sourceBus|
-            var parts = key.asString.split($_);
-            if(parts.size >= 3) {
-                var targetSlot = parts[1].asInteger;
-                var targetParam = parts[2].asSymbol;
-                ~removeModRoute.(sourceBus, targetSlot, targetParam);
+        if(~queueRouteOp.notNil) {
+            ~crossModRoutes.keysValuesDo { |key, routeInfo|
+                // routeInfo is [sourceKey, targetKey]
+                if(routeInfo.isArray && routeInfo.size >= 2) {
+                    ~queueRouteOp.(\remove, routeInfo[0], routeInfo[1], 0, 0, 0, 0, 0);
+                };
             };
         };
         ~crossModRoutes.clear;
@@ -163,13 +191,15 @@ Route Slot Competition:
     if(~crossModRoutes.size == 0) {
         "  (none active)".postln;
     } {
-        ~crossModRoutes.keysValuesDo { |key, sourceBus|
+        ~crossModRoutes.keysValuesDo { |key, routeInfo|
             var parts = key.asString.split($_);
             if(parts.size >= 3) {
                 var sourceSlot = parts[0].asInteger;
                 var targetSlot = parts[1].asInteger;
                 var targetParam = parts[2];
-                "  GEN% -> slot % % (bus %)".format(sourceSlot, targetSlot, targetParam, sourceBus).postln;
+                if(routeInfo.isArray && routeInfo.size >= 2) {
+                    "  GEN% -> slot % % (% -> %)".format(sourceSlot, targetSlot, targetParam, routeInfo[0], routeInfo[1]).postln;
+                };
             };
         };
     };

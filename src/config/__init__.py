@@ -1292,12 +1292,12 @@ OSC_PATHS = {
     'mod_values': '/noise/mod/values',
     'mod_scope_enable': '/noise/mod/scope/enable',  # /noise/mod/scope/enable/{slot} (Python → SC)
     
-    # Mod routing (connections between mod buses and generator params)
-    # Protocol: add/set/remove with full params (depth, amount, offset, polarity, invert)
-    'mod_route_add': '/noise/mod/route/add',        # [bus, slot, param, depth, amount, offset, polarity, invert]
-    'mod_route_set': '/noise/mod/route/set',        # [bus, slot, param, depth, amount, offset, polarity, invert]
-    'mod_route_remove': '/noise/mod/route/remove',  # [bus, slot, param]
-    'mod_route_clear_all': '/noise/mod/route/clear_all',  # Clear all routes
+    # Mod routing (DEPRECATED - generator routes now use unified bus_route_* paths)
+    # Legacy paths kept for extended mod routes which still use extmod_* paths
+    'mod_route_add': '/noise/mod/route/add',        # DEPRECATED - use bus_route_set
+    'mod_route_set': '/noise/mod/route/set',        # DEPRECATED - use bus_route_set
+    'mod_route_remove': '/noise/mod/route/remove',  # DEPRECATED - use bus_route_remove
+    'mod_route_clear_all': '/noise/mod/route/clear_all',  # DEPRECATED - use bus_route_clear
     # Extended modulation (mod matrix expansion)
     'extmod_add_route': '/noise/extmod/add_route',
     'extmod_remove_route': '/noise/extmod/remove_route',
