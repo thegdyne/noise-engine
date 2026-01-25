@@ -260,6 +260,67 @@ class ModulationController:
                 if param == "pan" and hasattr(channel.pan_slider, 'set_modulated_value'):
                     channel.pan_slider.set_modulated_value(norm_value)
 
+    def on_bus_values_received(self, values):
+        """Handle batched unified bus values from SC - update generator sliders.
+
+        Uses curve-aware normalization via unmap_value() for correct slider
+        position display on exponential parameters (freq, cutoff, etc.).
+
+        Args:
+            values: List of (targetKey, normalizedValue) tuples
+                   targetKey format: "gen_{slot}_{param}" e.g., "gen_1_freq"
+                   normalizedValue: 0.0-1.0 already normalized by SC
+        """
+        for target_key, norm_value in values:
+            # Parse target key: "gen_{slot}_{param}"
+            parts = target_key.split("_")
+            if len(parts) < 3 or parts[0] != "gen":
+                continue
+
+            try:
+                slot_id = int(parts[1])
+            except ValueError:
+                continue
+
+            # Map back to param name
+            param_key = "_".join(parts[2:])  # Handle multi-word like custom0
+            param = self._bus_param_to_slider_param(param_key)
+            if not param:
+                continue
+
+            slot = self.main.generator_grid.get_slot(slot_id)
+            if not slot:
+                continue
+
+            slider = self._get_slot_slider(slot, param)
+            if slider and hasattr(slider, 'set_modulated_value'):
+                # norm_value is already 0-1 from SC, pass directly
+                slider.set_modulated_value(norm_value)
+
+    def _bus_param_to_slider_param(self, bus_param: str) -> str:
+        """Map unified bus param key back to slider param name.
+
+        Args:
+            bus_param: Param key from bus system (freq, cutoff, res, custom0, etc.)
+
+        Returns:
+            Param name for slider lookup (frequency, cutoff, resonance, p1, etc.)
+        """
+        # Reverse mapping from _PARAM_KEY_MAP
+        reverse_map = {
+            'freq': 'frequency',
+            'cutoff': 'cutoff',
+            'res': 'resonance',
+            'attack': 'attack',
+            'decay': 'decay',
+            'custom0': 'p1',
+            'custom1': 'p2',
+            'custom2': 'p3',
+            'custom3': 'p4',
+            'custom4': 'p5',
+        }
+        return reverse_map.get(bus_param)
+
     def _map_mod_param_to_slider(self, gen_name: str, param: str) -> str:
         """
         Map p1-p4 wire params to actual slider keys.

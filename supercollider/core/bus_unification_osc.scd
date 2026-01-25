@@ -258,10 +258,8 @@ to also enqueue through this system for backward compatibility.
 
         ~queueRouteOp.(\set, sourceKey, targetKey, depth, amount, offset, polarity, invert);
 
-        // Start value stream if not already running (for UI visualization)
-        if(~busValueStreamRoutine.isNil or: { ~busValueStreamRoutine.isPlaying.not }, {
-            ~startBusValueStream.();
-        });
+        // Ensure value stream is running (for UI visualization)
+        ~refreshBusValueStream.();
     }, '/noise/bus/route/set');
 
     OSCdef(\busRouteRemove).free;
@@ -408,6 +406,13 @@ to also enqueue through this system for backward compatibility.
             ~busValueStreamRoutine = nil;
         });
         "  Bus value stream stopped".postln;
+    };
+
+    // Idempotent helper: ensure value stream is running (for use by route handlers)
+    ~refreshBusValueStream = {
+        if(~busValueStreamRoutine.isNil or: { ~busValueStreamRoutine.isPlaying.not }, {
+            ~startBusValueStream.();
+        });
     };
 
     "  [x] Bus Unification OSC handlers ready".postln;

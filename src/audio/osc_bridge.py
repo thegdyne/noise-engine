@@ -35,6 +35,7 @@ class OSCBridge(QObject):
     mod_bus_value_received = pyqtSignal(int, float)  # bus_idx, value (for mod scope)
     mod_values_received = pyqtSignal(list)  # [(slot, param, value), ...] for slider visualization
     extmod_values_received = pyqtSignal(list)  # [(target_str, value), ...] for extended mod visualization
+    bus_values_received = pyqtSignal(list)  # [(targetKey, value), ...] for unified bus system visualization
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_lost_reason = pyqtSignal(str)  # Reason: "heartbeat_missed", "ping_timeout", etc.
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
@@ -275,6 +276,9 @@ class OSCBridge(QObject):
         # Handle batched mod values from SC (for slider visualization) (SSOT: use OSC_PATHS)
         dispatcher.map(OSC_PATHS['mod_values'], self._handle_mod_values)
 
+        # Handle unified bus values from SC (for generator slider visualization)
+        dispatcher.map(OSC_PATHS['bus_values'], self._handle_bus_values)
+
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
 
@@ -479,6 +483,27 @@ class OSCBridge(QObject):
             i += 2
         if values:
             self.extmod_values_received.emit(values)
+
+    def _handle_bus_values(self, address, *args):
+        """Handle batched unified bus values from SC (for generator slider visualization).
+        Format: [targetKey1, normalizedVal1, targetKey2, normalizedVal2, ...]
+        Emits: [(targetKey, normalizedValue), ...]
+
+        These are pre-normalized 0-1 values from the unified bus system.
+        The modulation controller will apply curve-aware denormalization for display.
+        """
+        if self._shutdown or self._deleted:
+            return
+        # Parse pairs
+        values = []
+        i = 0
+        while i + 1 < len(args):
+            target_key = str(args[i])
+            norm_value = float(args[i + 1])
+            values.append((target_key, norm_value))
+            i += 2
+        if values:
+            self.bus_values_received.emit(values)
 
     def send(self, path_key, args):
         """Send OSC message using SSOT path key.

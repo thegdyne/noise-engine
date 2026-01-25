@@ -57,6 +57,7 @@ class ConnectionController:
             self.main.osc.mod_bus_value_received.connect(self.main.modulation.on_mod_bus_value)
             self.main.osc.mod_values_received.connect(self.main.modulation.on_mod_values_received)
             self.main.osc.extmod_values_received.connect(self.main.modulation.on_extmod_values_received)
+            self.main.osc.bus_values_received.connect(self.main.modulation.on_bus_values_received)
             if self.main.osc.connect():
                 self.main.osc_connected = True
                 # Initialize crossmod OSC bridge
@@ -108,6 +109,8 @@ class ConnectionController:
                 self.main.osc.comp_gr_received.disconnect(self.main.master.on_comp_gr_received)
                 self.main.osc.mod_bus_value_received.disconnect(self.main.modulation.on_mod_bus_value)
                 self.main.osc.mod_values_received.disconnect(self.main.modulation.on_mod_values_received)
+                self.main.osc.extmod_values_received.disconnect(self.main.modulation.on_extmod_values_received)
+                self.main.osc.bus_values_received.disconnect(self.main.modulation.on_bus_values_received)
             except TypeError:
                 pass  # Signals weren't connected
             self.main.osc.disconnect()
