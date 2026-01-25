@@ -72,12 +72,14 @@ They remain manual-only via dedicated OSC endpoints.
             curve: \exp
         );
         // res (index 2, 7, 12, ...)
+        // invert: true because UI shows "resonance" (high=more) but rq is inverse (low=more)
         ~targetMeta[("gen_%_res").format(slot).asSymbol] = (
             busIndex: ~unifiedBusBase + baseIdx + 2,
             min: 0.1,
             max: 1.0,
             default: 1.0,
-            curve: \lin
+            curve: \lin,
+            invert: true
         );
         // attack (index 3, 8, 13, ...)
         ~targetMeta[("gen_%_attack").format(slot).asSymbol] = (

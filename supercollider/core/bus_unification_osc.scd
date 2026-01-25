@@ -26,8 +26,15 @@ to also enqueue through this system for backward compatibility.
         var meta = ~targetMeta[targetKey];
 
         if(meta.notNil, {
-            // Denormalize from 0-1 to actual range using target metadata
             var realValue;
+
+            // Apply inversion if specified (before denormalization)
+            // Used for resonance where UI shows "more resonance" but rq is inverse
+            if(meta.invert == true, {
+                normValue = 1.0 - normValue;
+            });
+
+            // Denormalize from 0-1 to actual range using target metadata
             if(meta.curve == \exp, {
                 realValue = normValue.linexp(0, 1, meta.min.max(0.001), meta.max);
             }, {
