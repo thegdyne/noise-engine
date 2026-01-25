@@ -81,28 +81,63 @@ Reusable functions for generator management
     // GENERATOR MANAGEMENT (called from OSC handlers)
     // =========================================================
     
+    // Set of slots using unified bus system (Phase 3: just slot 1)
+    ~genUnifiedSlots = Set[1];
+
     ~startGenerator = { |slotID, genType|
         var params = ~genParams[slotID];
         var customBuses = params[\custom];
         var idx = slotID - 1;  // 0-indexed for arrays
-        
+        var useUnified = ~genUnifiedSlots.includes(slotID);
+        var freqBusIdx, cutoffBusIdx, resBusIdx, attackBusIdx, decayBusIdx;
+        var custom0Idx, custom1Idx, custom2Idx, custom3Idx, custom4Idx;
+
         if(~generators[slotID].notNil, {
             ~generators[slotID].free;
             ~generators[slotID] = nil;
         });
-        
+
+        // Determine which buses to use based on unified slot membership
+        if(useUnified, {
+            // Unified bus system (149-bus architecture)
+            var slotKey = slotID.asString;
+            freqBusIdx = ~busRegistry[("gen_" ++ slotKey ++ "_freq").asSymbol].index;
+            cutoffBusIdx = ~busRegistry[("gen_" ++ slotKey ++ "_cutoff").asSymbol].index;
+            resBusIdx = ~busRegistry[("gen_" ++ slotKey ++ "_res").asSymbol].index;
+            attackBusIdx = ~busRegistry[("gen_" ++ slotKey ++ "_attack").asSymbol].index;
+            decayBusIdx = ~busRegistry[("gen_" ++ slotKey ++ "_decay").asSymbol].index;
+            custom0Idx = ~busRegistry[("gen_" ++ slotKey ++ "_custom0").asSymbol].index;
+            custom1Idx = ~busRegistry[("gen_" ++ slotKey ++ "_custom1").asSymbol].index;
+            custom2Idx = ~busRegistry[("gen_" ++ slotKey ++ "_custom2").asSymbol].index;
+            custom3Idx = ~busRegistry[("gen_" ++ slotKey ++ "_custom3").asSymbol].index;
+            custom4Idx = ~busRegistry[("gen_" ++ slotKey ++ "_custom4").asSymbol].index;
+            "Slot % using UNIFIED buses".format(slotID).postln;
+        }, {
+            // Legacy bus system (~genParams)
+            freqBusIdx = params[\frequency].index;
+            cutoffBusIdx = params[\cutoff].index;
+            resBusIdx = params[\resonance].index;
+            attackBusIdx = params[\attack].index;
+            decayBusIdx = params[\decay].index;
+            custom0Idx = customBuses[0].index;
+            custom1Idx = customBuses[1].index;
+            custom2Idx = customBuses[2].index;
+            custom3Idx = customBuses[3].index;
+            custom4Idx = customBuses[4].index;
+        });
+
         if(~genGroup.notNil, {
             // Start channel strip FIRST (must exist before generator writes to bus)
             ~startChannelStrip.(slotID);
-            
+
             // Start generator - routes to per-slot bus (not master)
             ~generators[slotID] = Synth(genType, [
                 \out, ~genBus[idx],  // Per-slot bus
-                \freqBus, params[\frequency].index,
-                \cutoffBus, params[\cutoff].index,
-                \resBus, params[\resonance].index,
-                \attackBus, params[\attack].index,
-                \decayBus, params[\decay].index,
+                \freqBus, freqBusIdx,
+                \cutoffBus, cutoffBusIdx,
+                \resBus, resBusIdx,
+                \attackBus, attackBusIdx,
+                \decayBus, decayBusIdx,
                 \filterTypeBus, params[\filterType].index,
                 \envEnabledBus, params[\envEnabled].index,
                 \envSourceBus, params[\envSource].index,
@@ -111,14 +146,14 @@ Reusable functions for generator management
                 \midiTrigBus, if(~midiTrigBus.notNil, { ~midiTrigBus.index }, { 0 }),
                 \slotIndex, idx,  // 0-indexed for MIDI trigger bus channel
                 // Custom params (5 per generator)
-                \customBus0, customBuses[0].index,
-                \customBus1, customBuses[1].index,
-                \customBus2, customBuses[2].index,
-                \customBus3, customBuses[3].index,
-                \customBus4, customBuses[4].index,
+                \customBus0, custom0Idx,
+                \customBus1, custom1Idx,
+                \customBus2, custom2Idx,
+                \customBus3, custom3Idx,
+                \customBus4, custom4Idx,
                 \portamentoBus, params[\portamento].index
             ], ~genGroup, \addToHead);
-            
+
             // Start cross-mod follower (after generator, for envelope tracking)
             if(~startCrossModFollower.notNil, {
                 ~startCrossModFollower.(slotID);
@@ -126,7 +161,7 @@ Reusable functions for generator management
         }, {
             "ERROR: genGroup is nil!".postln;
         });
-        
+
         "Started % in slot %".format(genType, slotID).postln;
     };
     
