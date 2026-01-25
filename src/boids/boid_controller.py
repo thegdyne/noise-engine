@@ -4,10 +4,10 @@ Boid Controller - Manages boid simulation and OSC communication
 Connects:
 - BoidEngine (simulation physics)
 - BoidState (persistent state)
-- BoidBusSender (OSC protocol for unified buses)
-- Generator routing (separate OSC path for cols 0-79)
+- BoidBusSender (OSC protocol for unified buses, all cols 0-148)
 
 Runs simulation at 20Hz via QTimer.
+All boid contributions are routed through the unified bus system.
 """
 
 from typing import Optional, List, Tuple, Callable
@@ -17,7 +17,6 @@ from src.utils.logger import logger
 from .boid_engine import BoidEngine, SIM_HZ
 from .boid_state import BoidState, generate_random_seed
 from ..utils.boid_bus import BoidBusSender
-from ..utils.boid_gen_router import BoidGenRouter
 
 
 class BoidController(QObject):
@@ -39,14 +38,10 @@ class BoidController(QObject):
 
         self._main = main_frame
         self._bus_sender: Optional[BoidBusSender] = None
-        self._gen_router: Optional[BoidGenRouter] = None
 
         # Core components
         self._engine = BoidEngine()
         self._state = BoidState()
-
-        # Generator routing callback (set by modulation controller) - legacy
-        self._gen_route_callback: Optional[Callable] = None
 
         # Simulation timer (50ms = 20Hz)
         self._timer = QTimer(self)
@@ -57,16 +52,22 @@ class BoidController(QObject):
         self._engine.set_cell_filter(self._state.is_cell_allowed)
 
     def _get_bus_sender(self) -> Optional[BoidBusSender]:
-        """Get or create bus sender (lazy init after OSC connects)."""
-        if self._bus_sender is None and self._main.osc_connected:
-            self._bus_sender = BoidBusSender(self._main.osc.client)
-        return self._bus_sender
+        """
+        Get or create bus sender (lazy init after OSC connects).
 
-    def _get_gen_router(self) -> Optional[BoidGenRouter]:
-        """Get or create generator router (lazy init after OSC connects)."""
-        if self._gen_router is None and self._main.osc_connected:
-            self._gen_router = BoidGenRouter(self._main.osc.client)
-        return self._gen_router
+        Per spec:
+        - Returns cached sender if available
+        - Returns None if not connected (gate on is_connected)
+        - Creates new sender on first call when connected
+        - Constructor exceptions propagate to caller
+        """
+        if self._bus_sender is not None:
+            return self._bus_sender
+        if not self._main.osc_connected:
+            return None
+        # Create sender - exceptions propagate per spec
+        self._bus_sender = BoidBusSender(self._main.osc.client)
+        return self._bus_sender
 
     @property
     def engine(self) -> BoidEngine:
@@ -153,39 +154,47 @@ class BoidController(QObject):
             self.start()
 
     def _tick(self) -> None:
-        """Simulation tick (called at 20Hz)."""
+        """
+        Simulation tick (called at 20Hz).
+
+        Per spec tick lifecycle:
+        1. If disabled: return
+        2. Advance physics (engine.tick)
+        3. Collect snapshot: contributions, positions, cell_values
+        4. Attempt to acquire sender (exceptions -> treat as None)
+        5. If sender available: call send_offsets (exceptions -> invalidate cache)
+        6. Emit visualization signals (always for enabled ticks)
+        """
         if not self._state.enabled:
             return
 
-        # Advance simulation
+        # Phase 1: Advance simulation
         self._engine.tick()
 
-        # Get contributions
+        # Phase 2: Collect snapshot (post-tick state)
         contributions = self._engine.get_contributions()
+        positions = self._engine.get_positions()
+        cell_values = self._engine.get_cell_values()
 
-        # Split by column range
-        gen_contributions = []
-        unified_contributions = []
+        # Phase 3: Attempt to acquire sender
+        try:
+            sender = self._get_bus_sender()
+        except Exception:
+            # Constructor failed (e.g., connection dropped during creation)
+            sender = None
 
-        for row, col, value in contributions:
-            if col < 80:
-                gen_contributions.append((row, col, value))
-            else:
-                unified_contributions.append((row, col, value))
+        # Phase 4: Send offsets if sender available
+        if sender is not None:
+            try:
+                # Send ALL contributions through unified bus (no split)
+                sender.send_offsets(contributions)
+            except Exception:
+                # Send failed - invalidate cached sender for recovery
+                self._bus_sender = None
 
-        # Send unified bus offsets
-        bus_sender = self._get_bus_sender()
-        if bus_sender:
-            bus_sender.send_offsets(unified_contributions)
-
-        # Send generator parameter offsets
-        gen_router = self._get_gen_router()
-        if gen_router and gen_contributions:
-            gen_router.route_contributions(gen_contributions)
-
-        # Emit signals for visualization
-        self.positions_updated.emit(self._engine.get_positions())
-        self.cells_updated.emit(self._engine.get_cell_values())
+        # Phase 5: Emit visualization signals (always for enabled ticks)
+        self.positions_updated.emit(positions)
+        self.cells_updated.emit(cell_values)
 
     # === Parameter setters ===
 
@@ -229,7 +238,7 @@ class BoidController(QObject):
         self._state.zone_chan = enabled
 
     def set_zone_fx(self, enabled: bool) -> None:
-        """Enable/disable FX zone (cols 132-150)."""
+        """Enable/disable FX zone (cols 132-148)."""
         self._state.zone_fx = enabled
 
     # === Row control ===

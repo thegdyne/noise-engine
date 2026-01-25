@@ -131,10 +131,10 @@ class BoidOverlay(QWidget):
         # Draw cell contributions as background glow
         for (row, col), value in self._cell_contributions.items():
             # Map cell to pixel position
-            # Grid is 151 cols x 16 rows
-            cx = (col / 151.0) * w
+            # Grid is 149 cols x 16 rows (matches unified bus layout)
+            cx = (col / 149.0) * w
             cy = (row / 16.0) * h
-            cell_w = w / 151.0
+            cell_w = w / 149.0
             cell_h = h / 16.0
 
             alpha = int(value * 40)

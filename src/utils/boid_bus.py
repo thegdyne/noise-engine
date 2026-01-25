@@ -53,28 +53,33 @@ def set_unified_bus_base(base: int) -> None:
     _unified_bus_base = base
 
 
-def grid_to_bus(row: int, col: int) -> Optional[int]:
+def grid_to_bus(row: int, col: int) -> int:
     """
-    Map grid coordinates to unified bus index.
+    Map grid coordinates to unified target index.
 
     Args:
-        row: Grid row (not used in this phase, included for future compatibility)
+        row: Grid row (0-15, validated but not used in mapping)
         col: Grid column (0-148)
 
     Returns:
-        Bus index for unified buses (direct 1:1 mapping now that gens are unified)
+        Target index (same as col, 0-148)
 
-    Layout (relative to bus base):
-    - col 0-39: bus base+0 to base+39 (gen core params)
-    - col 40-79: bus base+40 to base+79 (gen custom params)
-    - col 80-107: bus base+80 to base+107 (mod slot params)
-    - col 108-131: bus base+108 to base+131 (channel params)
-    - col 132-148: bus base+132 to base+148 (FX params)
+    Raises:
+        ValueError: If row or col is out of valid range
+
+    Per spec: target_index = col (row is for simulation/visualization only).
+    The bus base offset is applied by BoidBusSender when building OSC messages.
     """
-    if 0 <= col < 149:
-        return _unified_bus_base + col
-    else:
-        return None  # Out of range
+    if not (0 <= row <= 15):
+        raise ValueError(f"row {row} out of range [0, 15]")
+    if not (0 <= col <= 148):
+        raise ValueError(f"col {col} out of range [0, 148]")
+    return col
+
+
+def is_valid_target_index(target_index: int) -> bool:
+    """Check if target index is in the valid range (0-148)."""
+    return isinstance(target_index, int) and 0 <= target_index <= 148
 
 
 def is_valid_unified_bus_index(bus_index: int) -> bool:
@@ -93,19 +98,19 @@ def aggregate_contributions(
     contributions: List[Tuple[int, int, float]]
 ) -> Dict[int, float]:
     """
-    Aggregate boid contributions by bus index.
+    Aggregate boid contributions by target index.
 
     Args:
         contributions: List of (row, col, offset) tuples from boid cells
 
     Returns:
-        Dictionary mapping bus_index -> summed offset
+        Dictionary mapping target_index (0-148) -> summed offset
 
     Per spec:
-    - Maps each (row, col) via grid_to_bus
-    - Sums contributions for the same bus index
+    - Validates and maps each (row, col) via grid_to_bus
+    - Sums contributions for the same target index (row ignored in aggregation)
     - Filters out non-finite offsets
-    - All columns (including generators) now map to unified buses
+    - Drops invalid contributions silently (does not raise)
     """
     aggregated: Dict[int, float] = {}
 
@@ -114,14 +119,20 @@ def aggregate_contributions(
         if not is_finite(offset):
             continue
 
-        bus_index = grid_to_bus(row, col)
-        if bus_index is None:
-            continue  # Out of range
+        # Map to target index, drop invalid contributions
+        try:
+            target_index = grid_to_bus(row, col)
+        except ValueError:
+            continue  # Drop invalid contributions silently
 
-        if bus_index in aggregated:
-            aggregated[bus_index] += offset
+        # Defensive range check (should not happen if grid_to_bus is correct)
+        if not (0 <= target_index <= 148):
+            continue
+
+        if target_index in aggregated:
+            aggregated[target_index] += offset
         else:
-            aggregated[bus_index] = offset
+            aggregated[target_index] = offset
 
     # Final pass: filter any sums that became non-finite
     return {k: v for k, v in aggregated.items() if is_finite(v)}
@@ -159,17 +170,20 @@ def prepare_offsets_message(snapshot: Dict[int, float]) -> List:
     Prepare flat list of args for /noise/boid/offsets OSC message.
 
     Args:
-        snapshot: Dictionary mapping bus_index -> offset
+        snapshot: Dictionary mapping target_index (0-148) -> offset
 
     Returns:
         Flat list: [busIndex1, offset1, busIndex2, offset2, ...]
+        Bus indices are target_index + bus_base for SC compatibility.
 
-    Per spec: deterministic ordering by bus index ascending.
+    Per spec: deterministic ordering by target index ascending.
     """
     args = []
-    for bus_index in sorted(snapshot.keys()):
-        args.append(bus_index)
-        args.append(snapshot[bus_index])
+    for target_index in sorted(snapshot.keys()):
+        # Convert target index to absolute bus index for SC compatibility
+        bus_index = _unified_bus_base + target_index
+        args.append(int(bus_index))  # Ensure int for OSC int32
+        args.append(float(snapshot[target_index]))  # Ensure float for OSC float32
     return args
 
 
@@ -229,16 +243,22 @@ class BoidBusSender:
             contributions: List of (row, col, offset) tuples
 
         Per spec:
-        - Aggregates by bus index
+        - Validates contributions (drops invalid silently)
+        - Aggregates by target index (row ignored)
         - Filters non-finite values
         - Downselects if > 100 entries
-        - Sends single snapshot message
+        - Sends single OSC message with explicit int32/float32 types
+        - Empty payload is a no-op (no message sent)
+        - OSC send exceptions propagate to caller
         """
         if not self._enabled:
             return
 
-        # Aggregate contributions
+        # Aggregate contributions (handles validation, drops invalid silently)
         snapshot = aggregate_contributions(contributions)
+
+        # Drop zero offsets per spec
+        snapshot = {k: v for k, v in snapshot.items() if v != 0.0}
 
         # Apply downselection if needed
         snapshot = downselect_snapshot(snapshot)
@@ -247,12 +267,22 @@ class BoidBusSender:
         self._last_snapshot = snapshot
 
         if not snapshot:
-            # Empty snapshot - send clear
-            self.osc_client.send_message('/noise/boid/clear', 1)
-        else:
-            # Send offsets as flat list [busIndex1, offset1, busIndex2, offset2, ...]
-            args = prepare_offsets_message(snapshot)
-            self.osc_client.send_message('/noise/boid/offsets', args)
+            # Empty payload - no-op per spec (don't send anything)
+            return
+
+        # Build OSC message with explicit types per spec
+        # Uses OscMessageBuilder to ensure int32 for indices, float32 for offsets
+        from pythonosc.osc_message_builder import OscMessageBuilder
+
+        builder = OscMessageBuilder(address='/noise/boid/offsets')
+        for target_index in sorted(snapshot.keys()):
+            # Convert target index to absolute bus index for SC compatibility
+            bus_index = _unified_bus_base + target_index
+            builder.add_arg(int(bus_index), arg_type='i')  # int32
+            builder.add_arg(float(snapshot[target_index]), arg_type='f')  # float32
+
+        msg = builder.build()
+        self.osc_client.send(msg)
 
     def clear(self):
         """Clear all boid offsets without disabling."""
