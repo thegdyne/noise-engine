@@ -211,6 +211,7 @@ class PresetController:
             # Update panel from state
             if hasattr(self.main, 'boid_panel'):
                 s = self.main.boid.state
+                self.main.boid_panel.set_enabled(s.enabled)
                 self.main.boid_panel.set_count(s.boid_count)
                 self.main.boid_panel.set_dispersion(s.dispersion)
                 self.main.boid_panel.set_energy(s.energy)
