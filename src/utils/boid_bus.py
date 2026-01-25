@@ -1,14 +1,14 @@
 """
 Boid Bus Integration - Grid to Bus Mapping and OSC Protocol
 
-Implements the boid bus integration spec v4 (updated for 149-bus layout):
-- Grid to bus mapping for unified buses (columns 0-148 -> bus indices base+0 to base+148)
-- Aggregation of boid contributions per bus index
+Implements the boid bus integration per GROUND spec:
+- Grid to bus mapping: columns 0-148 map directly to target indices 0-148
+- Aggregation of boid contributions per target index
 - Deterministic downselection (max 100 entries)
 - Non-finite value filtering
 - Single-snapshot-per-tick OSC sending
 
-Bus Layout (149 total, contiguous indices):
+Target Layout (149 total):
 | Index     | Count | Category      | Parameters                                      |
 |-----------|-------|---------------|------------------------------------------------|
 | 0-39      | 40    | Gen Core      | 8 slots x 5 params (freq, cutoff, res, atk, dec)|
@@ -16,41 +16,28 @@ Bus Layout (149 total, contiguous indices):
 | 80-107    | 28    | Mod Slots     | 4 slots x 7 params (P0-P6)                     |
 | 108-131   | 24    | Channels      | 8 slots x 3 params (echo, verb, pan)           |
 | 132-148   | 17    | FX            | Heat, Echo, Reverb, DualFilter (mix excluded)  |
+
+OSC Protocol:
+- Python sends target indices 0-148 directly (NOT absolute bus indices)
+- SC handles the mapping to actual bus indices internally
 """
 
 from typing import Dict, List, Optional, Tuple
 import math
 
 
-# Grid layout constants per spec (149-bus layout)
+# Grid layout constants per spec (149 targets)
 GRID_TOTAL_COLUMNS = 149  # 0..148
 
-# Column ranges (directly map to unified bus indices)
+# Column/target ranges (column == target index)
 GEN_CORE_COLS = (0, 39)       # 40 cols -> 8 slots x 5 core params
 GEN_CUSTOM_COLS = (40, 79)    # 40 cols -> 8 slots x 5 custom params
 MOD_SLOT_COLS = (80, 107)     # 28 cols -> 4 slots x 7 params
 CHANNEL_COLS = (108, 131)     # 24 cols -> 8 channels x 3 params
 FX_COLS = (132, 148)          # 17 cols -> FX params (mix excluded)
 
-# Unified bus index range
-# NOTE: SC allocates dynamically - the actual base is queried at connect time
-# Default fallback is 1000 but will be updated via set_unified_bus_base()
-_DEFAULT_BUS_BASE = 1000
-_unified_bus_base = _DEFAULT_BUS_BASE  # Updated by set_unified_bus_base()
-
 # Protocol constraints
 MAX_OFFSET_PAIRS = 100
-
-
-def get_unified_bus_base() -> int:
-    """Get the current unified bus base (updated from SC at connect time)."""
-    return _unified_bus_base
-
-
-def set_unified_bus_base(base: int) -> None:
-    """Set the unified bus base (called when SC reports its allocation)."""
-    global _unified_bus_base
-    _unified_bus_base = base
 
 
 def grid_to_bus(row: int, col: int) -> int:
@@ -67,8 +54,7 @@ def grid_to_bus(row: int, col: int) -> int:
     Raises:
         ValueError: If row or col is out of valid range
 
-    Per spec: target_index = col (row is for simulation/visualization only).
-    The bus base offset is applied by BoidBusSender when building OSC messages.
+    Per GROUND spec: target_index = col (row is for simulation/visualization only).
     """
     if not (0 <= row <= 15):
         raise ValueError(f"row {row} out of range [0, 15]")
@@ -80,13 +66,6 @@ def grid_to_bus(row: int, col: int) -> int:
 def is_valid_target_index(target_index: int) -> bool:
     """Check if target index is in the valid range (0-148)."""
     return isinstance(target_index, int) and 0 <= target_index <= 148
-
-
-def is_valid_unified_bus_index(bus_index: int) -> bool:
-    """Check if bus index is in the valid unified range (base+0 to base+148)."""
-    bus_min = _unified_bus_base
-    bus_max = _unified_bus_base + 148
-    return isinstance(bus_index, int) and bus_min <= bus_index <= bus_max
 
 
 def is_finite(value: float) -> bool:
@@ -143,19 +122,19 @@ def downselect_snapshot(snapshot: Dict[int, float]) -> Dict[int, float]:
     Apply deterministic downselection if snapshot exceeds 100 entries.
 
     Args:
-        snapshot: Dictionary mapping bus_index -> offset
+        snapshot: Dictionary mapping target_index -> offset
 
     Returns:
         Dictionary with at most 100 entries, selected by:
         1. Primary: abs(offset) descending
-        2. Tie-breaker: bus_index ascending
+        2. Tie-breaker: target_index ascending
 
-    Per spec v4: keeps the 100 most significant offsets.
+    Per spec: keeps the 100 most significant offsets.
     """
     if len(snapshot) <= MAX_OFFSET_PAIRS:
         return snapshot
 
-    # Sort by abs(offset) descending, then bus_index ascending
+    # Sort by abs(offset) descending, then target_index ascending
     sorted_items = sorted(
         snapshot.items(),
         key=lambda item: (-abs(item[1]), item[0])
@@ -173,16 +152,14 @@ def prepare_offsets_message(snapshot: Dict[int, float]) -> List:
         snapshot: Dictionary mapping target_index (0-148) -> offset
 
     Returns:
-        Flat list: [busIndex1, offset1, busIndex2, offset2, ...]
-        Bus indices are target_index + bus_base for SC compatibility.
+        Flat list: [targetIndex1, offset1, targetIndex2, offset2, ...]
+        Target indices are sent directly (0-148), SC handles bus mapping.
 
     Per spec: deterministic ordering by target index ascending.
     """
     args = []
     for target_index in sorted(snapshot.keys()):
-        # Convert target index to absolute bus index for SC compatibility
-        bus_index = _unified_bus_base + target_index
-        args.append(int(bus_index))  # Ensure int for OSC int32
+        args.append(int(target_index))  # Ensure int for OSC int32
         args.append(float(snapshot[target_index]))  # Ensure float for OSC float32
     return args
 
@@ -196,6 +173,7 @@ class BoidBusSender:
     - Proper enable/disable sequencing
     - Non-finite filtering at wire boundary
     - Downselection if > 100 entries
+    - Sends target indices 0-148 (not absolute bus indices)
     """
 
     def __init__(self, osc_client):
@@ -242,12 +220,13 @@ class BoidBusSender:
         Args:
             contributions: List of (row, col, offset) tuples
 
-        Per spec:
+        Per GROUND spec:
         - Validates contributions (drops invalid silently)
         - Aggregates by target index (row ignored)
         - Filters non-finite values
         - Downselects if > 100 entries
         - Sends single OSC message with explicit int32/float32 types
+        - Sends target indices 0-148 directly (NOT absolute bus indices)
         - Empty payload is a no-op (no message sent)
         - OSC send exceptions propagate to caller
         """
@@ -270,15 +249,14 @@ class BoidBusSender:
             # Empty payload - no-op per spec (don't send anything)
             return
 
-        # Build OSC message with explicit types per spec
+        # Build OSC message with explicit types per GROUND spec
         # Uses OscMessageBuilder to ensure int32 for indices, float32 for offsets
         from pythonosc.osc_message_builder import OscMessageBuilder
 
         builder = OscMessageBuilder(address='/noise/boid/offsets')
         for target_index in sorted(snapshot.keys()):
-            # Convert target index to absolute bus index for SC compatibility
-            bus_index = _unified_bus_base + target_index
-            builder.add_arg(int(bus_index), arg_type='i')  # int32
+            # Send target index directly (0-148), SC handles bus mapping
+            builder.add_arg(int(target_index), arg_type='i')  # int32
             builder.add_arg(float(snapshot[target_index]), arg_type='f')  # float32
 
         msg = builder.build()
@@ -300,56 +278,53 @@ class BoidBusSender:
         return self._last_snapshot.copy()
 
 
-# Bus index to target key mapping (for debugging/logging)
-def bus_index_to_target_key(bus_index: int) -> Optional[str]:
+def target_index_to_key(target_index: int) -> Optional[str]:
     """
-    Convert bus index to human-readable target key.
+    Convert target index to human-readable target key.
+
+    Args:
+        target_index: Target index (0-148)
+
+    Returns:
+        Human-readable key like 'gen_1_freq', 'mod_2_p3', etc.
+        Returns None if index is out of range.
 
     Useful for debugging and logging.
     """
-    if not is_valid_unified_bus_index(bus_index):
+    if not is_valid_target_index(target_index):
         return None
 
-    # Bus layout relative to bus base (149 total):
-    # - base+0 to base+39: gen core params (8 slots x 5 params)
-    # - base+40 to base+79: gen custom params (8 slots x 5 custom)
-    # - base+80 to base+107: mod slot params (4 slots x 7 params)
-    # - base+108 to base+131: channel params (8 channels x 3 params)
-    # - base+132 to base+148: FX params
-
-    offset = bus_index - _unified_bus_base
-
     # Gen core params (indices 0-39)
-    if 0 <= offset < 40:
-        slot = (offset // 5) + 1
-        param_idx = offset % 5
+    if 0 <= target_index < 40:
+        slot = (target_index // 5) + 1
+        param_idx = target_index % 5
         param_names = ['freq', 'cutoff', 'res', 'attack', 'decay']
         return f"gen_{slot}_{param_names[param_idx]}"
 
     # Gen custom params (indices 40-79)
-    elif 40 <= offset < 80:
-        local = offset - 40
+    elif 40 <= target_index < 80:
+        local = target_index - 40
         slot = (local // 5) + 1
         custom_idx = local % 5
         return f"gen_{slot}_custom{custom_idx}"
 
     # Mod slot params (indices 80-107)
-    elif 80 <= offset < 108:
-        local = offset - 80
+    elif 80 <= target_index < 108:
+        local = target_index - 80
         slot = (local // 7) + 1
         param = local % 7
         return f"mod_{slot}_p{param}"
 
     # Channel params (indices 108-131)
-    elif 108 <= offset < 132:
-        local = offset - 108
+    elif 108 <= target_index < 132:
+        local = target_index - 108
         channel = (local // 3) + 1
         param_idx = local % 3
         param_names = ['echo', 'verb', 'pan']
         return f"chan_{channel}_{param_names[param_idx]}"
 
     # FX params (indices 132-148)
-    elif 132 <= offset < 149:
+    elif 132 <= target_index < 149:
         fx_keys = [
             'fx_heat_drive',  # 132
             'fx_echo_time', 'fx_echo_feedback', 'fx_echo_tone',  # 133-135
@@ -359,14 +334,14 @@ def bus_index_to_target_key(bus_index: int) -> Optional[str]:
             'fx_dualFilter_reso1', 'fx_dualFilter_reso2', 'fx_dualFilter_syncAmt',  # 145-147
             'fx_dualFilter_harmonics'  # 148
         ]
-        idx = offset - 132
+        idx = target_index - 132
         if idx < len(fx_keys):
             return fx_keys[idx]
 
     return None
 
 
-# Aliases for backward compatibility with older test files
-# Some tests use different function names - these aliases ensure compatibility
+# Aliases for backward compatibility
 grid_to_offset_index = grid_to_bus
-offset_index_to_target_key = bus_index_to_target_key
+bus_index_to_target_key = target_index_to_key  # Now works on target index directly
+offset_index_to_target_key = target_index_to_key

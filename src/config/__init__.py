@@ -1249,9 +1249,6 @@ OSC_PATHS = {
     'pong': '/noise/pong',
     'heartbeat': '/noise/heartbeat',
     'heartbeat_ack': '/noise/heartbeat_ack',
-    # Bus base synchronization
-    'bus_base_query': '/noise/bus/base/query',
-    'bus_base_info': '/noise/bus/base/info',
     # Master section
     'master_volume': '/noise/master/volume',
     'master_levels': '/noise/master/levels',
