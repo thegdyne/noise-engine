@@ -17,7 +17,7 @@ OSCdef(\extModAddRoute, { |msg|
     var polarity = msg[6].asInteger;
     var invert = msg[7].asInteger;
 
-    // Legacy ext_mod system
+    // Legacy ext_mod system (handles send:*, chan:*, mod:* targets)
     ~addExtModRoute.(sourceBus, targetStr, depth, amount, offset, polarity, invert);
 
     // Auto-start apply task if this is first route
@@ -25,13 +25,9 @@ OSCdef(\extModAddRoute, { |msg|
         ~startExtModApplyTask.();
     };
 
-    // Bus unification: also queue route for new system
-    // Convert sourceBus integer to modBus_N key format
-    if(~queueRouteOp.notNil) {
-        var sourceKey = ("modBus_%").format(sourceBus).asSymbol;
-        var targetKey = targetStr.asSymbol;
-        ~queueRouteOp.(\set, sourceKey, targetKey, depth, amount, offset, polarity, invert);
-    };
+    // NOTE: ext_mod routes are NOT forwarded to unified bus system.
+    // ext_mod has its own apply task for legacy targets.
+    // Generator modulation uses /noise/bus/route/set directly.
 }, '/noise/extmod/add_route');
 
 OSCdef(\extModRemoveRoute, { |msg|
@@ -46,12 +42,7 @@ OSCdef(\extModRemoveRoute, { |msg|
         ~stopExtModApplyTask.();
     };
 
-    // Bus unification: also queue route removal
-    if(~queueRouteOp.notNil) {
-        var sourceKey = ("modBus_%").format(sourceBus).asSymbol;
-        var targetKey = targetStr.asSymbol;
-        ~queueRouteOp.(\remove, sourceKey, targetKey, 0, 0, 0, 0, 0);
-    };
+    // NOTE: ext_mod routes are NOT forwarded to unified bus system.
 }, '/noise/extmod/remove_route');
 
 OSCdef(\extModSetUserParam, { |msg|
@@ -61,20 +52,17 @@ OSCdef(\extModSetUserParam, { |msg|
     // Legacy ext_mod system
     ~setExtModUserParam.(targetStr, value);
 
-    // Bus unification: also enqueue base update
-    if(~queueBaseUpdate.notNil) {
-        ~queueBaseUpdate.(targetStr.asSymbol, value);
-    };
+    // NOTE: ext_mod base values are NOT forwarded to unified bus system.
+    // Generator base values use /noise/bus/base directly.
 }, '/noise/extmod/set_user_param');
 
 OSCdef(\extModClearAll, { |msg|
-    // Legacy ext_mod system
+    // Legacy ext_mod system only - clears ext_mod routes
     ~clearAllExtModRoutes.();
 
-    // Bus unification: also clear all routes
-    if(~queueRouteOp.notNil) {
-        ~queueRouteOp.(\clear, nil, nil, 0, 0, 0, 0, 0);
-    };
+    // IMPORTANT: Do NOT forward to unified bus system!
+    // ext_mod clear should only clear ext_mod routes, not generator routes.
+    // Generator routes are managed separately via /noise/bus/route/clear.
 }, '/noise/extmod/clear_all');
 
 "Extended mod OSC handlers loaded".postln;
