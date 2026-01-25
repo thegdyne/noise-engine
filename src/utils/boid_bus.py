@@ -33,14 +33,24 @@ CHANNEL_COLS = (108, 131)     # 24 cols -> 8 channels x 3 params
 FX_COLS = (132, 148)          # 17 cols -> FX params (mix excluded)
 
 # Unified bus index range
-# NOTE: SC allocates dynamically - wanted 1000 but gets variable
-# This must match what SC actually allocated (check SC post window)
-UNIFIED_BUS_BASE = 1000  # Target allocation (SC may allocate elsewhere)
-UNIFIED_BUS_MIN = UNIFIED_BUS_BASE
-UNIFIED_BUS_MAX = UNIFIED_BUS_BASE + 148  # 149 buses: indices 0-148
+# NOTE: SC allocates dynamically - the actual base is queried at connect time
+# Default fallback is 1000 but will be updated via set_unified_bus_base()
+_DEFAULT_BUS_BASE = 1000
+_unified_bus_base = _DEFAULT_BUS_BASE  # Updated by set_unified_bus_base()
 
 # Protocol constraints
 MAX_OFFSET_PAIRS = 100
+
+
+def get_unified_bus_base() -> int:
+    """Get the current unified bus base (updated from SC at connect time)."""
+    return _unified_bus_base
+
+
+def set_unified_bus_base(base: int) -> None:
+    """Set the unified bus base (called when SC reports its allocation)."""
+    global _unified_bus_base
+    _unified_bus_base = base
 
 
 def grid_to_bus(row: int, col: int) -> Optional[int]:
@@ -54,7 +64,7 @@ def grid_to_bus(row: int, col: int) -> Optional[int]:
     Returns:
         Bus index for unified buses (direct 1:1 mapping now that gens are unified)
 
-    Layout (relative to UNIFIED_BUS_BASE):
+    Layout (relative to bus base):
     - col 0-39: bus base+0 to base+39 (gen core params)
     - col 40-79: bus base+40 to base+79 (gen custom params)
     - col 80-107: bus base+80 to base+107 (mod slot params)
@@ -62,14 +72,16 @@ def grid_to_bus(row: int, col: int) -> Optional[int]:
     - col 132-148: bus base+132 to base+148 (FX params)
     """
     if 0 <= col < 149:
-        return UNIFIED_BUS_BASE + col
+        return _unified_bus_base + col
     else:
         return None  # Out of range
 
 
 def is_valid_unified_bus_index(bus_index: int) -> bool:
     """Check if bus index is in the valid unified range (base+0 to base+148)."""
-    return isinstance(bus_index, int) and UNIFIED_BUS_MIN <= bus_index <= UNIFIED_BUS_MAX
+    bus_min = _unified_bus_base
+    bus_max = _unified_bus_base + 148
+    return isinstance(bus_index, int) and bus_min <= bus_index <= bus_max
 
 
 def is_finite(value: float) -> bool:
@@ -268,14 +280,14 @@ def bus_index_to_target_key(bus_index: int) -> Optional[str]:
     if not is_valid_unified_bus_index(bus_index):
         return None
 
-    # Bus layout relative to UNIFIED_BUS_BASE (149 total):
+    # Bus layout relative to bus base (149 total):
     # - base+0 to base+39: gen core params (8 slots x 5 params)
     # - base+40 to base+79: gen custom params (8 slots x 5 custom)
     # - base+80 to base+107: mod slot params (4 slots x 7 params)
     # - base+108 to base+131: channel params (8 channels x 3 params)
     # - base+132 to base+148: FX params
 
-    offset = bus_index - UNIFIED_BUS_BASE
+    offset = bus_index - _unified_bus_base
 
     # Gen core params (indices 0-39)
     if 0 <= offset < 40:

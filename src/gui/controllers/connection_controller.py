@@ -10,6 +10,7 @@ from src.config import OSC_PATHS
 from src.gui.theme import COLORS
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
 from src.utils.logger import logger
+from src.utils.boid_bus import set_unified_bus_base
 
 
 class ConnectionController:
@@ -57,7 +58,8 @@ class ConnectionController:
             self.main.osc.mod_bus_value_received.connect(self.main.modulation.on_mod_bus_value)
             self.main.osc.mod_values_received.connect(self.main.modulation.on_mod_values_received)
             self.main.osc.extmod_values_received.connect(self.main.modulation.on_extmod_values_received)
-            
+            self.main.osc.bus_base_received.connect(self._on_bus_base_received)
+
             if self.main.osc.connect():
                 self.main.osc_connected = True
                 # Initialize crossmod OSC bridge
@@ -80,7 +82,10 @@ class ConnectionController:
                 
                 # Query audio devices
                 self.main.osc.query_audio_devices()
-                
+
+                # Query unified bus base for boid synchronization
+                self.main.osc.query_bus_base()
+
                 # Send current MIDI device if one is selected
                 current_midi = self.main.midi_selector.get_current_device()
                 logger.info(f"MIDI device at connect: {current_midi!r}", component="OSC")
@@ -109,6 +114,7 @@ class ConnectionController:
                 self.main.osc.comp_gr_received.disconnect(self.main.master.on_comp_gr_received)
                 self.main.osc.mod_bus_value_received.disconnect(self.main.modulation.on_mod_bus_value)
                 self.main.osc.mod_values_received.disconnect(self.main.modulation.on_mod_values_received)
+                self.main.osc.bus_base_received.disconnect(self._on_bus_base_received)
             except TypeError:
                 pass  # Signals weren't connected
             self.main.osc.disconnect()
@@ -143,10 +149,18 @@ class ConnectionController:
         
         # Resend current state
         self.main.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.main.master_bpm])
-        
+
+        # Re-query bus base (SC may have restarted with different allocation)
+        self.main.osc.query_bus_base()
+
         # Clear mod routing (SC has fresh state after restart)
         self.main.mod_routing.clear()
     
+    def _on_bus_base_received(self, bus_base: int):
+        """Handle unified bus base info from SC."""
+        set_unified_bus_base(bus_base)
+        logger.info(f"Unified bus base set to {bus_base}", component="OSC")
+
     def _connect_btn_style(self):
         """Return the standard connect button stylesheet."""
         return f"""

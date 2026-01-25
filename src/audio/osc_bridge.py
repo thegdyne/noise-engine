@@ -43,6 +43,8 @@ class OSCBridge(QObject):
     audio_device_changing = pyqtSignal(str)  # device name
     audio_device_ready = pyqtSignal(str)  # device name
     audio_device_error = pyqtSignal(str)  # error message
+    # Bus base synchronization
+    bus_base_received = pyqtSignal(int)  # unified bus base from SC
 
     # Connection constants
     PING_TIMEOUT_MS = 1000  # Wait 1 second for ping response
@@ -275,6 +277,9 @@ class OSCBridge(QObject):
         # Handle batched mod values from SC (for slider visualization) (SSOT: use OSC_PATHS)
         dispatcher.map(OSC_PATHS['mod_values'], self._handle_mod_values)
 
+        # Handle bus base info from SC (for boid bus synchronization)
+        dispatcher.map(OSC_PATHS['bus_base_info'], self._handle_bus_base_info)
+
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
 
@@ -440,6 +445,21 @@ class OSCBridge(QObject):
         if len(args) >= 1:
             error_msg = str(args[0])
             self.audio_device_error.emit(error_msg)
+
+    def _handle_bus_base_info(self, address, *args):
+        """Handle bus base info from SC (for boid synchronization)."""
+        if self._shutdown or self._deleted:
+            return
+        if len(args) >= 1:
+            bus_base = int(args[0])
+            logger.info(f"Received bus base from SC: {bus_base}", component="OSC")
+            self.bus_base_received.emit(bus_base)
+
+    def query_bus_base(self):
+        """Request unified bus base from SC."""
+        from src.config import OSC_PATHS
+        if self.client:
+            self.client.send_message(OSC_PATHS['bus_base_query'], [1])
 
     def query_audio_devices(self):
         """Request list of audio devices from SC."""

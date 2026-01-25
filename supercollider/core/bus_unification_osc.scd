@@ -14,6 +14,19 @@ to also enqueue through this system for backward compatibility.
     "Setting up Bus Unification OSC handlers...".postln;
 
     // =========================================================================
+    // BUS BASE QUERY (for Python to sync bus allocation)
+    // /noise/bus/base/query -> replies /noise/bus/base/info [unifiedBusBase]
+    // =========================================================================
+
+    OSCdef(\busBaseQuery).free;
+    OSCdef(\busBaseQuery, { |msg, time, addr|
+        var replyAddr = NetAddr("127.0.0.1", 57121);
+        var base = ~unifiedBusBase ? 1000;
+        "BUS BASE QUERY: replying with base=%".format(base).postln;
+        replyAddr.sendMsg('/noise/bus/base/info', base);
+    }, '/noise/bus/base/query');
+
+    // =========================================================================
     // MOD SLOT PARAMETERS (P0-P6)
     // /noise/mod/bus/p0 ... /noise/mod/bus/p6 [slot, value]
     // =========================================================================
