@@ -257,6 +257,11 @@ to also enqueue through this system for backward compatibility.
         var invert = msg[7].asInteger ? 0;
 
         ~queueRouteOp.(\set, sourceKey, targetKey, depth, amount, offset, polarity, invert);
+
+        // Start value stream if not already running (for UI visualization)
+        if(~busValueStreamRoutine.isNil or: { ~busValueStreamRoutine.isPlaying.not }, {
+            ~startBusValueStream.();
+        });
     }, '/noise/bus/route/set');
 
     OSCdef(\busRouteRemove).free;
@@ -272,6 +277,11 @@ to also enqueue through this system for backward compatibility.
         var targetKey = if(msg.size > 1, { msg[1].asString.asSymbol }, { nil });
 
         ~queueRouteOp.(\clear, nil, targetKey, 0, 0, 0, 0, 0);
+
+        // If clearing all routes, stop value stream
+        if(targetKey.isNil, {
+            ~stopBusValueStream.();
+        });
     }, '/noise/bus/route/clear');
 
     // =========================================================================

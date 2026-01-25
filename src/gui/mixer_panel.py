@@ -275,6 +275,11 @@ class ChannelStrip(QWidget):
                 super().__init__(orientation, parent)
                 self._midi_armed = False
                 self._midi_mapped = False
+                # Modulation visualization state
+                self._mod_range_min = None
+                self._mod_range_max = None
+                self._mod_current = None
+                self._mod_color = QColor('#00ff66')
 
             def mouseDoubleClickEvent(self, event):
                 self.setValue(0)  # Center on double-click
@@ -286,6 +291,32 @@ class ChannelStrip(QWidget):
             def set_midi_mapped(self, mapped):
                 self._midi_mapped = mapped
                 self.update()
+
+            def set_modulation_range(self, min_norm: float, max_norm: float,
+                                     inner_min: float = None, inner_max: float = None,
+                                     color: 'QColor' = None):
+                """Set modulation range for visualization (normalized 0-1 values)."""
+                self._mod_range_min = min_norm
+                self._mod_range_max = max_norm
+                if color:
+                    self._mod_color = color
+                self.update()
+
+            def set_modulated_value(self, norm_value: float):
+                """Set current modulated value for animated indicator (normalized 0-1)."""
+                self._mod_current = norm_value
+                self.update()
+
+            def clear_modulation(self):
+                """Clear modulation visualization."""
+                self._mod_range_min = None
+                self._mod_range_max = None
+                self._mod_current = None
+                self.update()
+
+            def has_modulation(self) -> bool:
+                """Return True if modulation range is set."""
+                return self._mod_range_min is not None
 
             def _get_main_frame(self):
                 widget = self.window()
@@ -319,14 +350,35 @@ class ChannelStrip(QWidget):
 
             def paintEvent(self, event):
                 super().paintEvent(event)
+                from PyQt5.QtGui import QPainter, QColor, QPen
+                from PyQt5.QtCore import Qt
+
+                painter = QPainter(self)
+
+                # Draw modulation range (horizontal bar at top)
+                if self._mod_range_min is not None and self._mod_range_max is not None:
+                    mod_color = QColor(self._mod_color)
+                    mod_color.setAlpha(100)
+                    painter.setPen(Qt.NoPen)
+                    painter.setBrush(mod_color)
+                    # _mod_range_min/max are 0-1, map to widget width
+                    x_min = int(self._mod_range_min * self.width())
+                    x_max = int(self._mod_range_max * self.width())
+                    painter.drawRect(x_min, 0, x_max - x_min, 4)
+
+                # Draw current modulated value (vertical line)
+                if self._mod_current is not None:
+                    painter.setPen(QPen(self._mod_color, 2))
+                    x_pos = int(self._mod_current * self.width())
+                    painter.drawLine(x_pos, 0, x_pos, self.height())
+
+                # Draw MIDI mapped badge
                 if self._midi_mapped:
-                    from PyQt5.QtGui import QPainter, QColor
-                    from PyQt5.QtCore import Qt
-                    painter = QPainter(self)
                     painter.setBrush(QColor('#FF00FF'))
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(self.width() - 6, 0, 4, 4)
-                    painter.end()
+
+                painter.end()
 
         self.pan_slider = PanSlider(Qt.Horizontal)
         self.pan_slider.setObjectName(f"mixer{self.channel_id}_pan")

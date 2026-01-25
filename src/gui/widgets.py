@@ -909,7 +909,13 @@ class MiniKnob(QWidget):
         self._midi_armed = False
         self._midi_mapped = False
         self._popup = None
-        
+
+        # Modulation visualization state
+        self._mod_range_min = None   # Normalized 0-1
+        self._mod_range_max = None   # Normalized 0-1
+        self._mod_current = None     # Normalized 0-1 (animated value)
+        self._mod_color = QColor('#00ff66')  # Default green
+
         # Fixed size for compact channel strips
         self.setFixedSize(18, 18)
         self.setCursor(Qt.PointingHandCursor)
@@ -934,6 +940,32 @@ class MiniKnob(QWidget):
         
     def setToolTip(self, tip):
         super().setToolTip(tip)
+
+    def set_modulation_range(self, min_norm: float, max_norm: float,
+                             inner_min: float = None, inner_max: float = None,
+                             color: 'QColor' = None):
+        """Set modulation range for visualization (normalized 0-1 values)."""
+        self._mod_range_min = min_norm
+        self._mod_range_max = max_norm
+        if color:
+            self._mod_color = color
+        self.update()
+
+    def set_modulated_value(self, norm_value: float):
+        """Set current modulated value for animated indicator (normalized 0-1)."""
+        self._mod_current = norm_value
+        self.update()
+
+    def clear_modulation(self):
+        """Clear modulation visualization."""
+        self._mod_range_min = None
+        self._mod_range_max = None
+        self._mod_current = None
+        self.update()
+
+    def has_modulation(self) -> bool:
+        """Return True if modulation range is set."""
+        return self._mod_range_min is not None
 
     def paintEvent(self, event):
         """Draw the knob as a filled arc."""
@@ -997,6 +1029,34 @@ class MiniKnob(QWidget):
             painter.setBrush(QColor('#FF00FF'))  # Bright pink
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(self.width() - 6, 0, 5, 5)
+
+        # Draw modulation range overlay (if active)
+        if self._mod_range_min is not None and self._mod_range_max is not None:
+            mod_color = QColor(self._mod_color)
+            mod_color.setAlpha(80)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(mod_color)
+
+            # Convert normalized range to angles
+            # MiniKnob uses 225° start, 270° sweep (same as value arc)
+            start_angle = 225 - (self._mod_range_min * 270)
+            end_angle = 225 - (self._mod_range_max * 270)
+            span = start_angle - end_angle
+
+            # Draw as arc on outer edge
+            arc_rect = QRectF(1, 1, self.width() - 2, self.height() - 2)
+            painter.drawPie(arc_rect, int(end_angle * 16), int(span * 16))
+
+        # Draw current modulated value indicator (if animating)
+        if self._mod_current is not None:
+            from PyQt5.QtCore import QPointF
+            painter.setPen(QPen(self._mod_color, 2))
+            angle_rad = math.radians(225 - (self._mod_current * 270))
+            center = rect.center()
+            radius = min(self.width(), self.height()) / 2 - 2
+            end_x = center.x() + radius * math.cos(angle_rad)
+            end_y = center.y() - radius * math.sin(angle_rad)
+            painter.drawLine(center, QPointF(end_x, end_y))
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:

@@ -232,6 +232,34 @@ class ModulationController:
                     if hasattr(slider, "set_modulated_value"):
                         slider.set_modulated_value(norm_value)
 
+            elif target_type == "send":
+                try:
+                    channel_id = int(identifier)
+                except ValueError:
+                    continue
+                if not hasattr(self.main, 'mixer_panel'):
+                    continue
+                channel = self.main.mixer_panel.channels.get(channel_id)
+                if not channel:
+                    continue
+                if param == "ec" and hasattr(channel.echo_send, 'set_modulated_value'):
+                    channel.echo_send.set_modulated_value(norm_value)
+                elif param == "vb" and hasattr(channel.verb_send, 'set_modulated_value'):
+                    channel.verb_send.set_modulated_value(norm_value)
+
+            elif target_type == "chan":
+                try:
+                    channel_id = int(identifier)
+                except ValueError:
+                    continue
+                if not hasattr(self.main, 'mixer_panel'):
+                    continue
+                channel = self.main.mixer_panel.channels.get(channel_id)
+                if not channel:
+                    continue
+                if param == "pan" and hasattr(channel.pan_slider, 'set_modulated_value'):
+                    channel.pan_slider.set_modulated_value(norm_value)
+
     def _map_mod_param_to_slider(self, gen_name: str, param: str) -> str:
         """
         Map p1-p4 wire params to actual slider keys.
@@ -286,9 +314,11 @@ class ModulationController:
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
                 logger.debug(f"Extended mod route added: bus {conn.source_bus} -> {conn.target_str}", component="MOD")
-                # Update modulator slider visualization for mod targets
+                # Update slider visualization for extended targets
                 if conn.target_str.startswith("mod:"):
                     self._update_mod_slider_mod_range(conn.target_str)
+                elif conn.target_str.startswith("send:") or conn.target_str.startswith("chan:"):
+                    self._update_chan_slider_mod_range(conn.target_str)
             else:
                 # Generator route: use unified bus system /noise/bus/route/set
                 source_key = _build_source_key(conn.source_bus)
@@ -314,9 +344,11 @@ class ModulationController:
                     [conn.source_bus, conn.target_str]
                 )
                 logger.debug(f"Extended mod route removed: bus {conn.source_bus} -> {conn.target_str}", component="MOD")
-                # Update modulator slider visualization for mod targets
+                # Update slider visualization for extended targets
                 if conn.target_str.startswith("mod:"):
                     self._update_mod_slider_mod_range(conn.target_str)
+                elif conn.target_str.startswith("send:") or conn.target_str.startswith("chan:"):
+                    self._update_chan_slider_mod_range(conn.target_str)
             else:
                 # Generator route: use unified bus system /noise/bus/route/remove
                 source_key = _build_source_key(conn.source_bus)
@@ -341,11 +373,15 @@ class ModulationController:
                     [conn.source_bus, conn.target_str,
                      conn.depth, conn.amount, conn.offset, conn.polarity.value, int(conn.invert)]
                 )
-                # Update modulator slider visualization for mod targets
+                # Update slider visualization for extended targets
                 if conn.target_str.startswith("mod:"):
                     from PyQt5.QtCore import QTimer
                     target = conn.target_str
                     QTimer.singleShot(0, lambda t=target: self._update_mod_slider_mod_range(t))
+                elif conn.target_str.startswith("send:") or conn.target_str.startswith("chan:"):
+                    from PyQt5.QtCore import QTimer
+                    target = conn.target_str
+                    QTimer.singleShot(0, lambda t=target: self._update_chan_slider_mod_range(t))
             else:
                 # Generator route: use unified bus system /noise/bus/route/set (upsert)
                 source_key = _build_source_key(conn.source_bus)
@@ -528,6 +564,91 @@ class ModulationController:
 
         slider.set_modulation_range(range_min, range_max, range_min, range_max, color)
 
+    def _update_chan_slider_mod_range(self, target_str: str):
+        """Update modulation range visualization for channel strip controls.
+
+        Args:
+            target_str: Extended target like "send:1:ec", "send:1:vb", or "chan:1:pan"
+        """
+        parts = target_str.split(":")
+        if len(parts) < 3:
+            return
+
+        target_type, channel_str, param = parts[0], parts[1], parts[2]
+
+        try:
+            channel_id = int(channel_str)
+        except ValueError:
+            return
+
+        if not hasattr(self.main, 'mixer_panel'):
+            return
+
+        channel = self.main.mixer_panel.channels.get(channel_id)
+        if not channel:
+            return
+
+        # Map target to control widget
+        control = None
+        value_range = 1.0  # Default normalized
+        value_min = 0.0
+
+        if target_type == "send" and param == "ec":
+            control = channel.echo_send
+            value_range = 200  # MiniKnob 0-200
+            value_min = 0
+        elif target_type == "send" and param == "vb":
+            control = channel.verb_send
+            value_range = 200
+            value_min = 0
+        elif target_type == "chan" and param == "pan":
+            control = channel.pan_slider
+            value_range = 200  # PanSlider -100 to 100
+            value_min = -100
+        else:
+            return
+
+        if not hasattr(control, 'set_modulation_range'):
+            return
+
+        # Get all extended connections targeting this target_str
+        connections = [c for c in self.main.mod_routing.get_extended_connections()
+                      if c.target_str == target_str]
+
+        if not connections:
+            control.clear_modulation()
+            return
+
+        # Calculate combined modulation range
+        total_depth = sum(abs(c.depth) * c.amount for c in connections)
+
+        # Get current base value normalized to 0-1
+        current_val = control.value()
+        base_norm = (current_val - value_min) / value_range
+
+        # Calculate range
+        min_norm = max(0.0, base_norm - total_depth)
+        max_norm = min(1.0, base_norm + total_depth)
+
+        # Determine color based on sources
+        source_types = set()
+        for conn in connections:
+            mod_slot = conn.source_bus // 4 + 1
+            source_slot = self.main.modulator_grid.get_slot(mod_slot)
+            if source_slot and source_slot.generator_name == 'Sloth':
+                source_types.add("sloth")
+            else:
+                source_types.add("other")
+
+        if len(source_types) > 1 or len(connections) > 1:
+            color = QColor('#00ffff')  # Cyan for multiple sources
+        elif "sloth" in source_types:
+            color = QColor('#ff8800')  # Orange for Sloth
+        else:
+            color = QColor('#00ff66')  # Green default
+
+        control.set_modulation_range(min_norm, max_norm, None, None, color)
+
     def _on_mod_routes_cleared(self):
         """Handle all routes cleared - send OSC and clear all slider brackets."""
         if self.main.osc_connected:
@@ -554,6 +675,18 @@ class ModulationController:
                 for key, widget in slot.param_sliders.items():
                     if hasattr(widget, 'clear_modulation'):
                         widget.clear_modulation()
+
+        # Clear modulation on all channel strips
+        if hasattr(self.main, 'mixer_panel'):
+            for channel_id in range(1, 9):
+                channel = self.main.mixer_panel.channels.get(channel_id)
+                if channel:
+                    if hasattr(channel.echo_send, 'clear_modulation'):
+                        channel.echo_send.clear_modulation()
+                    if hasattr(channel.verb_send, 'clear_modulation'):
+                        channel.verb_send.clear_modulation()
+                    if hasattr(channel.pan_slider, 'clear_modulation'):
+                        channel.pan_slider.clear_modulation()
 
     def _sync_mod_routing_to_sc(self):
         """Sync all mod routing state to SC (called on reconnect)."""
