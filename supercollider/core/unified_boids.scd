@@ -27,16 +27,16 @@
 ~baseValues = nil;             // Array[149] of Float
 ~boidOffsets = nil;            // Array[149] of Float
 ~boidEnabled = false;          // Bool
-~initialized = false;          // Bool
-~applyTask = nil;              // Task reference
-~applyInProgress = false;      // Reentrancy guard
-~needsFollowUpApply = false;   // Flag for deferred apply
+~boidInitialized = false;          // Bool
+~boidApplyTask = nil;              // Task reference
+~boidApplyInProgress = false;      // Reentrancy guard
+~boidNeedsFollowUp = false;   // Flag for deferred apply
 
 // Pending Update Buffers (initialized as empty Dicts so they're safe before init)
-~pendingBaseUpdates = Dictionary.new;
-~pendingOffsetUpdates = Dictionary.new;
-~pendingEnableState = nil;     // nil or Bool
-~pendingClearOffsets = false;  // Bool flag
+~boidPendingBase = Dictionary.new;
+~boidPendingOffsets = Dictionary.new;
+~boidPendingEnableState = nil;     // nil or Bool
+~boidPendingClear = false;  // Bool flag
 
 // ============================================================================
 // Phase 2: Target Metadata
@@ -130,7 +130,7 @@
 ~normalizeTargetIndex = { |x|
     case
     { x.isInteger and: { (x >= 0) and: { x <= 148 } } } { x }
-    { ~initialized and: { x.isInteger } and: {
+    { ~boidInitialized and: { x.isInteger } and: {
         (x >= ~unifiedBusBase) and: { x <= (~unifiedBusBase + 148) }
     } } { x - ~unifiedBusBase }
     { nil }  // Invalid
@@ -146,25 +146,25 @@
 
 ~applyOnce = {
     // Step 0: Guard - must be initialized
-    if(~initialized.not) { nil } {
+    if(~boidInitialized.not) { nil } {
 
         // Step 1: Reentrancy guard
-        if(~applyInProgress) {
-            ~needsFollowUpApply = true;
+        if(~boidApplyInProgress) {
+            ~boidNeedsFollowUp = true;
         } {
-            ~applyInProgress = true;
+            ~boidApplyInProgress = true;
 
             // Step 2: Drain pending updates
 
             // 2a: Handle pending clear flag
-            if(~pendingClearOffsets) {
+            if(~boidPendingClear) {
                 149.do { |i| ~boidOffsets[i] = 0.0 };
-                ~pendingOffsetUpdates.clear;
-                ~pendingClearOffsets = false;
+                ~boidPendingOffsets.clear;
+                ~boidPendingClear = false;
             };
 
             // 2b: Apply pending base updates
-            ~pendingBaseUpdates.keysValuesDo { |i, v|
+            ~boidPendingBase.keysValuesDo { |i, v|
                 if(~isFinite.(v)) {
                     var meta = ~targetMetaByIndex[i];
                     if(meta.notNil) {
@@ -174,10 +174,10 @@
                     "WARNING: Non-finite base value rejected for index %".format(i).postln;
                 };
             };
-            ~pendingBaseUpdates.clear;
+            ~boidPendingBase.clear;
 
             // 2c: Apply pending offset updates
-            ~pendingOffsetUpdates.keysValuesDo { |i, off|
+            ~boidPendingOffsets.keysValuesDo { |i, off|
                 if(~isFinite.(off)) {
                     ~boidOffsets[i] = off;
                 } {
@@ -185,7 +185,7 @@
                     "WARNING: Non-finite offset treated as 0.0 for index %".format(i).postln;
                 };
             };
-            ~pendingOffsetUpdates.clear;
+            ~boidPendingOffsets.clear;
 
             // Step 3: Repair canonical arrays (safety net)
             149.do { |i|
@@ -213,11 +213,11 @@
                 };
             };
 
-            ~applyInProgress = false;
+            ~boidApplyInProgress = false;
 
             // Handle follow-up apply if requested during this tick
-            if(~needsFollowUpApply) {
-                ~needsFollowUpApply = false;
+            if(~boidNeedsFollowUp) {
+                ~boidNeedsFollowUp = false;
                 ~applyOnce.value;
             };
         };
@@ -232,7 +232,7 @@
     var i = ~normalizeTargetIndex.(targetIndex);
     if(i.notNil) {
         if(~isFinite.(value)) {
-            ~pendingBaseUpdates[i] = value;
+            ~boidPendingBase[i] = value;
         } {
             "WARNING: Rejected non-finite base value for index %".format(i).postln;
         };
@@ -273,7 +273,7 @@ OSCdef(\boidOffsets, { |msg|
             var i;
 
             // Normalize index
-            if(~initialized) {
+            if(~boidInitialized) {
                 i = ~normalizeTargetIndex.(rawIndex);
             } {
                 // Before init, only accept 0-148 form
@@ -285,9 +285,9 @@ OSCdef(\boidOffsets, { |msg|
             // Store if valid
             if(i.notNil) {
                 if(~isFinite.(offset)) {
-                    ~pendingOffsetUpdates[i] = offset;
+                    ~boidPendingOffsets[i] = offset;
                 } {
-                    ~pendingOffsetUpdates[i] = 0.0;
+                    ~boidPendingOffsets[i] = 0.0;
                     "WARNING: Non-finite offset for index % treated as 0.0".format(i).postln;
                 };
             };
@@ -299,9 +299,9 @@ OSCdef(\boidEnable, { |msg|
     var state = msg[1].asInteger;
     var enableFlag = (state == 1);
 
-    if(~initialized.not) {
+    if(~boidInitialized.not) {
         // Buffer for later
-        ~pendingEnableState = enableFlag;
+        ~boidPendingEnableState = enableFlag;
         "Buffered boid enable state: %".format(enableFlag).postln;
     } {
         if(enableFlag) {
@@ -312,7 +312,7 @@ OSCdef(\boidEnable, { |msg|
             // Disable - atomic: clear offsets + pending + set flag
             ~boidEnabled = false;
             149.do { |i| ~boidOffsets[i] = 0.0 };
-            ~pendingOffsetUpdates.clear;
+            ~boidPendingOffsets.clear;
             "Boids DISABLED (offsets cleared)".postln;
         };
         // Immediate apply
@@ -321,13 +321,13 @@ OSCdef(\boidEnable, { |msg|
 }, '/noise/boid/enable');
 
 OSCdef(\boidClear, { |msg|
-    if(~initialized.not) {
-        ~pendingClearOffsets = true;
+    if(~boidInitialized.not) {
+        ~boidPendingClear = true;
         "Buffered boid clear command".postln;
     } {
         // Clear immediately
         149.do { |i| ~boidOffsets[i] = 0.0 };
-        ~pendingOffsetUpdates.clear;
+        ~boidPendingOffsets.clear;
         "Boid offsets CLEARED".postln;
         // Immediate apply
         ~applyOnce.value;
@@ -340,7 +340,7 @@ OSCdef(\boidClear, { |msg|
 
 ~initUnifiedBoids = {
     // Prevent double-init
-    if(~initialized) {
+    if(~boidInitialized) {
         "Already initialized - call ~shutdownUnifiedBoids first".postln;
     } {
         // Step 1: Allocate buses
@@ -362,41 +362,41 @@ OSCdef(\boidClear, { |msg|
             ~boidOffsets = Array.fill(149, { 0.0 });
 
             // Step 5: Initialize pending buffers
-            ~pendingBaseUpdates = Dictionary.new;
-            ~pendingOffsetUpdates = Dictionary.new;
-            ~pendingEnableState = nil;
-            ~pendingClearOffsets = false;
-            ~needsFollowUpApply = false;
+            ~boidPendingBase = Dictionary.new;
+            ~boidPendingOffsets = Dictionary.new;
+            ~boidPendingEnableState = nil;
+            ~boidPendingClear = false;
+            ~boidNeedsFollowUp = false;
 
             // Step 6: Mark initialized
-            ~initialized = true;
+            ~boidInitialized = true;
             ~boidEnabled = false;
 
             // Step 7: Apply buffered pre-init commands
-            if(~pendingClearOffsets) {
+            if(~boidPendingClear) {
                 149.do { |i| ~boidOffsets[i] = 0.0 };
-                ~pendingClearOffsets = false;
+                ~boidPendingClear = false;
             };
 
-            ~pendingOffsetUpdates.keysValuesDo { |i, off|
+            ~boidPendingOffsets.keysValuesDo { |i, off|
                 if(~isFinite.(off)) {
                     ~boidOffsets[i] = off;
                 } {
                     ~boidOffsets[i] = 0.0;
                 };
             };
-            ~pendingOffsetUpdates.clear;
+            ~boidPendingOffsets.clear;
 
-            if(~pendingEnableState.notNil) {
-                ~boidEnabled = ~pendingEnableState;
-                ~pendingEnableState = nil;
+            if(~boidPendingEnableState.notNil) {
+                ~boidEnabled = ~boidPendingEnableState;
+                ~boidPendingEnableState = nil;
             };
 
             // Step 8: Initial apply (write all buses)
             ~applyOnce.value;
 
             // Step 9: Start periodic apply task
-            ~applyTask = Task({
+            ~boidApplyTask = Task({
                 loop {
                     ~applyIntervalSec.wait;
                     ~applyOnce.value;
@@ -414,9 +414,9 @@ OSCdef(\boidClear, { |msg|
 
 ~shutdownUnifiedBoids = {
     // Stop task
-    if(~applyTask.notNil) {
-        ~applyTask.stop;
-        ~applyTask = nil;
+    if(~boidApplyTask.notNil) {
+        ~boidApplyTask.stop;
+        ~boidApplyTask = nil;
     };
 
     // Free buses
@@ -431,7 +431,7 @@ OSCdef(\boidClear, { |msg|
     OSCdef(\boidClear).free;
 
     // Reset state
-    ~initialized = false;
+    ~boidInitialized = false;
     ~boidEnabled = false;
     ~unifiedBusBase = nil;
 
@@ -444,7 +444,7 @@ OSCdef(\boidClear, { |msg|
 
 ~getBoidStatus = {
     (
-        initialized: ~initialized,
+        initialized: ~boidInitialized,
         enabled: ~boidEnabled,
         busBase: ~unifiedBusBase,
         busCount: 149,
