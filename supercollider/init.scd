@@ -24,26 +24,26 @@ thisProcess.openUDPPort(~scListenPort);
 );
 
 s.waitForBoot({
-    
+
     "".postln;
     "=== Noise Engine - SuperCollider ===".postln;
     "Initializing...".postln;
     "".postln;
-    
+
     // Load core systems (order matters!)
     (~basePath +/+ "core/buses.scd").load;
     ~setupBuses.();
-    
+
     // Load mod buses (before mod slots)
     (~basePath +/+ "core/mod_buses.scd").load;
     ~setupModBuses.();
-    
+
     (~basePath +/+ "core/clock.scd").load;
     ~setupClock.();
-    
+
     (~basePath +/+ "core/helpers.scd").load;
     ~setupHelpers.();
-    
+
     // Load channel strips (must be before helpers use them)
     (~basePath +/+ "core/channel_strips.scd").load;
     ~setupChannelStrips.();
@@ -67,15 +67,15 @@ s.waitForBoot({
     // Load Dual Filter
     (~basePath +/+ "effects/dual_filter.scd").load;
     ~setupDualFilter.();
-    
+
     // Load effects
     (~basePath +/+ "effects/master_passthrough.scd").load;
     ~setupMasterPassthrough.();
-    
+
     // Load master section (metering, volume)
     (~basePath +/+ "core/master.scd").load;
     ~setupMaster.();
-    
+
     // Load pack generators FIRST (so core can override any SynthDef name collisions)
     ~packGeneratorCount = 0;
     ~packsPath = ~basePath.dirname +/+ "packs/";
@@ -83,12 +83,12 @@ s.waitForBoot({
         "Loading pack generators...".postln;
         PathName(~packsPath).folders.do({ |packDir|
             var manifestPath, genPath;
-            
+
             // Skip hidden directories (e.g., .git)
             if(packDir.folderName.beginsWith(".").not, {
                 manifestPath = packDir.fullPath +/+ "manifest.json";
                 genPath = packDir.fullPath +/+ "generators/";
-                
+
                 // Only load if manifest exists and generators folder exists
                 if(File.exists(manifestPath) && File.exists(genPath), {
                     var packFiles = PathName(genPath).files.select({ |f| f.extension == "scd" });
@@ -104,7 +104,7 @@ s.waitForBoot({
             });
         });
     });
-    
+
     // Load core generators AFTER packs (core wins on SynthDef name collisions)
     "Loading generators...".postln;
     ~generatorPath = ~basePath +/+ "generators/";
@@ -113,35 +113,35 @@ s.waitForBoot({
         file.fullPath.load;
         ("  [x] " ++ file.fileNameWithoutExtension).postln;
     });
-    
+
     // Load mod slots (after clock exists for ~clockTrigBus reference)
     (~basePath +/+ "core/mod_slots.scd").load;
     ~setupModSlots.();
-    
+
     // Load mod SynthDefs
     (~basePath +/+ "core/mod_lfo.scd").load;
     (~basePath +/+ "core/mod_sloth.scd").load;
     (~basePath +/+ "core/mod_arseq_plus.scd").load;
     (~basePath +/+ "core/mod_sauce_of_grav.scd").load;
-    
+
     // Load cross-mod buses BEFORE mod_apply (provides ~getModSourceBus resolver)
     (~basePath +/+ "core/crossmod_buses.scd").load;
     ~setupCrossModBuses.();
-    
+
     // Load mod routing/apply system (uses ~getModSourceBus from crossmod_buses)
     (~basePath +/+ "core/mod_apply_v2.scd").load;
     ~setupModApply.();
-    
+
     // Sync to ensure \modApply SynthDef is registered before creating instances
     s.sync;
-    
+
     // Initialize passthrough synths (must be after mod_apply and mod_slots)
     ~initPassthroughs.();
-    
+
     // Load mod routing OSC handlers (depends on mod_apply)
     (~basePath +/+ "core/mod_routing.scd").load;
     ~setupModRouting.();
-    
+
     // Load cross-mod followers and OSC (after mod_apply)
     (~basePath +/+ "core/crossmod_followers.scd").load;
     ~setupCrossModFollowers.();
@@ -160,29 +160,33 @@ s.waitForBoot({
     (~basePath +/+ "core/bus_unification_osc.scd").load;
     ~setupBusUnificationOSC.();
     ~startApplyTick.();  // Start the 500Hz apply loop
-    
+
+    // Load Unified Boid System (149-bus modulation from Python boids)
+    (~basePath +/+ "core/unified_boids.scd").load;
+    ~initUnifiedBoids.();
+
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
     ~setupOSC.();
-    
+
     // Load mod OSC handlers
     (~basePath +/+ "core/mod_osc.scd").load;
     ~setupModOSC.();
-    
+
     // Load MIDI handler
     (~basePath +/+ "core/midi_handler.scd").load;
     ~setupMIDI.();
     ~setupMIDIOSC.();
-    
+
     // Load keyboard overlay OSC handlers
     (~basePath +/+ "core/keyboard_osc.scd").load;
-    
+
     // Load audio device handler
     (~basePath +/+ "core/audio_device.scd").load;
     ~setupAudioDevice.();
-    
+
     s.sync;
-    
+
     // Start audio
     ~startClock.();
     ~startFxMixer.();
@@ -198,7 +202,7 @@ s.waitForBoot({
     ~setupDualFilterOSC.();
     ~setupMasterOSC.();
     ~setupChannelMeterForward.();  // Forward channel levels to Python
-    
+
     "".postln;
     "========================================".postln;
     "[x] Noise Engine ready!".postln;
@@ -209,6 +213,7 @@ s.waitForBoot({
     });
     "[x] 4 mod source slots ready".postln;
     "[x] 8 cross-mod buses ready".postln;
+    "[x] 149-bus unified boid system ready".postln;
     ("[x] OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
     "".postln;
