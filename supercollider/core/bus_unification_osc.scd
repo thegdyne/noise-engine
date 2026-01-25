@@ -30,7 +30,7 @@ to also enqueue through this system for backward compatibility.
 
             // Apply inversion if specified (before denormalization)
             // Used for resonance where UI shows "more resonance" but rq is inverse
-            if(meta.invert == true, {
+            if(meta[\invert] == true, {
                 normValue = 1.0 - normValue;
             });
 

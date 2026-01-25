@@ -361,7 +361,7 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                         existing.amount = routeOp.amount;
                         existing.offset = routeOp.offset;
                         existing.polarity = routeOp.polarity;
-                        existing.invert = routeOp.invert;
+                        existing[\invert] = routeOp[\invert];
                     }, {
                         routes.add((
                             sourceKey: sourceKey,
@@ -369,7 +369,7 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                             amount: routeOp.amount,
                             offset: routeOp.offset,
                             polarity: routeOp.polarity,
-                            invert: routeOp.invert
+                            \invert: routeOp[\invert]
                         ));
                     });
                 }
@@ -466,7 +466,7 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                             var sourceVal = ~modSourceState[route.sourceKey] ? 0.0;
                             var delta;
 
-                            if(route.invert == 1, {
+                            if(route[\invert] == 1, {
                                 sourceVal = sourceVal.neg;
                             });
 
