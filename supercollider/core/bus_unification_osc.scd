@@ -77,11 +77,7 @@ to also enqueue through this system for backward compatibility.
         ~queueBaseUpdate.(\fx_heat_drive, value);
     }, '/noise/fx/bus/heat/drive');
 
-    OSCdef(\busHeatMix).free;
-    OSCdef(\busHeatMix, { |msg|
-        var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_heat_mix, value);
-    }, '/noise/fx/bus/heat/mix');
+    // Note: fx_heat_mix is NOT a unified target. Use dedicated endpoint /noise/fx/heat/mix
 
     // =========================================================================
     // FX: ECHO
@@ -136,83 +132,77 @@ to also enqueue through this system for backward compatibility.
     // /noise/fx/bus/reverb/tone [value]
     // =========================================================================
 
-    OSCdef(\busVerbSize).free;
-    OSCdef(\busVerbSize, { |msg|
+    OSCdef(\busReverbSize).free;
+    OSCdef(\busReverbSize, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_verb_size, value);
+        ~queueBaseUpdate.(\fx_reverb_size, value);
     }, '/noise/fx/bus/reverb/size');
 
-    OSCdef(\busVerbDecay).free;
-    OSCdef(\busVerbDecay, { |msg|
+    OSCdef(\busReverbDecay).free;
+    OSCdef(\busReverbDecay, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_verb_decay, value);
+        ~queueBaseUpdate.(\fx_reverb_decay, value);
     }, '/noise/fx/bus/reverb/decay');
 
-    OSCdef(\busVerbTone).free;
-    OSCdef(\busVerbTone, { |msg|
+    OSCdef(\busReverbTone).free;
+    OSCdef(\busReverbTone, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_verb_tone, value);
+        ~queueBaseUpdate.(\fx_reverb_tone, value);
     }, '/noise/fx/bus/reverb/tone');
 
     // =========================================================================
     // FX: DUAL_FILTER
-    // /noise/fx/bus/fb/drive [value]
-    // /noise/fx/bus/fb/freq1 [value]
-    // /noise/fx/bus/fb/freq2 [value]
-    // /noise/fx/bus/fb/reso1 [value]
-    // /noise/fx/bus/fb/reso2 [value]
-    // /noise/fx/bus/fb/syncAmt [value]
-    // /noise/fx/bus/fb/harmonics [value]
-    // /noise/fx/bus/fb/mix [value]
+    // /noise/fx/bus/dualFilter/drive [value]
+    // /noise/fx/bus/dualFilter/freq1 [value]
+    // /noise/fx/bus/dualFilter/freq2 [value]
+    // /noise/fx/bus/dualFilter/reso1 [value]
+    // /noise/fx/bus/dualFilter/reso2 [value]
+    // /noise/fx/bus/dualFilter/syncAmt [value]
+    // /noise/fx/bus/dualFilter/harmonics [value]
+    // Mix via dedicated endpoint: /noise/fx/dualFilter/mix (not unified)
     // =========================================================================
 
-    OSCdef(\busFbDrive).free;
-    OSCdef(\busFbDrive, { |msg|
+    OSCdef(\busDualFilterDrive).free;
+    OSCdef(\busDualFilterDrive, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_drive, value);
-    }, '/noise/fx/bus/fb/drive');
+        ~queueBaseUpdate.(\fx_dualFilter_drive, value);
+    }, '/noise/fx/bus/dualFilter/drive');
 
-    OSCdef(\busFbFreq1).free;
-    OSCdef(\busFbFreq1, { |msg|
+    OSCdef(\busDualFilterFreq1).free;
+    OSCdef(\busDualFilterFreq1, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_freq1, value);
-    }, '/noise/fx/bus/fb/freq1');
+        ~queueBaseUpdate.(\fx_dualFilter_freq1, value);
+    }, '/noise/fx/bus/dualFilter/freq1');
 
-    OSCdef(\busFbFreq2).free;
-    OSCdef(\busFbFreq2, { |msg|
+    OSCdef(\busDualFilterFreq2).free;
+    OSCdef(\busDualFilterFreq2, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_freq2, value);
-    }, '/noise/fx/bus/fb/freq2');
+        ~queueBaseUpdate.(\fx_dualFilter_freq2, value);
+    }, '/noise/fx/bus/dualFilter/freq2');
 
-    OSCdef(\busFbReso1).free;
-    OSCdef(\busFbReso1, { |msg|
+    OSCdef(\busDualFilterReso1).free;
+    OSCdef(\busDualFilterReso1, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_reso1, value);
-    }, '/noise/fx/bus/fb/reso1');
+        ~queueBaseUpdate.(\fx_dualFilter_reso1, value);
+    }, '/noise/fx/bus/dualFilter/reso1');
 
-    OSCdef(\busFbReso2).free;
-    OSCdef(\busFbReso2, { |msg|
+    OSCdef(\busDualFilterReso2).free;
+    OSCdef(\busDualFilterReso2, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_reso2, value);
-    }, '/noise/fx/bus/fb/reso2');
+        ~queueBaseUpdate.(\fx_dualFilter_reso2, value);
+    }, '/noise/fx/bus/dualFilter/reso2');
 
-    OSCdef(\busFbSyncAmt).free;
-    OSCdef(\busFbSyncAmt, { |msg|
+    OSCdef(\busDualFilterSyncAmt).free;
+    OSCdef(\busDualFilterSyncAmt, { |msg|
         var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_syncAmt, value);
-    }, '/noise/fx/bus/fb/syncAmt');
+        ~queueBaseUpdate.(\fx_dualFilter_syncAmt, value);
+    }, '/noise/fx/bus/dualFilter/syncAmt');
 
-    OSCdef(\busFbHarmonics).free;
-    OSCdef(\busFbHarmonics, { |msg|
+    OSCdef(\busDualFilterHarmonics).free;
+    OSCdef(\busDualFilterHarmonics, { |msg|
         var value = msg[1].asFloat.clip(0, 7);
-        ~queueBaseUpdate.(\fx_fb_harmonics, value);
-    }, '/noise/fx/bus/fb/harmonics');
-
-    OSCdef(\busFbMix).free;
-    OSCdef(\busFbMix, { |msg|
-        var value = msg[1].asFloat.clip(0, 1);
-        ~queueBaseUpdate.(\fx_fb_mix, value);
-    }, '/noise/fx/bus/fb/mix');
+        ~queueBaseUpdate.(\fx_dualFilter_harmonics, value);
+    }, '/noise/fx/bus/dualFilter/harmonics');
 
     // =========================================================================
     // ROUTE OPERATIONS
@@ -250,6 +240,80 @@ to also enqueue through this system for backward compatibility.
     }, '/noise/bus/route/clear');
 
     // =========================================================================
+    // GENERIC BASE VALUE HANDLER (for all unified targets including generators)
+    // /noise/bus/base [targetKey, normalizedValue]
+    // Normalizes and enqueues value for any target in ~targetMeta
+    // =========================================================================
+
+    OSCdef(\busBase).free;
+    OSCdef(\busBase, { |msg|
+        var targetKey = msg[1].asString.asSymbol;
+        var normValue = msg[2].asFloat;
+        var meta = ~targetMeta[targetKey];
+
+        if(meta.notNil, {
+            var realValue;
+            // Denormalize using curve type
+            if(meta.curve == \exp, {
+                // Exponential: map 0-1 to min-max on log scale
+                var minLog = meta.min.max(0.0001).log;
+                var maxLog = meta.max.log;
+                realValue = (minLog + (normValue.clip(0, 1) * (maxLog - minLog))).exp;
+            }, {
+                // Linear: simple lerp
+                realValue = meta.min + (normValue.clip(0, 1) * (meta.max - meta.min));
+            });
+            realValue = realValue.clip(meta.min, meta.max);
+            ~queueBaseUpdate.(targetKey, realValue);
+        }, {
+            "ERR_UNKNOWN_TARGET: %".format(targetKey).postln;
+        });
+    }, '/noise/bus/base');
+
+    // =========================================================================
+    // REAL VALUE HANDLER (for preset loading - stores real values)
+    // /noise/bus/baseReal [targetKey, realValue]
+    // =========================================================================
+
+    OSCdef(\busBaseReal).free;
+    OSCdef(\busBaseReal, { |msg|
+        var targetKey = msg[1].asString.asSymbol;
+        var realValue = msg[2].asFloat;
+        var meta = ~targetMeta[targetKey];
+
+        if(meta.notNil, {
+            realValue = realValue.clip(meta.min, meta.max);
+            ~queueBaseUpdate.(targetKey, realValue);
+        }, {
+            "ERR_UNKNOWN_TARGET: %".format(targetKey).postln;
+        });
+    }, '/noise/bus/baseReal');
+
+    // =========================================================================
+    // DEDICATED MIX ENDPOINTS (excluded from unified targets - manual only)
+    // /noise/fx/heat/mix [value]
+    // /noise/fx/dualFilter/mix [value]
+    // =========================================================================
+
+    OSCdef(\fxHeatMix).free;
+    OSCdef(\fxHeatMix, { |msg|
+        var value = msg[1].asFloat.clip(0, 1);
+        // Write directly to synth (not through unified bus system)
+        if(~heat.notNil, {
+            ~heat.set(\mix, value);
+        });
+    }, '/noise/fx/heat/mix');
+
+    OSCdef(\fxDualFilterMix).free;
+    OSCdef(\fxDualFilterMix, { |msg|
+        var value = msg[1].asFloat.clip(0, 1);
+        // Write directly to synth (not through unified bus system)
+        if(~dualFilter.notNil, {
+            ~dualFilter.set(\mix, value);
+        });
+    }, '/noise/fx/dualFilter/mix');
+
+    // =========================================================================
     // BOID OPERATIONS (per spec v4)
     // /noise/boid/enable [int enabled] - 1=enable, 0=disable (clears offsets)
     // /noise/boid/offsets [busIndex1, offset1, busIndex2, offset2, ...] - complete snapshot
@@ -259,7 +323,7 @@ to also enqueue through this system for backward compatibility.
     // Validation: unified bus index range (uses actual allocated base)
     ~isValidUnifiedBusIndex = { |busIndex|
         var minBus = ~unifiedBusBase;
-        var maxBus = ~unifiedBusBase + 70;
+        var maxBus = ~unifiedBusBase + 148;  // 149 buses: 0-148
         busIndex.isInteger && (busIndex >= minBus) && (busIndex <= maxBus);
     };
 

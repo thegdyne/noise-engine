@@ -7,9 +7,14 @@ Method names intentionally unchanged from MainFrame for wrapper compatibility.
 from __future__ import annotations
 
 from src.config import (
-    CLOCK_RATE_INDEX, FILTER_TYPE_INDEX, GENERATORS, OSC_PATHS,
+    CLOCK_RATE_INDEX, CUSTOM_PARAM_CONFIG, FILTER_TYPE_INDEX, GENERATORS,
+    GENERATOR_PARAMS_BY_KEY, OSC_PATHS, unmap_value,
     get_generator_midi_retrig, get_generator_output_trim_db
 )
+
+# Slots using unified bus system (Phase 4: just slot 1)
+# Will be expanded to all slots in Phase 5
+GEN_UNIFIED_SLOTS = {1}
 from src.utils.logger import logger
 
 
@@ -38,18 +43,52 @@ class GeneratorController:
                 logger.info("MIDI device: None", component="MIDI")
         
     def on_generator_param_changed(self, slot_id, param_name, value):
-        """Handle per-generator parameter change."""
+        """Handle per-generator parameter change.
+
+        For slots in GEN_UNIFIED_SLOTS, routes through /noise/bus/base with
+        normalized values. Otherwise uses legacy OSC paths.
+        """
         if self.main.osc_connected:
-            path = OSC_PATHS.get(f'gen_{param_name}', f'/noise/gen/{param_name}')
-            self.main.osc.client.send_message(path, [slot_id, value])
+            if slot_id in GEN_UNIFIED_SLOTS:
+                # Unified bus system - send normalized value
+                # Map param_name to unified target key
+                key_map = {
+                    'frequency': 'freq',
+                    'cutoff': 'cutoff',
+                    'resonance': 'res',
+                    'attack': 'attack',
+                    'decay': 'decay',
+                }
+                target_param = key_map.get(param_name, param_name)
+                target_key = f"gen_{slot_id}_{target_param}"
+
+                # Convert real value back to normalized (0-1)
+                param_config = GENERATOR_PARAMS_BY_KEY.get(param_name)
+                if param_config:
+                    norm_value = unmap_value(value, param_config)
+                    self.main.osc.client.send_message('/noise/bus/base', [target_key, norm_value])
+            else:
+                # Legacy path for non-unified slots
+                path = OSC_PATHS.get(f'gen_{param_name}', f'/noise/gen/{param_name}')
+                self.main.osc.client.send_message(path, [slot_id, value])
         self.main._mark_dirty()
     
     def on_generator_custom_param_changed(self, slot_id, param_index, value):
-        """Handle per-generator custom parameter change."""
+        """Handle per-generator custom parameter change.
+
+        For slots in GEN_UNIFIED_SLOTS, routes through /noise/bus/base.
+        Custom params are already 0-1 normalized.
+        """
         if self.main.osc_connected:
             value = max(-1e30, min(1e30, float(value)))
-            path = f"{OSC_PATHS['gen_custom']}/{slot_id}/{param_index}"
-            self.main.osc.client.send_message(path, [value])
+            if slot_id in GEN_UNIFIED_SLOTS:
+                # Unified bus system - custom params are already 0-1
+                target_key = f"gen_{slot_id}_custom{param_index}"
+                self.main.osc.client.send_message('/noise/bus/base', [target_key, value])
+            else:
+                # Legacy path for non-unified slots
+                path = f"{OSC_PATHS['gen_custom']}/{slot_id}/{param_index}"
+                self.main.osc.client.send_message(path, [value])
         self.main._mark_dirty()
 
     def on_generator_filter_changed(self, slot_id, filter_type):
