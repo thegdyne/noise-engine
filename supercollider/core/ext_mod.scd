@@ -146,7 +146,11 @@
         var routes = t.at(\routes);
         var idx = routes.detectIndex { |r| r.notNil and: { r.at(\sourceBus) == sourceBus } };
         if(idx.notNil) { routes.removeAt(idx) };
-        if(routes.size == 0) { ~extTargets.removeAt(key) };
+        if(routes.size == 0) {
+            // Restore base value before removing target (fixes scope not resetting)
+            ~restoreExtTargetToBase.(key);
+            ~extTargets.removeAt(key);
+        };
     };
 };
 
