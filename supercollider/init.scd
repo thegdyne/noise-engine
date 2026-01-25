@@ -161,9 +161,7 @@ s.waitForBoot({
     ~setupBusUnificationOSC.();
     ~startApplyTick.();  // Start the 500Hz apply loop
 
-    // Load Unified Boid System (149-bus modulation from Python boids)
-    (~basePath +/+ "core/unified_boids.scd").load;
-    ~initUnifiedBoids.();
+    // NOTE: Boid modulation handled by bus_unification.scd (see bus_unification_osc.scd)
 
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
@@ -213,7 +211,7 @@ s.waitForBoot({
     });
     "[x] 4 mod source slots ready".postln;
     "[x] 8 cross-mod buses ready".postln;
-    "[x] 149-bus unified boid system ready".postln;
+    "[x] Boid modulation ready (via bus unification)".postln;
     ("[x] OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
     "".postln;

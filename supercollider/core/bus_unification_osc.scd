@@ -256,12 +256,11 @@ to also enqueue through this system for backward compatibility.
     // /noise/boid/clear - clear all offsets (equivalent to empty offsets message)
     // =========================================================================
 
-    // Validation: unified bus index range (uses actual allocated base)
-    // 149 buses total: gen core (0-39), gen custom (40-79), mod (80-107), chan (108-131), fx (132-148)
-    ~isValidUnifiedBusIndex = { |busIndex|
-        var minBus = ~unifiedBusBase;
-        var maxBus = ~unifiedBusBase + 148;
-        busIndex.isInteger && (busIndex >= minBus) && (busIndex <= maxBus);
+    // Validation: target index range (0-148) per spec
+    // 149 targets total: gen core (0-39), gen custom (40-79), mod (80-107), chan (108-131), fx (132-148)
+    // Python sends target indices directly; SC converts to absolute bus indices internally
+    ~isValidTargetIndex = { |targetIndex|
+        targetIndex.isInteger && (targetIndex >= 0) && (targetIndex <= 148);
     };
 
     OSCdef(\boidEnable).free;
@@ -283,16 +282,19 @@ to also enqueue through this system for backward compatibility.
         var pairCount = 0;
         var maxPairs = 100;
 
-        // Parse pairs: [busIndex1, offset1, busIndex2, offset2, ...]
+        // Parse pairs: [targetIndex1, offset1, targetIndex2, offset2, ...]
+        // Python sends target indices 0-148; we convert to absolute bus indices for storage
         while({ (i + 1) < msg.size && (pairCount < maxPairs) }, {
-            var busIndex = msg[i].asInteger;
+            var targetIndex = msg[i].asInteger;
             var offset = msg[i+1].asFloat;
 
-            // Validate bus index range (1000-1070) and non-finite offset
-            if(~isValidUnifiedBusIndex.(busIndex), {
+            // Validate target index range (0-148) and non-finite offset
+            if(~isValidTargetIndex.(targetIndex), {
                 if(offset.isNaN.not && (offset.abs < inf), {
-                    // Last occurrence wins for duplicate busIndex
-                    offsets[busIndex] = offset;
+                    // Convert target index to absolute bus index for storage
+                    var absIndex = ~unifiedBusBase + targetIndex;
+                    // Last occurrence wins for duplicate targetIndex
+                    offsets[absIndex] = offset;
                 });
             });
             pairCount = pairCount + 1;
