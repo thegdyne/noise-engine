@@ -24,7 +24,7 @@ Bus Layout (149 total):
 | 139-141   | 3     | FX: Reverb    | size, decay, tone                              |
 | 142-148   | 7     | FX: DualFilter| drive, freq1, freq2, reso1, reso2, syncAmt, harmonics (mix excluded) |
 
-Mix controls (fx_heat_mix, fx_dualFilter_mix) are NOT unified targets.
+Mix controls (fx_heat_mix, fx_fb_mix) are NOT unified targets.
 They remain manual-only via dedicated OSC endpoints.
 */
 

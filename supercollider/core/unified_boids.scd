@@ -105,16 +105,16 @@
     addMeta.(136, \fx_echo_wow, 0.0, 1.0, 0.0);
     addMeta.(137, \fx_echo_spring, 0.0, 1.0, 0.0);
     addMeta.(138, \fx_echo_verbSend, 0.0, 1.0, 0.0);
-    addMeta.(139, \fx_reverb_size, 0.0, 1.0, 0.5);
-    addMeta.(140, \fx_reverb_decay, 0.0, 1.0, 0.5);
-    addMeta.(141, \fx_reverb_tone, 0.0, 1.0, 0.5);
-    addMeta.(142, \fx_dualFilter_drive, 0.0, 1.0, 0.0);
-    addMeta.(143, \fx_dualFilter_freq1, 20.0, 20000.0, 500.0);
-    addMeta.(144, \fx_dualFilter_freq2, 20.0, 20000.0, 2000.0);
-    addMeta.(145, \fx_dualFilter_reso1, 0.0, 1.0, 0.5);
-    addMeta.(146, \fx_dualFilter_reso2, 0.0, 1.0, 0.5);
-    addMeta.(147, \fx_dualFilter_syncAmt, 0.0, 1.0, 0.0);
-    addMeta.(148, \fx_dualFilter_harmonics, 0.0, 1.0, 0.5);
+    addMeta.(139, \fx_verb_size, 0.0, 1.0, 0.5);
+    addMeta.(140, \fx_verb_decay, 0.0, 1.0, 0.5);
+    addMeta.(141, \fx_verb_tone, 0.0, 1.0, 0.5);
+    addMeta.(142, \fx_fb_drive, 0.0, 1.0, 0.0);
+    addMeta.(143, \fx_fb_freq1, 20.0, 20000.0, 500.0);
+    addMeta.(144, \fx_fb_freq2, 20.0, 20000.0, 2000.0);
+    addMeta.(145, \fx_fb_reso1, 0.0, 1.0, 0.5);
+    addMeta.(146, \fx_fb_reso2, 0.0, 1.0, 0.5);
+    addMeta.(147, \fx_fb_syncAmt, 0.0, 1.0, 0.0);
+    addMeta.(148, \fx_fb_harmonics, 0.0, 7.0, 0.0);
 
     "Built metadata for % targets".format(~targetMetaByIndex.size).postln;
 };
