@@ -1,11 +1,7 @@
-"""Pytest configuration - ensure consistent CWD and provide fixtures.
+"""Pytest configuration - PyQt5 mock for remaining tests.
 
-Some code paths (OSC registration) currently resolve filesystem paths relative
-to the current working directory. Running pytest from `tests/` or elsewhere
-can therefore skip route registration.
-
-This is intentionally a test-only stabilizer; the proper fix is to make
-runtime code CWD-independent (backlog item).
+This is a minimal conftest.py to allow non-unified-bus tests to run.
+Will be replaced with full version in TEST_SUITE_REBUILD_PLAN.md Phase B.
 """
 from __future__ import annotations
 import os
@@ -17,11 +13,8 @@ import pytest
 
 
 # =============================================================================
-# PyQt5 Mock Setup - MUST be before any test imports mod_routing_state
+# PyQt5 Mock Setup - MUST be before any test imports
 # =============================================================================
-# ModRoutingState inherits from QObject. Using a simple MagicMock for QObject
-# causes StopIteration errors because MagicMock's internal iterators exhaust.
-# The fix is to use a simple stub class instead.
 
 class QObjectStub:
     """Minimal QObject stub for testing."""
@@ -49,31 +42,8 @@ sys.modules['PyQt5.QtGui'] = MagicMock()
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def pytest_sessionstart(session):
+@pytest.fixture(scope="session", autouse=True)
+def set_working_directory():
+    """Ensure tests run from project root."""
     os.chdir(ROOT)
-
-
-# Fixtures used by multiple test files
-
-@pytest.fixture
-def project_root():
-    """Return path to project root."""
-    return ROOT
-
-
-@pytest.fixture
-def generators_dir():
-    """Return path to core generators directory (packs/core/generators).
-    
-    Skips tests if the directory doesn't exist (e.g., in CI where packs may not be present).
-    """
-    path = ROOT / "packs" / "core" / "generators"
-    if not path.exists():
-        pytest.skip("packs/core/generators not present (likely CI environment)")
-    return path
-
-
-@pytest.fixture
-def supercollider_dir():
-    """Return path to supercollider directory."""
-    return ROOT / "supercollider"
+    yield
