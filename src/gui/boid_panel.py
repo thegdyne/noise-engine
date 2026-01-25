@@ -23,6 +23,8 @@ from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QBrush
 
 from .widgets import DragSlider
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT, button_style
+from src.utils.boid_scales import reload_boid_scales
+from src.utils.logger import logger
 
 
 class BoidMiniVisualizer(QWidget):
@@ -380,6 +382,17 @@ class BoidPanel(QWidget):
         self._reseed_btn.clicked.connect(lambda: self.reseed_clicked.emit())
         seed_layout.addWidget(self._reseed_btn)
 
+        seed_layout.addSpacing(8)
+
+        # Reload scales button
+        self._reload_scales_btn = QPushButton("↻")
+        self._reload_scales_btn.setFixedSize(24, 20)
+        self._reload_scales_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
+        self._reload_scales_btn.setToolTip("Reload boid scales from config/boid_target_scales.json")
+        self._reload_scales_btn.setStyleSheet(button_style())
+        self._reload_scales_btn.clicked.connect(self._on_reload_boid_scales)
+        seed_layout.addWidget(self._reload_scales_btn)
+
         layout.addLayout(seed_layout)
 
         # Set panel style
@@ -555,6 +568,13 @@ class BoidPanel(QWidget):
             """)
         else:
             self._lock_btn.setStyleSheet(button_style())
+
+    def _on_reload_boid_scales(self):
+        """Reload boid scales from config file."""
+        if reload_boid_scales():
+            logger.info("Boid scales reloaded", component="BOID")
+        else:
+            logger.warning("Failed to reload boid scales (using defaults)", component="BOID")
 
     # === PUBLIC API ===
 
