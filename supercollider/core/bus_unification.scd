@@ -232,6 +232,7 @@ They remain manual-only via dedicated OSC endpoints.
     // === BOID STATE ===
     ~boidEnabled = false;
     ~boidOffsets = Array.fill(149, { 0.0 });
+    ~activeBoidIndices = Set.new;  // Track which indices have non-zero offsets (for lazy computation)
 
     // === BOID SCALES (per-parameter) ===
     ~boidScales = Dictionary.new;
@@ -373,7 +374,7 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
 */
 
 ~applyTickRoutine = nil;
-~applyTickRate = 500;
+~applyTickRate = 200;  // Reduced from 500Hz to prevent thread starvation
 
 ~startApplyTick = {
     if(~applyTickRoutine.notNil, {
@@ -460,18 +461,22 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                 { op == \disable } {
                     ~boidEnabled = false;
                     ~boidOffsets = Array.fill(149, { 0.0 });
+                    ~activeBoidIndices = Set.new;
                 }
                 { op == \setOffsets } {
                     var newOffsets = Array.fill(149, { 0.0 });
+                    var newActiveIndices = Set.new;
                     if(boidOp.offsets.notNil, {
                         boidOp.offsets.keysValuesDo { |busIndex, offset|
                             var idx = busIndex - ~unifiedBusBase;
                             if((idx >= 0) && (idx < 149), {
                                 newOffsets[idx] = offset;
+                                newActiveIndices.add(idx);  // Track active index
                             });
                         };
                     });
                     ~boidOffsets = newOffsets;
+                    ~activeBoidIndices = newActiveIndices;
                 };
             };
 
@@ -531,10 +536,11 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                         };
                     });
 
-                    // Get boid offset if enabled
+                    // Get boid offset if enabled AND this target has active boid contribution
+                    // (lazy computation: only process targets with non-zero boid offsets)
                     if(~boidEnabled, {
                         var idx = meta.busIndex - ~unifiedBusBase;
-                        if((idx >= 0) && (idx < 149), {
+                        if(~activeBoidIndices.includes(idx), {
                             var rawOffset = ~boidOffsets[idx] ? 0.0;
                             var scale = ~boidScales[targetKey] ? 1.0;
                             var range = meta.max - meta.min;
@@ -552,12 +558,13 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                 });
             };
 
-            // Wait for next tick (500Hz = 2ms)
-            0.002.wait;
+            // Wait for next tick (200Hz = 5ms)
+            // Reduced from 500Hz to prevent thread starvation under boid load
+            0.005.wait;
         };
     }).play(SystemClock);
 
-    "  [x] Apply tick started (500Hz)".postln;
+    "  [x] Apply tick started (200Hz)".postln;
 };
 
 ~stopApplyTick = {
