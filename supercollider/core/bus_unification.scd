@@ -232,73 +232,11 @@ They remain manual-only via dedicated OSC endpoints.
     ~modRoutes = Dictionary.new;
 
     // === BOID STATE ===
+    // NOTE: Scaling is now handled Python-side via config/boid_target_scales.json
+    // SC receives pre-scaled offsets and applies them directly (offset * range)
     ~boidEnabled = false;
     ~boidOffsets = Array.fill(149, { 0.0 });
     ~activeBoidIndices = Set.new;  // Track which indices have non-zero offsets (for lazy computation)
-
-    // === BOID SCALES (per-parameter) ===
-    ~boidScales = Dictionary.new;
-
-    // Generator params - boid modulation enabled (Phase 7)
-    // Scale values determine how much of param range boids can sweep:
-    // 0.3 = 30% of range, 0.4 = 40% of range, etc.
-    // Set to 0.0 to disable boid modulation for a param
-    8.do { |slotIdx|
-        var slot = slotIdx + 1;
-        ~boidScales[("gen_%_freq").format(slot).asSymbol] = 0.3;      // Frequency: moderate sweep
-        ~boidScales[("gen_%_cutoff").format(slot).asSymbol] = 0.4;    // Cutoff: more range for filter sweeps
-        ~boidScales[("gen_%_res").format(slot).asSymbol] = 0.3;       // Resonance: subtle to avoid screech
-        ~boidScales[("gen_%_attack").format(slot).asSymbol] = 0.3;    // Attack: moderate
-        ~boidScales[("gen_%_decay").format(slot).asSymbol] = 0.3;     // Decay: moderate
-        5.do { |k|
-            ~boidScales[("gen_%_custom%").format(slot, k).asSymbol] = 0.4;  // Custom: moderate
-        };
-    };
-
-    // Mod slot params (4 slots x 7 params = 28)
-    4.do { |slotIdx|
-        var slot = slotIdx + 1;
-        ~boidScales[("mod_%_p0").format(slot).asSymbol] = 0.4;
-        ~boidScales[("mod_%_p1").format(slot).asSymbol] = 0.5;
-        ~boidScales[("mod_%_p2").format(slot).asSymbol] = 0.5;
-        ~boidScales[("mod_%_p3").format(slot).asSymbol] = 0.5;
-        ~boidScales[("mod_%_p4").format(slot).asSymbol] = 0.5;
-        ~boidScales[("mod_%_p5").format(slot).asSymbol] = 0.5;
-        ~boidScales[("mod_%_p6").format(slot).asSymbol] = 0.5;
-    };
-
-    // Channel params (8 channels x 3 params = 24)
-    8.do { |chanIdx|
-        var chan = chanIdx + 1;
-        ~boidScales[("chan_%_echo").format(chan).asSymbol] = 0.4;
-        ~boidScales[("chan_%_verb").format(chan).asSymbol] = 0.4;
-        ~boidScales[("chan_%_pan").format(chan).asSymbol] = 0.6;
-    };
-
-    // FX: Heat (1)
-    ~boidScales[\fx_heat_drive] = 0.5;
-
-    // FX: Echo (6)
-    ~boidScales[\fx_echo_time] = 0.3;
-    ~boidScales[\fx_echo_feedback] = 0.5;
-    ~boidScales[\fx_echo_tone] = 0.6;
-    ~boidScales[\fx_echo_wow] = 0.5;
-    ~boidScales[\fx_echo_spring] = 0.4;
-    ~boidScales[\fx_echo_verbSend] = 0.4;
-
-    // FX: Reverb (3)
-    ~boidScales[\fx_reverb_size] = 0.4;
-    ~boidScales[\fx_reverb_decay] = 0.5;
-    ~boidScales[\fx_reverb_tone] = 0.6;
-
-    // FX: Dual Filter (7)
-    ~boidScales[\fx_dualFilter_drive] = 0.5;
-    ~boidScales[\fx_dualFilter_freq1] = 0.6;
-    ~boidScales[\fx_dualFilter_freq2] = 0.6;
-    ~boidScales[\fx_dualFilter_reso1] = 0.4;
-    ~boidScales[\fx_dualFilter_reso2] = 0.4;
-    ~boidScales[\fx_dualFilter_syncAmt] = 0.5;
-    ~boidScales[\fx_dualFilter_harmonics] = 0.5;
 
     // === VERIFY BUS ALLOCATION ===
     "  Bus Unification allocated % buses at indices %-%.".format(
@@ -540,13 +478,13 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
 
                     // Get boid offset if enabled AND this target has active boid contribution
                     // (lazy computation: only process targets with non-zero boid offsets)
+                    // NOTE: Scaling is now applied Python-side, offset arrives pre-scaled
                     if(~boidEnabled, {
                         var idx = meta.busIndex - ~unifiedBusBase;
                         if(~activeBoidIndices.includes(idx), {
                             var rawOffset = ~boidOffsets[idx] ? 0.0;
-                            var scale = ~boidScales[targetKey] ? 1.0;
                             var range = meta.max - meta.min;
-                            boidOffset = rawOffset * scale * range;
+                            boidOffset = rawOffset * range;
                         });
                     });
 

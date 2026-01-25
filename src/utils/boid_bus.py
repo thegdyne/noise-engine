@@ -25,6 +25,8 @@ OSC Protocol:
 from typing import Dict, List, Optional, Tuple
 import math
 
+from src.utils.boid_scales import get_boid_scales
+
 
 # Grid layout constants per spec (149 targets)
 GRID_TOTAL_COLUMNS = 149  # 0..148
@@ -237,6 +239,12 @@ class BoidBusSender:
         snapshot = aggregate_contributions(contributions)
 
         # Drop zero offsets per spec
+        snapshot = {k: v for k, v in snapshot.items() if v != 0.0}
+
+        # Apply per-target scaling from config
+        snapshot = get_boid_scales().scale_snapshot(snapshot)
+
+        # Drop zeros again (scaling may have zeroed some)
         snapshot = {k: v for k, v in snapshot.items() if v != 0.0}
 
         # Apply downselection if needed
