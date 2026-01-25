@@ -1171,7 +1171,7 @@ class ModMatrixWindow(QMainWindow):
             conn = self.routing_state.get_connection(bus, slot, param)
 
             if conn:
-                self.routing_state.set_amount(bus, slot, param, amount)
+                self.routing_state.set_amount(bus, slot, param, amount=amount)
             else:
                 # Create with shared defaults, then set amount
                 new_conn = create_default_connection(
@@ -1206,7 +1206,7 @@ class ModMatrixWindow(QMainWindow):
             if conn:
                 current = int(conn.offset * 100)
                 new_offset = max(-100, min(100, current + delta))
-                self.routing_state.set_offset(bus, slot, param, new_offset / 100.0)
+                self.routing_state.set_offset(bus, slot, param, offset=new_offset / 100.0)
         else:
             # Extended route: (bus, target_str)
             bus, target_str = key
