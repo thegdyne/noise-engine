@@ -3,6 +3,11 @@ Noise Engine - SuperCollider Initialization
 Modular loader - each component in its own file
 */
 
+// Guard: must be loaded from file, not copy-pasted into REPL
+if (thisProcess.nowExecutingPath.isNil) {
+    Error("NoiseEngine init.scd must be loaded from file (use Cmd+Enter on file, not copy-paste)").throw;
+};
+
 // Base path for loading files (needed before boot)
 ~basePath = PathName(thisProcess.nowExecutingPath).parentPath;
 
