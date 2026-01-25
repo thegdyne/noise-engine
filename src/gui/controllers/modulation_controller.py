@@ -560,8 +560,6 @@ class ModulationController:
                 if target_key not in updated_gen_targets:
                     updated_gen_targets.add(target_key)
                     self._update_slider_mod_range(conn.target_slot, conn.target_param)
-                gen_count += 1
-        logger.debug(f"Synced {gen_count} gen + {ext_count} ext mod routes to SC", component="MOD")
     
     def _open_mod_matrix(self):
         """Toggle the mod routing matrix window (Cmd+M)."""
