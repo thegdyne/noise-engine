@@ -135,11 +135,6 @@ class BoidController(QObject):
         if bus_sender:
             bus_sender.disable()
 
-        # Clear generator offsets
-        gen_router = self._get_gen_router()
-        if gen_router:
-            gen_router.clear()
-
         # Reset engine
         self._engine.reset()
 
