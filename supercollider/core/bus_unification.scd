@@ -180,21 +180,21 @@ They remain manual-only via dedicated OSC endpoints.
     ~targetMeta[\fx_echo_verbSend] = (busIndex: ~unifiedBusBase + 138, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
 
     // === FX: REVERB (3 buses) ===
-    // Indices 139-141
-    ~targetMeta[\fx_reverb_size] = (busIndex: ~unifiedBusBase + 139, min: 0.0, max: 1.0, default: 0.75, curve: \lin);
-    ~targetMeta[\fx_reverb_decay] = (busIndex: ~unifiedBusBase + 140, min: 0.0, max: 1.0, default: 0.65, curve: \lin);
-    ~targetMeta[\fx_reverb_tone] = (busIndex: ~unifiedBusBase + 141, min: 0.0, max: 1.0, default: 0.7, curve: \lin);
+    // Indices 139-141 - DO NOT CHANGE INDICES
+    ~targetMeta[\fx_verb_size] = (busIndex: ~unifiedBusBase + 139, min: 0.0, max: 1.0, default: 0.75, curve: \lin);
+    ~targetMeta[\fx_verb_decay] = (busIndex: ~unifiedBusBase + 140, min: 0.0, max: 1.0, default: 0.65, curve: \lin);
+    ~targetMeta[\fx_verb_tone] = (busIndex: ~unifiedBusBase + 141, min: 0.0, max: 1.0, default: 0.7, curve: \lin);
 
     // === FX: DUAL_FILTER (7 buses - mix excluded) ===
-    // Indices 142-148
-    ~targetMeta[\fx_dualFilter_drive] = (busIndex: ~unifiedBusBase + 142, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
-    ~targetMeta[\fx_dualFilter_freq1] = (busIndex: ~unifiedBusBase + 143, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
-    ~targetMeta[\fx_dualFilter_freq2] = (busIndex: ~unifiedBusBase + 144, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
-    ~targetMeta[\fx_dualFilter_reso1] = (busIndex: ~unifiedBusBase + 145, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
-    ~targetMeta[\fx_dualFilter_reso2] = (busIndex: ~unifiedBusBase + 146, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
-    ~targetMeta[\fx_dualFilter_syncAmt] = (busIndex: ~unifiedBusBase + 147, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
-    ~targetMeta[\fx_dualFilter_harmonics] = (busIndex: ~unifiedBusBase + 148, min: 0.0, max: 7.0, default: 0.0, curve: \lin);
-    // fx_dualFilter_mix is NOT a unified target - manual only
+    // Indices 142-148 - DO NOT CHANGE INDICES
+    ~targetMeta[\fx_fb_drive] = (busIndex: ~unifiedBusBase + 142, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
+    ~targetMeta[\fx_fb_freq1] = (busIndex: ~unifiedBusBase + 143, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
+    ~targetMeta[\fx_fb_freq2] = (busIndex: ~unifiedBusBase + 144, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
+    ~targetMeta[\fx_fb_reso1] = (busIndex: ~unifiedBusBase + 145, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
+    ~targetMeta[\fx_fb_reso2] = (busIndex: ~unifiedBusBase + 146, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
+    ~targetMeta[\fx_fb_syncAmt] = (busIndex: ~unifiedBusBase + 147, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
+    ~targetMeta[\fx_fb_harmonics] = (busIndex: ~unifiedBusBase + 148, min: 0.0, max: 7.0, default: 0.0, curve: \lin);
+    // fx_fb_mix is NOT a unified target - manual only
 
     // === BUILD BUS REGISTRY ===
     ~targetMeta.keysValuesDo { |key, meta|
@@ -247,7 +247,7 @@ They remain manual-only via dedicated OSC endpoints.
 
     // Post sample of targets for verification
     "  Sample targets:".postln;
-    [\gen_1_freq, \gen_1_cutoff, \gen_1_custom0, \mod_1_p0, \chan_1_echo, \fx_heat_drive, \fx_reverb_size, \fx_dualFilter_freq1].do { |key|
+    [\gen_1_freq, \gen_1_cutoff, \gen_1_custom0, \mod_1_p0, \chan_1_echo, \fx_heat_drive, \fx_verb_size, \fx_fb_freq1].do { |key|
         var meta = ~targetMeta[key];
         if(meta.notNil, {
             "    %: bus=%, default=%, curve=%".format(key, meta.busIndex, meta.default, meta.curve).postln;
