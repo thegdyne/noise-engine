@@ -257,9 +257,10 @@ to also enqueue through this system for backward compatibility.
     // =========================================================================
 
     // Validation: unified bus index range (uses actual allocated base)
+    // 149 buses total: gen core (0-39), gen custom (40-79), mod (80-107), chan (108-131), fx (132-148)
     ~isValidUnifiedBusIndex = { |busIndex|
         var minBus = ~unifiedBusBase;
-        var maxBus = ~unifiedBusBase + 70;
+        var maxBus = ~unifiedBusBase + 148;
         busIndex.isInteger && (busIndex >= minBus) && (busIndex <= maxBus);
     };
 
