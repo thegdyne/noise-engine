@@ -55,14 +55,12 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 
 **Goal:** Remove tests tied to 71-bus assumptions. Clean slate prevents cascading test fixes.
 
-**Delete:**
+**Delete ALL tests touching unified bus system:**
 - `tests/test_boid_bus.py` - hardcoded 71-bus layout, UNIFIED_BUS constants
 - `tests/test_mod_routing.py` - target key format tied to old system
-
-**Review & Potentially Update:**
-- `tests/test_mod_route_sync.py` - check if target keys need updating
-- `tests/test_channel_fx_modulation.py` - check target key format
-- `tests/test_presets_phase4.py` - check if touches unified buses
+- `tests/test_mod_route_sync.py` - mod routing state serialization
+- `tests/test_channel_fx_modulation.py` - channel/FX target routing
+- `tests/test_presets_phase4.py` - preset mod routing
 
 **Keep Unchanged:**
 - `tests/conftest.py` - just PyQt5 mock infrastructure
@@ -293,6 +291,9 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 |------|-------|---------|
 | `tests/test_boid_bus.py` | 0 | DELETE |
 | `tests/test_mod_routing.py` | 0 | DELETE |
+| `tests/test_mod_route_sync.py` | 0 | DELETE |
+| `tests/test_channel_fx_modulation.py` | 0 | DELETE |
+| `tests/test_presets_phase4.py` | 0 | DELETE |
 | `supercollider/core/bus_unification.scd` | 1, 2, 7 | Expand targetMeta, modTargetState, boidScales |
 | `supercollider/core/bus_unification_osc.scd` | 4 | Verify/add gen param handlers |
 | `supercollider/core/helpers.scd` | 3, 5 | Wire generators to unified buses |
