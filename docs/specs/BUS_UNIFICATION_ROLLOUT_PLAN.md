@@ -269,23 +269,32 @@ Before merging each phase:
 
 ---
 
-## 8. Open Questions
+## 8. Design Decisions
 
-1. **Normalization:** Should Python always send normalized 0-1, or real values?
-   - Spec says normalized, but current gen OSC uses real values
-   - Decision needed before Phase 4
+1. **Normalization:** Normalized (0-1) over OSC, real values in presets
+   - Python sends normalized 0-1 to SC
+   - SC denormalizes using `~targetMeta` ranges in apply tick
+   - Presets store real values (human-readable: 440 Hz, not 0.23)
+   - On preset load: convert real → normalized
+   - On preset save: convert normalized → real
+   - **Rationale:** Consistent with existing bus_unification (71 targets already use normalized). Modulation math simpler when everything is 0-1 scale.
 
-2. **Curve handling:** Exponential params (freq, cutoff) need special mapping
-   - Apply in SC (current) or Python?
-   - Decision needed before Phase 4
+2. **Curve handling:** SC side (in apply tick)
+   - `~targetMeta` stores curve type (lin/exp) per target
+   - Apply tick applies curve when denormalizing
+   - Python stays simple - just sends linear 0-1
+   - **Rationale:** Single source of truth. Current mod_apply already does this. Easier to maintain in one place.
 
-3. **Preset format:** Do gen param presets need migration?
-   - If stored as real values, no change
-   - If stored as normalized, need conversion
+3. **Preset format:** No migration needed
+   - Presets continue to store real values
+   - Conversion happens at load/save boundary
+   - Existing presets work unchanged
+   - **Rationale:** Presets remain human-readable and backward compatible.
 
-4. **Custom param ranges:** Are all custom params 0-1, or per-generator?
-   - Current: all 0-1
-   - Some generators might want different ranges
+4. **Custom param ranges:** Keep 0-1 for all
+   - All custom params use normalized 0-1 range
+   - Generators that need different ranges (e.g., 0-7 for harmonics) map internally in SynthDef
+   - **Rationale:** Keeps bus system uniform. Complexity stays in generators where it's generator-specific anyway.
 
 ---
 
