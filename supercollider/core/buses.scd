@@ -33,29 +33,32 @@ Default values are real values (not normalized):
     ~midiTrigBus = Bus.audio(s, 8);
     
     // Per-generator parameters (8 slots)
-    // Default values are real values matching Python config
+    // NOTE (Phase 6): Modulatable params (freq, cutoff, res, attack, decay, custom)
+    // now use unified buses via ~busRegistry. Only non-modulatable params below
+    // are still active. Legacy entries kept for backward compat but unused.
     ~genParams = Dictionary.new;
     8.do { |i|
         var slot = i + 1;
         ~genParams[slot] = Dictionary.new;
-        ~genParams[slot][\frequency] = Bus.control(s, 1).set(400);         // Hz (midpoint)
-        ~genParams[slot][\cutoff] = Bus.control(s, 1).set(16000);          // Hz (fully up)
-        ~genParams[slot][\resonance] = Bus.control(s, 1).set(1.0);         // rq (no resonance)
-        ~genParams[slot][\attack] = Bus.control(s, 1).set(0.0001);         // s (snappiest)
-        ~genParams[slot][\decay] = Bus.control(s, 1).set(1.0);              // s (1s)
+        // DEPRECATED - now read from unified buses (~busRegistry)
+        ~genParams[slot][\frequency] = Bus.control(s, 1).set(400);
+        ~genParams[slot][\cutoff] = Bus.control(s, 1).set(16000);
+        ~genParams[slot][\resonance] = Bus.control(s, 1).set(1.0);
+        ~genParams[slot][\attack] = Bus.control(s, 1).set(0.0001);
+        ~genParams[slot][\decay] = Bus.control(s, 1).set(1.0);
+        // ACTIVE - non-modulatable params (not in unified system)
         ~genParams[slot][\filterType] = Bus.control(s, 1).set(0);
-        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);          // Legacy, kept for compat
+        ~genParams[slot][\envEnabled] = Bus.control(s, 1).set(0);
         ~genParams[slot][\envSource] = Bus.control(s, 1).set(0);           // 0=OFF, 1=CLK, 2=MIDI
         ~genParams[slot][\clockRate] = Bus.control(s, 1).set(6);  // 6 = CLK (quarter notes)
         ~genParams[slot][\portamento] = Bus.control(s, 1).set(0.0);
-        
-        // Custom params (5 per slot) - defaults based on generator JSON
+        // DEPRECATED - now read from unified buses
         ~genParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });
     };
-    
-    // User-set parameter values (for relative modulation)
-    // Sliders write here, modApply reads this as center point
-    // When no modulation active, these are copied to ~genParams
+
+    // DEPRECATED (Phase 6): User-set parameter values for relative modulation
+    // Unified bus system now handles base values via ~modTargetState in bus_unification.scd
+    // Kept for backward compat with any external code that references these
     ~genUserParams = Dictionary.new;
     8.do { |i|
         var slot = i + 1;
@@ -65,7 +68,6 @@ Default values are real values (not normalized):
         ~genUserParams[slot][\resonance] = Bus.control(s, 1).set(1.0);
         ~genUserParams[slot][\attack] = Bus.control(s, 1).set(0.0001);
         ~genUserParams[slot][\decay] = Bus.control(s, 1).set(1.0);
-        // Custom params (P1-P5)
         ~genUserParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });
     };
     

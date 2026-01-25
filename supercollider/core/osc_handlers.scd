@@ -31,20 +31,43 @@ All OSC message routing
     };
 
     // Helper to apply base + offset to bus
+    // NOTE (Phase 6): Now also writes to unified buses via ~queueBaseUpdate
     ~applyGenParam = { |slot, param, baseValue|
         var offset = ~genBoidOffsets[slot][param] ? 0;
         var effective = baseValue + offset;
+        var unifiedKey;
         ~genBaseValues[slot][param] = baseValue;
+        // DEPRECATED: write to legacy bus (kept for compat)
         ~genUserParams[slot][param].set(effective);
+        // NEW: Forward to unified bus system
+        unifiedKey = switch(param,
+            \frequency, { ("gen_%_freq").format(slot).asSymbol },
+            \cutoff, { ("gen_%_cutoff").format(slot).asSymbol },
+            \resonance, { ("gen_%_res").format(slot).asSymbol },
+            \attack, { ("gen_%_attack").format(slot).asSymbol },
+            \decay, { ("gen_%_decay").format(slot).asSymbol },
+            { nil }
+        );
+        if(unifiedKey.notNil && ~queueBaseUpdate.notNil, {
+            ~queueBaseUpdate.(unifiedKey, effective);
+        });
     };
 
     // Helper for custom params
+    // NOTE (Phase 6): Now also writes to unified buses via ~queueBaseUpdate
     ~applyGenCustom = { |slot, paramIdx, baseValue|
         var offset = ~genBoidOffsets[slot][\custom][paramIdx] ? 0;
         var effective = baseValue + offset;
+        var unifiedKey;
         ~genBaseValues[slot][\custom][paramIdx] = baseValue;
+        // DEPRECATED: write to legacy buses (kept for compat)
         ~genParams[slot][\custom][paramIdx].set(effective);
         ~genUserParams[slot][\custom][paramIdx].set(effective);
+        // NEW: Forward to unified bus system
+        unifiedKey = ("gen_%_custom%").format(slot, paramIdx).asSymbol;
+        if(~queueBaseUpdate.notNil, {
+            ~queueBaseUpdate.(unifiedKey, effective);
+        });
     };
 
     // === CONNECTION MANAGEMENT ===

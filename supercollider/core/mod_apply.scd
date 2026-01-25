@@ -1,4 +1,30 @@
 /*
+==================================================================================
+DEPRECATED (Phase 6 - Bus Unification)
+==================================================================================
+
+This file contains the LEGACY modulation routing engine. It is NO LONGER the
+primary modulation system.
+
+NEW SYSTEM:
+- Generators read modulatable params from unified buses (~busRegistry)
+- Modulation is handled by bus_unification.scd apply tick (500Hz)
+- Routes are managed via /noise/bus/route/set, /noise/bus/route/remove
+- Boid modulation uses /noise/boid/offsets
+
+This file is kept for backward compatibility only. The \modRoute SynthDef and
+related functions (~addModRoute, ~removeModRoute, etc.) write to ~genParams
+buses which are NO LONGER read by generators for modulatable params.
+
+To use the new system:
+- Send params via /noise/bus/base [targetKey, normalizedValue]
+- Set routes via /noise/bus/route/set [sourceKey, targetKey, depth, ...]
+- Enable boids via /noise/boid/enable [1]
+
+==================================================================================
+LEGACY CODE BELOW - DO NOT USE FOR NEW DEVELOPMENT
+==================================================================================
+
 Mod Apply - Modulation routing engine
 Applies mod bus values to generator parameters
 
