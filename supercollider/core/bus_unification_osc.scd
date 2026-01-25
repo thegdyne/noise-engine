@@ -14,6 +14,32 @@ to also enqueue through this system for backward compatibility.
     "Setting up Bus Unification OSC handlers...".postln;
 
     // =========================================================================
+    // GENERIC BASE VALUE UPDATE
+    // /noise/bus/base [targetKey, normalizedValue]
+    // Used by Python for generator params (freq, cutoff, res, attack, decay, custom0-4)
+    // =========================================================================
+
+    OSCdef(\busBase).free;
+    OSCdef(\busBase, { |msg|
+        var targetKey = msg[1].asString.asSymbol;
+        var normValue = msg[2].asFloat.clip(0, 1);
+        var meta = ~targetMeta[targetKey];
+
+        if(meta.notNil, {
+            // Denormalize from 0-1 to actual range using target metadata
+            var realValue;
+            if(meta.curve == \exp, {
+                realValue = normValue.linexp(0, 1, meta.min.max(0.001), meta.max);
+            }, {
+                realValue = normValue.linlin(0, 1, meta.min, meta.max);
+            });
+            ~queueBaseUpdate.(targetKey, realValue);
+        }, {
+            "WARNING: /noise/bus/base unknown target: %".format(targetKey).postln;
+        });
+    }, '/noise/bus/base');
+
+    // =========================================================================
     // MOD SLOT PARAMETERS (P0-P6)
     // /noise/mod/bus/p0 ... /noise/mod/bus/p6 [slot, value]
     // =========================================================================
