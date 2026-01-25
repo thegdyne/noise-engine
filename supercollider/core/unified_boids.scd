@@ -16,8 +16,8 @@
 // Phase 1: Constants & Variables
 // ============================================================================
 
-~UNIFIED_BUS_COUNT = 149;
-~APPLY_INTERVAL_SEC = 0.03;  // 30ms tick rate
+~unifiedBusCount = 149;
+~applyIntervalSec = 0.03;  // 30ms tick rate
 
 // Runtime Variables
 ~unifiedBuses = nil;           // Bus object (149 channels)
@@ -398,7 +398,7 @@ OSCdef(\boidClear, { |msg|
             // Step 9: Start periodic apply task
             ~applyTask = Task({
                 loop {
-                    ~APPLY_INTERVAL_SEC.wait;
+                    ~applyIntervalSec.wait;
                     ~applyOnce.value;
                 };
             }).play(SystemClock);
@@ -406,7 +406,7 @@ OSCdef(\boidClear, { |msg|
             "=== Unified Boid System Initialized ===".postln;
             "  Bus count: %".format(149).postln;
             "  Bus base: %".format(~unifiedBusBase).postln;
-            "  Tick interval: %s".format(~APPLY_INTERVAL_SEC).postln;
+            "  Tick interval: %s".format(~applyIntervalSec).postln;
             "  Boids enabled: %".format(~boidEnabled).postln;
         };
     };
@@ -448,7 +448,7 @@ OSCdef(\boidClear, { |msg|
         enabled: ~boidEnabled,
         busBase: ~unifiedBusBase,
         busCount: 149,
-        tickInterval: ~APPLY_INTERVAL_SEC
+        tickInterval: ~applyIntervalSec
     )
 };
 
