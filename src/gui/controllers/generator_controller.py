@@ -12,9 +12,8 @@ from src.config import (
     get_generator_midi_retrig, get_generator_output_trim_db
 )
 
-# Slots using unified bus system (Phase 4: just slot 1)
-# Will be expanded to all slots in Phase 5
-GEN_UNIFIED_SLOTS = {1}
+# All 8 slots now use unified bus system (Phase 5: complete)
+GEN_UNIFIED_SLOTS = {1, 2, 3, 4, 5, 6, 7, 8}
 from src.utils.logger import logger
 
 

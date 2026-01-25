@@ -81,8 +81,8 @@ Reusable functions for generator management
     // GENERATOR MANAGEMENT (called from OSC handlers)
     // =========================================================
     
-    // Set of slots using unified bus system (Phase 3: just slot 1)
-    ~genUnifiedSlots = Set[1];
+    // All 8 slots now use unified bus system (Phase 5: expanded from slot 1)
+    ~genUnifiedSlots = Set[1, 2, 3, 4, 5, 6, 7, 8];
 
     ~startGenerator = { |slotID, genType|
         var params = ~genParams[slotID];
