@@ -307,12 +307,14 @@ to also enqueue through this system for backward compatibility.
         var i = 1;
         var pairCount = 0;
         var maxPairs = 100;
+        var receivedIndices = List.new;
 
         // Parse pairs: [targetIndex1, offset1, targetIndex2, offset2, ...]
         // Python sends target indices 0-148; we convert to absolute bus indices for storage
         while({ (i + 1) < msg.size && (pairCount < maxPairs) }, {
             var targetIndex = msg[i].asInteger;
             var offset = msg[i+1].asFloat;
+            receivedIndices.add(targetIndex);
 
             // Validate target index range (0-148) and non-finite offset
             if(~isValidTargetIndex.(targetIndex), {
@@ -325,6 +327,12 @@ to also enqueue through this system for backward compatibility.
             });
             pairCount = pairCount + 1;
             i = i + 2;
+        });
+        // DEBUG: Print received target indices (every 20 messages to avoid flood)
+        if(~boidDebugCounter.isNil, { ~boidDebugCounter = 0 });
+        ~boidDebugCounter = ~boidDebugCounter + 1;
+        if((~boidDebugCounter % 20) == 1, {
+            "BOID DEBUG: received % indices: %".format(receivedIndices.size, receivedIndices.asArray[0..9]).postln;
         });
         ~queueBoidOp.(\setOffsets, offsets);
     }, '/noise/boid/offsets');
