@@ -61,10 +61,8 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 - `tests/test_mod_route_sync.py` - mod routing state serialization
 - `tests/test_channel_fx_modulation.py` - channel/FX target routing
 - `tests/test_presets_phase4.py` - preset mod routing
-
-**Keep Unchanged:**
-- `tests/conftest.py` - just PyQt5 mock infrastructure
-- `tests/test_mod_architecture.py` - tests quadrature config, unrelated
+- `tests/conftest.py` - PyQt5 mock infrastructure (recreate fresh)
+- `tests/test_mod_architecture.py` - quadrature config tests (recreate fresh)
 
 **Test:**
 - `pytest tests/` passes with remaining tests
@@ -260,10 +258,12 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 
 | File | Covers | Spec Sections |
 |------|--------|---------------|
+| `tests/conftest.py` | PyQt5 mock infrastructure, fixtures | — |
 | `tests/test_unified_bus.py` | Target set, indexing, mix exclusion, defaults, curve constraints | A, B, C, D, G |
 | `tests/test_unified_routing.py` | Apply tick atomicity, FIFO precedence, boid snapshot | E, F |
 | `tests/test_generator_switching.py` | Legacy↔unified routing, switch timing, handoff | H |
 | `tests/test_preset_loading.py` | Keyed presets, legacy array mapping, mix endpoints | I, J |
+| `tests/test_mod_architecture.py` | Quadrature config validation | — |
 
 **Acceptance criteria to implement as tests:**
 
@@ -294,6 +294,8 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 | `tests/test_mod_route_sync.py` | 0 | DELETE |
 | `tests/test_channel_fx_modulation.py` | 0 | DELETE |
 | `tests/test_presets_phase4.py` | 0 | DELETE |
+| `tests/conftest.py` | 0 | DELETE |
+| `tests/test_mod_architecture.py` | 0 | DELETE |
 | `supercollider/core/bus_unification.scd` | 1, 2, 7 | Expand targetMeta, modTargetState, boidScales |
 | `supercollider/core/bus_unification_osc.scd` | 4 | Verify/add gen param handlers |
 | `supercollider/core/helpers.scd` | 3, 5 | Wire generators to unified buses |
@@ -301,10 +303,12 @@ Expand bus unification from 71 → 149 buses, bringing generator parameters into
 | `supercollider/core/mod_apply.scd` | 6 | Remove or gut |
 | `src/gui/*.py` (gen controls) | 4, 5 | Route through /noise/bus/base |
 | `src/utils/boid_bus.py` | 7 | Update zone mapping for gen targets |
+| `tests/conftest.py` | 8 | NEW - PyQt5 mock infrastructure |
 | `tests/test_unified_bus.py` | 8 | NEW - target set, indexing, defaults |
 | `tests/test_unified_routing.py` | 8 | NEW - apply tick, boid snapshot |
 | `tests/test_generator_switching.py` | 8 | NEW - routing switch procedure |
 | `tests/test_preset_loading.py` | 8 | NEW - preset application |
+| `tests/test_mod_architecture.py` | 8 | NEW - quadrature config tests |
 
 ---
 
