@@ -47,3 +47,27 @@ def set_working_directory():
     """Ensure tests run from project root."""
     os.chdir(ROOT)
     yield
+
+
+@pytest.fixture(scope="session")
+def project_root():
+    """Return the project root path."""
+    return ROOT
+
+
+@pytest.fixture(scope="session")
+def generators_dir(project_root):
+    """Return the generators config directory path."""
+    return project_root / "packs" / "core" / "generators"
+
+
+@pytest.fixture(scope="session")
+def supercollider_dir(project_root):
+    """Return the supercollider directory path."""
+    return project_root / "supercollider"
+
+
+@pytest.fixture(scope="session")
+def config_dir(project_root):
+    """Return the config directory path."""
+    return project_root / "config"
