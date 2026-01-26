@@ -860,7 +860,7 @@ class InlineFXStrip(QWidget):
             'fb_freq2': (self.filter, 'F2'),
             'fb_reso1': (self.filter, 'R1'),
             'fb_reso2': (self.filter, 'R2'),
-            'fb_syncAmt': (self.filter, 'MIX'),  # CLK amt knob isn't in knobs dict
+            # fb_syncAmt, fb_drive, fb_harmonics have no accessible knobs (turbo-only or not in knobs dict)
         }
 
         if param not in param_map:
