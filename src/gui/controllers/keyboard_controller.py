@@ -6,14 +6,54 @@ Method names intentionally unchanged from MainFrame for wrapper compatibility.
 
 R1.1: Added focused slot tracking and deferred refresh mechanism.
 R1.2: Added ARP support with BPM integration.
+R1.3: Added application-level event filter for global keyboard capture.
 """
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QApplication, QLineEdit, QTextEdit
+from PyQt5.QtCore import QTimer, QObject, QEvent
 
 from src.gui.keyboard_overlay import KeyboardOverlay
 from src.utils.logger import logger
+
+
+class KeyboardEventFilter(QObject):
+    """
+    Application-level event filter that routes keyboard events to overlay.
+
+    This allows the keyboard overlay to receive key events even when
+    the user clicks on the main UI, without requiring the overlay to have focus.
+    """
+
+    def __init__(self, controller: 'KeyboardController'):
+        super().__init__()
+        self._controller = controller
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        """Intercept key events and route to keyboard overlay if visible."""
+        # Only intercept KeyPress and KeyRelease
+        if event.type() not in (QEvent.KeyPress, QEvent.KeyRelease):
+            return False
+
+        # Check if overlay exists and is visible
+        overlay = self._controller.main._keyboard_overlay
+        if overlay is None or not overlay.isVisible():
+            return False
+
+        # Don't intercept if focus is on a text input widget
+        focus_widget = QApplication.focusWidget()
+        if focus_widget is not None:
+            if isinstance(focus_widget, (QLineEdit, QTextEdit)):
+                return False
+
+        # Route the event to the overlay
+        if event.type() == QEvent.KeyPress:
+            overlay.keyPressEvent(event)
+        else:
+            overlay.keyReleaseEvent(event)
+
+        # Mark event as handled to prevent further processing
+        return True
 
 
 class KeyboardController:
@@ -22,6 +62,11 @@ class KeyboardController:
     def __init__(self, main_frame):
         self.main = main_frame
         self._focused_slot = 1  # Track last-focused slot (1-indexed)
+
+        # Install application-level event filter for global keyboard capture
+        # This allows the keyboard overlay to work even when clicking on main UI
+        self._event_filter = KeyboardEventFilter(self)
+        QApplication.instance().installEventFilter(self._event_filter)
 
         # Connect to generator_grid slot click events if available
         if hasattr(self.main, 'generator_grid') and self.main.generator_grid is not None:
@@ -66,7 +111,6 @@ class KeyboardController:
 
         focus_widget = QApplication.focusWidget()
         if focus_widget is not None:
-            from PyQt5.QtWidgets import QLineEdit, QTextEdit
             # Only skip for actual text entry widgets, not spinboxes
             if isinstance(focus_widget, (QLineEdit, QTextEdit)):
                 return
