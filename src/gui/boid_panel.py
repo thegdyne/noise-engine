@@ -43,8 +43,8 @@ class BoidMiniVisualizer(QWidget):
         # Colors
         self._bg_color = QColor(COLORS['background_dark'])
         self._grid_color = QColor(COLORS['border'])
-        self._boid_color = QColor('#cc66ff')
-        self._trail_color = QColor('#cc66ff')
+        self._boid_color = QColor(COLORS['boid'])
+        self._trail_color = QColor(COLORS['boid'])
 
     def set_positions(self, positions: List[Tuple[float, float]]) -> None:
         """Update boid positions."""
@@ -280,7 +280,7 @@ class BoidPanel(QWidget):
             QComboBox QAbstractItemView {{
                 background-color: {COLORS['background_dark']};
                 color: {COLORS['text']};
-                selection-background-color: #cc66ff;
+                selection-background-color: {COLORS['boid']};
             }}
         """)
         self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
@@ -418,7 +418,7 @@ class BoidPanel(QWidget):
         if btn.isChecked():
             btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #cc66ff;
+                    background-color: {COLORS['boid']};
                     color: {COLORS['background']};
                     border: none;
                     border-radius: 2px;
@@ -528,7 +528,7 @@ class BoidPanel(QWidget):
         if self._enabled:
             self._enable_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #cc66ff;
+                    background-color: {COLORS['boid']};
                     color: {COLORS['background']};
                     border: none;
                     border-radius: 3px;
@@ -540,8 +540,8 @@ class BoidPanel(QWidget):
             self._enable_btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {COLORS['background_dark']};
-                    color: #cc66ff;
-                    border: 1px solid #cc66ff;
+                    color: {COLORS['boid']};
+                    border: 1px solid {COLORS['boid']};
                     border-radius: 3px;
                     padding: 4px 8px;
                 }}
@@ -559,7 +559,7 @@ class BoidPanel(QWidget):
         if self._seed_locked:
             self._lock_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #cc66ff;
+                    background-color: {COLORS['boid']};
                     color: {COLORS['background']};
                     border: none;
                     border-radius: 2px;

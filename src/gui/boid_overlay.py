@@ -22,8 +22,8 @@ class BoidOverlay(QWidget):
     # Boid visual settings
     BOID_RADIUS = 6
     TRAIL_LENGTH = 8
-    BOID_COLOR = QColor('#cc66ff')  # Purple
-    TRAIL_COLOR = QColor('#cc66ff')
+    BOID_COLOR = QColor(COLORS['boid'])
+    TRAIL_COLOR = QColor(COLORS['boid'])
 
     # Maximum boids
     MAX_BOIDS = 24
