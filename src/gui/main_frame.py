@@ -15,7 +15,8 @@ from PyQt5.QtGui import QFont, QKeySequence, QColor
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
-from src.gui.inline_fx_strip import InlineFXStrip
+# Phase 1: InlineFXStrip disabled - Heat/Filter moving to master_chain.py
+# from src.gui.inline_fx_strip import InlineFXStrip
 from src.gui.fx_grid import FXGrid
 from src.gui.fx_window import FXWindow
 from src.gui.modulator_grid import ModulatorGrid
@@ -643,9 +644,10 @@ class MainFrame(QMainWindow):
         self.fx_grid = FXGrid()
         layout.addWidget(self.fx_grid, stretch=2)
 
-        # Inline FX (master inserts: Heat, Dual Filter)
-        self.inline_fx = InlineFXStrip()
-        layout.addWidget(self.inline_fx, stretch=1)
+        # Phase 1: InlineFXStrip disabled
+        # Phase 2 TODO: Add MasterChain here (Heat + Filter + EQ + Comp + Output)
+        # self.inline_fx = InlineFXStrip()
+        # layout.addWidget(self.inline_fx, stretch=1)
 
         return container
         
