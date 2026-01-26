@@ -13,22 +13,38 @@ This spec defines the bottom bar architecture: 4 FX send slots on the left, unif
 
 ---
 
-## Current State (Broken)
+## Current State
 
-The bottom bar currently shows **two overlapping systems**:
+### What's Working (More Than Expected!)
+
+**SuperCollider - COMPLETE:**
+- ✅ `fx1-4 send/return buses` in buses.scd
+- ✅ `channel_strips.scd` has all 4 FX sends (fx1Send-fx4Send)
+- ✅ `fx_slots.scd` - slot manager with hot-swap support
+- ✅ `fx_echo.scd`, `fx_reverb.scd`, `fx_chorus.scd`, `fx_lofi.scd`, `fx_empty.scd`
+- ✅ OSC handlers for `/noise/fx/slot/N/type`, `/noise/fx/slot/N/p1`, etc.
+- ✅ Bus unification support for boid modulation of p1-p4
+
+**GUI - Partially Complete:**
+- ✅ `FXGrid` with `fx_slot_1` through `fx_slot_4`
+- ✅ Channel strips have `chan_N_fx1` through `chan_N_fx4` (4 send knobs)
+- ✅ FX slots have p1-p4 sliders + return
+
+### What's Broken
+
+The bottom bar shows **two overlapping systems**:
 
 ```
 fxContainer (600x180)
-├── fx_grid (FXGrid)      → fx_slot_1, fx_slot_2, fx_slot_3, fx_slot_4  [NEW]
-└── InlineFXStrip         → HeatModule, EchoModule, ReverbModule, FilterModule  [OLD]
+├── fx_grid (FXGrid)      → fx_slot_1-4  [NEW - working]
+└── InlineFXStrip         → Heat, Echo, Reverb, Filter modules  [OLD - should be removed]
 ```
 
-**Problems:**
-1. Both old and new FX systems visible simultaneously
-2. Heat/Filter are in FX strip but should be master inserts
-3. Echo/Reverb exist as both old modules AND new slot types
-4. Only 2 FX sends from channel strips (need 4)
-5. Master section separate from Heat/Filter
+**Actual Problems:**
+1. **Old `InlineFXStrip` still visible** alongside new `FXGrid` (visual clutter)
+2. **Heat/Filter in wrong location** (should be master inserts, not FX strip)
+3. **No unified `master_chain.py`** (Heat + Filter + EQ + Comp + Output)
+4. **Old Echo/Reverb modules redundant** (new FX slots handle these)
 
 ---
 
@@ -246,38 +262,35 @@ Heat and Filter move here as **fixed inserts** (not selectable). Followed by EQ,
 
 ## Implementation Plan
 
-### Phase 1: Clean Up Current State
+**Note:** SC foundation is COMPLETE. Only GUI cleanup remains.
 
-1. **Hide old InlineFXStrip** (don't delete yet - keep for reference)
-2. **Verify FXGrid (fx_slot_1-4) works** standalone
-3. **Document what's missing** from FX slots
+### Phase 1: Hide Old FX Strip (Quick Win)
+
+1. **Comment out `InlineFXStrip`** creation in main_frame.py
+2. **Verify FXGrid works alone** - should show 4 clean FX slots
+3. **Test:** FX slots should still control SC effects
 
 ### Phase 2: Create Master Chain Widget
 
 1. **New file:** `src/gui/master_chain.py`
-2. **Migrate Heat** from InlineFXStrip → MasterChain
-3. **Migrate Filter** from InlineFXStrip → MasterChain
+2. **Move Heat controls** from InlineFXStrip → MasterChain
+3. **Move Filter controls** from InlineFXStrip → MasterChain
 4. **Integrate existing:** EQ, Compressor, Limiter, Output from master_section.py
 5. **Flat layout** matching generator_slot_new.py pattern
 
-### Phase 3: Channel Strip Updates
+### Phase 3: Integration & Cleanup
 
-1. **Add FX3, FX4 send knobs** to mixer_panel.py
-2. **Update channel strip SynthDef** with fx3Send, fx4Send
-3. **Wire OSC handlers**
+1. **Update main_frame.py** bottom bar layout (FXGrid left, MasterChain right)
+2. **Delete deprecated:** inline_fx_strip.py (after Heat/Filter migrated)
+3. **Delete deprecated:** master_section.py (after absorbed into master_chain.py)
+4. **Preset schema updates** (if any widget names changed)
 
-### Phase 4: SC FX Slot System
+### NO LONGER NEEDED (Already Done):
 
-1. **Add buses:** fx3SendBus, fx4SendBus, fx3ReturnBus, fx4ReturnBus
-2. **Create FX slot manager** for swapping synth types
-3. **Implement new FX types:** Chorus, LoFi, Phaser, etc.
-
-### Phase 5: Integration
-
-1. **Update main_frame.py** bottom bar layout
-2. **Remove deprecated files:** inline_fx_strip.py, old master_section.py
-3. **Preset schema updates**
-4. **Bus unification metadata**
+- ~~Add FX3, FX4 send knobs~~ → Already have `chan_N_fx1-4`
+- ~~Add fx3/fx4 buses~~ → Already in buses.scd
+- ~~Create FX slot manager~~ → Already in fx_slots.scd
+- ~~Implement Chorus, LoFi~~ → Already have fx_chorus.scd, fx_lofi.scd
 
 ---
 
@@ -286,26 +299,29 @@ Heat and Filter move here as **fixed inserts** (not selectable). Followed by EQ,
 ### Create
 | File | Purpose |
 |------|---------|
-| `src/gui/master_chain.py` | Unified master section widget |
-| `supercollider/effects/chorus.scd` | Chorus SynthDef |
-| `supercollider/effects/lofi.scd` | LoFi SynthDef |
-| `supercollider/effects/phaser.scd` | Phaser SynthDef |
-| `supercollider/effects/fx_slot_manager.scd` | Slot swapping logic |
+| `src/gui/master_chain.py` | Unified master section (Heat + Filter + EQ + Comp + Output) |
 
 ### Modify
 | File | Changes |
 |------|---------|
-| `src/gui/main_frame.py` | New bottom bar layout |
-| `src/gui/mixer_panel.py` | Add FX3, FX4 send knobs |
-| `supercollider/core/buses.scd` | Add fx3/fx4 buses |
-| `supercollider/core/channel_strips.scd` | Add fx3Send, fx4Send |
-| `src/config/__init__.py` | FX types list, new OSC paths |
+| `src/gui/main_frame.py` | Remove InlineFXStrip, add MasterChain |
 
-### Deprecate
+### Deprecate (after migration)
 | File | Replacement |
 |------|-------------|
-| `src/gui/inline_fx_strip.py` | fx_grid.py + master_chain.py |
+| `src/gui/inline_fx_strip.py` | master_chain.py (Heat/Filter only) |
 | `src/gui/master_section.py` | master_chain.py |
+
+### Already Complete (no changes needed)
+| File | Status |
+|------|--------|
+| `src/gui/fx_grid.py` | ✅ Working |
+| `src/gui/fx_slot.py` | ✅ Working |
+| `src/gui/mixer_panel.py` | ✅ Has 4 FX sends |
+| `supercollider/core/buses.scd` | ✅ Has fx1-4 buses |
+| `supercollider/core/channel_strips.scd` | ✅ Has fx1-4 sends |
+| `supercollider/core/fx_slots.scd` | ✅ Slot manager complete |
+| `supercollider/effects/fx_*.scd` | ✅ echo, reverb, chorus, lofi, empty |
 
 ---
 
