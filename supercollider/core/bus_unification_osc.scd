@@ -389,8 +389,16 @@ to also enqueue through this system for backward compatibility.
                 };
 
                 if(messages.size > 0, {
-                    var flat = messages.collect({ |m| m }).flatten;
-                    ~busValueStreamAddr.sendMsg('/noise/bus/values', *flat);
+                    // Chunk into smaller packets to avoid UDP fragmentation/drops
+                    var chunkPairs = 20;  // 20 pairs = 40 args, safe for UDP MTU
+                    var idx = 0;
+
+                    while { idx < messages.size } {
+                        var end = (idx + chunkPairs - 1).min(messages.size - 1);
+                        var flat = messages.copyRange(idx, end).flatten;
+                        ~busValueStreamAddr.sendMsg('/noise/bus/values', *flat);
+                        idx = end + 1;
+                    };
                 });
 
                 (1 / ~busValueStreamRate).wait;
