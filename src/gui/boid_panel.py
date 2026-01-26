@@ -26,6 +26,10 @@ from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT, button_style
 from src.utils.boid_scales import reload_boid_scales
 from src.utils.logger import logger
 
+# Grid dimensions (must match UNIFIED_BUS_TARGET_KEYS count)
+GRID_COLS = 176
+GRID_ROWS = 16
+
 
 class BoidMiniVisualizer(QWidget):
     """
@@ -71,12 +75,11 @@ class BoidMiniVisualizer(QWidget):
 
         # Draw trail cells (fading contributions)
         for (row, col), value in self._cells.items():
-            # Map cell to pixel position
-            # Grid is 149 cols x 16 rows (matches unified bus layout)
-            cx = (col / 149.0) * w
-            cy = (row / 16.0) * h
-            cell_w = w / 149.0
-            cell_h = h / 16.0
+            # Map cell to pixel position (matches unified bus layout)
+            cx = (col / GRID_COLS) * w
+            cy = (row / GRID_ROWS) * h
+            cell_w = w / GRID_COLS
+            cell_h = h / GRID_ROWS
 
             alpha = int(value * 120)
             trail_color = QColor(self._trail_color)

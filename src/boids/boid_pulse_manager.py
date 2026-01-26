@@ -72,8 +72,13 @@ class BoidPulseManager:
             return lambda s=slot, idx=param_idx: self._resolve_mod_widget(s, idx)
         elif zone == 'chan':
             return lambda s=slot, p=param: self._resolve_chan_widget(s, p)
+        elif zone == 'fx_slot':
+            return lambda s=slot, p=param: self._resolve_fx_slot_widget(s, p)
+        elif zone == 'fx_master':
+            return lambda p=param: self._resolve_fx_master_widget(p)
         elif zone == 'fx':
-            return lambda p=param: self._resolve_fx_widget(p)
+            # Legacy zone - try master widgets first
+            return lambda p=param: self._resolve_fx_master_widget(p)
         return None
 
     def _resolve_gen_widget(self, slot: int, param: str) -> Optional[QWidget]:
@@ -106,12 +111,29 @@ class BoidPulseManager:
             return None
         return channel.get_param_widget(param)
 
-    def _resolve_fx_widget(self, param: str) -> Optional[QWidget]:
-        """Resolve FX param widget."""
+    def _resolve_fx_slot_widget(self, slot: int, param: str) -> Optional[QWidget]:
+        """Resolve FX slot param widget (p1-p4, return)."""
+        fx_grid = getattr(self._main, 'fx_grid', None)
+        if not fx_grid:
+            return None
+        slot_widget = fx_grid.get_slot(slot)
+        if not slot_widget:
+            return None
+        # Map param names to slider keys
+        if param in ('p1', 'p2', 'p3', 'p4', 'return'):
+            return slot_widget.sliders.get(param)
+        return None
+
+    def _resolve_fx_master_widget(self, param: str) -> Optional[QWidget]:
+        """Resolve master FX param widget (heat, dual filter)."""
         inline_fx = getattr(self._main, 'inline_fx', None)
         if not inline_fx:
             return None
         return inline_fx.get_param_widget(param)
+
+    def _resolve_fx_widget(self, param: str) -> Optional[QWidget]:
+        """Resolve FX param widget (legacy)."""
+        return self._resolve_fx_master_widget(param)
 
     def on_cells_updated(self, cells: Dict[Tuple[int, int], float]) -> None:
         """
@@ -227,8 +249,18 @@ class BoidPulseManager:
                 channel = mixer.get_channel(slot)
                 if channel and getattr(channel, 'muted', False):
                     return True
-        elif zone == 'fx':
-            # FX: bypassed
+        elif zone == 'fx_slot':
+            # FX slot: empty or bypassed
+            fx_grid = getattr(self._main, 'fx_grid', None)
+            if fx_grid:
+                slot_widget = fx_grid.get_slot(slot)
+                if slot_widget:
+                    if getattr(slot_widget, 'fx_type', None) == 'Empty':
+                        return True
+                    if getattr(slot_widget, 'bypassed', False):
+                        return True
+        elif zone in ('fx_master', 'fx'):
+            # Master FX: bypassed
             inline_fx = getattr(self._main, 'inline_fx', None)
             if inline_fx:
                 param = info['param']
@@ -239,6 +271,5 @@ class BoidPulseManager:
                 elif param.startswith('fb_'):
                     if getattr(inline_fx.filter, 'bypassed', False):
                         return True
-                # echo and reverb are send effects, no bypass
 
         return False

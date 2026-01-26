@@ -10,6 +10,10 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 
 from .theme import COLORS
 
+# Grid dimensions (must match UNIFIED_BUS_TARGET_KEYS count)
+GRID_COLS = 176
+GRID_ROWS = 16
+
 
 class BoidOverlay(QWidget):
     """
@@ -130,12 +134,11 @@ class BoidOverlay(QWidget):
 
         # Draw cell contributions as background glow
         for (row, col), value in self._cell_contributions.items():
-            # Map cell to pixel position
-            # Grid is 149 cols x 16 rows (matches unified bus layout)
-            cx = (col / 149.0) * w
-            cy = (row / 16.0) * h
-            cell_w = w / 149.0
-            cell_h = h / 16.0
+            # Map cell to pixel position (matches unified bus layout)
+            cx = (col / GRID_COLS) * w
+            cy = (row / GRID_ROWS) * h
+            cell_w = w / GRID_COLS
+            cell_h = h / GRID_ROWS
 
             alpha = int(value * 40)
             glow_color = QColor(self.TRAIL_COLOR)

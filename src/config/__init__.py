@@ -1314,10 +1314,21 @@ def parse_target_key(key: str) -> Optional[Dict]:
         slot = int(parts[1])
         param = parts[2]
         return {'zone': 'chan', 'slot': slot, 'param': param}
+    elif key.startswith("fx_slot"):
+        # fx_slot1_p1 -> zone='fx_slot', slot=1, param='p1'
+        # fx_slot2_return -> zone='fx_slot', slot=2, param='return'
+        import re
+        match = re.match(r'fx_slot(\d+)_(.+)', key)
+        if match:
+            slot = int(match.group(1))
+            param = match.group(2)
+            return {'zone': 'fx_slot', 'slot': slot, 'param': param}
+        return None
     elif key.startswith("fx_"):
-        # fx_echo_time -> zone='fx', slot=None, param='echo_time'
+        # fx_fb_drive -> zone='fx_master', slot=None, param='fb_drive'
+        # fx_heat_drive -> zone='fx_master', slot=None, param='heat_drive'
         param = key[3:]  # Remove 'fx_' prefix
-        return {'zone': 'fx', 'slot': None, 'param': param}
+        return {'zone': 'fx_master', 'slot': None, 'param': param}
     return None
 
 
