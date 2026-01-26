@@ -3,9 +3,9 @@ UI Debug Dump - generates full widget hierarchy with sizing info.
 Run with: python -c "from src.gui.debug_dump import dump_ui; dump_ui()"
 
 Hotkeys:
-  F8           - Dump generator slots
-  F12          - Dump modulator slots
-  Ctrl+Shift+D - Dump ALL + hotfix status report
+  F8  - Dump generator slots
+  F12 - Dump modulator slots
+  F11 - Dump ALL + hotfix status report
 """
 
 from PyQt5.QtWidgets import QApplication, QWidget
@@ -400,9 +400,9 @@ def install_dump_hotkey(main_window):
     shortcut_gen = QShortcut(QKeySequence('F8'), main_window)
     shortcut_gen.activated.connect(dump_gen_slots)
 
-    shortcut_all = QShortcut(QKeySequence('Ctrl+Shift+D'), main_window)
+    shortcut_all = QShortcut(QKeySequence('F11'), main_window)
     shortcut_all.activated.connect(dump_all)
 
     print("F8 hotkey installed - dump generator slots")
     print("F12 hotkey installed - dump modulator slots")
-    print("Ctrl+Shift+D hotkey installed - dump ALL + hotfix status")
+    print("F11 hotkey installed - dump ALL + hotfix status")
