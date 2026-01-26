@@ -201,16 +201,18 @@ class BoidPulseManager:
                     if getattr(slot_widget, 'bypassed', False):
                         return True
         elif zone in ('fx_master', 'fx'):
-            # Master FX: bypassed
-            inline_fx = getattr(self._main, 'inline_fx', None)
-            if inline_fx:
+            # Master FX: bypassed (Heat/Filter now in master_section via MasterChain)
+            master_section = getattr(self._main, 'master_section', None)
+            if master_section:
                 param = info['param']
                 # Check which module and if bypassed
                 if param.startswith('heat_'):
-                    if getattr(inline_fx.heat, 'bypassed', False):
+                    heat = getattr(master_section, 'heat', None)
+                    if heat and getattr(heat, 'bypassed', False):
                         return True
                 elif param.startswith('fb_'):
-                    if getattr(inline_fx.filter, 'bypassed', False):
+                    filt = getattr(master_section, 'filter', None)
+                    if filt and getattr(filt, 'bypassed', False):
                         return True
 
         return False

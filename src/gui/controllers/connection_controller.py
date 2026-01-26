@@ -66,8 +66,7 @@ class ConnectionController:
                     self.main.crossmod_osc = CrossmodOSCBridge(self.main.crossmod_state, self.main.osc.client)
                 self.main._set_header_buttons_enabled(True)
                 self.main.master_section.set_osc_bridge(self.main.osc)
-                self.main.inline_fx.set_osc_bridge(self.main.osc)
-                self.main.inline_fx.sync_state()
+                self.main.master_section.sync_state()  # Syncs Heat + Filter
                 self.main.fx_grid.set_osc_bridge(self.main.osc)
                 self.main.fx_grid.sync_to_sc()
                 if self.main.fx_window:
@@ -137,8 +136,7 @@ class ConnectionController:
         self.main.osc_connected = True
         self.main._set_header_buttons_enabled(True)
         self.main.master_section.set_osc_bridge(self.main.osc)
-        self.main.inline_fx.set_osc_bridge(self.main.osc)
-        self.main.inline_fx.sync_state()
+        self.main.master_section.sync_state()  # Syncs Heat + Filter
         self.main.fx_grid.set_osc_bridge(self.main.osc)
         self.main.fx_grid.sync_to_sc()
         if self.main.fx_window:
