@@ -71,8 +71,7 @@ class BoidPulseManager:
         elif zone == 'chan':
             return lambda s=slot, p=param: self._resolve_chan_widget(s, p)
         elif zone == 'fx':
-            # Skip FX for now - complex structure
-            return None
+            return lambda p=param: self._resolve_fx_widget(p)
         return None
 
     def _resolve_gen_widget(self, slot: int, param: str) -> Optional[QWidget]:
@@ -104,6 +103,13 @@ class BoidPulseManager:
         if not channel:
             return None
         return channel.get_param_widget(param)
+
+    def _resolve_fx_widget(self, param: str) -> Optional[QWidget]:
+        """Resolve FX param widget."""
+        inline_fx = getattr(self._main, 'inline_fx', None)
+        if not inline_fx:
+            return None
+        return inline_fx.get_param_widget(param)
 
     def on_cells_updated(self, cells: Dict[Tuple[int, int], float]) -> None:
         """

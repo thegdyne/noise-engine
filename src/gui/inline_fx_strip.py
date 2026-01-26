@@ -831,3 +831,40 @@ class InlineFXStrip(QWidget):
         """Sync all FX module state to SC on reconnect."""
         for module in self.modules.values():
             module.sync_state()
+
+    def get_param_widget(self, param: str):
+        """
+        Return knob widget for FX param (for boid pulse visualization).
+
+        Args:
+            param: FX param name like 'heat_drive', 'echo_time', 'verb_size', 'fb_freq1'
+
+        Returns:
+            Widget with set_boid_glow() method, or None
+        """
+        # Map param names to (module, knob_name)
+        param_map = {
+            # HEAT
+            'heat_drive': (self.heat, 'DRV'),
+            # ECHO
+            'echo_time': (self.echo, 'TIME'),
+            'echo_feedback': (self.echo, 'FBK'),
+            'echo_wow': (self.echo, 'WOW'),
+            'echo_spring': (self.echo, 'SPR'),
+            # REVERB
+            'verb_size': (self.reverb, 'SIZ'),
+            'verb_decay': (self.reverb, 'DEC'),
+            'verb_tone': (self.reverb, 'TONE'),
+            # FILTER
+            'fb_freq1': (self.filter, 'F1'),
+            'fb_freq2': (self.filter, 'F2'),
+            'fb_reso1': (self.filter, 'R1'),
+            'fb_reso2': (self.filter, 'R2'),
+            'fb_syncAmt': (self.filter, 'MIX'),  # CLK amt knob isn't in knobs dict
+        }
+
+        if param not in param_map:
+            return None
+
+        module, knob_name = param_map[param]
+        return module.knobs.get(knob_name)
