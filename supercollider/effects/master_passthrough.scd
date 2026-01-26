@@ -221,12 +221,12 @@ Compressor sidechain:
     
     // Forward internal meter replies to Python
     OSCdef(\meterForward, { |msg|
-        ~pythonAddr.sendMsg('/noise/master/levels', msg[3], msg[4], msg[5], msg[6]);
+        if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/master/levels', msg[3], msg[4], msg[5], msg[6]); };
     }, '/masterLevelsInternal');
-    
+
     // Forward compressor GR to Python
     OSCdef(\compGRForward, { |msg|
-        ~pythonAddr.sendMsg('/noise/master/comp/gr', msg[3]);
+        if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/master/comp/gr', msg[3]); };
     }, '/masterCompGR');
     
     // Handle meter mode toggle

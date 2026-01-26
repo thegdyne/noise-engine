@@ -76,13 +76,13 @@ All OSC message routing
     // ~pythonAddr is set in config.scd
     
     OSCdef(\ping, { |msg, time, addr|
-        ~pythonAddr.sendMsg('/noise/pong', 1);
+        if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/pong', 1); };
     }, '/noise/ping');
-    
+
     // Heartbeat - Python sends periodically, SC responds
     // If Python misses responses, it knows connection is dead
     OSCdef(\heartbeat, { |msg, time, addr|
-        ~pythonAddr.sendMsg('/noise/heartbeat_ack', 1);
+        if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/heartbeat_ack', 1); };
     }, '/noise/heartbeat');
 
     // Python quit notification - stop sending to avoid crashes

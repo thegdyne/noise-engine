@@ -12,14 +12,16 @@ Handles device listing, selection, and switching
     OSCdef(\audioDeviceList, { |msg|
         var devices = ServerOptions.devices;
         var current = s.options.device ? "default";
-        
+
         // Send device count first, then each device name
-        ~pythonAddr.sendMsg('/noise/audio/devices/count', devices.size, current);
-        devices.do { |dev, i|
-            ~pythonAddr.sendMsg('/noise/audio/devices/item', i, dev);
+        if(~pythonAddr.notNil) {
+            ~pythonAddr.sendMsg('/noise/audio/devices/count', devices.size, current);
+            devices.do { |dev, i|
+                ~pythonAddr.sendMsg('/noise/audio/devices/item', i, dev);
+            };
+            ~pythonAddr.sendMsg('/noise/audio/devices/done');
         };
-        ~pythonAddr.sendMsg('/noise/audio/devices/done');
-        
+
         ("  Audio devices: " ++ devices.size ++ " available").postln;
     }, '/noise/audio/devices/query');
     
@@ -37,7 +39,7 @@ Handles device listing, selection, and switching
             s.options.device = deviceName;
             
             // Notify Python we're rebooting
-            ~pythonAddr.sendMsg('/noise/audio/device/changing', deviceName);
+            if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/audio/device/changing', deviceName); };
             
             // Schedule reboot and reinit
             fork {
@@ -68,12 +70,12 @@ Handles device listing, selection, and switching
                     "========================================".postln;
                     
                     // Notify Python we're ready
-                    ~pythonAddr.sendMsg('/noise/audio/device/ready', deviceName);
+                    if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/audio/device/ready', deviceName); };
                 };
             };
         }, {
             ("  ? Device not found: " ++ deviceName).postln;
-            ~pythonAddr.sendMsg('/noise/audio/device/error', "Device not found: " ++ deviceName);
+            if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/audio/device/error', "Device not found: " ++ deviceName); };
         });
     }, '/noise/audio/device/set');
     
