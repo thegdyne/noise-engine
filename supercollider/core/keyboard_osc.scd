@@ -34,9 +34,6 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
             var needsRetrig = ~genMidiRetrig[i];
             var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
 
-            // DEBUG: Log note_on received
-            "KBD note_on: slot=%, note=%, freq=%, key=%".format(slot, note, freq, freqBusKey).postln;
-
             if(isMuted.not, {
                 // Track this note
                 ~keyboardActiveNotes[i][note] = true;
@@ -45,9 +42,6 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
                 // Use queueBaseUpdate so apply tick processes it (direct .set gets overwritten)
                 if(~queueBaseUpdate.notNil, {
                     ~queueBaseUpdate.(freqBusKey, freq);
-                    "  -> queued baseUpdate OK".postln;
-                }, {
-                    "  -> queueBaseUpdate FAILED (not defined)".postln;
                 });
                 
                 // Trigger envelope if generator exists

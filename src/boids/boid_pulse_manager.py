@@ -57,21 +57,10 @@ class BoidPulseManager:
         Widgets must have objectName matching their unified key.
         """
         self._widget_cache.clear()
-        found_count = 0
-        missing_keys = []
         for col, target_key in enumerate(UNIFIED_BUS_TARGET_KEYS):
             # Direct findChild lookup - widgets must have objectName set
             widget = self._main.findChild(QWidget, target_key)
             self._widget_cache[col] = widget
-            if widget is not None:
-                found_count += 1
-            else:
-                # Only track first 10 missing for gen_core zone
-                if col < 40 and len(missing_keys) < 10:
-                    missing_keys.append(target_key)
-        print(f"[BoidPulse] build_registry: found {found_count}/176 widgets")
-        if missing_keys:
-            print(f"[BoidPulse] Missing gen_core keys (first 10): {missing_keys}")
 
     def _get_widget(self, col: int) -> Optional[QWidget]:
         """
