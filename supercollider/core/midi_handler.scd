@@ -156,8 +156,9 @@ OSC messages to Python:
 
         if(genChannel == midiChannel && isMuted.not, {
             // Set frequency from note via unified bus system
-            if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
-                ~busRegistry[freqBusKey].set(freq);
+            // Use queueBaseUpdate so apply tick processes it (direct .set gets overwritten)
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(freqBusKey, freq);
             });
             
             // Trigger envelope if generator exists

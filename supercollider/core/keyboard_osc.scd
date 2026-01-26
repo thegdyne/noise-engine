@@ -42,11 +42,12 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
                 ~keyboardActiveNotes[i][note] = true;
 
                 // Set frequency from note via unified bus system
-                if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
-                    ~busRegistry[freqBusKey].set(freq);
-                    "  -> bus set OK".postln;
+                // Use queueBaseUpdate so apply tick processes it (direct .set gets overwritten)
+                if(~queueBaseUpdate.notNil, {
+                    ~queueBaseUpdate.(freqBusKey, freq);
+                    "  -> queued baseUpdate OK".postln;
                 }, {
-                    "  -> bus FAILED: registry=%, key=%".format(~busRegistry.notNil, ~busRegistry[freqBusKey].notNil).postln;
+                    "  -> queueBaseUpdate FAILED (not defined)".postln;
                 });
                 
                 // Trigger envelope if generator exists
