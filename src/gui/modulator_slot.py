@@ -1104,3 +1104,20 @@ class ModulatorSlot(QWidget):
         loop_rate_btns = getattr(self, '_loop_rate_btns', [])
         for i, btn in enumerate(loop_rate_btns):
             self.env_loop_rate_changed.emit(self.slot_id, i, btn.index)
+
+    def get_param_widget(self, param_index: int):
+        """
+        Return slider widget for param index (for boid pulse visualization).
+
+        Args:
+            param_index: 0-6 (p0-p6)
+
+        Returns:
+            Widget with set_boid_glow() method, or None
+        """
+        # Get all DragSlider widgets from param_sliders (skip CycleButtons)
+        sliders = [w for w in self.param_sliders.values()
+                   if isinstance(w, DragSlider)]
+        if 0 <= param_index < len(sliders):
+            return sliders[param_index]
+        return None

@@ -62,8 +62,12 @@ class BoidPulseManager:
         elif zone == 'gen_custom':
             return lambda s=slot, p=param: self._resolve_gen_widget(s, p)
         elif zone == 'mod':
-            # Skip mod slots for now - complex param mapping
-            return None
+            # mod params are 'p0', 'p1', etc. - extract index
+            try:
+                param_idx = int(param.replace('p', ''))
+            except ValueError:
+                return None
+            return lambda s=slot, idx=param_idx: self._resolve_mod_widget(s, idx)
         elif zone == 'chan':
             return lambda s=slot, p=param: self._resolve_chan_widget(s, p)
         elif zone == 'fx':
@@ -80,6 +84,16 @@ class BoidPulseManager:
         if not slot_widget:
             return None
         return slot_widget.get_param_widget(param)
+
+    def _resolve_mod_widget(self, slot: int, param_index: int) -> Optional[QWidget]:
+        """Resolve modulator slot param widget."""
+        grid = getattr(self._main, 'modulator_grid', None)
+        if not grid:
+            return None
+        slot_widget = grid.get_slot(slot)
+        if not slot_widget:
+            return None
+        return slot_widget.get_param_widget(param_index)
 
     def _resolve_chan_widget(self, slot: int, param: str) -> Optional[QWidget]:
         """Resolve mixer channel param widget."""
