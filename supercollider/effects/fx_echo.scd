@@ -9,16 +9,17 @@ Parameter mapping:
   p2 = Feedback (0-1)
   p3 = Tone (0-1 -> LPF freq)
   p4 = Wow/Flutter (0-1)
-  return = Return level
-  bypass = Bypass toggle
+  bypass = Bypass toggle (gates input, lets tail decay)
+
+Note: Return level is handled in preMasterMixer, not here.
 */
 
 SynthDef(\fxSlot_echo, { |inBus, outBus,
                           p1=0.3, p2=0.3, p3=0.7, p4=0.1,
-                          returnLevel=0.5, bypass=0,
+                          bypass=0,
                           p1Bus=(-1), p2Bus=(-1), p3Bus=(-1), p4Bus=(-1)|
     var sig, delayed, fb, wowLfo, toneFreq;
-    var dry, wet, output;
+    var wet, bypassGate;
     var timeEff, feedbackEff, toneEff, wowEff;
 
     // Bus unification support
@@ -44,7 +45,10 @@ SynthDef(\fxSlot_echo, { |inBus, outBus,
 
     // Read input
     sig = In.ar(inBus, 2);
-    dry = sig;
+
+    // Bypass gates input (lets feedback tail decay naturally)
+    bypassGate = 1 - Lag.kr(bypass, 0.02);
+    sig = sig * bypassGate;
 
     // Pre-emphasis
     sig = BHiShelf.ar(sig, 2000, 1, 2);
@@ -64,13 +68,8 @@ SynthDef(\fxSlot_echo, { |inBus, outBus,
     // Post-emphasis
     wet = BHiShelf.ar(delayed, 2000, 1, -2);
 
-    // Apply return level
-    wet = wet * Lag.kr(returnLevel, 0.02);
-
-    // Bypass (crossfade)
-    output = XFade2.ar(wet, dry * returnLevel, (Lag.kr(bypass, 0.02) * 2) - 1);
-
-    Out.ar(outBus, output);
+    // Output wet only (return level handled in preMasterMixer)
+    Out.ar(outBus, wet);
 }).add;
 
 "  [x] FX Slot: Echo SynthDef ready".postln;

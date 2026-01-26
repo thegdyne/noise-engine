@@ -11,8 +11,10 @@ Each slot can be assigned a different effect type:
 
 All FX types share the canonical parameter pattern:
   p1, p2, p3, p4 - 4 generic params (0-1, meaning varies by type)
-  return - Return level (0-1)
-  bypass - Bypass toggle (0/1)
+  bypass - Bypass toggle (0/1, gates input, lets tails decay)
+
+Note: Return level is controlled in preMasterMixer, not in FX SynthDefs.
+      This keeps the architecture clean for send effects.
 
 The slot manager handles:
   - Tracking which synth is in each slot
@@ -29,9 +31,10 @@ The slot manager handles:
     // Track effect types (symbol)
     ~fxSlotTypes = [\empty, \empty, \empty, \empty];
 
-    // Default slot parameters (4 slots x 5 params each: p1, p2, p3, p4, return)
+    // Default slot parameters (4 slots x 4 params + bypass)
+    // Note: return level is stored but forwarded to mixer, not FX synth
     ~fxSlotParams = Array.fill(4, {
-        Dictionary[\p1 -> 0.5, \p2 -> 0.5, \p3 -> 0.5, \p4 -> 0.5, \return -> 0.5, \bypass -> 0]
+        Dictionary[\p1 -> 0.5, \p2 -> 0.5, \p3 -> 0.5, \p4 -> 0.5, \bypass -> 0]
     });
 
     // Available FX types
@@ -73,6 +76,7 @@ The slot manager handles:
         params = ~fxSlotParams[slotIndex];
 
         // Create new synth in fxGroup
+        // Note: return level handled in preMasterMixer, not here
         ~fxSlotSynths[slotIndex] = Synth(synthName, [
             \inBus, inBus,
             \outBus, outBus,
@@ -80,7 +84,6 @@ The slot manager handles:
             \p2, params[\p2],
             \p3, params[\p3],
             \p4, params[\p4],
-            \returnLevel, params[\return],
             \bypass, params[\bypass]
         ], ~fxGroup, \addToTail);
 
@@ -96,15 +99,23 @@ The slot manager handles:
     if((slotIndex >= 0) && (slotIndex < 4)) {
         ~fxSlotParams[slotIndex][paramKey] = value;
 
-        // Update synth if running
-        if(~fxSlotSynths[slotIndex].notNil) {
-            case
-            { paramKey == \p1 } { ~fxSlotSynths[slotIndex].set(\p1, value) }
-            { paramKey == \p2 } { ~fxSlotSynths[slotIndex].set(\p2, value) }
-            { paramKey == \p3 } { ~fxSlotSynths[slotIndex].set(\p3, value) }
-            { paramKey == \p4 } { ~fxSlotSynths[slotIndex].set(\p4, value) }
-            { paramKey == \return } { ~fxSlotSynths[slotIndex].set(\returnLevel, value) }
-            { paramKey == \bypass } { ~fxSlotSynths[slotIndex].set(\bypass, value) };
+        // Handle return level - forward to mixer, not FX synth
+        if(paramKey == \return) {
+            // Return level goes to preMasterMixer
+            if(~fxMixer.notNil) {
+                var returnParam = [\fx1Return, \fx2Return, \fx3Return, \fx4Return][slotIndex];
+                ~fxMixer.set(returnParam, value);
+            };
+        } {
+            // Update FX synth if running
+            if(~fxSlotSynths[slotIndex].notNil) {
+                case
+                { paramKey == \p1 } { ~fxSlotSynths[slotIndex].set(\p1, value) }
+                { paramKey == \p2 } { ~fxSlotSynths[slotIndex].set(\p2, value) }
+                { paramKey == \p3 } { ~fxSlotSynths[slotIndex].set(\p3, value) }
+                { paramKey == \p4 } { ~fxSlotSynths[slotIndex].set(\p4, value) }
+                { paramKey == \bypass } { ~fxSlotSynths[slotIndex].set(\bypass, value) };
+            };
         };
     };
 };

@@ -10,16 +10,17 @@ Parameter mapping:
   p2 = Bits (0-1 -> bit depth, 1=16-bit clean, 0=2-bit destruction)
   p3 = Noise (0-1 -> analog hiss amount)
   p4 = Filter (0-1 -> post-LPF, 0=bright/harsh, 1=dark/smooth)
-  return = Return level
-  bypass = Bypass toggle
+  bypass = Bypass toggle (gates input)
+
+Note: Return level is handled in preMasterMixer, not here.
 */
 
 SynthDef(\fxSlot_lofi, { |inBus, outBus,
                           p1=1.0, p2=1.0, p3=0.0, p4=0.0,
-                          returnLevel=0.5, bypass=0,
+                          bypass=0,
                           p1Bus=(-1), p2Bus=(-1), p3Bus=(-1), p4Bus=(-1)|
     var sig, wet;
-    var dry, output;
+    var bypassGate;
     var rateEff, bitsEff, noiseEff, filterEff;
     var rateHz, bitDepth, steps;
 
@@ -37,7 +38,10 @@ SynthDef(\fxSlot_lofi, { |inBus, outBus,
 
     // Read input
     sig = In.ar(inBus, 2);
-    dry = sig;
+
+    // Bypass gates input
+    bypassGate = 1 - Lag.kr(bypass, 0.02);
+    sig = sig * bypassGate;
 
     // Rate: 0-1 maps to 500Hz - 44100Hz (exponential)
     // At 1.0 = clean, at 0.0 = heavily crushed
@@ -54,20 +58,15 @@ SynthDef(\fxSlot_lofi, { |inBus, outBus,
     // Bit depth reduction via round
     wet = (wet * steps).round / steps;
 
-    // Optional noise/hiss (adds character)
-    wet = wet + (PinkNoise.ar(0.02) * noiseEff);
+    // Optional noise/hiss (adds character, but also gated)
+    wet = wet + (PinkNoise.ar(0.02) * noiseEff * bypassGate);
 
     // Post-filter: LPF to tame aliasing artifacts
     // 0 = no filter (18kHz), 1 = aggressive filter (1kHz)
     wet = LPF.ar(wet, filterEff.linexp(0, 1, 18000, 1000));
 
-    // Apply return level
-    wet = wet * Lag.kr(returnLevel, 0.02);
-
-    // Bypass (crossfade)
-    output = XFade2.ar(wet, dry * returnLevel, (Lag.kr(bypass, 0.02) * 2) - 1);
-
-    Out.ar(outBus, output);
+    // Output wet only (return level handled in preMasterMixer)
+    Out.ar(outBus, wet);
 }).add;
 
 "  [x] FX Slot: LoFi SynthDef ready".postln;

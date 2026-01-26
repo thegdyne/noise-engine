@@ -307,17 +307,37 @@ They remain manual-only via dedicated OSC endpoints.
 
 // === HELPER FUNCTIONS ===
 
+// Legacy key aliasing for backward compatibility
+// Maps old keys (echo/verb) to new keys (fx1/fx2)
+~aliasUnifiedKey = { |key|
+    var keyStr = key.asString;
+    var result = key.asSymbol;
+
+    // Channel send aliases: chan_N_echo → chan_N_fx1, chan_N_verb → chan_N_fx2
+    if(keyStr.contains("_echo"), {
+        result = keyStr.replace("_echo", "_fx1").asSymbol;
+    });
+    if(keyStr.contains("_verb"), {
+        result = keyStr.replace("_verb", "_fx2").asSymbol;
+    });
+
+    result;
+};
+
 ~getBusIndex = { |targetKey|
-    var meta = ~targetMeta[targetKey.asSymbol];
+    var aliasedKey = ~aliasUnifiedKey.(targetKey);
+    var meta = ~targetMeta[aliasedKey];
     if(meta.notNil, { meta.busIndex }, { nil });
 };
 
 ~getBus = { |targetKey|
-    ~busRegistry[targetKey.asSymbol];
+    var aliasedKey = ~aliasUnifiedKey.(targetKey);
+    ~busRegistry[aliasedKey];
 };
 
 ~getTargetMeta = { |targetKey|
-    ~targetMeta[targetKey.asSymbol];
+    var aliasedKey = ~aliasUnifiedKey.(targetKey);
+    ~targetMeta[aliasedKey];
 };
 
 ~queueBaseUpdate = { |targetKey, value|

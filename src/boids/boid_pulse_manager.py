@@ -3,12 +3,16 @@ BoidPulseManager - Visual feedback for boid-targeted controls.
 
 Pulses/glows controls currently targeted by boids, creating a visual link
 between the boid panel visualiser and the affected parameters.
+
+SSOT Compliance:
+  Widget lookup uses findChild with unified target keys.
+  Widgets must have objectName set to their unified key (e.g., 'fx_slot1_p1').
 """
 
 from __future__ import annotations
 
 import time
-from typing import Dict, Tuple, Set, Callable, Optional, TYPE_CHECKING
+from typing import Dict, Tuple, Set, Optional, TYPE_CHECKING
 
 from PyQt5.QtWidgets import QWidget
 
@@ -32,6 +36,8 @@ class BoidPulseManager:
 
     Receives cells_updated signal from BoidController, computes intensities,
     and dispatches glow values to target widgets.
+
+    Widget lookup is SSOT-compliant: uses findChild with unified target keys.
     """
 
     def __init__(self, main_frame: 'MainFrame'):
@@ -40,100 +46,38 @@ class BoidPulseManager:
         self._pulse_timestamps: Dict[int, float] = {}
         self._pulse_base: Dict[int, float] = {}  # Depth-scaled intensity at entry
         self._last_intensity: Dict[int, float] = {}
-        self._target_resolvers: Dict[int, Callable[[], Optional[QWidget]]] = {}
+        # Cache widget lookups (cleared on build_registry)
+        self._widget_cache: Dict[int, Optional[QWidget]] = {}
 
     def build_registry(self) -> None:
-        """Build col → widget resolver map. Call after UI fully constructed."""
+        """
+        Build widget cache. Call after UI fully constructed.
+
+        Uses SSOT-compliant findChild lookup with unified target keys.
+        Widgets must have objectName matching their unified key.
+        """
+        self._widget_cache.clear()
         for col, target_key in enumerate(UNIFIED_BUS_TARGET_KEYS):
-            resolver = self._make_resolver(target_key)
-            if resolver:
-                self._target_resolvers[col] = resolver
+            # Direct findChild lookup - widgets must have objectName set
+            widget = self._main.findChild(QWidget, target_key)
+            self._widget_cache[col] = widget
 
-    def _make_resolver(self, target_key: str) -> Optional[Callable[[], Optional[QWidget]]]:
-        """Create a resolver callable for a target key."""
-        info = parse_target_key(target_key)
-        if not info:
-            return None
+    def _get_widget(self, col: int) -> Optional[QWidget]:
+        """
+        Get widget for column index.
 
-        zone = info['zone']
-        slot = info.get('slot')
-        param = info['param']
+        Uses cached findChild result. Falls back to live lookup if not cached.
+        """
+        if col in self._widget_cache:
+            return self._widget_cache[col]
 
-        if zone == 'gen_core':
-            return lambda s=slot, p=param: self._resolve_gen_widget(s, p)
-        elif zone == 'gen_custom':
-            return lambda s=slot, p=param: self._resolve_gen_widget(s, p)
-        elif zone == 'mod':
-            # mod params are 'p0', 'p1', etc. - extract index
-            try:
-                param_idx = int(param.replace('p', ''))
-            except ValueError:
-                return None
-            return lambda s=slot, idx=param_idx: self._resolve_mod_widget(s, idx)
-        elif zone == 'chan':
-            return lambda s=slot, p=param: self._resolve_chan_widget(s, p)
-        elif zone == 'fx_slot':
-            return lambda s=slot, p=param: self._resolve_fx_slot_widget(s, p)
-        elif zone == 'fx_master':
-            return lambda p=param: self._resolve_fx_master_widget(p)
-        elif zone == 'fx':
-            # Legacy zone - try master widgets first
-            return lambda p=param: self._resolve_fx_master_widget(p)
+        # Fallback: live lookup (should not normally be needed)
+        if col < len(UNIFIED_BUS_TARGET_KEYS):
+            target_key = UNIFIED_BUS_TARGET_KEYS[col]
+            widget = self._main.findChild(QWidget, target_key)
+            self._widget_cache[col] = widget
+            return widget
         return None
-
-    def _resolve_gen_widget(self, slot: int, param: str) -> Optional[QWidget]:
-        """Resolve generator slot param widget."""
-        grid = getattr(self._main, 'generator_grid', None)
-        if not grid:
-            return None
-        slot_widget = grid.get_slot(slot)
-        if not slot_widget:
-            return None
-        return slot_widget.get_param_widget(param)
-
-    def _resolve_mod_widget(self, slot: int, param_index: int) -> Optional[QWidget]:
-        """Resolve modulator slot param widget."""
-        grid = getattr(self._main, 'modulator_grid', None)
-        if not grid:
-            return None
-        slot_widget = grid.get_slot(slot)
-        if not slot_widget:
-            return None
-        return slot_widget.get_param_widget(param_index)
-
-    def _resolve_chan_widget(self, slot: int, param: str) -> Optional[QWidget]:
-        """Resolve mixer channel param widget."""
-        mixer = getattr(self._main, 'mixer_panel', None)
-        if not mixer:
-            return None
-        channel = mixer.get_channel(slot)
-        if not channel:
-            return None
-        return channel.get_param_widget(param)
-
-    def _resolve_fx_slot_widget(self, slot: int, param: str) -> Optional[QWidget]:
-        """Resolve FX slot param widget (p1-p4, return)."""
-        fx_grid = getattr(self._main, 'fx_grid', None)
-        if not fx_grid:
-            return None
-        slot_widget = fx_grid.get_slot(slot)
-        if not slot_widget:
-            return None
-        # Map param names to slider keys
-        if param in ('p1', 'p2', 'p3', 'p4', 'return'):
-            return slot_widget.sliders.get(param)
-        return None
-
-    def _resolve_fx_master_widget(self, param: str) -> Optional[QWidget]:
-        """Resolve master FX param widget (heat, dual filter)."""
-        inline_fx = getattr(self._main, 'inline_fx', None)
-        if not inline_fx:
-            return None
-        return inline_fx.get_param_widget(param)
-
-    def _resolve_fx_widget(self, param: str) -> Optional[QWidget]:
-        """Resolve FX param widget (legacy)."""
-        return self._resolve_fx_master_widget(param)
 
     def on_cells_updated(self, cells: Dict[Tuple[int, int], float]) -> None:
         """
@@ -199,11 +143,8 @@ class BoidPulseManager:
         self._prev_cols = current_cols
 
     def _apply_glow(self, col: int, intensity: float) -> None:
-        """Apply glow to widget for column."""
-        resolver = self._target_resolvers.get(col)
-        if not resolver:
-            return
-        widget = resolver()
+        """Apply glow to widget for column using SSOT findChild lookup."""
+        widget = self._get_widget(col)
         if widget and hasattr(widget, 'set_boid_glow'):
             # Scale intensity by per-target scale from config
             scale = get_boid_scales().get_scale(col)

@@ -7,18 +7,19 @@ UI Refresh Phase 1 - Canonical FX slot pattern
 Parameter mapping:
   p1 = Rate (0-1 -> 0.1-5Hz LFO rate)
   p2 = Depth (0-1 -> delay modulation depth)
-  p3 = Mix (0-1 -> dry/wet balance)
+  p3 = Mix (0-1 -> dry/wet balance within effect)
   p4 = Spread (0-1 -> stereo width)
-  return = Return level
-  bypass = Bypass toggle
+  bypass = Bypass toggle (gates input)
+
+Note: Return level is handled in preMasterMixer, not here.
 */
 
 SynthDef(\fxSlot_chorus, { |inBus, outBus,
                             p1=0.3, p2=0.5, p3=0.5, p4=0.7,
-                            returnLevel=0.5, bypass=0,
+                            bypass=0,
                             p1Bus=(-1), p2Bus=(-1), p3Bus=(-1), p4Bus=(-1)|
     var sig, chorus1, chorus2, chorus3, wet;
-    var dry, output;
+    var dry, bypassGate;
     var rateEff, depthEff, mixEff, spreadEff;
     var lfo1, lfo2, lfo3;
     var delayTime, modDepth;
@@ -46,6 +47,11 @@ SynthDef(\fxSlot_chorus, { |inBus, outBus,
 
     // Read input
     sig = In.ar(inBus, 2);
+
+    // Bypass gates input
+    bypassGate = 1 - Lag.kr(bypass, 0.02);
+    sig = sig * bypassGate;
+
     dry = sig;
 
     // 3 LFOs with phase offsets
@@ -67,16 +73,11 @@ SynthDef(\fxSlot_chorus, { |inBus, outBus,
     // Soft saturation to warm up
     wet = (wet * 1.1).tanh;
 
-    // Mix dry/wet
+    // Mix dry/wet (internal mix control for chorus character)
     wet = (dry * (1 - mixEff)) + (wet * mixEff);
 
-    // Apply return level
-    wet = wet * Lag.kr(returnLevel, 0.02);
-
-    // Bypass (crossfade)
-    output = XFade2.ar(wet, dry * returnLevel, (Lag.kr(bypass, 0.02) * 2) - 1);
-
-    Out.ar(outBus, output);
+    // Output wet only (return level handled in preMasterMixer)
+    Out.ar(outBus, wet);
 }).add;
 
 "  [x] FX Slot: Chorus SynthDef ready".postln;

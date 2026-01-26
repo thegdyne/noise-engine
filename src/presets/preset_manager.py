@@ -20,6 +20,7 @@ from .preset_schema import (
     PRESET_VERSION,
 )
 from .preset_utils import TimestampProvider, canonical_path
+from .migrations import is_v2_preset, migrate_key, migrate_boid_columns, KEY_ALIAS
 
 
 class PresetError(Exception):
@@ -185,19 +186,19 @@ class PresetManager:
     def load(self, filepath: Path) -> PresetState:
         """
         Load preset from file.
-        
+
         Args:
             filepath: Path to preset JSON file
-        
+
         Returns:
             PresetState object
-        
+
         Raises:
             PresetError: If file doesn't exist, is invalid JSON, or fails validation
         """
         if not filepath.exists():
             raise PresetError(f"Preset file not found: {filepath}")
-        
+
         try:
             with open(filepath, "r") as f:
                 data = json.load(f)
@@ -205,13 +206,72 @@ class PresetManager:
             raise PresetError(f"Invalid JSON in preset file: {e}")
         except IOError as e:
             raise PresetError(f"Failed to read preset file: {e}")
-        
+
+        # Apply migrations if needed (v2 -> v3)
+        if is_v2_preset(data):
+            data = self._migrate_v2_to_v3(data)
+
         # Validate
         is_valid, errors = validate_preset(data)
         if not is_valid:
             raise PresetError(f"Invalid preset: {'; '.join(errors)}")
-        
+
         return PresetState.from_dict(data)
+
+    def _migrate_v2_to_v3(self, data: dict) -> dict:
+        """
+        Migrate v2 preset data to v3 format.
+
+        Handles:
+        - Key name changes (echo/verb -> fx1/fx2)
+        - Boid column index remapping
+        - Version bump
+
+        Args:
+            data: v2 preset data dict
+
+        Returns:
+            Migrated v3 data dict
+        """
+        import copy
+        migrated = copy.deepcopy(data)
+
+        # Bump version
+        migrated['version'] = 3
+
+        # Migrate boid data if present
+        boid = migrated.get('boid', {})
+
+        # Migrate zone column indices
+        if 'zones' in boid:
+            for zone in boid['zones']:
+                if 'columns' in zone:
+                    old_cols = zone['columns']
+                    zone['columns'] = migrate_boid_columns(old_cols)
+
+        # Migrate key names in any string data
+        # (routes, targets, etc. that might reference old keys)
+        migrated = self._migrate_keys_recursive(migrated)
+
+        return migrated
+
+    def _migrate_keys_recursive(self, obj):
+        """Recursively migrate key names in nested data structures."""
+        if isinstance(obj, dict):
+            result = {}
+            for k, v in obj.items():
+                # Migrate key name if it's in KEY_ALIAS
+                new_key = migrate_key(k)
+                # Migrate value recursively
+                result[new_key] = self._migrate_keys_recursive(v)
+            return result
+        elif isinstance(obj, list):
+            return [self._migrate_keys_recursive(item) for item in obj]
+        elif isinstance(obj, str):
+            # Check if string is a key that needs migration
+            return migrate_key(obj)
+        else:
+            return obj
     
     def list_presets(self) -> list[Path]:
         """

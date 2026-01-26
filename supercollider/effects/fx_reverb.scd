@@ -9,16 +9,17 @@ Parameter mapping:
   p2 = Decay (0-1)
   p3 = Tone (0-1 -> LPF freq)
   p4 = Damping (0-1)
-  return = Return level
-  bypass = Bypass toggle
+  bypass = Bypass toggle (gates input, lets tail decay)
+
+Note: Return level is handled in preMasterMixer, not here.
 */
 
 SynthDef(\fxSlot_reverb, { |inBus, outBus,
                             p1=0.75, p2=0.65, p3=0.7, p4=0.5,
-                            returnLevel=0.5, bypass=0,
+                            bypass=0,
                             p1Bus=(-1), p2Bus=(-1), p3Bus=(-1), p4Bus=(-1)|
     var sig, verb, toneFreq;
-    var dry, wet, output;
+    var wet, bypassGate;
     var sizeEff, decayEff, toneEff, dampEff;
 
     // Bus unification support
@@ -38,7 +39,10 @@ SynthDef(\fxSlot_reverb, { |inBus, outBus,
 
     // Read input
     sig = In.ar(inBus, 2);
-    dry = sig;
+
+    // Bypass gates input (lets reverb tail decay naturally)
+    bypassGate = 1 - Lag.kr(bypass, 0.02);
+    sig = sig * bypassGate;
 
     // HPF to prevent low-end wash
     sig = HPF.ar(sig, 80);
@@ -53,13 +57,8 @@ SynthDef(\fxSlot_reverb, { |inBus, outBus,
     // Tone control
     wet = LPF.ar(verb, toneFreq);
 
-    // Apply return level
-    wet = wet * Lag.kr(returnLevel, 0.02);
-
-    // Bypass (crossfade)
-    output = XFade2.ar(wet, dry * returnLevel, (Lag.kr(bypass, 0.02) * 2) - 1);
-
-    Out.ar(outBus, output);
+    // Output wet only (return level handled in preMasterMixer)
+    Out.ar(outBus, wet);
 }).add;
 
 "  [x] FX Slot: Reverb SynthDef ready".postln;
