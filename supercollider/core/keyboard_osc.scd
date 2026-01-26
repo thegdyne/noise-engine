@@ -36,10 +36,11 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
             if(isMuted.not, {
                 // Track this note
                 ~keyboardActiveNotes[i][note] = true;
-                
-                // Set frequency from note
-                if(~genUserParams[slot].notNil && ~genUserParams[slot][\frequency].notNil, {
-                    ~genUserParams[slot][\frequency].set(freq);
+
+                // Set frequency from note via unified bus system
+                var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
+                if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
+                    ~busRegistry[freqBusKey].set(freq);
                 });
                 
                 // Trigger envelope if generator exists

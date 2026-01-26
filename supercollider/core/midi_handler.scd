@@ -154,10 +154,11 @@ OSC messages to Python:
             var transpose = ~genTranspose[i];
             var freq = (note + transpose).midicps;
             var amp = vel / 127.0;
-            
-            // Set frequency from note - use userParams so modApply doesn't overwrite
-            if(~genUserParams[slot].notNil && ~genUserParams[slot][\frequency].notNil, {
-                ~genUserParams[slot][\frequency].set(freq);
+            var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
+
+            // Set frequency from note via unified bus system
+            if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
+                ~busRegistry[freqBusKey].set(freq);
             });
             
             // Trigger envelope if generator exists
