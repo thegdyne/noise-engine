@@ -466,7 +466,7 @@ class OSCBridge(QObject):
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""
         # Uncomment for debugging:
-        print(f"DEFAULT: {address} {args}")
+        # print(f"DEFAULT: {address} {args}")
         pass
 
 
@@ -476,7 +476,6 @@ class OSCBridge(QObject):
         Format: [targetStr1, val1, targetStr2, val2, ...]
         Emits: [(target_str, value), ...]
         """
-        print(f"[OSC EXTMOD RAW] {address} {args}")
         if self._shutdown or self._deleted:
             return
         # Parse pairs
