@@ -1321,6 +1321,33 @@ def parse_target_key(key: str) -> Optional[Dict]:
     return None
 
 
+# === FX SLOT SYSTEM (UI Refresh Phase 1) ===
+# 4 swappable FX slots with generic p1-p4 parameters
+
+FX_SLOT_TYPES = ['Empty', 'Echo', 'Reverb', 'Chorus', 'LoFi']
+
+# Parameter labels per FX type (p1, p2, p3, p4)
+FX_SLOT_PARAM_LABELS = {
+    'Empty': ['--', '--', '--', '--'],
+    'Echo': ['TIME', 'FDBK', 'TONE', 'WOW'],
+    'Reverb': ['SIZE', 'DCAY', 'TONE', 'DAMP'],
+    'Chorus': ['RATE', 'DPTH', 'MIX', 'SPRD'],
+    'LoFi': ['RATE', 'BITS', 'NOIS', 'FILT'],
+}
+
+# Default parameter values per FX type
+FX_SLOT_DEFAULTS = {
+    'Empty': [0.5, 0.5, 0.5, 0.5],
+    'Echo': [0.3, 0.3, 0.7, 0.1],
+    'Reverb': [0.75, 0.65, 0.7, 0.5],
+    'Chorus': [0.3, 0.5, 0.5, 0.7],
+    'LoFi': [1.0, 1.0, 0.0, 0.0],
+}
+
+# Default slot assignments (slot 1-4)
+FX_SLOT_DEFAULT_TYPES = ['Echo', 'Reverb', 'Chorus', 'LoFi']
+
+
 # === OSC ===
 OSC_HOST = "127.0.0.1"
 OSC_SEND_PORT = 57120
