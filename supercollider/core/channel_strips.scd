@@ -61,14 +61,19 @@ EQ: 3-band DJ isolator
     
     SynthDef(\channelStrip, { |inBus, outBus, vol=0.8, mute=0, solo=0, gain=1.0, pan=0,
                               genTrim=0, soloActiveBus, slotID=1,
-                              eqLo=1, eqMid=1, eqHi=1, echoSend=0, verbSend=0, echoSendBus, verbSendBus,
-                              echoSendModBus=(-1), verbSendModBus=(-1), panModBus=(-1)|
+                              eqLo=1, eqMid=1, eqHi=1,
+                              fx1Send=0, fx2Send=0, fx3Send=0, fx4Send=0,
+                              fx1SendBus, fx2SendBus, fx3SendBus, fx4SendBus,
+                              fx1SendModBus=(-1), fx2SendModBus=(-1), fx3SendModBus=(-1), fx4SendModBus=(-1),
+                              panModBus=(-1)|
         var sig, soloActive, soloGate, ampL, ampR;
-        var echoSendEff, verbSendEff, panEff;
+        var fx1SendEff, fx2SendEff, fx3SendEff, fx4SendEff, panEff;
 
         // Bus unification: read from bus if valid index, otherwise use direct arg
-        echoSendEff = Select.kr(echoSendModBus >= 0, [echoSend, In.kr(echoSendModBus)]);
-        verbSendEff = Select.kr(verbSendModBus >= 0, [verbSend, In.kr(verbSendModBus)]);
+        fx1SendEff = Select.kr(fx1SendModBus >= 0, [fx1Send, In.kr(fx1SendModBus)]);
+        fx2SendEff = Select.kr(fx2SendModBus >= 0, [fx2Send, In.kr(fx2SendModBus)]);
+        fx3SendEff = Select.kr(fx3SendModBus >= 0, [fx3Send, In.kr(fx3SendModBus)]);
+        fx4SendEff = Select.kr(fx4SendModBus >= 0, [fx4Send, In.kr(fx4SendModBus)]);
         panEff = Select.kr(panModBus >= 0, [pan, In.kr(panModBus)]);
 
         // Read stereo from per-generator bus (dual mono or true stereo)
@@ -107,9 +112,11 @@ EQ: 3-band DJ isolator
         ampR = Amplitude.kr(sig[1], 0.01, 0.1);
         SendReply.kr(Impulse.kr(24), '/noise/gen/levels', [slotID, ampL, ampR]);
         
-        // FX Sends (post-fader)
-        Out.ar(echoSendBus, sig * Lag.kr(echoSendEff, 0.02));
-        Out.ar(verbSendBus, sig * Lag.kr(verbSendEff, 0.02));
+        // FX Sends (post-fader) - 4 send buses
+        Out.ar(fx1SendBus, sig * Lag.kr(fx1SendEff, 0.02));
+        Out.ar(fx2SendBus, sig * Lag.kr(fx2SendEff, 0.02));
+        Out.ar(fx3SendBus, sig * Lag.kr(fx3SendEff, 0.02));
+        Out.ar(fx4SendBus, sig * Lag.kr(fx4SendEff, 0.02));
         
         // Main output
         Out.ar(outBus, sig);
@@ -126,8 +133,13 @@ EQ: 3-band DJ isolator
     ~stripEqLoState = Array.fill(8, { 1.0 });  // EQ LO (0-2 linear)
     ~stripEqMidState = Array.fill(8, { 1.0 }); // EQ MID
     ~stripEqHiState = Array.fill(8, { 1.0 });  // EQ HI
-    ~stripEchoSendState = Array.fill(8, { 0.0 }); // Echo send (0-1)
-    ~stripVerbSendState = Array.fill(8, { 0.0 }); // Verb send (0-1)
+    ~stripFx1SendState = Array.fill(8, { 0.0 }); // FX1 send (0-1) - was Echo
+    ~stripFx2SendState = Array.fill(8, { 0.0 }); // FX2 send (0-1) - was Verb
+    ~stripFx3SendState = Array.fill(8, { 0.0 }); // FX3 send (0-1)
+    ~stripFx4SendState = Array.fill(8, { 0.0 }); // FX4 send (0-1)
+    // Legacy aliases for backward compatibility
+    ~stripEchoSendState = ~stripFx1SendState;
+    ~stripVerbSendState = ~stripFx2SendState;
     
     "  [x] Channel strip SynthDef ready (EQ: %Hz / %Hz, smooth: %ms)".format(
         ~eqLoXover, ~eqHiXover, (~eqSmoothTime * 1000).asInteger
@@ -137,20 +149,27 @@ EQ: 3-band DJ isolator
 // Start a channel strip for a slot (called when generator starts)
 ~startChannelStrip = { |slotID|
     var idx = slotID - 1;  // 0-indexed
-    var currentVol, currentMute, currentSolo, currentGain, currentPan, currentTrim, currentEchoSend, currentVerbSend;
+    var currentVol, currentMute, currentSolo, currentGain, currentPan, currentTrim;
+    var currentFx1Send, currentFx2Send, currentFx3Send, currentFx4Send;
     var currentEqLo, currentEqMid, currentEqHi;
-    var echoModBusIdx, verbModBusIdx, panModBusIdx;
+    var fx1ModBusIdx, fx2ModBusIdx, fx3ModBusIdx, fx4ModBusIdx, panModBusIdx;
 
     // Bounds check
     if(idx < 0 || idx >= 8, {
         "ERROR: Invalid slot ID % for channel strip".format(slotID).postln;
     }, {
         // Get bus indices from bus unification (if available)
-        echoModBusIdx = if(~getBusIndex.notNil, {
-            ~getBusIndex.(("chan_%_echo").format(slotID).asSymbol) ? -1
+        fx1ModBusIdx = if(~getBusIndex.notNil, {
+            ~getBusIndex.(("chan_%_fx1").format(slotID).asSymbol) ? -1
         }, { -1 });
-        verbModBusIdx = if(~getBusIndex.notNil, {
-            ~getBusIndex.(("chan_%_verb").format(slotID).asSymbol) ? -1
+        fx2ModBusIdx = if(~getBusIndex.notNil, {
+            ~getBusIndex.(("chan_%_fx2").format(slotID).asSymbol) ? -1
+        }, { -1 });
+        fx3ModBusIdx = if(~getBusIndex.notNil, {
+            ~getBusIndex.(("chan_%_fx3").format(slotID).asSymbol) ? -1
+        }, { -1 });
+        fx4ModBusIdx = if(~getBusIndex.notNil, {
+            ~getBusIndex.(("chan_%_fx4").format(slotID).asSymbol) ? -1
         }, { -1 });
         panModBusIdx = if(~getBusIndex.notNil, {
             ~getBusIndex.(("chan_%_pan").format(slotID).asSymbol) ? -1
@@ -166,8 +185,10 @@ EQ: 3-band DJ isolator
         currentEqLo = ~stripEqLoState[idx] ? 1.0;
         currentEqMid = ~stripEqMidState[idx] ? 1.0;
         currentEqHi = ~stripEqHiState[idx] ? 1.0;
-        currentEchoSend = ~stripEchoSendState[idx] ? 0.0;
-        currentVerbSend = ~stripVerbSendState[idx] ? 0.0;
+        currentFx1Send = ~stripFx1SendState[idx] ? 0.0;
+        currentFx2Send = ~stripFx2SendState[idx] ? 0.0;
+        currentFx3Send = ~stripFx3SendState[idx] ? 0.0;
+        currentFx4Send = ~stripFx4SendState[idx] ? 0.0;
 
         // Free existing strip if any
         if(~channelStrips[idx].notNil, {
@@ -190,12 +211,18 @@ EQ: 3-band DJ isolator
             \eqHi, currentEqHi,
             \soloActiveBus, ~soloActive.index,
             \slotID, slotID,
-            \echoSend, currentEchoSend,
-            \verbSend, currentVerbSend,
-            \echoSendBus, ~echoSendBus,
-            \verbSendBus, ~verbSendBus,
-            \echoSendModBus, echoModBusIdx,
-            \verbSendModBus, verbModBusIdx,
+            \fx1Send, currentFx1Send,
+            \fx2Send, currentFx2Send,
+            \fx3Send, currentFx3Send,
+            \fx4Send, currentFx4Send,
+            \fx1SendBus, ~fx1SendBus,
+            \fx2SendBus, ~fx2SendBus,
+            \fx3SendBus, ~fx3SendBus,
+            \fx4SendBus, ~fx4SendBus,
+            \fx1SendModBus, fx1ModBusIdx,
+            \fx2SendModBus, fx2ModBusIdx,
+            \fx3SendModBus, fx3ModBusIdx,
+            \fx4SendModBus, fx4ModBusIdx,
             \panModBus, panModBusIdx
         ], ~stripGroup, \addToTail);
 

@@ -92,15 +92,20 @@ class MiniMeter(QWidget):
 
 class ChannelStrip(QWidget):
     """Individual channel strip with fader, meter, and EQ."""
-    
+
     volume_changed = pyqtSignal(int, float)
     mute_toggled = pyqtSignal(int, bool)
     solo_toggled = pyqtSignal(int, bool)
     gain_changed = pyqtSignal(int, int)  # channel_id, gain_db (0, 6, or 12)
     pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
     eq_changed = pyqtSignal(int, str, float)  # channel_id, band
-    echo_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
-    verb_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx1_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx2_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx3_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx4_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    # Legacy signal aliases
+    echo_send_changed = fx1_send_changed
+    verb_send_changed = fx2_send_changed
     
     # Gain stages: dB value, display text, color style
     GAIN_STAGES = [
@@ -206,43 +211,79 @@ class ChannelStrip(QWidget):
         
         layout.addLayout(eq_layout)
         
-        # === FX Sends (Echo/Verb) ===
+        # === FX Sends (4 slots) ===
         sends_layout = QHBoxLayout()
-        sends_layout.setSpacing(2)
+        sends_layout.setSpacing(1)
         sends_layout.setContentsMargins(0, 2, 0, 2)
-        
-        # Echo send knob
-        echo_container = QVBoxLayout()
-        echo_container.setSpacing(0)
-        self.echo_send = MiniKnob()
-        self.echo_send.setObjectName(f"mixer{self.channel_id}_echo")
-        self.echo_send.setToolTip("Echo Send (double-click reset)")
-        self.echo_send.setValue(0)  # Start at 0
-        self.echo_send.valueChanged.connect(self._on_echo_send_changed)
-        echo_label = QLabel("EC")
-        echo_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        echo_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        echo_label.setAlignment(Qt.AlignCenter)
-        echo_container.addWidget(self.echo_send, alignment=Qt.AlignCenter)
-        echo_container.addWidget(echo_label)
-        sends_layout.addLayout(echo_container)
-        
-        # Verb send knob
-        verb_container = QVBoxLayout()
-        verb_container.setSpacing(0)
-        self.verb_send = MiniKnob()
-        self.verb_send.setObjectName(f"mixer{self.channel_id}_verb")
-        self.verb_send.setToolTip("Reverb Send (double-click reset)")
-        self.verb_send.setValue(0)  # Start at 0
-        self.verb_send.valueChanged.connect(self._on_verb_send_changed)
-        verb_label = QLabel("VB")
-        verb_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        verb_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        verb_label.setAlignment(Qt.AlignCenter)
-        verb_container.addWidget(self.verb_send, alignment=Qt.AlignCenter)
-        verb_container.addWidget(verb_label)
-        sends_layout.addLayout(verb_container)
-        
+
+        # FX1 send knob (was Echo)
+        fx1_container = QVBoxLayout()
+        fx1_container.setSpacing(0)
+        self.fx1_send = MiniKnob()
+        self.fx1_send.setObjectName(f"chan_{self.channel_id}_fx1")
+        self.fx1_send.setToolTip("FX1 Send (double-click reset)")
+        self.fx1_send.setValue(0)
+        self.fx1_send.valueChanged.connect(self._on_fx1_send_changed)
+        fx1_label = QLabel("1")
+        fx1_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        fx1_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        fx1_label.setAlignment(Qt.AlignCenter)
+        fx1_container.addWidget(self.fx1_send, alignment=Qt.AlignCenter)
+        fx1_container.addWidget(fx1_label)
+        sends_layout.addLayout(fx1_container)
+
+        # FX2 send knob (was Verb)
+        fx2_container = QVBoxLayout()
+        fx2_container.setSpacing(0)
+        self.fx2_send = MiniKnob()
+        self.fx2_send.setObjectName(f"chan_{self.channel_id}_fx2")
+        self.fx2_send.setToolTip("FX2 Send (double-click reset)")
+        self.fx2_send.setValue(0)
+        self.fx2_send.valueChanged.connect(self._on_fx2_send_changed)
+        fx2_label = QLabel("2")
+        fx2_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        fx2_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        fx2_label.setAlignment(Qt.AlignCenter)
+        fx2_container.addWidget(self.fx2_send, alignment=Qt.AlignCenter)
+        fx2_container.addWidget(fx2_label)
+        sends_layout.addLayout(fx2_container)
+
+        # FX3 send knob
+        fx3_container = QVBoxLayout()
+        fx3_container.setSpacing(0)
+        self.fx3_send = MiniKnob()
+        self.fx3_send.setObjectName(f"chan_{self.channel_id}_fx3")
+        self.fx3_send.setToolTip("FX3 Send (double-click reset)")
+        self.fx3_send.setValue(0)
+        self.fx3_send.valueChanged.connect(self._on_fx3_send_changed)
+        fx3_label = QLabel("3")
+        fx3_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        fx3_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        fx3_label.setAlignment(Qt.AlignCenter)
+        fx3_container.addWidget(self.fx3_send, alignment=Qt.AlignCenter)
+        fx3_container.addWidget(fx3_label)
+        sends_layout.addLayout(fx3_container)
+
+        # FX4 send knob
+        fx4_container = QVBoxLayout()
+        fx4_container.setSpacing(0)
+        self.fx4_send = MiniKnob()
+        self.fx4_send.setObjectName(f"chan_{self.channel_id}_fx4")
+        self.fx4_send.setToolTip("FX4 Send (double-click reset)")
+        self.fx4_send.setValue(0)
+        self.fx4_send.valueChanged.connect(self._on_fx4_send_changed)
+        fx4_label = QLabel("4")
+        fx4_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        fx4_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        fx4_label.setAlignment(Qt.AlignCenter)
+        fx4_container.addWidget(self.fx4_send, alignment=Qt.AlignCenter)
+        fx4_container.addWidget(fx4_label)
+        sends_layout.addLayout(fx4_container)
+
+        # Legacy aliases
+        self.echo_send = self.fx1_send
+        self.verb_send = self.fx2_send
+
         layout.addLayout(sends_layout)
         
         # Fader + Meter side by side
@@ -452,15 +493,29 @@ class ChannelStrip(QWidget):
         linear = value / 100.0
         self.eq_changed.emit(self.channel_id, band, linear)
     
-    def _on_echo_send_changed(self, value):
-        """Handle echo send knob change. Convert 0-200 to 0-1."""
+    def _on_fx1_send_changed(self, value):
+        """Handle FX1 send knob change. Convert 0-200 to 0-1."""
         send_level = value / 200.0
-        self.echo_send_changed.emit(self.channel_id, send_level)
-    
-    def _on_verb_send_changed(self, value):
-        """Handle verb send knob change. Convert 0-200 to 0-1."""
+        self.fx1_send_changed.emit(self.channel_id, send_level)
+
+    def _on_fx2_send_changed(self, value):
+        """Handle FX2 send knob change. Convert 0-200 to 0-1."""
         send_level = value / 200.0
-        self.verb_send_changed.emit(self.channel_id, send_level)
+        self.fx2_send_changed.emit(self.channel_id, send_level)
+
+    def _on_fx3_send_changed(self, value):
+        """Handle FX3 send knob change. Convert 0-200 to 0-1."""
+        send_level = value / 200.0
+        self.fx3_send_changed.emit(self.channel_id, send_level)
+
+    def _on_fx4_send_changed(self, value):
+        """Handle FX4 send knob change. Convert 0-200 to 0-1."""
+        send_level = value / 200.0
+        self.fx4_send_changed.emit(self.channel_id, send_level)
+
+    # Legacy handler aliases
+    _on_echo_send_changed = _on_fx1_send_changed
+    _on_verb_send_changed = _on_fx2_send_changed
     
     def set_levels(self, left, right):
         """Update the channel meter levels."""
@@ -679,8 +734,13 @@ class ChannelStrip(QWidget):
             "eq_mid": self.eq_mid.value(),
             "eq_lo": self.eq_lo.value(),
             "gain": self.gain_index,
-            "echo_send": self.echo_send.value(),
-            "verb_send": self.verb_send.value(),
+            "fx1_send": self.fx1_send.value(),
+            "fx2_send": self.fx2_send.value(),
+            "fx3_send": self.fx3_send.value(),
+            "fx4_send": self.fx4_send.value(),
+            # Legacy keys for backward compatibility
+            "echo_send": self.fx1_send.value(),
+            "verb_send": self.fx2_send.value(),
             "lo_cut": self.lo_cut_active,
             "hi_cut": self.hi_cut_active,
         }
@@ -749,19 +809,33 @@ class ChannelStrip(QWidget):
             self.gain_btn.setStyleSheet(button_style(style))
             self.gain_changed.emit(self.channel_id, db)
 
-        # Echo Send
-        echo_send = state.get("echo_send", 0)
-        self.echo_send.blockSignals(True)
-        self.echo_send.setValue(echo_send)
-        self.echo_send.blockSignals(False)
-        self._on_echo_send_changed(echo_send)
+        # FX1 Send (with legacy echo_send fallback)
+        fx1_send = state.get("fx1_send", state.get("echo_send", 0))
+        self.fx1_send.blockSignals(True)
+        self.fx1_send.setValue(fx1_send)
+        self.fx1_send.blockSignals(False)
+        self._on_fx1_send_changed(fx1_send)
 
-        # Verb Send
-        verb_send = state.get("verb_send", 0)
-        self.verb_send.blockSignals(True)
-        self.verb_send.setValue(verb_send)
-        self.verb_send.blockSignals(False)
-        self._on_verb_send_changed(verb_send)
+        # FX2 Send (with legacy verb_send fallback)
+        fx2_send = state.get("fx2_send", state.get("verb_send", 0))
+        self.fx2_send.blockSignals(True)
+        self.fx2_send.setValue(fx2_send)
+        self.fx2_send.blockSignals(False)
+        self._on_fx2_send_changed(fx2_send)
+
+        # FX3 Send
+        fx3_send = state.get("fx3_send", 0)
+        self.fx3_send.blockSignals(True)
+        self.fx3_send.setValue(fx3_send)
+        self.fx3_send.blockSignals(False)
+        self._on_fx3_send_changed(fx3_send)
+
+        # FX4 Send
+        fx4_send = state.get("fx4_send", 0)
+        self.fx4_send.blockSignals(True)
+        self.fx4_send.setValue(fx4_send)
+        self.fx4_send.blockSignals(False)
+        self._on_fx4_send_changed(fx4_send)
 
         # Lo Cut
         lo_cut = state.get("lo_cut", False)
@@ -778,15 +852,19 @@ class ChannelStrip(QWidget):
         Return widget for param (for boid pulse visualization).
 
         Args:
-            param: 'echo', 'verb', or 'pan'
+            param: 'fx1', 'fx2', 'fx3', 'fx4', 'pan', or legacy 'echo'/'verb'
 
         Returns:
             Widget with set_boid_glow() method, or None
         """
-        if param == 'echo':
-            return self.echo_send
-        elif param == 'verb':
-            return self.verb_send
+        if param == 'fx1' or param == 'echo':
+            return self.fx1_send
+        elif param == 'fx2' or param == 'verb':
+            return self.fx2_send
+        elif param == 'fx3':
+            return self.fx3_send
+        elif param == 'fx4':
+            return self.fx4_send
         elif param == 'pan':
             return self.pan_slider
         return None
@@ -794,17 +872,26 @@ class ChannelStrip(QWidget):
 
 class MixerPanel(QWidget):
     """Mixer panel with channel strips."""
-    
+
     generator_volume_changed = pyqtSignal(int, float)
     generator_muted = pyqtSignal(int, bool)
     generator_solo = pyqtSignal(int, bool)
     generator_gain_changed = pyqtSignal(int, int)  # channel_id, gain_db
     generator_pan_changed = pyqtSignal(int, float)  # channel_id, pan (-1 to 1)
     generator_eq_changed = pyqtSignal(int, str, float)  # channel_id, band
-    generator_echo_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
-    generator_verb_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
-    echo_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
-    verb_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    generator_fx1_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    generator_fx2_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    generator_fx3_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    generator_fx4_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx1_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx2_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx3_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    fx4_send_changed = pyqtSignal(int, float)  # channel_id, send level 0-1
+    # Legacy signal aliases
+    generator_echo_send_changed = generator_fx1_send_changed
+    generator_verb_send_changed = generator_fx2_send_changed
+    echo_send_changed = fx1_send_changed
+    verb_send_changed = fx2_send_changed
     
     def __init__(self, num_generators=8, parent=None):
         super().__init__(parent)
@@ -842,8 +929,10 @@ class MixerPanel(QWidget):
             channel.gain_changed.connect(self.on_channel_gain)
             channel.pan_changed.connect(self.on_channel_pan)
             channel.eq_changed.connect(self.on_channel_eq)
-            channel.echo_send_changed.connect(self.on_channel_echo_send)
-            channel.verb_send_changed.connect(self.on_channel_verb_send)
+            channel.fx1_send_changed.connect(self.on_channel_fx1_send)
+            channel.fx2_send_changed.connect(self.on_channel_fx2_send)
+            channel.fx3_send_changed.connect(self.on_channel_fx3_send)
+            channel.fx4_send_changed.connect(self.on_channel_fx4_send)
             channel.set_active(False)  # Start inactive (no generator loaded)
             channels_layout.addWidget(channel)
             self.channels[i] = channel
@@ -873,14 +962,26 @@ class MixerPanel(QWidget):
     def on_channel_eq(self, channel_id, band, value):
         """Handle channel EQ change."""
         self.generator_eq_changed.emit(channel_id, band, value)
-    
-    def on_channel_echo_send(self, channel_id, value):
-        """Handle channel echo send change."""
-        self.generator_echo_send_changed.emit(channel_id, value)
-    
-    def on_channel_verb_send(self, channel_id, value):
-        """Handle channel verb send change."""
-        self.generator_verb_send_changed.emit(channel_id, value)
+
+    def on_channel_fx1_send(self, channel_id, value):
+        """Handle channel FX1 send change."""
+        self.generator_fx1_send_changed.emit(channel_id, value)
+
+    def on_channel_fx2_send(self, channel_id, value):
+        """Handle channel FX2 send change."""
+        self.generator_fx2_send_changed.emit(channel_id, value)
+
+    def on_channel_fx3_send(self, channel_id, value):
+        """Handle channel FX3 send change."""
+        self.generator_fx3_send_changed.emit(channel_id, value)
+
+    def on_channel_fx4_send(self, channel_id, value):
+        """Handle channel FX4 send change."""
+        self.generator_fx4_send_changed.emit(channel_id, value)
+
+    # Legacy handler aliases
+    on_channel_echo_send = on_channel_fx1_send
+    on_channel_verb_send = on_channel_fx2_send
         
     def set_channel_active(self, channel_id, active):
         """Set active state for a channel (called when generator starts/stops)."""

@@ -362,35 +362,99 @@ All OSC message routing
     // === FX Send OSC Handlers ===
     
     // Per-channel Echo Send
-    OSCdef(\stripEchoSend, { |msg|
+    // Per-channel FX1 Send (was Echo)
+    OSCdef(\stripFx1Send, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat.clip(0, 1);
 
         ~withValidSlot.(slot, { |idx|
-            ~stripEchoSendState[idx] = value;
+            ~stripFx1SendState[idx] = value;
             if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\echoSend, value);
+                ~channelStrips[idx].set(\fx1Send, value);
             });
             // Bus unification
             if(~queueBaseUpdate.notNil, {
-                ~queueBaseUpdate.(("chan_%_echo").format(slot).asSymbol, value);
+                ~queueBaseUpdate.(("chan_%_fx1").format(slot).asSymbol, value);
+            });
+        });
+    }, '/noise/strip/fx1/send');
+
+    // Per-channel FX2 Send (was Verb)
+    OSCdef(\stripFx2Send, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat.clip(0, 1);
+
+        ~withValidSlot.(slot, { |idx|
+            ~stripFx2SendState[idx] = value;
+            if(~channelStrips[idx].notNil, {
+                ~channelStrips[idx].set(\fx2Send, value);
+            });
+            // Bus unification
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(("chan_%_fx2").format(slot).asSymbol, value);
+            });
+        });
+    }, '/noise/strip/fx2/send');
+
+    // Per-channel FX3 Send
+    OSCdef(\stripFx3Send, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat.clip(0, 1);
+
+        ~withValidSlot.(slot, { |idx|
+            ~stripFx3SendState[idx] = value;
+            if(~channelStrips[idx].notNil, {
+                ~channelStrips[idx].set(\fx3Send, value);
+            });
+            // Bus unification
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(("chan_%_fx3").format(slot).asSymbol, value);
+            });
+        });
+    }, '/noise/strip/fx3/send');
+
+    // Per-channel FX4 Send
+    OSCdef(\stripFx4Send, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat.clip(0, 1);
+
+        ~withValidSlot.(slot, { |idx|
+            ~stripFx4SendState[idx] = value;
+            if(~channelStrips[idx].notNil, {
+                ~channelStrips[idx].set(\fx4Send, value);
+            });
+            // Bus unification
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(("chan_%_fx4").format(slot).asSymbol, value);
+            });
+        });
+    }, '/noise/strip/fx4/send');
+
+    // Legacy aliases for backward compatibility
+    OSCdef(\stripEchoSend, { |msg|
+        var slot = msg[1].asInteger;
+        var value = msg[2].asFloat.clip(0, 1);
+        ~withValidSlot.(slot, { |idx|
+            ~stripFx1SendState[idx] = value;
+            if(~channelStrips[idx].notNil, {
+                ~channelStrips[idx].set(\fx1Send, value);
+            });
+            if(~queueBaseUpdate.notNil, {
+                ~queueBaseUpdate.(("chan_%_fx1").format(slot).asSymbol, value);
             });
         });
     }, '/noise/strip/echo/send');
 
-    // Per-channel Verb Send
     OSCdef(\stripVerbSend, { |msg|
         var slot = msg[1].asInteger;
         var value = msg[2].asFloat.clip(0, 1);
-
         ~withValidSlot.(slot, { |idx|
-            ~stripVerbSendState[idx] = value;
+            ~stripFx2SendState[idx] = value;
             if(~channelStrips[idx].notNil, {
-                ~channelStrips[idx].set(\verbSend, value);
+                ~channelStrips[idx].set(\fx2Send, value);
             });
-            // Bus unification
             if(~queueBaseUpdate.notNil, {
-                ~queueBaseUpdate.(("chan_%_verb").format(slot).asSymbol, value);
+                ~queueBaseUpdate.(("chan_%_fx2").format(slot).asSymbol, value);
             });
         });
     }, '/noise/strip/verb/send');
