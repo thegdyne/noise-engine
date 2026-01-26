@@ -66,7 +66,9 @@ def main():
     logger.info("=" * 40, component="APP")
     
     app = QApplication(sys.argv)
-    
+    app.setOrganizationName("NoiseEngine")
+    app.setApplicationName("NoiseEngine")
+
     from src.gui.main_frame import MainFrame
     
     window = MainFrame()
