@@ -64,57 +64,52 @@ class TestFxSlotSynthDefPattern(unittest.TestCase):
             return f.read()
 
     def test_fx_echo_has_canonical_params(self):
-        """fx_echo.scd has p1-p4, returnLevel, bypass params."""
+        """fx_echo.scd has p1-p4, bypass params (return level handled in mixer)."""
         content = self._read_file("fx_echo.scd")
         self.assertIn("p1=", content)
         self.assertIn("p2=", content)
         self.assertIn("p3=", content)
         self.assertIn("p4=", content)
-        self.assertIn("returnLevel=", content)
         self.assertIn("bypass=", content)
         self.assertIn("\\fxSlot_echo", content)
 
     def test_fx_reverb_has_canonical_params(self):
-        """fx_reverb.scd has p1-p4, returnLevel, bypass params."""
+        """fx_reverb.scd has p1-p4, bypass params (return level handled in mixer)."""
         content = self._read_file("fx_reverb.scd")
         self.assertIn("p1=", content)
         self.assertIn("p2=", content)
         self.assertIn("p3=", content)
         self.assertIn("p4=", content)
-        self.assertIn("returnLevel=", content)
         self.assertIn("bypass=", content)
         self.assertIn("\\fxSlot_reverb", content)
 
     def test_fx_chorus_has_canonical_params(self):
-        """fx_chorus.scd has p1-p4, returnLevel, bypass params."""
+        """fx_chorus.scd has p1-p4, bypass params (return level handled in mixer)."""
         content = self._read_file("fx_chorus.scd")
         self.assertIn("p1=", content)
         self.assertIn("p2=", content)
         self.assertIn("p3=", content)
         self.assertIn("p4=", content)
-        self.assertIn("returnLevel=", content)
         self.assertIn("bypass=", content)
         self.assertIn("\\fxSlot_chorus", content)
 
     def test_fx_lofi_has_canonical_params(self):
-        """fx_lofi.scd has p1-p4, returnLevel, bypass params."""
+        """fx_lofi.scd has p1-p4, bypass params (return level handled in mixer)."""
         content = self._read_file("fx_lofi.scd")
         self.assertIn("p1=", content)
         self.assertIn("p2=", content)
         self.assertIn("p3=", content)
         self.assertIn("p4=", content)
-        self.assertIn("returnLevel=", content)
         self.assertIn("bypass=", content)
         self.assertIn("\\fxSlot_lofi", content)
 
     def test_fx_empty_has_canonical_params(self):
-        """fx_empty.scd has p1-p4, returnLevel, bypass params."""
+        """fx_empty.scd has p1-p4, bypass params (return level handled in mixer)."""
         content = self._read_file("fx_empty.scd")
         self.assertIn("p1=", content)
         self.assertIn("p2=", content)
         self.assertIn("p3=", content)
         self.assertIn("p4=", content)
-        self.assertIn("returnLevel=", content)
         self.assertIn("bypass=", content)
         self.assertIn("\\fxSlot_empty", content)
 
