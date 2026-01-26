@@ -16,6 +16,7 @@ from src.config import (
     UNIFIED_BUS_TARGET_KEYS,
     parse_target_key,
 )
+from src.utils.boid_scales import get_boid_scales
 
 if TYPE_CHECKING:
     from src.gui.main_frame import MainFrame
@@ -182,8 +183,11 @@ class BoidPulseManager:
             return
         widget = resolver()
         if widget and hasattr(widget, 'set_boid_glow'):
+            # Scale intensity by per-target scale from config
+            scale = get_boid_scales().get_scale(col)
+            scaled_intensity = intensity * scale
             muted = self._is_target_muted(col)
-            widget.set_boid_glow(intensity, muted)
+            widget.set_boid_glow(scaled_intensity, muted)
 
     def _is_target_muted(self, col: int) -> bool:
         """Check if target at column is muted/empty/bypassed."""
