@@ -31,6 +31,7 @@ def cleanup_sc():
     try:
         from pythonosc import udp_client
         client = udp_client.SimpleUDPClient("127.0.0.1", 57120)
+        client.send_message("/noise/quit", [])  # Tell SC to stop sending to Python
         client.send_message("/ne/master/volume", 0.0)
         time.sleep(0.15)
     except Exception:  # Expected during shutdown - SC may not be running
