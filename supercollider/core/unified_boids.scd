@@ -1,12 +1,18 @@
 /*
  * Unified Boid Modulation System
  *
- * Implements the SuperCollider side of the 149-control-bus boid modulation system.
+ * Implements the SuperCollider side of the 176-control-bus boid modulation system (v3).
  * Python sends additive offsets via OSC; SC maintains canonical state and writes
  * effective values to buses.
  *
  * Core formula: effective = clamp(base + offset, min, max)
  * No drift: Never read current bus value as input to calculations.
+ *
+ * v3 layout (176 targets - UI Refresh):
+ * - 0-107: UNCHANGED (gen_core, gen_custom, mod_slots)
+ * - 108-147: Channels (8 x 5: fx1, fx2, fx3, fx4, pan)
+ * - 148-167: FX Slots (4 x 5: p1, p2, p3, p4, return)
+ * - 168-175: Master Inserts (DualFilter 7 + Heat 1)
  *
  * Per: docs/BOID_UNIFIED_BUS_MIGRATION-SC-GROUND.md
  */
@@ -16,16 +22,16 @@
 // Phase 1: Constants & Variables
 // ============================================================================
 
-~unifiedBusCount = 149;
+~unifiedBusCount = 176;
 ~applyIntervalSec = 0.03;  // 30ms tick rate
 
 // Runtime Variables
-~unifiedBuses = nil;           // Bus object (149 channels)
+~unifiedBuses = nil;           // Bus object (176 channels - v3)
 ~unifiedBusBase = nil;         // Int: absolute starting bus index
-~targetMetaByIndex = nil;      // Array[149] of metadata entries
+~targetMetaByIndex = nil;      // Array[176] of metadata entries
 ~targetMetaByKey = nil;        // Dictionary: Symbol -> metadata
-~baseValues = nil;             // Array[149] of Float
-~boidOffsets = nil;            // Array[149] of Float
+~baseValues = nil;             // Array[176] of Float
+~boidOffsets = nil;            // Array[176] of Float
 ~boidEnabled = false;          // Bool
 ~boidInitialized = false;          // Bool
 ~boidApplyTask = nil;              // Task reference
@@ -56,10 +62,10 @@
         ~targetMetaByKey[key] = entry;
     };
 
-    ~targetMetaByIndex = Array.newClear(149);
+    ~targetMetaByIndex = Array.newClear(176);
     ~targetMetaByKey = Dictionary.new;
 
-    // Gen Core (0-39): 8 slots x 5 params
+    // Gen Core (0-39): 8 slots x 5 params - UNCHANGED
     8.do { |s|
         var slot = s + 1;
         var base = s * 5;
@@ -70,7 +76,7 @@
         addMeta.(base + 4, ("gen_" ++ slot ++ "_decay").asSymbol, 0.0001, 10.0, 0.5);
     };
 
-    // Gen Custom (40-79): 8 slots x 5 params
+    // Gen Custom (40-79): 8 slots x 5 params - UNCHANGED
     8.do { |s|
         var slot = s + 1;
         var base = 40 + (s * 5);
@@ -79,7 +85,7 @@
         };
     };
 
-    // Mod Slots (80-107): 4 slots x 7 params
+    // Mod Slots (80-107): 4 slots x 7 params - UNCHANGED
     4.do { |m|
         var slot = m + 1;
         var base = 80 + (m * 7);
@@ -88,33 +94,40 @@
         };
     };
 
-    // Channels (108-131): 8 channels x 3 params
+    // Channels (108-147): 8 channels x 5 params - v3 EXPANDED
+    // New params: fx1, fx2, fx3, fx4, pan
     8.do { |c|
         var chan = c + 1;
-        var base = 108 + (c * 3);
-        addMeta.(base + 0, ("chan_" ++ chan ++ "_echo").asSymbol, 0.0, 1.0, 0.0);
-        addMeta.(base + 1, ("chan_" ++ chan ++ "_verb").asSymbol, 0.0, 1.0, 0.0);
-        addMeta.(base + 2, ("chan_" ++ chan ++ "_pan").asSymbol, -1.0, 1.0, 0.0);
+        var base = 108 + (c * 5);
+        addMeta.(base + 0, ("chan_" ++ chan ++ "_fx1").asSymbol, 0.0, 1.0, 0.0);
+        addMeta.(base + 1, ("chan_" ++ chan ++ "_fx2").asSymbol, 0.0, 1.0, 0.0);
+        addMeta.(base + 2, ("chan_" ++ chan ++ "_fx3").asSymbol, 0.0, 1.0, 0.0);
+        addMeta.(base + 3, ("chan_" ++ chan ++ "_fx4").asSymbol, 0.0, 1.0, 0.0);
+        addMeta.(base + 4, ("chan_" ++ chan ++ "_pan").asSymbol, -1.0, 1.0, 0.0);
     };
 
-    // FX (132-148): 17 params
-    addMeta.(132, \fx_heat_drive, 0.0, 1.0, 0.0);
-    addMeta.(133, \fx_echo_time, 0.01, 2.0, 0.3);
-    addMeta.(134, \fx_echo_feedback, 0.0, 0.95, 0.3);
-    addMeta.(135, \fx_echo_tone, 0.0, 1.0, 0.5);
-    addMeta.(136, \fx_echo_wow, 0.0, 1.0, 0.0);
-    addMeta.(137, \fx_echo_spring, 0.0, 1.0, 0.0);
-    addMeta.(138, \fx_echo_verbSend, 0.0, 1.0, 0.0);
-    addMeta.(139, \fx_verb_size, 0.0, 1.0, 0.5);
-    addMeta.(140, \fx_verb_decay, 0.0, 1.0, 0.5);
-    addMeta.(141, \fx_verb_tone, 0.0, 1.0, 0.5);
-    addMeta.(142, \fx_fb_drive, 0.0, 1.0, 0.0);
-    addMeta.(143, \fx_fb_freq1, 20.0, 20000.0, 500.0);
-    addMeta.(144, \fx_fb_freq2, 20.0, 20000.0, 2000.0);
-    addMeta.(145, \fx_fb_reso1, 0.0, 1.0, 0.5);
-    addMeta.(146, \fx_fb_reso2, 0.0, 1.0, 0.5);
-    addMeta.(147, \fx_fb_syncAmt, 0.0, 1.0, 0.0);
-    addMeta.(148, \fx_fb_harmonics, 0.0, 7.0, 0.0);
+    // FX Slots (148-167): 4 slots x 5 params - v3 NEW
+    // Params: p1, p2, p3, p4, return
+    4.do { |s|
+        var slot = s + 1;
+        var base = 148 + (s * 5);
+        addMeta.(base + 0, ("fx_slot" ++ slot ++ "_p1").asSymbol, 0.0, 1.0, 0.5);
+        addMeta.(base + 1, ("fx_slot" ++ slot ++ "_p2").asSymbol, 0.0, 1.0, 0.5);
+        addMeta.(base + 2, ("fx_slot" ++ slot ++ "_p3").asSymbol, 0.0, 1.0, 0.5);
+        addMeta.(base + 3, ("fx_slot" ++ slot ++ "_p4").asSymbol, 0.0, 1.0, 0.5);
+        addMeta.(base + 4, ("fx_slot" ++ slot ++ "_return").asSymbol, 0.0, 1.0, 0.5);
+    };
+
+    // Master Inserts (168-175): 8 params - v3 REORGANIZED
+    // DualFilter (7 params) + Heat (1 param)
+    addMeta.(168, \fx_fb_drive, 0.0, 1.0, 0.0);
+    addMeta.(169, \fx_fb_freq1, 20.0, 20000.0, 500.0);
+    addMeta.(170, \fx_fb_reso1, 0.0, 1.0, 0.5);
+    addMeta.(171, \fx_fb_freq2, 20.0, 20000.0, 2000.0);
+    addMeta.(172, \fx_fb_reso2, 0.0, 1.0, 0.5);
+    addMeta.(173, \fx_fb_syncAmt, 0.0, 1.0, 0.0);
+    addMeta.(174, \fx_fb_harmonics, 0.0, 7.0, 0.0);
+    addMeta.(175, \fx_heat_drive, 0.0, 1.0, 0.0);
 
     "Built metadata for % targets".format(~targetMetaByIndex.size).postln;
 };
@@ -129,9 +142,9 @@
 
 ~normalizeTargetIndex = { |x|
     case
-    { x.isInteger and: { (x >= 0) and: { x <= 148 } } } { x }
+    { x.isInteger and: { (x >= 0) and: { x <= 175 } } } { x }
     { ~boidInitialized and: { x.isInteger } and: {
-        (x >= ~unifiedBusBase) and: { x <= (~unifiedBusBase + 148) }
+        (x >= ~unifiedBusBase) and: { x <= (~unifiedBusBase + 175) }
     } } { x - ~unifiedBusBase }
     { nil }  // Invalid
 };
@@ -158,7 +171,7 @@
 
             // 2a: Handle pending clear flag
             if(~boidPendingClear) {
-                149.do { |i| ~boidOffsets[i] = 0.0 };
+                176.do { |i| ~boidOffsets[i] = 0.0 };
                 ~boidPendingOffsets.clear;
                 ~boidPendingClear = false;
             };
@@ -188,7 +201,7 @@
             ~boidPendingOffsets.clear;
 
             // Step 3: Repair canonical arrays (safety net)
-            149.do { |i|
+            176.do { |i|
                 var meta = ~targetMetaByIndex[i];
                 if(meta.notNil) {
                     if(~isFinite.(~baseValues[i]).not) {
@@ -202,8 +215,8 @@
                 };
             };
 
-            // Step 4: Compute and write all 149 buses
-            149.do { |i|
+            // Step 4: Compute and write all 176 buses
+            176.do { |i|
                 var meta = ~targetMetaByIndex[i];
                 if(meta.notNil) {
                     var base = ~baseValues[i];
@@ -276,8 +289,8 @@ OSCdef(\boidOffsets, { |msg|
             if(~boidInitialized) {
                 i = ~normalizeTargetIndex.(rawIndex);
             } {
-                // Before init, only accept 0-148 form
-                if(rawIndex.isInteger and: { (rawIndex >= 0) and: { rawIndex <= 148 } }) {
+                // Before init, only accept 0-175 form
+                if(rawIndex.isInteger and: { (rawIndex >= 0) and: { rawIndex <= 175 } }) {
                     i = rawIndex;
                 } { i = nil };
             };
@@ -311,7 +324,7 @@ OSCdef(\boidEnable, { |msg|
         } {
             // Disable - atomic: clear offsets + pending + set flag
             ~boidEnabled = false;
-            149.do { |i| ~boidOffsets[i] = 0.0 };
+            176.do { |i| ~boidOffsets[i] = 0.0 };
             ~boidPendingOffsets.clear;
             "Boids DISABLED (offsets cleared)".postln;
         };
@@ -326,7 +339,7 @@ OSCdef(\boidClear, { |msg|
         "Buffered boid clear command".postln;
     } {
         // Clear immediately
-        149.do { |i| ~boidOffsets[i] = 0.0 };
+        176.do { |i| ~boidOffsets[i] = 0.0 };
         ~boidPendingOffsets.clear;
         "Boid offsets CLEARED".postln;
         // Immediate apply
@@ -344,9 +357,9 @@ OSCdef(\boidClear, { |msg|
         "Already initialized - call ~shutdownUnifiedBoids first".postln;
     } {
         // Step 1: Allocate buses
-        ~unifiedBuses = Bus.control(s, 149);
+        ~unifiedBuses = Bus.control(s, 176);
         if(~unifiedBuses.isNil) {
-            "ERROR: Failed to allocate 149 control buses".postln;
+            "ERROR: Failed to allocate 176 control buses".postln;
         } {
             // Step 2: Derive base index
             ~unifiedBusBase = ~unifiedBuses.index;
@@ -355,11 +368,11 @@ OSCdef(\boidClear, { |msg|
             ~buildTargetMetadata.value;
 
             // Step 4: Initialize canonical arrays
-            ~baseValues = Array.fill(149, { |i|
+            ~baseValues = Array.fill(176, { |i|
                 var meta = ~targetMetaByIndex[i];
                 meta[\default].clip(meta[\min], meta[\max])
             });
-            ~boidOffsets = Array.fill(149, { 0.0 });
+            ~boidOffsets = Array.fill(176, { 0.0 });
 
             // Step 5: Initialize pending buffers
             ~boidPendingBase = Dictionary.new;
@@ -374,7 +387,7 @@ OSCdef(\boidClear, { |msg|
 
             // Step 7: Apply buffered pre-init commands
             if(~boidPendingClear) {
-                149.do { |i| ~boidOffsets[i] = 0.0 };
+                176.do { |i| ~boidOffsets[i] = 0.0 };
                 ~boidPendingClear = false;
             };
 
@@ -404,7 +417,7 @@ OSCdef(\boidClear, { |msg|
             }).play(SystemClock);
 
             "=== Unified Boid System Initialized ===".postln;
-            "  Bus count: %".format(149).postln;
+            "  Bus count: %".format(176).postln;
             "  Bus base: %".format(~unifiedBusBase).postln;
             "  Tick interval: %s".format(~applyIntervalSec).postln;
             "  Boids enabled: %".format(~boidEnabled).postln;
@@ -447,7 +460,7 @@ OSCdef(\boidClear, { |msg|
         initialized: ~boidInitialized,
         enabled: ~boidEnabled,
         busBase: ~unifiedBusBase,
-        busCount: 149,
+        busCount: 176,
         tickInterval: ~applyIntervalSec
     )
 };
@@ -480,8 +493,8 @@ OSCdef(\boidClear, { |msg|
 };
 
 ~dumpAllTargets = {
-    "=== All 149 Target Mappings ===".postln;
-    149.do { |i|
+    "=== All 176 Target Mappings ===".postln;
+    176.do { |i|
         var meta = ~targetMetaByIndex[i];
         "  [%] % : % - % (default %)".format(
             i.asString.padLeft(3),

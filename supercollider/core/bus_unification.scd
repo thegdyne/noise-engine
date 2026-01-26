@@ -1,39 +1,37 @@
 /*
-Bus Unification - Unified Parameter Control Architecture (v2 - 149 targets)
-Expands to include generator parameters alongside mod slots, channels, and FX.
+Bus Unification - Unified Parameter Control Architecture (v3 - 176 targets)
+UI Refresh expansion: adds 4-slot FX system with per-channel sends.
 
 Problem solved:
 - ext_mod cached base values at route creation, causing user knob changes to be overwritten
 - Now: UI writes to base, modulation adds to base, synths read combined value from bus
 
 Architecture:
-- 149 control buses allocated contiguously
+- 176 control buses allocated contiguously
 - Single-writer: only apply tick writes to target buses
 - Canonical base: one baseValue per target in ~modTargetState
 - Bus-only read: SynthDefs read covered params from In.kr(bus) only
 
-Bus Layout (149 total):
-| Index     | Count | Category      | Parameters                                      |
-|-----------|-------|---------------|------------------------------------------------|
-| 0-39      | 40    | Gen Core      | 8 slots x 5 params (freq, cutoff, res, atk, dec)|
-| 40-79     | 40    | Gen Custom    | 8 slots x 5 custom params (custom0-4)          |
-| 80-107    | 28    | Mod Slots     | 4 slots x 7 params (P0-P6)                     |
-| 108-131   | 24    | Channels      | 8 slots x 3 params (echo, verb, pan)           |
-| 132       | 1     | FX: Heat      | drive (mix excluded - manual only)             |
-| 133-138   | 6     | FX: Echo      | time, feedback, tone, wow, spring, verbSend    |
-| 139-141   | 3     | FX: Reverb    | size, decay, tone                              |
-| 142-148   | 7     | FX: DualFilter| drive, freq1, freq2, reso1, reso2, syncAmt, harmonics (mix excluded) |
+Bus Layout v3 (176 total - UI Refresh):
+| Index     | Count | Category       | Parameters                                       |
+|-----------|-------|----------------|--------------------------------------------------|
+| 0-39      | 40    | Gen Core       | 8 slots x 5 params (freq, cutoff, res, atk, dec) |
+| 40-79     | 40    | Gen Custom     | 8 slots x 5 custom params (custom0-4)            |
+| 80-107    | 28    | Mod Slots      | 4 slots x 7 params (P0-P6)                       |
+| 108-147   | 40    | Channels       | 8 slots x 5 params (fx1, fx2, fx3, fx4, pan)     |
+| 148-167   | 20    | FX Slots       | 4 slots x 5 params (p1, p2, p3, p4, return)      |
+| 168-175   | 8     | Master Inserts | DualFilter 7 params + Heat 1 param               |
 
 Mix controls (fx_heat_mix, fx_fb_mix) are NOT unified targets.
 They remain manual-only via dedicated OSC endpoints.
 */
 
 ~setupBusUnification = {
-    "Setting up Bus Unification (149 targets)...".postln;
+    "Setting up Bus Unification (176 targets - v3)...".postln;
 
     // === BUS ALLOCATION ===
     ~unifiedBusBase = 1000;
-    ~unifiedBusCount = 149;
+    ~unifiedBusCount = 176;
 
     // Pre-allocate control buses
     ~unifiedBuses = Bus.alloc(\control, s, ~unifiedBusCount);
@@ -133,23 +131,39 @@ They remain manual-only via dedicated OSC endpoints.
         };
     };
 
-    // === CHANNEL PARAMS (24 total: 8 channels x 3 params) ===
-    // Indices 108-131
+    // === CHANNEL PARAMS (40 total: 8 channels x 5 params) ===
+    // Indices 108-147 (v3 expansion: fx1, fx2, fx3, fx4, pan)
     8.do { |chanIdx|
         var chan = chanIdx + 1;
-        var baseIdx = ~unifiedBusBase + 108 + (chanIdx * 3);
+        var baseIdx = ~unifiedBusBase + 108 + (chanIdx * 5);
 
-        // echo
-        ~targetMeta[("chan_%_echo").format(chan).asSymbol] = (
+        // fx1 send (was echo)
+        ~targetMeta[("chan_%_fx1").format(chan).asSymbol] = (
             busIndex: baseIdx,
             min: 0.0,
             max: 1.0,
             default: 0.0,
             curve: \lin
         );
-        // verb
-        ~targetMeta[("chan_%_verb").format(chan).asSymbol] = (
+        // fx2 send (was verb)
+        ~targetMeta[("chan_%_fx2").format(chan).asSymbol] = (
             busIndex: baseIdx + 1,
+            min: 0.0,
+            max: 1.0,
+            default: 0.0,
+            curve: \lin
+        );
+        // fx3 send (new)
+        ~targetMeta[("chan_%_fx3").format(chan).asSymbol] = (
+            busIndex: baseIdx + 2,
+            min: 0.0,
+            max: 1.0,
+            default: 0.0,
+            curve: \lin
+        );
+        // fx4 send (new)
+        ~targetMeta[("chan_%_fx4").format(chan).asSymbol] = (
+            busIndex: baseIdx + 3,
             min: 0.0,
             max: 1.0,
             default: 0.0,
@@ -157,7 +171,7 @@ They remain manual-only via dedicated OSC endpoints.
         );
         // pan
         ~targetMeta[("chan_%_pan").format(chan).asSymbol] = (
-            busIndex: baseIdx + 2,
+            busIndex: baseIdx + 4,
             min: -1.0,
             max: 1.0,
             default: 0.0,
@@ -165,36 +179,70 @@ They remain manual-only via dedicated OSC endpoints.
         );
     };
 
-    // === FX: HEAT (1 bus - mix excluded) ===
-    // Index 132
-    ~targetMeta[\fx_heat_drive] = (busIndex: ~unifiedBusBase + 132, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
-    // fx_heat_mix is NOT a unified target - manual only
+    // === FX SLOTS (20 total: 4 slots x 5 params) ===
+    // Indices 148-167 (v3 new: p1, p2, p3, p4, return per slot)
+    4.do { |slotIdx|
+        var slot = slotIdx + 1;
+        var baseIdx = ~unifiedBusBase + 148 + (slotIdx * 5);
 
-    // === FX: ECHO (6 buses) ===
-    // Indices 133-138
-    ~targetMeta[\fx_echo_time] = (busIndex: ~unifiedBusBase + 133, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
-    ~targetMeta[\fx_echo_feedback] = (busIndex: ~unifiedBusBase + 134, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
-    ~targetMeta[\fx_echo_tone] = (busIndex: ~unifiedBusBase + 135, min: 0.0, max: 1.0, default: 0.7, curve: \lin);
-    ~targetMeta[\fx_echo_wow] = (busIndex: ~unifiedBusBase + 136, min: 0.0, max: 1.0, default: 0.1, curve: \lin);
-    ~targetMeta[\fx_echo_spring] = (busIndex: ~unifiedBusBase + 137, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
-    ~targetMeta[\fx_echo_verbSend] = (busIndex: ~unifiedBusBase + 138, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
+        // p1
+        ~targetMeta[("fx_slot%_p1").format(slot).asSymbol] = (
+            busIndex: baseIdx,
+            min: 0.0,
+            max: 1.0,
+            default: 0.5,
+            curve: \lin
+        );
+        // p2
+        ~targetMeta[("fx_slot%_p2").format(slot).asSymbol] = (
+            busIndex: baseIdx + 1,
+            min: 0.0,
+            max: 1.0,
+            default: 0.5,
+            curve: \lin
+        );
+        // p3
+        ~targetMeta[("fx_slot%_p3").format(slot).asSymbol] = (
+            busIndex: baseIdx + 2,
+            min: 0.0,
+            max: 1.0,
+            default: 0.5,
+            curve: \lin
+        );
+        // p4
+        ~targetMeta[("fx_slot%_p4").format(slot).asSymbol] = (
+            busIndex: baseIdx + 3,
+            min: 0.0,
+            max: 1.0,
+            default: 0.5,
+            curve: \lin
+        );
+        // return level
+        ~targetMeta[("fx_slot%_return").format(slot).asSymbol] = (
+            busIndex: baseIdx + 4,
+            min: 0.0,
+            max: 1.0,
+            default: 0.5,
+            curve: \lin
+        );
+    };
 
-    // === FX: REVERB (3 buses) ===
-    // Indices 139-141 - DO NOT CHANGE INDICES
-    ~targetMeta[\fx_verb_size] = (busIndex: ~unifiedBusBase + 139, min: 0.0, max: 1.0, default: 0.75, curve: \lin);
-    ~targetMeta[\fx_verb_decay] = (busIndex: ~unifiedBusBase + 140, min: 0.0, max: 1.0, default: 0.65, curve: \lin);
-    ~targetMeta[\fx_verb_tone] = (busIndex: ~unifiedBusBase + 141, min: 0.0, max: 1.0, default: 0.7, curve: \lin);
+    // === MASTER INSERTS (8 total: DualFilter 7 + Heat 1) ===
+    // Indices 168-175 (v3 reorganized)
 
-    // === FX: DUAL_FILTER (7 buses - mix excluded) ===
-    // Indices 142-148 - DO NOT CHANGE INDICES
-    ~targetMeta[\fx_fb_drive] = (busIndex: ~unifiedBusBase + 142, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
-    ~targetMeta[\fx_fb_freq1] = (busIndex: ~unifiedBusBase + 143, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
-    ~targetMeta[\fx_fb_freq2] = (busIndex: ~unifiedBusBase + 144, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
-    ~targetMeta[\fx_fb_reso1] = (busIndex: ~unifiedBusBase + 145, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
-    ~targetMeta[\fx_fb_reso2] = (busIndex: ~unifiedBusBase + 146, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
-    ~targetMeta[\fx_fb_syncAmt] = (busIndex: ~unifiedBusBase + 147, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
-    ~targetMeta[\fx_fb_harmonics] = (busIndex: ~unifiedBusBase + 148, min: 0.0, max: 7.0, default: 0.0, curve: \lin);
+    // DualFilter (7 params) - indices 168-174
+    ~targetMeta[\fx_fb_drive] = (busIndex: ~unifiedBusBase + 168, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
+    ~targetMeta[\fx_fb_freq1] = (busIndex: ~unifiedBusBase + 169, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
+    ~targetMeta[\fx_fb_reso1] = (busIndex: ~unifiedBusBase + 170, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
+    ~targetMeta[\fx_fb_freq2] = (busIndex: ~unifiedBusBase + 171, min: 0.0, max: 1.0, default: 0.6, curve: \lin);
+    ~targetMeta[\fx_fb_reso2] = (busIndex: ~unifiedBusBase + 172, min: 0.0, max: 1.0, default: 0.3, curve: \lin);
+    ~targetMeta[\fx_fb_syncAmt] = (busIndex: ~unifiedBusBase + 173, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
+    ~targetMeta[\fx_fb_harmonics] = (busIndex: ~unifiedBusBase + 174, min: 0.0, max: 7.0, default: 0.0, curve: \lin);
     // fx_fb_mix is NOT a unified target - manual only
+
+    // Heat (1 param) - index 175
+    ~targetMeta[\fx_heat_drive] = (busIndex: ~unifiedBusBase + 175, min: 0.0, max: 1.0, default: 0.0, curve: \lin);
+    // fx_heat_mix is NOT a unified target - manual only
 
     // === BUILD BUS REGISTRY ===
     ~targetMeta.keysValuesDo { |key, meta|
@@ -235,7 +283,7 @@ They remain manual-only via dedicated OSC endpoints.
     // NOTE: Scaling is now handled Python-side via config/boid_target_scales.json
     // SC receives pre-scaled offsets and applies them directly (offset * range)
     ~boidEnabled = false;
-    ~boidOffsets = Array.fill(149, { 0.0 });
+    ~boidOffsets = Array.fill(176, { 0.0 });
     ~activeBoidIndices = Set.new;  // Track which indices have non-zero offsets (for lazy computation)
 
     // === VERIFY BUS ALLOCATION ===
@@ -245,9 +293,9 @@ They remain manual-only via dedicated OSC endpoints.
         ~unifiedBusBase + ~unifiedBusCount - 1
     ).postln;
 
-    // Post sample of targets for verification
+    // Post sample of targets for verification (v3 layout)
     "  Sample targets:".postln;
-    [\gen_1_freq, \gen_1_cutoff, \gen_1_custom0, \mod_1_p0, \chan_1_echo, \fx_heat_drive, \fx_verb_size, \fx_fb_freq1].do { |key|
+    [\gen_1_freq, \gen_1_cutoff, \gen_1_custom0, \mod_1_p0, \chan_1_fx1, \chan_1_pan, \fx_slot1_p1, \fx_slot1_return, \fx_fb_drive, \fx_heat_drive].do { |key|
         var meta = ~targetMeta[key];
         if(meta.notNil, {
             "    %: bus=%, default=%, curve=%".format(key, meta.busIndex, meta.default, meta.curve).postln;
@@ -400,16 +448,16 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
                 }
                 { op == \disable } {
                     ~boidEnabled = false;
-                    ~boidOffsets = Array.fill(149, { 0.0 });
+                    ~boidOffsets = Array.fill(176, { 0.0 });
                     ~activeBoidIndices = Set.new;
                 }
                 { op == \setOffsets } {
-                    var newOffsets = Array.fill(149, { 0.0 });
+                    var newOffsets = Array.fill(176, { 0.0 });
                     var newActiveIndices = Set.new;
                     if(boidOp.offsets.notNil, {
                         boidOp.offsets.keysValuesDo { |busIndex, offset|
                             var idx = busIndex - ~unifiedBusBase;
-                            if((idx >= 0) && (idx < 149), {
+                            if((idx >= 0) && (idx < 176), {
                                 newOffsets[idx] = offset;
                                 newActiveIndices.add(idx);  // Track active index
                             });
@@ -565,4 +613,4 @@ Uses swap-at-drain-start pattern for deterministic cutoff:
     result;
 };
 
-"bus_unification.scd loaded (149 targets: 80 gen + 28 mod + 24 chan + 17 fx)".postln;
+"bus_unification.scd loaded (176 targets: 80 gen + 28 mod + 40 chan + 20 fx_slot + 8 master)".postln;

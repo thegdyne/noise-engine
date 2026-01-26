@@ -1169,21 +1169,42 @@ def get_mod_output_labels(name):
 
 
 # === UNIFIED BUS TARGET KEYS ===
-# Maps 1:1 with boid grid columns and unified bus indices (0-148)
+# Maps 1:1 with boid grid columns and unified bus indices (0-175)
 # Used for boid pulse visualization to map columns to UI widgets
+#
+# Layout v3 (176 total - UI Refresh expansion):
+# | Index     | Count | Category       | Parameters                                       |
+# |-----------|-------|----------------|--------------------------------------------------|
+# | 0-39      | 40    | Gen Core       | 8 slots x 5 params (freq, cutoff, res, atk, dec) |
+# | 40-79     | 40    | Gen Custom     | 8 slots x 5 custom params (custom0-4)            |
+# | 80-107    | 28    | Mod Slots      | 4 slots x 7 params (P0-P6)                       |
+# | 108-147   | 40    | Channels       | 8 slots x 5 params (fx1, fx2, fx3, fx4, pan)     |
+# | 148-167   | 20    | FX Slots       | 4 slots x 5 params (p1, p2, p3, p4, return)      |
+# | 168-175   | 8     | Master Inserts | DualFilter 7 params + Heat 1 param               |
 
 # Constants for building the target key list
 GENERATOR_SLOT_COUNT = 8
 CUSTOM_PARAM_COUNT = 5
 MOD_PARAMS_PER_SLOT = 7  # p0-p6
 CHANNEL_COUNT = 8
+CHANNEL_PARAMS_COUNT = 5  # fx1, fx2, fx3, fx4, pan (v3 expansion from 3)
+FX_SLOT_COUNT = 4
+FX_SLOT_PARAMS_COUNT = 5  # p1, p2, p3, p4, return
 
 def _build_unified_bus_target_keys() -> List[str]:
     """Build target key list from existing constants.
 
     Index == unified bus column == boid grid column.
+
+    v3 layout (176 targets) - UI Refresh expansion:
+    - Indices 0-107: UNCHANGED from v2 (gen_core, gen_custom, mod_slots)
+    - Indices 108-147: Channels expanded: 8 slots x 5 params (fx1-4 + pan)
+    - Indices 148-167: FX Slots: 4 slots x 5 params (p1-4 + return)
+    - Indices 168-175: Master inserts (fb 7 params + heat 1 param)
     """
     keys = []
+
+    # === INDICES 0-107: UNCHANGED FROM V2 ===
 
     # Gen core: slots 1-8, params freq/cutoff/res/attack/decay (indices 0-39)
     gen_params = [p['key'] for p in GENERATOR_PARAMS]  # frequency, cutoff, resonance, attack, decay
@@ -1201,28 +1222,46 @@ def _build_unified_bus_target_keys() -> List[str]:
         for i in range(MOD_PARAMS_PER_SLOT):
             keys.append(f"mod_{slot}_p{i}")
 
-    # Channels: 1-8, params echo/verb/pan (indices 108-131)
-    chan_params = ['echo', 'verb', 'pan']
+    # === INDICES 108-147: CHANNELS (v3 expansion) ===
+    # 8 channels x 5 params = 40 total
+    # New pattern: chan_N_fx1, chan_N_fx2, chan_N_fx3, chan_N_fx4, chan_N_pan
     for slot in range(1, CHANNEL_COUNT + 1):
-        for param in chan_params:
-            keys.append(f"chan_{slot}_{param}")
+        keys.append(f"chan_{slot}_fx1")
+        keys.append(f"chan_{slot}_fx2")
+        keys.append(f"chan_{slot}_fx3")
+        keys.append(f"chan_{slot}_fx4")
+        keys.append(f"chan_{slot}_pan")
 
-    # FX (indices 132-148) - must match SC bus_unification.scd order exactly
+    # === INDICES 148-167: FX SLOTS (v3 new) ===
+    # 4 slots x 5 params = 20 total
+    # Pattern: fx_slotN_p1, fx_slotN_p2, fx_slotN_p3, fx_slotN_p4, fx_slotN_return
+    for slot in range(1, FX_SLOT_COUNT + 1):
+        keys.append(f"fx_slot{slot}_p1")
+        keys.append(f"fx_slot{slot}_p2")
+        keys.append(f"fx_slot{slot}_p3")
+        keys.append(f"fx_slot{slot}_p4")
+        keys.append(f"fx_slot{slot}_return")
+
+    # === INDICES 168-175: MASTER INSERTS (v3 reorganized) ===
+    # DualFilter: 7 params (indices 168-174)
     keys.extend([
-        "fx_heat_drive",
-        "fx_echo_time", "fx_echo_feedback", "fx_echo_tone",
-        "fx_echo_wow", "fx_echo_spring", "fx_echo_verbSend",
-        "fx_verb_size", "fx_verb_decay", "fx_verb_tone",
-        "fx_fb_drive", "fx_fb_freq1", "fx_fb_freq2",
-        "fx_fb_reso1", "fx_fb_reso2", "fx_fb_syncAmt", "fx_fb_harmonics",
+        "fx_fb_drive",
+        "fx_fb_freq1",
+        "fx_fb_reso1",
+        "fx_fb_freq2",
+        "fx_fb_reso2",
+        "fx_fb_syncAmt",
+        "fx_fb_harmonics",
     ])
+    # Heat: 1 param (index 175)
+    keys.append("fx_heat_drive")
 
     return keys
 
 UNIFIED_BUS_TARGET_KEYS: List[str] = _build_unified_bus_target_keys()
 
-# Validate count matches expected unified bus count
-assert len(UNIFIED_BUS_TARGET_KEYS) == 149, f"Target key count mismatch: {len(UNIFIED_BUS_TARGET_KEYS)}, expected 149"
+# Validate count matches expected unified bus count (v3)
+assert len(UNIFIED_BUS_TARGET_KEYS) == 176, f"Target key count mismatch: {len(UNIFIED_BUS_TARGET_KEYS)}, expected 176"
 
 
 def get_target_key_for_col(col: int) -> Optional[str]:

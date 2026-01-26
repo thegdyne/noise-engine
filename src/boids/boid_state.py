@@ -56,8 +56,8 @@ class BoidState:
     # MOD zone OFF by default to avoid the UI overwrite issue
     zone_gen: bool = True    # Columns 0-79 (generator params)
     zone_mod: bool = False   # Columns 80-107 (mod slot params) - OFF by default!
-    zone_chan: bool = True   # Columns 108-131 (channel params)
-    zone_fx: bool = True     # Columns 132-148 (FX params)
+    zone_chan: bool = True   # Columns 108-147 (channel params - v3 expanded)
+    zone_fx: bool = True     # Columns 148-175 (FX slot + master insert params - v3)
 
     # Row filtering (which source rows boids can use)
     # Each slot has 4 outputs, so 16 total rows
@@ -138,6 +138,12 @@ class BoidState:
         Get list of (start, end) column ranges based on zone toggles.
 
         Returns list of tuples for enabled zones.
+
+        v3 layout (176 targets):
+        - gen: 0-79 (unchanged)
+        - mod: 80-107 (unchanged)
+        - chan: 108-147 (expanded from 108-131)
+        - fx: 148-175 (was 132-148, now fx_slots + master inserts)
         """
         ranges = []
         if self.zone_gen:
@@ -145,20 +151,27 @@ class BoidState:
         if self.zone_mod:
             ranges.append((80, 107))
         if self.zone_chan:
-            ranges.append((108, 131))
+            ranges.append((108, 147))
         if self.zone_fx:
-            ranges.append((132, 148))
+            ranges.append((148, 175))
         return ranges
 
     def is_column_allowed(self, col: int) -> bool:
-        """Check if a column is within an allowed zone."""
+        """Check if a column is within an allowed zone.
+
+        v3 layout (176 targets):
+        - gen: 0-79 (unchanged)
+        - mod: 80-107 (unchanged)
+        - chan: 108-147 (expanded)
+        - fx: 148-175 (fx_slots + master inserts)
+        """
         if self.zone_gen and 0 <= col <= 79:
             return True
         if self.zone_mod and 80 <= col <= 107:
             return True
-        if self.zone_chan and 108 <= col <= 131:
+        if self.zone_chan and 108 <= col <= 147:
             return True
-        if self.zone_fx and 132 <= col <= 148:
+        if self.zone_fx and 148 <= col <= 175:
             return True
         return False
 

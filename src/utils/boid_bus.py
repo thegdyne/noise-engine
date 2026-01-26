@@ -2,23 +2,24 @@
 Boid Bus Integration - Grid to Bus Mapping and OSC Protocol
 
 Implements the boid bus integration per GROUND spec:
-- Grid to bus mapping: columns 0-148 map directly to target indices 0-148
+- Grid to bus mapping: columns 0-175 map directly to target indices 0-175
 - Aggregation of boid contributions per target index
 - Deterministic downselection (max 100 entries)
 - Non-finite value filtering
 - Single-snapshot-per-tick OSC sending
 
-Target Layout (149 total):
-| Index     | Count | Category      | Parameters                                      |
-|-----------|-------|---------------|------------------------------------------------|
-| 0-39      | 40    | Gen Core      | 8 slots x 5 params (freq, cutoff, res, atk, dec)|
-| 40-79     | 40    | Gen Custom    | 8 slots x 5 custom params (custom0-4)          |
-| 80-107    | 28    | Mod Slots     | 4 slots x 7 params (P0-P6)                     |
-| 108-131   | 24    | Channels      | 8 slots x 3 params (echo, verb, pan)           |
-| 132-148   | 17    | FX            | Heat, Echo, Reverb, DualFilter (mix excluded)  |
+Target Layout v3 (176 total - UI Refresh expansion):
+| Index     | Count | Category       | Parameters                                       |
+|-----------|-------|----------------|--------------------------------------------------|
+| 0-39      | 40    | Gen Core       | 8 slots x 5 params (freq, cutoff, res, atk, dec) |
+| 40-79     | 40    | Gen Custom     | 8 slots x 5 custom params (custom0-4)            |
+| 80-107    | 28    | Mod Slots      | 4 slots x 7 params (P0-P6)                       |
+| 108-147   | 40    | Channels       | 8 slots x 5 params (fx1, fx2, fx3, fx4, pan)     |
+| 148-167   | 20    | FX Slots       | 4 slots x 5 params (p1, p2, p3, p4, return)      |
+| 168-175   | 8     | Master Inserts | DualFilter 7 params + Heat 1 param               |
 
 OSC Protocol:
-- Python sends target indices 0-148 directly (NOT absolute bus indices)
+- Python sends target indices 0-175 directly (NOT absolute bus indices)
 - SC handles the mapping to actual bus indices internally
 """
 
@@ -29,15 +30,17 @@ from src.config import OSC_PATHS
 from src.utils.boid_scales import get_boid_scales
 
 
-# Grid layout constants per spec (149 targets)
-GRID_TOTAL_COLUMNS = 149  # 0..148
+# Grid layout constants per spec v3 (176 targets)
+GRID_TOTAL_COLUMNS = 176  # 0..175
 
 # Column/target ranges (column == target index)
-GEN_CORE_COLS = (0, 39)       # 40 cols -> 8 slots x 5 core params
-GEN_CUSTOM_COLS = (40, 79)    # 40 cols -> 8 slots x 5 custom params
-MOD_SLOT_COLS = (80, 107)     # 28 cols -> 4 slots x 7 params
-CHANNEL_COLS = (108, 131)     # 24 cols -> 8 channels x 3 params
-FX_COLS = (132, 148)          # 17 cols -> FX params (mix excluded)
+# v3 layout - UI Refresh expansion
+GEN_CORE_COLS = (0, 39)       # 40 cols -> 8 slots x 5 core params (unchanged)
+GEN_CUSTOM_COLS = (40, 79)    # 40 cols -> 8 slots x 5 custom params (unchanged)
+MOD_SLOT_COLS = (80, 107)     # 28 cols -> 4 slots x 7 params (unchanged)
+CHANNEL_COLS = (108, 147)     # 40 cols -> 8 channels x 5 params (fx1-4 + pan)
+FX_SLOT_COLS = (148, 167)     # 20 cols -> 4 FX slots x 5 params (p1-4 + return)
+MASTER_INSERT_COLS = (168, 175)  # 8 cols -> DualFilter 7 + Heat 1
 
 # Protocol constraints
 MAX_OFFSET_PAIRS = 100
@@ -49,10 +52,10 @@ def grid_to_bus(row: int, col: int) -> int:
 
     Args:
         row: Grid row (0-15, validated but not used in mapping)
-        col: Grid column (0-148)
+        col: Grid column (0-175)
 
     Returns:
-        Target index (same as col, 0-148)
+        Target index (same as col, 0-175)
 
     Raises:
         ValueError: If row or col is out of valid range
@@ -61,14 +64,14 @@ def grid_to_bus(row: int, col: int) -> int:
     """
     if not (0 <= row <= 15):
         raise ValueError(f"row {row} out of range [0, 15]")
-    if not (0 <= col <= 148):
-        raise ValueError(f"col {col} out of range [0, 148]")
+    if not (0 <= col <= 175):
+        raise ValueError(f"col {col} out of range [0, 175]")
     return col
 
 
 def is_valid_target_index(target_index: int) -> bool:
-    """Check if target index is in the valid range (0-148)."""
-    return isinstance(target_index, int) and 0 <= target_index <= 148
+    """Check if target index is in the valid range (0-175)."""
+    return isinstance(target_index, int) and 0 <= target_index <= 175
 
 
 def is_finite(value: float) -> bool:
@@ -108,7 +111,7 @@ def aggregate_contributions(
             continue  # Drop invalid contributions silently
 
         # Defensive range check (should not happen if grid_to_bus is correct)
-        if not (0 <= target_index <= 148):
+        if not (0 <= target_index <= 175):
             continue
 
         if target_index in aggregated:
@@ -292,60 +295,77 @@ def target_index_to_key(target_index: int) -> Optional[str]:
     Convert target index to human-readable target key.
 
     Args:
-        target_index: Target index (0-148)
+        target_index: Target index (0-175)
 
     Returns:
-        Human-readable key like 'gen_1_freq', 'mod_2_p3', etc.
+        Human-readable key like 'gen_1_freq', 'mod_2_p3', 'chan_1_fx1', etc.
         Returns None if index is out of range.
 
     Useful for debugging and logging.
+
+    v3 layout (176 targets):
+    - 0-39: Gen core (unchanged)
+    - 40-79: Gen custom (unchanged)
+    - 80-107: Mod slots (unchanged)
+    - 108-147: Channels (expanded to 5 params: fx1, fx2, fx3, fx4, pan)
+    - 148-167: FX slots (new: 4 slots x 5 params)
+    - 168-175: Master inserts (DualFilter 7 + Heat 1)
     """
     if not is_valid_target_index(target_index):
         return None
 
-    # Gen core params (indices 0-39)
+    # Gen core params (indices 0-39) - UNCHANGED
     if 0 <= target_index < 40:
         slot = (target_index // 5) + 1
         param_idx = target_index % 5
         param_names = ['freq', 'cutoff', 'res', 'attack', 'decay']
         return f"gen_{slot}_{param_names[param_idx]}"
 
-    # Gen custom params (indices 40-79)
+    # Gen custom params (indices 40-79) - UNCHANGED
     elif 40 <= target_index < 80:
         local = target_index - 40
         slot = (local // 5) + 1
         custom_idx = local % 5
         return f"gen_{slot}_custom{custom_idx}"
 
-    # Mod slot params (indices 80-107)
+    # Mod slot params (indices 80-107) - UNCHANGED
     elif 80 <= target_index < 108:
         local = target_index - 80
         slot = (local // 7) + 1
         param = local % 7
         return f"mod_{slot}_p{param}"
 
-    # Channel params (indices 108-131)
-    elif 108 <= target_index < 132:
+    # Channel params (indices 108-147) - v3 EXPANDED to 5 params
+    elif 108 <= target_index < 148:
         local = target_index - 108
-        channel = (local // 3) + 1
-        param_idx = local % 3
-        param_names = ['echo', 'verb', 'pan']
+        channel = (local // 5) + 1
+        param_idx = local % 5
+        param_names = ['fx1', 'fx2', 'fx3', 'fx4', 'pan']
         return f"chan_{channel}_{param_names[param_idx]}"
 
-    # FX params (indices 132-148)
-    elif 132 <= target_index < 149:
-        fx_keys = [
-            'fx_heat_drive',  # 132
-            'fx_echo_time', 'fx_echo_feedback', 'fx_echo_tone',  # 133-135
-            'fx_echo_wow', 'fx_echo_spring', 'fx_echo_verbSend',  # 136-138
-            'fx_reverb_size', 'fx_reverb_decay', 'fx_reverb_tone',  # 139-141
-            'fx_dualFilter_drive', 'fx_dualFilter_freq1', 'fx_dualFilter_freq2',  # 142-144
-            'fx_dualFilter_reso1', 'fx_dualFilter_reso2', 'fx_dualFilter_syncAmt',  # 145-147
-            'fx_dualFilter_harmonics'  # 148
+    # FX slot params (indices 148-167) - v3 NEW
+    elif 148 <= target_index < 168:
+        local = target_index - 148
+        slot = (local // 5) + 1
+        param_idx = local % 5
+        param_names = ['p1', 'p2', 'p3', 'p4', 'return']
+        return f"fx_slot{slot}_{param_names[param_idx]}"
+
+    # Master insert params (indices 168-175) - v3 REORGANIZED
+    elif 168 <= target_index < 176:
+        master_keys = [
+            'fx_fb_drive',      # 168
+            'fx_fb_freq1',      # 169
+            'fx_fb_reso1',      # 170
+            'fx_fb_freq2',      # 171
+            'fx_fb_reso2',      # 172
+            'fx_fb_syncAmt',    # 173
+            'fx_fb_harmonics',  # 174
+            'fx_heat_drive',    # 175
         ]
-        idx = target_index - 132
-        if idx < len(fx_keys):
-            return fx_keys[idx]
+        idx = target_index - 168
+        if idx < len(master_keys):
+            return master_keys[idx]
 
     return None
 

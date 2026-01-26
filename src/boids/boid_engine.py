@@ -18,8 +18,8 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple, Optional, Callable
 
 
-# Grid layout per spec (149 columns matches unified bus layout)
-GRID_COLS = 149  # 0-148 (matches unified bus targets)
+# Grid layout per spec (176 columns matches unified bus layout v3)
+GRID_COLS = 176  # 0-175 (matches unified bus targets v3)
 GRID_ROWS = 16   # 0-15 (4 mod slots x 4 outputs)
 
 # Boid limits
