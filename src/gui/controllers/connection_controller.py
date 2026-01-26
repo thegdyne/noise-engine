@@ -68,6 +68,8 @@ class ConnectionController:
                 self.main.master_section.set_osc_bridge(self.main.osc)
                 self.main.inline_fx.set_osc_bridge(self.main.osc)
                 self.main.inline_fx.sync_state()
+                self.main.fx_grid.set_osc_bridge(self.main.osc)
+                self.main.fx_grid.sync_to_sc()
                 if self.main.fx_window:
                     self.main.fx_window.set_osc_bridge(self.main.osc)
                 self.main.connect_btn.setText("Disconnect")
@@ -137,6 +139,8 @@ class ConnectionController:
         self.main.master_section.set_osc_bridge(self.main.osc)
         self.main.inline_fx.set_osc_bridge(self.main.osc)
         self.main.inline_fx.sync_state()
+        self.main.fx_grid.set_osc_bridge(self.main.osc)
+        self.main.fx_grid.sync_to_sc()
         if self.main.fx_window:
             self.main.fx_window.set_osc_bridge(self.main.osc)
         self.main.connect_btn.setText("Disconnect")

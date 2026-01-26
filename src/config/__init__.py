@@ -1397,8 +1397,13 @@ OSC_PATHS = {
     'gen_strip_eq_base': '/noise/strip/eq',  # Per-channel EQ: /noise/strip/eq/{band}
     'gen_levels': '/noise/gen/levels',  # Per-channel level metering
     'gen_trim': '/noise/gen/trim',  # Per-channel loudness trim (from JSON config)
-    'strip_echo_send': '/noise/strip/echo/send',  # Per-channel echo send (0-1)
-    'strip_verb_send': '/noise/strip/verb/send',  # Per-channel verb send (0-1)
+    'strip_echo_send': '/noise/strip/echo/send',  # Per-channel echo send (0-1) - legacy alias
+    'strip_verb_send': '/noise/strip/verb/send',  # Per-channel verb send (0-1) - legacy alias
+    # UI Refresh: 4 FX send buses per channel
+    'strip_fx1_send': '/noise/strip/fx1/send',  # Per-channel FX1 send (0-1)
+    'strip_fx2_send': '/noise/strip/fx2/send',  # Per-channel FX2 send (0-1)
+    'strip_fx3_send': '/noise/strip/fx3/send',  # Per-channel FX3 send (0-1)
+    'strip_fx4_send': '/noise/strip/fx4/send',  # Per-channel FX4 send (0-1)
     'master_echo_return': '/noise/master/echo/return',  # Master echo return level
     'master_verb_return': '/noise/master/verb/return',  # Master verb return level
     # Heat (saturation)

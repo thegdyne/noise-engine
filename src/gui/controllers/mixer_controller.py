@@ -56,14 +56,35 @@ class MixerController:
         logger.debug(f"Gen {gen_id} EQ {band}: {value:.2f}", component="OSC")
         self.main._mark_dirty()
 
+    def on_generator_fx1_send(self, gen_id, value):
+        """Handle generator FX1 send change from mixer. value: 0-1."""
+        if self.main.osc_connected:
+            self.main.osc.client.send_message(OSC_PATHS['strip_fx1_send'], [gen_id, value])
+        logger.debug(f"Gen {gen_id} FX1 send: {value:.2f}", component="OSC")
+
+    def on_generator_fx2_send(self, gen_id, value):
+        """Handle generator FX2 send change from mixer. value: 0-1."""
+        if self.main.osc_connected:
+            self.main.osc.client.send_message(OSC_PATHS['strip_fx2_send'], [gen_id, value])
+        logger.debug(f"Gen {gen_id} FX2 send: {value:.2f}", component="OSC")
+
+    def on_generator_fx3_send(self, gen_id, value):
+        """Handle generator FX3 send change from mixer. value: 0-1."""
+        if self.main.osc_connected:
+            self.main.osc.client.send_message(OSC_PATHS['strip_fx3_send'], [gen_id, value])
+        logger.debug(f"Gen {gen_id} FX3 send: {value:.2f}", component="OSC")
+
+    def on_generator_fx4_send(self, gen_id, value):
+        """Handle generator FX4 send change from mixer. value: 0-1."""
+        if self.main.osc_connected:
+            self.main.osc.client.send_message(OSC_PATHS['strip_fx4_send'], [gen_id, value])
+        logger.debug(f"Gen {gen_id} FX4 send: {value:.2f}", component="OSC")
+
+    # Legacy aliases for backward compatibility
     def on_generator_echo_send(self, gen_id, value):
-        """Handle generator echo send change from mixer. value: 0-1."""
-        if self.main.osc_connected:
-            self.main.osc.client.send_message(OSC_PATHS['strip_echo_send'], [gen_id, value])
-        logger.debug(f"Gen {gen_id} echo send: {value:.2f}", component="OSC")
-    
+        """Handle generator echo send change (legacy - routes to FX1)."""
+        self.on_generator_fx1_send(gen_id, value)
+
     def on_generator_verb_send(self, gen_id, value):
-        """Handle generator verb send change from mixer. value: 0-1."""
-        if self.main.osc_connected:
-            self.main.osc.client.send_message(OSC_PATHS['strip_verb_send'], [gen_id, value])
-        logger.debug(f"Gen {gen_id} verb send: {value:.2f}", component="OSC")
+        """Handle generator verb send change (legacy - routes to FX2)."""
+        self.on_generator_fx2_send(gen_id, value)

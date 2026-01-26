@@ -16,6 +16,7 @@ from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
 from src.gui.master_section import MasterSection
 from src.gui.inline_fx_strip import InlineFXStrip
+from src.gui.fx_grid import FXGrid
 from src.gui.fx_window import FXWindow
 from src.gui.modulator_grid import ModulatorGrid
 from src.gui.bpm_display import BPMDisplay
@@ -37,7 +38,7 @@ from src.config import (
     BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
 )
 from src.utils.logger import logger
-from src.presets import PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState
+from src.presets import PresetState, SlotState, MixerState, ChannelState, MasterState, ModSourcesState, FXState, FXSlotsState
 from src.gui.controllers.preset_controller import PresetController
 from src.gui.controllers.midi_cc_controller import MidiCCController
 from src.gui.controllers.generator_controller import GeneratorController
@@ -302,8 +303,10 @@ class MainFrame(QMainWindow):
         self.mixer_panel.generator_gain_changed.connect(self.mixer.on_generator_gain_changed)
         self.mixer_panel.generator_pan_changed.connect(self.mixer.on_generator_pan_changed)
         self.mixer_panel.generator_eq_changed.connect(self.mixer.on_generator_eq_changed)
-        self.mixer_panel.generator_echo_send_changed.connect(self.mixer.on_generator_echo_send)
-        self.mixer_panel.generator_verb_send_changed.connect(self.mixer.on_generator_verb_send)
+        self.mixer_panel.generator_fx1_send_changed.connect(self.mixer.on_generator_fx1_send)
+        self.mixer_panel.generator_fx2_send_changed.connect(self.mixer.on_generator_fx2_send)
+        self.mixer_panel.generator_fx3_send_changed.connect(self.mixer.on_generator_fx3_send)
+        self.mixer_panel.generator_fx4_send_changed.connect(self.mixer.on_generator_fx4_send)
         content_layout.addWidget(self.mixer_panel, stretch=1)
         
         content_outer.addWidget(content_widget, stretch=1)
@@ -636,9 +639,14 @@ class MainFrame(QMainWindow):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
         
+        # FX Grid (4 configurable FX slots)
+        self.fx_grid = FXGrid()
+        layout.addWidget(self.fx_grid, stretch=2)
+
+        # Inline FX (master inserts: Heat, Dual Filter)
         self.inline_fx = InlineFXStrip()
         layout.addWidget(self.inline_fx, stretch=1)
-        
+
         return container
         
     def on_bpm_changed(self, bpm):

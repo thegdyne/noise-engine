@@ -13,7 +13,7 @@ from pathlib import Path
 from src.config import OSC_PATHS
 from src.presets import (
     PresetManager, PresetState, SlotState, MixerState,
-    ChannelState, MasterState, ModSourcesState, FXState
+    ChannelState, MasterState, ModSourcesState, FXState, FXSlotsState
 )
 from src.utils.logger import logger
 from src.gui.controllers.modulation_controller import _build_source_key, _build_target_key
@@ -109,6 +109,7 @@ class PresetController:
         mod_sources = ModSourcesState.from_dict(self.main.modulator_grid.get_state())
         mod_routing = self.main.mod_routing.to_dict()
         fx = self.main.fx_window.get_state() if self.main.fx_window else FXState()
+        fx_slots = FXSlotsState.from_dict(self.main.fx_grid.get_state()) if hasattr(self.main, 'fx_grid') else FXSlotsState()
         midi_mappings = self.main.cc_mapping_manager.to_dict()
         boids = self.main.boid.get_state_dict() if hasattr(self.main, 'boid') else {}
         current_pack = get_current_pack()
@@ -123,6 +124,7 @@ class PresetController:
             mod_sources=mod_sources,
             mod_routing=mod_routing,
             fx=fx,
+            fx_slots=fx_slots,
             midi_mappings=midi_mappings,
             boids=boids,
         )
@@ -207,6 +209,12 @@ class PresetController:
         if self.main.fx_window:
             self.main.fx_window.set_state(state.fx)
 
+        # Load FX slots state (UI Refresh Phase 6)
+        if hasattr(self.main, 'fx_grid') and hasattr(state, 'fx_slots'):
+            self.main.fx_grid.load_state(state.fx_slots.to_dict())
+            if self.main.osc_connected:
+                self.main.fx_grid.sync_to_sc()
+
         # Load boid state if present
         if state.boids and hasattr(self.main, 'boid'):
             self.main.boid.load_state_dict(state.boids)
@@ -260,6 +268,12 @@ class PresetController:
 
         if self.main.fx_window:
             self.main.fx_window.set_state(FXState())
+
+        # Reset FX grid to defaults (UI Refresh Phase 6)
+        if hasattr(self.main, 'fx_grid'):
+            self.main.fx_grid.load_state(FXSlotsState().to_dict())
+            if self.main.osc_connected:
+                self.main.fx_grid.sync_to_sc()
 
         self.main.pack_selector.set_pack("")
         self.main.preset_name.setText("Init")

@@ -4,6 +4,8 @@ Presets module - save/load patch state.
 
 from .preset_schema import (
     FXState,
+    FXSlotState,
+    FXSlotsState,
     MasterState,
     ModSourcesState,
     ModSlotState,
@@ -24,13 +26,15 @@ from .preset_manager import (
 
 __all__ = [
     "PresetState",
-    "SlotState", 
+    "SlotState",
     "ChannelState",
     "MixerState",
     "MasterState",
     "ModSourcesState",
     "ModSlotState",
     "FXState",
+    "FXSlotState",
+    "FXSlotsState",
     "validate_preset",
     "PRESET_VERSION",
     "PresetManager",
