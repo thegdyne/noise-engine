@@ -53,7 +53,7 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
                     });
 
                     // Send gate to Python for LED (after audio trigger)
-                    ~pythonAddr.sendMsg('/noise/midi/gate', slot);
+                    if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/midi/gate', slot); };
                 });
             });
         }, path);

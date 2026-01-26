@@ -99,7 +99,7 @@ OSC messages to Python:
         ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
             var midiChannel = chan + 1;
             ("CC: ch=" ++ midiChannel ++ " cc=" ++ num ++ " val=" ++ val).postln;  // Debug
-            ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val);
+            if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val); };
         });
         
         "  [x] MIDI handlers active".postln;
@@ -133,7 +133,7 @@ OSC messages to Python:
 
     ~midiCCFunc = MIDIFunc.cc({ |val, num, chan, src|
         var midiChannel = chan + 1;  // Convert 0-15 to 1-16
-        ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val);
+        if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/midi/cc', midiChannel, num, val); };
     });
 
     "  [x] MIDI handlers active (all devices)".postln;
@@ -163,7 +163,7 @@ OSC messages to Python:
             // Trigger envelope if generator exists
             if(~generators[slot].notNil, {
                 // Send gate to Python for LED
-                ~pythonAddr.sendMsg('/noise/midi/gate', slot);
+                if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/midi/gate', slot); };
                 
                 if(needsRetrig, {
                     // Continuous retrig mode - start fast triggering synth

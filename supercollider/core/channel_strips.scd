@@ -259,7 +259,7 @@ EQ: 3-band DJ isolator
 ~setupChannelMeterForward = {
     OSCdef(\channelMeterForward, { |msg|
         // msg format: ['/noise/gen/levels', node_id, reply_id, slotID, ampL, ampR]
-        ~pythonAddr.sendMsg('/noise/gen/levels', msg[3].asInteger, msg[4], msg[5]);
+        if(~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/gen/levels', msg[3].asInteger, msg[4], msg[5]); };
     }, '/noise/gen/levels');
     "  [x] Channel meter forwarding ready".postln;
 };
