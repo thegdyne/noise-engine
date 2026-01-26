@@ -14,9 +14,10 @@ from PyQt5.QtGui import QFont, QKeySequence, QColor
 
 from src.gui.generator_grid import GeneratorGrid
 from src.gui.mixer_panel import MixerPanel
-from src.gui.master_section import MasterSection
-# Phase 1: InlineFXStrip disabled - Heat/Filter moving to master_chain.py
-# from src.gui.inline_fx_strip import InlineFXStrip
+# Phase 2: MasterChain replaces MasterSection (adds Heat + Filter inserts)
+from src.gui.master_chain import MasterChain
+# from src.gui.master_section import MasterSection  # Now embedded in MasterChain
+# from src.gui.inline_fx_strip import InlineFXStrip  # Deprecated
 from src.gui.fx_grid import FXGrid
 from src.gui.fx_window import FXWindow
 from src.gui.modulator_grid import ModulatorGrid
@@ -329,8 +330,8 @@ class MainFrame(QMainWindow):
         bottom_section = self.create_bottom_section()
         bottom_layout.addWidget(bottom_section, stretch=2)
         
-        # Master section (right side)
-        self.master_section = MasterSection()
+        # Master chain (right side) - Heat → Filter → EQ → Comp → Limiter → Output
+        self.master_section = MasterChain()
         self.master_section.master_volume_changed.connect(self.master.on_master_volume_from_master)
         self.master_section.meter_mode_changed.connect(self.master.on_meter_mode_changed)
         self.master_section.limiter_ceiling_changed.connect(self.master.on_limiter_ceiling_changed)
