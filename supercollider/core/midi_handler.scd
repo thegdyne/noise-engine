@@ -149,13 +149,12 @@ OSC messages to Python:
         var genChannel = ~genMidiChannel[i];
         var isMuted = ~genMuted[i];
         var needsRetrig = ~genMidiRetrig[i];
-        
-        if(genChannel == midiChannel && isMuted.not, {
-            var transpose = ~genTranspose[i];
-            var freq = (note + transpose).midicps;
-            var amp = vel / 127.0;
-            var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
+        var transpose = ~genTranspose[i];
+        var freq = (note + transpose).midicps;
+        var amp = vel / 127.0;
+        var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
 
+        if(genChannel == midiChannel && isMuted.not, {
             // Set frequency from note via unified bus system
             if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
                 ~busRegistry[freqBusKey].set(freq);

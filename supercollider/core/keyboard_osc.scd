@@ -32,13 +32,13 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
             var amp = velocity / 127.0;
             var isMuted = ~genMuted[i];
             var needsRetrig = ~genMidiRetrig[i];
-            
+            var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
+
             if(isMuted.not, {
                 // Track this note
                 ~keyboardActiveNotes[i][note] = true;
 
                 // Set frequency from note via unified bus system
-                var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
                 if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
                     ~busRegistry[freqBusKey].set(freq);
                 });
