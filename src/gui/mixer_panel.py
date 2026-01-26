@@ -280,6 +280,8 @@ class ChannelStrip(QWidget):
                 self._mod_range_max = None
                 self._mod_current = None
                 self._mod_color = QColor('#00ff66')
+                # Boid glow state
+                self._boid_glow_intensity = 0.0
 
             def mouseDoubleClickEvent(self, event):
                 self.setValue(0)  # Center on double-click
@@ -317,6 +319,11 @@ class ChannelStrip(QWidget):
             def has_modulation(self) -> bool:
                 """Return True if modulation range is set."""
                 return self._mod_range_min is not None
+
+            def set_boid_glow(self, intensity: float):
+                """Set boid glow intensity (0.0-1.0)."""
+                self._boid_glow_intensity = intensity
+                self.update()
 
             def _get_main_frame(self):
                 widget = self.window()
@@ -377,6 +384,19 @@ class ChannelStrip(QWidget):
                     painter.setBrush(QColor('#FF00FF'))
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(self.width() - 6, 0, 4, 4)
+
+                # Draw boid glow
+                if self._boid_glow_intensity > 0:
+                    glow_color = QColor(COLORS['boid'])
+                    if self._boid_glow_intensity > 0.8:
+                        glow_color.setAlpha(255)
+                        pen_width = 3
+                    else:
+                        glow_color.setAlpha(int(self._boid_glow_intensity * 200))
+                        pen_width = 2
+                    painter.setPen(QPen(glow_color, pen_width))
+                    painter.setBrush(Qt.NoBrush)
+                    painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 3, 3)
 
                 painter.end()
 
