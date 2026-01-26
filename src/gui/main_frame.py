@@ -760,7 +760,9 @@ class MainFrame(QMainWindow):
 
         # Boid pulse visualization (glow on targeted widgets)
         self._boid_pulse_manager = BoidPulseManager(self)
-        self._boid_pulse_manager.build_registry()
+        # Defer build_registry until after window shown (widgets need to be in hierarchy)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(100, self._boid_pulse_manager.build_registry)
         self.boid.cells_updated.connect(self._boid_pulse_manager.on_cells_updated)
 
     def _on_boid_enabled_changed(self, enabled: bool):
