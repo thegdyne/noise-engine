@@ -64,15 +64,20 @@ SKIN = {
     'accent_effect': '#aa88ff',
     'accent_effect_dim': '#6644aa',
     'accent_effect_bg': '#1a1525',
-    
+
+    # FX Slots - Teal (distinct from generators/modulators)
+    'accent_fx_slot': '#44aaaa',
+    'accent_fx_slot_dim': '#2d7373',
+    'accent_fx_slot_bg': '#1a3333',
+
     # Turbo intensity colors
     'turbo_t1': '#ff8800',  # Orange - hot
     'turbo_t2': '#ff2200',  # Red - full send
-    
-    # Master - White/Silver
-    'accent_master': '#ffffff',
-    'accent_master_dim': '#aaaaaa',
-    'accent_master_bg': '#1a1a1a',
+
+    # Master Chain - Gold (authority, final stage)
+    'accent_master': '#ccaa44',
+    'accent_master_dim': '#8a7330',
+    'accent_master_bg': '#2a2618',
     
     # ==========================================================================
     # STATES - Interactive element states
