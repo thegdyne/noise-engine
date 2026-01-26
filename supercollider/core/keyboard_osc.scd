@@ -34,6 +34,9 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
             var needsRetrig = ~genMidiRetrig[i];
             var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
 
+            // DEBUG: Log note_on received
+            "KBD note_on: slot=%, note=%, freq=%, key=%".format(slot, note, freq, freqBusKey).postln;
+
             if(isMuted.not, {
                 // Track this note
                 ~keyboardActiveNotes[i][note] = true;
@@ -41,6 +44,9 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
                 // Set frequency from note via unified bus system
                 if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
                     ~busRegistry[freqBusKey].set(freq);
+                    "  -> bus set OK".postln;
+                }, {
+                    "  -> bus FAILED: registry=%, key=%".format(~busRegistry.notNil, ~busRegistry[freqBusKey].notNil).postln;
                 });
                 
                 // Trigger envelope if generator exists

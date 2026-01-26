@@ -382,3 +382,8 @@ def build_generator_slot_ui(slot):
         slider.setStyleSheet(slider_style())
     for slider in slot.custom_sliders:
         slider.setStyleSheet(slider_style())
+
+    # DEBUG: Print objectNames for boid glow verification (slot 1 only)
+    if slot.slot_id == 1:
+        names = [s.objectName() for s in slot.sliders.values()]
+        print(f"[GenSlot1] Slider objectNames: {names}")
