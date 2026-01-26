@@ -211,74 +211,50 @@ class ChannelStrip(QWidget):
         
         layout.addLayout(eq_layout)
         
-        # === FX Sends (4 slots) ===
-        sends_layout = QHBoxLayout()
+        # === FX Sends (4 slots in 2x2 grid) ===
+        sends_layout = QVBoxLayout()
         sends_layout.setSpacing(1)
         sends_layout.setContentsMargins(0, 2, 0, 2)
 
-        # FX1 send knob (was Echo)
-        fx1_container = QVBoxLayout()
-        fx1_container.setSpacing(0)
+        # Row 1: FX1, FX2
+        sends_row1 = QHBoxLayout()
+        sends_row1.setSpacing(1)
+
         self.fx1_send = MiniKnob()
         self.fx1_send.setObjectName(f"chan_{self.channel_id}_fx1")
-        self.fx1_send.setToolTip("FX1 Send (double-click reset)")
+        self.fx1_send.setToolTip("FX1 Send")
         self.fx1_send.setValue(0)
         self.fx1_send.valueChanged.connect(self._on_fx1_send_changed)
-        fx1_label = QLabel("1")
-        fx1_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        fx1_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        fx1_label.setAlignment(Qt.AlignCenter)
-        fx1_container.addWidget(self.fx1_send, alignment=Qt.AlignCenter)
-        fx1_container.addWidget(fx1_label)
-        sends_layout.addLayout(fx1_container)
+        sends_row1.addWidget(self.fx1_send)
 
-        # FX2 send knob (was Verb)
-        fx2_container = QVBoxLayout()
-        fx2_container.setSpacing(0)
         self.fx2_send = MiniKnob()
         self.fx2_send.setObjectName(f"chan_{self.channel_id}_fx2")
-        self.fx2_send.setToolTip("FX2 Send (double-click reset)")
+        self.fx2_send.setToolTip("FX2 Send")
         self.fx2_send.setValue(0)
         self.fx2_send.valueChanged.connect(self._on_fx2_send_changed)
-        fx2_label = QLabel("2")
-        fx2_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        fx2_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        fx2_label.setAlignment(Qt.AlignCenter)
-        fx2_container.addWidget(self.fx2_send, alignment=Qt.AlignCenter)
-        fx2_container.addWidget(fx2_label)
-        sends_layout.addLayout(fx2_container)
+        sends_row1.addWidget(self.fx2_send)
 
-        # FX3 send knob
-        fx3_container = QVBoxLayout()
-        fx3_container.setSpacing(0)
+        sends_layout.addLayout(sends_row1)
+
+        # Row 2: FX3, FX4
+        sends_row2 = QHBoxLayout()
+        sends_row2.setSpacing(1)
+
         self.fx3_send = MiniKnob()
         self.fx3_send.setObjectName(f"chan_{self.channel_id}_fx3")
-        self.fx3_send.setToolTip("FX3 Send (double-click reset)")
+        self.fx3_send.setToolTip("FX3 Send")
         self.fx3_send.setValue(0)
         self.fx3_send.valueChanged.connect(self._on_fx3_send_changed)
-        fx3_label = QLabel("3")
-        fx3_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        fx3_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        fx3_label.setAlignment(Qt.AlignCenter)
-        fx3_container.addWidget(self.fx3_send, alignment=Qt.AlignCenter)
-        fx3_container.addWidget(fx3_label)
-        sends_layout.addLayout(fx3_container)
+        sends_row2.addWidget(self.fx3_send)
 
-        # FX4 send knob
-        fx4_container = QVBoxLayout()
-        fx4_container.setSpacing(0)
         self.fx4_send = MiniKnob()
         self.fx4_send.setObjectName(f"chan_{self.channel_id}_fx4")
-        self.fx4_send.setToolTip("FX4 Send (double-click reset)")
+        self.fx4_send.setToolTip("FX4 Send")
         self.fx4_send.setValue(0)
         self.fx4_send.valueChanged.connect(self._on_fx4_send_changed)
-        fx4_label = QLabel("4")
-        fx4_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        fx4_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        fx4_label.setAlignment(Qt.AlignCenter)
-        fx4_container.addWidget(self.fx4_send, alignment=Qt.AlignCenter)
-        fx4_container.addWidget(fx4_label)
-        sends_layout.addLayout(fx4_container)
+        sends_row2.addWidget(self.fx4_send)
+
+        sends_layout.addLayout(sends_row2)
 
         # Legacy aliases
         self.echo_send = self.fx1_send
@@ -296,7 +272,7 @@ class ChannelStrip(QWidget):
         self.fader.setObjectName(f"mixer{self.channel_id}_fader")
         self.fader.setFixedWidth(SIZES['slider_width_narrow'])
         self.fader.setValue(800)
-        self.fader.setMinimumHeight(SIZES['slider_height_large'])
+        self.fader.setMinimumHeight(60)  # Reduced from 80 to accommodate 2x2 FX sends
         self.fader.valueChanged.connect(self.on_fader_changed)
         fader_meter_layout.addWidget(self.fader)  # No alignment - let it stretch
         
