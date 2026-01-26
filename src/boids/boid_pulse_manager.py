@@ -37,6 +37,7 @@ class BoidPulseManager:
         self._main = main_frame
         self._prev_cols: Set[int] = set()
         self._pulse_timestamps: Dict[int, float] = {}
+        self._pulse_base: Dict[int, float] = {}  # Depth-scaled intensity at entry
         self._last_intensity: Dict[int, float] = {}
         self._target_resolvers: Dict[int, Callable[[], Optional[QWidget]]] = {}
 
@@ -127,15 +128,18 @@ class BoidPulseManager:
 
         current_cols = set(col_intensity.keys())
 
-        # Detect entries → start pulse
+        # Detect entries → start pulse (scaled by depth)
         entered = current_cols - self._prev_cols
         for col in entered:
             self._pulse_timestamps[col] = now
+            # Store depth-scaled intensity as pulse base
+            self._pulse_base[col] = col_intensity.get(col, 1.0)
 
         # Clean up exited pulse timestamps
         exited = self._prev_cols - current_cols
         for col in exited:
             self._pulse_timestamps.pop(col, None)
+            self._pulse_base.pop(col, None)
 
         # Compute final intensities
         final_intensity: Dict[int, float] = {}
@@ -143,13 +147,15 @@ class BoidPulseManager:
         for col in current_cols | set(self._pulse_timestamps.keys()):
             glow = col_intensity.get(col, 0.0)
 
-            # Compute pulse decay
+            # Compute pulse decay (scaled by depth at entry)
             pulse = 0.0
             if col in self._pulse_timestamps:
                 elapsed = now - self._pulse_timestamps[col]
-                pulse = max(0.0, 1.0 - elapsed / PULSE_DURATION)
+                base = self._pulse_base.get(col, 1.0)
+                pulse = max(0.0, base * (1.0 - elapsed / PULSE_DURATION))
                 if pulse <= 0:
                     del self._pulse_timestamps[col]
+                    self._pulse_base.pop(col, None)
 
             final_intensity[col] = max(glow, pulse)
 
