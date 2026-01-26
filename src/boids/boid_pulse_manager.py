@@ -176,4 +176,59 @@ class BoidPulseManager:
             return
         widget = resolver()
         if widget and hasattr(widget, 'set_boid_glow'):
-            widget.set_boid_glow(intensity)
+            muted = self._is_target_muted(col)
+            widget.set_boid_glow(intensity, muted)
+
+    def _is_target_muted(self, col: int) -> bool:
+        """Check if target at column is muted/empty/bypassed."""
+        if col >= len(UNIFIED_BUS_TARGET_KEYS):
+            return False
+
+        target_key = UNIFIED_BUS_TARGET_KEYS[col]
+        info = parse_target_key(target_key)
+        if not info:
+            return False
+
+        zone = info['zone']
+        slot = info.get('slot')
+
+        if zone in ('gen_core', 'gen_custom'):
+            # Generator: empty or muted
+            grid = getattr(self._main, 'generator_grid', None)
+            if grid:
+                slot_widget = grid.get_slot(slot)
+                if slot_widget:
+                    if getattr(slot_widget, 'generator_type', None) == 'Empty':
+                        return True
+                    if getattr(slot_widget, 'muted', False):
+                        return True
+        elif zone == 'mod':
+            # Modulator: empty
+            grid = getattr(self._main, 'modulator_grid', None)
+            if grid:
+                slot_widget = grid.get_slot(slot)
+                if slot_widget:
+                    if getattr(slot_widget, 'generator_name', None) == 'Empty':
+                        return True
+        elif zone == 'chan':
+            # Channel: muted
+            mixer = getattr(self._main, 'mixer_panel', None)
+            if mixer:
+                channel = mixer.get_channel(slot)
+                if channel and getattr(channel, 'muted', False):
+                    return True
+        elif zone == 'fx':
+            # FX: bypassed
+            inline_fx = getattr(self._main, 'inline_fx', None)
+            if inline_fx:
+                param = info['param']
+                # Check which module and if bypassed
+                if param.startswith('heat_'):
+                    if getattr(inline_fx.heat, 'bypassed', False):
+                        return True
+                elif param.startswith('fb_'):
+                    if getattr(inline_fx.filter, 'bypassed', False):
+                        return True
+                # echo and reverb are send effects, no bypass
+
+        return False

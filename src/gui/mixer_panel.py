@@ -282,6 +282,7 @@ class ChannelStrip(QWidget):
                 self._mod_color = QColor('#00ff66')
                 # Boid glow state
                 self._boid_glow_intensity = 0.0
+                self._boid_glow_muted = False
 
             def mouseDoubleClickEvent(self, event):
                 self.setValue(0)  # Center on double-click
@@ -320,9 +321,10 @@ class ChannelStrip(QWidget):
                 """Return True if modulation range is set."""
                 return self._mod_range_min is not None
 
-            def set_boid_glow(self, intensity: float):
-                """Set boid glow intensity (0.0-1.0)."""
+            def set_boid_glow(self, intensity: float, muted: bool = False):
+                """Set boid glow intensity (0.0-1.0) and muted state."""
                 self._boid_glow_intensity = intensity
+                self._boid_glow_muted = muted
                 self.update()
 
             def _get_main_frame(self):
@@ -387,12 +389,14 @@ class ChannelStrip(QWidget):
 
                 # Draw boid glow
                 if self._boid_glow_intensity > 0:
-                    glow_color = QColor(COLORS['boid'])
+                    # Gray for muted, purple for active
+                    glow_color = QColor('#666666') if self._boid_glow_muted else QColor(COLORS['boid'])
                     if self._boid_glow_intensity > 0.8:
-                        glow_color.setAlpha(255)
+                        glow_color.setAlpha(255 if not self._boid_glow_muted else 180)
                         pen_width = 3
                     else:
-                        glow_color.setAlpha(int(self._boid_glow_intensity * 200))
+                        alpha = int(self._boid_glow_intensity * (150 if self._boid_glow_muted else 200))
+                        glow_color.setAlpha(alpha)
                         pen_width = 2
                     painter.setPen(QPen(glow_color, pen_width))
                     painter.setBrush(Qt.NoBrush)

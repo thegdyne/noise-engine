@@ -47,7 +47,7 @@ class ValuePopup(QLabel):
         self.hide()
 
 
-def draw_boid_glow(painter: QPainter, rect, intensity: float) -> None:
+def draw_boid_glow(painter: QPainter, rect, intensity: float, muted: bool = False) -> None:
     """
     Draw boid glow border around a widget.
 
@@ -55,19 +55,21 @@ def draw_boid_glow(painter: QPainter, rect, intensity: float) -> None:
         painter: Active QPainter
         rect: Widget rect (QRect)
         intensity: 0.0-1.0 (>0.8 = pulse, ≤0.8 = glow)
+        muted: If True, use gray instead of purple (for empty/muted targets)
     """
     if intensity <= 0:
         return
 
-    glow_color = QColor(COLORS['boid'])
+    # Gray for muted/empty, purple for active
+    glow_color = QColor('#666666') if muted else QColor(COLORS['boid'])
 
     if intensity > 0.8:
         # Pulse: bright, thicker
-        glow_color.setAlpha(255)
+        glow_color.setAlpha(255 if not muted else 180)
         pen_width = 3
     else:
         # Glow: proportional alpha
-        glow_color.setAlpha(int(intensity * 200))
+        glow_color.setAlpha(int(intensity * (150 if muted else 200)))
         pen_width = 2
 
     painter.save()
@@ -131,10 +133,12 @@ class DragSlider(QSlider):
 
         # Boid glow visualization
         self._boid_glow_intensity = 0.0
+        self._boid_glow_muted = False
 
-    def set_boid_glow(self, intensity: float) -> None:
-        """Set boid glow intensity (0.0-1.0)."""
+    def set_boid_glow(self, intensity: float, muted: bool = False) -> None:
+        """Set boid glow intensity (0.0-1.0) and muted state."""
         self._boid_glow_intensity = max(0.0, min(1.0, intensity))
+        self._boid_glow_muted = muted
         self.update()
 
     def set_modulation_range(self, min_norm: float, max_norm: float, 
@@ -218,7 +222,7 @@ class DragSlider(QSlider):
         if self._boid_glow_intensity > 0:
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
-            draw_boid_glow(painter, self.rect(), self._boid_glow_intensity)
+            draw_boid_glow(painter, self.rect(), self._boid_glow_intensity, self._boid_glow_muted)
             painter.end()
 
         # Skip modulation overlay if disabled
@@ -963,6 +967,7 @@ class MiniKnob(QWidget):
 
         # Boid glow visualization
         self._boid_glow_intensity = 0.0
+        self._boid_glow_muted = False
 
         # Fixed size for compact channel strips
         self.setFixedSize(18, 18)
@@ -1015,9 +1020,10 @@ class MiniKnob(QWidget):
         """Return True if modulation range is set."""
         return self._mod_range_min is not None
 
-    def set_boid_glow(self, intensity: float) -> None:
-        """Set boid glow intensity (0.0-1.0)."""
+    def set_boid_glow(self, intensity: float, muted: bool = False) -> None:
+        """Set boid glow intensity (0.0-1.0) and muted state."""
         self._boid_glow_intensity = max(0.0, min(1.0, intensity))
+        self._boid_glow_muted = muted
         self.update()
 
     def paintEvent(self, event):
@@ -1031,7 +1037,7 @@ class MiniKnob(QWidget):
 
         # Draw boid glow first (behind knob)
         if self._boid_glow_intensity > 0:
-            draw_boid_glow(painter, self.rect(), self._boid_glow_intensity)
+            draw_boid_glow(painter, self.rect(), self._boid_glow_intensity, self._boid_glow_muted)
 
         # Knob area (slightly inset)
         rect = QRectF(2, 2, self.width() - 4, self.height() - 4)
