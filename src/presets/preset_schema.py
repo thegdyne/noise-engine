@@ -117,9 +117,9 @@ class SlotState:
         )
 
 
-@dataclass 
+@dataclass
 class ChannelState:
-    """Channel strip state - Phase 1 expanded."""
+    """Channel strip state - Phase 1 expanded, UI Refresh Phase 6 updated."""
     # Existing
     volume: float = 0.8
     pan: float = 0.5
@@ -130,11 +130,14 @@ class ChannelState:
     eq_mid: int = 100   # 0-200, 100 = 0dB
     eq_lo: int = 100    # 0-200, 100 = 0dB
     gain: int = 0       # Index: 0=0dB, 1=+6dB, 2=+12dB
-    echo_send: int = 0  # 0-200
-    verb_send: int = 0  # 0-200
+    # UI Refresh: 4 FX sends (replacing echo_send/verb_send)
+    fx1_send: int = 0   # 0-200 (was echo_send)
+    fx2_send: int = 0   # 0-200 (was verb_send)
+    fx3_send: int = 0   # 0-200
+    fx4_send: int = 0   # 0-200
     lo_cut: bool = False
     hi_cut: bool = False
-    
+
     def to_dict(self) -> dict:
         return {
             "volume": self.volume,
@@ -145,14 +148,19 @@ class ChannelState:
             "eq_mid": self.eq_mid,
             "eq_lo": self.eq_lo,
             "gain": self.gain,
-            "echo_send": self.echo_send,
-            "verb_send": self.verb_send,
+            "fx1_send": self.fx1_send,
+            "fx2_send": self.fx2_send,
+            "fx3_send": self.fx3_send,
+            "fx4_send": self.fx4_send,
             "lo_cut": self.lo_cut,
             "hi_cut": self.hi_cut,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "ChannelState":
+        # Backward compatibility: migrate echo_send/verb_send to fx1_send/fx2_send
+        fx1 = data.get("fx1_send", data.get("echo_send", 0))
+        fx2 = data.get("fx2_send", data.get("verb_send", 0))
         return cls(
             volume=data.get("volume", 0.8),
             pan=data.get("pan", 0.5),
@@ -162,8 +170,10 @@ class ChannelState:
             eq_mid=data.get("eq_mid", 100),
             eq_lo=data.get("eq_lo", 100),
             gain=data.get("gain", 0),
-            echo_send=data.get("echo_send", 0),
-            verb_send=data.get("verb_send", 0),
+            fx1_send=fx1,
+            fx2_send=fx2,
+            fx3_send=data.get("fx3_send", 0),
+            fx4_send=data.get("fx4_send", 0),
             lo_cut=data.get("lo_cut", False),
             hi_cut=data.get("hi_cut", False),
         )
@@ -608,11 +618,77 @@ class DualFilterState:
 
 
 @dataclass
+class FXSlotState:
+    """State for a single configurable FX slot (UI Refresh Phase 6)."""
+    fx_type: str = 'Empty'  # 'Empty', 'Echo', 'Reverb', 'Chorus', 'LoFi'
+    bypassed: bool = False
+    p1: float = 0.5  # Normalized 0-1
+    p2: float = 0.5
+    p3: float = 0.5
+    p4: float = 0.5
+    return_level: float = 0.5  # Return/wet level
+
+    def to_dict(self) -> dict:
+        return {
+            "fx_type": self.fx_type,
+            "bypassed": self.bypassed,
+            "p1": self.p1,
+            "p2": self.p2,
+            "p3": self.p3,
+            "p4": self.p4,
+            "return_level": self.return_level,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FXSlotState":
+        return cls(
+            fx_type=data.get("fx_type", "Empty"),
+            bypassed=data.get("bypassed", False),
+            p1=data.get("p1", 0.5),
+            p2=data.get("p2", 0.5),
+            p3=data.get("p3", 0.5),
+            p4=data.get("p4", 0.5),
+            return_level=data.get("return_level", 0.5),
+        )
+
+
+# Default FX types for slots 1-4 (matches FX_SLOT_DEFAULT_TYPES in config)
+FX_SLOT_DEFAULT_TYPES_PRESET = ['Echo', 'Reverb', 'Chorus', 'LoFi']
+
+
+@dataclass
+class FXSlotsState:
+    """State for all 4 configurable FX slots (UI Refresh Phase 6)."""
+    slots: list = field(default_factory=lambda: [
+        FXSlotState(fx_type='Echo', p1=0.3, p2=0.3, p3=0.7, p4=0.1),
+        FXSlotState(fx_type='Reverb', p1=0.75, p2=0.65, p3=0.7, p4=0.5),
+        FXSlotState(fx_type='Chorus', p1=0.5, p2=0.5, p3=0.5, p4=0.5),
+        FXSlotState(fx_type='LoFi', p1=0.5, p2=0.5, p3=0.5, p4=0.5),
+    ])
+
+    def to_dict(self) -> dict:
+        return {
+            "slots": [slot.to_dict() for slot in self.slots]
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FXSlotsState":
+        slots_data = data.get("slots", [])
+        slots = [FXSlotState.from_dict(s) for s in slots_data]
+        # Pad with defaults if missing
+        while len(slots) < 4:
+            idx = len(slots)
+            default_type = FX_SLOT_DEFAULT_TYPES_PRESET[idx] if idx < len(FX_SLOT_DEFAULT_TYPES_PRESET) else 'Empty'
+            slots.append(FXSlotState(fx_type=default_type))
+        return cls(slots=slots[:4])
+
+
+@dataclass
 class FXState:
-    """Master FX state - Phase 5."""
+    """Master FX state - Phase 5 + UI Refresh Phase 6."""
     heat: HeatState = field(default_factory=HeatState)
-    echo: EchoState = field(default_factory=EchoState)
-    reverb: ReverbState = field(default_factory=ReverbState)
+    echo: EchoState = field(default_factory=EchoState)  # Legacy - for old presets
+    reverb: ReverbState = field(default_factory=ReverbState)  # Legacy - for old presets
     dual_filter: DualFilterState = field(default_factory=DualFilterState)
     
     def to_dict(self) -> dict:
@@ -651,6 +727,8 @@ class PresetState:
     mod_routing: dict = field(default_factory=lambda: {"connections": []})
     # Phase 5 additions
     fx: FXState = field(default_factory=FXState)
+    # UI Refresh Phase 6: Configurable FX slots
+    fx_slots: FXSlotsState = field(default_factory=FXSlotsState)
     midi_mappings: dict = field(default_factory=dict)  # Optional MIDI CC mappings
     # Boid modulation state
     boids: dict = field(default_factory=dict)  # BoidState.to_dict() or empty
@@ -674,6 +752,7 @@ class PresetState:
             "mod_sources": self.mod_sources.to_dict(),
             "mod_routing": self.mod_routing,
             "fx": self.fx.to_dict(),
+            "fx_slots": self.fx_slots.to_dict(),
             "midi_mappings": self.midi_mappings,
             "boids": self.boids,
             # R1.1 metadata
@@ -714,6 +793,7 @@ class PresetState:
             mod_sources=ModSourcesState.from_dict(data.get("mod_sources", {})),
             mod_routing=data.get("mod_routing", {"connections": []}),
             fx=FXState.from_dict(data.get("fx", {})),
+            fx_slots=FXSlotsState.from_dict(data.get("fx_slots", {})),
             midi_mappings=data.get("midi_mappings", {}),
             boids=data.get("boids", {}),
             # R1.1 metadata
@@ -810,7 +890,13 @@ def validate_preset(data: dict, strict: bool = False) -> tuple:
     fx_errors, fx_warnings = _validate_fx(fx, strict)
     errors.extend(fx_errors)
     warnings.extend(fx_warnings)
-    
+
+    # FX Slots validation (UI Refresh Phase 6)
+    fx_slots = data.get("fx_slots", {})
+    fx_slots_errors, fx_slots_warnings = _validate_fx_slots(fx_slots, strict)
+    errors.extend(fx_slots_errors)
+    warnings.extend(fx_slots_warnings)
+
     is_valid = len(errors) == 0
     
     if strict and not is_valid:
@@ -952,7 +1038,17 @@ def _validate_channel(channel: dict, prefix: str, strict: bool = False) -> tuple
             errors.append(f"{prefix}.{key} must be bool, got {type(val).__name__}")
     
     # EQ values (0-200)
-    for key in ["eq_hi", "eq_mid", "eq_lo", "echo_send", "verb_send"]:
+    for key in ["eq_hi", "eq_mid", "eq_lo"]:
+        val = channel.get(key)
+        if val is not None:
+            val, warning = _coerce_int(val, f"{prefix}.{key}")
+            if warning:
+                warnings.append(warning)
+            if val is not None and not (0 <= val <= 200):
+                errors.append(f"{prefix}.{key} must be 0-200, got {val}")
+
+    # FX sends (0-200) - new fx1-4 or legacy echo/verb
+    for key in ["fx1_send", "fx2_send", "fx3_send", "fx4_send", "echo_send", "verb_send"]:
         val = channel.get(key)
         if val is not None:
             val, warning = _coerce_int(val, f"{prefix}.{key}")
@@ -1359,6 +1455,65 @@ def _validate_fx(fx: dict, strict: bool = False) -> tuple:
             if routing is not None and not (0 <= routing < ROUTING_OPTIONS):
                 errors.append(f"fx.dual_filter.routing must be 0-{ROUTING_OPTIONS-1}, got {routing}")
     
+    return errors, warnings
+
+
+def _validate_fx_slots(fx_slots: dict, strict: bool = False) -> tuple:
+    """Validate FX slots state (UI Refresh Phase 6)."""
+    errors = []
+    warnings = []
+
+    # FX slots are optional for backward compatibility
+    if fx_slots is None:
+        return errors, warnings
+    if not isinstance(fx_slots, dict):
+        msg = f"fx_slots must be dict, got {type(fx_slots).__name__}"
+        (errors if strict else warnings).append(msg)
+        return errors, warnings
+
+    slots = fx_slots.get("slots", [])
+    if not isinstance(slots, list):
+        errors.append("fx_slots.slots must be list")
+        return errors, warnings
+
+    if len(slots) != 4:
+        if strict:
+            errors.append(f"fx_slots.slots must have exactly 4 items, got {len(slots)}")
+        else:
+            warnings.append(f"fx_slots.slots has {len(slots)} items, expected 4")
+
+    # Valid FX slot types
+    valid_types = ['Empty', 'Echo', 'Reverb', 'Chorus', 'LoFi']
+
+    for i, slot in enumerate(slots[:4]):
+        if not isinstance(slot, dict):
+            errors.append(f"fx_slots.slots[{i}] must be dict")
+            continue
+
+        prefix = f"fx_slots.slots[{i}]"
+
+        # fx_type must be valid string
+        fx_type = slot.get("fx_type", "Empty")
+        if not isinstance(fx_type, str):
+            errors.append(f"{prefix}.fx_type must be string")
+        elif fx_type not in valid_types:
+            warnings.append(f"{prefix}.fx_type '{fx_type}' not in known types")
+
+        # bypassed must be bool
+        bypassed = slot.get("bypassed")
+        if bypassed is not None and not isinstance(bypassed, bool):
+            errors.append(f"{prefix}.bypassed must be bool")
+
+        # p1-p4 and return_level must be 0-1
+        for key in ["p1", "p2", "p3", "p4", "return_level"]:
+            val = slot.get(key)
+            if val is not None:
+                val, warning = _coerce_float(val, f"{prefix}.{key}")
+                if warning:
+                    warnings.append(warning)
+                if val is not None and not (0.0 <= val <= 1.0):
+                    errors.append(f"{prefix}.{key} must be 0-1, got {val}")
+
     return errors, warnings
 
 
