@@ -486,3 +486,29 @@ class GeneratorSlot(QWidget):
     def _gate_off(self):
         """Turn off gate LED after flash."""
         self.gate_led.setStyleSheet(gate_indicator_style(False))
+
+    def get_param_widget(self, param: str):
+        """
+        Return slider widget for param (for boid pulse visualization).
+
+        Args:
+            param: 'frequency', 'cutoff', 'resonance', 'attack', 'decay',
+                   or 'custom0'-'custom4'
+
+        Returns:
+            Widget with set_boid_glow() method, or None
+        """
+        # Core params
+        if param in self.sliders:
+            return self.sliders[param]
+
+        # Custom params (custom0, custom1, etc.)
+        if param.startswith('custom'):
+            try:
+                idx = int(param.replace('custom', ''))
+                if 0 <= idx < len(self.custom_sliders):
+                    return self.custom_sliders[idx]
+            except ValueError:
+                pass
+
+        return None

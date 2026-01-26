@@ -160,6 +160,9 @@ COLORS = {
     'meter_normal': get('meter_normal'),
     'meter_warn': get('meter_warn'),
     'meter_clip': get('meter_clip'),
+
+    # Boid visualization
+    'boid': '#cc66ff',
 }
 
 # Component-specific overrides (for future use)

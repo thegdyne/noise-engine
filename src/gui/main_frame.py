@@ -49,6 +49,7 @@ from src.gui.controllers.midi_mode_controller import MidiModeController
 from src.gui.controllers.keyboard_controller import KeyboardController
 from src.gui.boid_panel import BoidPanel
 from src.boids import BoidController
+from src.boids.boid_pulse_manager import BoidPulseManager
 from src.utils.boid_gen_router import BoidGenRouter
 
 class MainFrame(QMainWindow):
@@ -748,6 +749,11 @@ class MainFrame(QMainWindow):
         self.boid.cells_updated.connect(self.boid_panel.set_cells)
         self.boid.seed_changed.connect(self.boid_panel.set_seed)
         self.boid.enabled_changed.connect(self.boid_panel.set_enabled)
+
+        # Boid pulse visualization (glow on targeted widgets)
+        self._boid_pulse_manager = BoidPulseManager(self)
+        self._boid_pulse_manager.build_registry()
+        self.boid.cells_updated.connect(self._boid_pulse_manager.on_cells_updated)
 
     def _on_boid_enabled_changed(self, enabled: bool):
         """Handle boid enable/disable from panel."""

@@ -6,6 +6,7 @@ All constants, mappings, and settings in one place
 import math
 import json
 import os
+from typing import List, Optional, Dict
 
 # === GENERATOR PARAMETERS ===
 # Single source of truth for STANDARD generator parameters (shared by all)
@@ -1165,6 +1166,121 @@ def get_mod_output_labels(name):
         List of 3 strings, e.g. ['A', 'B', 'C'] or ['X', 'Y', 'Z']
     """
     return MOD_OUTPUT_LABELS.get(name, ["A", "B", "C"])
+
+
+# === UNIFIED BUS TARGET KEYS ===
+# Maps 1:1 with boid grid columns and unified bus indices (0-148)
+# Used for boid pulse visualization to map columns to UI widgets
+
+# Constants for building the target key list
+GENERATOR_SLOT_COUNT = 8
+CUSTOM_PARAM_COUNT = 5
+MOD_PARAMS_PER_SLOT = 7  # p0-p6
+CHANNEL_COUNT = 8
+
+def _build_unified_bus_target_keys() -> List[str]:
+    """Build target key list from existing constants.
+
+    Index == unified bus column == boid grid column.
+    """
+    keys = []
+
+    # Gen core: slots 1-8, params freq/cutoff/res/attack/decay (indices 0-39)
+    gen_params = [p['key'] for p in GENERATOR_PARAMS]  # frequency, cutoff, resonance, attack, decay
+    for slot in range(1, GENERATOR_SLOT_COUNT + 1):
+        for param in gen_params:
+            keys.append(f"gen_{slot}_{param}")
+
+    # Gen custom: slots 1-8, params custom0-4 (indices 40-79)
+    for slot in range(1, GENERATOR_SLOT_COUNT + 1):
+        for i in range(CUSTOM_PARAM_COUNT):
+            keys.append(f"gen_{slot}_custom{i}")
+
+    # Mod slots: 1-4, params p0-p6 (indices 80-107)
+    for slot in range(1, MOD_SLOT_COUNT + 1):
+        for i in range(MOD_PARAMS_PER_SLOT):
+            keys.append(f"mod_{slot}_p{i}")
+
+    # Channels: 1-8, params echo/verb/pan (indices 108-131)
+    chan_params = ['echo', 'verb', 'pan']
+    for slot in range(1, CHANNEL_COUNT + 1):
+        for param in chan_params:
+            keys.append(f"chan_{slot}_{param}")
+
+    # FX (indices 132-148) - must match SC bus_unification.scd order exactly
+    keys.extend([
+        "fx_heat_drive",
+        "fx_echo_time", "fx_echo_feedback", "fx_echo_tone",
+        "fx_echo_wow", "fx_echo_spring", "fx_echo_verbSend",
+        "fx_verb_size", "fx_verb_decay", "fx_verb_tone",
+        "fx_fb_drive", "fx_fb_freq1", "fx_fb_freq2",
+        "fx_fb_reso1", "fx_fb_reso2", "fx_fb_syncAmt", "fx_fb_harmonics",
+    ])
+
+    return keys
+
+UNIFIED_BUS_TARGET_KEYS: List[str] = _build_unified_bus_target_keys()
+
+# Validate count matches expected unified bus count
+assert len(UNIFIED_BUS_TARGET_KEYS) == 149, f"Target key count mismatch: {len(UNIFIED_BUS_TARGET_KEYS)}, expected 149"
+
+
+def get_target_key_for_col(col: int) -> Optional[str]:
+    """Return target key for unified bus column index."""
+    if 0 <= col < len(UNIFIED_BUS_TARGET_KEYS):
+        return UNIFIED_BUS_TARGET_KEYS[col]
+    return None
+
+
+def get_col_for_target_key(key: str) -> Optional[int]:
+    """Return column index for target key."""
+    try:
+        return UNIFIED_BUS_TARGET_KEYS.index(key)
+    except ValueError:
+        return None
+
+
+def parse_target_key(key: str) -> Optional[Dict]:
+    """
+    Parse target key into components.
+
+    Returns:
+        {
+            'zone': 'gen_core' | 'gen_custom' | 'mod' | 'chan' | 'fx',
+            'slot': int or None,
+            'param': str,
+        }
+    """
+    if key.startswith("gen_") and "_custom" in key:
+        # gen_1_custom0 -> zone='gen_custom', slot=1, param='custom0'
+        parts = key.split("_")
+        slot = int(parts[1])
+        param = parts[2] + parts[3] if len(parts) > 3 else parts[2]
+        return {'zone': 'gen_custom', 'slot': slot, 'param': param}
+    elif key.startswith("gen_"):
+        # gen_1_frequency -> zone='gen_core', slot=1, param='frequency'
+        parts = key.split("_")
+        slot = int(parts[1])
+        param = parts[2]
+        return {'zone': 'gen_core', 'slot': slot, 'param': param}
+    elif key.startswith("mod_"):
+        # mod_1_p0 -> zone='mod', slot=1, param='p0'
+        parts = key.split("_")
+        slot = int(parts[1])
+        param = parts[2]
+        return {'zone': 'mod', 'slot': slot, 'param': param}
+    elif key.startswith("chan_"):
+        # chan_1_echo -> zone='chan', slot=1, param='echo'
+        parts = key.split("_")
+        slot = int(parts[1])
+        param = parts[2]
+        return {'zone': 'chan', 'slot': slot, 'param': param}
+    elif key.startswith("fx_"):
+        # fx_echo_time -> zone='fx', slot=None, param='echo_time'
+        param = key[3:]  # Remove 'fx_' prefix
+        return {'zone': 'fx', 'slot': None, 'param': param}
+    return None
+
 
 # === OSC ===
 OSC_HOST = "127.0.0.1"

@@ -749,6 +749,24 @@ class ChannelStrip(QWidget):
         if hi_cut != self.hi_cut_active:
             self.toggle_hi_cut()
 
+    def get_param_widget(self, param: str):
+        """
+        Return widget for param (for boid pulse visualization).
+
+        Args:
+            param: 'echo', 'verb', or 'pan'
+
+        Returns:
+            Widget with set_boid_glow() method, or None
+        """
+        if param == 'echo':
+            return self.echo_send
+        elif param == 'verb':
+            return self.verb_send
+        elif param == 'pan':
+            return self.pan_slider
+        return None
+
 
 class MixerPanel(QWidget):
     """Mixer panel with channel strips."""
@@ -866,3 +884,7 @@ class MixerPanel(QWidget):
             channel_id = i + 1
             if channel_id in self.channels:
                 self.channels[channel_id].set_state(state)
+
+    def get_channel(self, channel_id: int):
+        """Return channel strip by ID (1-indexed) for boid pulse visualization."""
+        return self.channels.get(channel_id)

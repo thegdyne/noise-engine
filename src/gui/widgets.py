@@ -47,6 +47,36 @@ class ValuePopup(QLabel):
         self.hide()
 
 
+def draw_boid_glow(painter: QPainter, rect, intensity: float) -> None:
+    """
+    Draw boid glow border around a widget.
+
+    Args:
+        painter: Active QPainter
+        rect: Widget rect (QRect)
+        intensity: 0.0-1.0 (>0.8 = pulse, ≤0.8 = glow)
+    """
+    if intensity <= 0:
+        return
+
+    glow_color = QColor(COLORS['boid'])
+
+    if intensity > 0.8:
+        # Pulse: bright, thicker
+        glow_color.setAlpha(255)
+        pen_width = 3
+    else:
+        # Glow: proportional alpha
+        glow_color.setAlpha(int(intensity * 200))
+        pen_width = 2
+
+    painter.save()
+    painter.setPen(QPen(glow_color, pen_width))
+    painter.setBrush(Qt.NoBrush)
+    painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 3, 3)
+    painter.restore()
+
+
 class DragSlider(QSlider):
     """
     Vertical slider with click+drag anywhere behavior.
@@ -98,6 +128,14 @@ class DragSlider(QSlider):
         # MIDI mapping visual state
         self._midi_armed = False
         self._midi_mapped = False
+
+        # Boid glow visualization
+        self._boid_glow_intensity = 0.0
+
+    def set_boid_glow(self, intensity: float) -> None:
+        """Set boid glow intensity (0.0-1.0)."""
+        self._boid_glow_intensity = max(0.0, min(1.0, intensity))
+        self.update()
 
     def set_modulation_range(self, min_norm: float, max_norm: float, 
                              inner_min: float = None, inner_max: float = None,
@@ -175,6 +213,13 @@ class DragSlider(QSlider):
         """Draw slider with modulation overlay."""
         # Let Qt draw the standard slider first
         super().paintEvent(event)
+
+        # Draw boid glow first (behind other overlays)
+        if self._boid_glow_intensity > 0:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            draw_boid_glow(painter, self.rect(), self._boid_glow_intensity)
+            painter.end()
 
         # Skip modulation overlay if disabled
         if not self.isEnabled():
@@ -916,6 +961,9 @@ class MiniKnob(QWidget):
         self._mod_current = None     # Normalized 0-1 (animated value)
         self._mod_color = QColor('#00ff66')  # Default green
 
+        # Boid glow visualization
+        self._boid_glow_intensity = 0.0
+
         # Fixed size for compact channel strips
         self.setFixedSize(18, 18)
         self.setCursor(Qt.PointingHandCursor)
@@ -967,6 +1015,11 @@ class MiniKnob(QWidget):
         """Return True if modulation range is set."""
         return self._mod_range_min is not None
 
+    def set_boid_glow(self, intensity: float) -> None:
+        """Set boid glow intensity (0.0-1.0)."""
+        self._boid_glow_intensity = max(0.0, min(1.0, intensity))
+        self.update()
+
     def paintEvent(self, event):
         """Draw the knob as a filled arc."""
         from PyQt5.QtGui import QPainter, QColor, QPen
@@ -975,6 +1028,10 @@ class MiniKnob(QWidget):
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+
+        # Draw boid glow first (behind knob)
+        if self._boid_glow_intensity > 0:
+            draw_boid_glow(painter, self.rect(), self._boid_glow_intensity)
 
         # Knob area (slightly inset)
         rect = QRectF(2, 2, self.width() - 4, self.height() - 4)
