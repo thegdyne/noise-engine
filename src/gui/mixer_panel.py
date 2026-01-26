@@ -422,7 +422,7 @@ class ChannelStrip(QWidget):
                 painter.end()
 
         self.pan_slider = PanSlider(Qt.Horizontal)
-        self.pan_slider.setObjectName(f"mixer{self.channel_id}_pan")
+        self.pan_slider.setObjectName(f"chan_{self.channel_id}_pan")
         self.pan_slider.setRange(-100, 100)  # -100 = L, 0 = C, 100 = R
         self.pan_slider.setValue(0)
         self.pan_slider.setFixedWidth(45)

@@ -289,11 +289,11 @@ to also enqueue through this system for backward compatibility.
     // /noise/boid/clear - clear all offsets (equivalent to empty offsets message)
     // =========================================================================
 
-    // Validation: target index range (0-148) per spec
-    // 149 targets total: gen core (0-39), gen custom (40-79), mod (80-107), chan (108-131), fx (132-148)
+    // Validation: target index range (0-175) per UI Refresh v3 spec
+    // 176 targets total: gen core (0-39), gen custom (40-79), mod (80-107), chan (108-147), fx_slot (148-167), master (168-175)
     // Python sends target indices directly; SC converts to absolute bus indices internally
     ~isValidTargetIndex = { |targetIndex|
-        targetIndex.isInteger && (targetIndex >= 0) && (targetIndex <= 148);
+        targetIndex.isInteger && (targetIndex >= 0) && (targetIndex <= 175);
     };
 
     OSCdef(\boidEnable).free;
@@ -317,13 +317,13 @@ to also enqueue through this system for backward compatibility.
         var receivedIndices = List.new;
 
         // Parse pairs: [targetIndex1, offset1, targetIndex2, offset2, ...]
-        // Python sends target indices 0-148; we convert to absolute bus indices for storage
+        // Python sends target indices 0-175; we convert to absolute bus indices for storage
         while({ (i + 1) < msg.size && (pairCount < maxPairs) }, {
             var targetIndex = msg[i].asInteger;
             var offset = msg[i+1].asFloat;
             receivedIndices.add(targetIndex);
 
-            // Validate target index range (0-148) and non-finite offset
+            // Validate target index range (0-175) and non-finite offset
             if(~isValidTargetIndex.(targetIndex), {
                 if(offset.isNaN.not && (offset.abs < inf), {
                     // Convert target index to absolute bus index for storage
