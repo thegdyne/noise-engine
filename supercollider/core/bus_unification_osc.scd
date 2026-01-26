@@ -367,6 +367,14 @@ to also enqueue through this system for backward compatibility.
         ~busValueStreamRoutine = Routine({
             loop {
                 var messages = List.new;
+                var allVals;
+
+                // Batch read all unified buses in one call
+                try {
+                    allVals = ~unifiedBuses.getnSynchronous(~unifiedBusCount);
+                } {
+                    allVals = nil;
+                };
 
                 // Collect values for targets with active routes
                 ~modRoutes.keysValuesDo { |targetKey, routes|
@@ -375,11 +383,13 @@ to also enqueue through this system for backward compatibility.
                         var meta = ~targetMeta[targetKey];
                         if(state.notNil && meta.notNil, {
                             var currentVal;
-                            try {
-                                currentVal = state.bus.getSynchronous;
-                            } {
+                            if(allVals.notNil, {
+                                // Index into batch result
+                                var relIdx = meta.busIndex - ~unifiedBusBase;
+                                currentVal = allVals[relIdx] ? state.baseValue;
+                            }, {
                                 currentVal = state.baseValue;
-                            };
+                            });
                             // Normalize to 0-1
                             currentVal = (currentVal - meta.min) / (meta.max - meta.min);
                             currentVal = currentVal.clip(0, 1);
@@ -405,7 +415,7 @@ to also enqueue through this system for backward compatibility.
             };
         }).play;
 
-        "  Bus value stream started".postln;
+        "  Bus value stream started (batch mode)".postln;
     };
 
     ~stopBusValueStream = {
