@@ -33,30 +33,12 @@ class FXGrid(QWidget):
         self._build_ui()
 
     def _build_ui(self):
-        """Build the 4-slot grid."""
+        """Build the 4-slot grid - flat, no wrapper."""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
 
-        # Title
-        title_frame = QFrame()
-        title_frame.setFixedWidth(50)
-        title_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: transparent;
-                border: none;
-            }}
-        """)
-
-        title_label = QLabel("SEND\nFX", title_frame)
-        title_label.setFont(QFont(FONT_FAMILY, FONT_SIZES['small'], QFont.Bold))
-        title_label.setStyleSheet(f"color: {COLORS['accent_effect']};")
-        title_label.setAlignment(Qt.AlignCenter)
-        title_label.setGeometry(0, 40, 50, 40)
-
-        layout.addWidget(title_frame)
-
-        # Create 4 FX slots
+        # Create 4 FX slots directly (no title, no frame wrapper)
         for i in range(1, 5):
             slot = FXSlot(i, parent=self)
             slot.type_changed.connect(self._forward_type_changed)
@@ -64,8 +46,6 @@ class FXGrid(QWidget):
             slot.bypass_changed.connect(self._forward_bypass_changed)
             self.slots.append(slot)
             layout.addWidget(slot)
-
-        layout.addStretch()
 
     def _forward_type_changed(self, slot_id, fx_type):
         """Forward type changed signal."""

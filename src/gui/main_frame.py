@@ -326,9 +326,9 @@ class MainFrame(QMainWindow):
         bottom_layout.setContentsMargins(5, 5, 5, 5)
         bottom_layout.setSpacing(10)
         
-        # FX Chain (left side)
-        bottom_section = self.create_bottom_section()
-        bottom_layout.addWidget(bottom_section, stretch=2)
+        # FX Grid (4 send slots) - flat, no wrapper
+        self.fx_grid = FXGrid()
+        bottom_layout.addWidget(self.fx_grid, stretch=2)
         
         # Master chain (right side) - Heat → Filter → EQ → Comp → Limiter → Output
         self.master_section = MasterChain()
@@ -625,32 +625,6 @@ class MainFrame(QMainWindow):
         layout.addWidget(self.restart_btn)
         
         return bar
-        
-    def create_bottom_section(self):
-        """Create bottom section - effects only."""
-        from PyQt5.QtWidgets import QSizePolicy
-        container = QFrame()
-        container.setObjectName("fxContainer")
-        container.setFrameShape(QFrame.StyledPanel)
-        container.setStyleSheet(f"background-color: {COLORS['background_highlight']}; border-top: 1px solid {COLORS['border_light']};")
-        container.setFixedHeight(180)
-        container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        container.setMinimumWidth(600)
-        
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(10)
-        
-        # FX Grid (4 configurable FX slots)
-        self.fx_grid = FXGrid()
-        layout.addWidget(self.fx_grid, stretch=2)
-
-        # Phase 1: InlineFXStrip disabled
-        # Phase 2 TODO: Add MasterChain here (Heat + Filter + EQ + Comp + Output)
-        # self.inline_fx = InlineFXStrip()
-        # layout.addWidget(self.inline_fx, stretch=1)
-
-        return container
         
     def on_bpm_changed(self, bpm):
         """Handle BPM change."""
