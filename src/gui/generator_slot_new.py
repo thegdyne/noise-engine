@@ -167,7 +167,7 @@ class GeneratorSlot(QWidget):
             slider.setRange(0, 1000)
             slider.setValue(500)
             slider.setGeometry(x, y + L['slider_label_h'], L['slider_w'], L['slider_h'])
-            slider.setObjectName(f"gen{self.slot_id}_custom{i}")
+            slider.setObjectName(f"gen_{self.slot_id}_custom{i}")
             slider.valueChanged.connect(lambda v, idx=i: self.on_custom_param_changed(idx, v / 1000.0))
             slider.setEnabled(False)
             self.custom_sliders.append(slider)
@@ -192,7 +192,7 @@ class GeneratorSlot(QWidget):
             slider.setRange(0, 1000)
             slider.setValue(500)
             slider.setGeometry(x, y + L['slider_label_h'], L['slider_w'], L['slider_h'])
-            slider.setObjectName(f"gen{self.slot_id}_{key}")
+            slider.setObjectName(f"gen_{self.slot_id}_{key}")
             
             # Find param config and set it
             param_config = next((p for p in GENERATOR_PARAMS if p['key'] == key), None)
