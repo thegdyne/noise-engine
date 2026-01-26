@@ -55,6 +55,7 @@ The slot manager handles:
 // Set FX type for a slot (0-3)
 ~setFxSlotType = { |slotIndex, fxType|
     var inBus, outBus, synthName, params;
+    var slotNum, p1BusIdx, p2BusIdx, p3BusIdx, p4BusIdx;
 
     if((slotIndex < 0) || (slotIndex >= 4)) {
         ("FX Slot: Invalid slot index " ++ slotIndex).warn;
@@ -75,6 +76,13 @@ The slot manager handles:
         // Get current params
         params = ~fxSlotParams[slotIndex];
 
+        // Get unified bus indices for boid modulation of p1-p4
+        slotNum = slotIndex + 1;
+        p1BusIdx = ~getBusIndex.(("fx_slot" ++ slotNum ++ "_p1").asSymbol) ? -1;
+        p2BusIdx = ~getBusIndex.(("fx_slot" ++ slotNum ++ "_p2").asSymbol) ? -1;
+        p3BusIdx = ~getBusIndex.(("fx_slot" ++ slotNum ++ "_p3").asSymbol) ? -1;
+        p4BusIdx = ~getBusIndex.(("fx_slot" ++ slotNum ++ "_p4").asSymbol) ? -1;
+
         // Create new synth in fxGroup
         // Note: return level handled in preMasterMixer, not here
         ~fxSlotSynths[slotIndex] = Synth(synthName, [
@@ -84,6 +92,10 @@ The slot manager handles:
             \p2, params[\p2],
             \p3, params[\p3],
             \p4, params[\p4],
+            \p1Bus, p1BusIdx,
+            \p2Bus, p2BusIdx,
+            \p3Bus, p3BusIdx,
+            \p4Bus, p4BusIdx,
             \bypass, params[\bypass]
         ], ~fxGroup, \addToTail);
 
