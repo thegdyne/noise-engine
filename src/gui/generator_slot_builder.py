@@ -146,11 +146,11 @@ def build_param_slider(slot, param, custom_index=None):
     slider.setFixedWidth(gt.get('slider_width', 25))
     slider.setFixedHeight(gt.get('slider_height', 60))
 
-    # Set objectName for MIDI mapping persistence
+    # Set objectName to match unified bus target keys (for boid glow + MIDI mapping)
     if is_custom:
-        slider.setObjectName(f"gen{slot.slot_id}_custom{custom_index}")
+        slider.setObjectName(f"gen_{slot.slot_id}_custom{custom_index}")
     else:
-        slider.setObjectName(f"gen{slot.slot_id}_{param['key']}")
+        slider.setObjectName(f"gen_{slot.slot_id}_{param['key']}")
 
     if param:
         default = param.get('default', 0.5)
