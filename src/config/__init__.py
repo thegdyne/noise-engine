@@ -1404,6 +1404,35 @@ OSC_PATHS = {
     'strip_fx2_send': '/noise/strip/fx2/send',  # Per-channel FX2 send (0-1)
     'strip_fx3_send': '/noise/strip/fx3/send',  # Per-channel FX3 send (0-1)
     'strip_fx4_send': '/noise/strip/fx4/send',  # Per-channel FX4 send (0-1)
+    # UI Refresh: Configurable FX slots (4 slots)
+    'fx_slot1_type': '/noise/fx/slot/1/type',
+    'fx_slot1_p1': '/noise/fx/slot/1/p1',
+    'fx_slot1_p2': '/noise/fx/slot/1/p2',
+    'fx_slot1_p3': '/noise/fx/slot/1/p3',
+    'fx_slot1_p4': '/noise/fx/slot/1/p4',
+    'fx_slot1_return': '/noise/fx/slot/1/return',
+    'fx_slot1_bypass': '/noise/fx/slot/1/bypass',
+    'fx_slot2_type': '/noise/fx/slot/2/type',
+    'fx_slot2_p1': '/noise/fx/slot/2/p1',
+    'fx_slot2_p2': '/noise/fx/slot/2/p2',
+    'fx_slot2_p3': '/noise/fx/slot/2/p3',
+    'fx_slot2_p4': '/noise/fx/slot/2/p4',
+    'fx_slot2_return': '/noise/fx/slot/2/return',
+    'fx_slot2_bypass': '/noise/fx/slot/2/bypass',
+    'fx_slot3_type': '/noise/fx/slot/3/type',
+    'fx_slot3_p1': '/noise/fx/slot/3/p1',
+    'fx_slot3_p2': '/noise/fx/slot/3/p2',
+    'fx_slot3_p3': '/noise/fx/slot/3/p3',
+    'fx_slot3_p4': '/noise/fx/slot/3/p4',
+    'fx_slot3_return': '/noise/fx/slot/3/return',
+    'fx_slot3_bypass': '/noise/fx/slot/3/bypass',
+    'fx_slot4_type': '/noise/fx/slot/4/type',
+    'fx_slot4_p1': '/noise/fx/slot/4/p1',
+    'fx_slot4_p2': '/noise/fx/slot/4/p2',
+    'fx_slot4_p3': '/noise/fx/slot/4/p3',
+    'fx_slot4_p4': '/noise/fx/slot/4/p4',
+    'fx_slot4_return': '/noise/fx/slot/4/return',
+    'fx_slot4_bypass': '/noise/fx/slot/4/bypass',
     'master_echo_return': '/noise/master/echo/return',  # Master echo return level
     'master_verb_return': '/noise/master/verb/return',  # Master verb return level
     # Heat (saturation)

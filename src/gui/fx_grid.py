@@ -115,14 +115,14 @@ class FXGrid(QWidget):
             state = slot.get_state()
             slot_id = slot.slot_id
 
-            # Send type
-            self.osc_bridge.send(f'/noise/fx/slot/{slot_id}/type', state['type'].lower())
+            # Send type (use SSOT key format: fx_slotN_param)
+            self.osc_bridge.send(f'fx_slot{slot_id}_type', state['type'].lower())
 
             # Send params
             for param in ['p1', 'p2', 'p3', 'p4', 'return']:
-                self.osc_bridge.send(f'/noise/fx/slot/{slot_id}/{param}', state[param])
+                self.osc_bridge.send(f'fx_slot{slot_id}_{param}', state[param])
 
             # Send bypass
-            self.osc_bridge.send(f'/noise/fx/slot/{slot_id}/bypass', 1.0 if state['bypassed'] else 0.0)
+            self.osc_bridge.send(f'fx_slot{slot_id}_bypass', 1.0 if state['bypassed'] else 0.0)
 
         logger.debug("FX Grid: synced to SC", component="FX")

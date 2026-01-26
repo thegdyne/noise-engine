@@ -193,9 +193,9 @@ class FXSlot(QWidget):
         # Emit signal
         self.type_changed.emit(self.slot_id, new_type)
 
-        # Send OSC
+        # Send OSC (use SSOT key format: fx_slotN_param)
         if self.osc_bridge:
-            self.osc_bridge.send(f'/noise/fx/slot/{self.slot_id}/type', new_type.lower())
+            self.osc_bridge.send(f'fx_slot{self.slot_id}_type', new_type.lower())
 
         logger.debug(f"FX Slot {self.slot_id}: {old_type} -> {new_type}", component="FX")
 
@@ -203,9 +203,9 @@ class FXSlot(QWidget):
         """Handle parameter change."""
         self.param_changed.emit(self.slot_id, param_key, value)
 
-        # Send OSC
+        # Send OSC (use SSOT key format: fx_slotN_param)
         if self.osc_bridge:
-            self.osc_bridge.send(f'/noise/fx/slot/{self.slot_id}/{param_key}', value)
+            self.osc_bridge.send(f'fx_slot{self.slot_id}_{param_key}', value)
 
     def _on_bypass_changed(self, state):
         """Handle bypass toggle."""
@@ -213,9 +213,9 @@ class FXSlot(QWidget):
         self._update_bypass_style()
         self.bypass_changed.emit(self.slot_id, self.bypassed)
 
-        # Send OSC
+        # Send OSC (use SSOT key format: fx_slotN_param)
         if self.osc_bridge:
-            self.osc_bridge.send(f'/noise/fx/slot/{self.slot_id}/bypass', 1.0 if self.bypassed else 0.0)
+            self.osc_bridge.send(f'fx_slot{self.slot_id}_bypass', 1.0 if self.bypassed else 0.0)
 
     def _update_bypass_style(self):
         """Update bypass button appearance."""
