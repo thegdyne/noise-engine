@@ -83,6 +83,12 @@ class OSCBridge(QObject):
 
     def shutdown(self):
         """Stop the OSC bridge completely."""
+        # Notify SC that Python is quitting so it stops sending messages
+        if self.client:
+            try:
+                self.client.send_message('/noise/quit', [])
+            except Exception:
+                pass  # Best effort - SC may already be gone
         self._shutdown = True
         self._deleted = True  # Only shutdown sets this
         self._cleanup()

@@ -84,7 +84,13 @@ All OSC message routing
     OSCdef(\heartbeat, { |msg, time, addr|
         ~pythonAddr.sendMsg('/noise/heartbeat_ack', 1);
     }, '/noise/heartbeat');
-    
+
+    // Python quit notification - stop sending to avoid crashes
+    OSCdef(\pythonQuit, { |msg, time, addr|
+        "Python GUI disconnected".postln;
+        ~pythonAddr = nil;  // Clear address to stop outbound messages
+    }, '/noise/quit');
+
     // Master clock BPM
     OSCdef(\clockBPM, { |msg|
         ~clockBus.set(msg[1]);

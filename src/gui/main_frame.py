@@ -185,16 +185,21 @@ class MainFrame(QMainWindow):
         """Restore window geometry from settings, or use defaults."""
         settings = QSettings("NoiseEngine", "NoiseEngine")
         geometry = settings.value("window/geometry")
+        state = settings.value("window/state")
         if geometry:
             self.restoreGeometry(geometry)
+            if state is not None:
+                self.setWindowState(Qt.WindowState(int(state)))
         else:
             # First run defaults
             self.setGeometry(100, 50, 1400, 800)
 
     def _save_window_geometry(self):
-        """Save window geometry to settings."""
+        """Save window geometry and state to settings."""
         settings = QSettings("NoiseEngine", "NoiseEngine")
         settings.setValue("window/geometry", self.saveGeometry())
+        settings.setValue("window/state", int(self.windowState()))
+        settings.sync()  # Force write to disk
 
     def setup_ui(self):
         """Create the main interface layout."""
