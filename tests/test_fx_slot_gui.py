@@ -113,19 +113,21 @@ class TestFxSlotStructure(unittest.TestCase):
 
 
 class TestFxSlotOSCPaths(unittest.TestCase):
-    """Test that OSC paths follow expected pattern."""
+    """Test that fx_slot.py uses correct SSOT key pattern for OSC."""
 
-    def test_fx_slot_osc_path_pattern(self):
-        """fx_slot.py uses correct OSC path pattern."""
+    def test_fx_slot_uses_ssot_key_pattern(self):
+        """fx_slot.py uses SSOT key format (fx_slotN_param) for OSC bridge."""
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(base_path, "src", "gui", "fx_slot.py")
         with open(path, 'r') as f:
             content = f.read()
 
-        # Check for OSC path patterns
-        self.assertIn("/noise/fx/slot/", content)
-        self.assertIn("/type", content)
-        self.assertIn("/bypass", content)
+        # GUI uses SSOT key format, not raw OSC paths
+        # OSC bridge translates fx_slot1_p1 -> /noise/fx/slot/1/p1
+        self.assertIn("fx_slot{self.slot_id}_", content)
+        self.assertIn("_type", content)
+        self.assertIn("_bypass", content)
+        self.assertIn("_return", content)
 
 
 if __name__ == '__main__':
