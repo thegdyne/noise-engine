@@ -53,23 +53,36 @@ s.waitForBoot({
     (~basePath +/+ "core/channel_strips.scd").load;
     ~setupChannelStrips.();
 
-    // Load FX mixer (sums dry + returns)
+    // Load FX mixer (sums dry + 4 returns)
     (~basePath +/+ "core/fx_mixer.scd").load;
     ~setupFxMixer.();
 
-    // Load Heat (saturation)
+    // === FX SLOT SYSTEM (UI Refresh Phase 1) ===
+    // Load canonical FX slot SynthDefs (must load before fx_slots.scd)
+    (~basePath +/+ "effects/fx_empty.scd").load;
+    (~basePath +/+ "effects/fx_echo.scd").load;
+    (~basePath +/+ "effects/fx_reverb.scd").load;
+    (~basePath +/+ "effects/fx_chorus.scd").load;
+    (~basePath +/+ "effects/fx_lofi.scd").load;
+
+    // Load FX Slot Manager
+    (~basePath +/+ "core/fx_slots.scd").load;
+    ~setupFxSlots.();
+
+    // === LEGACY EFFECTS (still used for master inserts) ===
+    // Load Heat (saturation) - master insert
     (~basePath +/+ "effects/heat.scd").load;
     ~setupHeat.();
 
-    // Load Tape Echo (delay)
+    // Load Tape Echo (delay) - legacy, now also available via fx_slots
     (~basePath +/+ "effects/tape_echo.scd").load;
     ~setupTapeEcho.();
 
-    // Load Reverb
+    // Load Reverb - legacy, now also available via fx_slots
     (~basePath +/+ "effects/reverb.scd").load;
     ~setupReverb.();
 
-    // Load Dual Filter
+    // Load Dual Filter - master insert
     (~basePath +/+ "effects/dual_filter.scd").load;
     ~setupDualFilter.();
 
@@ -184,6 +197,8 @@ s.waitForBoot({
     ~startClock.();
     ~startFxMixer.();
     ~setupFxMixerOSC.();
+    ~startFxSlots.();        // Initialize FX slots with default types
+    ~setupFxSlotsOSC.();     // FX slot OSC handlers
     ~startMasterPassthrough.();
     ~startHeat.();
     ~setupHeatOSC.();
@@ -205,6 +220,7 @@ s.waitForBoot({
         ("[x] " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
     });
     "[x] 4 mod source slots ready".postln;
+    "[x] 4 FX slots ready (UI Refresh)".postln;
     "[x] 8 cross-mod buses ready".postln;
     "[x] Boid modulation ready (via bus unification)".postln;
     ("[x] OSC listening on port " ++ ~scListenPort).postln;

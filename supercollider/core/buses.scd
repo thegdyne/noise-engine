@@ -77,17 +77,34 @@ Default values are real values (not normalized):
     // Per-generator output buses (8 stereo buses, one per slot)
     ~genBus = Array.fill(8, { Bus.audio(s, 2) });
 
-    // === FX BUSES (Phase 1) ===
+    // === FX BUSES (Phase 1 - UI Refresh expansion to 4 slots) ===
     // Dry sum (channel strips write here)
     ~drySumBus = Bus.audio(s, 2);
-    
+
     // Send buses (channel strips tap here based on send amounts)
-    ~echoSendBus = Bus.audio(s, 2);
-    ~verbSendBus = Bus.audio(s, 2);
-    
+    // Slot 1 & 2 (aliases for backward compat)
+    ~fx1SendBus = Bus.audio(s, 2);
+    ~fx2SendBus = Bus.audio(s, 2);
+    ~fx3SendBus = Bus.audio(s, 2);  // NEW - UI Refresh
+    ~fx4SendBus = Bus.audio(s, 2);  // NEW - UI Refresh
+
+    // Legacy aliases for backward compat
+    ~echoSendBus = ~fx1SendBus;
+    ~verbSendBus = ~fx2SendBus;
+
     // Return buses (FX synths write 100% wet here)
-    ~echoReturnBus = Bus.audio(s, 2);
-    ~verbReturnBus = Bus.audio(s, 2);
+    ~fx1ReturnBus = Bus.audio(s, 2);
+    ~fx2ReturnBus = Bus.audio(s, 2);
+    ~fx3ReturnBus = Bus.audio(s, 2);  // NEW - UI Refresh
+    ~fx4ReturnBus = Bus.audio(s, 2);  // NEW - UI Refresh
+
+    // Legacy aliases for backward compat
+    ~echoReturnBus = ~fx1ReturnBus;
+    ~verbReturnBus = ~fx2ReturnBus;
+
+    // FX slot bus arrays (for slot manager)
+    ~fxSendBuses = [~fx1SendBus, ~fx2SendBus, ~fx3SendBus, ~fx4SendBus];
+    ~fxReturnBuses = [~fx1ReturnBus, ~fx2ReturnBus, ~fx3ReturnBus, ~fx4ReturnBus];
 
     
     // Solo system
@@ -109,5 +126,5 @@ Default values are real values (not normalized):
     ~mixerGroup = nil;
     ~masterGroup = nil;
     
-    "  [x] Buses ready (% clock rates, % gen buses, user params for relative mod)".format(~clockRates.size, ~genBus.size).postln;
+    "  [x] Buses ready (% clock rates, % gen buses, 4 FX send/return pairs)".format(~clockRates.size, ~genBus.size).postln;
 };
