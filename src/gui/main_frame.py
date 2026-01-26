@@ -326,10 +326,13 @@ class MainFrame(QMainWindow):
         bottom_layout.setContentsMargins(5, 5, 5, 5)
         bottom_layout.setSpacing(10)
         
-        # FX Grid (4 send slots) - flat, no wrapper
+        # FX Grid (4 send slots) - align left
         self.fx_grid = FXGrid()
-        bottom_layout.addWidget(self.fx_grid, stretch=2)
-        
+        bottom_layout.addWidget(self.fx_grid)
+
+        # Spacer pushes master chain to the right
+        bottom_layout.addStretch(1)
+
         # Master chain (right side) - Heat → Filter → EQ → Comp → Limiter → Output
         self.master_section = MasterChain()
         self.master_section.master_volume_changed.connect(self.master.on_master_volume_from_master)
@@ -352,7 +355,7 @@ class MainFrame(QMainWindow):
         self.master_section.comp_makeup_changed.connect(self.master.on_comp_makeup_changed)
         self.master_section.comp_sc_hpf_changed.connect(self.master.on_comp_sc_hpf_changed)
         self.master_section.comp_bypass_changed.connect(self.master.on_comp_bypass_changed)
-        bottom_layout.addWidget(self.master_section, stretch=3)
+        bottom_layout.addWidget(self.master_section)
         
         main_layout.addWidget(bottom_container)
         
