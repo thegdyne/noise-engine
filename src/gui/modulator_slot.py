@@ -763,6 +763,9 @@ class ModulatorSlot(QWidget):
         elif gen_name == "SauceOfGrav":
             self._build_sauce_ui()
 
+        # Set objectNames for boid glow visualization
+        self._update_param_object_names()
+
         self._update_style_for_generator(gen_name)
 
     def _setup_empty_state(self):
@@ -800,6 +803,25 @@ class ModulatorSlot(QWidget):
         """)
         self.scope.setEnabled(True)
         self.scope.clear()
+
+    # =========================================================================
+    # Object Name Management (for boid glow)
+    # =========================================================================
+
+    def _update_param_object_names(self):
+        """
+        Set objectNames on param widgets to match unified bus target keys.
+
+        The unified bus uses mod_{slot}_p{index} format. We map param keys
+        to their index in the custom_params list.
+        """
+        custom_params = get_mod_generator_custom_params(self.generator_name)
+        key_to_index = {p['key']: i for i, p in enumerate(custom_params)}
+
+        for key, widget in self.param_sliders.items():
+            if key in key_to_index:
+                p_index = key_to_index[key]
+                widget.setObjectName(f"mod_{self.slot_id}_p{p_index}")
 
     # =========================================================================
     # Event Handlers

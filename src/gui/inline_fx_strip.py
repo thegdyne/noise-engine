@@ -262,6 +262,9 @@ class HeatModule(FXModule):
         self.circuit_label.mousePressEvent = self._cycle_circuit
         self.bottom_layout.addWidget(self.circuit_label)
         
+        # Set objectNames to match unified bus target keys for boid glow
+        self.drive_knob.setObjectName("fx_heat_drive")
+
         # Connect knobs
         self.drive_knob.valueChanged.connect(
             lambda v: self._send_osc(OSC_PATHS['heat_drive'], v / 200.0))
@@ -620,6 +623,13 @@ class FilterModule(FXModule):
         amt_container.addWidget(amt_label)
         self.bottom_layout.addLayout(amt_container)
         
+        # Set objectNames to match unified bus target keys for boid glow
+        self.f1_knob.setObjectName("fx_fb_freq1")
+        self.r1_knob.setObjectName("fx_fb_reso1")
+        self.f2_knob.setObjectName("fx_fb_freq2")
+        self.r2_knob.setObjectName("fx_fb_reso2")
+        self.amt_knob.setObjectName("fx_fb_syncAmt")
+
         # Connect knobs
         self.f1_knob.valueChanged.connect(
             lambda v: self._send_osc(OSC_PATHS['fb_freq1'], v / 200.0))
