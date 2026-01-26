@@ -370,8 +370,8 @@ class MainFrame(QMainWindow):
         init_shortcut.activated.connect(self.preset._init_preset)
 
         # Shortcut: keyboard mode (Ctrl+K / Cmd+K)
-        keyboard_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
-        keyboard_shortcut.activated.connect(self.keyboard._toggle_keyboard_mode)
+        self._keyboard_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
+        self._keyboard_shortcut.activated.connect(self.keyboard._toggle_keyboard_mode)
 
         # Shortcut: FX window (Ctrl+F / Cmd+F)
         fx_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
