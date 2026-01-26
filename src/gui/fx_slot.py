@@ -132,7 +132,7 @@ class FXSlot(QWidget):
         ]
 
         for key, x, label_text, default_val in slider_positions:
-            slider = DragSlider(Qt.Vertical, parent=self)
+            slider = DragSlider(parent=self)
             slider.setObjectName(f"fx_slot{self.slot_id}_{key}")
             slider.setGeometry(x, L['slider_y'], L['slider_w'], L['slider_h'])
             slider.setMinimum(0)
@@ -150,7 +150,7 @@ class FXSlot(QWidget):
             self.slider_labels[key] = label
 
         # Return slider (always present)
-        ret_slider = DragSlider(Qt.Vertical, parent=self)
+        ret_slider = DragSlider(parent=self)
         ret_slider.setObjectName(f"fx_slot{self.slot_id}_return")
         ret_slider.setGeometry(L['ret_x'], L['slider_y'], L['slider_w'], L['slider_h'])
         ret_slider.setMinimum(0)
