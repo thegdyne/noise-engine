@@ -60,23 +60,18 @@ class KeyboardController:
 
     def _toggle_keyboard_mode(self):
         """Toggle the keyboard overlay for QWERTY-to-MIDI input."""
-        print(f"[KB] _toggle_keyboard_mode called, overlay={self.main._keyboard_overlay}")
         if self.main._keyboard_overlay is not None and self.main._keyboard_overlay.isVisible():
-            print("[KB] Dismissing existing overlay")
             self.main._keyboard_overlay._dismiss()
             return
 
         focus_widget = QApplication.focusWidget()
-        print(f"[KB] focus_widget={focus_widget}")
         if focus_widget is not None:
             from PyQt5.QtWidgets import QLineEdit, QTextEdit
             # Only skip for actual text entry widgets, not spinboxes
             if isinstance(focus_widget, (QLineEdit, QTextEdit)):
-                print("[KB] Skipping - focus on text input")
                 return
 
         if self.main._keyboard_overlay is None:
-            print("[KB] Creating new KeyboardOverlay")
             self.main._keyboard_overlay = KeyboardOverlay(
                 parent=self.main,
                 send_note_on_fn=self._send_midi_note_on,
@@ -94,7 +89,6 @@ class KeyboardController:
         self.main._keyboard_overlay.show()
         self.main._keyboard_overlay.raise_()
         self.main._keyboard_overlay.activateWindow()
-        print("[KB] Overlay shown and activated")
 
         # Deferred refresh mechanism (R1.1 spec):
         # Schedule refresh #1 on the next UI event-loop tick
