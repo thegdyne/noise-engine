@@ -335,12 +335,6 @@ to also enqueue through this system for backward compatibility.
             pairCount = pairCount + 1;
             i = i + 2;
         });
-        // DEBUG: Print received target indices (every 20 messages to avoid flood)
-        if(~boidDebugCounter.isNil, { ~boidDebugCounter = 0 });
-        ~boidDebugCounter = ~boidDebugCounter + 1;
-        if((~boidDebugCounter % 20) == 1, {
-            "BOID DEBUG: received % indices: %".format(receivedIndices.size, receivedIndices.asArray[0..9]).postln;
-        });
         ~queueBoidOp.(\setOffsets, offsets);
     }, '/noise/boid/offsets');
 
