@@ -239,22 +239,23 @@ class HeatModule(QWidget):
 # =============================================================================
 
 FILTER_LAYOUT = {
-    'width': 100,
+    'width': 120,
     'height': MODULE_HEIGHT,
 
     # Header
     'title_x': 5, 'title_y': 4, 'title_w': 32, 'title_h': 16,
-    'bypass_x': 68, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
+    'bypass_x': 88, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
 
     # Separator
     'sep_y': 24,
 
-    # Sliders (F1, R1, F2, R2)
+    # Sliders (F1, R1, F2, R2, MIX)
     'slider_y': 32, 'slider_h': 70, 'slider_w': 16,
     'f1_x': 8,
     'r1_x': 30,
     'f2_x': 54,
     'r2_x': 76,
+    'mix_x': 98,
 
     # Labels
     'label_y': 106, 'label_h': 12,
@@ -391,6 +392,22 @@ class FilterModule(QWidget):
         r2_lbl.setAlignment(Qt.AlignCenter)
         r2_lbl.setGeometry(FL['r2_x'] - 2, FL['label_y'], FL['slider_w'] + 4, FL['label_h'])
 
+        # MIX slider (wet/dry)
+        self.mix_slider = DragSlider(parent=self)
+        self.mix_slider.setObjectName("master_filt_mix")
+        self.mix_slider.setGeometry(FL['mix_x'], FL['slider_y'], FL['slider_w'], FL['slider_h'])
+        self.mix_slider.setMinimum(0)
+        self.mix_slider.setMaximum(200)
+        self.mix_slider.setValue(200)  # Default 100% wet
+        self.mix_slider.setToolTip("Filter wet/dry mix")
+        self.mix_slider.valueChanged.connect(self._on_mix_changed)
+
+        mix_lbl = QLabel("MX", self)
+        mix_lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        mix_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        mix_lbl.setAlignment(Qt.AlignCenter)
+        mix_lbl.setGeometry(FL['mix_x'] - 2, FL['label_y'], FL['slider_w'] + 4, FL['label_h'])
+
         # Routing button
         self.routing_btn = QPushButton("SER", self)
         self.routing_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
@@ -444,6 +461,9 @@ class FilterModule(QWidget):
     def _on_r2_changed(self, value):
         self._send_osc(OSC_PATHS['fb_reso2'], value / 200.0)
 
+    def _on_mix_changed(self, value):
+        self._send_osc(OSC_PATHS['fb_mix'], value / 200.0)
+
     def set_osc_bridge(self, osc_bridge):
         self.osc_bridge = osc_bridge
 
@@ -460,6 +480,7 @@ class FilterModule(QWidget):
         self._send_osc(OSC_PATHS['fb_reso1'], self.r1_slider.value() / 200.0)
         self._send_osc(OSC_PATHS['fb_freq2'], self.f2_slider.value() / 200.0)
         self._send_osc(OSC_PATHS['fb_reso2'], self.r2_slider.value() / 200.0)
+        self._send_osc(OSC_PATHS['fb_mix'], self.mix_slider.value() / 200.0)
 
     def get_state(self) -> dict:
         return {
@@ -471,6 +492,7 @@ class FilterModule(QWidget):
             'r1': self.r1_slider.value(),
             'f2': self.f2_slider.value(),
             'r2': self.r2_slider.value(),
+            'mix': self.mix_slider.value(),
         }
 
     def set_state(self, state: dict):
@@ -496,6 +518,8 @@ class FilterModule(QWidget):
             self.f2_slider.setValue(state['f2'])
         if 'r2' in state:
             self.r2_slider.setValue(state['r2'])
+        if 'mix' in state:
+            self.mix_slider.setValue(state['mix'])
 
 
 # =============================================================================
