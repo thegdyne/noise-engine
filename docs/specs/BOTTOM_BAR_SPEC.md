@@ -381,6 +381,200 @@ No `HeatModule`, `EchoModule`, `ReverbModule`, `FilterModule` should appear.
 
 ---
 
+---
+
+## Visual Design
+
+The bottom bar follows the same visual language as generators and modulators - each section has its own accent color and consistent styling.
+
+### Accent Colors (add to skin)
+
+```python
+# FX Slots - teal/cyan family (distinct from purple generators, orange LFOs)
+'accent_fx_slot': '#44aaaa',        # teal - primary accent
+'accent_fx_slot_dim': '#2d7373',    # dimmed for borders
+'accent_fx_slot_bg': '#1a3333',     # subtle background tint
+
+# Master Chain - warm gold (authority, final stage)
+'accent_master': '#ccaa44',         # gold - primary accent
+'accent_master_dim': '#8a7330',     # dimmed for borders
+'accent_master_bg': '#2a2618',      # subtle background tint
+```
+
+### FX_SLOT_THEME (add to theme.py)
+
+```python
+FX_SLOT_THEME = {
+    # Slot container
+    'slot_width': 160,
+    'slot_height': 150,
+    'slot_background': get('bg_mid'),
+    'slot_border': get('accent_fx_slot_dim'),
+    'slot_border_width': 1,
+    'slot_border_radius': 4,
+    'slot_padding': (4, 4, 4, 4),
+
+    # Header (type selector row)
+    'header_height': 24,
+    'header_spacing': 4,
+    'type_selector_width': 100,
+    'type_selector_height': 20,
+    'type_selector_font': MONO_FONT,
+    'type_selector_size': FONT_SIZES['small'],
+    'type_selector_bg': get('bg_dark'),
+    'type_selector_border': get('accent_fx_slot_dim'),
+
+    # Param sliders (p1-p4 + return)
+    'slider_column_width': 24,
+    'slider_width': 18,
+    'slider_height': 70,
+    'slider_gap': 2,
+    'return_gap': 12,  # extra gap before return slider
+
+    # Param labels
+    'param_label_font': MONO_FONT,
+    'param_label_size': FONT_SIZES['micro'],
+    'param_label_height': 12,
+    'param_label_color': get('text_mid'),
+    'param_label_color_active': get('accent_fx_slot'),
+
+    # Footer (bypass + turbo)
+    'footer_height': 24,
+    'bypass_width': 40,
+    'bypass_height': 20,
+    'turbo_width': 24,
+    'turbo_height': 20,
+}
+```
+
+### MASTER_CHAIN_THEME (add to theme.py)
+
+```python
+MASTER_CHAIN_THEME = {
+    # Container
+    'background': get('bg_mid'),
+    'border': get('accent_master_dim'),
+    'border_width': 1,
+    'border_radius': 4,
+
+    # Module widths (as specified in layout)
+    'heat_width': 80,
+    'filter_width': 120,
+    'eq_width': 100,
+    'comp_width': 120,
+    'output_width': 250,
+    'module_gap': 4,
+
+    # Module styling
+    'module_background': get('bg_base'),
+    'module_border': get('border_mid'),
+    'module_header_height': 18,
+    'module_header_font': MONO_FONT,
+    'module_header_size': FONT_SIZES['tiny'],
+    'module_header_color': get('accent_master'),
+
+    # Insert modules (Heat, Filter)
+    'insert_accent': get('accent_master'),
+    'insert_accent_dim': get('accent_master_dim'),
+
+    # Sliders
+    'slider_width': 18,
+    'slider_height': 60,
+    'slider_gap': 2,
+
+    # Bypass buttons
+    'bypass_width': 36,
+    'bypass_height': 18,
+    'bypass_on_bg': get('state_enabled_bg'),
+    'bypass_off_bg': get('bg_dark'),
+
+    # Output section
+    'fader_width': 30,
+    'fader_height': 100,
+    'meter_width': 16,
+    'meter_height': 100,
+    'meter_gap': 4,
+}
+```
+
+### Visual Hierarchy
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ BOTTOM BAR                                                                      │
+│ background: bg_dark                                                            │
+│ border-top: 1px solid border_mid                                               │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────────────────────────────────┐ ┌─────────────────────────────────┐│
+│  │ FX SENDS                                │ │ MASTER CHAIN                    ││
+│  │ border: accent_fx_slot_dim              │ │ border: accent_master_dim       ││
+│  │ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐    │ │ ┌────┬─────┬────┬─────┬───────┐││
+│  │ │ FX1  │ │ FX2  │ │ FX3  │ │ FX4  │    │ │ │HEAT│FILT │ EQ │COMP │OUTPUT │││
+│  │ │ teal │ │ teal │ │ teal │ │ teal │    │ │ │gold│gold │gold│gold │ gold  │││
+│  │ │accent│ │accent│ │accent│ │accent│    │ │ └────┴─────┴────┴─────┴───────┘││
+│  │ └──────┘ └──────┘ └──────┘ └──────┘    │ │                                 ││
+│  └─────────────────────────────────────────┘ └─────────────────────────────────┘│
+│                                                                                 │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Type Selector Dropdown Styling
+
+FX type selector uses accent color for active state:
+
+```python
+def fx_type_selector_style():
+    return f"""
+        QComboBox {{
+            background-color: {get('bg_dark')};
+            color: {get('text_mid')};
+            border: 1px solid {get('accent_fx_slot_dim')};
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: {MONO_FONT};
+            font-size: {FONT_SIZES['small']}px;
+        }}
+        QComboBox:hover {{
+            border-color: {get('accent_fx_slot')};
+        }}
+        QComboBox::drop-down {{
+            border: none;
+            width: 16px;
+        }}
+        QComboBox::down-arrow {{
+            image: none;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid {get('text_dim')};
+        }}
+        QComboBox QAbstractItemView {{
+            background-color: {get('bg_dark')};
+            color: {get('text_mid')};
+            selection-background-color: {get('accent_fx_slot_dim')};
+            selection-color: {get('text_bright')};
+        }}
+    """
+```
+
+### Slot Border States
+
+Active FX slot (receiving signal or selected) uses brighter border:
+
+```python
+# Normal state
+border: 1px solid accent_fx_slot_dim  (#2d7373)
+
+# Active/selected state
+border: 1px solid accent_fx_slot      (#44aaaa)
+
+# Bypassed state
+border: 1px solid border_dark         (standard dim)
+opacity: 0.7  (or use dimmed bg)
+```
+
+---
+
 ## Related Docs
 
 - `UI_REFRESH_SPEC.md` - Original full UI refresh plan
