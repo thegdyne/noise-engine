@@ -69,8 +69,9 @@ class KeyboardController:
         focus_widget = QApplication.focusWidget()
         print(f"[KB] focus_widget={focus_widget}")
         if focus_widget is not None:
-            from PyQt5.QtWidgets import QLineEdit, QTextEdit, QSpinBox
-            if isinstance(focus_widget, (QLineEdit, QTextEdit, QSpinBox)):
+            from PyQt5.QtWidgets import QLineEdit, QTextEdit
+            # Only skip for actual text entry widgets, not spinboxes
+            if isinstance(focus_widget, (QLineEdit, QTextEdit)):
                 print("[KB] Skipping - focus on text input")
                 return
 
