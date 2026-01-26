@@ -5,13 +5,14 @@ v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
    - Phase 3: Modulation sources (4 slots 4 outputs)
    - Phase 4: Modulation routing (connections)
    - Phase 5: FX state (Heat, Echo, Reverb, Dual Filter)
+v3 - UI Refresh: 4-slot swappable FX, 176 unified bus targets
 """
 
 from dataclasses import dataclass, field
 from typing import Optional
 import json
 
-PRESET_VERSION = 2
+PRESET_VERSION = 3
 MAPPING_VERSION = 1  # For future UI->value curve changes
 
 # Valid ranges
