@@ -292,8 +292,9 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_midi_channel_changed.connect(self.generator.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
-        # Right column - MIXER + BOIDS stacked
+        # Right column - MIXER + BOIDS stacked (constrained width)
         right_column = QWidget()
+        right_column.setMaximumWidth(510)  # Constrain to ~8 channel strips width
         right_layout = QVBoxLayout(right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(4)
