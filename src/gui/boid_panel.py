@@ -246,14 +246,18 @@ class BoidPanel(QWidget):
         self._row_slot4_btn.clicked.connect(lambda: self._on_row_clicked(4))
         zone_layout.addWidget(self._row_slot4_btn)
 
-        zone_layout.addSpacing(4)
+        zone_layout.addStretch()
+        layout.addLayout(zone_layout)
 
-        # Behavior preset dropdown (on same row as toggles)
+        # === BEHAVIOR PRESET (own row) ===
+        behave_layout = QHBoxLayout()
+        behave_layout.setSpacing(4)
+
         preset_label = QLabel("BEHAVE:")
         preset_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         preset_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         preset_label.setToolTip("Behavior preset (sets DISP/ENGY/FADE together)")
-        zone_layout.addWidget(preset_label)
+        behave_layout.addWidget(preset_label)
 
         self._preset_combo = QComboBox()
         self._preset_combo.addItems(['custom', 'swarm', 'scatter', 'drift', 'chaos'])
@@ -284,10 +288,10 @@ class BoidPanel(QWidget):
             }}
         """)
         self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
-        zone_layout.addWidget(self._preset_combo)
+        behave_layout.addWidget(self._preset_combo)
 
-        zone_layout.addStretch()
-        layout.addLayout(zone_layout)
+        behave_layout.addStretch()
+        layout.addLayout(behave_layout)
 
         # === PARAMETERS + SEED (combined row) ===
         params_layout = QHBoxLayout()
