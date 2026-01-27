@@ -126,6 +126,7 @@ class BoidPanel(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WA_StyledBackground, True)
 
         self._enabled = False
         self._seed_locked = False
@@ -134,6 +135,7 @@ class BoidPanel(QWidget):
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         self._setup_ui()
+        self._update_panel_style()
 
     def _setup_ui(self):
         """Build the panel UI."""
@@ -380,13 +382,6 @@ class BoidPanel(QWidget):
         params_layout.addStretch()
         layout.addLayout(params_layout)
 
-        # Set panel style
-        self.setStyleSheet(f"""
-            QWidget {{
-                background-color: {COLORS['background']};
-            }}
-        """)
-
     def _make_zone_button(self, label: str, tooltip: str, default_on: bool) -> QPushButton:
         """Create a zone toggle button."""
         btn = QPushButton(label)
@@ -509,7 +504,27 @@ class BoidPanel(QWidget):
     def _on_enable_clicked(self):
         self._enabled = self._enable_btn.isChecked()
         self._update_enable_style()
+        self._update_panel_style()
         self.enabled_changed.emit(self._enabled)
+
+    def _update_panel_style(self):
+        """Update panel border style based on enabled state."""
+        if self._enabled:
+            # Active: bright boid color border
+            border_color = COLORS['boid']
+            bg_color = COLORS['background_light']
+        else:
+            # Inactive: dim border
+            border_color = '#663399'  # Dimmed purple
+            bg_color = COLORS['background']
+
+        self.setStyleSheet(f"""
+            BoidPanel {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 4px;
+            }}
+        """)
 
     def _update_enable_style(self):
         if self._enabled:
@@ -572,6 +587,7 @@ class BoidPanel(QWidget):
         self._enable_btn.setChecked(enabled)
         self._enable_btn.blockSignals(False)
         self._update_enable_style()
+        self._update_panel_style()
 
     def set_count(self, count: int) -> None:
         """Set boid count."""
