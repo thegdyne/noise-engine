@@ -246,7 +246,7 @@ class BoidPanel(QWidget):
         self._row_slot4_btn.clicked.connect(lambda: self._on_row_clicked(4))
         zone_layout.addWidget(self._row_slot4_btn)
 
-        zone_layout.addSpacing(12)
+        zone_layout.addSpacing(4)
 
         # Behavior preset dropdown (on same row as toggles)
         preset_label = QLabel("BEHAVE:")
