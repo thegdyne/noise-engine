@@ -22,17 +22,17 @@ from src.utils.logger import logger
 # LAYOUT - All positions in one place
 # =============================================================================
 SLOT_LAYOUT = {
-    'slot_width': 160,
+    'slot_width': 150,
     'slot_height': 150,
 
     # Header
     'id_label_x': 5, 'id_label_y': 4,
     'id_label_w': 30, 'id_label_h': 18,
-    'selector_x': 30, 'selector_y': 2,
-    'selector_w': 90, 'selector_h': 20,
+    'selector_x': 28, 'selector_y': 2,
+    'selector_w': 85, 'selector_h': 20,
 
     # Bypass button
-    'bypass_x': 122, 'bypass_y': 2,
+    'bypass_x': 115, 'bypass_y': 2,
     'bypass_w': 32, 'bypass_h': 20,
 
     # Separator
@@ -44,11 +44,11 @@ SLOT_LAYOUT = {
     'slider_w': 18,
     'slider_label_h': 12,
 
-    'p1_x': 8,
-    'p2_x': 38,
-    'p3_x': 68,
-    'p4_x': 98,
-    'ret_x': 132,  # Return slider
+    'p1_x': 6,
+    'p2_x': 34,
+    'p3_x': 62,
+    'p4_x': 90,
+    'ret_x': 124,  # Return slider
 
     # Bottom row labels
     'label_y': 118,
