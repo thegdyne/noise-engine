@@ -39,7 +39,6 @@ class BoidMiniVisualizer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(80, 50)
-        self.setMaximumHeight(60)
 
         self._positions: List[Tuple[float, float]] = []
         self._cells: dict = {}
@@ -131,8 +130,8 @@ class BoidPanel(QWidget):
         self._enabled = False
         self._seed_locked = False
 
-        self.setMinimumHeight(245)
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.setMinimumHeight(180)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         self._setup_ui()
 
@@ -190,9 +189,9 @@ class BoidPanel(QWidget):
 
         layout.addLayout(header)
 
-        # === MINI VISUALIZER ===
+        # === MINI VISUALIZER === (dominant element, gets stretch)
         self._visualizer = BoidMiniVisualizer()
-        layout.addWidget(self._visualizer)
+        layout.addWidget(self._visualizer, stretch=1)
 
         # === ZONE TOGGLES ===
         zone_layout = QHBoxLayout()
@@ -245,17 +244,50 @@ class BoidPanel(QWidget):
         self._row_slot4_btn.clicked.connect(lambda: self._on_row_clicked(4))
         zone_layout.addWidget(self._row_slot4_btn)
 
+        zone_layout.addSpacing(12)
+
+        # Behavior preset dropdown (on same row as toggles)
+        preset_label = QLabel("BEHAVE:")
+        preset_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        preset_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        preset_label.setToolTip("Behavior preset (sets DISP/ENGY/FADE together)")
+        zone_layout.addWidget(preset_label)
+
+        self._preset_combo = QComboBox()
+        self._preset_combo.addItems(['custom', 'swarm', 'scatter', 'drift', 'chaos'])
+        self._preset_combo.setFixedWidth(70)
+        self._preset_combo.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        self._preset_combo.setToolTip(
+            "Behavior presets:\n"
+            "• custom: Manual control\n"
+            "• swarm: Tight flock, medium speed\n"
+            "• scatter: High dispersion, fast\n"
+            "• drift: Slow, cohesive movement\n"
+            "• chaos: Fast, erratic")
+        self._preset_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {COLORS['background_dark']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 2px;
+                padding: 2px 4px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {COLORS['background_dark']};
+                color: {COLORS['text']};
+                selection-background-color: {COLORS['boid']};
+            }}
+        """)
+        self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
+        zone_layout.addWidget(self._preset_combo)
+
         zone_layout.addStretch()
         layout.addLayout(zone_layout)
 
-        # === SEPARATOR ===
-        sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
-        sep.setStyleSheet(f"background-color: {COLORS['border']};")
-        sep.setFixedHeight(1)
-        layout.addWidget(sep)
-
-        # === PARAMETERS ===
+        # === PARAMETERS + SEED (combined row) ===
         params_layout = QHBoxLayout()
         params_layout.setSpacing(8)
 
@@ -298,72 +330,27 @@ class BoidPanel(QWidget):
         )
         params_layout.addLayout(depth_col['layout'])
 
-        layout.addLayout(params_layout)
+        params_layout.addSpacing(16)
 
-        # === SEED CONTROLS ===
-        seed_layout = QHBoxLayout()
-        seed_layout.setSpacing(4)
-
+        # Seed controls (inline with params)
         seed_label = QLabel("SEED")
-        seed_label.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        seed_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         seed_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         seed_label.setToolTip(
             "Seed: Random number generator seed.\n"
             "Same seed = same boid movement pattern.")
-        seed_layout.addWidget(seed_label)
+        params_layout.addWidget(seed_label, alignment=Qt.AlignBottom)
 
         self._seed_display = QLabel("0")
-        self._seed_display.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        self._seed_display.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self._seed_display.setStyleSheet(f"color: {COLORS['text']};")
-        self._seed_display.setMinimumWidth(80)
+        self._seed_display.setMinimumWidth(60)
         self._seed_display.setToolTip("Current seed value")
-        seed_layout.addWidget(self._seed_display)
-
-        seed_layout.addSpacing(12)
-
-        # Behavior preset dropdown
-        preset_label = QLabel("BEHAVE:")
-        preset_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
-        preset_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        preset_label.setToolTip("Behavior preset (sets DISP/ENGY/FADE together)")
-        seed_layout.addWidget(preset_label)
-
-        self._preset_combo = QComboBox()
-        self._preset_combo.addItems(['custom', 'swarm', 'scatter', 'drift', 'chaos'])
-        self._preset_combo.setFixedWidth(70)
-        self._preset_combo.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
-        self._preset_combo.setToolTip(
-            "Behavior presets:\n"
-            "• custom: Manual control\n"
-            "• swarm: Tight flock, medium speed\n"
-            "• scatter: High dispersion, fast\n"
-            "• drift: Slow, cohesive movement\n"
-            "• chaos: Fast, erratic")
-        self._preset_combo.setStyleSheet(f"""
-            QComboBox {{
-                background-color: {COLORS['background_dark']};
-                color: {COLORS['text']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 2px;
-                padding: 2px 4px;
-            }}
-            QComboBox::drop-down {{
-                border: none;
-            }}
-            QComboBox QAbstractItemView {{
-                background-color: {COLORS['background_dark']};
-                color: {COLORS['text']};
-                selection-background-color: {COLORS['boid']};
-            }}
-        """)
-        self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
-        seed_layout.addWidget(self._preset_combo)
-
-        seed_layout.addStretch()
+        params_layout.addWidget(self._seed_display, alignment=Qt.AlignBottom)
 
         self._lock_btn = QPushButton("LOCK")
         self._lock_btn.setCheckable(True)
-        self._lock_btn.setFixedSize(40, 20)
+        self._lock_btn.setFixedSize(36, 18)
         self._lock_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self._lock_btn.setToolTip(
             "Lock seed for deterministic playback.\n"
@@ -371,28 +358,27 @@ class BoidPanel(QWidget):
             "pattern every time.")
         self._lock_btn.clicked.connect(self._on_lock_clicked)
         self._update_lock_style()
-        seed_layout.addWidget(self._lock_btn)
+        params_layout.addWidget(self._lock_btn, alignment=Qt.AlignBottom)
 
         self._reseed_btn = QPushButton("NEW")
-        self._reseed_btn.setFixedSize(36, 20)
+        self._reseed_btn.setFixedSize(32, 18)
         self._reseed_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self._reseed_btn.setToolTip("Generate new random seed.")
         self._reseed_btn.setStyleSheet(button_style())
         self._reseed_btn.clicked.connect(lambda: self.reseed_clicked.emit())
-        seed_layout.addWidget(self._reseed_btn)
-
-        seed_layout.addSpacing(8)
+        params_layout.addWidget(self._reseed_btn, alignment=Qt.AlignBottom)
 
         # Reload scales button
         self._reload_scales_btn = QPushButton("↻")
-        self._reload_scales_btn.setFixedSize(24, 20)
-        self._reload_scales_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['small']))
+        self._reload_scales_btn.setFixedSize(20, 18)
+        self._reload_scales_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
         self._reload_scales_btn.setToolTip("Reload boid scales from config/boid_target_scales.json")
         self._reload_scales_btn.setStyleSheet(button_style())
         self._reload_scales_btn.clicked.connect(self._on_reload_boid_scales)
-        seed_layout.addWidget(self._reload_scales_btn)
+        params_layout.addWidget(self._reload_scales_btn, alignment=Qt.AlignBottom)
 
-        layout.addLayout(seed_layout)
+        params_layout.addStretch()
+        layout.addLayout(params_layout)
 
         # Set panel style
         self.setStyleSheet(f"""
