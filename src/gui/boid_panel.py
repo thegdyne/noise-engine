@@ -249,46 +249,6 @@ class BoidPanel(QWidget):
         self._row_slot4_btn.clicked.connect(lambda: self._on_row_clicked(4))
         row_layout.addWidget(self._row_slot4_btn)
 
-        row_layout.addSpacing(12)
-
-        # Behavior preset dropdown
-        preset_label = QLabel("BEHAVE:")
-        preset_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
-        preset_label.setStyleSheet(f"color: {COLORS['text_dim']};")
-        preset_label.setToolTip("Behavior preset (sets DISP/ENGY/FADE together)")
-        row_layout.addWidget(preset_label)
-
-        self._preset_combo = QComboBox()
-        self._preset_combo.addItems(['custom', 'swarm', 'scatter', 'drift', 'chaos'])
-        self._preset_combo.setFixedWidth(70)
-        self._preset_combo.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
-        self._preset_combo.setToolTip(
-            "Behavior presets:\n"
-            "• custom: Manual control\n"
-            "• swarm: Tight flock, medium speed\n"
-            "• scatter: High dispersion, fast\n"
-            "• drift: Slow, cohesive movement\n"
-            "• chaos: Fast, erratic")
-        self._preset_combo.setStyleSheet(f"""
-            QComboBox {{
-                background-color: {COLORS['background_dark']};
-                color: {COLORS['text']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 2px;
-                padding: 2px 4px;
-            }}
-            QComboBox::drop-down {{
-                border: none;
-            }}
-            QComboBox QAbstractItemView {{
-                background-color: {COLORS['background_dark']};
-                color: {COLORS['text']};
-                selection-background-color: {COLORS['boid']};
-            }}
-        """)
-        self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
-        row_layout.addWidget(self._preset_combo)
-
         row_layout.addStretch()
         layout.addLayout(row_layout)
 
@@ -362,6 +322,46 @@ class BoidPanel(QWidget):
         self._seed_display.setMinimumWidth(80)
         self._seed_display.setToolTip("Current seed value")
         seed_layout.addWidget(self._seed_display)
+
+        seed_layout.addSpacing(12)
+
+        # Behavior preset dropdown
+        preset_label = QLabel("BEHAVE:")
+        preset_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        preset_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        preset_label.setToolTip("Behavior preset (sets DISP/ENGY/FADE together)")
+        seed_layout.addWidget(preset_label)
+
+        self._preset_combo = QComboBox()
+        self._preset_combo.addItems(['custom', 'swarm', 'scatter', 'drift', 'chaos'])
+        self._preset_combo.setFixedWidth(70)
+        self._preset_combo.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
+        self._preset_combo.setToolTip(
+            "Behavior presets:\n"
+            "• custom: Manual control\n"
+            "• swarm: Tight flock, medium speed\n"
+            "• scatter: High dispersion, fast\n"
+            "• drift: Slow, cohesive movement\n"
+            "• chaos: Fast, erratic")
+        self._preset_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {COLORS['background_dark']};
+                color: {COLORS['text']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 2px;
+                padding: 2px 4px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {COLORS['background_dark']};
+                color: {COLORS['text']};
+                selection-background-color: {COLORS['boid']};
+            }}
+        """)
+        self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
+        seed_layout.addWidget(self._preset_combo)
 
         seed_layout.addStretch()
 
