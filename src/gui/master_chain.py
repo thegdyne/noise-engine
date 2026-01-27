@@ -529,7 +529,7 @@ SYNC_LAYOUT = {
     'height': MODULE_HEIGHT,
 
     # Header
-    'title_x': 5, 'title_y': 4, 'title_w': 32, 'title_h': 16,
+    'title_x': 5, 'title_y': 4, 'title_w': 60, 'title_h': 16,
 
     # Separator
     'sep_y': 24,
@@ -577,7 +577,7 @@ class SyncModule(QWidget):
         """Build all widgets with absolute positioning."""
 
         # Title
-        self.title = QLabel("SYNC", self)
+        self.title = QLabel("FILT SYNC", self)
         self.title.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny'], QFont.Bold))
         self.title.setStyleSheet(f"color: {get('accent_master')};")
         self.title.setGeometry(SL['title_x'], SL['title_y'], SL['title_w'], SL['title_h'])
