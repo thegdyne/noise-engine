@@ -220,37 +220,33 @@ class BoidPanel(QWidget):
         self._zone_fx_btn.clicked.connect(lambda: self._on_zone_clicked('fx'))
         zone_layout.addWidget(self._zone_fx_btn)
 
-        zone_layout.addStretch()
-        layout.addLayout(zone_layout)
+        zone_layout.addSpacing(12)
 
-        # === ROW RESTRICTIONS ===
-        row_layout = QHBoxLayout()
-        row_layout.setSpacing(4)
-
+        # SLOTS (row restrictions) - on same line as TARGETS
         row_label = QLabel("SLOTS:")
         row_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         row_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         row_label.setToolTip("Which mod slot outputs boids can use as sources")
-        row_layout.addWidget(row_label)
+        zone_layout.addWidget(row_label)
 
         self._row_slot1_btn = self._make_zone_button("1", "Slot 1 outputs (rows 0-3)", True)
         self._row_slot1_btn.clicked.connect(lambda: self._on_row_clicked(1))
-        row_layout.addWidget(self._row_slot1_btn)
+        zone_layout.addWidget(self._row_slot1_btn)
 
         self._row_slot2_btn = self._make_zone_button("2", "Slot 2 outputs (rows 4-7)", True)
         self._row_slot2_btn.clicked.connect(lambda: self._on_row_clicked(2))
-        row_layout.addWidget(self._row_slot2_btn)
+        zone_layout.addWidget(self._row_slot2_btn)
 
         self._row_slot3_btn = self._make_zone_button("3", "Slot 3 outputs (rows 8-11)", True)
         self._row_slot3_btn.clicked.connect(lambda: self._on_row_clicked(3))
-        row_layout.addWidget(self._row_slot3_btn)
+        zone_layout.addWidget(self._row_slot3_btn)
 
         self._row_slot4_btn = self._make_zone_button("4", "Slot 4 outputs (rows 12-15)", True)
         self._row_slot4_btn.clicked.connect(lambda: self._on_row_clicked(4))
-        row_layout.addWidget(self._row_slot4_btn)
+        zone_layout.addWidget(self._row_slot4_btn)
 
-        row_layout.addStretch()
-        layout.addLayout(row_layout)
+        zone_layout.addStretch()
+        layout.addLayout(zone_layout)
 
         # === SEPARATOR ===
         sep = QFrame()
