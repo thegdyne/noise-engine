@@ -310,9 +310,9 @@ class MainFrame(QMainWindow):
         self.mixer_panel.generator_fx2_send_changed.connect(self.mixer.on_generator_fx2_send)
         self.mixer_panel.generator_fx3_send_changed.connect(self.mixer.on_generator_fx3_send)
         self.mixer_panel.generator_fx4_send_changed.connect(self.mixer.on_generator_fx4_send)
-        right_layout.addWidget(self.mixer_panel, stretch=3)
+        right_layout.addWidget(self.mixer_panel, stretch=1)
 
-        # Boid panel (bottom)
+        # Boid panel (bottom) - equal stretch for balanced layout
         self.boid_panel = BoidPanel()
         self._connect_boid_signals()
         right_layout.addWidget(self.boid_panel, stretch=1)
