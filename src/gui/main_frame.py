@@ -268,11 +268,6 @@ class MainFrame(QMainWindow):
         self.modulator_grid.mass_changed.connect(self.modulation.on_mod_mass)
         left_layout.addWidget(self.modulator_grid, stretch=1)
 
-        # Boid panel
-        self.boid_panel = BoidPanel()
-        self._connect_boid_signals()
-        left_layout.addWidget(self.boid_panel)
-
         content_layout.addWidget(left_column)
         
         # Scope repaint timer (~30fps)
@@ -297,7 +292,13 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_midi_channel_changed.connect(self.generator.on_generator_midi_channel)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
-        # Right - MIXER only (full height now)
+        # Right column - MIXER + BOIDS stacked
+        right_column = QWidget()
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(4)
+
+        # Mixer panel (top)
         self.mixer_panel = MixerPanel(num_generators=8)
         self.mixer_panel.generator_volume_changed.connect(self.mixer.on_generator_volume_changed)
         self.mixer_panel.generator_muted.connect(self.mixer.on_generator_muted)
@@ -309,7 +310,14 @@ class MainFrame(QMainWindow):
         self.mixer_panel.generator_fx2_send_changed.connect(self.mixer.on_generator_fx2_send)
         self.mixer_panel.generator_fx3_send_changed.connect(self.mixer.on_generator_fx3_send)
         self.mixer_panel.generator_fx4_send_changed.connect(self.mixer.on_generator_fx4_send)
-        content_layout.addWidget(self.mixer_panel, stretch=1)
+        right_layout.addWidget(self.mixer_panel, stretch=3)
+
+        # Boid panel (bottom)
+        self.boid_panel = BoidPanel()
+        self._connect_boid_signals()
+        right_layout.addWidget(self.boid_panel, stretch=1)
+
+        content_layout.addWidget(right_column, stretch=1)
         
         content_outer.addWidget(content_widget, stretch=1)
         
