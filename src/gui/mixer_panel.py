@@ -882,13 +882,15 @@ class MixerPanel(QWidget):
                                    SIZES['margin_none'], SIZES['margin_none'])
         layout.setSpacing(SIZES['margin_none'])
         
-        # Channel strips frame with tooltip
+        # Channel strips frame with tooltip and accent border
         channels_frame = QFrame()
         channels_frame.setToolTip("MIXER - 8 Channel Strips")
+        # Teal/cyan accent for mixer (complements green EQ knobs)
+        mixer_border = '#339999'  # Teal accent
         channels_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['background']};
-                border: 1px solid {COLORS['border']};
+                border: 1px solid {mixer_border};
                 border-radius: 4px;
             }}
         """)
