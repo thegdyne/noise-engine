@@ -118,11 +118,11 @@ class HeatModule(QWidget):
         self.title.setStyleSheet(f"color: {get('accent_master')};")
         self.title.setGeometry(HL['title_x'], HL['title_y'], HL['title_w'], HL['title_h'])
 
-        # Bypass button
-        self.bypass_btn = QPushButton("BYP", self)
+        # Bypass button (CycleButton for drag support)
+        self.bypass_btn = CycleButton(["BYP", "ON"], initial_index=0, parent=self)
         self.bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.bypass_btn.setGeometry(HL['bypass_x'], HL['bypass_y'], HL['bypass_w'], HL['bypass_h'])
-        self.bypass_btn.clicked.connect(self._toggle_bypass)
+        self.bypass_btn.index_changed.connect(self._on_bypass_changed)
         self._update_bypass_style()
 
         # Separator
@@ -162,12 +162,12 @@ class HeatModule(QWidget):
         mix_lbl.setAlignment(Qt.AlignCenter)
         mix_lbl.setGeometry(HL['mix_x'] - 4, HL['label_y'], HL['slider_w'] + 8, HL['label_h'])
 
-        # Circuit button
-        self.circuit_btn = QPushButton(self.CIRCUITS[0], self)
+        # Circuit button (CycleButton for drag support)
+        self.circuit_btn = CycleButton(self.CIRCUITS, initial_index=0, parent=self)
         self.circuit_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.circuit_btn.setGeometry(HL['circuit_x'], HL['circuit_y'], HL['circuit_w'], HL['circuit_h'])
-        self.circuit_btn.setToolTip("Saturation circuit type")
-        self.circuit_btn.clicked.connect(self._cycle_circuit)
+        self.circuit_btn.setToolTip("Saturation circuit type (drag to change)")
+        self.circuit_btn.index_changed.connect(self._on_circuit_changed)
         self.circuit_btn.setStyleSheet(small_btn_style())
 
     def _update_style(self):
@@ -180,18 +180,16 @@ class HeatModule(QWidget):
             }}
         """)
 
-    def _toggle_bypass(self):
-        self.bypassed = not self.bypassed
+    def _on_bypass_changed(self, index):
+        self.bypassed = (index == 0)  # 0=BYP (bypassed), 1=ON (not bypassed)
         self._update_bypass_style()
         self._send_osc(OSC_PATHS['heat_bypass'], 1 if self.bypassed else 0)
 
     def _update_bypass_style(self):
-        self.bypass_btn.setText("BYP" if self.bypassed else "ON")
         self.bypass_btn.setStyleSheet(bypass_btn_style(self.bypassed))
 
-    def _cycle_circuit(self):
-        self.circuit_index = (self.circuit_index + 1) % len(self.CIRCUITS)
-        self.circuit_btn.setText(self.CIRCUITS[self.circuit_index])
+    def _on_circuit_changed(self, index):
+        self.circuit_index = index
         self._send_osc(OSC_PATHS['heat_circuit'], self.circuit_index)
 
     def _on_drive_changed(self, value):
@@ -222,11 +220,13 @@ class HeatModule(QWidget):
         }
 
     def set_state(self, state: dict):
-        if 'bypass' in state and state['bypass'] != self.bypassed:
-            self._toggle_bypass()
+        if 'bypass' in state:
+            self.bypassed = state['bypass']
+            self.bypass_btn.set_index(0 if self.bypassed else 1)
+            self._update_bypass_style()
         if 'circuit' in state:
             self.circuit_index = state['circuit']
-            self.circuit_btn.setText(self.CIRCUITS[self.circuit_index])
+            self.circuit_btn.set_index(self.circuit_index)
             self._send_osc(OSC_PATHS['heat_circuit'], self.circuit_index)
         if 'drive' in state:
             self.drive_slider.setValue(state['drive'])
@@ -302,11 +302,11 @@ class FilterModule(QWidget):
         self.title.setStyleSheet(f"color: {get('accent_master')};")
         self.title.setGeometry(FL['title_x'], FL['title_y'], FL['title_w'], FL['title_h'])
 
-        # Bypass button
-        self.bypass_btn = QPushButton("BYP", self)
+        # Bypass button (CycleButton for drag support)
+        self.bypass_btn = CycleButton(["BYP", "ON"], initial_index=0, parent=self)
         self.bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.bypass_btn.setGeometry(FL['bypass_x'], FL['bypass_y'], FL['bypass_w'], FL['bypass_h'])
-        self.bypass_btn.clicked.connect(self._toggle_bypass)
+        self.bypass_btn.index_changed.connect(self._on_bypass_changed)
         self._update_bypass_style()
 
         # Separator
@@ -330,11 +330,11 @@ class FilterModule(QWidget):
         f1_lbl.setAlignment(Qt.AlignCenter)
         f1_lbl.setGeometry(FL['f1_x'] - 2, FL['label_y'], FL['slider_w'] + 4, FL['label_h'])
 
-        # F1 mode button
-        self.f1_mode_btn = QPushButton("LP", self)
+        # F1 mode button (CycleButton for drag support)
+        self.f1_mode_btn = CycleButton(self.MODES, initial_index=0, parent=self)
         self.f1_mode_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.f1_mode_btn.setGeometry(FL['f1_x'] - 2, FL['mode_y'], FL['mode_w'], FL['mode_h'])
-        self.f1_mode_btn.clicked.connect(self._cycle_f1_mode)
+        self.f1_mode_btn.index_changed.connect(self._on_f1_mode_changed)
         self.f1_mode_btn.setStyleSheet(small_btn_style())
 
         # R1 slider
@@ -369,11 +369,11 @@ class FilterModule(QWidget):
         f2_lbl.setAlignment(Qt.AlignCenter)
         f2_lbl.setGeometry(FL['f2_x'] - 2, FL['label_y'], FL['slider_w'] + 4, FL['label_h'])
 
-        # F2 mode button
-        self.f2_mode_btn = QPushButton("LP", self)
+        # F2 mode button (CycleButton for drag support)
+        self.f2_mode_btn = CycleButton(self.MODES, initial_index=0, parent=self)
         self.f2_mode_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.f2_mode_btn.setGeometry(FL['f2_x'] - 2, FL['mode_y'], FL['mode_w'], FL['mode_h'])
-        self.f2_mode_btn.clicked.connect(self._cycle_f2_mode)
+        self.f2_mode_btn.index_changed.connect(self._on_f2_mode_changed)
         self.f2_mode_btn.setStyleSheet(small_btn_style())
 
         # R2 slider
@@ -408,12 +408,12 @@ class FilterModule(QWidget):
         mix_lbl.setAlignment(Qt.AlignCenter)
         mix_lbl.setGeometry(FL['mix_x'] - 2, FL['label_y'], FL['slider_w'] + 4, FL['label_h'])
 
-        # Routing button
-        self.routing_btn = QPushButton("SER", self)
+        # Routing button (CycleButton for drag support)
+        self.routing_btn = CycleButton(self.ROUTINGS, initial_index=0, parent=self)
         self.routing_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.routing_btn.setGeometry(FL['routing_x'], FL['routing_y'], FL['routing_w'], FL['routing_h'])
-        self.routing_btn.setToolTip("Serial/Parallel routing")
-        self.routing_btn.clicked.connect(self._toggle_routing)
+        self.routing_btn.setToolTip("Serial/Parallel routing (drag to change)")
+        self.routing_btn.index_changed.connect(self._on_routing_changed)
         self.routing_btn.setStyleSheet(small_btn_style())
 
     def _update_style(self):
@@ -425,28 +425,24 @@ class FilterModule(QWidget):
             }}
         """)
 
-    def _toggle_bypass(self):
-        self.bypassed = not self.bypassed
+    def _on_bypass_changed(self, index):
+        self.bypassed = (index == 0)  # 0=BYP (bypassed), 1=ON (not bypassed)
         self._update_bypass_style()
         self._send_osc(OSC_PATHS['fb_bypass'], 1 if self.bypassed else 0)
 
     def _update_bypass_style(self):
-        self.bypass_btn.setText("BYP" if self.bypassed else "ON")
         self.bypass_btn.setStyleSheet(bypass_btn_style(self.bypassed))
 
-    def _cycle_f1_mode(self):
-        self.f1_mode = (self.f1_mode + 1) % len(self.MODES)
-        self.f1_mode_btn.setText(self.MODES[self.f1_mode])
+    def _on_f1_mode_changed(self, index):
+        self.f1_mode = index
         self._send_osc(OSC_PATHS['fb_mode1'], self.f1_mode)
 
-    def _cycle_f2_mode(self):
-        self.f2_mode = (self.f2_mode + 1) % len(self.MODES)
-        self.f2_mode_btn.setText(self.MODES[self.f2_mode])
+    def _on_f2_mode_changed(self, index):
+        self.f2_mode = index
         self._send_osc(OSC_PATHS['fb_mode2'], self.f2_mode)
 
-    def _toggle_routing(self):
-        self.routing = 1 - self.routing
-        self.routing_btn.setText(self.ROUTINGS[self.routing])
+    def _on_routing_changed(self, index):
+        self.routing = index
         self._send_osc(OSC_PATHS['fb_routing'], self.routing)
 
     def _on_f1_changed(self, value):
@@ -496,19 +492,21 @@ class FilterModule(QWidget):
         }
 
     def set_state(self, state: dict):
-        if 'bypass' in state and state['bypass'] != self.bypassed:
-            self._toggle_bypass()
+        if 'bypass' in state:
+            self.bypassed = state['bypass']
+            self.bypass_btn.set_index(0 if self.bypassed else 1)
+            self._update_bypass_style()
         if 'f1_mode' in state:
             self.f1_mode = state['f1_mode']
-            self.f1_mode_btn.setText(self.MODES[self.f1_mode])
+            self.f1_mode_btn.set_index(self.f1_mode)
             self._send_osc(OSC_PATHS['fb_mode1'], self.f1_mode)
         if 'f2_mode' in state:
             self.f2_mode = state['f2_mode']
-            self.f2_mode_btn.setText(self.MODES[self.f2_mode])
+            self.f2_mode_btn.set_index(self.f2_mode)
             self._send_osc(OSC_PATHS['fb_mode2'], self.f2_mode)
         if 'routing' in state:
             self.routing = state['routing']
-            self.routing_btn.setText(self.ROUTINGS[self.routing])
+            self.routing_btn.set_index(self.routing)
             self._send_osc(OSC_PATHS['fb_routing'], self.routing)
         if 'f1' in state:
             self.f1_slider.setValue(state['f1'])
@@ -794,11 +792,11 @@ class EQModule(QWidget):
         self.title.setStyleSheet(f"color: {get('accent_master')};")
         self.title.setGeometry(EL['title_x'], EL['title_y'], EL['title_w'], EL['title_h'])
 
-        # Bypass button
-        self.bypass_btn = QPushButton("ON", self)
+        # Bypass button (CycleButton for drag support)
+        self.bypass_btn = CycleButton(["ON", "BYP"], initial_index=0, parent=self)
         self.bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.bypass_btn.setGeometry(EL['bypass_x'], EL['bypass_y'], EL['bypass_w'], EL['bypass_h'])
-        self.bypass_btn.clicked.connect(self._toggle_bypass)
+        self.bypass_btn.index_changed.connect(self._on_bypass_changed)
         self._update_bypass_style()
 
         # Separator
@@ -823,11 +821,11 @@ class EQModule(QWidget):
         lo_lbl.setAlignment(Qt.AlignCenter)
         lo_lbl.setGeometry(EL['lo_x'] - 2, EL['label_y'], EL['slider_w'] + 4, EL['label_h'])
 
-        # LO kill button
-        self.lo_kill_btn = QPushButton("CUT", self)
+        # LO kill button (CycleButton for drag support)
+        self.lo_kill_btn = CycleButton(["—", "CUT"], initial_index=0, parent=self)
         self.lo_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.lo_kill_btn.setGeometry(EL['lo_x'] - 2, EL['kill_y'], EL['kill_w'], EL['kill_h'])
-        self.lo_kill_btn.clicked.connect(self._toggle_lo_kill)
+        self.lo_kill_btn.index_changed.connect(self._on_lo_kill_changed)
         self._update_kill_style(self.lo_kill_btn, self.lo_kill)
 
         # MID slider
@@ -847,11 +845,11 @@ class EQModule(QWidget):
         mid_lbl.setAlignment(Qt.AlignCenter)
         mid_lbl.setGeometry(EL['mid_x'] - 4, EL['label_y'], EL['slider_w'] + 8, EL['label_h'])
 
-        # MID kill button
-        self.mid_kill_btn = QPushButton("CUT", self)
+        # MID kill button (CycleButton for drag support)
+        self.mid_kill_btn = CycleButton(["—", "CUT"], initial_index=0, parent=self)
         self.mid_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.mid_kill_btn.setGeometry(EL['mid_x'] - 2, EL['kill_y'], EL['kill_w'], EL['kill_h'])
-        self.mid_kill_btn.clicked.connect(self._toggle_mid_kill)
+        self.mid_kill_btn.index_changed.connect(self._on_mid_kill_changed)
         self._update_kill_style(self.mid_kill_btn, self.mid_kill)
 
         # HI slider
@@ -871,19 +869,19 @@ class EQModule(QWidget):
         hi_lbl.setAlignment(Qt.AlignCenter)
         hi_lbl.setGeometry(EL['hi_x'] - 2, EL['label_y'], EL['slider_w'] + 4, EL['label_h'])
 
-        # HI kill button
-        self.hi_kill_btn = QPushButton("CUT", self)
+        # HI kill button (CycleButton for drag support)
+        self.hi_kill_btn = CycleButton(["—", "CUT"], initial_index=0, parent=self)
         self.hi_kill_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.hi_kill_btn.setGeometry(EL['hi_x'] - 2, EL['kill_y'], EL['kill_w'], EL['kill_h'])
-        self.hi_kill_btn.clicked.connect(self._toggle_hi_kill)
+        self.hi_kill_btn.index_changed.connect(self._on_hi_kill_changed)
         self._update_kill_style(self.hi_kill_btn, self.hi_kill)
 
-        # Locut button
-        self.locut_btn = QPushButton("75Hz", self)
+        # Locut button (CycleButton for drag support)
+        self.locut_btn = CycleButton(["—", "75Hz"], initial_index=0, parent=self)
         self.locut_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.locut_btn.setGeometry(EL['locut_x'], EL['locut_y'], EL['locut_w'], EL['locut_h'])
         self.locut_btn.setToolTip("Low cut filter (75Hz)")
-        self.locut_btn.clicked.connect(self._toggle_locut)
+        self.locut_btn.index_changed.connect(self._on_locut_changed)
         self._update_locut_style()
 
     def _update_style(self):
@@ -895,13 +893,12 @@ class EQModule(QWidget):
             }}
         """)
 
-    def _toggle_bypass(self):
-        self.bypassed = not self.bypassed
+    def _on_bypass_changed(self, index):
+        self.bypassed = (index == 1)  # 0=ON, 1=BYP
         self._update_bypass_style()
         self.eq_bypass_changed.emit(1 if self.bypassed else 0)
 
     def _update_bypass_style(self):
-        self.bypass_btn.setText("BYP" if self.bypassed else "ON")
         self.bypass_btn.setStyleSheet(bypass_btn_style(self.bypassed))
 
     def _update_kill_style(self, btn, killed):
@@ -930,23 +927,23 @@ class EQModule(QWidget):
         else:
             self.locut_btn.setStyleSheet(small_btn_style())
 
-    def _toggle_lo_kill(self):
-        self.lo_kill = 1 - self.lo_kill
+    def _on_lo_kill_changed(self, index):
+        self.lo_kill = index  # 0=off, 1=cut
         self._update_kill_style(self.lo_kill_btn, self.lo_kill)
         self.eq_lo_kill_changed.emit(self.lo_kill)
 
-    def _toggle_mid_kill(self):
-        self.mid_kill = 1 - self.mid_kill
+    def _on_mid_kill_changed(self, index):
+        self.mid_kill = index  # 0=off, 1=cut
         self._update_kill_style(self.mid_kill_btn, self.mid_kill)
         self.eq_mid_kill_changed.emit(self.mid_kill)
 
-    def _toggle_hi_kill(self):
-        self.hi_kill = 1 - self.hi_kill
+    def _on_hi_kill_changed(self, index):
+        self.hi_kill = index  # 0=off, 1=cut
         self._update_kill_style(self.hi_kill_btn, self.hi_kill)
         self.eq_hi_kill_changed.emit(self.hi_kill)
 
-    def _toggle_locut(self):
-        self.locut = 1 - self.locut
+    def _on_locut_changed(self, index):
+        self.locut = index  # 0=off, 1=on
         self._update_locut_style()
         self.eq_locut_changed.emit(self.locut)
 
@@ -975,22 +972,22 @@ class EQModule(QWidget):
         }
 
     def set_state(self, state: dict):
-        if 'bypass' in state and state['bypass'] != self.bypassed:
-            self._toggle_bypass()
+        if 'bypass' in state:
+            self.bypass_btn.set_index(1 if state['bypass'] else 0)
         if 'lo' in state:
             self.lo_slider.setValue(state['lo'])
         if 'mid' in state:
             self.mid_slider.setValue(state['mid'])
         if 'hi' in state:
             self.hi_slider.setValue(state['hi'])
-        if 'lo_kill' in state and state['lo_kill'] != self.lo_kill:
-            self._toggle_lo_kill()
-        if 'mid_kill' in state and state['mid_kill'] != self.mid_kill:
-            self._toggle_mid_kill()
-        if 'hi_kill' in state and state['hi_kill'] != self.hi_kill:
-            self._toggle_hi_kill()
-        if 'locut' in state and state['locut'] != self.locut:
-            self._toggle_locut()
+        if 'lo_kill' in state:
+            self.lo_kill_btn.set_index(state['lo_kill'])
+        if 'mid_kill' in state:
+            self.mid_kill_btn.set_index(state['mid_kill'])
+        if 'hi_kill' in state:
+            self.hi_kill_btn.set_index(state['hi_kill'])
+        if 'locut' in state:
+            self.locut_btn.set_index(state['locut'])
 
 
 # =============================================================================
@@ -1077,11 +1074,11 @@ class CompModule(QWidget):
         self.title.setStyleSheet(f"color: {get('accent_master')};")
         self.title.setGeometry(CL['title_x'], CL['title_y'], CL['title_w'], CL['title_h'])
 
-        # Bypass button
-        self.bypass_btn = QPushButton("ON", self)
+        # Bypass button (CycleButton for drag support)
+        self.bypass_btn = CycleButton(["ON", "BYP"], initial_index=0, parent=self)
         self.bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.bypass_btn.setGeometry(CL['bypass_x'], CL['bypass_y'], CL['bypass_w'], CL['bypass_h'])
-        self.bypass_btn.clicked.connect(self._toggle_bypass)
+        self.bypass_btn.index_changed.connect(self._on_bypass_changed)
         self._update_bypass_style()
 
         # Separator
@@ -1121,36 +1118,36 @@ class CompModule(QWidget):
         mkp_lbl.setAlignment(Qt.AlignCenter)
         mkp_lbl.setGeometry(CL['mkp_x'] - 3, CL['label_y'], CL['slider_w'] + 6, CL['label_h'])
 
-        # Ratio button
-        self.ratio_btn = QPushButton(self.RATIOS[self.ratio_idx], self)
+        # Ratio button (CycleButton for drag support)
+        self.ratio_btn = CycleButton(self.RATIOS, initial_index=self.ratio_idx, parent=self)
         self.ratio_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.ratio_btn.setGeometry(CL['ratio_x'], CL['btn_row1_y'], CL['btn_w'], CL['btn_h'])
         self.ratio_btn.setToolTip("Compression ratio")
-        self.ratio_btn.clicked.connect(self._cycle_ratio)
+        self.ratio_btn.index_changed.connect(self._on_ratio_changed)
         self.ratio_btn.setStyleSheet(small_btn_style())
 
-        # Attack button
-        self.atk_btn = QPushButton(self.ATTACKS[self.attack_idx], self)
+        # Attack button (CycleButton for drag support)
+        self.atk_btn = CycleButton(self.ATTACKS, initial_index=self.attack_idx, parent=self)
         self.atk_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.atk_btn.setGeometry(CL['atk_x'], CL['btn_row1_y'], CL['btn_w'], CL['btn_h'])
         self.atk_btn.setToolTip("Attack time (ms)")
-        self.atk_btn.clicked.connect(self._cycle_attack)
+        self.atk_btn.index_changed.connect(self._on_attack_changed)
         self.atk_btn.setStyleSheet(small_btn_style())
 
-        # Release button
-        self.rel_btn = QPushButton(self.RELEASES[self.release_idx], self)
+        # Release button (CycleButton for drag support)
+        self.rel_btn = CycleButton(self.RELEASES, initial_index=self.release_idx, parent=self)
         self.rel_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.rel_btn.setGeometry(CL['rel_x'], CL['btn_row2_y'], CL['btn_w'], CL['btn_h'])
         self.rel_btn.setToolTip("Release time (s) / Auto")
-        self.rel_btn.clicked.connect(self._cycle_release)
+        self.rel_btn.index_changed.connect(self._on_release_changed)
         self.rel_btn.setStyleSheet(small_btn_style())
 
-        # SC HPF button
-        self.sc_btn = QPushButton(self.SC_HPFS[self.sc_idx], self)
+        # SC HPF button (CycleButton for drag support)
+        self.sc_btn = CycleButton(self.SC_HPFS, initial_index=self.sc_idx, parent=self)
         self.sc_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.sc_btn.setGeometry(CL['sc_x'], CL['btn_row2_y'], CL['btn_w'], CL['btn_h'])
         self.sc_btn.setToolTip("Sidechain HPF (Hz)")
-        self.sc_btn.clicked.connect(self._cycle_sc)
+        self.sc_btn.index_changed.connect(self._on_sc_changed)
         self.sc_btn.setStyleSheet(small_btn_style())
 
         # GR meter (custom painted)
@@ -1179,33 +1176,28 @@ class CompModule(QWidget):
             }}
         """)
 
-    def _toggle_bypass(self):
-        self.bypassed = not self.bypassed
+    def _on_bypass_changed(self, index):
+        self.bypassed = (index == 1)  # 0=ON, 1=BYP
         self._update_bypass_style()
         self.comp_bypass_changed.emit(1 if self.bypassed else 0)
 
     def _update_bypass_style(self):
-        self.bypass_btn.setText("BYP" if self.bypassed else "ON")
         self.bypass_btn.setStyleSheet(bypass_btn_style(self.bypassed))
 
-    def _cycle_ratio(self):
-        self.ratio_idx = (self.ratio_idx + 1) % len(self.RATIOS)
-        self.ratio_btn.setText(self.RATIOS[self.ratio_idx])
+    def _on_ratio_changed(self, index):
+        self.ratio_idx = index
         self.comp_ratio_changed.emit(self.ratio_idx)
 
-    def _cycle_attack(self):
-        self.attack_idx = (self.attack_idx + 1) % len(self.ATTACKS)
-        self.atk_btn.setText(self.ATTACKS[self.attack_idx])
+    def _on_attack_changed(self, index):
+        self.attack_idx = index
         self.comp_attack_changed.emit(self.attack_idx)
 
-    def _cycle_release(self):
-        self.release_idx = (self.release_idx + 1) % len(self.RELEASES)
-        self.rel_btn.setText(self.RELEASES[self.release_idx])
+    def _on_release_changed(self, index):
+        self.release_idx = index
         self.comp_release_changed.emit(self.release_idx)
 
-    def _cycle_sc(self):
-        self.sc_idx = (self.sc_idx + 1) % len(self.SC_HPFS)
-        self.sc_btn.setText(self.SC_HPFS[self.sc_idx])
+    def _on_sc_changed(self, index):
+        self.sc_idx = index
         self.comp_sc_hpf_changed.emit(self.sc_idx)
 
     def _on_thr_changed(self, value):
@@ -1232,24 +1224,20 @@ class CompModule(QWidget):
         }
 
     def set_state(self, state: dict):
-        if 'bypass' in state and state['bypass'] != self.bypassed:
-            self._toggle_bypass()
+        if 'bypass' in state:
+            self.bypass_btn.set_index(1 if state['bypass'] else 0)
         if 'threshold' in state:
             self.thr_slider.setValue(state['threshold'])
         if 'makeup' in state:
             self.mkp_slider.setValue(state['makeup'])
         if 'ratio' in state:
-            self.ratio_idx = state['ratio']
-            self.ratio_btn.setText(self.RATIOS[self.ratio_idx])
+            self.ratio_btn.set_index(state['ratio'])
         if 'attack' in state:
-            self.attack_idx = state['attack']
-            self.atk_btn.setText(self.ATTACKS[self.attack_idx])
+            self.atk_btn.set_index(state['attack'])
         if 'release' in state:
-            self.release_idx = state['release']
-            self.rel_btn.setText(self.RELEASES[self.release_idx])
+            self.rel_btn.set_index(state['release'])
         if 'sc_hpf' in state:
-            self.sc_idx = state['sc_hpf']
-            self.sc_btn.setText(self.SC_HPFS[self.sc_idx])
+            self.sc_btn.set_index(state['sc_hpf'])
 
 
 class GRMeter(QWidget):
@@ -1345,11 +1333,11 @@ class LimiterModule(QWidget):
         self.title.setStyleSheet(f"color: {get('accent_master')};")
         self.title.setGeometry(LL['title_x'], LL['title_y'], LL['title_w'], LL['title_h'])
 
-        # Bypass button
-        self.bypass_btn = QPushButton("ON", self)
+        # Bypass button (CycleButton for drag support)
+        self.bypass_btn = CycleButton(["ON", "BYP"], initial_index=0, parent=self)
         self.bypass_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.bypass_btn.setGeometry(LL['bypass_x'], LL['bypass_y'], LL['bypass_w'], LL['bypass_h'])
-        self.bypass_btn.clicked.connect(self._toggle_bypass)
+        self.bypass_btn.index_changed.connect(self._on_bypass_changed)
         self._update_bypass_style()
 
         # Separator
@@ -1389,13 +1377,12 @@ class LimiterModule(QWidget):
             }}
         """)
 
-    def _toggle_bypass(self):
-        self.bypassed = not self.bypassed
+    def _on_bypass_changed(self, index):
+        self.bypassed = (index == 1)  # 0=ON, 1=BYP
         self._update_bypass_style()
         self.limiter_bypass_changed.emit(1 if self.bypassed else 0)
 
     def _update_bypass_style(self):
-        self.bypass_btn.setText("BYP" if self.bypassed else "ON")
         self.bypass_btn.setStyleSheet(bypass_btn_style(self.bypassed))
 
     def _on_ceil_changed(self, value):
@@ -1410,8 +1397,8 @@ class LimiterModule(QWidget):
         }
 
     def set_state(self, state: dict):
-        if 'bypass' in state and state['bypass'] != self.bypassed:
-            self._toggle_bypass()
+        if 'bypass' in state:
+            self.bypass_btn.set_index(1 if state['bypass'] else 0)
         if 'ceiling' in state:
             self.ceil_slider.setValue(state['ceiling'])
 
@@ -1470,12 +1457,12 @@ class OutputModule(QWidget):
         self.title.setStyleSheet(f"color: {get('accent_master')};")
         self.title.setGeometry(OL['title_x'], OL['title_y'], OL['title_w'], OL['title_h'])
 
-        # PRE/POST mode button
-        self.mode_btn = QPushButton("PRE", self)
+        # PRE/POST mode button (CycleButton for drag support)
+        self.mode_btn = CycleButton(["PRE", "POST"], initial_index=0, parent=self)
         self.mode_btn.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         self.mode_btn.setGeometry(OL['mode_x'], OL['mode_y'], OL['mode_w'], OL['mode_h'])
         self.mode_btn.setToolTip("Meter mode: PRE/POST fader")
-        self.mode_btn.clicked.connect(self._toggle_mode)
+        self.mode_btn.index_changed.connect(self._on_mode_changed)
         self.mode_btn.setStyleSheet(small_btn_style())
 
         # Separator
@@ -1512,9 +1499,8 @@ class OutputModule(QWidget):
             }}
         """)
 
-    def _toggle_mode(self):
-        self.meter_mode = 1 - self.meter_mode
-        self.mode_btn.setText("POST" if self.meter_mode else "PRE")
+    def _on_mode_changed(self, index):
+        self.meter_mode = index  # 0=PRE, 1=POST
         self.meter_mode_changed.emit(self.meter_mode)
 
     def _on_vol_changed(self, value):
@@ -1539,8 +1525,8 @@ class OutputModule(QWidget):
     def set_state(self, state: dict):
         if 'volume' in state:
             self.vol_slider.setValue(state['volume'])
-        if 'meter_mode' in state and state['meter_mode'] != self.meter_mode:
-            self._toggle_mode()
+        if 'meter_mode' in state:
+            self.mode_btn.set_index(state['meter_mode'])
 
 
 class LevelMeter(QWidget):
