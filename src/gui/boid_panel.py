@@ -500,12 +500,14 @@ class BoidPanel(QWidget):
     def _make_param_column(self, label: str, tooltip: str) -> dict:
         """Create a parameter column with label and slider."""
         col = QVBoxLayout()
-        col.setSpacing(2)
+        col.setSpacing(1)
+        col.setContentsMargins(0, 0, 0, 0)
 
         lbl = QLabel(label)
         lbl.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
         lbl.setAlignment(Qt.AlignCenter)
+        lbl.setFixedHeight(14)
         lbl.setToolTip(tooltip)
         col.addWidget(lbl)
 
