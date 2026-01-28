@@ -167,7 +167,7 @@ class ConnectionController:
                 QPushButton {{
                     background-color: {COLORS['enabled']};
                     color: {COLORS['enabled_text']};
-                    border: 1px solid {COLORS['enabled_border']};
+                    border: 1px solid {COLORS['border_active']};
                     padding: 5px 15px;
                     border-radius: 3px;
                     font-weight: bold;
@@ -194,7 +194,7 @@ class ConnectionController:
                 QPushButton {{
                     background-color: {COLORS['warning']};
                     color: {COLORS['warning_text']};
-                    border: 1px solid {COLORS['warning_border']};
+                    border: 1px solid {COLORS['warning_text']};
                     padding: 5px 15px;
                     border-radius: 3px;
                 }}
