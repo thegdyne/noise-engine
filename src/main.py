@@ -75,7 +75,7 @@ def cleanup_sc():
         subprocess.run(["pkill", "-9", "-f", "sclang"], capture_output=True)
         subprocess.run(["pkill", "-9", "-f", "scsynth"], capture_output=True)
         time.sleep(0.5)
-    except Exception:
+    except Exception:  # Expected during shutdown - pkill may not exist on all platforms
         pass
 
 
