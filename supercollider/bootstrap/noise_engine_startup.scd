@@ -227,10 +227,12 @@ if (s.serverRunning) {
             e.reportError;
         };
 
-        writeReadyFile.("ready");
-        "NoiseEngine: READY".postln;
-
-        launchPython.();
+        // Allow async SC operations to settle before signaling ready
+        {
+            writeReadyFile.("ready");
+            "NoiseEngine: READY".postln;
+            launchPython.();
+        }.defer(1.0);
     });
 
     s.boot;
