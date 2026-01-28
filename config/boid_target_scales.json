@@ -1,0 +1,60 @@
+{
+    "version": 2,
+    "description": "Global boid depth scaling per target category. Scale of 0.0 disables boid modulation, 0.5 is moderate, 1.0 is full range. v2: updated to v3 bus layout (5 channel params, fx_slots zone).",
+
+    "generator_core": {
+        "freq": 0.0,
+        "cutoff": 0.9,
+        "res": 0.8,
+        "attack": 0.1,
+        "decay": 0.5
+    },
+
+    "generator_custom": {
+        "custom0": 0.8,
+        "custom1": 0.8,
+        "custom2": 0.8,
+        "custom3": 0.8,
+        "custom4": 0.8
+    },
+
+    "mod_slots": {
+        "p0": 0.9,
+        "p1": 0.5,
+        "p2": 0.5,
+        "p3": 0.5,
+        "p4": 0.5,
+        "p5": 0.5,
+        "p6": 0.5
+    },
+
+    "channels": {
+        "fx1": 0.0,
+        "fx2": 0.0,
+        "fx3": 0.0,
+        "fx4": 0.0,
+        "pan": 0.9
+    },
+
+    "fx_slots": {
+        "p1": 0.5,
+        "p2": 0.5,
+        "p3": 0.5,
+        "p4": 0.5,
+        "return": 0.4
+    },
+
+    "fx_dualFilter": {
+        "drive": 0.5,
+        "freq1": 0.6,
+        "freq2": 0.6,
+        "reso1": 0.4,
+        "reso2": 0.4,
+        "syncAmt": 0.5,
+        "harmonics": 0.5
+    },
+
+    "fx_heat": {
+        "drive": 0.5
+    }
+}
