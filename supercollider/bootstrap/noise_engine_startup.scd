@@ -37,7 +37,7 @@ initPath = (root +/+ "supercollider" +/+ "init.scd").standardizePath;
 
 // ---- config paths ----
 // IMPORTANT: app-level support dir (must match tools/ne-run + Python app_paths)
-envCfgDir = Platform.getenv("NE_CFG_DIR");
+envCfgDir = "NE_CFG_DIR".getenv;
 if (envCfgDir.notNil) {
     cfgDir = envCfgDir.standardizePath;
 } {
@@ -45,10 +45,10 @@ if (envCfgDir.notNil) {
         cfgDir = (Platform.userHomeDir +/+ "Library" +/+ "Application Support" +/+ "NoiseEngine").standardizePath;
     } {
         if (Platform.os == \windows) {
-            appdata = Platform.getenv("APPDATA") ? Platform.userHomeDir;
+            appdata = "APPDATA".getenv ? Platform.userHomeDir;
             cfgDir = (appdata +/+ "NoiseEngine").standardizePath;
         } {
-            envXdg = Platform.getenv("XDG_DATA_HOME");
+            envXdg = "XDG_DATA_HOME".getenv;
             if (envXdg.notNil) {
                 cfgDir = (envXdg +/+ "NoiseEngine").standardizePath;
             } {
