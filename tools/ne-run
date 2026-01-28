@@ -34,6 +34,17 @@ fi
 
 BOOT="$ROOT/supercollider/bootstrap/noise_engine_startup.scd"
 
+# --- Orphan cleanup preflight (port 57120 is hardcoded) ---
+# Default: kill only NoiseEngine sclang instances (matched by bootstrap path).
+# Set NE_KILL_ALL_SC=1 to kill ALL sclang/scsynth (including SC IDE).
+if [[ "${NE_KILL_ALL_SC:-0}" == "1" ]]; then
+  pkill -9 -f "sclang" 2>/dev/null || true
+  pkill -9 -f "scsynth" 2>/dev/null || true
+else
+  pkill -9 -f "sclang.*noise_engine_startup\\.scd" 2>/dev/null || true
+fi
+sleep 0.3
+
 echo "Starting SuperCollider..."
 "$SCLANG" "$BOOT" >"$SC_LOG" 2>&1 &
 SC_PID=$!
