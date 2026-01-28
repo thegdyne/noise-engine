@@ -294,7 +294,7 @@ class MainFrame(QMainWindow):
         
         # Right column - MIXER + BOIDS stacked (fixed width)
         right_column = QWidget()
-        right_column.setFixedWidth(470)  # Fixed width for 8 channel strips
+        right_column.setFixedWidth(400)  # Fixed width for 8 channel strips
         right_layout = QVBoxLayout(right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(4)
