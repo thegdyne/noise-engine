@@ -145,12 +145,19 @@ class BoidPulseManager:
     def _apply_glow(self, col: int, intensity: float) -> None:
         """Apply glow to widget for column using SSOT findChild lookup."""
         widget = self._get_widget(col)
-        if widget and hasattr(widget, 'set_boid_glow'):
-            # Scale intensity by per-target scale from config
-            scale = get_boid_scales().get_scale(col)
-            scaled_intensity = intensity * scale
-            muted = self._is_target_muted(col)
-            widget.set_boid_glow(scaled_intensity, muted)
+        if widget is None:
+            return
+        try:
+            if hasattr(widget, 'set_boid_glow'):
+                # Scale intensity by per-target scale from config
+                scale = get_boid_scales().get_scale(col)
+                scaled_intensity = intensity * scale
+                muted = self._is_target_muted(col)
+                widget.set_boid_glow(scaled_intensity, muted)
+        except RuntimeError:
+            # Qt object was deleted - remove from cache
+            self._widget_cache.pop(col, None)
+            self._last_intensity.pop(col, None)
 
     def _is_target_muted(self, col: int) -> bool:
         """Check if target at column is muted/empty/bypassed."""
