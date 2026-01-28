@@ -1514,7 +1514,7 @@ class OutputModule(QWidget):
         return self.vol_slider.value()
 
     def set_volume(self, value):
-        self.vol_slider.setValue(value)
+        self.vol_slider.setValue(int(value))
 
     def get_state(self) -> dict:
         return {
@@ -1524,7 +1524,7 @@ class OutputModule(QWidget):
 
     def set_state(self, state: dict):
         if 'volume' in state:
-            self.vol_slider.setValue(state['volume'])
+            self.vol_slider.setValue(int(state['volume']))
         if 'meter_mode' in state:
             self.mode_btn.set_index(state['meter_mode'])
 
