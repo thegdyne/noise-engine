@@ -501,7 +501,7 @@ class ChannelStrip(QWidget):
     def set_active(self, active):
         """Update visual state based on whether generator is active."""
         if active:
-            self._label.setStyleSheet(f"color: {COLORS['text']};")
+            self._label.setStyleSheet(f"color: {COLORS['text_bright']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
             # Keep mute/solo/gain state - just update label brightness
             # Re-apply button styles based on current state
             if self.muted:
@@ -519,7 +519,7 @@ class ChannelStrip(QWidget):
             self._update_lo_cut_style()
             self._update_hi_cut_style()
         else:
-            self._label.setStyleSheet(f"color: {COLORS['text_dim']};")
+            self._label.setStyleSheet(f"color: {COLORS['text']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
             # Dim the buttons when inactive but keep state
             dim_btn = f"""
                 QPushButton {{
