@@ -29,7 +29,8 @@ class ConnectionController:
         import os as _os
         import time as _time
         import json as _json
-        ready_path = _os.path.expanduser("~/Library/Application Support/NoiseEngine/state/ready.json")
+        from src.utils.app_paths import get_ready_json_path
+        ready_path = str(get_ready_json_path())
         try:
             if _os.path.exists(ready_path):
                 age = _time.time() - _os.path.getmtime(ready_path)

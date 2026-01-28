@@ -6,7 +6,7 @@ Launches the main frame with all components.
 import sys
 import os
 import signal
-import subprocess
+import time
 import atexit
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,8 +17,6 @@ from PyQt5.QtCore import Qt
 
 def cleanup_sc():
     """Gracefully stop SuperCollider."""
-    import time
-
     # Stop OSC server first (prevents "deleted object" errors)
     try:
         from src.audio.osc_bridge import osc_bridge
@@ -37,8 +35,44 @@ def cleanup_sc():
     except Exception:  # Expected during shutdown - SC may not be running
         pass
 
-    subprocess.run(['pkill', '-9', 'sclang'], capture_output=True)
-    subprocess.run(['pkill', '-9', 'scsynth'], capture_output=True)
+    # Kill only the sclang instance spawned by NoiseEngine (recorded by tools/ne-run).
+    try:
+        from src.utils.app_paths import get_sc_pid_path
+        pid_path = get_sc_pid_path()
+        if not pid_path.exists():
+            return
+
+        raw = pid_path.read_text().strip()
+        pid = int(raw) if raw else 0
+        if pid <= 0:
+            pid_path.unlink(missing_ok=True)
+            return
+
+        # Is it alive?
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            pid_path.unlink(missing_ok=True)
+            return
+
+        os.kill(pid, signal.SIGTERM)
+
+        # Wait briefly for graceful exit
+        deadline = time.time() + 0.75
+        while time.time() < deadline:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                pid_path.unlink(missing_ok=True)
+                return
+            time.sleep(0.05)
+
+        # Last resort
+        os.kill(pid, signal.SIGKILL)
+        pid_path.unlink(missing_ok=True)
+    except Exception:
+        # Never let shutdown raise
+        pass
 
 
 def signal_handler(signum, frame):

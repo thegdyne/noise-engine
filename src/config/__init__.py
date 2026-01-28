@@ -1263,6 +1263,9 @@ UNIFIED_BUS_TARGET_KEYS: List[str] = _build_unified_bus_target_keys()
 # Validate count matches expected unified bus count (v3)
 assert len(UNIFIED_BUS_TARGET_KEYS) == 176, f"Target key count mismatch: {len(UNIFIED_BUS_TARGET_KEYS)}, expected 176"
 
+# SSOT export for any grid/matrix UI that must match unified bus layout
+MOD_MATRIX_COLS = len(UNIFIED_BUS_TARGET_KEYS)
+
 
 def get_target_key_for_col(col: int) -> Optional[str]:
     """Return target key for unified bus column index."""

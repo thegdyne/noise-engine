@@ -25,9 +25,10 @@ from .widgets import DragSlider
 from .theme import COLORS, FONT_FAMILY, FONT_SIZES, MONO_FONT, button_style
 from src.utils.boid_scales import reload_boid_scales
 from src.utils.logger import logger
+from src.config import MOD_MATRIX_COLS
 
 # Grid dimensions (must match UNIFIED_BUS_TARGET_KEYS count)
-GRID_COLS = 176
+GRID_COLS = MOD_MATRIX_COLS
 GRID_ROWS = 16
 
 

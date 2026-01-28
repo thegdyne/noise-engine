@@ -26,12 +26,12 @@ OSC Protocol:
 from typing import Dict, List, Optional, Tuple
 import math
 
-from src.config import OSC_PATHS
+from src.config import OSC_PATHS, MOD_MATRIX_COLS
 from src.utils.boid_scales import get_boid_scales
 
 
-# Grid layout constants per spec v3 (176 targets)
-GRID_TOTAL_COLUMNS = 176  # 0..175
+# Grid layout constants per spec v3 (SSOT: matches unified bus target key count)
+GRID_TOTAL_COLUMNS = MOD_MATRIX_COLS  # 0..175
 
 # Column/target ranges (column == target index)
 # v3 layout - UI Refresh expansion

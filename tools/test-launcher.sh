@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
-STATE="$HOME/Library/Application Support/NoiseEngine/state/ready.json"
+
+OS="$(uname -s)"
+if [[ "$OS" == "Darwin" ]]; then
+  CFG_DIR="$HOME/Library/Application Support/NoiseEngine"
+elif [[ "$OS" == "Linux" ]]; then
+  CFG_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/NoiseEngine"
+else
+  CFG_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/NoiseEngine"
+fi
+
+STATE="$CFG_DIR/state/ready.json"
 
 if [[ -f "$STATE" ]] && grep -q '"status": "ready"' "$STATE"; then
   echo "PASS: ready.json exists and status is ready"

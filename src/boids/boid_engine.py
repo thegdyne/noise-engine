@@ -17,9 +17,10 @@ import math
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Optional, Callable
 
+from src.config import MOD_MATRIX_COLS
 
-# Grid layout per spec (176 columns matches unified bus layout v3)
-GRID_COLS = 176  # 0-175 (matches unified bus targets v3)
+# Grid layout per spec (SSOT: matches unified bus target key count)
+GRID_COLS = MOD_MATRIX_COLS  # SSOT: matches unified bus target key count
 GRID_ROWS = 16   # 0-15 (4 mod slots x 4 outputs)
 
 # Boid limits

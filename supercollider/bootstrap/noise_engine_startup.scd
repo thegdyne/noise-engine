@@ -14,6 +14,7 @@
 var neVersion = "0.2.3";
 
 var root, cfgDir, cfgPath, stateDir, readyPath;
+var envCfgDir, envXdg, appdata;  // cross-platform env vars
 var cfg, wantedDevice, devices, haveDevice;
 var initPath, timeoutSec, writeReady;
 var autoPython, pythonCmd;
@@ -35,8 +36,27 @@ root = PathName(thisProcess.nowExecutingPath).pathOnly.dirname.dirname.standardi
 initPath = (root +/+ "supercollider" +/+ "init.scd").standardizePath;
 
 // ---- config paths ----
-// IMPORTANT: app-level support dir (matches tools/ne-run polling location)
-cfgDir    = (Platform.userHomeDir +/+ "Library" +/+ "Application Support" +/+ "NoiseEngine").standardizePath;
+// IMPORTANT: app-level support dir (must match tools/ne-run + Python app_paths)
+envCfgDir = Platform.getenv("NE_CFG_DIR");
+if (envCfgDir.notNil) {
+    cfgDir = envCfgDir.standardizePath;
+} {
+    if (Platform.os == \osx) {
+        cfgDir = (Platform.userHomeDir +/+ "Library" +/+ "Application Support" +/+ "NoiseEngine").standardizePath;
+    } {
+        if (Platform.os == \windows) {
+            appdata = Platform.getenv("APPDATA") ? Platform.userHomeDir;
+            cfgDir = (appdata +/+ "NoiseEngine").standardizePath;
+        } {
+            envXdg = Platform.getenv("XDG_DATA_HOME");
+            if (envXdg.notNil) {
+                cfgDir = (envXdg +/+ "NoiseEngine").standardizePath;
+            } {
+                cfgDir = (Platform.userHomeDir +/+ ".local" +/+ "share" +/+ "NoiseEngine").standardizePath;
+            };
+        };
+    };
+};
 cfgPath   = (cfgDir +/+ "config.scd").standardizePath;
 stateDir  = (cfgDir +/+ "state").standardizePath;
 readyPath = (stateDir +/+ "ready.json").standardizePath;
