@@ -202,10 +202,14 @@ s.waitForBoot({
     ~startMasterPassthrough.();
     ~startHeat.();
     ~setupHeatOSC.();
-    ~startTapeEcho.();
-    ~setupTapeEchoOSC.();
-    ~startReverb.();
-    ~setupReverbOSC.();
+    // DISABLED: Legacy FX synths conflict with new FX slot system on slots 1-2
+    // Both systems read/write same buses (~fx1SendBus/~fx1ReturnBus etc.)
+    // causing duplicate processing. New slot system supersedes legacy.
+    // See FX_HOTFIX_GUIDE_CONSOLIDATED.md for details. (2026-01-28)
+    // ~startTapeEcho.();
+    // ~setupTapeEchoOSC.();
+    // ~startReverb.();
+    // ~setupReverbOSC.();
     ~startDualFilter.();
     ~setupDualFilterOSC.();
     ~setupMasterOSC.();

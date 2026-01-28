@@ -103,17 +103,25 @@ class FXSection(QFrame):
         knob.setRange(min_val, max_val)
         knob.setValue(default)
         knob.setFixedSize(28, 50)
-        
+
         lbl = QLabel(label)
         lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
         lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
         lbl.setAlignment(Qt.AlignCenter)
-        
+
         container.addWidget(knob, alignment=Qt.AlignCenter)
         container.addWidget(lbl, alignment=Qt.AlignCenter)
         self.controls.addLayout(container)
-        
+
         return knob
+
+    def _add_deprecation_notice(self, message):
+        """Add a deprecation notice label below the header."""
+        notice = QLabel(message)
+        notice.setFont(QFont(FONT_FAMILY, FONT_SIZES['micro']))
+        notice.setStyleSheet(f"color: {COLORS['warning_text']}; padding: 2px 0;")
+        notice.setAlignment(Qt.AlignCenter)
+        self.layout.insertWidget(1, notice)
 
 
 class HeatSection(FXSection):
@@ -158,8 +166,12 @@ class HeatSection(FXSection):
 
 
 class TapeEchoSection(FXSection):
-    """Tape Echo delay controls."""
-    
+    """Tape Echo delay controls.
+
+    DEPRECATED: Legacy synth disabled. Use FX Grid (Slot 1) for echo.
+    Only the RTN (return level) knob remains functional.
+    """
+
     time_changed = pyqtSignal(float)
     feedback_changed = pyqtSignal(float)
     tone_changed = pyqtSignal(float)
@@ -167,56 +179,77 @@ class TapeEchoSection(FXSection):
     spring_changed = pyqtSignal(float)
     verb_send_changed = pyqtSignal(float)
     return_changed = pyqtSignal(float)
-    
+
     def __init__(self, parent=None):
         super().__init__("TAPE ECHO", parent)
         # No bypass for send effects - always on
         self.bypass_btn.hide()
-        
+
+        # Deprecation notice
+        self._add_deprecation_notice("Use FX Grid Slot 1 for echo controls")
+
         self.time_knob = self.add_knob("TIME", 0, 100, 40, name="fx_echo_time")
         self.time_knob.valueChanged.connect(lambda v: self.time_changed.emit(v / 100.0))
-        
+        self.time_knob.setEnabled(False)  # Deprecated - no longer functional
+
         self.feedback_knob = self.add_knob("FDBK", 0, 100, 30, name="fx_echo_feedback")
         self.feedback_knob.valueChanged.connect(lambda v: self.feedback_changed.emit(v / 100.0))
-        
+        self.feedback_knob.setEnabled(False)  # Deprecated
+
         self.tone_knob = self.add_knob("TONE", 0, 100, 70, name="fx_echo_tone")
         self.tone_knob.valueChanged.connect(lambda v: self.tone_changed.emit(v / 100.0))
+        self.tone_knob.setEnabled(False)  # Deprecated
 
         self.wow_knob = self.add_knob("WOW", 0, 100, 10, name="fx_echo_wow")
         self.wow_knob.valueChanged.connect(lambda v: self.wow_changed.emit(v / 100.0))
-        
+        self.wow_knob.setEnabled(False)  # Deprecated
+
         self.spring_knob = self.add_knob("SPRING", 0, 100, 0, name="fx_echo_spring")
         self.spring_knob.valueChanged.connect(lambda v: self.spring_changed.emit(v / 100.0))
+        self.spring_knob.setEnabled(False)  # Deprecated
 
         self.verb_send_knob = self.add_knob("VRB", 0, 100, 0, name="fx_echo_verb")
         self.verb_send_knob.valueChanged.connect(lambda v: self.verb_send_changed.emit(v / 100.0))
-        
+        self.verb_send_knob.setEnabled(False)  # Deprecated
+
+        # Return knob still works - controls fx_mixer return level
         self.return_knob = self.add_knob("RTN", 0, 100, 50, name="fx_echo_return")
         self.return_knob.valueChanged.connect(lambda v: self.return_changed.emit(v / 100.0))
 
 
 class ReverbSection(FXSection):
-    """Reverb controls."""
-    
+    """Reverb controls.
+
+    DEPRECATED: Legacy synth disabled. Use FX Grid (Slot 2) for reverb.
+    Only the RTN (return level) knob remains functional.
+    """
+
     size_changed = pyqtSignal(float)
     decay_changed = pyqtSignal(float)
     tone_changed = pyqtSignal(float)
     return_changed = pyqtSignal(float)
-    
+
     def __init__(self, parent=None):
         super().__init__("REVERB", parent)
         # No bypass for send effects
         self.bypass_btn.hide()
-        
+
+        # Deprecation notice
+        self._add_deprecation_notice("Use FX Grid Slot 2 for reverb controls")
+
         self.size_knob = self.add_knob("SIZE", 0, 100, 50, name="fx_reverb_size")
         self.size_knob.valueChanged.connect(lambda v: self.size_changed.emit(v / 100.0))
-        
+        self.size_knob.setEnabled(False)  # Deprecated - no longer functional
+
         self.decay_knob = self.add_knob("DECAY", 0, 100, 50, name="fx_reverb_decay")
         self.decay_knob.valueChanged.connect(lambda v: self.decay_changed.emit(v / 100.0))
-        
+        self.decay_knob.setEnabled(False)  # Deprecated
+
         self.tone_knob = self.add_knob("TONE", 0, 100, 70, name="fx_reverb_tone")
         self.tone_knob.valueChanged.connect(lambda v: self.tone_changed.emit(v / 100.0))
-        
+        self.tone_knob.setEnabled(False)  # Deprecated
+
+        # Return knob still works - controls fx_mixer return level
         self.return_knob = self.add_knob("RTN", 0, 100, 30, name="fx_reverb_return")
         self.return_knob.valueChanged.connect(lambda v: self.return_changed.emit(v / 100.0))
 
