@@ -132,7 +132,7 @@ class HeatModule(QWidget):
 
         # Drive slider
         self.drive_slider = DragSlider(parent=self)
-        self.drive_slider.setObjectName("master_heat_drive")
+        self.drive_slider.setObjectName("fx_heat_drive")
         self.drive_slider.setGeometry(HL['drv_x'], HL['slider_y'], HL['slider_w'], HL['slider_h'])
         self.drive_slider.setMinimum(0)
         self.drive_slider.setMaximum(200)
@@ -148,7 +148,7 @@ class HeatModule(QWidget):
 
         # Mix slider
         self.mix_slider = DragSlider(parent=self)
-        self.mix_slider.setObjectName("master_heat_mix")
+        self.mix_slider.setObjectName("fx_heat_mix")
         self.mix_slider.setGeometry(HL['mix_x'], HL['slider_y'], HL['slider_w'], HL['slider_h'])
         self.mix_slider.setMinimum(0)
         self.mix_slider.setMaximum(200)
@@ -316,7 +316,7 @@ class FilterModule(QWidget):
 
         # F1 slider
         self.f1_slider = DragSlider(parent=self)
-        self.f1_slider.setObjectName("master_filt_freq1")
+        self.f1_slider.setObjectName("fx_fb_freq1")
         self.f1_slider.setGeometry(FL['f1_x'], FL['slider_y'], FL['slider_w'], FL['slider_h'])
         self.f1_slider.setMinimum(0)
         self.f1_slider.setMaximum(200)
@@ -339,7 +339,7 @@ class FilterModule(QWidget):
 
         # R1 slider
         self.r1_slider = DragSlider(parent=self)
-        self.r1_slider.setObjectName("master_filt_reso1")
+        self.r1_slider.setObjectName("fx_fb_reso1")
         self.r1_slider.setGeometry(FL['r1_x'], FL['slider_y'], FL['slider_w'], FL['slider_h'])
         self.r1_slider.setMinimum(0)
         self.r1_slider.setMaximum(200)
@@ -355,7 +355,7 @@ class FilterModule(QWidget):
 
         # F2 slider
         self.f2_slider = DragSlider(parent=self)
-        self.f2_slider.setObjectName("master_filt_freq2")
+        self.f2_slider.setObjectName("fx_fb_freq2")
         self.f2_slider.setGeometry(FL['f2_x'], FL['slider_y'], FL['slider_w'], FL['slider_h'])
         self.f2_slider.setMinimum(0)
         self.f2_slider.setMaximum(200)
@@ -378,7 +378,7 @@ class FilterModule(QWidget):
 
         # R2 slider
         self.r2_slider = DragSlider(parent=self)
-        self.r2_slider.setObjectName("master_filt_reso2")
+        self.r2_slider.setObjectName("fx_fb_reso2")
         self.r2_slider.setGeometry(FL['r2_x'], FL['slider_y'], FL['slider_w'], FL['slider_h'])
         self.r2_slider.setMinimum(0)
         self.r2_slider.setMaximum(200)
@@ -394,7 +394,7 @@ class FilterModule(QWidget):
 
         # MIX slider (wet/dry)
         self.mix_slider = DragSlider(parent=self)
-        self.mix_slider.setObjectName("master_filt_mix")
+        self.mix_slider.setObjectName("fx_fb_mix")
         self.mix_slider.setGeometry(FL['mix_x'], FL['slider_y'], FL['slider_w'], FL['slider_h'])
         self.mix_slider.setMinimum(0)
         self.mix_slider.setMaximum(200)
@@ -617,7 +617,7 @@ class SyncModule(QWidget):
 
         # AMT slider
         self.amt_slider = DragSlider(parent=self)
-        self.amt_slider.setObjectName("master_sync_amt")
+        self.amt_slider.setObjectName("fx_fb_syncAmt")
         self.amt_slider.setGeometry(SL['amt_x'], SL['amt_y'], SL['amt_w'], SL['amt_h'])
         self.amt_slider.setMinimum(0)
         self.amt_slider.setMaximum(200)

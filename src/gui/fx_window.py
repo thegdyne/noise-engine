@@ -273,14 +273,14 @@ class DualFilterSection(FXSection):
         super().__init__("DUAL FILTER", parent)
         
         # Drive
-        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0, name="fx_filter_drive")
+        self.drive_knob = self.add_knob("DRIVE", 0, 100, 0, name="fx_fb_drive")
         self.drive_knob.valueChanged.connect(lambda v: self.drive_changed.emit(v / 100.0))
         
         # Filter 1
-        self.freq1_knob = self.add_knob("F1", 0, 100, 50, name="fx_filter_freq1")
+        self.freq1_knob = self.add_knob("F1", 0, 100, 50, name="fx_fb_freq1")
         self.freq1_knob.valueChanged.connect(lambda v: self.freq1_changed.emit(v / 100.0))
 
-        self.reso1_knob = self.add_knob("R1", 0, 100, 0, name="fx_filter_reso1")
+        self.reso1_knob = self.add_knob("R1", 0, 100, 0, name="fx_fb_reso1")
         self.reso1_knob.valueChanged.connect(lambda v: self.reso1_changed.emit(v / 100.0))
         
         # Mode 1 combo
@@ -301,10 +301,10 @@ class DualFilterSection(FXSection):
         self.controls.addLayout(mode1_container)
         
         # Filter 2
-        self.freq2_knob = self.add_knob("F2", 0, 100, 35, name="fx_filter_freq2")
+        self.freq2_knob = self.add_knob("F2", 0, 100, 35, name="fx_fb_freq2")
         self.freq2_knob.valueChanged.connect(lambda v: self.freq2_changed.emit(v / 100.0))
         
-        self.reso2_knob = self.add_knob("R2", 0, 100, 0, name="fx_filter_reso2")
+        self.reso2_knob = self.add_knob("R2", 0, 100, 0, name="fx_fb_reso2")
         self.reso2_knob.valueChanged.connect(lambda v: self.reso2_changed.emit(v / 100.0))
         
         # Mode 2 combo
@@ -328,6 +328,7 @@ class DualFilterSection(FXSection):
         harm_container = QVBoxLayout()
         harm_container.setSpacing(2)
         self.harmonics_combo = QComboBox()
+        self.harmonics_combo.setObjectName("fx_fb_harmonics")
         self.harmonics_combo.addItems(["Free", "1", "2", "3", "4", "5", "8", "16"])
         self.harmonics_combo.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny']))
         self.harmonics_combo.setFixedWidth(50)
@@ -357,7 +358,7 @@ class DualFilterSection(FXSection):
         self.controls.addLayout(route_container)
         
         # Mix
-        self.mix_knob = self.add_knob("MIX", 0, 100, 100, name="fx_filter_mix")
+        self.mix_knob = self.add_knob("MIX", 0, 100, 100, name="fx_fb_mix")
         self.mix_knob.valueChanged.connect(lambda v: self.mix_changed.emit(v / 100.0))
     
     def on_bypass_changed(self, bypassed):
