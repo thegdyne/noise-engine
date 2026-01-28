@@ -22,6 +22,11 @@ export NE_STATE_DIR="$STATE_DIR"
 mkdir -p "$STATE_DIR"
 rm -f "$READY"
 
+# --- Hard reset SuperCollider (kill any existing instances) ---
+pkill -9 -f sclang 2>/dev/null || true
+pkill -9 -f scsynth 2>/dev/null || true
+sleep 0.5
+
 # ---- find sclang ----
 if command -v sclang >/dev/null 2>&1; then
   SCLANG="sclang"
@@ -33,16 +38,6 @@ else
 fi
 
 BOOT="$ROOT/supercollider/bootstrap/noise_engine_startup.scd"
-
-# --- Orphan cleanup preflight (port 57120 is hardcoded) ---
-# Default: kill NoiseEngine sclang + any scsynth (scsynth doesn't carry bootstrap path).
-# Set NE_KILL_ALL_SC=1 to kill ALL sclang too (including SC IDE's sclang).
-if [[ "${NE_KILL_ALL_SC:-0}" == "1" ]]; then
-  pkill -9 -f "sclang" 2>/dev/null || true
-fi
-pkill -9 -f "sclang.*noise_engine_startup\\.scd" 2>/dev/null || true
-pkill -9 -f "scsynth" 2>/dev/null || true
-sleep 0.3
 
 echo "Starting SuperCollider..."
 "$SCLANG" "$BOOT" >"$SC_LOG" 2>&1 &

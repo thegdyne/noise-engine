@@ -36,48 +36,47 @@ def cleanup_sc():
         pass
 
     # Kill only the sclang instance spawned by NoiseEngine (recorded by tools/ne-run).
-    pid_killed = False
     try:
         from src.utils.app_paths import get_sc_pid_path
         pid_path = get_sc_pid_path()
-        if pid_path.exists():
-            raw = pid_path.read_text().strip()
-            pid = int(raw) if raw else 0
-            if pid > 0:
-                # Is it alive?
-                try:
-                    os.kill(pid, 0)
-                    os.kill(pid, signal.SIGTERM)
-                    # Wait briefly for graceful exit
-                    deadline = time.time() + 0.75
-                    while time.time() < deadline:
-                        try:
-                            os.kill(pid, 0)
-                        except ProcessLookupError:
-                            pid_killed = True
-                            break
-                        time.sleep(0.05)
-                    if not pid_killed:
-                        os.kill(pid, signal.SIGKILL)
-                        pid_killed = True
-                except ProcessLookupError:
-                    pid_killed = True  # Already dead
+        if not pid_path.exists():
+            return
+        raw = pid_path.read_text().strip()
+        pid = int(raw) if raw else 0
+        if pid <= 0:
             pid_path.unlink(missing_ok=True)
+            return
+        # Is it alive?
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            pid_path.unlink(missing_ok=True)
+            return
+        os.kill(pid, signal.SIGTERM)
+        # Wait briefly for graceful exit
+        deadline = time.time() + 0.75
+        while time.time() < deadline:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                pid_path.unlink(missing_ok=True)
+                return
+            time.sleep(0.05)
+        # Last resort
+        os.kill(pid, signal.SIGKILL)
+        pid_path.unlink(missing_ok=True)
     except Exception:
+        # Never let shutdown raise
         pass
 
-    # Fallback: pkill if PID-based cleanup didn't confirm a kill.
-    # This catches orphans from crashes, stale PIDs, or detached children.
-    if not pid_killed:
-        try:
-            import subprocess
-            if os.environ.get("NE_KILL_ALL_SC", "0") == "1":
-                subprocess.run(["pkill", "-9", "-f", "sclang"], capture_output=True)
-            subprocess.run(["pkill", "-9", "-f", r"sclang.*noise_engine_startup\.scd"], capture_output=True)
-            subprocess.run(["pkill", "-9", "-f", "scsynth"], capture_output=True)
-            time.sleep(0.2)
-        except Exception:
-            pass
+    # Hard reset fallback - kill any remaining SC processes
+    try:
+        import subprocess
+        subprocess.run(["pkill", "-9", "-f", "sclang"], capture_output=True)
+        subprocess.run(["pkill", "-9", "-f", "scsynth"], capture_output=True)
+        time.sleep(0.5)
+    except Exception:
+        pass
 
 
 def signal_handler(signum, frame):
