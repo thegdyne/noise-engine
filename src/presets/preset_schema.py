@@ -182,10 +182,33 @@ class ChannelState:
 
 @dataclass
 class MasterState:
-    """Master section state - Phase 2."""
+    """Master section state - Phase 2 + MasterChain expansion."""
     # Master volume (0-1000 slider, stored as 0-1 float)
     volume: float = 0.8
-    
+    meter_mode: int = 0  # 0=PRE, 1=POST
+
+    # Heat insert (before filter)
+    heat_bypass: int = 1     # 0=on, 1=bypassed (default bypassed)
+    heat_circuit: int = 0    # 0=CLEAN, 1=TAPE, 2=TUBE, 3=CRUNCH
+    heat_drive: int = 0      # 0-200 slider
+    heat_mix: int = 200      # 0-200 slider (100% default)
+
+    # Filter insert (dual filter)
+    filter_bypass: int = 1   # 0=on, 1=bypassed (default bypassed)
+    filter_f1: int = 100     # 0-200 slider
+    filter_r1: int = 0       # 0-200 slider
+    filter_f1_mode: int = 0  # 0=LP, 1=BP, 2=HP
+    filter_f2: int = 100     # 0-200 slider
+    filter_r2: int = 0       # 0-200 slider
+    filter_f2_mode: int = 2  # 0=LP, 1=BP, 2=HP
+    filter_routing: int = 0  # 0=SER, 1=PAR
+    filter_mix: int = 200    # 0-200 slider
+
+    # Filter sync
+    sync_f1: int = 0         # 0=OFF, 1-12=clock rates
+    sync_f2: int = 0         # 0=OFF, 1-12=clock rates
+    sync_amt: int = 100      # 0-200 slider
+
     # EQ (sliders 0-240, 120 = 0dB)
     eq_hi: int = 120
     eq_mid: int = 120
@@ -195,7 +218,7 @@ class MasterState:
     eq_lo_kill: int = 0
     eq_locut: int = 0      # 0=off, 1=on
     eq_bypass: int = 0     # 0=on, 1=bypassed
-    
+
     # Compressor
     comp_threshold: int = 100   # 0-400, 200=0dB
     comp_makeup: int = 0        # 0-200
@@ -204,14 +227,31 @@ class MasterState:
     comp_release: int = 4       # index 0-4
     comp_sc: int = 0            # index 0-5
     comp_bypass: int = 0        # 0=on, 1=bypassed
-    
+
     # Limiter
     limiter_ceiling: int = 590  # 0-600, 590=-0.1dB
     limiter_bypass: int = 0     # 0=on, 1=bypassed
-    
+
     def to_dict(self) -> dict:
         return {
             "volume": self.volume,
+            "meter_mode": self.meter_mode,
+            "heat_bypass": self.heat_bypass,
+            "heat_circuit": self.heat_circuit,
+            "heat_drive": self.heat_drive,
+            "heat_mix": self.heat_mix,
+            "filter_bypass": self.filter_bypass,
+            "filter_f1": self.filter_f1,
+            "filter_r1": self.filter_r1,
+            "filter_f1_mode": self.filter_f1_mode,
+            "filter_f2": self.filter_f2,
+            "filter_r2": self.filter_r2,
+            "filter_f2_mode": self.filter_f2_mode,
+            "filter_routing": self.filter_routing,
+            "filter_mix": self.filter_mix,
+            "sync_f1": self.sync_f1,
+            "sync_f2": self.sync_f2,
+            "sync_amt": self.sync_amt,
             "eq_hi": self.eq_hi,
             "eq_mid": self.eq_mid,
             "eq_lo": self.eq_lo,
@@ -230,11 +270,28 @@ class MasterState:
             "limiter_ceiling": self.limiter_ceiling,
             "limiter_bypass": self.limiter_bypass,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "MasterState":
         return cls(
             volume=data.get("volume", 0.8),
+            meter_mode=data.get("meter_mode", 0),
+            heat_bypass=data.get("heat_bypass", 1),
+            heat_circuit=data.get("heat_circuit", 0),
+            heat_drive=data.get("heat_drive", 0),
+            heat_mix=data.get("heat_mix", 200),
+            filter_bypass=data.get("filter_bypass", 1),
+            filter_f1=data.get("filter_f1", 100),
+            filter_r1=data.get("filter_r1", 0),
+            filter_f1_mode=data.get("filter_f1_mode", 0),
+            filter_f2=data.get("filter_f2", 100),
+            filter_r2=data.get("filter_r2", 0),
+            filter_f2_mode=data.get("filter_f2_mode", 2),
+            filter_routing=data.get("filter_routing", 0),
+            filter_mix=data.get("filter_mix", 200),
+            sync_f1=data.get("sync_f1", 0),
+            sync_f2=data.get("sync_f2", 0),
+            sync_amt=data.get("sync_amt", 100),
             eq_hi=data.get("eq_hi", 120),
             eq_mid=data.get("eq_mid", 120),
             eq_lo=data.get("eq_lo", 120),

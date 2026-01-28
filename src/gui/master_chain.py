@@ -1781,31 +1781,136 @@ class MasterChain(QWidget):
         self.output.set_volume(value)
 
     def get_state(self) -> dict:
+        """Get state in flat prefixed format matching MasterState schema."""
+        heat = self.heat.get_state()
+        flt = self.filter.get_state()
+        sync = self.sync.get_state()
+        eq = self.eq.get_state()
+        comp = self.comp.get_state()
+        lim = self.limiter.get_state()
+        out = self.output.get_state()
+
         return {
-            'heat': self.heat.get_state(),
-            'filter': self.filter.get_state(),
-            'sync': self.sync.get_state(),
-            'eq': self.eq.get_state(),
-            'comp': self.comp.get_state(),
-            'limiter': self.limiter.get_state(),
-            'output': self.output.get_state(),
+            # Output
+            'volume': out.get('volume', 800) / 1000.0,  # Convert 0-1000 to 0-1
+            'meter_mode': out.get('meter_mode', 0),
+            # Heat
+            'heat_bypass': 1 if heat.get('bypass', True) else 0,
+            'heat_circuit': heat.get('circuit', 0),
+            'heat_drive': heat.get('drive', 0),
+            'heat_mix': heat.get('mix', 200),
+            # Filter
+            'filter_bypass': 1 if flt.get('bypass', True) else 0,
+            'filter_f1': flt.get('f1', 100),
+            'filter_r1': flt.get('r1', 0),
+            'filter_f1_mode': flt.get('f1_mode', 0),
+            'filter_f2': flt.get('f2', 100),
+            'filter_r2': flt.get('r2', 0),
+            'filter_f2_mode': flt.get('f2_mode', 2),
+            'filter_routing': flt.get('routing', 0),
+            'filter_mix': flt.get('mix', 200),
+            # Sync
+            'sync_f1': sync.get('f1_sync', 0),
+            'sync_f2': sync.get('f2_sync', 0),
+            'sync_amt': sync.get('amt', 100),
+            # EQ
+            'eq_bypass': 1 if eq.get('bypass', False) else 0,
+            'eq_lo': eq.get('lo', 120),
+            'eq_mid': eq.get('mid', 120),
+            'eq_hi': eq.get('hi', 120),
+            'eq_lo_kill': eq.get('lo_kill', 0),
+            'eq_mid_kill': eq.get('mid_kill', 0),
+            'eq_hi_kill': eq.get('hi_kill', 0),
+            'eq_locut': eq.get('locut', 0),
+            # Compressor
+            'comp_bypass': 1 if comp.get('bypass', False) else 0,
+            'comp_threshold': comp.get('threshold', 100),
+            'comp_makeup': comp.get('makeup', 0),
+            'comp_ratio': comp.get('ratio', 1),
+            'comp_attack': comp.get('attack', 4),
+            'comp_release': comp.get('release', 4),
+            'comp_sc': comp.get('sc_hpf', 0),
+            # Limiter
+            'limiter_bypass': 1 if lim.get('bypass', False) else 0,
+            'limiter_ceiling': lim.get('ceiling', 590),
         }
 
     def set_state(self, state: dict):
+        """Set state from flat prefixed format (MasterState schema)."""
+        # Support both nested (legacy) and flat (new) formats
         if 'heat' in state:
+            # Legacy nested format
             self.heat.set_state(state['heat'])
-        if 'filter' in state:
-            self.filter.set_state(state['filter'])
-        if 'sync' in state:
-            self.sync.set_state(state['sync'])
-        if 'eq' in state:
-            self.eq.set_state(state['eq'])
-        if 'comp' in state:
-            self.comp.set_state(state['comp'])
-        if 'limiter' in state:
-            self.limiter.set_state(state['limiter'])
-        if 'output' in state:
-            self.output.set_state(state['output'])
+            if 'filter' in state:
+                self.filter.set_state(state['filter'])
+            if 'sync' in state:
+                self.sync.set_state(state['sync'])
+            if 'eq' in state:
+                self.eq.set_state(state['eq'])
+            if 'comp' in state:
+                self.comp.set_state(state['comp'])
+            if 'limiter' in state:
+                self.limiter.set_state(state['limiter'])
+            if 'output' in state:
+                self.output.set_state(state['output'])
+        else:
+            # New flat prefixed format
+            # Heat
+            self.heat.set_state({
+                'bypass': state.get('heat_bypass', 1) == 1,
+                'circuit': state.get('heat_circuit', 0),
+                'drive': state.get('heat_drive', 0),
+                'mix': state.get('heat_mix', 200),
+            })
+            # Filter
+            self.filter.set_state({
+                'bypass': state.get('filter_bypass', 1) == 1,
+                'f1': state.get('filter_f1', 100),
+                'r1': state.get('filter_r1', 0),
+                'f1_mode': state.get('filter_f1_mode', 0),
+                'f2': state.get('filter_f2', 100),
+                'r2': state.get('filter_r2', 0),
+                'f2_mode': state.get('filter_f2_mode', 2),
+                'routing': state.get('filter_routing', 0),
+                'mix': state.get('filter_mix', 200),
+            })
+            # Sync
+            self.sync.set_state({
+                'f1_sync': state.get('sync_f1', 0),
+                'f2_sync': state.get('sync_f2', 0),
+                'amt': state.get('sync_amt', 100),
+            })
+            # EQ
+            self.eq.set_state({
+                'bypass': state.get('eq_bypass', 0) == 1,
+                'lo': state.get('eq_lo', 120),
+                'mid': state.get('eq_mid', 120),
+                'hi': state.get('eq_hi', 120),
+                'lo_kill': state.get('eq_lo_kill', 0),
+                'mid_kill': state.get('eq_mid_kill', 0),
+                'hi_kill': state.get('eq_hi_kill', 0),
+                'locut': state.get('eq_locut', 0),
+            })
+            # Compressor
+            self.comp.set_state({
+                'bypass': state.get('comp_bypass', 0) == 1,
+                'threshold': state.get('comp_threshold', 100),
+                'makeup': state.get('comp_makeup', 0),
+                'ratio': state.get('comp_ratio', 1),
+                'attack': state.get('comp_attack', 4),
+                'release': state.get('comp_release', 4),
+                'sc_hpf': state.get('comp_sc', 0),
+            })
+            # Limiter
+            self.limiter.set_state({
+                'bypass': state.get('limiter_bypass', 0) == 1,
+                'ceiling': state.get('limiter_ceiling', 590),
+            })
+            # Output
+            self.output.set_state({
+                'volume': int(state.get('volume', 0.8) * 1000),  # Convert 0-1 to 0-1000
+                'meter_mode': state.get('meter_mode', 0),
+            })
 
     # Legacy compatibility - forward to embedded master_section-like interface
     @property
