@@ -1511,10 +1511,12 @@ class OutputModule(QWidget):
         self.meter.set_levels(left, right, peak_left, peak_right)
 
     def get_volume(self):
-        return self.vol_slider.value()
+        """Get current master volume (0.0 to 1.0)."""
+        return self.vol_slider.value() / 1000.0
 
     def set_volume(self, value):
-        self.vol_slider.setValue(int(value))
+        """Set master volume (0.0 to 1.0)."""
+        self.vol_slider.setValue(int(value * 1000))
 
     def get_state(self) -> dict:
         return {
