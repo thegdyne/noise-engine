@@ -126,6 +126,7 @@ class CrossmodMatrixWindow(QMainWindow):
     def _setup_ui(self):
         """Build the matrix UI."""
         central = QWidget()
+        central.setObjectName("crossmodCentral")
         self.setCentralWidget(central)
         
         layout = QVBoxLayout(central)
@@ -204,6 +205,7 @@ class CrossmodMatrixWindow(QMainWindow):
         
         # Matrix container
         matrix_widget = QWidget()
+        matrix_widget.setObjectName("crossmodGrid")
         matrix_widget.setFocusPolicy(Qt.NoFocus)
         matrix_layout = QGridLayout(matrix_widget)
         matrix_layout.setSpacing(1)
@@ -335,6 +337,7 @@ class CrossmodMatrixWindow(QMainWindow):
     def _build_legend(self) -> QWidget:
         """Build legend showing source generator colors."""
         legend = QWidget()
+        legend.setObjectName("crossmodLegend")
         layout = QHBoxLayout(legend)
         layout.setContentsMargins(5, 5, 5, 5)
         

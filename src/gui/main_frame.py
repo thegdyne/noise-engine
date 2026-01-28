@@ -229,6 +229,7 @@ class MainFrame(QMainWindow):
         
         # Content area with console overlay
         content_container = QWidget()
+        content_container.setObjectName("contentContainer")
         content_container.setAutoFillBackground(True)
         content_outer = QHBoxLayout(content_container)
         content_outer.setContentsMargins(0, 0, 0, 0)
@@ -236,6 +237,7 @@ class MainFrame(QMainWindow):
         
         # Main content (left side)
         content_widget = QWidget()
+        content_widget.setObjectName("contentArea")
         content_widget.setAutoFillBackground(True)
         content_layout = QHBoxLayout(content_widget)
         content_layout.setContentsMargins(5, 5, 5, 5)
@@ -243,6 +245,7 @@ class MainFrame(QMainWindow):
         
         # Left column - MODULATOR GRID + BOID PANEL
         left_column = QWidget()
+        left_column.setObjectName("leftColumn")
         left_column.setFixedWidth(320)
         left_layout = QVBoxLayout(left_column)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -294,6 +297,7 @@ class MainFrame(QMainWindow):
         
         # Right column - MIXER + BOIDS stacked (fixed width)
         right_column = QWidget()
+        right_column.setObjectName("rightColumn")
         right_column.setFixedWidth(400)  # Fixed width for 8 channel strips
         right_layout = QVBoxLayout(right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
@@ -330,6 +334,7 @@ class MainFrame(QMainWindow):
         
         # Bottom section - FX Chain + Master side by side
         bottom_container = QWidget()
+        bottom_container.setObjectName("bottomSection")
         bottom_container.setAutoFillBackground(True)
         bottom_layout = QHBoxLayout(bottom_container)
         bottom_layout.setContentsMargins(5, 5, 5, 5)
@@ -417,6 +422,7 @@ class MainFrame(QMainWindow):
     def create_top_bar(self):
         """Create top bar."""
         bar = QFrame()
+        bar.setObjectName("header")
         bar.setFrameShape(QFrame.StyledPanel)
         bar.setStyleSheet(f"""
             QFrame {{

@@ -377,6 +377,7 @@ class FXWindow(QMainWindow):
         
         # Central widget
         central = QWidget()
+        central.setObjectName("fxWindowCentral")
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
         layout.setContentsMargins(12, 12, 12, 12)
