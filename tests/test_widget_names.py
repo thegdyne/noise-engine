@@ -112,7 +112,7 @@ class TestObjectNameCoverage:
         """Verify GeneratorSlot.__init__ sets objectName."""
         # Read the source and check for setObjectName call
         import os
-        src_path = os.path.join(os.path.dirname(__file__), 
+        src_path = os.path.join(os.path.dirname(__file__),
                                 '..', 'src', 'gui', 'generator_slot.py')
         
         with open(src_path, 'r') as f:
@@ -134,30 +134,6 @@ class TestObjectNameCoverage:
         
         assert 'setObjectName' in source, \
             "ModulatorSlot should call setObjectName"
-    
-    def test_generator_builder_sets_object_names(self):
-        """Verify generator_slot_builder sets objectNames on key widgets."""
-        import os
-        src_path = os.path.join(os.path.dirname(__file__), 
-                                '..', 'src', 'gui', 'generator_slot_builder.py')
-        
-        with open(src_path, 'r') as f:
-            source = f.read()
-        
-        required_names = [
-            'gen{slot.slot_id}_type',
-            'gen{slot.slot_id}_header',
-            'gen{slot.slot_id}_type_container',
-            'gen{slot.slot_id}_label',
-            'gen{slot.slot_id}_filter',
-            'gen{slot.slot_id}_mute',
-        ]
-        
-        for name_pattern in required_names:
-            # Check for the f-string pattern
-            search = name_pattern.replace('{slot.slot_id}', '{slot.slot_id}')
-            assert search in source or name_pattern.split('_')[1] in source, \
-                f"generator_slot_builder should set objectName for: {name_pattern}"
     
     def test_modulator_builder_sets_object_names(self):
         """Verify modulator_slot_builder sets objectNames on key widgets."""
@@ -224,8 +200,8 @@ if __name__ == '__main__':
     src_dir = os.path.join(os.path.dirname(__file__), '..', 'src', 'gui')
     
     files_to_check = [
-        'generator_slot_builder.py',
-        'modulator_slot_builder.py', 
+        'generator_slot.py',
+        'modulator_slot_builder.py',
         'main_frame.py',
         'mixer_channel.py',
         'master_section.py',

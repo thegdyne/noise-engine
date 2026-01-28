@@ -2,7 +2,7 @@
 FX Slot Component - UI Refresh Phase 2
 Single FX slot with type selector and p1-p4 sliders
 
-Follows the flat absolute positioning pattern from generator_slot_new.py
+Follows the flat absolute positioning pattern from generator_slot.py
 """
 
 from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QSizePolicy

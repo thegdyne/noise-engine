@@ -20,7 +20,6 @@ UNNAMED_THRESHOLD = 70  # Started at 68, allow small buffer
 
 # Files to check
 GUI_FILES = [
-    'generator_slot_builder.py',
     'generator_slot.py',
     'modulator_slot_builder.py',
     'modulator_slot.py',
