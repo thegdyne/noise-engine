@@ -140,7 +140,7 @@ class ChannelStrip(QWidget):
         self._label = QLabel(self.label_text or str(self.channel_id))
         self._label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self._label.setAlignment(Qt.AlignCenter)
-        self._label.setStyleSheet(f"color: {COLORS['text_bright']}; font-weight: bold;")
+        self._label.setStyleSheet(f"color: {COLORS['text_bright']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
         layout.addWidget(self._label)
         
         # === EQ Section (3 mini knobs: HI, MID, LO) ===
