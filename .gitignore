@@ -1,6 +1,4 @@
 # Python
-config/boid_target_scales.json
-
 __pycache__/
 *.py[cod]
 *$py.class
@@ -124,4 +122,3 @@ analysis/
 
 # local MIDI mapping experiments
 midi_mappings/
-config/boid_target_scales.json
