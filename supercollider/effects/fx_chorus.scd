@@ -39,8 +39,8 @@ SynthDef(\fxSlot_chorus, { |inBus, outBus,
     // Map rate: 0-1 -> 0.1-5Hz
     rateEff = rateEff.linexp(0, 1, 0.1, 5);
 
-    // Map depth to delay modulation (0-8ms)
-    modDepth = depthEff * 0.008;
+    // Map depth to delay modulation (0-20ms for more obvious effect)
+    modDepth = depthEff * 0.020;
 
     // Base delay time
     delayTime = 0.015;  // 15ms base
@@ -64,14 +64,14 @@ SynthDef(\fxSlot_chorus, { |inBus, outBus,
     chorus2 = DelayC.ar(sig, 0.05, (delayTime * 1.1) + (lfo2 * modDepth));
     chorus3 = DelayC.ar(sig, 0.05, (delayTime * 0.9) + (lfo3 * modDepth));
 
-    // Mix voices with stereo spread
+    // Mix voices with stereo spread (normalized to ~unity gain)
     wet = [
-        (chorus1[0] + (chorus2[0] * (1 - spreadEff)) + (chorus3[0] * spreadEff)) / 2,
-        (chorus1[1] + (chorus2[1] * spreadEff) + (chorus3[1] * (1 - spreadEff))) / 2
+        (chorus1[0] + (chorus2[0] * (1 - spreadEff)) + (chorus3[0] * spreadEff)) * 0.5,
+        (chorus1[1] + (chorus2[1] * spreadEff) + (chorus3[1] * (1 - spreadEff))) * 0.5
     ];
 
-    // Soft saturation to warm up
-    wet = (wet * 1.1).tanh;
+    // Soft saturation to warm up and add presence
+    wet = (wet * 1.4).tanh;
 
     // Mix dry/wet (internal mix control for chorus character)
     wet = (dry * (1 - mixEff)) + (wet * mixEff);
