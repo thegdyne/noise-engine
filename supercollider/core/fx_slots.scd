@@ -109,24 +109,34 @@ The slot manager handles:
 // Set a parameter on a slot
 ~setFxSlotParam = { |slotIndex, paramKey, value|
     if((slotIndex >= 0) && (slotIndex < 4)) {
+        var slotNum = slotIndex + 1;
         ~fxSlotParams[slotIndex][paramKey] = value;
 
-        // Handle return level - forward to mixer, not FX synth
+        // Handle return level - forward to mixer via unified bus
         if(paramKey == \return) {
-            // Return level goes to preMasterMixer
+            var targetKey = ("fx_slot" ++ slotNum ++ "_return").asSymbol;
+            if(~queueBaseUpdate.notNil) {
+                ~queueBaseUpdate.(targetKey, value);
+            };
+            // Also set directly on mixer for immediate response
             if(~fxMixer.notNil) {
                 var returnParam = [\fx1Return, \fx2Return, \fx3Return, \fx4Return][slotIndex];
                 ~fxMixer.set(returnParam, value);
             };
         } {
-            // Update FX synth if running
-            if(~fxSlotSynths[slotIndex].notNil) {
-                case
-                { paramKey == \p1 } { ~fxSlotSynths[slotIndex].set(\p1, value) }
-                { paramKey == \p2 } { ~fxSlotSynths[slotIndex].set(\p2, value) }
-                { paramKey == \p3 } { ~fxSlotSynths[slotIndex].set(\p3, value) }
-                { paramKey == \p4 } { ~fxSlotSynths[slotIndex].set(\p4, value) }
-                { paramKey == \bypass } { ~fxSlotSynths[slotIndex].set(\bypass, value) };
+            // Update via unified bus system (FX synths read from bus, not args)
+            // This fixes the bug where direct .set() was ignored because synths read In.kr(pNBus)
+            if(paramKey == \bypass) {
+                // Bypass is set directly on synth (not bus-controlled)
+                if(~fxSlotSynths[slotIndex].notNil) {
+                    ~fxSlotSynths[slotIndex].set(\bypass, value);
+                };
+            } {
+                // p1-p4 go through unified bus system
+                var targetKey = ("fx_slot" ++ slotNum ++ "_" ++ paramKey).asSymbol;
+                if(~queueBaseUpdate.notNil) {
+                    ~queueBaseUpdate.(targetKey, value);
+                };
             };
         };
     };
