@@ -249,15 +249,74 @@ class BoidPanel(QWidget):
         zone_layout.addStretch()
         layout.addLayout(zone_layout)
 
-        # === BEHAVIOR PRESET (own row) ===
-        behave_layout = QHBoxLayout()
-        behave_layout.setSpacing(4)
+        # === BOTTOM SECTION: Faders | Divider | Controls ===
+        bottom_section = QHBoxLayout()
+        bottom_section.setSpacing(8)
+
+        # --- LEFT SIDE: Faders ---
+        faders_layout = QHBoxLayout()
+        faders_layout.setSpacing(4)
+
+        # Dispersion
+        disp_col = self._make_param_column("DISP",
+            "Dispersion: Flock spread.\n"
+            "Low = tight flock\n"
+            "High = scattered boids")
+        self._dispersion_slider = disp_col['slider']
+        self._dispersion_slider.valueChanged.connect(self._on_dispersion_changed)
+        faders_layout.addLayout(disp_col['layout'])
+
+        # Energy
+        energy_col = self._make_param_column("ENGY",
+            "Energy: Movement speed.\n"
+            "Low = slow drift\n"
+            "High = fast, chaotic")
+        self._energy_slider = energy_col['slider']
+        self._energy_slider.valueChanged.connect(self._on_energy_changed)
+        faders_layout.addLayout(energy_col['layout'])
+
+        # Fade
+        fade_col = self._make_param_column("FADE",
+            "Fade: Trail decay time.\n"
+            "Low = fast fade (0.1s)\n"
+            "High = slow fade (2s)")
+        self._fade_slider = fade_col['slider']
+        self._fade_slider.valueChanged.connect(self._on_fade_changed)
+        faders_layout.addLayout(fade_col['layout'])
+
+        # Depth
+        depth_col = self._make_param_column("DPTH",
+            "Depth: Connection strength.\n"
+            "How much modulation is added\n"
+            "when a boid is over a cell.")
+        self._depth_slider = depth_col['slider']
+        self._depth_slider.setValue(1000)  # Default 1.0
+        self._depth_slider.valueChanged.connect(
+            lambda v: self.depth_changed.emit(v / 1000.0)
+        )
+        faders_layout.addLayout(depth_col['layout'])
+
+        bottom_section.addLayout(faders_layout)
+
+        # --- VERTICAL DIVIDER ---
+        divider = QFrame()
+        divider.setFrameShape(QFrame.VLine)
+        divider.setStyleSheet(f"color: {COLORS['border']};")
+        bottom_section.addWidget(divider)
+
+        # --- RIGHT SIDE: Controls ---
+        controls_layout = QVBoxLayout()
+        controls_layout.setSpacing(6)
+
+        # BEHAVE row
+        behave_row = QHBoxLayout()
+        behave_row.setSpacing(4)
 
         preset_label = QLabel("BEHAVE:")
         preset_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         preset_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         preset_label.setToolTip("Behavior preset (sets DISP/ENGY/FADE together)")
-        behave_layout.addWidget(preset_label)
+        behave_row.addWidget(preset_label)
 
         self._preset_combo = QComboBox()
         self._preset_combo.addItems(['custom', 'swarm', 'scatter', 'drift', 'chaos'])
@@ -288,71 +347,36 @@ class BoidPanel(QWidget):
             }}
         """)
         self._preset_combo.currentTextChanged.connect(self._on_preset_changed)
-        behave_layout.addWidget(self._preset_combo)
+        behave_row.addWidget(self._preset_combo)
+        behave_row.addStretch()
 
-        behave_layout.addStretch()
-        layout.addLayout(behave_layout)
+        controls_layout.addLayout(behave_row)
 
-        # === PARAMETERS + SEED (combined row) ===
-        params_layout = QHBoxLayout()
-        params_layout.setSpacing(8)
+        # SEED row
+        seed_row = QHBoxLayout()
+        seed_row.setSpacing(4)
 
-        # Dispersion
-        disp_col = self._make_param_column("DISP",
-            "Dispersion: Flock spread.\n"
-            "Low = tight flock\n"
-            "High = scattered boids")
-        self._dispersion_slider = disp_col['slider']
-        self._dispersion_slider.valueChanged.connect(self._on_dispersion_changed)
-        params_layout.addLayout(disp_col['layout'])
-
-        # Energy
-        energy_col = self._make_param_column("ENGY",
-            "Energy: Movement speed.\n"
-            "Low = slow drift\n"
-            "High = fast, chaotic")
-        self._energy_slider = energy_col['slider']
-        self._energy_slider.valueChanged.connect(self._on_energy_changed)
-        params_layout.addLayout(energy_col['layout'])
-
-        # Fade
-        fade_col = self._make_param_column("FADE",
-            "Fade: Trail decay time.\n"
-            "Low = fast fade (0.1s)\n"
-            "High = slow fade (2s)")
-        self._fade_slider = fade_col['slider']
-        self._fade_slider.valueChanged.connect(self._on_fade_changed)
-        params_layout.addLayout(fade_col['layout'])
-
-        # Depth
-        depth_col = self._make_param_column("DPTH",
-            "Depth: Connection strength.\n"
-            "How much modulation is added\n"
-            "when a boid is over a cell.")
-        self._depth_slider = depth_col['slider']
-        self._depth_slider.setValue(1000)  # Default 1.0
-        self._depth_slider.valueChanged.connect(
-            lambda v: self.depth_changed.emit(v / 1000.0)
-        )
-        params_layout.addLayout(depth_col['layout'])
-
-        params_layout.addSpacing(16)
-
-        # Seed controls (inline with params)
-        seed_label = QLabel("SEED")
+        seed_label = QLabel("SEED:")
         seed_label.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         seed_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         seed_label.setToolTip(
             "Seed: Random number generator seed.\n"
             "Same seed = same boid movement pattern.")
-        params_layout.addWidget(seed_label, alignment=Qt.AlignBottom)
+        seed_row.addWidget(seed_label)
 
         self._seed_display = QLabel("0")
         self._seed_display.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self._seed_display.setStyleSheet(f"color: {COLORS['text']};")
-        self._seed_display.setMinimumWidth(60)
+        self._seed_display.setMinimumWidth(40)
         self._seed_display.setToolTip("Current seed value")
-        params_layout.addWidget(self._seed_display, alignment=Qt.AlignBottom)
+        seed_row.addWidget(self._seed_display)
+        seed_row.addStretch()
+
+        controls_layout.addLayout(seed_row)
+
+        # Buttons row
+        buttons_row = QHBoxLayout()
+        buttons_row.setSpacing(4)
 
         self._lock_btn = QPushButton("LOCK")
         self._lock_btn.setCheckable(True)
@@ -364,7 +388,7 @@ class BoidPanel(QWidget):
             "pattern every time.")
         self._lock_btn.clicked.connect(self._on_lock_clicked)
         self._update_lock_style()
-        params_layout.addWidget(self._lock_btn, alignment=Qt.AlignBottom)
+        buttons_row.addWidget(self._lock_btn)
 
         self._reseed_btn = QPushButton("NEW")
         self._reseed_btn.setFixedSize(32, 18)
@@ -372,7 +396,7 @@ class BoidPanel(QWidget):
         self._reseed_btn.setToolTip("Generate new random seed.")
         self._reseed_btn.setStyleSheet(button_style())
         self._reseed_btn.clicked.connect(lambda: self.reseed_clicked.emit())
-        params_layout.addWidget(self._reseed_btn, alignment=Qt.AlignBottom)
+        buttons_row.addWidget(self._reseed_btn)
 
         # Reload scales button
         self._reload_scales_btn = QPushButton("↻")
@@ -381,10 +405,15 @@ class BoidPanel(QWidget):
         self._reload_scales_btn.setToolTip("Reload boid scales from config/boid_target_scales.json")
         self._reload_scales_btn.setStyleSheet(button_style())
         self._reload_scales_btn.clicked.connect(self._on_reload_boid_scales)
-        params_layout.addWidget(self._reload_scales_btn, alignment=Qt.AlignBottom)
+        buttons_row.addWidget(self._reload_scales_btn)
+        buttons_row.addStretch()
 
-        params_layout.addStretch()
-        layout.addLayout(params_layout)
+        controls_layout.addLayout(buttons_row)
+        controls_layout.addStretch()
+
+        bottom_section.addLayout(controls_layout)
+
+        layout.addLayout(bottom_section)
 
     def _make_zone_button(self, label: str, tooltip: str, default_on: bool) -> QPushButton:
         """Create a zone toggle button."""
