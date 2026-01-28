@@ -73,9 +73,8 @@ def cleanup_sc():
             import subprocess
             if os.environ.get("NE_KILL_ALL_SC", "0") == "1":
                 subprocess.run(["pkill", "-9", "-f", "sclang"], capture_output=True)
-                subprocess.run(["pkill", "-9", "-f", "scsynth"], capture_output=True)
-            else:
-                subprocess.run(["pkill", "-9", "-f", r"sclang.*noise_engine_startup\.scd"], capture_output=True)
+            subprocess.run(["pkill", "-9", "-f", r"sclang.*noise_engine_startup\.scd"], capture_output=True)
+            subprocess.run(["pkill", "-9", "-f", "scsynth"], capture_output=True)
             time.sleep(0.2)
         except Exception:
             pass
