@@ -73,18 +73,24 @@ class FXGrid(QWidget):
 
     def get_state(self):
         """Get state of all slots for preset saving."""
+        # Format must match FXSlotsState schema: {"slots": [...]}
         return {
-            'slot1': self.slots[0].get_state(),
-            'slot2': self.slots[1].get_state(),
-            'slot3': self.slots[2].get_state(),
-            'slot4': self.slots[3].get_state(),
+            'slots': [slot.get_state() for slot in self.slots]
         }
 
     def load_state(self, state):
         """Load state of all slots from preset."""
-        for i, key in enumerate(['slot1', 'slot2', 'slot3', 'slot4']):
-            if key in state:
-                self.slots[i].load_state(state[key])
+        # Handle both old format ('slot1', 'slot2', ...) and new format ('slots': [...])
+        if 'slots' in state:
+            # New format: {"slots": [{...}, {...}, {...}, {...}]}
+            slots_data = state['slots']
+            for i, slot_state in enumerate(slots_data[:4]):
+                self.slots[i].load_state(slot_state)
+        else:
+            # Legacy format: {'slot1': {...}, 'slot2': {...}, ...}
+            for i, key in enumerate(['slot1', 'slot2', 'slot3', 'slot4']):
+                if key in state:
+                    self.slots[i].load_state(state[key])
 
     def sync_to_sc(self):
         """Send current state to SuperCollider."""

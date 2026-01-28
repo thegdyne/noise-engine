@@ -284,12 +284,20 @@ class FXSlot(QWidget):
 
     def load_state(self, state):
         """Load slot state from preset."""
-        if 'type' in state:
+        # Accept both 'fx_type' (schema) and 'type' (legacy) keys
+        if 'fx_type' in state:
+            self.set_type(state['fx_type'])
+        elif 'type' in state:
             self.set_type(state['type'])
         if 'bypassed' in state:
             self.bypassed = state['bypassed']
             self.bypass_btn.set_value('BYP' if self.bypassed else 'ON')
             self._update_bypass_style()
-        for key in ['p1', 'p2', 'p3', 'p4', 'return']:
+        for key in ['p1', 'p2', 'p3', 'p4']:
             if key in state:
                 self.set_param(key, state[key])
+        # Accept both 'return_level' (schema) and 'return' (legacy) keys
+        if 'return_level' in state:
+            self.set_param('return', state['return_level'])
+        elif 'return' in state:
+            self.set_param('return', state['return'])

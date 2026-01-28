@@ -642,14 +642,17 @@ class FXSlotState:
 
     @classmethod
     def from_dict(cls, data: dict) -> "FXSlotState":
+        # Accept both 'fx_type'/'type' and 'return_level'/'return' for compatibility
+        fx_type = data.get("fx_type") or data.get("type", "Empty")
+        return_level = data.get("return_level") if "return_level" in data else data.get("return", 0.5)
         return cls(
-            fx_type=data.get("fx_type", "Empty"),
+            fx_type=fx_type,
             bypassed=data.get("bypassed", False),
             p1=data.get("p1", 0.5),
             p2=data.get("p2", 0.5),
             p3=data.get("p3", 0.5),
             p4=data.get("p4", 0.5),
-            return_level=data.get("return_level", 0.5),
+            return_level=return_level,
         )
 
 
