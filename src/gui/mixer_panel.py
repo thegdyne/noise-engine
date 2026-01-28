@@ -131,6 +131,7 @@ class ChannelStrip(QWidget):
         
     def setup_ui(self):
         """Create channel strip."""
+        self.setMaximumWidth(40)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 5, 2, 5)
         layout.setSpacing(3)
