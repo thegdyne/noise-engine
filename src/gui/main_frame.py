@@ -34,7 +34,7 @@ from src.gui.crossmod_matrix_window import CrossmodMatrixWindow
 from src.gui.keyboard_overlay import KeyboardOverlay
 from src.gui.preset_browser import PresetBrowser
 from src.gui.mod_debug import install_mod_debug_hotkey
-from src.gui.theme import COLORS, button_style, FONT_FAMILY, FONT_SIZES
+from src.gui.theme import COLORS, button_style, FONT_FAMILY, MONO_FONT, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
 from src.config import (
     CLOCK_RATE_INDEX, FILTER_TYPE_INDEX, GENERATORS, GENERATOR_CYCLE,
