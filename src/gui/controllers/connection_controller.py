@@ -75,6 +75,7 @@ class ConnectionController:
                 if self.main.fx_window:
                     self.main.fx_window.set_osc_bridge(self.main.osc)
                 self.main.connect_btn.setText("Disconnect")
+                self.main.connect_btn.setStyleSheet(self._connect_btn_style('connected'))
                 self.main.status_label.setText("Connected")
                 self.main.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
                 
@@ -124,7 +125,8 @@ class ConnectionController:
             self.main.osc.disconnect()
             self.main.osc_connected = False
             self.main._set_header_buttons_enabled(False)
-            self.main.connect_btn.setText("Connect SuperCollider")
+            self.main.connect_btn.setText("Connect SC")
+            self.main.connect_btn.setStyleSheet(self._connect_btn_style('disconnected'))
             self.main.status_label.setText("Disconnected")
             self.main.status_label.setStyleSheet(f"color: {COLORS['submenu_text']};")
     
@@ -133,7 +135,7 @@ class ConnectionController:
         self.main.osc_connected = False
         self.main._set_header_buttons_enabled(False)
         self.main.connect_btn.setText("RECONNECT")
-        self.main.connect_btn.setStyleSheet(f"background-color: {COLORS['warning_text']}; color: black; font-weight: bold;")
+        self.main.connect_btn.setStyleSheet(self._connect_btn_style('lost'))
         self.main.status_label.setText("CONNECTION LOST")
         self.main.status_label.setStyleSheet(f"color: {COLORS['warning_text']}; font-weight: bold;")
     
@@ -148,7 +150,7 @@ class ConnectionController:
         if self.main.fx_window:
             self.main.fx_window.set_osc_bridge(self.main.osc)
         self.main.connect_btn.setText("Disconnect")
-        self.main.connect_btn.setStyleSheet(self._connect_btn_style())
+        self.main.connect_btn.setStyleSheet(self._connect_btn_style('connected'))
         self.main.status_label.setText("Connected")
         self.main.status_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
         
@@ -158,16 +160,45 @@ class ConnectionController:
         # Clear mod routing (SC has fresh state after restart)
         self.main.mod_routing.clear()
 
-    def _connect_btn_style(self):
-        """Return the standard connect button stylesheet."""
-        return f"""
-            QPushButton {{
-                background-color: {COLORS['border_light']};
-                color: white;
-                padding: 5px 15px;
-                border-radius: 3px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['text']};
-            }}
-        """
+    def _connect_btn_style(self, state='disconnected'):
+        """Return connect button stylesheet for given state."""
+        if state == 'connected':
+            return f"""
+                QPushButton {{
+                    background-color: {COLORS['enabled']};
+                    color: {COLORS['enabled_text']};
+                    border: 1px solid {COLORS['enabled_border']};
+                    padding: 5px 15px;
+                    border-radius: 3px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['enabled_hover']};
+                }}
+            """
+        elif state == 'lost':
+            return f"""
+                QPushButton {{
+                    background-color: {COLORS['warning_text']};
+                    color: black;
+                    padding: 5px 15px;
+                    border-radius: 3px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #ff4444;
+                }}
+            """
+        else:
+            return f"""
+                QPushButton {{
+                    background-color: {COLORS['warning']};
+                    color: {COLORS['warning_text']};
+                    border: 1px solid {COLORS['warning_border']};
+                    padding: 5px 15px;
+                    border-radius: 3px;
+                }}
+                QPushButton:hover {{
+                    background-color: {COLORS['warning_hover']};
+                }}
+            """

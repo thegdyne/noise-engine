@@ -8,7 +8,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QFrame, QShortcut, QApplication)
+                             QPushButton, QLabel, QFrame, QShortcut, QApplication,
+                             QSizePolicy)
 from PyQt5.QtCore import Qt, QEvent, QTimer, QSettings
 from PyQt5.QtGui import QFont, QKeySequence, QColor
 
@@ -420,246 +421,337 @@ class MainFrame(QMainWindow):
         logger.info("Noise Engine started", component="APP")
         
     def create_top_bar(self):
-        """Create top bar."""
+        """Create top bar with grid cell layout (HF-12)."""
+        from src.gui.audio_device_selector import AudioDeviceSelector
+
+        # --- Skin values ---
+        bg_base = '#141414'
+        bg_mid = '#1a1a1a'
+        bg_highlight = '#2e2e2e'
+        border_dark = '#2a2a2a'
+        border_mid = '#3a3a3a'
+        text_dim = '#606060'
+        text_mid = '#909090'
+        text_bright = '#d0d0d0'
+        text_white = '#f0f0f0'
+        accent_green = '#00ff66'
+        accent_green_dim = '#00aa44'
+        accent_cyan = '#00ccff'
+        accent_orange = '#ff8800'
+        accent_red = '#ff4444'
+        accent_gold = '#ccaa44'
+        enabled_bg = '#0a2a15'
+        warning_bg = '#2a0a0a'
+        submenu_bg = '#251a0a'
+
+        # --- Helper: cell label style ---
+        label_ss = f"color: {text_dim}; font-size: 9px; font-weight: bold; letter-spacing: 1px; background: transparent; border: none;"
+
+        # --- Helper: make a header cell ---
+        def _cell(contents, padding=(12, 4, 12, 4), border_right=True, min_width=None):
+            """Wrap widget(s) in a styled QFrame cell."""
+            cell = QFrame()
+            cell.setObjectName("header_cell")
+            br = f"border-right: 1px solid {border_dark};" if border_right else ""
+            cell.setStyleSheet(f"""
+                QFrame#header_cell {{
+                    background-color: {bg_base};
+                    {br}
+                }}
+                QLabel {{ background: transparent; border: none; }}
+            """)
+            lay = QVBoxLayout(cell)
+            lay.setContentsMargins(*padding)
+            lay.setSpacing(1)
+            lay.setAlignment(Qt.AlignCenter)
+            if isinstance(contents, (list, tuple)):
+                for w in contents:
+                    lay.addWidget(w)
+            else:
+                lay.addWidget(contents)
+            if min_width:
+                cell.setMinimumWidth(min_width)
+            return cell
+
+        def _label(text):
+            """9px uppercase dim label."""
+            lbl = QLabel(text.upper())
+            lbl.setStyleSheet(label_ss)
+            lbl.setFont(QFont(MONO_FONT, 9))
+            lbl.setAlignment(Qt.AlignCenter)
+            return lbl
+
+        def _divider():
+            """2px vertical divider between logical groups."""
+            d = QFrame()
+            d.setFixedWidth(2)
+            d.setStyleSheet(f"background-color: {border_mid};")
+            return d
+
+        # === Outer bar ===
         bar = QFrame()
         bar.setObjectName("header")
-        bar.setFrameShape(QFrame.StyledPanel)
+        bar.setFixedHeight(60)
         bar.setStyleSheet(f"""
-            QFrame {{
-                background-color: {COLORS['background_highlight']};
-                border-bottom: 1px solid {COLORS['border_light']};
-            }}
-            QPushButton:disabled {{
-                background-color: {COLORS['background']};
-                color: {COLORS['border']};
-                border-color: {COLORS['border']};
-            }}
-            QComboBox:disabled {{
-                background-color: {COLORS['background']};
-                color: {COLORS['border']};
-                border-color: {COLORS['border']};
+            QFrame#header {{
+                background-color: {bg_mid};
+                border-radius: 6px;
+                border: 1px solid {border_dark};
             }}
         """)
-        bar.setFixedHeight(60)
-        
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(10, 5, 10, 5)
-        
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # ── 1. Logo cell ──
         title = QLabel("NOISE ENGINE")
         title.setObjectName("header_logo")
-        title.setFont(QFont(FONT_FAMILY, FONT_SIZES['title'], QFont.Bold))
-        title.setStyleSheet(f"color: {COLORS['text_bright']};")
-        layout.addWidget(title)
-        
-        layout.addStretch()
-        
+        title.setFont(QFont(MONO_FONT, 14, QFont.Bold))
+        title.setStyleSheet(f"color: {text_white}; letter-spacing: 2px; background: transparent; border: none;")
+        title.setAlignment(Qt.AlignCenter)
+        logo_cell = QFrame()
+        logo_cell.setObjectName("header_cell_logo")
+        logo_cell.setStyleSheet(f"""
+            QFrame#header_cell_logo {{
+                background-color: {bg_base};
+                border-right: 2px solid {accent_gold};
+            }}
+            QLabel {{ background: transparent; border: none; }}
+        """)
+        logo_lay = QVBoxLayout(logo_cell)
+        logo_lay.setContentsMargins(16, 4, 16, 4)
+        logo_lay.setAlignment(Qt.AlignCenter)
+        logo_lay.addWidget(title)
+        layout.addWidget(logo_cell)
+
+        # ── 2. BPM cell ──
         self.bpm_display = BPMDisplay(initial_bpm=BPM_DEFAULT)
         self.bpm_display.setObjectName("header_bpm")
         self.bpm_display.bpm_changed.connect(self.on_bpm_changed)
-        layout.addWidget(self.bpm_display)
-        
-        layout.addSpacing(20)
-        
-        # Pack selector
-        self.pack_selector = PackSelector()
-        self.pack_selector.setObjectName("header_pack")
-        self.pack_selector.pack_changed.connect(self.on_pack_changed)
-        layout.addWidget(self.pack_selector)
-        
-        layout.addSpacing(20)
-        
-        # Audio device selector
-        from src.gui.audio_device_selector import AudioDeviceSelector
-        self.audio_selector = AudioDeviceSelector()
-        self.audio_selector.setObjectName("header_audio")
-        self.audio_selector.device_changed.connect(self.master.on_audio_device_changed)
-        layout.addWidget(self.audio_selector)
-        
-        layout.addSpacing(10)
-        
-        # MIDI device selector
-        self.midi_selector = MIDISelector()
-        self.midi_selector.setObjectName("header_midi_device")
-        self.midi_selector.device_changed.connect(self.generator.on_midi_device_changed)
-        layout.addWidget(self.midi_selector)
-        
-        layout.addStretch()
-        
+        layout.addWidget(_cell([_label("BPM"), self.bpm_display], padding=(10, 2, 10, 2)))
+
+        # ── divider ──
+        layout.addWidget(_divider())
+
+        # ── 3. Preset cell ──
         preset_label = QLabel("Preset:")
         preset_label.setObjectName("header_preset_label")
-        preset_label.setStyleSheet(f"color: {COLORS['text']};")
-        layout.addWidget(preset_label)
-        
+        preset_label.setStyleSheet(label_ss)
+        preset_label.setFont(QFont(MONO_FONT, 9))
+        preset_label.setAlignment(Qt.AlignCenter)
         self.preset_name = QLabel("Init")
         self.preset_name.setObjectName("header_preset_name")
-        self.preset_name.setFont(QFont(FONT_FAMILY, FONT_SIZES['section']))
-        self.preset_name.setStyleSheet(f"color: {COLORS['selected_text']};")
-        layout.addWidget(self.preset_name)
+        self.preset_name.setFont(QFont(FONT_FAMILY, 12, QFont.Bold))
+        self.preset_name.setStyleSheet(f"color: {text_bright}; background: transparent; border: none;")
+        self.preset_name.setAlignment(Qt.AlignCenter)
+        layout.addWidget(_cell([preset_label, self.preset_name], padding=(10, 2, 10, 2)))
 
+        # ── 4. Save / As / Load cells ──
+        btn_ss_submenu = f"""
+            QPushButton {{
+                background-color: {submenu_bg};
+                color: {accent_orange};
+                border: 1px solid {accent_orange};
+                border-radius: 3px;
+                font-family: {MONO_FONT};
+                font-size: {FONT_SIZES['small']}px;
+                font-weight: bold;
+                padding: 4px 10px;
+            }}
+            QPushButton:hover {{
+                background-color: #352a1a;
+            }}
+            QPushButton:disabled {{
+                background-color: {bg_base};
+                color: {text_dim};
+                border-color: {border_dark};
+            }}
+        """
         self.save_btn = QPushButton("Save")
         self.save_btn.setObjectName("header_btn_save")
         self.save_btn.setToolTip("Save preset (Ctrl+S)")
-        self.save_btn.setStyleSheet(button_style('submenu'))
+        self.save_btn.setStyleSheet(btn_ss_submenu)
         self.save_btn.clicked.connect(self.preset._save_preset)
-        layout.addWidget(self.save_btn)
+        layout.addWidget(_cell(self.save_btn, padding=(4, 8, 4, 8)))
 
-        self.save_as_btn = QPushButton("Save As")
+        self.save_as_btn = QPushButton("As")
         self.save_as_btn.setObjectName("header_btn_save_as")
         self.save_as_btn.setToolTip("Save preset as new file (Ctrl+Shift+S)")
-        self.save_as_btn.setStyleSheet(button_style('submenu'))
+        self.save_as_btn.setStyleSheet(btn_ss_submenu)
         self.save_as_btn.clicked.connect(self.preset._save_preset_as)
-        layout.addWidget(self.save_as_btn)
+        layout.addWidget(_cell(self.save_as_btn, padding=(4, 8, 4, 8)))
 
         self.load_btn = QPushButton("Load")
         self.load_btn.setObjectName("header_btn_load")
         self.load_btn.setToolTip("Load preset (Ctrl+O)")
-        self.load_btn.setStyleSheet(button_style('submenu'))
+        self.load_btn.setStyleSheet(btn_ss_submenu)
         self.load_btn.clicked.connect(self.preset._load_preset)
-        layout.addWidget(self.load_btn)
-        
-        # Matrix button - opens mod matrix window
+        layout.addWidget(_cell(self.load_btn, padding=(4, 8, 4, 8)))
+
+        # ── divider ──
+        layout.addWidget(_divider())
+
+        # ── 5. Pack selector cell ──
+        self.pack_selector = PackSelector()
+        self.pack_selector.setObjectName("header_pack")
+        self.pack_selector.pack_changed.connect(self.on_pack_changed)
+        layout.addWidget(_cell([_label("PACK"), self.pack_selector], padding=(8, 2, 8, 2)))
+
+        # ── 6. Audio device cell ──
+        self.audio_selector = AudioDeviceSelector()
+        self.audio_selector.setObjectName("header_audio")
+        self.audio_selector.device_changed.connect(self.master.on_audio_device_changed)
+        layout.addWidget(_cell([_label("AUDIO"), self.audio_selector], padding=(8, 2, 8, 2)))
+
+        # ── 7. MIDI device cell ──
+        self.midi_selector = MIDISelector()
+        self.midi_selector.setObjectName("header_midi_device")
+        self.midi_selector.device_changed.connect(self.generator.on_midi_device_changed)
+        layout.addWidget(_cell([_label("MIDI"), self.midi_selector], padding=(8, 2, 8, 2)))
+
+        # ── divider ──
+        layout.addWidget(_divider())
+
+        # ── 8. Matrix button ──
         self.matrix_btn = QPushButton("MATRIX")
         self.matrix_btn.setObjectName("header_btn_matrix")
         self.matrix_btn.setToolTip("Mod Matrix (Ctrl+M)")
-        self.matrix_btn.setFixedSize(70, 27)
         self.matrix_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['background']};
-                color: #00ff00;
-                border: 1px solid #00aa00;
+                background-color: {enabled_bg};
+                color: {accent_green};
+                border: 1px solid {accent_green_dim};
                 border-radius: 3px;
-                font-family: 'Courier New', monospace;
+                font-family: {MONO_FONT};
                 font-size: {FONT_SIZES['small']}px;
                 font-weight: bold;
+                padding: 4px 12px;
             }}
             QPushButton:hover {{
-                background-color: #003300;
-                color: #00ff00;
-                border-color: #00ff00;
+                background-color: #0d3a1d;
             }}
             QPushButton:disabled {{
-                background-color: {COLORS['background']};
-                color: #004400;
-                border-color: #002200;
+                background-color: {bg_base};
+                color: {text_dim};
+                border-color: {border_dark};
             }}
         """)
         self.matrix_btn.clicked.connect(self.modulation._open_mod_matrix)
-        layout.addWidget(self.matrix_btn)
+        layout.addWidget(_cell(self.matrix_btn, padding=(4, 8, 4, 8)))
 
-        # Clear mod button - clears all modulation routes
+        # ── 9. Clear button ──
         self.clear_mod_btn = QPushButton("CLEAR")
         self.clear_mod_btn.setObjectName("header_btn_clear")
         self.clear_mod_btn.setToolTip("Clear all modulation routes")
-        self.clear_mod_btn.setFixedSize(55, 27)
         self.clear_mod_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['background']};
-                color: #ff4444;
+                background-color: {warning_bg};
+                color: {accent_red};
                 border: 1px solid #aa2222;
                 border-radius: 3px;
-                font-family: 'Courier New', monospace;
+                font-family: {MONO_FONT};
                 font-size: {FONT_SIZES['small']}px;
                 font-weight: bold;
+                padding: 4px 10px;
             }}
             QPushButton:hover {{
-                background-color: #330000;
-                color: #ff6666;
-                border-color: #ff4444;
+                background-color: #3a1515;
             }}
             QPushButton:disabled {{
-                background-color: {COLORS['background']};
-                color: #441111;
-                border-color: #331111;
+                background-color: {bg_base};
+                color: {text_dim};
+                border-color: {border_dark};
             }}
         """)
         self.clear_mod_btn.clicked.connect(self.modulation._clear_all_mod_routes)
-        layout.addWidget(self.clear_mod_btn)
+        layout.addWidget(_cell(self.clear_mod_btn, padding=(4, 8, 4, 8)))
 
-        # MIDI mode button - sets all generators to MIDI trigger mode
+        # ── 10. MIDI mode toggle ──
         self.midi_mode_btn = QPushButton("MIDI")
         self.midi_mode_btn.setObjectName("header_btn_midi_mode")
         self.midi_mode_btn.setToolTip("Set all generators to MIDI mode (toggle)")
-        self.midi_mode_btn.setFixedSize(50, 27)
         self.midi_mode_btn.setCheckable(True)
         self.midi_mode_btn.setStyleSheet(self.midi_mode._midi_mode_btn_style(False))
         self.midi_mode_btn.clicked.connect(self.midi_mode._toggle_midi_mode)
-        layout.addWidget(self.midi_mode_btn)
-        
-        layout.addStretch()
-        
-        self.connect_btn = QPushButton("Connect SuperCollider")
+        layout.addWidget(_cell(self.midi_mode_btn, padding=(4, 8, 4, 8)))
+
+        # ── spacer ──
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        spacer.setStyleSheet(f"background-color: {bg_mid};")
+        layout.addWidget(spacer)
+
+        # ── 11. SC status cell (LED + button) ──
+        self.connect_btn = QPushButton("Connect SC")
         self.connect_btn.setObjectName("header_btn_connect")
-        self.connect_btn.setFixedWidth(180)  # FIXED: fits "Connect SuperCollider"
         self.connect_btn.setStyleSheet(self.connection._connect_btn_style())
         self.connect_btn.clicked.connect(self.connection.toggle_connection)
-        layout.addWidget(self.connect_btn)
-
         self.status_label = QLabel("Disconnected")
         self.status_label.setObjectName("header_status")
-        self.status_label.setFixedWidth(130)  # FIXED: fits "CONNECTION LOST"
-        self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
-        layout.addWidget(self.status_label)
+        self.status_label.setStyleSheet(f"color: {accent_red}; font-size: 10px; background: transparent; border: none;")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(_cell([self.connect_btn, self.status_label], padding=(8, 4, 8, 4), min_width=130))
 
-        # MIDI status
+        # ── 12. MIDI status cell ──
         self.midi_status_label = QLabel("MIDI: Ready")
         self.midi_status_label.setObjectName("header_midi_status")
-        self.midi_status_label.setFixedWidth(100)
-        self.midi_status_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        self.midi_status_label.setStyleSheet(f"color: {text_dim}; font-size: 10px; background: transparent; border: none;")
+        self.midi_status_label.setAlignment(Qt.AlignCenter)
         self.midi_status_label.setToolTip("MIDI CC control active")
-        layout.addWidget(self.midi_status_label)
+        layout.addWidget(_cell(self.midi_status_label, padding=(8, 4, 8, 4)))
 
-        layout.addSpacing(10)
-        
-        # Console toggle button
+        # ── divider ──
+        layout.addWidget(_divider())
+
+        # ── 13. Console button ──
         self.console_btn = QPushButton(">_")
         self.console_btn.setObjectName("header_btn_console")
         self.console_btn.setToolTip("Toggle Console (Ctrl+`)")
-        self.console_btn.setFixedSize(30, 30)
+        self.console_btn.setFixedSize(36, 36)
+        self.console_btn.setCheckable(True)
         self.console_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['background']};
-                color: {COLORS['text']};
-                border: 1px solid {COLORS['border']};
+                background-color: {bg_base};
+                color: {text_mid};
+                border: 1px solid {border_dark};
                 border-radius: 3px;
-                font-family: {FONT_FAMILY};
-                font-size: {FONT_SIZES['small']}px;
+                font-family: {MONO_FONT};
+                font-size: 14px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['background_highlight']};
-                color: {COLORS['text_bright']};
+                color: {text_bright};
+                border-color: {border_mid};
             }}
             QPushButton:checked {{
-                background-color: {COLORS['enabled']};
-                color: {COLORS['enabled_text']};
-                border-color: {COLORS['enabled']};
+                background-color: {enabled_bg};
+                color: {accent_green};
+                border-color: {accent_green_dim};
             }}
         """)
-        self.console_btn.setCheckable(True)
         self.console_btn.clicked.connect(self.toggle_console)
-        layout.addWidget(self.console_btn)
-        
-        # Restart button
+        layout.addWidget(_cell(self.console_btn, padding=(6, 6, 6, 6)))
+
+        # ── 14. Restart button ──
         self.restart_btn = QPushButton("↻")
         self.restart_btn.setObjectName("header_btn_restart")
         self.restart_btn.setToolTip("Restart Noise Engine")
-        self.restart_btn.setFixedSize(30, 30)
+        self.restart_btn.setFixedSize(36, 36)
         self.restart_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {COLORS['background']};
-                color: {COLORS['text']};
-                border: 1px solid {COLORS['border']};
+                background-color: {bg_base};
+                color: {text_mid};
+                border: 1px solid {border_dark};
                 border-radius: 3px;
-                font-size: {FONT_SIZES['section']}px;
+                font-size: 18px;
             }}
             QPushButton:hover {{
-                background-color: {COLORS['submenu']};
-                color: {COLORS['submenu_text']};
-                border-color: {COLORS['submenu']};
+                color: {text_bright};
+                border-color: {border_mid};
             }}
         """)
         self.restart_btn.clicked.connect(self.restart_app)
-        layout.addWidget(self.restart_btn)
-        
+        layout.addWidget(_cell(self.restart_btn, padding=(6, 6, 6, 6), border_right=False))
+
         return bar
         
     def on_bpm_changed(self, bpm):
