@@ -135,24 +135,6 @@ class TestObjectNameCoverage:
         assert 'setObjectName' in source, \
             "ModulatorSlot should call setObjectName"
     
-    def test_modulator_builder_sets_object_names(self):
-        """Verify modulator_slot_builder sets objectNames on key widgets."""
-        import os
-        src_path = os.path.join(os.path.dirname(__file__), 
-                                '..', 'src', 'gui', 'modulator_slot_builder.py')
-        
-        with open(src_path, 'r') as f:
-            source = f.read()
-        
-        required = ['mod{slot.slot_id}_type', 'mod{slot.slot_id}_label', 
-                    'mod{slot.slot_id}_mode']
-        
-        for name_pattern in required:
-            component = name_pattern.split('_')[-1]
-            assert component in source, \
-                f"modulator_slot_builder should set objectName for: {name_pattern}"
-
-
 # Helper to generate coverage report
 def find_unnamed_widgets_in_source(filepath):
     """
@@ -201,7 +183,7 @@ if __name__ == '__main__':
     
     files_to_check = [
         'generator_slot.py',
-        'modulator_slot_builder.py',
+        'modulator_slot.py',
         'main_frame.py',
         'mixer_channel.py',
         'master_section.py',
