@@ -258,7 +258,37 @@ class PresetController:
                     logger.debug(f"Resent MIDI device: {current_midi} (port {port_index})", component="PRESET")
 
     def _init_preset(self):
-        """Reset to default empty state (Cmd+N / Ctrl+N)."""
+        """Reset to Init.json if it exists, else default empty state (Cmd+N / Ctrl+N)."""
+        init_path = self.preset_manager.presets_dir / "Init.json"
+
+        if init_path.exists():
+            # Load Init.json as the default state
+            try:
+                state = self.preset_manager.load(init_path)
+                self._apply_preset(state)
+                self.main.mod_routing.clear()
+
+                if self.main.mod_matrix_window:
+                    self.main.mod_matrix_window.sync_from_state()
+
+                if self.main.fx_window:
+                    self.main.fx_window.set_state(state.fx if hasattr(state, 'fx') else FXState())
+
+                if hasattr(self.main, 'fx_grid'):
+                    fx_slots = state.fx_slots if hasattr(state, 'fx_slots') else FXSlotsState()
+                    self.main.fx_grid.load_state(fx_slots.to_dict())
+                    if self.main.osc_connected:
+                        self.main.fx_grid.sync_to_sc()
+
+                self.main.pack_selector.set_pack(state.pack_name if hasattr(state, 'pack_name') else "")
+                self.main.preset_name.setText("Init")
+                self.main._clear_dirty("Init", init_path)
+                logger.info(f"Preset loaded: Init (from {init_path})", component="PRESET")
+                return
+            except Exception as e:
+                logger.warning(f"Failed to load Init.json, using defaults: {e}", component="PRESET")
+
+        # Fallback to hardcoded defaults
         state = PresetState()
         self._apply_preset(state)
         self.main.mod_routing.clear()
@@ -269,7 +299,6 @@ class PresetController:
         if self.main.fx_window:
             self.main.fx_window.set_state(FXState())
 
-        # Reset FX grid to defaults (UI Refresh Phase 6)
         if hasattr(self.main, 'fx_grid'):
             self.main.fx_grid.load_state(FXSlotsState().to_dict())
             if self.main.osc_connected:

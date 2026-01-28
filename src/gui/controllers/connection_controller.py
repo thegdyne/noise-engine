@@ -6,6 +6,8 @@ Method names intentionally unchanged from MainFrame for wrapper compatibility.
 """
 from __future__ import annotations
 
+from PyQt5.QtCore import QTimer
+
 from src.config import OSC_PATHS
 from src.gui.theme import COLORS
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
@@ -95,6 +97,9 @@ class ConnectionController:
                 
                 # Send initial mod source state
                 self.main.modulation._sync_mod_sources()
+
+                # Auto-load Init.json on first connect
+                QTimer.singleShot(100, self.main.preset._init_preset)
             else:
                 self.main.status_label.setText("Connection Failed")
                 self.main.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
