@@ -3,7 +3,7 @@ Tests for boid target scaling system.
 
 Tests the BoidScales class which:
 - Loads per-target scaling factors from JSON config
-- Maps 149 target indices to their scale values
+- Maps 176 target indices to their scale values (v3 bus layout)
 - Applies scaling to offset snapshots
 """
 
@@ -31,10 +31,9 @@ class TestDefaultScales:
             "generator_custom",
             "mod_slots",
             "channels",
-            "fx_heat",
-            "fx_echo",
-            "fx_reverb",
+            "fx_slots",
             "fx_dualFilter",
+            "fx_heat",
         ]
         for category in expected:
             assert category in DEFAULT_SCALES, f"Missing category: {category}"
@@ -56,9 +55,23 @@ class TestDefaultScales:
             assert f"p{i}" in DEFAULT_SCALES["mod_slots"]
 
     def test_channel_params(self):
-        """Channels have echo, verb, pan."""
-        for param in ["echo", "verb", "pan"]:
+        """Channels have fx1-fx4 and pan (v3 layout)."""
+        for param in ["fx1", "fx2", "fx3", "fx4", "pan"]:
             assert param in DEFAULT_SCALES["channels"]
+
+    def test_fx_slots_params(self):
+        """FX slots have p1-p4 and return."""
+        for param in ["p1", "p2", "p3", "p4", "return"]:
+            assert param in DEFAULT_SCALES["fx_slots"]
+
+    def test_fx_dualfilter_params(self):
+        """DualFilter has all 7 params."""
+        for param in ["drive", "freq1", "reso1", "freq2", "reso2", "syncAmt", "harmonics"]:
+            assert param in DEFAULT_SCALES["fx_dualFilter"]
+
+    def test_fx_heat_params(self):
+        """Heat has drive param."""
+        assert "drive" in DEFAULT_SCALES["fx_heat"]
 
     def test_all_scales_in_valid_range(self):
         """All default scales are between 0 and 1."""
@@ -111,39 +124,33 @@ class TestBoidScalesIndexMapping:
                 assert scales.get_scale(base + p_idx) == expected
 
     def test_channel_indices(self, scales):
-        """Indices 108-131 map to channel params."""
-        # 8 channels x 3 params = 24 indices
-        param_order = ["echo", "verb", "pan"]
+        """Indices 108-147 map to channel params (v3: 8 x 5)."""
+        chan_params = ["fx1", "fx2", "fx3", "fx4", "pan"]
         for chan in range(8):
-            base = 108 + chan * 3
-            for param_idx, param in enumerate(param_order):
+            base = 108 + chan * 5
+            for param_idx, param in enumerate(chan_params):
                 expected = DEFAULT_SCALES["channels"][param]
                 assert scales.get_scale(base + param_idx) == expected
 
-    def test_fx_heat_index(self, scales):
-        """Index 132 maps to fx_heat drive."""
-        assert scales.get_scale(132) == DEFAULT_SCALES["fx_heat"]["drive"]
-
-    def test_fx_echo_indices(self, scales):
-        """Indices 133-138 map to fx_echo params."""
-        params = ["time", "feedback", "tone", "wow", "spring", "verbSend"]
-        for idx, param in enumerate(params):
-            expected = DEFAULT_SCALES["fx_echo"][param]
-            assert scales.get_scale(133 + idx) == expected
-
-    def test_fx_reverb_indices(self, scales):
-        """Indices 139-141 map to fx_reverb params."""
-        params = ["size", "decay", "tone"]
-        for idx, param in enumerate(params):
-            expected = DEFAULT_SCALES["fx_reverb"][param]
-            assert scales.get_scale(139 + idx) == expected
+    def test_fx_slot_indices(self, scales):
+        """Indices 148-167 map to FX slot params (v3: 4 x 5)."""
+        slot_params = ["p1", "p2", "p3", "p4", "return"]
+        for slot in range(4):
+            base = 148 + slot * 5
+            for param_idx, param in enumerate(slot_params):
+                expected = DEFAULT_SCALES["fx_slots"][param]
+                assert scales.get_scale(base + param_idx) == expected
 
     def test_fx_dualfilter_indices(self, scales):
-        """Indices 142-148 map to fx_dualFilter params."""
-        params = ["drive", "freq1", "freq2", "reso1", "reso2", "syncAmt", "harmonics"]
+        """Indices 168-174 map to fx_dualFilter params."""
+        params = ["drive", "freq1", "reso1", "freq2", "reso2", "syncAmt", "harmonics"]
         for idx, param in enumerate(params):
             expected = DEFAULT_SCALES["fx_dualFilter"][param]
-            assert scales.get_scale(142 + idx) == expected
+            assert scales.get_scale(168 + idx) == expected
+
+    def test_fx_heat_index(self, scales):
+        """Index 175 maps to fx_heat drive."""
+        assert scales.get_scale(175) == DEFAULT_SCALES["fx_heat"]["drive"]
 
     def test_unknown_index_returns_default(self, scales):
         """Unknown indices return 1.0."""
@@ -181,13 +188,13 @@ class TestBoidScalesApply:
         snapshot = {
             0: 1.0,   # gen_1_freq, scale 0.3
             1: 1.0,   # gen_1_cutoff, scale 0.4
-            132: 1.0  # fx_heat_drive, scale 0.5
+            175: 1.0  # fx_heat_drive, scale 0.5
         }
         result = scales.scale_snapshot(snapshot)
 
         assert result[0] == pytest.approx(0.3)
         assert result[1] == pytest.approx(0.4)
-        assert result[132] == pytest.approx(0.5)
+        assert result[175] == pytest.approx(0.5)
 
     def test_scale_snapshot_preserves_keys(self, scales):
         """scale_snapshot preserves all keys."""
@@ -250,8 +257,7 @@ class TestBoidScalesConfigReload:
         scales = BoidScales(config_path=str(config_path))
 
         # fx_heat not in config, should use 0.5 default for params
-        # but since not specified, it falls back to 0.5
-        assert scales.get_scale(132) == 0.5
+        assert scales.get_scale(175) == 0.5
 
 
 class TestGlobalBoidScales:
@@ -279,8 +285,8 @@ class TestBoidScalesIntegration:
         if config_path.exists():
             scales = BoidScales(config_path=str(config_path))
 
-            # Should have scales for all 149 targets
-            for i in range(149):
+            # Should have scales for all 176 targets
+            for i in range(176):
                 scale = scales.get_scale(i)
                 assert 0 <= scale <= 2, f"Scale at index {i} = {scale} out of range"
 
@@ -322,17 +328,29 @@ class TestBoidScalesBoundaryValues:
         """Index 108 (first channel) works."""
         assert scales.get_scale(108) is not None
 
-    def test_boundary_index_131(self, scales):
-        """Index 131 (last channel) works."""
-        assert scales.get_scale(131) is not None
+    def test_boundary_index_147(self, scales):
+        """Index 147 (last channel) works."""
+        assert scales.get_scale(147) is not None
 
     def test_boundary_index_148(self, scales):
-        """Index 148 (last FX param) works."""
+        """Index 148 (first FX slot) works."""
         assert scales.get_scale(148) is not None
 
-    def test_all_149_targets_have_scales(self, scales):
-        """All 149 target indices return valid scales."""
-        for i in range(149):
+    def test_boundary_index_167(self, scales):
+        """Index 167 (last FX slot) works."""
+        assert scales.get_scale(167) is not None
+
+    def test_boundary_index_168(self, scales):
+        """Index 168 (first master insert - fx_fb_drive) works."""
+        assert scales.get_scale(168) is not None
+
+    def test_boundary_index_175(self, scales):
+        """Index 175 (last target - fx_heat_drive) works."""
+        assert scales.get_scale(175) is not None
+
+    def test_all_176_targets_have_scales(self, scales):
+        """All 176 target indices return valid scales."""
+        for i in range(176):
             scale = scales.get_scale(i)
             assert isinstance(scale, float), f"Index {i} returned non-float"
             assert scale > 0, f"Index {i} has zero or negative scale"
