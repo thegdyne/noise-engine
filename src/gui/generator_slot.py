@@ -4,7 +4,7 @@ Styled like ModulatorSlot - green accent border when loaded
 """
 from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont, QPainter, QPen, QPainterPath, QColor
+from PyQt5.QtGui import QFont
 
 from .widgets import DragSlider, CycleButton, MiniKnob
 from .theme import (COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES, button_style,
