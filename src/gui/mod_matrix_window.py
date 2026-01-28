@@ -154,6 +154,7 @@ class ModMatrixWindow(QMainWindow):
     def _setup_ui(self):
         """Build the matrix UI."""
         central = QWidget()
+        central.setObjectName("modMatrixCentral")
         self.setCentralWidget(central)
         
         layout = QVBoxLayout(central)
@@ -238,6 +239,7 @@ class ModMatrixWindow(QMainWindow):
         
         # Matrix container
         matrix_widget = QWidget()
+        matrix_widget.setObjectName("modMatrixGrid")
         matrix_widget.setFocusPolicy(Qt.NoFocus)
         matrix_layout = QGridLayout(matrix_widget)
         matrix_layout.setSpacing(1)
@@ -513,6 +515,7 @@ class ModMatrixWindow(QMainWindow):
     def _build_legend(self) -> QWidget:
         """Build legend showing source type colours."""
         legend = QWidget()
+        legend.setObjectName("modMatrixLegend")
         layout = QHBoxLayout(legend)
         layout.setContentsMargins(5, 5, 5, 5)
         

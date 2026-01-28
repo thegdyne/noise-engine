@@ -21,18 +21,18 @@ class MidiModeController:
         if active:
             return f"""
                 QPushButton {{
-                    background-color: #660066;
-                    color: #ff00ff;
-                    border: 1px solid #ff00ff;
+                    background-color: #0a2530;
+                    color: #00ccff;
+                    border: 1px solid #00ccff;
                     border-radius: 3px;
                     font-family: 'Courier New', monospace;
                     font-size: {FONT_SIZES['small']}px;
                     font-weight: bold;
                 }}
                 QPushButton:disabled {{
-                    background-color: #220022;
-                    color: #440044;
-                    border-color: #330033;
+                    background-color: #0a1a20;
+                    color: #005566;
+                    border-color: #004455;
                 }}
             """
         else:
@@ -47,9 +47,9 @@ class MidiModeController:
                     font-weight: bold;
                 }}
                 QPushButton:hover {{
-                    background-color: #330033;
-                    color: #ff00ff;
-                    border-color: #aa00aa;
+                    background-color: #0a2530;
+                    color: #00ccff;
+                    border-color: #0088aa;
                 }}
                 QPushButton:disabled {{
                     background-color: {COLORS['background']};

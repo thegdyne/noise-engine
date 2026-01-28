@@ -35,34 +35,30 @@ DEFAULT_SCALES = {
         "p6": 0.5,
     },
     "channels": {
-        "echo": 0.4,
-        "verb": 0.4,
+        "fx1": 0.4,
+        "fx2": 0.4,
+        "fx3": 0.4,
+        "fx4": 0.4,
         "pan": 0.6,
     },
-    "fx_heat": {
-        "drive": 0.5,
-    },
-    "fx_echo": {
-        "time": 0.3,
-        "feedback": 0.5,
-        "tone": 0.6,
-        "wow": 0.5,
-        "spring": 0.4,
-        "verbSend": 0.4,
-    },
-    "fx_reverb": {
-        "size": 0.4,
-        "decay": 0.5,
-        "tone": 0.6,
+    "fx_slots": {
+        "p1": 0.5,
+        "p2": 0.5,
+        "p3": 0.5,
+        "p4": 0.5,
+        "return": 0.4,
     },
     "fx_dualFilter": {
         "drive": 0.5,
         "freq1": 0.6,
-        "freq2": 0.6,
         "reso1": 0.4,
+        "freq2": 0.6,
         "reso2": 0.4,
         "syncAmt": 0.5,
         "harmonics": 0.5,
+    },
+    "fx_heat": {
+        "drive": 0.5,
     },
 }
 
@@ -124,35 +120,31 @@ class BoidScales:
                 key = f"p{p_idx}"
                 scales[base + p_idx] = float(mod_slots.get(key, 0.5))
 
-        # Channels (indices 108-131: 8 channels x 3 params)
+        # Channels (indices 108-147: 8 channels x 5 params - v3 layout)
         channels = data.get("channels", {})
-        param_order = ["echo", "verb", "pan"]
+        chan_params = ["fx1", "fx2", "fx3", "fx4", "pan"]
         for chan in range(8):
-            base = 108 + chan * 3
-            for param_idx, param in enumerate(param_order):
+            base = 108 + chan * 5
+            for param_idx, param in enumerate(chan_params):
                 scales[base + param_idx] = float(channels.get(param, 0.5))
 
-        # FX Heat (index 132)
-        fx_heat = data.get("fx_heat", {})
-        scales[132] = float(fx_heat.get("drive", 0.5))
+        # FX Slots (indices 148-167: 4 slots x 5 params - v3 new)
+        fx_slots = data.get("fx_slots", {})
+        slot_params = ["p1", "p2", "p3", "p4", "return"]
+        for slot in range(4):
+            base = 148 + slot * 5
+            for param_idx, param in enumerate(slot_params):
+                scales[base + param_idx] = float(fx_slots.get(param, 0.5))
 
-        # FX Echo (indices 133-138)
-        fx_echo = data.get("fx_echo", {})
-        echo_params = ["time", "feedback", "tone", "wow", "spring", "verbSend"]
-        for idx, param in enumerate(echo_params):
-            scales[133 + idx] = float(fx_echo.get(param, 0.5))
-
-        # FX Reverb (indices 139-141)
-        fx_reverb = data.get("fx_reverb", {})
-        reverb_params = ["size", "decay", "tone"]
-        for idx, param in enumerate(reverb_params):
-            scales[139 + idx] = float(fx_reverb.get(param, 0.5))
-
-        # FX DualFilter (indices 142-148)
+        # FX DualFilter (indices 168-174: 7 params)
         fx_df = data.get("fx_dualFilter", {})
-        df_params = ["drive", "freq1", "freq2", "reso1", "reso2", "syncAmt", "harmonics"]
+        df_params = ["drive", "freq1", "reso1", "freq2", "reso2", "syncAmt", "harmonics"]
         for idx, param in enumerate(df_params):
-            scales[142 + idx] = float(fx_df.get(param, 0.5))
+            scales[168 + idx] = float(fx_df.get(param, 0.5))
+
+        # FX Heat (index 175)
+        fx_heat = data.get("fx_heat", {})
+        scales[175] = float(fx_heat.get("drive", 0.5))
 
         self._scales_by_index = scales
 
@@ -161,7 +153,7 @@ class BoidScales:
         Get scale factor for a target index.
 
         Args:
-            target_index: Target index 0-148
+            target_index: Target index 0-175
 
         Returns:
             Scale factor (defaults to 1.0 if not found)
@@ -173,7 +165,7 @@ class BoidScales:
         Apply scaling to a raw boid offset.
 
         Args:
-            target_index: Target index 0-148
+            target_index: Target index 0-175
             offset: Raw boid offset value
 
         Returns:

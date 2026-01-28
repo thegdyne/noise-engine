@@ -251,8 +251,11 @@ def collect_widget_geometry(main_window):
         if name:  # Only named widgets
             # Get global position
             pos = child.mapToGlobal(child.rect().topLeft())
+            parent = child.parent()
+            parent_name = parent.objectName() or parent.__class__.__name__ if parent else None
             widgets[name] = {
                 'class': child.__class__.__name__,
+                'parent': parent_name,
                 'x': child.x(),
                 'y': child.y(),
                 'w': child.width(),

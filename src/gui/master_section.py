@@ -326,6 +326,7 @@ class MasterSection(QWidget):
         
         # 1. EQ section (3-band + lo cut)
         eq_widget = QWidget()
+        eq_widget.setObjectName("masterEqSection")
         eq_widget.setToolTip("DJ Isolator EQ - 3-band with kill switches")
         eq_layout = QVBoxLayout(eq_widget)
         eq_layout.setContentsMargins(0, 0, 0, 0)
@@ -674,6 +675,7 @@ class MasterSection(QWidget):
         
         # 3. LIMITER section
         limiter_widget = QWidget()
+        limiter_widget.setObjectName("masterLimSection")
         limiter_widget.setToolTip("Brickwall Limiter - Output protection")
         limiter_layout = QVBoxLayout(limiter_widget)
         limiter_layout.setContentsMargins(0, 0, 0, 0)
@@ -716,6 +718,7 @@ class MasterSection(QWidget):
         
         # 4. VOL + METER section (output)
         output_widget = QWidget()
+        output_widget.setObjectName("masterOutSection")
         output_widget.setToolTip("Master Output - Volume & Metering")
         output_layout = QHBoxLayout(output_widget)
         output_layout.setContentsMargins(0, 0, 0, 0)

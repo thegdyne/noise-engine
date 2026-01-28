@@ -885,6 +885,7 @@ class MixerPanel(QWidget):
         
         # Channel strips frame with tooltip and accent border
         channels_frame = QFrame()
+        channels_frame.setObjectName("channelsFrame")
         channels_frame.setToolTip("MIXER - 8 Channel Strips")
         # Teal/cyan accent for mixer (complements green EQ knobs)
         mixer_border = '#339999'  # Teal accent
