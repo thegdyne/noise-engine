@@ -446,6 +446,7 @@ class MainFrame(QMainWindow):
         layout.setContentsMargins(10, 5, 10, 5)
         
         title = QLabel("NOISE ENGINE")
+        title.setObjectName("header_logo")
         title.setFont(QFont(FONT_FAMILY, FONT_SIZES['title'], QFont.Bold))
         title.setStyleSheet(f"color: {COLORS['text_bright']};")
         layout.addWidget(title)
@@ -453,6 +454,7 @@ class MainFrame(QMainWindow):
         layout.addStretch()
         
         self.bpm_display = BPMDisplay(initial_bpm=BPM_DEFAULT)
+        self.bpm_display.setObjectName("header_bpm")
         self.bpm_display.bpm_changed.connect(self.on_bpm_changed)
         layout.addWidget(self.bpm_display)
         
@@ -460,6 +462,7 @@ class MainFrame(QMainWindow):
         
         # Pack selector
         self.pack_selector = PackSelector()
+        self.pack_selector.setObjectName("header_pack")
         self.pack_selector.pack_changed.connect(self.on_pack_changed)
         layout.addWidget(self.pack_selector)
         
@@ -468,6 +471,7 @@ class MainFrame(QMainWindow):
         # Audio device selector
         from src.gui.audio_device_selector import AudioDeviceSelector
         self.audio_selector = AudioDeviceSelector()
+        self.audio_selector.setObjectName("header_audio")
         self.audio_selector.device_changed.connect(self.master.on_audio_device_changed)
         layout.addWidget(self.audio_selector)
         
@@ -475,33 +479,39 @@ class MainFrame(QMainWindow):
         
         # MIDI device selector
         self.midi_selector = MIDISelector()
+        self.midi_selector.setObjectName("header_midi_device")
         self.midi_selector.device_changed.connect(self.generator.on_midi_device_changed)
         layout.addWidget(self.midi_selector)
         
         layout.addStretch()
         
         preset_label = QLabel("Preset:")
+        preset_label.setObjectName("header_preset_label")
         preset_label.setStyleSheet(f"color: {COLORS['text']};")
         layout.addWidget(preset_label)
         
         self.preset_name = QLabel("Init")
+        self.preset_name.setObjectName("header_preset_name")
         self.preset_name.setFont(QFont(FONT_FAMILY, FONT_SIZES['section']))
         self.preset_name.setStyleSheet(f"color: {COLORS['selected_text']};")
         layout.addWidget(self.preset_name)
 
         self.save_btn = QPushButton("Save")
+        self.save_btn.setObjectName("header_btn_save")
         self.save_btn.setToolTip("Save preset (Ctrl+S)")
         self.save_btn.setStyleSheet(button_style('submenu'))
         self.save_btn.clicked.connect(self.preset._save_preset)
         layout.addWidget(self.save_btn)
 
         self.save_as_btn = QPushButton("Save As")
+        self.save_as_btn.setObjectName("header_btn_save_as")
         self.save_as_btn.setToolTip("Save preset as new file (Ctrl+Shift+S)")
         self.save_as_btn.setStyleSheet(button_style('submenu'))
         self.save_as_btn.clicked.connect(self.preset._save_preset_as)
         layout.addWidget(self.save_as_btn)
 
         self.load_btn = QPushButton("Load")
+        self.load_btn.setObjectName("header_btn_load")
         self.load_btn.setToolTip("Load preset (Ctrl+O)")
         self.load_btn.setStyleSheet(button_style('submenu'))
         self.load_btn.clicked.connect(self.preset._load_preset)
@@ -509,6 +519,7 @@ class MainFrame(QMainWindow):
         
         # Matrix button - opens mod matrix window
         self.matrix_btn = QPushButton("MATRIX")
+        self.matrix_btn.setObjectName("header_btn_matrix")
         self.matrix_btn.setToolTip("Mod Matrix (Ctrl+M)")
         self.matrix_btn.setFixedSize(70, 27)
         self.matrix_btn.setStyleSheet(f"""
@@ -537,6 +548,7 @@ class MainFrame(QMainWindow):
 
         # Clear mod button - clears all modulation routes
         self.clear_mod_btn = QPushButton("CLEAR")
+        self.clear_mod_btn.setObjectName("header_btn_clear")
         self.clear_mod_btn.setToolTip("Clear all modulation routes")
         self.clear_mod_btn.setFixedSize(55, 27)
         self.clear_mod_btn.setStyleSheet(f"""
@@ -565,6 +577,7 @@ class MainFrame(QMainWindow):
 
         # MIDI mode button - sets all generators to MIDI trigger mode
         self.midi_mode_btn = QPushButton("MIDI")
+        self.midi_mode_btn.setObjectName("header_btn_midi_mode")
         self.midi_mode_btn.setToolTip("Set all generators to MIDI mode (toggle)")
         self.midi_mode_btn.setFixedSize(50, 27)
         self.midi_mode_btn.setCheckable(True)
@@ -575,18 +588,21 @@ class MainFrame(QMainWindow):
         layout.addStretch()
         
         self.connect_btn = QPushButton("Connect SuperCollider")
+        self.connect_btn.setObjectName("header_btn_connect")
         self.connect_btn.setFixedWidth(180)  # FIXED: fits "Connect SuperCollider"
         self.connect_btn.setStyleSheet(self.connection._connect_btn_style())
         self.connect_btn.clicked.connect(self.connection.toggle_connection)
         layout.addWidget(self.connect_btn)
 
         self.status_label = QLabel("Disconnected")
+        self.status_label.setObjectName("header_status")
         self.status_label.setFixedWidth(130)  # FIXED: fits "CONNECTION LOST"
         self.status_label.setStyleSheet(f"color: {COLORS['warning_text']};")
         layout.addWidget(self.status_label)
 
         # MIDI status
         self.midi_status_label = QLabel("MIDI: Ready")
+        self.midi_status_label.setObjectName("header_midi_status")
         self.midi_status_label.setFixedWidth(100)
         self.midi_status_label.setStyleSheet(f"color: {COLORS['text_dim']};")
         self.midi_status_label.setToolTip("MIDI CC control active")
@@ -596,6 +612,7 @@ class MainFrame(QMainWindow):
         
         # Console toggle button
         self.console_btn = QPushButton(">_")
+        self.console_btn.setObjectName("header_btn_console")
         self.console_btn.setToolTip("Toggle Console (Ctrl+`)")
         self.console_btn.setFixedSize(30, 30)
         self.console_btn.setStyleSheet(f"""
@@ -623,6 +640,7 @@ class MainFrame(QMainWindow):
         
         # Restart button
         self.restart_btn = QPushButton("↻")
+        self.restart_btn.setObjectName("header_btn_restart")
         self.restart_btn.setToolTip("Restart Noise Engine")
         self.restart_btn.setFixedSize(30, 30)
         self.restart_btn.setStyleSheet(f"""
