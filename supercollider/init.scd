@@ -171,6 +171,10 @@ s.waitForBoot({
 
     // NOTE: Boid modulation handled by bus_unification.scd (see bus_unification_osc.scd)
 
+    // Load end-stage processing (after helpers + bus_unification for ~multiFilter, ~envVCA, ~busRegistry)
+    (~basePath +/+ "core/endstage.scd").load;
+    ~setupEndstage.();
+
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
     ~setupOSC.();
@@ -195,6 +199,11 @@ s.waitForBoot({
 
     // Start audio
     ~startClock.();
+
+    // Boot end-stage infrastructure (after groups exist from ~startClock,
+    // after ~setupEndstage defined SynthDefs, after bus_unification allocated buses)
+    ~bootEndstageInfra.();
+
     ~startFxMixer.();
     ~setupFxMixerOSC.();
     ~startFxSlots.();        // Initialize FX slots with default types
@@ -219,6 +228,7 @@ s.waitForBoot({
     "========================================".postln;
     "[x] Noise Engine ready!".postln;
     "[x] Core modules loaded".postln;
+    "[x] End-stage infrastructure booted (8 slots)".postln;
     ("[x] " ++ ~generatorFiles.size ++ " core generators loaded").postln;
     if(~packGeneratorCount.notNil && (~packGeneratorCount > 0), {
         ("[x] " ++ ~packGeneratorCount ++ " pack generators loaded").postln;

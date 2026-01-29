@@ -181,5 +181,30 @@ Reusable functions for generator management
         ~stopChannelStrip.(slotID);
     };
     
+    // === END-STAGE AWARE DISPATCH ===
+    // When end-stage infrastructure is booted (~endstageNodes not nil),
+    // route start/stop through endstage-aware functions.
+    // Otherwise fall through to legacy monolithic path above.
+    // This allows gradual migration: unconverted generators use legacy,
+    // converted generators use end-stage.
+
+    ~startGeneratorDispatch = { |slotID, genType|
+        if(~endstageNodes.notNil && ~endstageNodes.isArray, {
+            // End-stage infrastructure is active — use new path
+            ~startGeneratorEndstage.(slotID, genType);
+        }, {
+            // Legacy path (monolithic generators)
+            ~startGenerator.(slotID, genType);
+        });
+    };
+
+    ~stopGeneratorDispatch = { |slotID|
+        if(~endstageNodes.notNil && ~endstageNodes.isArray, {
+            ~stopGeneratorEndstage.(slotID);
+        }, {
+            ~stopGenerator.(slotID);
+        });
+    };
+
     "  [x] Helpers ready".postln;
 };

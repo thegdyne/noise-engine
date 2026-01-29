@@ -16,6 +16,8 @@ Ports:
 from pythonosc import udp_client
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import ThreadingOSCUDPServer
+from pythonosc.osc_bundle_builder import OscBundleBuilder, IMMEDIATELY
+from pythonosc.osc_message_builder import OscMessageBuilder
 import threading
 import time
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer, QCoreApplication
@@ -550,6 +552,35 @@ class OSCBridge(QObject):
             self.client.send_message(path, args)
         except Exception as e:
             logger.warning(f"OSC send failed ({path_key}): {e}", component="OSC")
+
+    def send_bundle(self, messages):
+        """Send multiple OSC messages as an atomic bundle (Pillar 2).
+
+        All messages execute in the same SuperCollider audio block,
+        preventing audio dropout during generator swaps.
+
+        Args:
+            messages: List of (path, args) tuples, e.g.:
+                [('/s_new', ['synthName', 1001, 1, 100]),
+                 ('/n_free', [1000])]
+        """
+        if self._shutdown or self._deleted or self._connecting:
+            return
+
+        if not self.client or not self.connected:
+            logger.warning("OSC bundle ignored: not connected", component="OSC")
+            return
+
+        try:
+            bundle = OscBundleBuilder(IMMEDIATELY)
+            for path, args in messages:
+                msg = OscMessageBuilder(address=path)
+                for arg in args:
+                    msg.add_arg(arg)
+                bundle.add_content(msg.build())
+            self.client.send(bundle.build())
+        except Exception as e:
+            logger.warning(f"OSC bundle send failed: {e}", component="OSC")
 
     def _cleanup(self, join_thread=True):
         """Clean up connection resources.

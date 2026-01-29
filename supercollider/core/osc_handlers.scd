@@ -195,14 +195,26 @@ All OSC message routing
     // via /noise/boid/offsets endpoint in bus_unification_osc.scd
     // ~genBoidOffsets kept but always 0 (harmless, used by ~applyGenParam)
 
-    // Generator control
+    // Generator control (routes through dispatch for end-stage support)
     OSCdef(\startGenerator, { |msg|
-        ~startGenerator.(msg[1].asInteger, msg[2].asSymbol);
+        ~startGeneratorDispatch.(msg[1].asInteger, msg[2].asSymbol);
     }, '/noise/start_generator');
-    
+
     OSCdef(\stopGenerator, { |msg|
-        ~stopGenerator.(msg[1].asInteger);
+        ~stopGeneratorDispatch.(msg[1].asInteger);
     }, '/noise/stop_generator');
+
+    // End-stage mute control (click-free via Lag.kr in SynthDef)
+    OSCdef(\endstage_mute, { |msg|
+        var slot = msg[1].asInteger;
+        var muted = msg[2].asInteger;
+        var idx = slot - 1;
+        if(idx >= 0 && idx < 8 && ~endstageNodes.notNil, {
+            if(~endstageNodes[idx].notNil, {
+                ~endstageNodes[idx].set(\mute, muted);
+            });
+        });
+    }, '/noise/endstage/mute');
     
     // === CHANNEL STRIP CONTROLS ===
     // All handlers use ~withValidSlot for bounds checking

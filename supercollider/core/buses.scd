@@ -117,7 +117,10 @@ Default values are real values (not normalized):
     ~channelStrips = Array.fill(8, { nil });  // Per-slot channel strips
     ~masterEffects = nil;
     ~clockSynth = nil;
-    
+
+    // Per-generator transpose (semitone offsets, 8 slots)
+    ~genTranspose = Array.fill(8, { 0 });
+
     // Groups (order matters: clock -> generators -> strips -> fx)
     ~clockGroup = nil;
     ~genGroup = nil;
@@ -125,6 +128,15 @@ Default values are real values (not normalized):
     ~fxGroup = nil;
     ~mixerGroup = nil;
     ~masterGroup = nil;
-    
+
+    // End-stage infrastructure (allocated by endstage.scd ~bootEndstageInfra)
+    // These are nil until boot; declared here for visibility
+    ~intermediateBus = nil;     // Array[8] of stereo audio buses
+    ~slotGroup = nil;           // Array[8] of per-slot parent groups
+    ~genSubGroup = nil;         // Array[8] of generator sub-groups
+    ~endstageSubGroup = nil;    // Array[8] of end-stage sub-groups
+    ~endstageNodes = nil;       // Array[8] of end-stage synth nodes
+    ~silenceNodes = nil;        // Array[8] of silence gen nodes
+
     "  [x] Buses ready (% clock rates, % gen buses, 4 FX send/return pairs)".format(~clockRates.size, ~genBus.size).postln;
 };

@@ -1391,6 +1391,7 @@ OSC_PATHS = {
     'gen_custom': '/noise/gen/custom',  # /noise/gen/custom/{slot}/{param_index}
     'start_generator': '/noise/start_generator',
     'stop_generator': '/noise/stop_generator',
+    'endstage_mute': '/noise/endstage/mute',  # End-stage per-slot mute (click-free)
     'fidelity_amount': '/noise/fidelity_amount',
     # Channel strip (mixer)
     'gen_volume': '/noise/gen/volume',
