@@ -826,6 +826,11 @@ class MainFrame(QMainWindow):
             self.preset._apply_preset(PresetState())
             self.preset_name.setText("Init")
 
+        # If keyboard overlay is active, re-apply MIDI mode to focused slot
+        if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
+            self.keyboard._ensure_focused_slot_midi()
+            self._keyboard_overlay._update_slot_buttons()
+
     def _update_slot_cycles(self, generator_list):
         """Update all slot cycle buttons to only show given generators."""
         for slot in self.generator_grid.slots.values():
