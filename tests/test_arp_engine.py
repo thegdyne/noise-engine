@@ -1,13 +1,14 @@
 """
-Tests for Arpeggiator Engine.
+Tests for Arpeggiator Engine (Per-Slot v2.0).
 
-Tests the ARP specification v1.7 acceptance criteria including:
+Tests the PER_SLOT_ARP_SPEC v2.0 including:
 - PRNG (xorshift32) implementation
 - Pattern generation (UP, DOWN, UPDOWN, RANDOM, ORDER)
 - Event queue serialization
 - State machine transitions
 - Velocity handling
 - Hold/latch mode
+- Per-slot targeting (one engine per slot)
 """
 
 import pytest
@@ -130,10 +131,10 @@ class TestArpPatterns:
 
 
 class TestArpEngineBasic:
-    """Test basic ARP engine functionality."""
+    """Test basic ARP engine functionality (per-slot v2.0)."""
 
-    def create_mock_engine(self, seed=42):
-        """Create ARP engine with mock callbacks."""
+    def create_mock_engine(self, slot_id=0, seed=42):
+        """Create ARP engine with mock callbacks targeting a single slot."""
         from src.gui.arp_engine import ArpEngine
 
         self.notes_on: List[Tuple[int, int, int]] = []
@@ -146,10 +147,10 @@ class TestArpEngineBasic:
             self.notes_off.append((slot, note))
 
         engine = ArpEngine(
+            slot_id=slot_id,
             send_note_on=mock_note_on,
             send_note_off=mock_note_off,
             get_velocity=lambda: 100,
-            get_targets=lambda: {0},  # Single target slot
             get_bpm=lambda: 120.0,
             rng_seed_override=seed,
         )
@@ -160,6 +161,11 @@ class TestArpEngineBasic:
         """Engine starts in disabled state."""
         engine = self.create_mock_engine()
         assert not engine.settings.enabled
+
+    def test_slot_id_property(self):
+        """Engine exposes read-only slot_id."""
+        engine = self.create_mock_engine(slot_id=3)
+        assert engine.slot_id == 3
 
     def test_toggle_arp_on(self):
         """Toggling ARP on changes enabled state."""
@@ -179,17 +185,26 @@ class TestArpEngineBasic:
         assert not engine.settings.enabled
 
     def test_key_press_legacy_emits_note_on(self):
-        """In legacy mode (ARP off), key press emits note on."""
-        engine = self.create_mock_engine()
+        """In legacy mode (ARP off), key press emits note on to engine's slot."""
+        engine = self.create_mock_engine(slot_id=0)
 
         engine.key_press(60)  # C4
 
         assert len(self.notes_on) == 1
         assert self.notes_on[0] == (0, 60, 100)
 
+    def test_key_press_legacy_targets_correct_slot(self):
+        """Legacy note-on targets the engine's slot_id."""
+        engine = self.create_mock_engine(slot_id=5)
+
+        engine.key_press(60)
+
+        assert len(self.notes_on) == 1
+        assert self.notes_on[0][0] == 5  # slot 5
+
     def test_key_release_legacy_emits_note_off(self):
         """In legacy mode (ARP off), key release emits note off."""
-        engine = self.create_mock_engine()
+        engine = self.create_mock_engine(slot_id=0)
 
         engine.key_press(60)
         engine.key_release(60)
@@ -198,10 +213,10 @@ class TestArpEngineBasic:
         assert self.notes_off[0] == (0, 60)
 
     def test_arp_on_silences_legacy_notes(self):
-        """Enabling ARP turns off held legacy notes."""
+        """Enabling ARP turns off the current legacy note (mono)."""
         engine = self.create_mock_engine()
 
-        # Hold notes in legacy mode
+        # Hold notes in legacy mode — mono, so each press replaces the last
         engine.key_press(60)
         engine.key_press(64)
         engine.key_press(67)
@@ -213,8 +228,9 @@ class TestArpEngineBasic:
         # Enable ARP
         engine.toggle_arp(True)
 
-        # Should have turned off the legacy notes
-        assert len(self.notes_off) == 3
+        # Legacy mode is mono — only the last sounding note (67) gets turned off
+        assert len(self.notes_off) == 1
+        assert self.notes_off[0][1] == 67
 
     def test_arp_off_resumes_legacy(self):
         """Disabling ARP resumes legacy notes for held keys."""
@@ -235,11 +251,38 @@ class TestArpEngineBasic:
         # Should have emitted legacy note-ons for held keys
         assert len(self.notes_on) == 2
 
+    def test_is_active_property(self):
+        """is_active is True when ARP enabled and notes in active set."""
+        engine = self.create_mock_engine()
+
+        assert not engine.is_active
+
+        engine.toggle_arp(True)
+        assert not engine.is_active  # No notes yet
+
+        engine.key_press(60)
+        assert engine.is_active
+
+    def test_has_hold_property(self):
+        """has_hold is True when HOLD enabled with latched notes."""
+        engine = self.create_mock_engine()
+
+        engine.toggle_arp(True)
+        engine.toggle_hold(True)
+        assert not engine.has_hold  # No latched notes yet
+
+        engine.key_press(60)
+        assert engine.has_hold
+
+        # Release key — latched notes remain
+        engine.key_release(60)
+        assert engine.has_hold
+
 
 class TestArpHoldMode:
     """Test ARP hold/latch functionality."""
 
-    def create_mock_engine(self):
+    def create_mock_engine(self, slot_id=0):
         """Create ARP engine with mock callbacks."""
         from src.gui.arp_engine import ArpEngine
 
@@ -253,10 +296,10 @@ class TestArpHoldMode:
             self.notes_off.append((slot, note))
 
         engine = ArpEngine(
+            slot_id=slot_id,
             send_note_on=mock_note_on,
             send_note_off=mock_note_off,
             get_velocity=lambda: 100,
-            get_targets=lambda: {0},
             get_bpm=lambda: 120.0,
             rng_seed_override=42,
         )
@@ -319,7 +362,7 @@ class TestArpHoldMode:
 class TestArpVelocity:
     """Test ARP velocity handling."""
 
-    def create_engine_with_velocity(self, velocity_fn):
+    def create_engine_with_velocity(self, velocity_fn, slot_id=0):
         """Create ARP engine with configurable velocity."""
         from src.gui.arp_engine import ArpEngine
 
@@ -329,10 +372,10 @@ class TestArpVelocity:
             self.notes_on.append((slot, note, vel))
 
         engine = ArpEngine(
+            slot_id=slot_id,
             send_note_on=mock_note_on,
             send_note_off=lambda s, n: None,
             get_velocity=velocity_fn,
-            get_targets=lambda: {0},
             get_bpm=lambda: 120.0,
             rng_seed_override=42,
         )
@@ -402,15 +445,15 @@ class TestArpRateAndTiming:
 class TestArpExpandedList:
     """Test expanded list derivation with octaves."""
 
-    def create_engine(self):
+    def create_engine(self, slot_id=0):
         """Create basic ARP engine for testing."""
         from src.gui.arp_engine import ArpEngine
 
         engine = ArpEngine(
+            slot_id=slot_id,
             send_note_on=lambda s, n, v: None,
             send_note_off=lambda s, n: None,
             get_velocity=lambda: 100,
-            get_targets=lambda: {0},
             get_bpm=lambda: 120.0,
             rng_seed_override=42,
         )
@@ -461,17 +504,17 @@ class TestArpExpandedList:
 class TestArpTeardown:
     """Test ARP teardown and cleanup."""
 
-    def create_engine(self):
+    def create_engine(self, slot_id=0):
         """Create ARP engine with mock callbacks."""
         from src.gui.arp_engine import ArpEngine
 
         self.notes_off: List[Tuple[int, int]] = []
 
         engine = ArpEngine(
+            slot_id=slot_id,
             send_note_on=lambda s, n, v: None,
             send_note_off=lambda s, n: self.notes_off.append((s, n)),
             get_velocity=lambda: 100,
-            get_targets=lambda: {0},
             get_bpm=lambda: 120.0,
             rng_seed_override=42,
         )
@@ -501,6 +544,16 @@ class TestArpTeardown:
 
         assert not engine.settings.enabled
 
+    def test_teardown_preserves_slot_id(self):
+        """Teardown does not change slot_id."""
+        engine = self.create_engine(slot_id=5)
+
+        engine.toggle_arp(True)
+        engine.key_press(60)
+        engine.teardown()
+
+        assert engine.slot_id == 5
+
 
 class TestArpPatternOrder:
     """Test ORDER pattern uses insertion order."""
@@ -510,10 +563,10 @@ class TestArpPatternOrder:
         from src.gui.arp_engine import ArpEngine, ArpPattern
 
         engine = ArpEngine(
+            slot_id=0,
             send_note_on=lambda s, n, v: None,
             send_note_off=lambda s, n: None,
             get_velocity=lambda: 100,
-            get_targets=lambda: {0},
             get_bpm=lambda: 120.0,
             rng_seed_override=42,
         )
@@ -543,41 +596,60 @@ class TestArpPatternOrder:
         assert expanded == [67, 60, 64]
 
 
-class TestArpTargetChanges:
-    """Test handling of target slot changes."""
+class TestArpPerSlot:
+    """Test per-slot behavior (PER_SLOT_ARP_SPEC v2.0)."""
 
-    def create_engine(self):
-        """Create ARP engine with configurable targets."""
+    def test_different_slots_independent(self):
+        """Two engines on different slots don't interfere."""
         from src.gui.arp_engine import ArpEngine
 
-        self.targets: Set[int] = {0}
-        self.notes_off: List[Tuple[int, int]] = []
+        notes_on: List[Tuple[int, int, int]] = []
 
-        engine = ArpEngine(
-            send_note_on=lambda s, n, v: None,
-            send_note_off=lambda s, n: self.notes_off.append((s, n)),
+        engine_0 = ArpEngine(
+            slot_id=0,
+            send_note_on=lambda s, n, v: notes_on.append((s, n, v)),
+            send_note_off=lambda s, n: None,
             get_velocity=lambda: 100,
-            get_targets=lambda: self.targets,
             get_bpm=lambda: 120.0,
             rng_seed_override=42,
         )
 
-        return engine
+        engine_3 = ArpEngine(
+            slot_id=3,
+            send_note_on=lambda s, n, v: notes_on.append((s, n, v)),
+            send_note_off=lambda s, n: None,
+            get_velocity=lambda: 100,
+            get_bpm=lambda: 120.0,
+            rng_seed_override=42,
+        )
 
-    def test_target_removal_sends_note_off(self):
-        """Removing a target sends note off to that target."""
-        engine = self.create_engine()
+        # Play on slot 0
+        engine_0.key_press(60)
+        # Play on slot 3
+        engine_3.key_press(72)
+
+        assert (0, 60, 100) in notes_on
+        assert (3, 72, 100) in notes_on
+
+    def test_get_settings_returns_current_state(self):
+        """get_settings() returns snapshot of current engine config."""
+        from src.gui.arp_engine import ArpEngine, ArpPattern
+
+        engine = ArpEngine(
+            slot_id=0,
+            send_note_on=lambda s, n, v: None,
+            send_note_off=lambda s, n: None,
+            get_velocity=lambda: 100,
+            get_bpm=lambda: 120.0,
+        )
 
         engine.toggle_arp(True)
-        engine.key_press(60)
+        engine.toggle_hold(True)
+        engine.set_pattern(ArpPattern.DOWN)
+        engine.set_octaves(3)
 
-        # Simulate a played note
-        engine.runtime.last_played_note = 60
-        engine.runtime.last_played_targets = {0, 1}
-
-        # Remove target 1
-        self.targets = {0}
-        engine.notify_targets_changed()
-
-        # Should send note off to removed target
-        assert (1, 60) in self.notes_off
+        settings = engine.get_settings()
+        assert settings.enabled is True
+        assert settings.hold is True
+        assert settings.pattern == ArpPattern.DOWN
+        assert settings.octaves == 3

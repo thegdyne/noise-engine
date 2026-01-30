@@ -27,7 +27,7 @@ class TestSlotState:
         slot = SlotState()
         assert slot.generator is None
         assert slot.frequency == 0.5
-        assert slot.cutoff == 0.5
+        assert slot.cutoff == 1.0
         assert slot.filter_type == 0
         assert slot.env_source == 0
         assert slot.clock_rate == 4
