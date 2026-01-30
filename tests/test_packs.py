@@ -340,8 +340,8 @@ class TestSynthDefUniqueness:
         packs_dir = tmp_path / "packs"
         packs_dir.mkdir()
         
-        # Also create fake supercollider/generators with a core generator
-        sc_dir = tmp_path / "supercollider" / "generators"
+        # Also create fake packs/core/generators with a core generator
+        sc_dir = packs_dir / "core" / "generators"
         sc_dir.mkdir(parents=True)
         
         # Create a core generator

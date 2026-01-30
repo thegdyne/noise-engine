@@ -543,7 +543,7 @@ def _load_generator_configs():
     config_dir = os.path.dirname(os.path.abspath(__file__))
     src_dir = os.path.dirname(config_dir)
     project_dir = os.path.dirname(src_dir)
-    generators_dir = os.path.join(project_dir, 'supercollider', 'generators')
+    generators_dir = os.path.join(project_dir, 'packs', 'core', 'generators')
     
     # Clear in place to preserve external references (important for tests)
     _GENERATOR_CONFIGS.clear()
