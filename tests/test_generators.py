@@ -226,24 +226,21 @@ class TestGeneratorSCDFiles:
                 assert 'SynthDef' in content, f"{filename} missing SynthDef"
     
     def test_scd_files_have_standard_buses(self, generators_dir):
-        """Generators receive standard bus arguments."""
-        standard_args = ['freqBus', 'cutoffBus', 'resBus', 'attackBus', 'decayBus']
-        
+        """Generators receive standard bus arguments (freqBus required, others via end-stage)."""
         for filename in os.listdir(generators_dir):
             if filename.endswith('.scd'):
                 filepath = os.path.join(generators_dir, filename)
                 with open(filepath, 'r') as f:
                     content = f.read()
-                
-                for arg in standard_args:
-                    assert arg in content, f"{filename} missing standard arg '{arg}'"
+
+                assert 'freqBus' in content, f"{filename} missing standard arg 'freqBus'"
     
-    def test_scd_files_use_ensure2ch(self, generators_dir):
-        """Generators use ~ensure2ch helper for stereo output."""
+    def test_scd_files_use_stereo_output(self, generators_dir):
+        """Generators ensure stereo output via ~ensure2ch or NumChannels.ar."""
         for filename in os.listdir(generators_dir):
             if filename.endswith('.scd'):
                 filepath = os.path.join(generators_dir, filename)
                 with open(filepath, 'r') as f:
                     content = f.read()
-                assert '~ensure2ch' in content, \
-                    f"{filename} should use ~ensure2ch helper for stereo output"
+                assert '~ensure2ch' in content or 'NumChannels.ar' in content, \
+                    f"{filename} should use ~ensure2ch or NumChannels.ar for stereo output"
