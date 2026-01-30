@@ -1,33 +1,19 @@
-SynthDef(\forge_oldwinch_mist, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                   filterTypeBus, envEnabledBus, envSourceBus=0,
-                                   clockRateBus, clockTrigBus,
-                                   midiTrigBus=0, slotIndex=0,
-                                   customBus0, customBus1, customBus2, customBus3, customBus4,
-                                   portamentoBus|
+// oldwinch/mist — Lightweight end-stage generator
+SynthDef(\forge_oldwinch_mist, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var rise, valley, dawn, drift, chill;
     var grains, grainRate, trig1, trig2, trig3, trig4;
     var driftMod, valleyLow, dawnBright, chillHigh;
 
-    // Theme params
-    rise = In.kr(customBus0);
-    valley = In.kr(customBus1);
-    dawn = In.kr(customBus2);
-    drift = In.kr(customBus3);
-    chill = In.kr(customBus4);
+    rise = p[0];
+    valley = p[1];
+    dawn = p[2];
+    drift = p[3];
+    chill = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Drift modulation
     driftMod = LFNoise2.kr(drift.linexp(0, 1, 0.1, 0.5)).range(0.95, 1.05);
@@ -73,12 +59,8 @@ SynthDef(\forge_oldwinch_mist, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // Continuous bed
     sig = sig + LPF.ar(PinkNoise.ar(0.1), 400);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_oldwinch_mist loaded".postln;

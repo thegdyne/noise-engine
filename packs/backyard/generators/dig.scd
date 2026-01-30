@@ -1,34 +1,19 @@
-SynthDef(\forge_backyard_dig, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// backyard/dig — Lightweight end-stage generator
+SynthDef(\forge_backyard_dig, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, ampVal, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var spade, soil, stone, digDepth, effort;
     var spadeHit, soilMove, stoneClunk, earthThud, effortBreath;
     var digTrig, digRate, modIndex;
 
-    // Theme params
-    spade = In.kr(customBus0);
-    soil = In.kr(customBus1);
-    stone = In.kr(customBus2);
-    digDepth = In.kr(customBus3);
-    effort = In.kr(customBus4);
+    spade = p[0];
+    soil = p[1];
+    stone = p[2];
+    digDepth = p[3];
+    effort = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    ampVal = In.kr(~params[\amplitude]);
 
     // Digging rate
     digRate = effort.linexp(0, 1, 0.5, 3);
@@ -75,12 +60,8 @@ SynthDef(\forge_backyard_dig, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     // Continuous bed for drone stability - earth/soil ambience
     sig = sig + (BrownNoise.ar(0.1) + PinkNoise.ar(0.06));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, ampVal, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_backyard_dig loaded".postln;

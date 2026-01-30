@@ -1,33 +1,18 @@
+// hoar_frost/mist_drift — Lightweight end-stage generator
 // mist_drift: Morning mist - evolving filtered noise
-SynthDef(\forge_hoar_frost_mist_drift, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_hoar_frost_mist_drift, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var density, drift, color, width, breath;
 
-    // Theme params
-    density = In.kr(customBus0).linlin(0, 1, 0.5, 1);
-    drift = In.kr(customBus1).linlin(0, 1, 0.02, 0.3);
-    color = In.kr(customBus2).linexp(0, 1, 400, 3000);
-    width = In.kr(customBus3).linlin(0, 1, 0.3, 1.5);
-    breath = In.kr(customBus4).linlin(0, 1, 0, 0.6);
+    density = p[0].linlin(0, 1, 0.5, 1);
+    drift = p[1].linlin(0, 1, 0.02, 0.3);
+    color = p[2].linexp(0, 1, 400, 3000);
+    width = p[3].linlin(0, 1, 0.3, 1.5);
+    breath = p[4].linlin(0, 1, 0, 0.6);
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Filtered noise with slow drift - wider filter, more gain
     sig = PinkNoise.ar(density) + (BrownNoise.ar(density * 0.3));
@@ -41,11 +26,8 @@ SynthDef(\forge_hoar_frost_mist_drift, { |out, freqBus, cutoffBus, resBus, attac
 
     sig = sig * 0.5;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_hoar_frost_mist_drift loaded".postln;

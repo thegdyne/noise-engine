@@ -1,37 +1,24 @@
+// rakshasa/third_eye — Lightweight end-stage generator
 // Third Eye -- Piercing hypnotic FM tone
 // Role: foreground | Family: FM
 
-SynthDef(\forge_rakshasa_third_eye, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                       filterTypeBus, envEnabledBus, envSourceBus=0,
-                                       clockRateBus, clockTrigBus,
-                                       midiTrigBus=0, slotIndex=0,
-                                       customBus0, customBus1, customBus2, customBus3, customBus4,
-                                       portamentoBus|
+SynthDef(\forge_rakshasa_third_eye, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var gaze, trance, sight, focus, pulse;
     var carrier, modulator, fmIndex, tranceMod, pulseMod;
     var harmonicMix, focusBand;
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Custom parameters
-    gaze = In.kr(customBus0).linexp(0, 1, 0.5, 8);         // FM index / brightness
-    trance = In.kr(customBus1).linlin(0, 1, 0, 0.4);       // Modulation depth
-    sight = In.kr(customBus2).linlin(0, 1, 1, 5);          // Harmonic ratio
-    focus = In.kr(customBus3).linlin(0, 1, 0.5, 0.05);     // Bandwidth (inverted)
-    pulse = In.kr(customBus4).linexp(0, 1, 0.1, 8);        // Pulse rate
+    gaze = p[0].linexp(0, 1, 0.5, 8);  // FM index / brightness
+    trance = p[1].linlin(0, 1, 0, 0.4);  // Modulation depth
+    sight = p[2].linlin(0, 1, 1, 5);  // Harmonic ratio
+    focus = p[3].linlin(0, 1, 0.5, 0.05);  // Bandwidth (inverted)
+    pulse = p[4].linexp(0, 1, 0.1, 8);  // Pulse rate
 
     // Trance modulation -- slow hypnotic movement
     tranceMod = SinOsc.kr(0.1 + (trance * 2)) * trance;
@@ -61,13 +48,11 @@ SynthDef(\forge_rakshasa_third_eye, { |out, freqBus, cutoffBus, resBus, attackBu
     // Stereo with subtle phase
     sig = [sig, DelayN.ar(sig, 0.01, 0.003)];
 
-    // Output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp,
                    clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_rakshasa_third_eye loaded".postln;

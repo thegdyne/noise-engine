@@ -1,3 +1,4 @@
+// pathway_raiders/grass_drop_thump — Lightweight end-stage generator
 // pathway_raiders/grass_drop_thump.scd
 // Pathway Raiders — grass_drop_thump
 // Generated from GENERATOR_PACK_SESSION.md contract
@@ -8,36 +9,20 @@
 // P4 HID: hide/seek occlusion
 // P5 SUN: day mood (bright ↔ dusk)
 
-SynthDef(\forge_pathway_raiders_grass_drop_thump, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                    filterTypeBus, envEnabledBus, envSourceBus=0,
-                                    clockRateBus, clockTrigBus,
-                                    midiTrigBus=0, slotIndex=0,
-                                    customBus0, customBus1, customBus2, customBus3, customBus4,
-                                    portamentoBus|
+SynthDef(\forge_pathway_raiders_grass_drop_thump, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, ampVal, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var spd, brk, air, hid, sun;
     var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s;
 
-    // Theme params
-    spd = In.kr(customBus0).clip(0, 1);
-    brk = In.kr(customBus1).clip(0, 1);
-    air = In.kr(customBus2).clip(0, 1);
-    hid = In.kr(customBus3).clip(0, 1);
-    sun = In.kr(customBus4).clip(0, 1);
+    spd = p[0].clip(0, 1);
+    brk = p[1].clip(0, 1);
+    air = p[2].clip(0, 1);
+    hid = p[3].clip(0, 1);
+    sun = p[4].clip(0, 1);
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5)).clip(20, 20000);
-    filterFreq = In.kr(cutoffBus).clip(20, 18000);
-    rq = In.kr(resBus).clip(0.05, 2);
-    attack = In.kr(attackBus).clip(0, 1);
-    decay = In.kr(decayBus).clip(0, 1);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    ampVal = In.kr(~params[\amplitude]);
 
 // drop events: sparse but not silent
 a = Dust.ar(0.35 + (spd * 2.5));
@@ -63,11 +48,8 @@ i = HPF.ar(PinkNoise.ar(0.15), 500) + BrownNoise.ar(0.12);
 sig = (h * 0.9) + (i * 0.8);
 
     // MANDATORY output chain (this order):
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, ampVal, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.90);
-sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_pathway_raiders loaded".postln;

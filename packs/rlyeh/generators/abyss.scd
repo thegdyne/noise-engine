@@ -1,33 +1,18 @@
+// rlyeh/abyss — Lightweight end-stage generator
 // abyss: The deep unknown - impenetrable darkness below
-SynthDef(\forge_rlyeh_abyss, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_rlyeh_abyss, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var darkness, pressure, movement, cold, void;
 
-    // Theme params
-    darkness = In.kr(customBus0).linlin(0, 1, 200, 2000);  // P1: Filter darkness
-    pressure = In.kr(customBus1).linlin(0, 1, 0.3, 1);     // P2: Crushing pressure
-    movement = In.kr(customBus2).linlin(0, 1, 0.02, 0.2);  // P3: Slow movement rate
-    cold = In.kr(customBus3).linlin(0, 1, 0, 0.4);         // P4: Cold shimmer
-    void = In.kr(customBus4).linlin(0, 1, 0, 0.6);         // P5: Void noise
+    darkness = p[0].linlin(0, 1, 200, 2000);  // P1: Filter darkness
+    pressure = p[1].linlin(0, 1, 0.3, 1);  // P2: Crushing pressure
+    movement = p[2].linlin(0, 1, 0.02, 0.2);  // P3: Slow movement rate
+    cold = p[3].linlin(0, 1, 0, 0.4);  // P4: Cold shimmer
+    void = p[4].linlin(0, 1, 0, 0.6);  // P5: Void noise
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Deep dark pad
     sig = Pulse.ar(freq * [0.5, 0.501, 1, 1.002], LFNoise1.kr(movement).range(0.3, 0.7));
@@ -44,11 +29,8 @@ SynthDef(\forge_rlyeh_abyss, { |out, freqBus, cutoffBus, resBus, attackBus, deca
 
     sig = sig * 0.3;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_rlyeh_abyss loaded".postln;

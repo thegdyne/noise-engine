@@ -1,7 +1,8 @@
+// wax_print/talking_skin — Lightweight end-stage generator
 // ============================================================================
 // WAX_PRINT: Talking Skin
 // Role: Motion - talking drum, pitch-bending communication
-// 
+//
 // TLK (Talk)     - Pitch bend range, speech-like movement
 // SQZ (Squeeze)  - Tension change rate, how fast pitch moves
 // TNG (Tongue)   - Articulation, syllable definition
@@ -9,35 +10,21 @@
 // SAY (Say)      - Phrase complexity, melodic contour
 // ============================================================================
 
-SynthDef(\forge_wax_print_talking_skin, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                           filterTypeBus, envEnabledBus, envSourceBus=0,
-                                           clockRateBus, clockTrigBus,
-                                           midiTrigBus=0, slotIndex=0,
-                                           customBus0, customBus1, customBus2, customBus3, customBus4,
-                                           portamentoBus|
+SynthDef(\forge_wax_print_talking_skin, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var talk, squeeze, tongue, stick, say;
     var membrane, pitchEnv, stickHit;
     var envTrig, talkMod;
 
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    talk = In.kr(customBus0).linlin(0, 1, 1.0, 2.5);  // Pitch bend ratio
-    squeeze = In.kr(customBus1).linexp(0, 1, 0.5, 0.05);  // Bend time
-    tongue = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    stick = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
-    say = In.kr(customBus4).linexp(0, 1, 0.5, 4);  // Phrase rate
+    talk = p[0].linlin(0, 1, 1.0, 2.5);  // Pitch bend ratio
+    squeeze = p[1].linexp(0, 1, 0.5, 0.05);  // Bend time
+    tongue = p[2].linlin(0, 1, 0.0, 1.0);
+    stick = p[3].linlin(0, 1, 0.0, 1.0);
+    say = p[4].linexp(0, 1, 0.5, 4);  // Phrase rate
 
     envTrig = Select.ar(envSource, [
         Impulse.ar(0),
@@ -72,11 +59,10 @@ SynthDef(\forge_wax_print_talking_skin, { |out, freqBus, cutoffBus, resBus, atta
     sig = (sig * 2).tanh * 0.5;
 
     sig = ~stereoSpread.(sig, 0.15, 0.2);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_wax_print_talking_skin loaded".postln;

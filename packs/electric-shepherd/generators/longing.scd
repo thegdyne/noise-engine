@@ -1,3 +1,4 @@
+// electric-shepherd/longing — Lightweight end-stage generator
 /*
 LONGING Generator
 The emotional core - quiet desperation and yearning
@@ -19,12 +20,10 @@ Custom params:
 What remains of the human inside the husk.
 */
 
-SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                      filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                      midiTrigBus=0, slotIndex=0,
-                      customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\longing, { |out, freqBus, customBus0|
+
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var yearn, ache, distance, hope, resignation;
     var trig, breathMod;
     var yearnSig, acheSig, distanceSig, hopeSig, resignationSig;
@@ -33,41 +32,30 @@ SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     var distanceOsc, distanceMod;
     var hopeTrig, hopeOsc;
     var resignOsc, resignLFO;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
+
     // Custom params with smoothing
-    yearn = In.kr(customBus0);
+    yearn = p[0];
     yearn = Lag.kr(yearn, 0.1);
-    ache = In.kr(customBus1);
+    ache = p[1];
     ache = Lag.kr(ache, 0.1);
-    distance = In.kr(customBus2);
+    distance = p[2];
     distance = Lag.kr(distance, 0.1);
-    hope = In.kr(customBus3);
-    resignation = In.kr(customBus4);
+    hope = p[3];
+    resignation = p[4];
     resignation = Lag.kr(resignation, 0.1);
-    
+
     // === TRIGGER ===
     trig = Select.ar(envSource.round.clip(0, 2), [
         DC.ar(0),
         Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
         Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
     ]);
-    
+
     // Breathing modulation - everything pulses slightly
     breathMod = SinOsc.kr(0.15).range(0.85, 1);
-    
+
     // === YEARN (melodic longing) ===
     // Main melodic tone with expressive vibrato
     yearnVib = SinOsc.kr(5 + (yearn * 2)).range(-0.02, 0.02);
@@ -78,7 +66,7 @@ SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Swell
     yearnOsc = yearnOsc * LFTri.kr(0.08).range(0.6, 1);
     yearnSig = yearnOsc * yearn * 0.4 * breathMod;
-    
+
     // === ACHE (dull undertone) ===
     // Low, sustained pain
     acheMod = LFNoise2.kr(0.2).range(0.98, 1.02);
@@ -87,7 +75,7 @@ SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Minor second for dissonance/pain
     acheOsc = acheOsc + (SinOsc.ar(freq * 0.53 * acheMod) * 0.3);
     acheSig = LPF.ar(acheOsc, 400) * ache * 0.4 * breathMod;
-    
+
     // === DISTANCE (separation) ===
     // Filtered, far away version of the sound
     distanceMod = LFNoise2.kr(0.3).range(0.95, 1.05);
@@ -99,7 +87,7 @@ SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Add reverb-like quality with comb filter
     distanceOsc = distanceOsc + (CombL.ar(distanceOsc, 0.2, 0.1, 1) * 0.3);
     distanceSig = distanceOsc * distance * 0.35 * breathMod;
-    
+
     // === HOPE (faint glimmers) ===
     // Brief bright moments
     hopeTrig = trig + Dust.ar(hope * 2);
@@ -108,7 +96,7 @@ SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     hopeOsc = hopeOsc + (SinOsc.ar(freq * 5) * 0.3);  // Major chord voicing
     hopeOsc = hopeOsc * EnvGen.ar(Env.perc(0.1, 0.8, 1, -4), hopeTrig);
     hopeSig = hopeOsc * hope * 0.35;
-    
+
     // === RESIGNATION (acceptance) ===
     // Steady, unchanging drone
     resignLFO = LFNoise2.kr(0.1).range(0.99, 1.01);
@@ -118,19 +106,17 @@ SynthDef(\longing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Very stable, almost static
     resignOsc = resignOsc * 0.8;
     resignationSig = resignOsc * resignation * 0.35;
-    
+
     // === MIX ===
     sig = yearnSig + acheSig + distanceSig + hopeSig + resignationSig;
-    
+
     // Very soft limiting - keep the gentleness
     sig = (sig * 0.9).tanh;
-    
-    // === PROCESSING CHAIN ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+
     sig = ~stereoSpread.(sig, 0.06, 0.2);  // Gentle, slow movement
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] longing loaded".postln;

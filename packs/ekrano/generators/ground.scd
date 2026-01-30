@@ -1,33 +1,18 @@
-SynthDef(\forge_ekrano_ground, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// ekrano/ground — Lightweight end-stage generator
+SynthDef(\forge_ekrano_ground, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var altitude, airflow, lift, turbulence, hiss;
     var exciter, tubeDelay, tubeSig, turbMod, hissSig;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    altitude = In.kr(customBus0).linexp(0, 1, 0.5, 4);
-    airflow = In.kr(customBus1).linlin(0, 1, 0.1, 0.8);
-    lift = In.kr(customBus2).linlin(0, 1, 0.1, 0.9);
-    turbulence = In.kr(customBus3).linexp(0, 1, 0.5, 15);
-    hiss = In.kr(customBus4);
+    altitude = p[0].linexp(0, 1, 0.5, 4);
+    airflow = p[1].linlin(0, 1, 0.1, 0.8);
+    lift = p[2].linlin(0, 1, 0.1, 0.9);
+    turbulence = p[3].linexp(0, 1, 0.5, 15);
+    hiss = p[4];
 
     // Turbulence modulation
     turbMod = LFNoise1.kr(turbulence).range(0.9, 1.1);
@@ -45,11 +30,8 @@ SynthDef(\forge_ekrano_ground, { |out, freqBus, cutoffBus, resBus, attackBus, de
 
     sig = (tubeSig * 0.6) + (hissSig * 0.4);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_ekrano_ground loaded".postln;

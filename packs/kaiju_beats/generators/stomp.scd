@@ -1,32 +1,18 @@
-SynthDef(\forge_kaiju_beats_stomp, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// kaiju_beats/stomp — Lightweight end-stage generator
+SynthDef(\forge_kaiju_beats_stomp, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, ampVal, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var weight, punch, thud, rumble, width;
     var subOsc, pulseOsc, noiseHit;
 
-    // Theme params
-    weight = In.kr(customBus0);       // P1: Weight - sub content
-    punch = In.kr(customBus1);        // P2: Punch - transient attack
-    thud = In.kr(customBus2);         // P3: Thud - body thickness
-    rumble = In.kr(customBus3);       // P4: Rumble - low frequency motion
-    width = In.kr(customBus4);        // P5: Stereo width
+    weight = p[0];  // P1: Weight - sub content
+    punch = p[1];  // P2: Punch - transient attack
+    thud = p[2];  // P3: Thud - body thickness
+    rumble = p[3];  // P4: Rumble - low frequency motion
+    width = p[4];  // P5: Stereo width
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     ampVal = 0.2;
 
     // Sub oscillator - sine for clean low end
@@ -59,12 +45,8 @@ SynthDef(\forge_kaiju_beats_stomp, { |out, freqBus, cutoffBus, resBus, attackBus
     // Soft saturation
     sig = (sig * 1.3).tanh * 0.8;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, ampVal, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_kaiju_beats_stomp loaded".postln;

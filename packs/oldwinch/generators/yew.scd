@@ -1,32 +1,18 @@
-SynthDef(\forge_oldwinch_yew, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// oldwinch/yew — Lightweight end-stage generator
+SynthDef(\forge_oldwinch_yew, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var bow, twist, ancient, resin, hollow;
     var bowNoise, bowedSig, twistMod, hollowRes, friction;
 
-    // Theme params
-    bow = In.kr(customBus0);
-    twist = In.kr(customBus1);
-    ancient = In.kr(customBus2);
-    resin = In.kr(customBus3);
-    hollow = In.kr(customBus4);
+    bow = p[0];
+    twist = p[1];
+    ancient = p[2];
+    resin = p[3];
+    hollow = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Twist modulation - gnarled trunk
     twistMod = LFNoise2.kr(0.1 + (twist * 0.3)).range(0.96, 1.04);
@@ -66,12 +52,8 @@ SynthDef(\forge_oldwinch_yew, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     // Continuous bed
     sig = sig + LPF.ar(PinkNoise.ar(0.06), 300);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_oldwinch_yew loaded".postln;

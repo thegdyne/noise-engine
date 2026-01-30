@@ -1,33 +1,18 @@
+// ex_machina/ava — Lightweight end-stage generator
 // ava: AI consciousness - questioning, aware
-SynthDef(\forge_ex_machina_ava, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_ex_machina_ava, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var aware, question, soft, human, machine;
 
-    // Theme params
-    aware = In.kr(customBus0).linlin(0, 1, 0.3, 1);         // P1: Awareness level
-    question = In.kr(customBus1).linlin(0, 1, 0.05, 0.2);   // P2: Questioning inflection
-    soft = In.kr(customBus2).linlin(0, 1, 500, 3000);       // P3: Softness filter
-    human = In.kr(customBus3).linlin(0, 1, 0.1, 0.5);       // P4: Human breath
-    machine = In.kr(customBus4).linlin(0, 1, 0, 0.3);       // P5: Machine undertone
+    aware = p[0].linlin(0, 1, 0.3, 1);  // P1: Awareness level
+    question = p[1].linlin(0, 1, 0.05, 0.2);  // P2: Questioning inflection
+    soft = p[2].linlin(0, 1, 500, 3000);  // P3: Softness filter
+    human = p[3].linlin(0, 1, 0.1, 0.5);  // P4: Human breath
+    machine = p[4].linlin(0, 1, 0, 0.3);  // P5: Machine undertone
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Formant voice - soft, questioning
     sig = Formant.ar(
@@ -50,11 +35,8 @@ SynthDef(\forge_ex_machina_ava, { |out, freqBus, cutoffBus, resBus, attackBus, d
 
     sig = sig * 0.45;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_ex_machina_ava loaded".postln;

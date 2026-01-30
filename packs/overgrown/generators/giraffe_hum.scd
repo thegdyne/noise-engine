@@ -1,33 +1,18 @@
-SynthDef(\forge_overgrown_giraffe_hum, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                          filterTypeBus, envEnabledBus, envSourceBus=0,
-                                          clockRateBus, clockTrigBus,
-                                          midiTrigBus=0, slotIndex=0,
-                                          customBus0, customBus1, customBus2, customBus3, customBus4,
-                                          portamentoBus|
+// overgrown/giraffe_hum — Lightweight end-stage generator
+SynthDef(\forge_overgrown_giraffe_hum, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var breath, throat, call, gentle, wonder;
     var source, formant1, formant2, formant3, breathNoise, vibrato, shimmer;
 
-    // Theme params
-    breath = In.kr(customBus0);
-    throat = In.kr(customBus1);
-    call = In.kr(customBus2);
-    gentle = In.kr(customBus3);
-    wonder = In.kr(customBus4);
+    breath = p[0];
+    throat = p[1];
+    call = p[2];
+    gentle = p[3];
+    wonder = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Gentle vibrato for organic feel
     vibrato = SinOsc.kr(call.linexp(0, 1, 3, 7)).range(0.995, 1.005);
@@ -57,11 +42,8 @@ SynthDef(\forge_overgrown_giraffe_hum, { |out, freqBus, cutoffBus, resBus, attac
     // Soft movement
     sig = Balance2.ar(sig[0], sig[1], SinOsc.kr(0.15).range(-0.3, 0.3));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_overgrown_giraffe_hum loaded".postln;

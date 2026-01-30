@@ -1,33 +1,18 @@
-SynthDef(\forge_overgrown_spore_drift, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                          filterTypeBus, envEnabledBus, envSourceBus=0,
-                                          clockRateBus, clockTrigBus,
-                                          midiTrigBus=0, slotIndex=0,
-                                          customBus0, customBus1, customBus2, customBus3, customBus4,
-                                          portamentoBus|
+// overgrown/spore_drift — Lightweight end-stage generator
+SynthDef(\forge_overgrown_spore_drift, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var density, scatter, glow, drift, grainSize;
     var grains, shimmer, dust1, dust2, mod1, mod2;
 
-    // Theme params
-    density = In.kr(customBus0);
-    scatter = In.kr(customBus1);
-    glow = In.kr(customBus2);
-    drift = In.kr(customBus3);
-    grainSize = In.kr(customBus4);
+    density = p[0];
+    scatter = p[1];
+    glow = p[2];
+    drift = p[3];
+    grainSize = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Slow drift modulation
     mod1 = SinOsc.kr(drift.linexp(0, 1, 0.02, 0.5)).range(0.98, 1.02);
@@ -52,11 +37,8 @@ SynthDef(\forge_overgrown_spore_drift, { |out, freqBus, cutoffBus, resBus, attac
     // Scatter - stereo width
     sig = Balance2.ar(sig[0], sig[1], LFNoise1.kr(scatter.linexp(0, 1, 0.1, 2)).range(scatter.neg, scatter));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_overgrown_spore_drift loaded".postln;

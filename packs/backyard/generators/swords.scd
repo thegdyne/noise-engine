@@ -1,34 +1,19 @@
-SynthDef(\forge_backyard_swords, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// backyard/swords — Lightweight end-stage generator
+SynthDef(\forge_backyard_swords, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, ampVal, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var force, wood, shield, clash, fury;
     var strikeRate, swordHit, shieldThud, clashRing, battleNoise;
     var exciter, pluck;
 
-    // Theme params
-    force = In.kr(customBus0);
-    wood = In.kr(customBus1);
-    shield = In.kr(customBus2);
-    clash = In.kr(customBus3);
-    fury = In.kr(customBus4);
+    force = p[0];
+    wood = p[1];
+    shield = p[2];
+    clash = p[3];
+    fury = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    ampVal = In.kr(~params[\amplitude]);
 
     // Strike rate based on battle fury
     strikeRate = fury.linexp(0, 1, 1, 8);
@@ -69,12 +54,8 @@ SynthDef(\forge_backyard_swords, { |out, freqBus, cutoffBus, resBus, attackBus, 
     // Add continuous bed for drone stability - battle ambience
     sig = sig + (BrownNoise.ar(0.08) + PinkNoise.ar(0.05));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, ampVal, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_backyard_swords loaded".postln;

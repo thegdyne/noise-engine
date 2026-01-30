@@ -1,33 +1,18 @@
-SynthDef(\forge_aurora_cave_tunnel, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                        filterTypeBus, envEnabledBus, envSourceBus=0,
-                                        clockRateBus, clockTrigBus,
-                                        midiTrigBus=0, slotIndex=0,
-                                        customBus0, customBus1, customBus2, customBus3, customBus4,
-                                        portamentoBus|
+// aurora_cave/tunnel — Lightweight end-stage generator
+SynthDef(\forge_aurora_cave_tunnel, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var wind, length, mouth, howl, cold;
     var breath, tube, hiss, modFreq;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Theme params
-    wind = In.kr(customBus0);
-    length = In.kr(customBus1);
-    mouth = In.kr(customBus2);
-    howl = In.kr(customBus3);
-    cold = In.kr(customBus4);
+    wind = p[0];
+    length = p[1];
+    mouth = p[2];
+    howl = p[3];
+    cold = p[4];
 
     // Wind breath source - turbulent noise
     breath = LFNoise1.ar(wind.linexp(0, 1, 20, 200)) * wind;
@@ -36,24 +21,24 @@ SynthDef(\forge_aurora_cave_tunnel, { |out, freqBus, cutoffBus, resBus, attackBu
 
     // Tube resonance via waveguide
     tube = CombL.ar(
-        breath, 
-        0.1, 
-        (freq * length.linlin(0, 1, 0.5, 2)).reciprocal, 
+        breath,
+        0.1,
+        (freq * length.linlin(0, 1, 0.5, 2)).reciprocal,
         howl.linlin(0, 1, 0.5, 3)
     );
-    
+
     // Add harmonics based on mouth opening
     tube = tube + CombL.ar(
-        breath * mouth, 
-        0.05, 
-        (freq * 2 * length.linlin(0, 1, 0.5, 2)).reciprocal, 
+        breath * mouth,
+        0.05,
+        (freq * 2 * length.linlin(0, 1, 0.5, 2)).reciprocal,
         howl.linlin(0, 1, 0.3, 2)
     ) * mouth;
-    
+
     tube = tube + CombL.ar(
-        breath * mouth * 0.5, 
-        0.033, 
-        (freq * 3 * length.linlin(0, 1, 0.5, 2)).reciprocal, 
+        breath * mouth * 0.5,
+        0.033,
+        (freq * 3 * length.linlin(0, 1, 0.5, 2)).reciprocal,
         howl.linlin(0, 1, 0.2, 1.5)
     ) * mouth * 0.7;
 
@@ -68,16 +53,14 @@ SynthDef(\forge_aurora_cave_tunnel, { |out, freqBus, cutoffBus, resBus, attackBu
 
     // Mix
     sig = (tube * 0.4) + hiss;
-    
+
     // Damping based on length (longer = darker)
     sig = LPF.ar(sig, length.linexp(0, 1, 4000, 1500));
 
-    sig = LeakDC.ar(sig);
     sig = ~stereoSpread.(sig, 0.4, 0.6);
     sig = sig * 4;
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_aurora_cave_tunnel loaded".postln;

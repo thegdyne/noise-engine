@@ -1,36 +1,21 @@
+// glacialis/aurora — Lightweight end-stage generator
 // AURORA - Spectral aurora shimmer
 // Additive synthesis with drifting phase interference
 
-SynthDef(\forge_glacialis_aurora, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                     filterTypeBus, envEnabledBus, envSourceBus=0,
-                                     clockRateBus, clockTrigBus,
-                                     midiTrigBus=0, slotIndex=0,
-                                     customBus0, customBus1, customBus2, customBus3, customBus4,
-                                     portamentoBus|
+SynthDef(\forge_glacialis_aurora, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var bands, drift, glow, shift, veil;
     var partials, driftLFOs, shiftMod;
 
-    // Theme params
-    bands = In.kr(customBus0);     // Band density
-    drift = In.kr(customBus1);     // Phase drift rate
-    glow = In.kr(customBus2);      // Brightness
-    shift = In.kr(customBus3);     // Spectral shift
-    veil = In.kr(customBus4);      // Diffusion
+    bands = p[0];  // Band density
+    drift = p[1];  // Phase drift rate
+    glow = p[2];  // Brightness
+    shift = p[3];  // Spectral shift
+    veil = p[4];  // Diffusion
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Spectral shift modulation
     shiftMod = SinOsc.kr(drift.linexp(0, 1, 0.02, 0.15)).range(1, 1 + (shift * 0.1));
@@ -58,10 +43,8 @@ SynthDef(\forge_glacialis_aurora, { |out, freqBus, cutoffBus, resBus, attackBus,
         sig + (DelayC.ar(sig, 0.03, SinOsc.kr(0.17).range(0.004, 0.018)) * 0.3)
     ];
 
-    // Output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_glacialis_aurora loaded".postln;

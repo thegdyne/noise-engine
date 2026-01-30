@@ -1,32 +1,18 @@
-SynthDef(\forge_oldwinch_chalk, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                   filterTypeBus, envEnabledBus, envSourceBus=0,
-                                   clockRateBus, clockTrigBus,
-                                   midiTrigBus=0, slotIndex=0,
-                                   customBus0, customBus1, customBus2, customBus3, customBus4,
-                                   portamentoBus|
+// oldwinch/chalk — Lightweight end-stage generator
+SynthDef(\forge_oldwinch_chalk, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var grass, down, white, soil, openAmt;
     var grassRustle, downWind, chalkTone, soilLow, space;
 
-    // Theme params
-    grass = In.kr(customBus0);
-    down = In.kr(customBus1);
-    white = In.kr(customBus2);
-    soil = In.kr(customBus3);
-    openAmt = In.kr(customBus4);
+    grass = p[0];
+    down = p[1];
+    white = p[2];
+    soil = p[3];
+    openAmt = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Grass rustle - high frequency filtered noise
     grassRustle = HPF.ar(WhiteNoise.ar(0.35), 2000 + (white * 3000));
@@ -61,11 +47,8 @@ SynthDef(\forge_oldwinch_chalk, { |out, freqBus, cutoffBus, resBus, attackBus, d
     // Continuous bed
     sig = sig + LPF.ar(PinkNoise.ar(0.1), 350);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_oldwinch_chalk loaded".postln;

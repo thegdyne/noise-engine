@@ -1,7 +1,8 @@
+// wax_print/bold_motif — Lightweight end-stage generator
 // ============================================================================
 // WAX_PRINT: Bold Motif
 // Role: Bed - geometric patterns as sound, repeating shapes
-// 
+//
 // GEO (Geometry) - Pattern complexity, harmonic layers
 // REP (Repeat)   - Motif repetition rate
 // CON (Contrast) - Light/dark, loud/soft dynamics
@@ -9,34 +10,21 @@
 // INK (Ink)      - Color saturation, timbral richness
 // ============================================================================
 
-SynthDef(\forge_wax_print_bold_motif, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                         filterTypeBus, envEnabledBus, envSourceBus=0,
-                                         clockRateBus, clockTrigBus,
-                                         midiTrigBus=0, slotIndex=0,
-                                         customBus0, customBus1, customBus2, customBus3, customBus4,
-                                     portamentoBus|
+SynthDef(\forge_wax_print_bold_motif, { |out, freqBus, customBus0|
 
-    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var p = In.kr(customBus0, 5);
     var geometry, repeat, contrast, symmetry, ink;
     var layer1, layer2, layer3, patternMod;
     // @forge: inline_post_chain
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     amp = 0.2;
 
-    geometry = In.kr(customBus0).linlin(0, 1, 1, 5).round;
-    repeat = In.kr(customBus1).linexp(0, 1, 0.25, 4);
-    contrast = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    symmetry = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
-    ink = In.kr(customBus4).linlin(0, 1, 0.0, 1.0);
+    geometry = p[0].linlin(0, 1, 1, 5).round;
+    repeat = p[1].linexp(0, 1, 0.25, 4);
+    contrast = p[2].linlin(0, 1, 0.0, 1.0);
+    symmetry = p[3].linlin(0, 1, 0.0, 1.0);
+    ink = p[4].linlin(0, 1, 0.0, 1.0);
 
     // Pattern modulation (repeating motif)
     patternMod = LFTri.kr(repeat).range(0.8, 1.2);
@@ -64,8 +52,6 @@ SynthDef(\forge_wax_print_bold_motif, { |out, freqBus, cutoffBus, resBus, attack
     sig = sig * (1 + (LFPulse.kr(repeat).range(contrast.neg * 0.3, contrast * 0.3)));
 
     sig = (sig * 1.5).tanh * 0.5;
-    // Output chain (inlined; avoids global helpers for NRT stability)
-    sig = LeakDC.ar(sig);
     ne_panRate = (0.1).max(0.001);
     ne_panWidth = (0.2).clip(0, 1);
     ne_pan = SinOsc.kr(ne_panRate).range(ne_panWidth.neg, ne_panWidth);
@@ -101,7 +87,9 @@ SynthDef(\forge_wax_print_bold_motif, { |out, freqBus, cutoffBus, resBus, attack
     // Ensure 2ch
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_wax_print_bold_motif loaded".postln;

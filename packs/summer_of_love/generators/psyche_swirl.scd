@@ -1,33 +1,18 @@
-SynthDef(\forge_summer_of_love_psyche_swirl, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                                 filterTypeBus, envEnabledBus, envSourceBus=0,
-                                                 clockRateBus, clockTrigBus,
-                                                 midiTrigBus=0, slotIndex=0,
-                                                 customBus0, customBus1, customBus2, customBus3, customBus4,
-                                                 portamentoBus|
+// summer_of_love/psyche_swirl — Lightweight end-stage generator
+SynthDef(\forge_summer_of_love_psyche_swirl, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var spin, depth, spiral, kaleid, cosmos;
     var spinRate, phases, phaseMod, voices, folded, smear;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Theme params
-    spin = In.kr(customBus0);      // Rotation speed
-    depth = In.kr(customBus1);     // Modulation depth
-    spiral = In.kr(customBus2);    // Complexity
-    kaleid = In.kr(customBus3);    // Wavefolding
-    cosmos = In.kr(customBus4);    // Reverb smear
+    spin = p[0];  // Rotation speed
+    depth = p[1];  // Modulation depth
+    spiral = p[2];  // Complexity
+    kaleid = p[3];  // Wavefolding
+    cosmos = p[4];  // Reverb smear
 
     // Spin rate - from very slow to medium-fast
     spinRate = spin.linexp(0, 1, 0.05, 4);
@@ -75,11 +60,9 @@ SynthDef(\forge_summer_of_love_psyche_swirl, { |out, freqBus, cutoffBus, resBus,
     sig = sig + (smear * cosmos * 0.5);
 
     // Apply standard processing chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_summer_of_love_psyche_swirl loaded".postln;

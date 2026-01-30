@@ -1,44 +1,31 @@
+// wax_print/kente_weave — Lightweight end-stage generator
 // ============================================================================
 // WAX_PRINT: Kente Weave
 // Role: Bed - interlocking patterns like woven fabric
-// 
+//
 // WRP (Warp)     - Vertical thread density, base pulse rate
-// WFT (Weft)     - Horizontal crossing, counter-rhythm intensity  
+// WFT (Weft)     - Horizontal crossing, counter-rhythm intensity
 // DYE (Dye)      - Color saturation, harmonic richness
 // TGT (Tight)    - Weave tightness, envelope snap
 // GLO (Gold)     - Metallic thread highlights
 // ============================================================================
 
-SynthDef(\forge_wax_print_kente_weave, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                          filterTypeBus, envEnabledBus, envSourceBus=0,
-                                          clockRateBus, clockTrigBus,
-                                          midiTrigBus=0, slotIndex=0,
-                                          customBus0, customBus1, customBus2, customBus3, customBus4,
-                                          portamentoBus|
+SynthDef(\forge_wax_print_kente_weave, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var warp, weft, dye, tight, gold;
     var warpPulse, weftCross, goldShine;
     var baseOsc, harmLayer;
 
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
-    warp = In.kr(customBus0).linexp(0, 1, 1, 8);
-    weft = In.kr(customBus1).linlin(0, 1, 0.0, 1.0);
-    dye = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    tight = In.kr(customBus3).linexp(0, 1, 0.3, 0.02);
-    gold = In.kr(customBus4).linlin(0, 1, 0.0, 1.0);
+    warp = p[0].linexp(0, 1, 1, 8);
+    weft = p[1].linlin(0, 1, 0.0, 1.0);
+    dye = p[2].linlin(0, 1, 0.0, 1.0);
+    tight = p[3].linexp(0, 1, 0.3, 0.02);
+    gold = p[4].linlin(0, 1, 0.0, 1.0);
 
     // === WARP (vertical pulse) ===
     warpPulse = Impulse.ar(warp);
@@ -66,11 +53,10 @@ SynthDef(\forge_wax_print_kente_weave, { |out, freqBus, cutoffBus, resBus, attac
     sig = (sig * 2).tanh * 0.5;
 
     sig = ~stereoSpread.(sig, 0.2, 0.3);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_wax_print_kente_weave loaded".postln;

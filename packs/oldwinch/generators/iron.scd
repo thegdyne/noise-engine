@@ -1,32 +1,18 @@
-SynthDef(\forge_oldwinch_iron, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                   filterTypeBus, envEnabledBus, envSourceBus=0,
-                                   clockRateBus, clockTrigBus,
-                                   midiTrigBus=0, slotIndex=0,
-                                   customBus0, customBus1, customBus2, customBus3, customBus4,
-                                   portamentoBus|
+// oldwinch/iron — Lightweight end-stage generator
+SynthDef(\forge_oldwinch_iron, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var forgeAmt, strike, blade, rust, tool;
     var trig, modes, exciter, ringTime, forgeHeat;
 
-    // Theme params
-    forgeAmt = In.kr(customBus0);
-    strike = In.kr(customBus1);
-    blade = In.kr(customBus2);
-    rust = In.kr(customBus3);
-    tool = In.kr(customBus4);
+    forgeAmt = p[0];
+    strike = p[1];
+    blade = p[2];
+    rust = p[3];
+    tool = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Strike trigger
     trig = Dust.ar(strike.linexp(0, 1, 1, 12));
@@ -64,12 +50,8 @@ SynthDef(\forge_oldwinch_iron, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // Continuous bed
     sig = sig + LPF.ar(BrownNoise.ar(0.08), 250);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_oldwinch_iron loaded".postln;

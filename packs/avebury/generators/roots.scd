@@ -1,32 +1,18 @@
-SynthDef(\forge_avebury_roots, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                   filterTypeBus, envEnabledBus, envSourceBus=0,
-                                   clockRateBus, clockTrigBus,
-                                   midiTrigBus=0, slotIndex=0,
-                                   customBus0, customBus1, customBus2, customBus3, customBus4,
-                                   portamentoBus|
+// avebury/roots — Lightweight end-stage generator
+SynthDef(\forge_avebury_roots, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var spread, depth, earth, pulse, tangle;
     var exciter, comb1, comb2, comb3, comb4, delayTime, feedback, pulseMod;
 
-    // Theme params
-    spread = In.kr(customBus0);
-    depth = In.kr(customBus1);
-    earth = In.kr(customBus2);
-    pulse = In.kr(customBus3);
-    tangle = In.kr(customBus4);
+    spread = p[0];
+    depth = p[1];
+    earth = p[2];
+    pulse = p[3];
+    tangle = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Slow organic pulse modulation
     pulseMod = LFTri.kr(pulse.linexp(0, 1, 0.05, 0.5)).range(0.7, 1.0);
@@ -60,12 +46,8 @@ SynthDef(\forge_avebury_roots, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // Continuous bed
     sig = sig + LPF.ar(BrownNoise.ar(0.08), 200);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_avebury_roots loaded".postln;

@@ -1,7 +1,8 @@
+// leviathan/breach — Lightweight end-stage generator
 // ============================================================================
 // LEVIATHAN: Breach
 // Role: Accent - the explosive moment of breaking the surface
-// 
+//
 // MAS (Mass)     - Creature mass, adds lower detuned layers
 // SRG (Surge)    - Upward surge intensity, pitch rise amount
 // SPR (Spray)    - Water spray/splash noise component
@@ -9,14 +10,10 @@
 // DRP (Drop)     - Gravity's pull, the fall back down
 // ============================================================================
 
-SynthDef(\forge_leviathan_breach, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                     filterTypeBus, envEnabledBus, envSourceBus=0,
-                                     clockRateBus, clockTrigBus,
-                                     midiTrigBus=0, slotIndex=0,
-                                     customBus0, customBus1, customBus2, customBus3, customBus4,
-                                     portamentoBus|
+SynthDef(\forge_leviathan_breach, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var mass, surge, spray, air, drop;
     var bodyOsc, massLayers, surgeEnv, sprayNoise;
     var airBright, dropMod, breachSig;
@@ -24,32 +21,22 @@ SynthDef(\forge_leviathan_breach, { |out, freqBus, cutoffBus, resBus, attackBus,
 
     // Read standard params
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
     // MAS: Mass - adds weight via lower octave layers
-    mass = In.kr(customBus0).linlin(0, 1, 0.0, 1.0);
-    
+    mass = p[0].linlin(0, 1, 0.0, 1.0);
+
     // SRG: Surge - upward pitch bend intensity
-    surge = In.kr(customBus1).linlin(0, 1, 0.0, 0.5);
-    
+    surge = p[1].linlin(0, 1, 0.0, 0.5);
+
     // SPR: Spray - water splash noise amount
-    spray = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    
+    spray = p[2].linlin(0, 1, 0.0, 1.0);
+
     // AIR: Air exposure - high frequency brightness
-    air = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
-    
+    air = p[3].linlin(0, 1, 0.0, 1.0);
+
     // DRP: Drop - pitch fall amount after peak
-    drop = In.kr(customBus4).linlin(0, 1, 0.0, 0.3);
+    drop = p[4].linlin(0, 1, 0.0, 0.3);
 
     // === TRIGGER FOR ENVELOPE SHAPES ===
     // Use MIDI or clock trigger for surge envelope
@@ -103,11 +90,10 @@ SynthDef(\forge_leviathan_breach, { |out, freqBus, cutoffBus, resBus, attackBus,
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.1, 0.4);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_leviathan_breach loaded".postln;

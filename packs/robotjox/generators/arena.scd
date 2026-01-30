@@ -1,32 +1,18 @@
-SynthDef(\forge_robotjox_arena, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                    filterTypeBus, envEnabledBus, envSourceBus=0,
-                                    clockRateBus, clockTrigBus,
-                                    midiTrigBus=0, slotIndex=0,
-                                    customBus0, customBus1, customBus2, customBus3, customBus4,
-                                    portamentoBus|
+// robotjox/arena — Lightweight end-stage generator
+SynthDef(\forge_robotjox_arena, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var windAmt, crowd, dust, vast, tension;
     var windNoise, crowdRoar, dustStorm, space, tensionMod;
 
-    // Theme params
-    windAmt = In.kr(customBus0);
-    crowd = In.kr(customBus1);
-    dust = In.kr(customBus2);
-    vast = In.kr(customBus3);
-    tension = In.kr(customBus4);
+    windAmt = p[0];
+    crowd = p[1];
+    dust = p[2];
+    vast = p[3];
+    tension = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Tension modulation - slow undulation
     tensionMod = LFNoise2.kr(0.2 + (tension * 0.5)).range(0.7, 1.0);
@@ -66,11 +52,8 @@ SynthDef(\forge_robotjox_arena, { |out, freqBus, cutoffBus, resBus, attackBus, d
     // Continuous bed
     sig = sig + LPF.ar(BrownNoise.ar(0.12), 250);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_robotjox_arena loaded".postln;

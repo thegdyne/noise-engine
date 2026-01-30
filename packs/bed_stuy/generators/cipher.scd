@@ -1,33 +1,18 @@
+// bed_stuy/cipher — Lightweight end-stage generator
 // cipher: MC vocal presence - formant drone
-SynthDef(\forge_bed_stuy_cipher, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_bed_stuy_cipher, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var voice, flow, breath, crowd, hype;
 
-    // Theme params
-    voice = In.kr(customBus0).linlin(0, 1, 0.3, 1);         // P1: Voice presence
-    flow = In.kr(customBus1).linlin(0, 1, 0.05, 0.3);       // P2: Flow modulation
-    breath = In.kr(customBus2).linlin(0, 1, 0.1, 0.5);      // P3: Breath texture
-    crowd = In.kr(customBus3).linlin(0, 1, 0, 0.4);         // P4: Crowd murmur
-    hype = In.kr(customBus4).linlin(0, 1, 0, 0.5);          // P5: Hype energy
+    voice = p[0].linlin(0, 1, 0.3, 1);  // P1: Voice presence
+    flow = p[1].linlin(0, 1, 0.05, 0.3);  // P2: Flow modulation
+    breath = p[2].linlin(0, 1, 0.1, 0.5);  // P3: Breath texture
+    crowd = p[3].linlin(0, 1, 0, 0.4);  // P4: Crowd murmur
+    hype = p[4].linlin(0, 1, 0, 0.5);  // P5: Hype energy
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Vocal formant drone
     sig = Formant.ar(
@@ -47,11 +32,8 @@ SynthDef(\forge_bed_stuy_cipher, { |out, freqBus, cutoffBus, resBus, attackBus, 
 
     sig = sig * 0.45;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_bed_stuy_cipher loaded".postln;

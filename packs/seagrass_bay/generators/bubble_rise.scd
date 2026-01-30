@@ -1,33 +1,19 @@
-SynthDef(\forge_seagrass_bay_bubble_rise, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// seagrass_bay/bubble_rise — Lightweight end-stage generator
+SynthDef(\forge_seagrass_bay_bubble_rise, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var size, rise, cluster, pop, air;
     var bubbleFreq, riseEnv, popNoise, bubbleTone, airNoise, clusterMod;
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    size = In.kr(customBus0);       // Bubble size -> pitch
-    rise = In.kr(customBus1);       // Rise speed
-    cluster = In.kr(customBus2);    // Multiple bubbles
-    pop = In.kr(customBus3);        // Surface pop
-    air = In.kr(customBus4);        // Breathiness
+    size = p[0];  // Bubble size -> pitch
+    rise = p[1];  // Rise speed
+    cluster = p[2];  // Multiple bubbles
+    pop = p[3];  // Surface pop
+    air = p[4];  // Breathiness
 
     // Bubble frequency - small bubbles = higher pitch
     bubbleFreq = freq * size.linexp(0, 1, 2.0, 0.5);
@@ -60,9 +46,8 @@ SynthDef(\forge_seagrass_bay_bubble_rise, { |out, freqBus, cutoffBus, resBus, at
     sig = Pan2.ar(sig, LFNoise1.kr(1).range(-0.6, 0.6));
 
     // Standard output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_seagrass_bay_bubble_rise loaded".postln;

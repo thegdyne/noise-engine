@@ -1,32 +1,18 @@
-SynthDef(\forge_oldwinch_barrow, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                    filterTypeBus, envEnabledBus, envSourceBus=0,
-                                    clockRateBus, clockTrigBus,
-                                    midiTrigBus=0, slotIndex=0,
-                                    customBus0, customBus1, customBus2, customBus3, customBus4,
-                                    portamentoBus|
+// oldwinch/barrow — Lightweight end-stage generator
+SynthDef(\forge_oldwinch_barrow, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var depthParam, spirit, earth, bronze, timeParam;
     var drone, spiritShimmer, bronzePartials, timeMod, earthFilter;
 
-    // Theme params
-    depthParam = In.kr(customBus0);
-    spirit = In.kr(customBus1);
-    earth = In.kr(customBus2);
-    bronze = In.kr(customBus3);
-    timeParam = In.kr(customBus4);
+    depthParam = p[0];
+    spirit = p[1];
+    earth = p[2];
+    bronze = p[3];
+    timeParam = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Deep time modulation - very slow
     timeMod = LFNoise2.kr(timeParam.linexp(0, 1, 0.02, 0.1)).range(0.98, 1.02);
@@ -62,11 +48,8 @@ SynthDef(\forge_oldwinch_barrow, { |out, freqBus, cutoffBus, resBus, attackBus, 
     // Continuous bed
     sig = sig + LPF.ar(PinkNoise.ar(0.06), 300);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_oldwinch_barrow loaded".postln;

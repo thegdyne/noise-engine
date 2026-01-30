@@ -1,33 +1,18 @@
-SynthDef(\forge_gotham_stairs_smile, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// gotham_stairs/smile — Lightweight end-stage generator
+SynthDef(\forge_gotham_stairs_smile, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var grin, teeth, strain, fake, crack;
     var exciter, formants, f1, f2, f3, strainMod, crackBurst;
 
-    // Theme params
-    grin = In.kr(customBus0);
-    teeth = In.kr(customBus1);
-    strain = In.kr(customBus2);
-    fake = In.kr(customBus3);
-    crack = In.kr(customBus4);
+    grin = p[0];
+    teeth = p[1];
+    strain = p[2];
+    fake = p[3];
+    crack = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Strain modulation - tension tremolo
     strainMod = 1 + (strain * SinOsc.kr(strain.linlin(0, 1, 2, 12)).range(0, 0.2));
@@ -56,12 +41,8 @@ SynthDef(\forge_gotham_stairs_smile, { |out, freqBus, cutoffBus, resBus, attackB
     // Fake happiness warble
     sig = sig * (1 + (fake * SinOsc.kr(fake.linlin(0, 1, 4, 10)).range(0, 0.15)));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_gotham_stairs_smile loaded".postln;

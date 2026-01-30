@@ -1,33 +1,18 @@
-SynthDef(\forge_pripyat_geiger, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// pripyat/geiger — Lightweight end-stage generator
+SynthDef(\forge_pripyat_geiger, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var rad, prox, tube, room, deca;
     var clicks, clickRate, clickFreq, decayTime, roomSig;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    rad = In.kr(customBus0);
-    prox = In.kr(customBus1);
-    tube = In.kr(customBus2);
-    room = In.kr(customBus3);
-    deca = In.kr(customBus4);
+    rad = p[0];
+    prox = p[1];
+    tube = p[2];
+    room = p[3];
+    deca = p[4];
 
     // Click rate based on radiation level
     clickRate = rad.linexp(0, 1, 0.5, 80);
@@ -54,12 +39,8 @@ SynthDef(\forge_pripyat_geiger, { |out, freqBus, cutoffBus, resBus, attackBus, d
 
     sig = sig.sum;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_pripyat_geiger loaded".postln;

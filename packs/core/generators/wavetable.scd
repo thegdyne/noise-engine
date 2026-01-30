@@ -1,3 +1,4 @@
+// core/wavetable — Lightweight end-stage generator
 /*
 Wavetable Generator
 Interpolating wavetable synthesis with multiple waveforms
@@ -12,40 +13,26 @@ Custom params:
   - P5 sub_level: 0-1 (sub oscillator)
 */
 
-SynthDef(\wavetable, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                        filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                        midiTrigBus=0, slotIndex=0,
-                        customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\wavetable, { |out, freqBus, customBus0|
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var wavePos, morph, detune, fold, subLevel;
     var osc1, osc2, sub, wave1, wave2, wave3, wave4;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    wavePos = In.kr(customBus0);
-    morph = In.kr(customBus1);
-    detune = In.kr(customBus2);
-    fold = In.kr(customBus3);
-    subLevel = In.kr(customBus4);
-    
+
+    wavePos = p[0];
+    morph = p[1];
+    detune = p[2];
+    fold = p[3];
+    subLevel = p[4];
+
     // === SOUND SOURCE ===
     wave1 = SinOsc.ar(freq);
     wave2 = LFTri.ar(freq);
     wave3 = Saw.ar(freq);
     wave4 = Pulse.ar(freq, 0.5);
-    
+
     osc1 = SelectX.ar(wavePos * 3, [wave1, wave2, wave3, wave4]);
     osc2 = SelectX.ar(wavePos * 3, [
         SinOsc.ar(freq * (1 + (detune * 0.02))),
@@ -53,19 +40,17 @@ SynthDef(\wavetable, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         Saw.ar(freq * (1 + (detune * 0.01))),
         Pulse.ar(freq * (1 - (detune * 0.02)), 0.45)
     ]);
-    
+
     sig = (osc1 * (1 - morph)) + (osc2 * morph);
     sig = (sig * (1 + (fold * 4))).fold(-1, 1);
-    
+
     sub = SinOsc.ar(freq * 0.5) * subLevel * 0.5;
     sig = sig + sub;
-    
-    // === PROCESSING CHAIN ===
+
     sig = ~stereoSpread.(sig, 0.2, 0.3);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] wavetable loaded".postln;

@@ -1,33 +1,18 @@
+// mod_caf/studio — Lightweight end-stage generator
 // studio: Room tone and quiet studio ambience
-SynthDef(\forge_mod_caf_studio, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_mod_caf_studio, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var room, hvac, gear, quiet, presence;
 
-    // Theme params
-    room = In.kr(customBus0).linlin(0, 1, 0.2, 0.7);        // P1: Room tone
-    hvac = In.kr(customBus1).linlin(0, 1, 0, 0.4);          // P2: HVAC hum
-    gear = In.kr(customBus2).linlin(0, 1, 0, 0.3);          // P3: Gear noise
-    quiet = In.kr(customBus3).linlin(0, 1, 200, 1500);      // P4: Quiet filter
-    presence = In.kr(customBus4).linlin(0, 1, 0.1, 0.5);    // P5: Human presence
+    room = p[0].linlin(0, 1, 0.2, 0.7);  // P1: Room tone
+    hvac = p[1].linlin(0, 1, 0, 0.4);  // P2: HVAC hum
+    gear = p[2].linlin(0, 1, 0, 0.3);  // P3: Gear noise
+    quiet = p[3].linlin(0, 1, 200, 1500);  // P4: Quiet filter
+    presence = p[4].linlin(0, 1, 0.1, 0.5);  // P5: Human presence
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Room tone - continuous filtered noise
     sig = LPF.ar(PinkNoise.ar(room), quiet) * 0.5;
@@ -46,11 +31,8 @@ SynthDef(\forge_mod_caf_studio, { |out, freqBus, cutoffBus, resBus, attackBus, d
 
     sig = sig * 0.5;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_mod_caf_studio loaded".postln;

@@ -1,33 +1,20 @@
-SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                     portamentoBus|
-    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+// seagrass_bay/crystal_spring — Lightweight end-stage generator
+SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, customBus0|
+    var sig, trig, freq, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var p = In.kr(customBus0, 5);
     var clarity, shimmer, flow, cold, light;
     var fundamental, partials, flowMod, lightSparkle;
     // @forge: inline_post_chain
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     amp = 0.2;
 
-    // Custom params
-    clarity = In.kr(customBus0);    // Purity
-    shimmer = In.kr(customBus1);    // Sparkle
-    flow = In.kr(customBus2);       // Water movement
-    cold = In.kr(customBus3);       // Brightness
-    light = In.kr(customBus4);      // Sunlight sparkle
+    clarity = p[0];  // Purity
+    shimmer = p[1];  // Sparkle
+    flow = p[2];  // Water movement
+    cold = p[3];  // Brightness
+    light = p[4];  // Sunlight sparkle
 
     // Flow modulation - gentle pitch/amplitude ripple
     flowMod = SinOsc.kr(flow.linexp(0, 1, 0.3, 2)) * flow * 0.005;
@@ -64,8 +51,6 @@ SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, cutoffBus, resBus,
     sig = Pan2.ar(Mix(sig), SinOsc.kr(ne_panRate).range(ne_panWidth.neg, ne_panWidth), 0.4);
 
     // Standard output chain
-    // Output chain (inlined; avoids global helpers for NRT stability)
-    sig = LeakDC.ar(sig);
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
 
@@ -98,6 +83,8 @@ SynthDef(\forge_seagrass_bay_crystal_spring, { |out, freqBus, cutoffBus, resBus,
     // Ensure 2ch
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_seagrass_bay_crystal_spring loaded".postln;

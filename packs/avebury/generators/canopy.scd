@@ -1,32 +1,18 @@
-SynthDef(\forge_avebury_canopy, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                   filterTypeBus, envEnabledBus, envSourceBus=0,
-                                   clockRateBus, clockTrigBus,
-                                   midiTrigBus=0, slotIndex=0,
-                                   customBus0, customBus1, customBus2, customBus3, customBus4,
-                                   portamentoBus|
+// avebury/canopy — Lightweight end-stage generator
+SynthDef(\forge_avebury_canopy, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var rustle, breeze, density, height, sway;
     var leaves, wind, rustleMod, breezeMod, layer1, layer2, layer3;
 
-    // Theme params
-    rustle = In.kr(customBus0);
-    breeze = In.kr(customBus1);
-    density = In.kr(customBus2);
-    height = In.kr(customBus3);
-    sway = In.kr(customBus4);
+    rustle = p[0];
+    breeze = p[1];
+    density = p[2];
+    height = p[3];
+    sway = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Breeze modulation - gusting
     breezeMod = LFNoise2.kr(0.3 + (breeze * 0.8)).range(0.4, 1.0);
@@ -60,11 +46,8 @@ SynthDef(\forge_avebury_canopy, { |out, freqBus, cutoffBus, resBus, attackBus, d
     sig = sig + PinkNoise.ar(0.15);
     sig = sig + LPF.ar(BrownNoise.ar(0.12), 300);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_avebury_canopy loaded".postln;

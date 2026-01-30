@@ -1,22 +1,19 @@
+// leviathan/abyss_drone — Lightweight end-stage generator
 // ============================================================================
 // LEVIATHAN: Abyss Drone
 // Role: Bed - the eternal darkness of the deep
-// 
+//
 // VOD (Void)     - Depth into the abyss, brings in subsonic layers
-// PRS (Pressure) - Crushing intensity, layered beating oscillators  
+// PRS (Pressure) - Crushing intensity, layered beating oscillators
 // CUR (Current)  - Deep water movement, slow drift modulation
 // BIO (Bio)      - Bioluminescent hints, occasional high sparkles
 // RUM (Rumble)   - Tectonic rumble, infrasonic throb
 // ============================================================================
 
-SynthDef(\forge_leviathan_abyss_drone, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                          filterTypeBus, envEnabledBus, envSourceBus=0,
-                                          clockRateBus, clockTrigBus,
-                                          midiTrigBus=0, slotIndex=0,
-                                          customBus0, customBus1, customBus2, customBus3, customBus4,
-                                          portamentoBus|
+SynthDef(\forge_leviathan_abyss_drone, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var void_depth, pressure, current, bio, rumble;
     var deepLayer, midLayer, subLayer, infraLayer;
     var bioSpark, currentMod, pressureBeat;
@@ -24,32 +21,22 @@ SynthDef(\forge_leviathan_abyss_drone, { |out, freqBus, cutoffBus, resBus, attac
 
     // Read standard params
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
     // VOD: Void depth - how deep into the abyss (0=surface murk, 1=hadal zone)
-    void_depth = In.kr(customBus0).linlin(0, 1, 0.0, 1.0);
-    
+    void_depth = p[0].linlin(0, 1, 0.0, 1.0);
+
     // PRS: Pressure - crushing intensity via beating detuned layers
-    pressure = In.kr(customBus1).linlin(0, 1, 0.0, 1.0);
-    
+    pressure = p[1].linlin(0, 1, 0.0, 1.0);
+
     // CUR: Current - deep water movement modulation rate
-    current = In.kr(customBus2).linexp(0, 1, 0.02, 0.5);
-    
+    current = p[2].linexp(0, 1, 0.02, 0.5);
+
     // BIO: Bioluminescence - high frequency sparkle amount
-    bio = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
-    
+    bio = p[3].linlin(0, 1, 0.0, 1.0);
+
     // RUM: Rumble - infrasonic tectonic throb
-    rumble = In.kr(customBus4).linlin(0, 1, 0.0, 1.0);
+    rumble = p[4].linlin(0, 1, 0.0, 1.0);
 
     // === CURRENT MODULATION (affects everything) ===
     currentMod = LFNoise2.kr(current).range(0.97, 1.03);
@@ -83,11 +70,11 @@ SynthDef(\forge_leviathan_abyss_drone, { |out, freqBus, cutoffBus, resBus, attac
 
     // === MIX THE ABYSS ===
     voidDrone = subLayer + pressureBeat + rumbleOsc;
-    
+
     // Dark filtered noise bed
     deepLayer = PinkNoise.ar * 0.1 * void_depth;
     deepLayer = LPF.ar(deepLayer, 200 + (void_depth * 100));
-    
+
     sig = voidDrone + deepLayer + bioSpark;
 
     // Gentle saturation for warmth
@@ -95,12 +82,10 @@ SynthDef(\forge_leviathan_abyss_drone, { |out, freqBus, cutoffBus, resBus, attac
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.05, 0.3);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    sig = LeakDC.ar(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_leviathan_abyss_drone loaded".postln;

@@ -1,3 +1,4 @@
+// core/fourquad_ring — Lightweight end-stage generator
 /*
 Four-Quadrant Ring Generator
 Balanced four-quadrant multiplier ring modulator
@@ -12,58 +13,42 @@ Custom params:
   - P5 mod_wave: 0-1 (sine <-> triangle)
 */
 
-SynthDef(\fourQuadRing, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                           filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                           midiTrigBus=0, slotIndex=0,
-                           customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\fourQuadRing, { |out, freqBus, customBus0|
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var modRatio, balance, symmetry, carrierWave, modWave;
     var carrier, modulator, modFreq, ring;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    modRatio = In.kr(customBus0);
-    balance = In.kr(customBus1);
-    symmetry = In.kr(customBus2);
-    carrierWave = In.kr(customBus3);
-    modWave = In.kr(customBus4);
-    
+
+    modRatio = p[0];
+    balance = p[1];
+    symmetry = p[2];
+    carrierWave = p[3];
+    modWave = p[4];
+
     // === SOUND SOURCE ===
     modFreq = freq * modRatio;
-    
+
     carrier = SelectX.ar(carrierWave, [
         SinOsc.ar(freq),
         LFTri.ar(freq)
     ]);
-    
+
     modulator = SelectX.ar(modWave, [
         SinOsc.ar(modFreq),
         LFTri.ar(modFreq)
     ]);
-    
+
     ring = carrier * modulator;
     ring = ring + (carrier * balance * 0.5);
-    
+
     sig = (ring * symmetry.linlin(0, 1, 0.5, 1.5)).softclip;
-    
-    // === PROCESSING CHAIN ===
-    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    
-    Out.ar(out, sig);
+
+
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] fourQuadRing loaded".postln;

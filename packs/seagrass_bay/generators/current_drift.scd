@@ -1,33 +1,19 @@
-SynthDef(\forge_seagrass_bay_current_drift, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// seagrass_bay/current_drift — Lightweight end-stage generator
+SynthDef(\forge_seagrass_bay_current_drift, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var flow, width, tumble, pressure, eddy;
     var noiseBase, flowMod, tumbleMod, pressureWave, eddySwirl, sigL, sigR;
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    flow = In.kr(customBus0);       // Current rate
-    width = In.kr(customBus1);      // Stereo width
-    tumble = In.kr(customBus2);     // Turbulence
-    pressure = In.kr(customBus3);   // Pressure waves
-    eddy = In.kr(customBus4);       // Swirling motion
+    flow = p[0];  // Current rate
+    width = p[1];  // Stereo width
+    tumble = p[2];  // Turbulence
+    pressure = p[3];  // Pressure waves
+    eddy = p[4];  // Swirling motion
 
     // Base noise - mix of pink (low rumble) and brown (very low)
     noiseBase = (PinkNoise.ar * 0.7) + (BrownNoise.ar * 0.3);
@@ -58,10 +44,8 @@ SynthDef(\forge_seagrass_bay_current_drift, { |out, freqBus, cutoffBus, resBus, 
     sig = (sig * width) + (Mix(sig) * (1 - width) * 0.5);
 
     // Standard output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    sig = LeakDC.ar(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_seagrass_bay_current_drift loaded".postln;

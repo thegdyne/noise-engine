@@ -1,33 +1,18 @@
-SynthDef(\forge_summer_of_love_crowd_murmur, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                                 filterTypeBus, envEnabledBus, envSourceBus=0,
-                                                 clockRateBus, clockTrigBus,
-                                                 midiTrigBus=0, slotIndex=0,
-                                                 customBus0, customBus1, customBus2, customBus3, customBus4,
-                                                 portamentoBus|
+// summer_of_love/crowd_murmur — Lightweight end-stage generator
+SynthDef(\forge_summer_of_love_crowd_murmur, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var density, distance, mood, movement, space;
     var noise, formants, formantFreqs, formantMods, distanceFilter;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Theme params
-    density = In.kr(customBus0);    // Voice density
-    distance = In.kr(customBus1);   // Near/far (affects brightness)
-    mood = In.kr(customBus2);       // Relaxed to excited
-    movement = In.kr(customBus3);   // Formant modulation
-    space = In.kr(customBus4);      // Stereo width
+    density = p[0];  // Voice density
+    distance = p[1];  // Near/far (affects brightness)
+    mood = p[2];  // Relaxed to excited
+    movement = p[3];  // Formant modulation
+    space = p[4];  // Stereo width
 
     // Base noise source - pink for more natural voice-like spectrum
     noise = PinkNoise.ar(1) + (BrownNoise.ar(0.3) * (1 - mood));
@@ -71,10 +56,9 @@ SynthDef(\forge_summer_of_love_crowd_murmur, { |out, freqBus, cutoffBus, resBus,
 
     // Apply standard processing chain
     sig = sig * 4;  // gain boost
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_summer_of_love_crowd_murmur loaded".postln;

@@ -1,3 +1,4 @@
+// core/additive — Lightweight end-stage generator
 /*
 Additive Generator
 Harmonic partial synthesis with spectral shaping
@@ -12,54 +13,38 @@ Custom params:
   - P5 spectral_tilt: -1 to +1 (dark <-> bright)
 */
 
-SynthDef(\additive, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
-                       customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\additive, { |out, freqBus, customBus0|
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var partialRatio, partialCurve, numPartials, envDepth, tilt;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    partialRatio = In.kr(customBus0);
-    partialCurve = In.kr(customBus1);
-    numPartials = In.kr(customBus2);
-    envDepth = In.kr(customBus3);
-    tilt = In.kr(customBus4);
-    
+
+    partialRatio = p[0];
+    partialCurve = p[1];
+    numPartials = p[2];
+    envDepth = p[3];
+    tilt = p[4];
+
     // === SOUND SOURCE ===
     sig = Mix.fill(16, { |i|
         var harmonic = i + 1;
         var partialFreq, partialAmp, partialPhase;
-        
+
         partialFreq = (freq * harmonic * partialRatio.linlin(0.5, 4.0, 0.98, 1.02)).clip(20, 20000);
         partialAmp = 1 / (harmonic ** (1.5 + partialCurve));
         partialAmp = partialAmp * (1 + (tilt * (harmonic - 1) * 0.1));
         partialPhase = LFNoise1.kr(0.1 + (i * 0.02)).range(-0.003, 0.003);
         partialAmp = partialAmp * (1 - (envDepth * LFNoise1.kr(0.5 + (i * 0.1)).range(0, 0.3)));
-        
+
         SinOsc.ar(partialFreq * (1 + partialPhase)) * partialAmp * (harmonic <= numPartials)
     });
     sig = sig / numPartials.sqrt * 0.5;
-    
-    // === PROCESSING CHAIN ===
+
     sig = ~stereoSpread.(sig, 0.2, 0.3);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] additive loaded".postln;

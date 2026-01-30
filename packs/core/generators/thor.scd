@@ -1,3 +1,4 @@
+// core/thor — Lightweight end-stage generator
 /*
 THOR Generator
 Blacksmith's anvil - hammer striking metal with forge atmosphere
@@ -20,12 +21,10 @@ Note: Fire and Bellows are continuous/drone elements that duck on impact.
       Hammer, Anvil, Spark are triggered by CLK/MIDI.
 */
 
-SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                   filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                   midiTrigBus=0, slotIndex=0,
-                   customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\thor, { |out, freqBus, customBus0|
+
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var hammer, anvil, fire, bellows, spark;
     var trig, impactEnv, bedDuck;
     var hammerSig, anvilSig, fireSig, bellowsSig, sparkSig;
@@ -34,29 +33,17 @@ SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     var fireNoise, fireLFO;
     var bellowsNoise, bellowsLFO;
     var sparkEnv, sparkNoise;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    hammer = In.kr(customBus0);
-    anvil = In.kr(customBus1);
-    fire = In.kr(customBus2);
+
+    hammer = p[0];
+    anvil = p[1];
+    fire = p[2];
     fire = Lag.kr(fire, 0.05);  // Smooth continuous param
-    bellows = In.kr(customBus3);
+    bellows = p[3];
     bellows = Lag.kr(bellows, 0.05);
-    spark = In.kr(customBus4);
-    
+    spark = p[4];
+
     // === TRIGGER ===
     // Clamp indices for safety
     trig = Select.ar(envSource.round.clip(0, 2), [
@@ -64,18 +51,18 @@ SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
         Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
     ]);
-    
+
     // Impact envelope for bed ducking
     impactEnv = EnvGen.ar(Env.perc(0.001, 0.15, 1, -4), trig);
     bedDuck = 1 - (impactEnv * 0.3);  // Duck bed by 30% on impact
-    
+
     // === HAMMER (weighted impact) ===
     // Exponential mapping per aspect - feels like "mass" across full range
     // Heavier = lower pitch, deeper sweep, longer decay
     hammerPitch = freq * hammer.linexp(0, 1, 1, 0.6);         // 0-40% pitch drop
     hammerSweep = hammer.pow(1.4) * 2.5;                       // Power curve for sweep depth
     hammerDecay = hammer.linexp(0, 1, 0.12, 0.7);              // 120ms to 700ms
-    
+
     pitchEnv = EnvGen.ar(
         Env.perc(0.001, 0.012 + (hammer * 0.05), 1, -8),  // 12-62ms sweep time
         trig
@@ -83,7 +70,7 @@ SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     hammerBody = SinOsc.ar(hammerPitch + (pitchEnv * freq * hammerSweep));
     hammerSig = hammerBody * EnvGen.ar(Env.perc(0.001, hammerDecay, 1, -6), trig);
     hammerSig = hammerSig * hammer;  // True zero at 0 for "anvil only" patches
-    
+
     // === ANVIL (metallic ring) ===
     // FM synthesis with inharmonic ratios for metallic character
     anvilEnv = EnvGen.ar(Env.perc(0.001, 0.3 + (anvil * 0.5), 1, -4), trig);
@@ -101,7 +88,7 @@ SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     anvilPartials = anvilPartials + (SinOsc.ar(freq * 11.9) * 0.12 *
         EnvGen.ar(Env.perc(0.0005, 0.01), trig));
     anvilSig = anvilPartials * anvilEnv * anvil;
-    
+
     // === FIRE (continuous forge roar) ===
     // Single noise source, multiple bandpass filters with slow movement
     fireNoise = WhiteNoise.ar;
@@ -110,14 +97,14 @@ SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     fireSig = fireSig + (BPF.ar(fireNoise, 700 * fireLFO, 0.5) * 0.35);   // Mid crackle
     fireSig = fireSig + (BPF.ar(fireNoise, 1400 * fireLFO, 0.4) * 0.2);   // Upper hiss
     fireSig = fireSig * fire * 0.5 * bedDuck;  // Apply ducking
-    
+
     // === BELLOWS (rhythmic breathing) ===
     // Pink noise through lowpass with slow amplitude modulation
     bellowsNoise = PinkNoise.ar;
     bellowsLFO = LFTri.kr(0.25).range(0, 1);  // ~4 second breath cycle
     bellowsSig = LPF.ar(bellowsNoise, 250 + (bellowsLFO * 250));  // Filter opens with breath
     bellowsSig = bellowsSig * bellowsLFO.squared * bellows * 0.6 * bedDuck;  // Squared + ducking
-    
+
     // === SPARK (bright transient spray) ===
     // Single noise source, HPF'd and scattered
     sparkNoise = WhiteNoise.ar;
@@ -138,19 +125,18 @@ SynthDef(\thor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     sparkSig = sparkSig + (HPF.ar(sparkNoise, 7500) *
         EnvGen.ar(Env.perc(0.001, 0.008), TDelay.ar(trig, 0.065)) * 0.15);
     sparkSig = sparkSig * spark;
-    
+
     // === MIX ===
     sig = hammerSig + anvilSig + fireSig + bellowsSig + sparkSig;
-    
+
     // Soft limiting to tame combined levels
     sig = sig.tanh;
-    
-    // === PROCESSING CHAIN ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+
     sig = ~stereoSpread.(sig, 0.15, 0.2);  // Stereo width for forge ambience
     sig = sig * amp;
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] thor loaded".postln;

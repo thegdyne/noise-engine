@@ -1,33 +1,19 @@
-SynthDef(\forge_seagrass_bay_surface_light, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// seagrass_bay/surface_light — Lightweight end-stage generator
+SynthDef(\forge_seagrass_bay_surface_light, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var ripple, sun, dance, sparkle, wave;
     var carrier, modulator, rippleMod, dancePattern, sparkleGlints, amDepth;
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    ripple = In.kr(customBus0);     // Surface wave rate
-    sun = In.kr(customBus1);        // Brightness
-    dance = In.kr(customBus2);      // Light pattern
-    sparkle = In.kr(customBus3);    // Glints
-    wave = In.kr(customBus4);       // Mod depth
+    ripple = p[0];  // Surface wave rate
+    sun = p[1];  // Brightness
+    dance = p[2];  // Light pattern
+    sparkle = p[3];  // Glints
+    wave = p[4];  // Mod depth
 
     // Ripple modulation rate
     rippleMod = ripple.linexp(0, 1, 2, 15);
@@ -67,9 +53,8 @@ SynthDef(\forge_seagrass_bay_surface_light, { |out, freqBus, cutoffBus, resBus, 
     sig = ~stereoSpread.(sig, rippleMod * 0.1, 0.6);
 
     // Standard output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_seagrass_bay_surface_light loaded".postln;

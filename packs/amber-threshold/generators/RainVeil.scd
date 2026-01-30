@@ -1,3 +1,4 @@
+// amber-threshold/RainVeil — Lightweight end-stage generator
 /*
 RAINVEIL Generator
 Gentle rain curtain, soft atmospheric
@@ -16,47 +17,33 @@ Custom params:
   - P5 mist: Atmospheric haze
 */
 
-SynthDef(\rainveil, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
-                       customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\rainveil, { |out, freqBus, customBus0|
+
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var density, soft, distant, trickle, mist;
     var trig, rainSig, trickleSig, mistSig;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    density = In.kr(customBus0);
+
+    density = p[0];
     density = Lag.kr(density, 0.1);
-    soft = In.kr(customBus1);
+    soft = p[1];
     soft = Lag.kr(soft, 0.1);
-    distant = In.kr(customBus2);
+    distant = p[2];
     distant = Lag.kr(distant, 0.2);
-    trickle = In.kr(customBus3);
+    trickle = p[3];
     trickle = Lag.kr(trickle, 0.1);
-    mist = In.kr(customBus4);
+    mist = p[4];
     mist = Lag.kr(mist, 0.2);
-    
+
     // === TRIGGER ===
     trig = Select.ar(envSource.round.clip(0, 2), [
         DC.ar(0),
         Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
         Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
     ]);
-    
+
     // === RAIN (soft noise) ===
     rainSig = PinkNoise.ar;
     rainSig = BPF.ar(rainSig, 2000 + (LFNoise1.kr(1).range(-300, 300)), 0.5);
@@ -65,10 +52,10 @@ SynthDef(\rainveil, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Intensity variation
     rainSig = rainSig * (1 + (LFNoise1.kr(0.3).range(-0.2, 0.2)));
     rainSig = rainSig * density * 0.4;
-    
+
     // Distance filtering
     rainSig = LPF.ar(rainSig, LinExp.kr(distant, 0, 1, 6000, 1500));
-    
+
     // === TRICKLE (water running) ===
     trickleSig = BPF.ar(PinkNoise.ar, 1200 * LFNoise2.kr(2 + trickle).range(0.7, 1.4), 0.2);
     trickleSig = trickleSig * LFNoise1.kr(3 + (trickle * 5)).range(0, 1);
@@ -78,27 +65,25 @@ SynthDef(\rainveil, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         EnvGen.ar(Env.perc(0.001, 0.05), Dust.ar(trickle * 10)) * 0.3
     );
     trickleSig = trickleSig * trickle * 0.3;
-    
+
     // === MIST (atmospheric) ===
     mistSig = LPF.ar(PinkNoise.ar, 400);
     mistSig = mistSig + (BPF.ar(BrownNoise.ar, 200, 0.3) * 0.5);
     mistSig = mistSig * LFTri.kr(0.05).range(0.6, 1);
     mistSig = mistSig * mist * 0.2;
-    
+
     // === MIX ===
     sig = rainSig + trickleSig + mistSig;
-    
+
     // Distant reverb
     sig = sig + (CombL.ar(sig, 0.3, 0.15, distant * 2) * distant * 0.3);
-    
+
     sig = sig.tanh;
-    
-    // === PROCESSING CHAIN ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+
     sig = ~stereoSpread.(sig, 0.5, 0.25);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] rainveil loaded".postln;

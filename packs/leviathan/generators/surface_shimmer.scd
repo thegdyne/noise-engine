@@ -1,7 +1,8 @@
+// leviathan/surface_shimmer — Lightweight end-stage generator
 // ============================================================================
-// LEVIATHAN: Surface Shimmer  
+// LEVIATHAN: Surface Shimmer
 // Role: Foreground - light dancing on the surface, hope and air
-// 
+//
 // SUN (Sun)      - Sunlight intensity, high harmonic brightness
 // RIP (Ripple)   - Surface wave movement, modulation rate
 // AIR (Air)      - Above-water clarity, presence
@@ -9,14 +10,10 @@
 // SPA (Sparkle)  - Dancing light points, granular brightness
 // ============================================================================
 
-SynthDef(\forge_leviathan_surface_shimmer, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                              filterTypeBus, envEnabledBus, envSourceBus=0,
-                                              clockRateBus, clockTrigBus,
-                                              midiTrigBus=0, slotIndex=0,
-                                              customBus0, customBus1, customBus2, customBus3, customBus4,
-                                              portamentoBus|
+SynthDef(\forge_leviathan_surface_shimmer, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var sun, ripple, air, ray, sparkle;
     var shimmerOsc, rippleMod, airPresence;
     var rayBeams, sparkleGrains;
@@ -24,23 +21,13 @@ SynthDef(\forge_leviathan_surface_shimmer, { |out, freqBus, cutoffBus, resBus, a
 
     // Read standard params
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
-    sun = In.kr(customBus0).linlin(0, 1, 0.0, 1.0);
-    ripple = In.kr(customBus1).linexp(0, 1, 0.5, 8.0);
-    air = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    ray = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
-    sparkle = In.kr(customBus4).linexp(0, 1, 1, 50);
+    sun = p[0].linlin(0, 1, 0.0, 1.0);
+    ripple = p[1].linexp(0, 1, 0.5, 8.0);
+    air = p[2].linlin(0, 1, 0.0, 1.0);
+    ray = p[3].linlin(0, 1, 0.0, 1.0);
+    sparkle = p[4].linexp(0, 1, 1, 50);
 
     // === RIPPLE MODULATION ===
     rippleMod = SinOsc.kr(ripple).range(0.95, 1.05);
@@ -52,7 +39,7 @@ SynthDef(\forge_leviathan_surface_shimmer, { |out, freqBus, cutoffBus, resBus, a
     shimmerOsc = shimmerOsc + (SinOsc.ar(freq * 4 * rippleMod) * sun * 0.3);
     shimmerOsc = shimmerOsc + (SinOsc.ar(freq * 5 * rippleMod) * sun * 0.2);
     shimmerOsc = shimmerOsc + (SinOsc.ar(freq * 6 * rippleMod) * sun * 0.15);
-    
+
     // Fundamental for body
     shimmerOsc = shimmerOsc + (SinOsc.ar(freq * rippleMod) * 0.3);
 
@@ -65,8 +52,8 @@ SynthDef(\forge_leviathan_surface_shimmer, { |out, freqBus, cutoffBus, resBus, a
     rayBeams = Saw.ar(freq * 2 * rippleMod) * ray * 0.2;
     rayBeams = rayBeams + (Pulse.ar(freq * 3 * rippleMod, 0.3) * ray * 0.15);
     // Sweeping filter like light through water
-    rayBeams = RLPF.ar(rayBeams, 
-        SinOsc.kr(ripple * 0.5).range(freq * 2, freq * 8), 
+    rayBeams = RLPF.ar(rayBeams,
+        SinOsc.kr(ripple * 0.5).range(freq * 2, freq * 8),
         0.3);
     rayBeams = rayBeams * SinOsc.kr(ripple * 0.7).range(0.3, 1);
 
@@ -91,11 +78,10 @@ SynthDef(\forge_leviathan_surface_shimmer, { |out, freqBus, cutoffBus, resBus, a
     sig = (sig * 1.5).tanh * 0.6;
 
     // === OUTPUT CHAIN ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_leviathan_surface_shimmer loaded".postln;

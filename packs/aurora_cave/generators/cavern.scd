@@ -1,32 +1,17 @@
-SynthDef(\forge_aurora_cave_cavern, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                        filterTypeBus, envEnabledBus, envSourceBus=0,
-                                        clockRateBus, clockTrigBus,
-                                        midiTrigBus=0, slotIndex=0,
-                                        customBus0, customBus1, customBus2, customBus3, customBus4,
-                                        portamentoBus|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+// aurora_cave/cavern — Lightweight end-stage generator
+SynthDef(\forge_aurora_cave_cavern, { |out, freqBus, customBus0|
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var depth, dark, drip, echo, rumble;
     var exciter, comb1, comb2, comb3, drips, sub;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Theme params
-    depth = In.kr(customBus0);
-    dark = In.kr(customBus1);
-    drip = In.kr(customBus2);
-    echo = In.kr(customBus3);
-    rumble = In.kr(customBus4);
+    depth = p[0];
+    dark = p[1];
+    drip = p[2];
+    echo = p[3];
+    rumble = p[4];
 
     // Cave drip excitation
     drips = Dust.ar(drip.linexp(0, 1, 0.5, 8)) * 0.35;
@@ -61,13 +46,9 @@ SynthDef(\forge_aurora_cave_cavern, { |out, freqBus, cutoffBus, resBus, attackBu
     sig = AllpassL.ar(sig, 0.1, 0.037, 0.4);
     sig = AllpassL.ar(sig, 0.1, 0.059, 0.35);
 
-    // Output chain (with Limiter for comb feedback)
-    sig = LeakDC.ar(sig);
     sig = ~stereoSpread.(sig, 0.3, 0.5);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_aurora_cave_cavern loaded".postln;

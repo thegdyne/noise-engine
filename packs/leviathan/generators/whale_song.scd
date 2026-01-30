@@ -1,7 +1,8 @@
+// leviathan/whale_song — Lightweight end-stage generator
 // ============================================================================
 // LEVIATHAN: Whale Song
 // Role: Foreground - the creature's voice, ancient calls
-// 
+//
 // CAL (Call)     - Vocalization type, morphs between call patterns
 // RSN (Resonance)- Body cavity size, scales formants
 // ECO (Echo)     - Underwater propagation, distance
@@ -9,14 +10,10 @@
 // SOL (Soul)     - Emotional weight, vibrato and drift
 // ============================================================================
 
-SynthDef(\forge_leviathan_whale_song, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                         filterTypeBus, envEnabledBus, envSourceBus=0,
-                                         clockRateBus, clockTrigBus,
-                                         midiTrigBus=0, slotIndex=0,
-                                         customBus0, customBus1, customBus2, customBus3, customBus4,
-                                         portamentoBus|
+SynthDef(\forge_leviathan_whale_song, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var call, resonance, echo, lift, soul;
     var vocalSource, formant1, formant2, formant3;
     var vibrato, pitchDrift, callMod;
@@ -24,23 +21,13 @@ SynthDef(\forge_leviathan_whale_song, { |out, freqBus, cutoffBus, resBus, attack
 
     // Read standard params
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
-    call = In.kr(customBus0).linlin(0, 1, 0.0, 1.0);
-    resonance = In.kr(customBus1).linexp(0, 1, 0.5, 2.0);
-    echo = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    lift = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
-    soul = In.kr(customBus4).linlin(0, 1, 0.0, 1.0);
+    call = p[0].linlin(0, 1, 0.0, 1.0);
+    resonance = p[1].linexp(0, 1, 0.5, 2.0);
+    echo = p[2].linlin(0, 1, 0.0, 1.0);
+    lift = p[3].linlin(0, 1, 0.0, 1.0);
+    soul = p[4].linlin(0, 1, 0.0, 1.0);
 
     // === SOUL (vibrato and drift) ===
     vibrato = SinOsc.kr(4 + LFNoise1.kr(0.5).range(-1, 1)).range(1 - (soul * 0.03), 1 + (soul * 0.03));
@@ -61,14 +48,14 @@ SynthDef(\forge_leviathan_whale_song, { |out, freqBus, cutoffBus, resBus, attack
 
     // === FORMANT FILTERS (whale vocal tract) ===
     // Formants shift based on call type and resonance
-    formant1 = Resonz.ar(vocalSource, 
+    formant1 = Resonz.ar(vocalSource,
         (200 + (call * 600)) * resonance,  // 200-800 Hz base
         0.1) * 2;
-    
+
     formant2 = Resonz.ar(vocalSource,
         (500 + (call * 1500)) * resonance,  // 500-2000 Hz
         0.15) * 1.5;
-    
+
     formant3 = Resonz.ar(vocalSource,
         (1000 + (call * 3000)) * resonance,  // 1000-4000 Hz (whistle range)
         0.2) * call;  // Only present in higher calls
@@ -92,12 +79,10 @@ SynthDef(\forge_leviathan_whale_song, { |out, freqBus, cutoffBus, resBus, attack
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.1, 0.25);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    sig = LeakDC.ar(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_leviathan_whale_song loaded".postln;

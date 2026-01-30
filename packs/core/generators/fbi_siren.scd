@@ -1,3 +1,4 @@
+// core/fbi_siren — Lightweight end-stage generator
 /*
 FBI Siren Generator
 Classic two-tone emergency siren
@@ -12,56 +13,42 @@ Custom params:
   - P5 warble: 0-1 (vibrato depth)
 */
 
-SynthDef(\fbiSiren, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
-                       customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portaTime;
-    var toneSplit, switchRate, waveform, portamento, warble;
+SynthDef(\fbiSiren, { |out, freqBus, customBus0|
+    var sig, freq, portaTime;
+    var p = In.kr(customBus0, 5);
+    var toneSplit, switchRate, waveform, warble;
     var freqLo, freqHi, currentFreq, switcher, vibrato;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
     portaTime = In.kr(portamentoBus);
     freq = Lag.kr(freq, portaTime.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    toneSplit = In.kr(customBus0);
-    switchRate = In.kr(customBus1);
-    waveform = In.kr(customBus2);
-    portamento = In.kr(customBus3);
-    warble = In.kr(customBus4);
-    
+
+    toneSplit = p[0];
+    switchRate = p[1];
+    waveform = p[2];
+    portamento = p[3];
+    warble = p[4];
+
     // === SOUND SOURCE ===
     freqLo = freq;
     freqHi = freq * toneSplit.linexp(0, 1, 1.1, 2.0);
-    
+
     switcher = LFPulse.kr(switchRate.linexp(0, 1, 0.5, 8));
     currentFreq = SelectX.kr(switcher, [freqLo, freqHi]);
     currentFreq = currentFreq.lag(portamento.linexp(0, 1, 0.001, 0.3));
-    
+
     vibrato = SinOsc.kr(5 + (switchRate * 3)) * warble * currentFreq * 0.02;
     currentFreq = currentFreq + vibrato;
-    
+
     sig = SelectX.ar(waveform, [
         SinOsc.ar(currentFreq),
         Pulse.ar(currentFreq, 0.5)
     ]) * 0.5;
-    
-    // === PROCESSING CHAIN ===
-    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    
-    Out.ar(out, sig);
+
+
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] fbiSiren loaded".postln;

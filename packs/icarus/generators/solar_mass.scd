@@ -1,36 +1,21 @@
+// icarus/solar_mass — Lightweight end-stage generator
 // Solar Mass -- immense gravitational presence
 // Role: bed
 
-SynthDef(\forge_icarus_solar_mass, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                      filterTypeBus, envEnabledBus, envSourceBus=0,
-                                      clockRateBus, clockTrigBus,
-                                      midiTrigBus=0, slotIndex=0,
-                                      customBus0, customBus1, customBus2, customBus3, customBus4,
-                                      portamentoBus|
+SynthDef(\forge_icarus_solar_mass, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var gravity, fusion, mass, pressure, radiation;
     var saws, sub, high, fusionLfo, drive;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Theme params
-    gravity = In.kr(customBus0).linlin(0, 1, 0.5, 1.0);      // Overall level/weight
-    fusion = In.kr(customBus1).linlin(0, 1, 0.05, 2);        // Beating rate
-    mass = In.kr(customBus2).linlin(0, 1, 0.0, 0.7);         // Sub level
-    pressure = In.kr(customBus3).linlin(0, 1, 1, 8);         // Drive amount
-    radiation = In.kr(customBus4).linlin(0, 1, 0.0, 0.4);    // High freq content
+    gravity = p[0].linlin(0, 1, 0.5, 1.0);  // Overall level/weight
+    fusion = p[1].linlin(0, 1, 0.05, 2);  // Beating rate
+    mass = p[2].linlin(0, 1, 0.0, 0.7);  // Sub level
+    pressure = p[3].linlin(0, 1, 1, 8);  // Drive amount
+    radiation = p[4].linlin(0, 1, 0.0, 0.4);  // High freq content
 
     // Slow fusion reactor beating
     fusionLfo = SinOsc.kr(fusion, 0, 0.02, 1);
@@ -59,11 +44,9 @@ SynthDef(\forge_icarus_solar_mass, { |out, freqBus, cutoffBus, resBus, attackBus
     // Gentle stereo spread
     sig = ~stereoSpread.(sig, 0.1, 0.3);
 
-    // Output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_icarus_solar_mass loaded".postln;

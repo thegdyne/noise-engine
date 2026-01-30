@@ -1,32 +1,18 @@
-SynthDef(\forge_tricorn_helix, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                   filterTypeBus, envEnabledBus, envSourceBus=0,
-                                   clockRateBus, clockTrigBus,
-                                   midiTrigBus=0, slotIndex=0,
-                                   customBus0, customBus1, customBus2, customBus3, customBus4,
-                                   portamentoBus|
+// tricorn/helix — Lightweight end-stage generator
+SynthDef(\forge_tricorn_helix, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var rotation, radius, gradient, vertigo, motion;
     var modRate, modDepth, ratio, carrier, modulator, phase1, phase2;
 
-    // Theme params
-    rotation = In.kr(customBus0);
-    radius = In.kr(customBus1);
-    gradient = In.kr(customBus2);
-    vertigo = In.kr(customBus3);
-    motion = In.kr(customBus4);
+    rotation = p[0];
+    radius = p[1];
+    gradient = p[2];
+    vertigo = p[3];
+    motion = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Modulation parameters
     modRate = rotation.linexp(0, 1, 0.1, 4);
@@ -60,11 +46,8 @@ SynthDef(\forge_tricorn_helix, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // Continuous presence layer
     sig = sig + (PinkNoise.ar(0.02));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_tricorn_helix loaded".postln;

@@ -1,36 +1,22 @@
+// nerve_glow/tissuwarm — Lightweight end-stage generator
 // TISSUWARM -- Warm tissue formant
 // Organic, breathy, living tissue warmth -- amber glow
 
-SynthDef(\forge_nerve_glow_tissuwarm, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                         filterTypeBus, envEnabledBus, envSourceBus=0,
-                                         clockRateBus, clockTrigBus,
-                                         midiTrigBus=0, slotIndex=0,
-                                         customBus0, customBus1, customBus2, customBus3, customBus4,
-                                         portamentoBus|
+SynthDef(\forge_nerve_glow_tissuwarm, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var cellular, blood, organic, hum, glow;
     var source, formants, formantFreqs, formantBWs, breath, fundamental;
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    cellular = In.kr(customBus0).linlin(0, 1, 0, 4);       // Formant set morph
-    blood = In.kr(customBus1).linexp(0, 1, 0.1, 3.0);     // Movement rate
-    organic = In.kr(customBus2).linlin(0, 1, 0.0, 0.3);   // Formant drift
-    hum = In.kr(customBus3).linlin(0, 1, 0.2, 0.8);       // Fundamental amount
-    glow = In.kr(customBus4).linexp(0, 1, 1000, 8000);    // Air/brightness
+    cellular = p[0].linlin(0, 1, 0, 4);  // Formant set morph
+    blood = p[1].linexp(0, 1, 0.1, 3.0);  // Movement rate
+    organic = p[2].linlin(0, 1, 0.0, 0.3);  // Formant drift
+    hum = p[3].linlin(0, 1, 0.2, 0.8);  // Fundamental amount
+    glow = p[4].linexp(0, 1, 1000, 8000);  // Air/brightness
 
     // Source - mix of pulse and noise for organic excitation
     source = Pulse.ar(freq, 0.3, 0.5) + (PinkNoise.ar(0.3));
@@ -73,11 +59,9 @@ SynthDef(\forge_nerve_glow_tissuwarm, { |out, freqBus, cutoffBus, resBus, attack
     // Stereo spread
     sig = ~stereoSpread.(sig, 0.2, 0.25);
 
-    // Output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_nerve_glow_tissuwarm loaded".postln;

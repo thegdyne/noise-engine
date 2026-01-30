@@ -1,34 +1,19 @@
+// mod_caf/voltage — Lightweight end-stage generator
 // voltage: CV modulation textures - stepped random, chaos
-SynthDef(\forge_mod_caf_voltage, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_mod_caf_voltage, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var stepRate, chaos, slew, depth, bipolar;
     var stepped, chaotic;
 
-    // Theme params
-    stepRate = In.kr(customBus0).linlin(0, 1, 0.5, 15);     // P1: Step rate
-    chaos = In.kr(customBus1).linlin(0, 1, 1.5, 1.99);      // P2: Chaos amount
-    slew = In.kr(customBus2).linlin(0, 1, 0.001, 0.2);      // P3: Slew limiting
-    depth = In.kr(customBus3).linlin(0, 1, 0.3, 1);         // P4: Modulation depth
-    bipolar = In.kr(customBus4).linlin(0, 1, 0, 0.5);       // P5: Bipolar offset
+    stepRate = p[0].linlin(0, 1, 0.5, 15);  // P1: Step rate
+    chaos = p[1].linlin(0, 1, 1.5, 1.99);  // P2: Chaos amount
+    slew = p[2].linlin(0, 1, 0.001, 0.2);  // P3: Slew limiting
+    depth = p[3].linlin(0, 1, 0.3, 1);  // P4: Modulation depth
+    bipolar = p[4].linlin(0, 1, 0, 0.5);  // P5: Bipolar offset
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Stepped random - S&H style
     stepped = LFNoise0.kr(stepRate).lag(slew);
@@ -48,11 +33,8 @@ SynthDef(\forge_mod_caf_voltage, { |out, freqBus, cutoffBus, resBus, attackBus, 
 
     sig = sig * 0.5;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_mod_caf_voltage loaded".postln;

@@ -1,39 +1,24 @@
-SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                               filterTypeBus, envEnabledBus, envSourceBus=0,
-                                               clockRateBus, clockTrigBus,
-                                               midiTrigBus=0, slotIndex=0,
-                                               customBus0, customBus1, customBus2, customBus3, customBus4,
-                                               portamentoBus,
-                                               ampBus=(-1)|
+// summer_of_love/acid_bloom — Lightweight end-stage generator
+SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var squelch, bloom, trip, dose, sub;
     var osc, subOsc, filtEnv, envTrig, filtFreqMod, saturated;
     var fallbackAmpBus, envSel, clockIdx, midiIdx, ampEnv;
     // @forge: inline_post_chain
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
     // Safety clamp: rq=0 (or negative) can break RLPF / render
     rq = rq.clip(0.05, 1.0);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     // amp: prefer explicit ampBus if provided; otherwise fall back to ~params safely
     fallbackAmpBus = ((~params ? IdentityDictionary.new)[\amplitude] ? 0);
     amp = In.kr(Select.kr((ampBus >= 0), [fallbackAmpBus, ampBus]));
-    // Theme params
-    squelch = In.kr(customBus0);   // Filter env amount
-    bloom = In.kr(customBus1);     // Filter env decay
-    trip = In.kr(customBus2);      // Resonance boost
-    dose = In.kr(customBus3);      // Distortion
-    sub = In.kr(customBus4);       // Sub oscillator
+    squelch = p[0];  // Filter env amount
+    bloom = p[1];  // Filter env decay
+    trip = p[2];  // Resonance boost
+    dose = p[3];  // Distortion
+    sub = p[4];  // Sub oscillator
 
     // Main saw oscillator with slight detuning for thickness
     osc = Saw.ar(freq) + (Saw.ar(freq * 1.005) * 0.5) + (Pulse.ar(freq, 0.5) * 0.3);
@@ -83,10 +68,10 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, cutoffBus, resBus, a
         EnvGen.ar(Env.perc(attack.max(0.001), decay.max(0.001)), envTrig)
     ]);
     sig = sig * amp * ampEnv;
-    sig = LeakDC.ar(sig);
     sig = sig.asArray;
     sig = (sig.size == 1).if({ [sig[0], sig[0]] }, { sig });
-    sig = Limiter.ar(sig, 0.95);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_summer_of_love_acid_bloom loaded".postln;

@@ -1,7 +1,8 @@
+// leviathan/current_drift — Lightweight end-stage generator
 // ============================================================================
 // LEVIATHAN: Current Drift
 // Role: Motion - underwater currents carrying debris and sound
-// 
+//
 // FLO (Flow)     - Current strength, movement intensity
 // TUR (Turbulence) - Chaotic eddies vs laminar flow
 // DEB (Debris)   - Particles carried in the water
@@ -9,37 +10,23 @@
 // DRG (Drag)     - Resistance, viscosity of water
 // ============================================================================
 
-SynthDef(\forge_leviathan_current_drift, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                            filterTypeBus, envEnabledBus, envSourceBus=0,
-                                            clockRateBus, clockTrigBus,
-                                            midiTrigBus=0, slotIndex=0,
-                                            customBus0, customBus1, customBus2, customBus3, customBus4,
-                                            portamentoBus|
+SynthDef(\forge_leviathan_current_drift, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var flow, turbulence, debris, thermal, drag;
     var currentNoise, eddies, debrisParticles;
     var thermalLayers, flowMod, dragFilter;
 
     // Read standard params
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
-    flow = In.kr(customBus0).linexp(0, 1, 0.05, 2.0);
-    turbulence = In.kr(customBus1).linlin(0, 1, 0.0, 1.0);
-    debris = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    thermal = In.kr(customBus3).linlin(0, 1, 0.0, 1.0);
-    drag = In.kr(customBus4).linexp(0, 1, 200, 4000);
+    flow = p[0].linexp(0, 1, 0.05, 2.0);
+    turbulence = p[1].linlin(0, 1, 0.0, 1.0);
+    debris = p[2].linlin(0, 1, 0.0, 1.0);
+    thermal = p[3].linlin(0, 1, 0.0, 1.0);
+    drag = p[4].linexp(0, 1, 200, 4000);
 
     // === FLOW MODULATION ===
     flowMod = LFNoise2.kr(flow).range(0.7, 1.3);
@@ -75,18 +62,17 @@ SynthDef(\forge_leviathan_current_drift, { |out, freqBus, cutoffBus, resBus, att
     sig = LPF.ar(sig, drag);
 
     // Movement in stereo field
-    sig = Balance2.ar(sig, DelayC.ar(sig, 0.05, LFNoise2.kr(flow).range(0.01, 0.04)), 
+    sig = Balance2.ar(sig, DelayC.ar(sig, 0.05, LFNoise2.kr(flow).range(0.01, 0.04)),
                       LFNoise2.kr(flow * 0.5).range(-0.5, 0.5));
 
     // Soft saturation
     sig = (sig * 1.5).tanh * 0.5;
 
     // === OUTPUT CHAIN ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_leviathan_current_drift loaded".postln;

@@ -1,32 +1,18 @@
-SynthDef(\forge_tricorn_decay, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                   filterTypeBus, envEnabledBus, envSourceBus=0,
-                                   clockRateBus, clockTrigBus,
-                                   midiTrigBus=0, slotIndex=0,
-                                   customBus0, customBus1, customBus2, customBus3, customBus4,
-                                   portamentoBus|
+// tricorn/decay — Lightweight end-stage generator
+SynthDef(\forge_tricorn_decay, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var erosion, crumble, stain, moss, fracture;
     var source, crushed, bits, sampleRate, stainMod, glitch;
 
-    // Theme params
-    erosion = In.kr(customBus0);
-    crumble = In.kr(customBus1);
-    stain = In.kr(customBus2);
-    moss = In.kr(customBus3);
-    fracture = In.kr(customBus4);
+    erosion = p[0];
+    crumble = p[1];
+    stain = p[2];
+    moss = p[3];
+    fracture = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Source - oscillator + noise mix
     source = Saw.ar(freq, 0.3);
@@ -59,11 +45,8 @@ SynthDef(\forge_tricorn_decay, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // Add continuous noise bed for presence
     sig = sig + (PinkNoise.ar(0.05));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_tricorn_decay loaded".postln;

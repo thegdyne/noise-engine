@@ -1,34 +1,19 @@
-SynthDef(\forge_backyard_lamb, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// backyard/lamb — Lightweight end-stage generator
+SynthDef(\forge_backyard_lamb, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, ampVal, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var bleat, run, hoof, wool, play;
     var bleatVoice, hoofSteps, woolRustle, breathNoise;
     var formantFreqs, formantAmps, bleatEnv, bleatTrig;
 
-    // Theme params
-    bleat = In.kr(customBus0);
-    run = In.kr(customBus1);
-    hoof = In.kr(customBus2);
-    wool = In.kr(customBus3);
-    play = In.kr(customBus4);
+    bleat = p[0];
+    run = p[1];
+    hoof = p[2];
+    wool = p[3];
+    play = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    ampVal = In.kr(~params[\amplitude]);
 
     // Bleat trigger
     bleatTrig = Dust.kr(play.linexp(0, 1, 0.3, 2));
@@ -71,12 +56,8 @@ SynthDef(\forge_backyard_lamb, { |out, freqBus, cutoffBus, resBus, attackBus, de
     // Continuous bed for drone mode - grass/field ambience
     sig = sig + (BrownNoise.ar(0.1) + PinkNoise.ar(0.06));
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, ampVal, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_backyard_lamb loaded".postln;

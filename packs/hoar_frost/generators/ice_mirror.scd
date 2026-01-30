@@ -1,33 +1,18 @@
+// hoar_frost/ice_mirror — Lightweight end-stage generator
 // ice_mirror: Reflections on frozen water - comb/delay shimmer
-SynthDef(\forge_hoar_frost_ice_mirror, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_hoar_frost_ice_mirror, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var feedback, shimmer, spread, combTune, glisten;
 
-    // Theme params
-    feedback = In.kr(customBus0).linlin(0, 1, 0.3, 0.85);  // P1: Comb feedback
-    shimmer = In.kr(customBus1).linlin(0, 1, 0.1, 2);      // P2: Shimmer rate
-    spread = In.kr(customBus2).linlin(0, 1, 0.001, 0.01);  // P3: Stereo spread delay
-    combTune = In.kr(customBus3).linlin(0, 1, 0.5, 2);     // P4: Comb tuning ratio
-    glisten = In.kr(customBus4).linlin(0, 1, 0, 0.5);      // P5: High frequency sparkle
+    feedback = p[0].linlin(0, 1, 0.3, 0.85);  // P1: Comb feedback
+    shimmer = p[1].linlin(0, 1, 0.1, 2);  // P2: Shimmer rate
+    spread = p[2].linlin(0, 1, 0.001, 0.01);  // P3: Stereo spread delay
+    combTune = p[3].linlin(0, 1, 0.5, 2);  // P4: Comb tuning ratio
+    glisten = p[4].linlin(0, 1, 0, 0.5);  // P5: High frequency sparkle
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Resonant comb with shimmer modulation
     sig = Saw.ar(freq * [1, 1.003]) * 0.3;
@@ -54,12 +39,8 @@ SynthDef(\forge_hoar_frost_ice_mirror, { |out, freqBus, cutoffBus, resBus, attac
 
     sig = sig * 0.4;
 
-    // Output chain (with Limiter for feedback safety)
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_hoar_frost_ice_mirror loaded".postln;

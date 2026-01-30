@@ -1,33 +1,18 @@
+// sgwd/gorge — Lightweight end-stage generator
 // gorge: Hollow space behind waterfall
-SynthDef(\forge_sgwd_gorge, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_sgwd_gorge, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var depth, echo, dark, behind, ancient;
 
-    // Theme params
-    depth = In.kr(customBus0).linlin(0, 1, 0.03, 0.1);        // P1: Gorge depth (comb)
-    echo = In.kr(customBus1).linlin(0, 1, 1, 4);              // P2: Echo decay
-    dark = In.kr(customBus2).linexp(0, 1, 400, 100);          // P3: Darkness (LPF)
-    behind = In.kr(customBus3).linlin(0, 1, 0.2, 0.6);        // P4: Behind falls
-    ancient = In.kr(customBus4).linlin(0, 1, 0.1, 0.4);       // P5: Ancient presence
+    depth = p[0].linlin(0, 1, 0.03, 0.1);  // P1: Gorge depth (comb)
+    echo = p[1].linlin(0, 1, 1, 4);  // P2: Echo decay
+    dark = p[2].linexp(0, 1, 400, 100);  // P3: Darkness (LPF)
+    behind = p[3].linlin(0, 1, 0.2, 0.6);  // P4: Behind falls
+    ancient = p[4].linlin(0, 1, 0.1, 0.4);  // P5: Ancient presence
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Cavernous gorge
     // Deep drone
@@ -52,12 +37,8 @@ SynthDef(\forge_sgwd_gorge, { |out, freqBus, cutoffBus, resBus, attackBus, decay
 
     sig = sig * 0.35;
 
-    // Output chain (with Limiter for comb)
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_sgwd_gorge loaded".postln;

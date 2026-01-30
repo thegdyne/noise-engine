@@ -1,37 +1,24 @@
+// rakshasa/wild_mane — Lightweight end-stage generator
 // Wild Mane -- Chaotic hair texture with granular noise
 // Role: motion | Family: texture
 
-SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                       filterTypeBus, envEnabledBus, envSourceBus=0,
-                                       clockRateBus, clockTrigBus,
-                                       midiTrigBus=0, slotIndex=0,
-                                       customBus0, customBus1, customBus2, customBus3, customBus4,
-                                       portamentoBus|
+SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var wild, frizz, tangle, whip, static;
     var strands, crackle, chaos, tangled, layers;
     var whipRate, chaosLFO, panMod;
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Custom parameters
-    wild = In.kr(customBus0).linlin(0, 1, 0.1, 1);         // Chaos amount
-    frizz = In.kr(customBus1).linexp(0, 1, 10, 200);       // Grain density
-    tangle = In.kr(customBus2).linlin(0, 1, 1, 5);         // Number of layers
-    whip = In.kr(customBus3).linexp(0, 1, 0.5, 30);        // Movement rate
-    static = In.kr(customBus4).linlin(0, 1, 0, 0.5);       // HF crackle mix
+    wild = p[0].linlin(0, 1, 0.1, 1);  // Chaos amount
+    frizz = p[1].linexp(0, 1, 10, 200);  // Grain density
+    tangle = p[2].linlin(0, 1, 1, 5);  // Number of layers
+    whip = p[3].linexp(0, 1, 0.5, 30);  // Movement rate
+    static = p[4].linlin(0, 1, 0, 0.5);  // HF crackle mix
 
     // Whipping movement
     whipRate = whip;
@@ -62,15 +49,13 @@ SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, cutoffBus, resBus, attackBu
     panMod = LFNoise2.kr(whipRate * 0.7) * wild;
     sig = Pan2.ar(sig, panMod);
 
-    // Output chain
     sig = sig * 4;  // gain boost
     sig = sig * 8;
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp,
                    clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_rakshasa_wild_mane loaded".postln;

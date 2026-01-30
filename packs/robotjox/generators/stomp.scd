@@ -1,32 +1,18 @@
-SynthDef(\forge_robotjox_stomp, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                    filterTypeBus, envEnabledBus, envSourceBus=0,
-                                    clockRateBus, clockTrigBus,
-                                    midiTrigBus=0, slotIndex=0,
-                                    customBus0, customBus1, customBus2, customBus3, customBus4,
-                                    portamentoBus|
+// robotjox/stomp — Lightweight end-stage generator
+SynthDef(\forge_robotjox_stomp, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var mass, ground, quake, debris, pace;
     var trig, impact, membrane, subBoom, debrisNoise, rumble;
 
-    // Theme params
-    mass = In.kr(customBus0);
-    ground = In.kr(customBus1);
-    quake = In.kr(customBus2);
-    debris = In.kr(customBus3);
-    pace = In.kr(customBus4);
+    mass = p[0];
+    ground = p[1];
+    quake = p[2];
+    debris = p[3];
+    pace = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Step trigger
     trig = Dust.ar(pace.linexp(0, 1, 0.5, 4));
@@ -62,12 +48,8 @@ SynthDef(\forge_robotjox_stomp, { |out, freqBus, cutoffBus, resBus, attackBus, d
     // Continuous bed
     sig = sig + LPF.ar(BrownNoise.ar(0.1), 200);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_robotjox_stomp loaded".postln;

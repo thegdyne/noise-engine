@@ -1,7 +1,8 @@
+// leviathan/tidal_breath — Lightweight end-stage generator
 // ============================================================================
 // LEVIATHAN: Tidal Breath
 // Role: Motion - the rhythmic breathing of ocean and creature
-// 
+//
 // LNG (Lung)     - Breath depth, how full the inhalation
 // RHY (Rhythm)   - Breathing rate modulation
 // WET (Wet)      - Water in the breath, filtered noise
@@ -9,14 +10,10 @@
 // EXH (Exhale)   - Exhale intensity, the release
 // ============================================================================
 
-SynthDef(\forge_leviathan_tidal_breath, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                           filterTypeBus, envEnabledBus, envSourceBus=0,
-                                           clockRateBus, clockTrigBus,
-                                           midiTrigBus=0, slotIndex=0,
-                                           customBus0, customBus1, customBus2, customBus3, customBus4,
-                                           portamentoBus|
+SynthDef(\forge_leviathan_tidal_breath, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var lung, rhythm, wet, cavity, exhale;
     var breathCycle, inhale, exhalePhase;
     var bodyResonance, wetNoise, cavityFilter;
@@ -24,23 +21,13 @@ SynthDef(\forge_leviathan_tidal_breath, { |out, freqBus, cutoffBus, resBus, atta
 
     // Read standard params
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
-    lung = In.kr(customBus0).linlin(0, 1, 0.3, 1.0);
-    rhythm = In.kr(customBus1).linexp(0, 1, 0.05, 0.5);
-    wet = In.kr(customBus2).linlin(0, 1, 0.0, 1.0);
-    cavity = In.kr(customBus3).linexp(0, 1, 0.5, 2.0);
-    exhale = In.kr(customBus4).linlin(0, 1, 0.3, 1.0);
+    lung = p[0].linlin(0, 1, 0.3, 1.0);
+    rhythm = p[1].linexp(0, 1, 0.05, 0.5);
+    wet = p[2].linlin(0, 1, 0.0, 1.0);
+    cavity = p[3].linexp(0, 1, 0.5, 2.0);
+    exhale = p[4].linlin(0, 1, 0.3, 1.0);
 
     // === BREATH CYCLE ===
     // Asymmetric breathing - slow inhale, quicker exhale
@@ -50,7 +37,7 @@ SynthDef(\forge_leviathan_tidal_breath, { |out, freqBus, cutoffBus, resBus, atta
 
     // Breath modulates amplitude
     breathMod = (inhale * lung) + (exhalePhase * 0.3);
-    
+
     // Subtle pitch movement with breath
     pitchMod = 1 + (breathCycle * 0.02 * lung);
 
@@ -58,7 +45,7 @@ SynthDef(\forge_leviathan_tidal_breath, { |out, freqBus, cutoffBus, resBus, atta
     bodyResonance = SinOsc.ar(freq * pitchMod / cavity);
     bodyResonance = bodyResonance + (SinOsc.ar(freq * 2 * pitchMod / cavity) * 0.3);
     bodyResonance = bodyResonance + (SinOsc.ar(freq * 0.5 * pitchMod) * lung * 0.4);
-    
+
     // Add formant-like resonances for "body"
     bodyResonance = bodyResonance + (Formant.ar(freq / cavity, freq * 2, freq * 4) * 0.2);
 
@@ -82,11 +69,10 @@ SynthDef(\forge_leviathan_tidal_breath, { |out, freqBus, cutoffBus, resBus, atta
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, rhythm, 0.3);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_leviathan_tidal_breath loaded".postln;

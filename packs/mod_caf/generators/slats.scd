@@ -1,33 +1,18 @@
+// mod_caf/slats — Lightweight end-stage generator
 // slats: Wood slat architecture resonance
-SynthDef(\forge_mod_caf_slats, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_mod_caf_slats, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var body, spacing, tap, warmth, room;
 
-    // Theme params
-    body = In.kr(customBus0).linlin(0, 1, 0.4, 1);          // P1: Wood body resonance
-    spacing = In.kr(customBus1).linlin(0, 1, 0.008, 0.04);  // P2: Slat spacing (comb)
-    tap = In.kr(customBus2).linlin(0, 1, 2, 12);            // P3: Tap excitation rate
-    warmth = In.kr(customBus3).linlin(0, 1, 600, 4000);     // P4: Warmth filter
-    room = In.kr(customBus4).linlin(0, 1, 0.2, 0.6);        // P5: Room reflection
+    body = p[0].linlin(0, 1, 0.4, 1);  // P1: Wood body resonance
+    spacing = p[1].linlin(0, 1, 0.008, 0.04);  // P2: Slat spacing (comb)
+    tap = p[2].linlin(0, 1, 2, 12);  // P3: Tap excitation rate
+    warmth = p[3].linlin(0, 1, 600, 4000);  // P4: Warmth filter
+    room = p[4].linlin(0, 1, 0.2, 0.6);  // P5: Room reflection
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Wood body - continuous filtered tone
     sig = LPF.ar(Saw.ar(freq * [0.5, 1, 1.002]) * body, warmth) * 0.4;
@@ -44,12 +29,8 @@ SynthDef(\forge_mod_caf_slats, { |out, freqBus, cutoffBus, resBus, attackBus, de
 
     sig = sig * 0.5;
 
-    // Output chain (with Limiter for comb)
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_mod_caf_slats loaded".postln;

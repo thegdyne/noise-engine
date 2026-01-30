@@ -1,31 +1,19 @@
-SynthDef(\forge_aurora_cave_aurora, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                        filterTypeBus, envEnabledBus, envSourceBus=0,
-                                        clockRateBus, clockTrigBus,
-                                        midiTrigBus=0, slotIndex=0,
-                                        customBus0, customBus1, customBus2, customBus3, customBus4,
-                                     portamentoBus|
+// aurora_cave/aurora — Lightweight end-stage generator
+SynthDef(\forge_aurora_cave_aurora, { |out, freqBus, customBus0|
 
-    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var p = In.kr(customBus0, 5);
     var shimmer, bands, drift, glow, spread;
     var harmonics, driftMod;
     // @forge: inline_post_chain
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     amp = 0.2;
 
-    shimmer = In.kr(customBus0);
-    bands = In.kr(customBus1);
-    drift = In.kr(customBus2);
-    glow = In.kr(customBus3);
-    spread = In.kr(customBus4);
+    shimmer = p[0];
+    bands = p[1];
+    drift = p[2];
+    glow = p[3];
+    spread = p[4];
 
     driftMod = LFNoise2.kr(drift.linexp(0, 1, 0.05, 0.5));
 
@@ -49,8 +37,6 @@ SynthDef(\forge_aurora_cave_aurora, { |out, freqBus, cutoffBus, resBus, attackBu
 
     sig = harmonics * 0.2;
     sig = (sig * (1 + (glow * 2))).tanh * (1 - (glow * 0.3));
-    // Output chain (inlined; avoids global helpers for NRT stability)
-    sig = LeakDC.ar(sig);
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
 
@@ -83,6 +69,8 @@ SynthDef(\forge_aurora_cave_aurora, { |out, freqBus, cutoffBus, resBus, attackBu
     // Ensure 2ch
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_aurora_cave_aurora loaded".postln;

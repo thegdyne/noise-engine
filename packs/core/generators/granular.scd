@@ -1,3 +1,4 @@
+// core/granular — Lightweight end-stage generator
 /*
 Granular Generator
 Micro-sample cloud synthesis using sine grains
@@ -12,45 +13,31 @@ Custom params:
   - P5 stereo_spread: 0-1 (pan width)
 */
 
-SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
-                       customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\granular, { |out, freqBus, customBus0|
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var pitchShift, grainSize, density, jitter, spread;
     var grainTrig, grainFreq, grainDur, pan;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    pitchShift = In.kr(customBus0);
-    grainSize = In.kr(customBus1);
-    density = In.kr(customBus2);
-    jitter = In.kr(customBus3);
-    spread = In.kr(customBus4);
-    
+
+    pitchShift = p[0];
+    grainSize = p[1];
+    density = p[2];
+    jitter = p[3];
+    spread = p[4];
+
     // === SOUND SOURCE ===
     grainTrig = Impulse.ar(density);
     grainFreq = freq * (2 ** (pitchShift / 12));
     grainFreq = grainFreq * (1 + (TRand.ar(-1, 1, grainTrig) * jitter * 0.2));
     grainFreq = grainFreq.clip(20, 20000);
-    
+
     grainDur = grainSize * (1 + (TRand.ar(-0.5, 0.5, grainTrig) * jitter));
     grainDur = grainDur.clip(0.005, 0.5);
-    
+
     pan = TRand.ar(-1, 1, grainTrig) * spread;
-    
+
     sig = GrainSin.ar(
         numChannels: 2,
         trigger: grainTrig,
@@ -59,7 +46,7 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         pan: pan,
         mul: 0.3
     );
-    
+
     sig = sig + GrainSin.ar(
         numChannels: 2,
         trigger: Dust.ar(density * 0.3),
@@ -68,12 +55,10 @@ SynthDef(\granular, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         pan: TRand.ar(-1, 1, Dust.ar(density * 0.3)) * spread,
         mul: 0.1
     );
-    
-    // === PROCESSING CHAIN ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
-    Out.ar(out, sig);
+
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] granular loaded".postln;

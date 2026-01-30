@@ -1,32 +1,18 @@
-SynthDef(\forge_kaiju_beats_kaiju, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// kaiju_beats/kaiju — Lightweight end-stage generator
+SynthDef(\forge_kaiju_beats_kaiju, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, ampVal, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var throat, roar, breath, vowel, size;
     var source, formants, f1, f2, f3, breathNoise;
 
-    // Theme params
-    throat = In.kr(customBus0);       // P1: Throat size - formant spacing
-    roar = In.kr(customBus1);         // P2: Roar intensity - distortion
-    breath = In.kr(customBus2);       // P3: Breath noise mix
-    vowel = In.kr(customBus3);        // P4: Vowel morph (A-O-U)
-    size = In.kr(customBus4);         // P5: Monster size - pitch shift
+    throat = p[0];  // P1: Throat size - formant spacing
+    roar = p[1];  // P2: Roar intensity - distortion
+    breath = p[2];  // P3: Breath noise mix
+    vowel = p[3];  // P4: Vowel morph (A-O-U)
+    size = p[4];  // P5: Monster size - pitch shift
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     ampVal = 0.2;
 
     // Source - pulse with size scaling
@@ -54,12 +40,8 @@ SynthDef(\forge_kaiju_beats_kaiju, { |out, freqBus, cutoffBus, resBus, attackBus
     sig = formants + breathNoise;
     sig = (sig * (1 + (roar * 3))).tanh;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, ampVal, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_kaiju_beats_kaiju loaded".postln;

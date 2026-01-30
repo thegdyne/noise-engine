@@ -1,33 +1,18 @@
-SynthDef(\forge_pripyat_echo, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// pripyat/echo — Lightweight end-stage generator
+SynthDef(\forge_pripyat_echo, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var size, conc, empt, drip, chill;
     var exciter, combs, dripSig, delayTime, decayTime, dripRate;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    size = In.kr(customBus0);
-    conc = In.kr(customBus1);
-    empt = In.kr(customBus2);
-    drip = In.kr(customBus3);
-    chill = In.kr(customBus4);
+    size = p[0];
+    conc = p[1];
+    empt = p[2];
+    drip = p[3];
+    chill = p[4];
 
     // Continuous noise bed for drone mode
     exciter = PinkNoise.ar(0.05);
@@ -61,12 +46,8 @@ SynthDef(\forge_pripyat_echo, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     // Add some of the raw combs for body
     sig = sig + (combs * 0.5);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_pripyat_echo loaded".postln;

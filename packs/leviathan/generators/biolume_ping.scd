@@ -1,7 +1,8 @@
+// leviathan/biolume_ping — Lightweight end-stage generator
 // ============================================================================
 // LEVIATHAN: Biolume Ping
 // Role: Accent - bioluminescent creatures signaling in darkness
-// 
+//
 // GLW (Glow)     - Luminescence intensity, harmonic brightness
 // FLK (Flicker)  - Signal instability, organic variation
 // SWM (Swarm)    - Multiple creatures, density of pings
@@ -9,14 +10,10 @@
 // SPK (Spark)    - Initial flash intensity, attack brightness
 // ============================================================================
 
-SynthDef(\forge_leviathan_biolume_ping, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                           filterTypeBus, envEnabledBus, envSourceBus=0,
-                                           clockRateBus, clockTrigBus,
-                                           midiTrigBus=0, slotIndex=0,
-                                           customBus0, customBus1, customBus2, customBus3, customBus4,
-                                           portamentoBus|
+SynthDef(\forge_leviathan_biolume_ping, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var glow, flicker, swarm, dim, spark;
     var pingTrig, mainPing, swarmPings;
     var glowHarmonics, flickerMod, sparkTransient;
@@ -24,23 +21,13 @@ SynthDef(\forge_leviathan_biolume_ping, { |out, freqBus, cutoffBus, resBus, atta
 
     // Read standard params
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // === THEMED PARAMS ===
-    glow = In.kr(customBus0).linlin(0, 1, 0.0, 1.0);
-    flicker = In.kr(customBus1).linlin(0, 1, 0.0, 1.0);
-    swarm = In.kr(customBus2).linexp(0, 1, 0.5, 20);
-    dim = In.kr(customBus3).linexp(0, 1, 0.1, 2.0);
-    spark = In.kr(customBus4).linlin(0, 1, 0.0, 1.0);
+    glow = p[0].linlin(0, 1, 0.0, 1.0);
+    flicker = p[1].linlin(0, 1, 0.0, 1.0);
+    swarm = p[2].linexp(0, 1, 0.5, 20);
+    dim = p[3].linexp(0, 1, 0.1, 2.0);
+    spark = p[4].linlin(0, 1, 0.0, 1.0);
 
     // === TRIGGER ===
     envTrig = Select.ar(envSource, [
@@ -87,11 +74,10 @@ SynthDef(\forge_leviathan_biolume_ping, { |out, freqBus, cutoffBus, resBus, atta
 
     // === OUTPUT CHAIN ===
     sig = ~stereoSpread.(sig, 0.3, 0.5);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_leviathan_biolume_ping loaded".postln;

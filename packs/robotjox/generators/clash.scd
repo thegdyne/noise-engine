@@ -1,32 +1,18 @@
-SynthDef(\forge_robotjox_clash, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                    filterTypeBus, envEnabledBus, envSourceBus=0,
-                                    clockRateBus, clockTrigBus,
-                                    midiTrigBus=0, slotIndex=0,
-                                    customBus0, customBus1, customBus2, customBus3, customBus4,
-                                    portamentoBus|
+// robotjox/clash — Lightweight end-stage generator
+SynthDef(\forge_robotjox_clash, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var impactRate, metal, mass, scrape, chaos;
     var trig, resonances, lowImpact, scrapeNoise, ringTime;
 
-    // Theme params
-    impactRate = In.kr(customBus0);
-    metal = In.kr(customBus1);
-    mass = In.kr(customBus2);
-    scrape = In.kr(customBus3);
-    chaos = In.kr(customBus4);
+    impactRate = p[0];
+    metal = p[1];
+    mass = p[2];
+    scrape = p[3];
+    chaos = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Impact trigger
     trig = Dust.ar(impactRate.linexp(0, 1, 1, 20));
@@ -61,12 +47,8 @@ SynthDef(\forge_robotjox_clash, { |out, freqBus, cutoffBus, resBus, attackBus, d
     // Continuous bed
     sig = sig + LPF.ar(PinkNoise.ar(0.1), 400);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_robotjox_clash loaded".postln;

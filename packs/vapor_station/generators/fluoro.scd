@@ -1,33 +1,18 @@
+// vapor_station/fluoro — Lightweight end-stage generator
 // fluoro: Cold flickering fluorescent tubes
-SynthDef(\forge_vapor_station_fluoro, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_vapor_station_fluoro, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var buzz, cold, strobe, failing, tubes;
 
-    // Theme params
-    buzz = In.kr(customBus0).linlin(0, 1, 0.3, 1);         // P1: Buzz intensity
-    cold = In.kr(customBus1).linlin(0, 1, 0.2, 0.8);       // P2: Cold high harmonics
-    strobe = In.kr(customBus2).linlin(0, 1, 0, 0.5);       // P3: Strobe flicker
-    failing = In.kr(customBus3).linlin(0, 1, 0, 0.6);      // P4: Failing tube crackle
-    tubes = In.kr(customBus4).linlin(0, 1, 1, 4);          // P5: Number of tubes
+    buzz = p[0].linlin(0, 1, 0.3, 1);  // P1: Buzz intensity
+    cold = p[1].linlin(0, 1, 0.2, 0.8);  // P2: Cold high harmonics
+    strobe = p[2].linlin(0, 1, 0, 0.5);  // P3: Strobe flicker
+    failing = p[3].linlin(0, 1, 0, 0.6);  // P4: Failing tube crackle
+    tubes = p[4].linlin(0, 1, 1, 4);  // P5: Number of tubes
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: High frequency buzz (different from sodium)
     sig = SinOsc.ar(120 * [1, 2, 3, 5]) * [1, 0.6, 0.3, 0.15] * buzz;
@@ -48,11 +33,8 @@ SynthDef(\forge_vapor_station_fluoro, { |out, freqBus, cutoffBus, resBus, attack
 
     sig = sig * 0.3;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_vapor_station_fluoro loaded".postln;

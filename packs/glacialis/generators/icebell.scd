@@ -1,36 +1,21 @@
+// glacialis/icebell — Lightweight end-stage generator
 // ICEBELL - Crystalline struck ice
 // Modal resonator with inharmonic ice ratios
 
-SynthDef(\forge_glacialis_icebell, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                      filterTypeBus, envEnabledBus, envSourceBus=0,
-                                      clockRateBus, clockTrigBus,
-                                      midiTrigBus=0, slotIndex=0,
-                                      customBus0, customBus1, customBus2, customBus3, customBus4,
-                                      portamentoBus|
+SynthDef(\forge_glacialis_icebell, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var crystal, ring, strike, frost, size;
     var exciter, modes, ratios, decays, shimmer;
 
-    // Theme params
-    crystal = In.kr(customBus0);   // Inharmonicity
-    ring = In.kr(customBus1);      // Ring time
-    strike = In.kr(customBus2);    // Strike brightness
-    frost = In.kr(customBus3);     // High shimmer
-    size = In.kr(customBus4);      // Modal spread
+    crystal = p[0];  // Inharmonicity
+    ring = p[1];  // Ring time
+    strike = p[2];  // Strike brightness
+    frost = p[3];  // High shimmer
+    size = p[4];  // Modal spread
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Ice-like modal ratios (between harmonic and bar modes)
     ratios = [1, 2.32, 3.86, 5.17, 6.71, 8.23];
@@ -62,10 +47,8 @@ SynthDef(\forge_glacialis_icebell, { |out, freqBus, cutoffBus, resBus, attackBus
     // Subtle stereo from size
     sig = [sig, DelayC.ar(sig, 0.01, size * 0.005)];
 
-    // Output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_glacialis_icebell loaded".postln;

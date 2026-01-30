@@ -1,32 +1,18 @@
-SynthDef(\forge_kaiju_beats_mecha, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// kaiju_beats/mecha — Lightweight end-stage generator
+SynthDef(\forge_kaiju_beats_mecha, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, ampVal, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var mass, hydraulic, armor, groan, rust;
     var exciter, modes, metalBody, hydraulicHiss;
 
-    // Theme params
-    mass = In.kr(customBus0);         // P1: Body mass - shifts modal frequencies
-    hydraulic = In.kr(customBus1);    // P2: Hydraulic hiss amount
-    armor = In.kr(customBus2);        // P3: Armor thickness - dampening
-    groan = In.kr(customBus3);        // P4: Metal groan/stress
-    rust = In.kr(customBus4);         // P5: Rust - adds noise/grit
+    mass = p[0];  // P1: Body mass - shifts modal frequencies
+    hydraulic = p[1];  // P2: Hydraulic hiss amount
+    armor = p[2];  // P3: Armor thickness - dampening
+    groan = p[3];  // P4: Metal groan/stress
+    rust = p[4];  // P5: Rust - adds noise/grit
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     ampVal = 0.2;
 
     // Exciter - metallic impulse with rust noise
@@ -57,12 +43,8 @@ SynthDef(\forge_kaiju_beats_mecha, { |out, freqBus, cutoffBus, resBus, attackBus
     // Mix
     sig = (modes * 0.6) + metalBody + hydraulicHiss;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, ampVal, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_kaiju_beats_mecha loaded".postln;

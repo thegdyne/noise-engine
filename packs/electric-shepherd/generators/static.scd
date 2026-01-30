@@ -1,3 +1,4 @@
+// electric-shepherd/static — Lightweight end-stage generator
 /*
 STATIC Generator
 Electromagnetic field - radio ghosts and interference
@@ -19,12 +20,10 @@ Custom params:
 The electromagnetic whispers of dying technology.
 */
 
-SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                     filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                     midiTrigBus=0, slotIndex=0,
-                     customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\static, { |out, freqBus, customBus0|
+
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var interference, ghost, degrade, carrier, burst;
     var trig;
     var interferenceSig, ghostSig, degradeSig, carrierSig, burstSig;
@@ -33,37 +32,26 @@ SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     var degradeOsc, degradeBits;
     var carrierOsc, carrierMod;
     var burstTrig, burstOsc;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
+
     // Custom params with smoothing
-    interference = In.kr(customBus0);
+    interference = p[0];
     interference = Lag.kr(interference, 0.05);
-    ghost = In.kr(customBus1);
-    degrade = In.kr(customBus2);
+    ghost = p[1];
+    degrade = p[2];
     degrade = Lag.kr(degrade, 0.05);
-    carrier = In.kr(customBus3);
+    carrier = p[3];
     carrier = Lag.kr(carrier, 0.05);
-    burst = In.kr(customBus4);
-    
+    burst = p[4];
+
     // === TRIGGER ===
     trig = Select.ar(envSource.round.clip(0, 2), [
         DC.ar(0),
         Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
         Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
     ]);
-    
+
     // === INTERFERENCE (radio static) ===
     // Classic radio static with varying density
     intNoise = WhiteNoise.ar;
@@ -75,7 +63,7 @@ SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Varying intensity
     interferenceSig = interferenceSig * LFNoise1.kr(3).range(0.3, 1);
     interferenceSig = interferenceSig * interference * 0.4;
-    
+
     // === GHOST (signal fragments) ===
     // Brief glimpses of signals
     ghostGate = LFNoise0.kr(3 + (ghost * 5)).range(0, 1) > 0.7;
@@ -89,7 +77,7 @@ SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         LFNoise1.kr(4).range(0, 1) * ghostGate * 0.5
     );
     ghostSig = ghostOsc * ghost * 0.4;
-    
+
     // === DEGRADE (bitcrushed decay) ===
     // Sample rate reduction suggesting failing digital
     degradeOsc = SinOsc.ar(freq);
@@ -103,7 +91,7 @@ SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         LFNoise0.kr(5).range(0, 0.3)
     );
     degradeSig = degradeOsc * degrade * 0.3;
-    
+
     // === CARRIER (underlying tone) ===
     // Steady carrier wave with slight instability
     carrierMod = LFNoise2.kr(0.5).range(0.999, 1.001);
@@ -113,7 +101,7 @@ SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
     // Slight harmonic content
     carrierOsc = carrierOsc + (SinOsc.ar(freq * 2 * carrierMod) * 0.2);
     carrierSig = carrierOsc * carrier * 0.3;
-    
+
     // === BURST (EMF events) ===
     // Sudden electromagnetic burst
     burstTrig = trig + Dust.ar(burst * 4);
@@ -129,19 +117,17 @@ SynthDef(\static, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
         EnvGen.ar(Env.perc(0.001, 0.03), burstTrig) * 0.4
     );
     burstSig = HPF.ar(burstOsc, 500) * burst * 0.5;
-    
+
     // === MIX ===
     sig = interferenceSig + ghostSig + degradeSig + carrierSig + burstSig;
-    
+
     // Soft limiting
     sig = sig.tanh;
-    
-    // === PROCESSING CHAIN ===
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
+
     sig = ~stereoSpread.(sig, 0.2, 0.3);  // Wide and jittery
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] static loaded".postln;

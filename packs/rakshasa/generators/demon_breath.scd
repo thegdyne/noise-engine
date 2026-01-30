@@ -1,37 +1,24 @@
+// rakshasa/demon_breath — Lightweight end-stage generator
 // Demon Breath -- Low exhale with formant resonances and growl
 // Role: bed | Family: texture
 
-SynthDef(\forge_rakshasa_demon_breath, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                          filterTypeBus, envEnabledBus, envSourceBus=0,
-                                          clockRateBus, clockTrigBus,
-                                          midiTrigBus=0, slotIndex=0,
-                                          customBus0, customBus1, customBus2, customBus3, customBus4,
-                                          portamentoBus|
+SynthDef(\forge_rakshasa_demon_breath, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var heat, foul, hiss, depth, growl;
     var breath, lowRumble, hissLayer, formants, growlMod;
     var formantFreqs, formantAmps;
 
     // Standard bus reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Custom parameters
-    heat = In.kr(customBus0).linexp(0, 1, 200, 4000);       // Spectral center
-    foul = In.kr(customBus1).linlin(0, 1, 1, 20);           // Distortion amount
-    hiss = In.kr(customBus2).linlin(0, 1, 0, 0.4);          // HF noise mix
-    depth = In.kr(customBus3).linlin(0, 1, 0, 0.6);         // Sub rumble mix
-    growl = In.kr(customBus4).linexp(0, 1, 0.1, 15);        // Growl modulation rate
+    heat = p[0].linexp(0, 1, 200, 4000);  // Spectral center
+    foul = p[1].linlin(0, 1, 1, 20);  // Distortion amount
+    hiss = p[2].linlin(0, 1, 0, 0.4);  // HF noise mix
+    depth = p[3].linlin(0, 1, 0, 0.6);  // Sub rumble mix
+    growl = p[4].linexp(0, 1, 0.1, 15);  // Growl modulation rate
 
     // Growl modulation
     growlMod = LFNoise1.kr(growl).range(0.7, 1.3);
@@ -64,13 +51,11 @@ SynthDef(\forge_rakshasa_demon_breath, { |out, freqBus, cutoffBus, resBus, attac
     // Stereo with slight movement
     sig = Pan2.ar(sig, LFNoise2.kr(0.3).range(-0.3, 0.3));
 
-    // Output chain
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp,
                    clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
 
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  * forge_rakshasa_demon_breath loaded".postln;

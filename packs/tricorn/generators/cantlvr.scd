@@ -1,32 +1,18 @@
-SynthDef(\forge_tricorn_cantlvr, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                    filterTypeBus, envEnabledBus, envSourceBus=0,
-                                    clockRateBus, clockTrigBus,
-                                    midiTrigBus=0, slotIndex=0,
-                                    customBus0, customBus1, customBus2, customBus3, customBus4,
-                                    portamentoBus|
+// tricorn/cantlvr — Lightweight end-stage generator
+SynthDef(\forge_tricorn_cantlvr, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var overhang, tension, steel, sway, creak;
     var exciter, modes, swayMod, creakNoise, ringTime;
 
-    // Theme params
-    overhang = In.kr(customBus0);
-    tension = In.kr(customBus1);
-    steel = In.kr(customBus2);
-    sway = In.kr(customBus3);
-    creak = In.kr(customBus4);
+    overhang = p[0];
+    tension = p[1];
+    steel = p[2];
+    sway = p[3];
+    creak = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Sway modulation
     swayMod = SinOsc.kr(0.15 + (sway * 0.4)).range(0.97, 1.03);
@@ -63,12 +49,8 @@ SynthDef(\forge_tricorn_cantlvr, { |out, freqBus, cutoffBus, resBus, attackBus, 
     // Add low rumble for mass
     sig = sig + (LPF.ar(BrownNoise.ar(0.1), freq * 0.5) * (1 - steel) * 0.5);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_tricorn_cantlvr loaded".postln;

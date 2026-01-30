@@ -1,32 +1,18 @@
-SynthDef(\forge_tricorn_ramp, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// tricorn/ramp — Lightweight end-stage generator
+SynthDef(\forge_tricorn_ramp, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var spiral, ascent, concrete, levels, echo;
     var exciter, comb1, comb2, comb3, delayTime, feedback, driftRate;
 
-    // Theme params
-    spiral = In.kr(customBus0);
-    ascent = In.kr(customBus1);
-    concrete = In.kr(customBus2);
-    levels = In.kr(customBus3);
-    echo = In.kr(customBus4);
+    spiral = p[0];
+    ascent = p[1];
+    concrete = p[2];
+    levels = p[3];
+    echo = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Exciter: filtered noise + impulse dust for concrete texture
     exciter = PinkNoise.ar(0.3) + (Dust.ar(3 + (concrete * 10)) * 0.2);
@@ -52,12 +38,8 @@ SynthDef(\forge_tricorn_ramp, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     // Feedback resonance
     sig = sig + (CombC.ar(sig, 0.2, delayTime.clip(0.001, 0.2), feedback * 3) * spiral * 0.3);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_tricorn_ramp loaded".postln;

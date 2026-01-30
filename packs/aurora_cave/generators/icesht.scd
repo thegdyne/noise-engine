@@ -1,37 +1,22 @@
-SynthDef(\forge_aurora_cave_icesht, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                        filterTypeBus, envEnabledBus, envSourceBus=0,
-                                        clockRateBus, clockTrigBus,
-                                        midiTrigBus=0, slotIndex=0,
-                                        customBus0, customBus1, customBus2, customBus3, customBus4,
-                                        portamentoBus|
+// aurora_cave/icesht — Lightweight end-stage generator
+SynthDef(\forge_aurora_cave_icesht, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var crack, stress, thick, brittle, sheet;
     var crackle, snap, thud, body, trig;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Theme params
-    crack = In.kr(customBus0);
-    stress = In.kr(customBus1);
-    thick = In.kr(customBus2);
-    brittle = In.kr(customBus3);
-    sheet = In.kr(customBus4);
+    crack = p[0];
+    stress = p[1];
+    thick = p[2];
+    brittle = p[3];
+    sheet = p[4];
 
     // Crackle impulses at varying densities
     trig = Dust.ar(crack.linexp(0, 1, 1, 40));
-    
+
     // High frequency snap/crack
     snap = trig * TRand.ar(0.3, 1, trig);
     snap = Ringz.ar(snap, TRand.ar(3000, 8000, trig) * brittle.linlin(0, 1, 0.5, 1.5), 0.02);
@@ -63,11 +48,9 @@ SynthDef(\forge_aurora_cave_icesht, { |out, freqBus, cutoffBus, resBus, attackBu
         DelayC.ar(sig, 0.02, LFNoise2.kr(0.4).range(0.002, 0.01))
     ];
 
-    sig = LeakDC.ar(sig);
     sig = sig * 8;
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_aurora_cave_icesht loaded".postln;

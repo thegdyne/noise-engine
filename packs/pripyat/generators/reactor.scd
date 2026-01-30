@@ -1,33 +1,18 @@
-SynthDef(\forge_pripyat_reactor, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// pripyat/reactor — Lightweight end-stage generator
+SynthDef(\forge_pripyat_reactor, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var core, cool, throb, mass, warn;
     var baseDrone, feedbackAmt, throbMod, coolSig, warnSig, instability;
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
-    // Custom params
-    core = In.kr(customBus0);
-    cool = In.kr(customBus1);
-    throb = In.kr(customBus2);
-    mass = In.kr(customBus3);
-    warn = In.kr(customBus4);
+    core = p[0];
+    cool = p[1];
+    throb = p[2];
+    mass = p[3];
+    warn = p[4];
 
     // Throbbing modulation
     throbMod = SinOsc.kr(throb.linexp(0, 1, 0.2, 4)).range(0.7, 1);
@@ -63,12 +48,8 @@ SynthDef(\forge_pripyat_reactor, { |out, freqBus, cutoffBus, resBus, attackBus, 
     // Mix
     sig = (baseDrone * 0.4) + coolSig + warnSig;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_pripyat_reactor loaded".postln;

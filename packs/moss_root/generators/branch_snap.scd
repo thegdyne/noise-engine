@@ -1,35 +1,21 @@
-SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                          filterTypeBus, envEnabledBus, envSourceBus=0,
-                                          clockRateBus, clockTrigBus,
-                                          midiTrigBus=0, slotIndex=0,
-                                          customBus0, customBus1, customBus2, customBus3, customBus4,
-                                     portamentoBus|
+// moss_root/branch_snap — Lightweight end-stage generator
+SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, customBus0|
 
-    var sig, trig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var sig, trig, freq, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_pan, ne_panRate, ne_panWidth, ne_atkT, ne_relT;
+    var p = In.kr(customBus0, 5);
     var crack, wood, echo, size, dry, localTrig;
     var noise, crackEnv, woodBody, bodyFreq, delayedSig;
     // @forge: inline_post_chain
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
     amp = 0.2;
 
     localTrig = Impulse.ar(4);  // Self-trigger for percussive envelopes
-    // Custom params
-    crack = In.kr(customBus0);
-    wood = In.kr(customBus1);
-    echo = In.kr(customBus2);
-    size = In.kr(customBus3);
-    dry = In.kr(customBus4);
+    crack = p[0];
+    wood = p[1];
+    echo = p[2];
+    size = p[3];
+    dry = p[4];
 
     // Base frequency scaled by size (bigger branch = lower)
     bodyFreq = freq * size.linexp(0, 1, 2, 0.5);
@@ -59,8 +45,6 @@ SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, cutoffBus, resBus, attac
     sig = Pan2.ar(Mix(sig), SinOsc.kr(0.1) * echo.linlin(0, 1, 0.2, 0.6));
 
     // MANDATORY output chain
-    // Output chain (inlined; avoids global helpers for NRT stability)
-    sig = LeakDC.ar(sig);
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
 
@@ -93,6 +77,8 @@ SynthDef(\forge_moss_root_branch_snap, { |out, freqBus, cutoffBus, resBus, attac
     // Ensure 2ch
     neArr = sig.asArray;
     if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_moss_root_branch_snap loaded".postln;

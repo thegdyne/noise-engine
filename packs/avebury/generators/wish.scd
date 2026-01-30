@@ -1,32 +1,18 @@
-SynthDef(\forge_avebury_wish, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+// avebury/wish — Lightweight end-stage generator
+SynthDef(\forge_avebury_wish, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var intent, sacred, ancient, spirit, ritual;
     var harmonics, spiritMod, ritualMod, baseAmp;
 
-    // Theme params
-    intent = In.kr(customBus0);
-    sacred = In.kr(customBus1);
-    ancient = In.kr(customBus2);
-    spirit = In.kr(customBus3);
-    ritual = In.kr(customBus4);
+    intent = p[0];
+    sacred = p[1];
+    ancient = p[2];
+    spirit = p[3];
+    ritual = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
 
     // Spirit shimmer modulation
     spiritMod = LFNoise2.kr(2 + (spirit * 6)).range(0.85, 1.0);
@@ -66,12 +52,8 @@ SynthDef(\forge_avebury_wish, { |out, freqBus, cutoffBus, resBus, attackBus, dec
     // Continuous bed
     sig = sig + PinkNoise.ar(0.03);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, 0.2, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_avebury_wish loaded".postln;

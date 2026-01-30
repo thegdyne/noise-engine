@@ -1,33 +1,18 @@
+// hoar_frost/hoarfrost — Lightweight end-stage generator
 // hoarfrost: Frost crackling - granular texture
-SynthDef(\forge_hoar_frost_hoarfrost, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                  filterTypeBus, envEnabledBus, envSourceBus=0,
-                                  clockRateBus, clockTrigBus,
-                                  midiTrigBus=0, slotIndex=0,
-                                  customBus0, customBus1, customBus2, customBus3, customBus4,
-                                  portamentoBus|
+SynthDef(\forge_hoar_frost_hoarfrost, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var grainRate, grainSize, scatter, tonal, texture;
 
-    // Theme params
-    grainRate = In.kr(customBus0).linexp(0, 1, 5, 80);     // P1: Grain rate
-    grainSize = In.kr(customBus1).linlin(0, 1, 0.005, 0.05); // P2: Grain size
-    scatter = In.kr(customBus2).linlin(0, 1, 0, 1);        // P3: Pitch scatter
-    tonal = In.kr(customBus3).linlin(0, 1, 0, 1);          // P4: Tonal vs noise
-    texture = In.kr(customBus4).linlin(0, 1, 0.1, 0.9);    // P5: Texture density
+    grainRate = p[0].linexp(0, 1, 5, 80);  // P1: Grain rate
+    grainSize = p[1].linlin(0, 1, 0.005, 0.05);  // P2: Grain size
+    scatter = p[2].linlin(0, 1, 0, 1);  // P3: Pitch scatter
+    tonal = p[3].linlin(0, 1, 0, 1);  // P4: Tonal vs noise
+    texture = p[4].linlin(0, 1, 0.1, 0.9);  // P5: Texture density
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // DSP: Granular with tonal/noise blend
     sig = GrainSin.ar(
@@ -52,11 +37,8 @@ SynthDef(\forge_hoar_frost_hoarfrost, { |out, freqBus, cutoffBus, resBus, attack
 
     sig = sig * 0.5;
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_hoar_frost_hoarfrost loaded".postln;

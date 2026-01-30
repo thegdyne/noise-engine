@@ -1,3 +1,4 @@
+// core/capsense — Lightweight end-stage generator
 /*
 CapSense Generator
 Capacitive touch sensor inspired relaxation oscillator
@@ -12,53 +13,37 @@ Custom params:
   - P5 noise_floor: 0-1 (sensor noise)
 */
 
-SynthDef(\capsense, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                       filterTypeBus, envEnabledBus, envSourceBus=0, clockRateBus, clockTrigBus,
-                       midiTrigBus=0, slotIndex=0,
-                       customBus0, customBus1, customBus2, customBus3, customBus4, portamentoBus|
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+SynthDef(\capsense, { |out, freqBus, customBus0|
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var sensitivity, chargeRate, dischargeCurve, bodyEffect, noiseFloor;
     var osc, wobble, noise;
-    
-    // Standard params
+
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
-    
-    // Custom params
-    sensitivity = In.kr(customBus0);
-    chargeRate = In.kr(customBus1);
-    dischargeCurve = In.kr(customBus2);
-    bodyEffect = In.kr(customBus3);
-    noiseFloor = In.kr(customBus4);
-    
+
+    sensitivity = p[0];
+    chargeRate = p[1];
+    dischargeCurve = p[2];
+    bodyEffect = p[3];
+    noiseFloor = p[4];
+
     // === SOUND SOURCE ===
     wobble = LFNoise1.kr(chargeRate.linexp(0, 1, 0.5, 20)) * sensitivity * 0.1;
-    
+
     osc = LFSaw.ar(freq * (1 + wobble), 0, 0.5);
     osc = osc + (LFPulse.ar(freq * 0.5 * (1 + wobble), 0, dischargeCurve.linlin(0, 1, 0.1, 0.9)) * 0.3);
-    
+
     osc = (osc * (1 + (bodyEffect * 2))).tanh;
-    
+
     noise = PinkNoise.ar * noiseFloor * 0.1;
     noise = noise * LFNoise2.kr(10).range(0.5, 1);
-    
+
     sig = osc + noise;
-    
-    // === PROCESSING CHAIN ===
+
     sig = ~stereoSpread.(sig, 0.3, 0.25);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = ~ensure2ch.(sig);  // SSOT: per-slot generator bus is 2ch
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] capsense loaded".postln;

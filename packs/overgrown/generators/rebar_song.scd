@@ -1,33 +1,18 @@
-SynthDef(\forge_overgrown_rebar_song, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
-                                         filterTypeBus, envEnabledBus, envSourceBus=0,
-                                         clockRateBus, clockTrigBus,
-                                         midiTrigBus=0, slotIndex=0,
-                                         customBus0, customBus1, customBus2, customBus3, customBus4,
-                                         portamentoBus|
+// overgrown/rebar_song — Lightweight end-stage generator
+SynthDef(\forge_overgrown_rebar_song, { |out, freqBus, customBus0|
 
-    var sig, freq, filterFreq, rq, filterType, attack, decay, amp, envSource, clockRate, portamento;
+    var sig, freq;
+    var p = In.kr(customBus0, 5);
     var tension, rust, ringTime, strike, rods;
     var trig, exciter, pluck1, pluck2, pluck3, noise;
 
-    // Theme params
-    tension = In.kr(customBus0);
-    rust = In.kr(customBus1);
-    ringTime = In.kr(customBus2);
-    strike = In.kr(customBus3);
-    rods = In.kr(customBus4);
+    tension = p[0];
+    rust = p[1];
+    ringTime = p[2];
+    strike = p[3];
+    rods = p[4];
 
-    // Standard reads
     freq = In.kr(freqBus);
-    portamento = In.kr(portamentoBus);
-    freq = Lag.kr(freq, portamento.linexp(0, 1, 0.001, 0.5));
-    filterFreq = In.kr(cutoffBus);
-    rq = In.kr(resBus);
-    attack = In.kr(attackBus);
-    decay = In.kr(decayBus);
-    filterType = In.kr(filterTypeBus);
-    envSource = In.kr(envSourceBus);
-    clockRate = In.kr(clockRateBus);
-    amp = In.kr(~params[\amplitude]);
 
     // Continuous triggers for drone mode (higher minimum rate)
     trig = Dust.ar(rods.linexp(0, 1, 2, 12));
@@ -51,12 +36,8 @@ SynthDef(\forge_overgrown_rebar_song, { |out, freqBus, cutoffBus, resBus, attack
     // HPF to prevent low-frequency buildup
     sig = HPF.ar(sig, 50);
 
-    // Output chain
-    sig = LeakDC.ar(sig);
-    sig = ~multiFilter.(sig, filterType, filterFreq, rq);
-    sig = ~envVCA.(sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex);
-    sig = Limiter.ar(sig, 0.95);
-    sig = ~ensure2ch.(sig);
-    Out.ar(out, sig);
+    // Mandatory tail
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
 }).add;
 "  * forge_overgrown_rebar_song loaded".postln;
