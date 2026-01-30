@@ -58,7 +58,7 @@ class SlotState:
     cutoff: float = 1.0
     resonance: float = 0.0
     attack: float = 0.0
-    decay: float = 0.5
+    decay: float = 0.73
     custom_0: float = 0.5
     custom_1: float = 0.5
     custom_2: float = 0.5
