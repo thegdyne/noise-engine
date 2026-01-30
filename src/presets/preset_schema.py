@@ -55,10 +55,10 @@ ROUTING_OPTIONS = 2   # 0=SER, 1=PAR
 class SlotState:
     generator: Optional[str] = None
     frequency: float = 0.5
-    cutoff: float = 0.5
+    cutoff: float = 1.0
     resonance: float = 0.0
-    attack: float = 0.1
-    decay: float = 0.3
+    attack: float = 0.0
+    decay: float = 0.5
     custom_0: float = 0.5
     custom_1: float = 0.5
     custom_2: float = 0.5
