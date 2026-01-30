@@ -102,6 +102,27 @@ class PresetController:
                 slot_dict["arp_pattern"] = list(type(arp.pattern)).index(arp.pattern)
                 slot_dict["arp_octaves"] = arp.octaves
                 slot_dict["arp_hold"] = arp.hold
+            # Inject SEQ settings from motion_manager
+            if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'motion_manager'):
+                from src.model.sequencer import StepType, PlayMode, MotionMode
+                mm = self.main.keyboard.motion_manager
+                seq_engine = mm.get_seq_engine(slot_id - 1)
+                if seq_engine is not None:
+                    seq = seq_engine.get_settings()
+                    step_types = list(StepType)
+                    play_modes = list(PlayMode)
+                    slot_dict["seq_enabled"] = mm.get_mode(slot_id - 1) == MotionMode.SEQ
+                    slot_dict["seq_rate"] = seq_engine.rate_index
+                    slot_dict["seq_length"] = seq.length
+                    slot_dict["seq_play_mode"] = play_modes.index(seq.play_mode) if seq.play_mode in play_modes else 0
+                    slot_dict["seq_steps"] = [
+                        {
+                            "step_type": step_types.index(s.step_type) if s.step_type in step_types else 1,
+                            "note": s.note,
+                            "velocity": s.velocity,
+                        }
+                        for s in seq.steps
+                    ]
             slots.append(SlotState.from_dict(slot_dict))
 
         channels = []
@@ -199,6 +220,39 @@ class PresetController:
                     engine.set_octaves(slot_state.arp_octaves)
                     engine.toggle_hold(slot_state.arp_hold)
                     engine.toggle_arp(slot_state.arp_enabled)
+
+        # Restore SEQ settings to each slot's engine
+        if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'motion_manager'):
+            from src.model.sequencer import StepType, PlayMode, MotionMode, SeqStep
+            step_types = list(StepType)
+            play_modes = list(PlayMode)
+            mm = self.main.keyboard.motion_manager
+            for i, slot_state in enumerate(state.slots):
+                if i < 8:
+                    seq_engine = mm.get_seq_engine(i)
+                    if seq_engine is not None:
+                        # Restore rate
+                        seq_engine._rate_index = max(0, min(slot_state.seq_rate, 6))
+                        # Restore length
+                        seq_engine.settings.length = max(1, min(slot_state.seq_length, 16))
+                        # Restore play mode
+                        pm_idx = slot_state.seq_play_mode
+                        seq_engine.settings.play_mode = play_modes[pm_idx] if 0 <= pm_idx < len(play_modes) else PlayMode.FORWARD
+                        # Restore steps
+                        if slot_state.seq_steps:
+                            for j, step_dict in enumerate(slot_state.seq_steps[:16]):
+                                if isinstance(step_dict, dict):
+                                    st_idx = step_dict.get("step_type", 1)
+                                    st = step_types[st_idx] if 0 <= st_idx < len(step_types) else StepType.REST
+                                    seq_engine.settings.steps[j] = SeqStep(
+                                        step_type=st,
+                                        note=step_dict.get("note", 60),
+                                        velocity=step_dict.get("velocity", 100),
+                                    )
+                            seq_engine.steps_version += 1
+                        # Restore SEQ enabled state (start playback if was active)
+                        if slot_state.seq_enabled:
+                            mm.set_mode(i, MotionMode.SEQ)
 
         for i, channel_state in enumerate(state.mixer.channels):
             ch_id = i + 1

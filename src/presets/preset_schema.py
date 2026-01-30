@@ -30,6 +30,12 @@ ARP_PATTERNS = 5      # 0=UP, 1=DOWN, 2=UPDOWN, 3=RANDOM, 4=ORDER
 ARP_OCTAVES_MIN = 1
 ARP_OCTAVES_MAX = 4
 
+# SEQ settings per slot
+SEQ_RATES = 7         # 0-6: 1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1
+SEQ_MAX_STEPS = 16
+SEQ_PLAY_MODES = 4    # 0=FORWARD, 1=REVERSE, 2=PINGPONG, 3=RANDOM
+SEQ_STEP_TYPES = 3    # 0=NOTE, 1=REST, 2=TIE (0-indexed)
+
 # Phase 2: Master section constants
 BPM_MIN = 20
 BPM_MAX = 300
@@ -82,6 +88,12 @@ class SlotState:
     arp_pattern: int = 0  # 0=UP, 1=DOWN, 2=UPDOWN, 3=RANDOM, 4=ORDER
     arp_octaves: int = 1  # 1-4
     arp_hold: bool = False
+    # SEQ settings
+    seq_enabled: bool = False
+    seq_rate: int = 1  # Index into SEQ_RATE_LABELS (0-6), default 1 = 1/16
+    seq_length: int = 16  # 1-16
+    seq_play_mode: int = 0  # 0=FORWARD, 1=REVERSE, 2=PINGPONG, 3=RANDOM
+    seq_steps: list = field(default_factory=list)  # List of {step_type, note, velocity}
 
     def to_dict(self) -> dict:
         return {
@@ -109,6 +121,11 @@ class SlotState:
             "arp_pattern": self.arp_pattern,
             "arp_octaves": self.arp_octaves,
             "arp_hold": self.arp_hold,
+            "seq_enabled": self.seq_enabled,
+            "seq_rate": self.seq_rate,
+            "seq_length": self.seq_length,
+            "seq_play_mode": self.seq_play_mode,
+            "seq_steps": list(self.seq_steps),
         }
     
     @classmethod
@@ -137,6 +154,11 @@ class SlotState:
             arp_pattern=data.get("arp_pattern", 0),
             arp_octaves=data.get("arp_octaves", 1),
             arp_hold=data.get("arp_hold", False),
+            seq_enabled=data.get("seq_enabled", False),
+            seq_rate=data.get("seq_rate", 1),
+            seq_length=data.get("seq_length", 16),
+            seq_play_mode=data.get("seq_play_mode", 0),
+            seq_steps=list(data.get("seq_steps", [])),
         )
 
 
@@ -1092,6 +1114,68 @@ def _validate_slot(slot: dict, prefix: str, strict: bool = False) -> tuple:
     arp_hold = slot.get("arp_hold")
     if arp_hold is not None and not isinstance(arp_hold, bool):
         errors.append(f"{prefix}.arp_hold must be bool, got {type(arp_hold).__name__}")
+
+    # SEQ settings (optional — old presets won't have them)
+    seq_enabled = slot.get("seq_enabled")
+    if seq_enabled is not None and not isinstance(seq_enabled, bool):
+        errors.append(f"{prefix}.seq_enabled must be bool, got {type(seq_enabled).__name__}")
+
+    seq_rate = slot.get("seq_rate")
+    if seq_rate is not None:
+        seq_rate, warning = _coerce_int(seq_rate, f"{prefix}.seq_rate")
+        if warning:
+            warnings.append(warning)
+        if seq_rate is not None and not (0 <= seq_rate < SEQ_RATES):
+            errors.append(f"{prefix}.seq_rate must be 0-{SEQ_RATES-1}, got {seq_rate}")
+
+    seq_length = slot.get("seq_length")
+    if seq_length is not None:
+        seq_length, warning = _coerce_int(seq_length, f"{prefix}.seq_length")
+        if warning:
+            warnings.append(warning)
+        if seq_length is not None and not (1 <= seq_length <= SEQ_MAX_STEPS):
+            errors.append(f"{prefix}.seq_length must be 1-{SEQ_MAX_STEPS}, got {seq_length}")
+
+    seq_play_mode = slot.get("seq_play_mode")
+    if seq_play_mode is not None:
+        seq_play_mode, warning = _coerce_int(seq_play_mode, f"{prefix}.seq_play_mode")
+        if warning:
+            warnings.append(warning)
+        if seq_play_mode is not None and not (0 <= seq_play_mode < SEQ_PLAY_MODES):
+            errors.append(f"{prefix}.seq_play_mode must be 0-{SEQ_PLAY_MODES-1}, got {seq_play_mode}")
+
+    seq_steps = slot.get("seq_steps")
+    if seq_steps is not None:
+        if not isinstance(seq_steps, list):
+            errors.append(f"{prefix}.seq_steps must be list")
+        elif len(seq_steps) > SEQ_MAX_STEPS:
+            errors.append(f"{prefix}.seq_steps max length {SEQ_MAX_STEPS}, got {len(seq_steps)}")
+        else:
+            for j, step in enumerate(seq_steps):
+                if not isinstance(step, dict):
+                    errors.append(f"{prefix}.seq_steps[{j}] must be dict")
+                    continue
+                st = step.get("step_type")
+                if st is not None:
+                    st, warning = _coerce_int(st, f"{prefix}.seq_steps[{j}].step_type")
+                    if warning:
+                        warnings.append(warning)
+                    if st is not None and not (0 <= st < SEQ_STEP_TYPES):
+                        errors.append(f"{prefix}.seq_steps[{j}].step_type must be 0-{SEQ_STEP_TYPES-1}, got {st}")
+                note = step.get("note")
+                if note is not None:
+                    note, warning = _coerce_int(note, f"{prefix}.seq_steps[{j}].note")
+                    if warning:
+                        warnings.append(warning)
+                    if note is not None and not (0 <= note <= 127):
+                        errors.append(f"{prefix}.seq_steps[{j}].note must be 0-127, got {note}")
+                vel = step.get("velocity")
+                if vel is not None:
+                    vel, warning = _coerce_int(vel, f"{prefix}.seq_steps[{j}].velocity")
+                    if warning:
+                        warnings.append(warning)
+                    if vel is not None and not (1 <= vel <= 127):
+                        errors.append(f"{prefix}.seq_steps[{j}].velocity must be 1-127, got {vel}")
 
     return errors, warnings
 
