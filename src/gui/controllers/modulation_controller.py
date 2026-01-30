@@ -832,7 +832,6 @@ class ModulationController:
             y = main_geo.y() + (main_geo.height() - window_geo.height()) // 2
             self.main.mod_matrix_window.move(x, y)
             self.main.mod_matrix_window.raise_()
-            self.main.mod_matrix_window.activateWindow()
             logger.info("Mod matrix window opened", component="MOD")
 
     def _open_crossmod_matrix(self):

@@ -191,7 +191,6 @@ class KeyboardController:
         self.main._keyboard_overlay.move(x, y)
         self.main._keyboard_overlay.show()
         self.main._keyboard_overlay.raise_()
-        self.main._keyboard_overlay.activateWindow()
 
         # Deferred refresh mechanism (R1.1 spec)
         QTimer.singleShot(0, self._deferred_refresh_overlay)
