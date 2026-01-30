@@ -54,9 +54,9 @@ class ModulatorGrid(QWidget):
         grid.setSpacing(SIZES['spacing_normal'])
         
         # Create slots in 2x2 layout with default generators
-        # Slot 1 (LFO) | Slot 2 (Sloth)  (top row)
-        # Slot 3 (LFO) | Slot 4 (Sloth)  (bottom row)
-        slot_defaults = ["LFO", "Sloth", "LFO", "Sloth"]
+        # Slot 1 (LFO)       | Slot 2 (Sloth)      (top row)
+        # Slot 3 (ARSEq+)    | Slot 4 (SauceOfGrav) (bottom row)
+        slot_defaults = ["LFO", "Sloth", "ARSEq+", "SauceOfGrav"]
         positions = [(0, 0), (0, 1), (1, 0), (1, 1)]
         
         for i in range(1, MOD_SLOT_COUNT + 1):

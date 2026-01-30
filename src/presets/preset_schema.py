@@ -396,8 +396,8 @@ class ModSourcesState:
     slots: list = field(default_factory=lambda: [
         ModSlotState(generator_name="LFO"),
         ModSlotState(generator_name="Sloth"),
-        ModSlotState(generator_name="LFO"),
-        ModSlotState(generator_name="Sloth"),
+        ModSlotState(generator_name="ARSEq+"),
+        ModSlotState(generator_name="SauceOfGrav"),
     ])
 
     def to_dict(self) -> dict:
@@ -408,7 +408,7 @@ class ModSourcesState:
     @classmethod
     def from_dict(cls, data: dict) -> "ModSourcesState":
         # Default slots match ModulatorGrid defaults
-        default_gens = ["LFO", "Sloth", "LFO", "Sloth"]
+        default_gens = ["LFO", "Sloth", "ARSEq+", "SauceOfGrav"]
         slots_data = data.get("slots", [])
         slots = [ModSlotState.from_dict(s) for s in slots_data]
         # Pad with proper defaults if missing
