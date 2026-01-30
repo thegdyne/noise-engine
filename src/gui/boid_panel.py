@@ -536,10 +536,16 @@ class BoidPanel(QWidget):
         return {'layout': col, 'slider': slider}
 
     def _on_enable_clicked(self):
-        self._enabled = self._enable_btn.isChecked()
-        self._update_enable_style()
-        self._update_panel_style()
-        self.enabled_changed.emit(self._enabled)
+        if getattr(self, '_enable_guard', False):
+            return
+        self._enable_guard = True
+        try:
+            self._enabled = self._enable_btn.isChecked()
+            self._update_enable_style()
+            self._update_panel_style()
+            self.enabled_changed.emit(self._enabled)
+        finally:
+            self._enable_guard = False
 
     def _update_panel_style(self):
         """Update panel border style based on enabled state."""

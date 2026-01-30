@@ -921,11 +921,21 @@ class MainFrame(QMainWindow):
 
     def _on_boid_enabled_changed(self, enabled: bool):
         """Handle boid enable/disable from panel."""
-        if enabled:
-            self.boid.start()
-        else:
-            self.boid.stop()
-        self._mark_dirty()
+        if getattr(self, '_boid_toggle_guard', False):
+            return
+        self._boid_toggle_guard = True
+        try:
+            if enabled:
+                self.boid.start()
+                # If start failed (e.g. no OSC), sync panel back to actual state
+                if not self.boid._state.enabled:
+                    self.boid_panel.set_enabled(False)
+                    return
+            else:
+                self.boid.stop()
+            self._mark_dirty()
+        finally:
+            self._boid_toggle_guard = False
 
     def restart_app(self):
         """Restart the application with confirmation."""
