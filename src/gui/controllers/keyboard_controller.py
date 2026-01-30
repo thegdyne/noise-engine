@@ -208,6 +208,10 @@ class KeyboardController:
         seq_engine = self._motion_manager.get_seq_engine(slot_0idx)
         self.main._keyboard_overlay.set_seq_engine(seq_engine)
 
+        # Sync SEQ UI state from MotionManager
+        seq_active = self._motion_manager.get_mode(slot_0idx) == MotionMode.SEQ
+        self.main._keyboard_overlay.sync_seq_ui_state(seq_active)
+
         overlay_width = self.main._keyboard_overlay.width()
         x = self.main.x() + (self.main.width() - overlay_width) // 2
         y = self.main.y() + self.main.height() - self.main._keyboard_overlay.height() - 24
@@ -271,10 +275,14 @@ class KeyboardController:
         new_seq = self._motion_manager.get_seq_engine(new_0idx)
         overlay.set_seq_engine(new_seq)
 
-        # 6. Update slot button states
+        # 6. Sync SEQ UI state for new slot
+        seq_active = self._motion_manager.get_mode(new_0idx) == MotionMode.SEQ
+        overlay.sync_seq_ui_state(seq_active)
+
+        # 7. Update slot button states
         overlay._update_slot_buttons()
 
-        # 7. Previous engine continues if ARP+HOLD active (no teardown)
+        # 8. Previous engine continues if ARP+HOLD active (no teardown)
         logger.debug(
             f"KeyboardController: focus switched slot {prev_slot} -> {new_slot_ui}, "
             f"prev has_hold={prev_engine.has_hold}",

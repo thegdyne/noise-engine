@@ -177,6 +177,29 @@ class KeyboardOverlay(QWidget):
             self._seq_recording = False
             self._seq_input_cursor = 0
 
+    def sync_seq_ui_state(self, seq_active: bool):
+        """
+        Sync SEQ UI controls to match the slot's current MotionMode.
+
+        Called by controller after binding engines on slot focus switch
+        or overlay open. Updates toggle, controls visibility, and control values.
+        """
+        self._seq_toggle_btn.setChecked(seq_active)
+
+        if seq_active:
+            self._seq_controls_frame.show()
+            # Sync control values from engine
+            if self._seq_engine is not None:
+                self._seq_rate_btn.set_index(self._seq_engine.rate_index)
+                self._seq_length_btn.set_index(self._seq_engine.settings.length - 1)
+        else:
+            self._seq_controls_frame.hide()
+            self._seq_recording = False
+            if self._seq_rec_btn is not None:
+                self._seq_rec_btn.setChecked(False)
+
+        self._update_overlay_size()
+
     def set_seq_recording(self, enabled: bool):
         """Toggle step recording mode."""
         if self._seq_engine is None:
@@ -205,7 +228,11 @@ class KeyboardOverlay(QWidget):
         self._seq_input_cursor = (self._seq_input_cursor + delta) % length
 
     def sync_ui_from_engine(self):
-        """Exhaustive UI sync from bound engine's state."""
+        """Exhaustive UI sync from bound engine's state (ARP only).
+
+        SEQ state is synced separately via sync_seq_ui_state() which
+        is called by the controller after binding both engines.
+        """
         engine = self._arp_engine
         if engine is None:
             # Reset UI to defaults
@@ -223,8 +250,6 @@ class KeyboardOverlay(QWidget):
         else:
             self._arp_controls_frame.hide()
 
-        self._update_overlay_size()
-
         # ARP controls
         self._arp_rate_btn.set_index(settings.rate_index)
         pattern_idx = ARP_PATTERN_ORDER.index(settings.pattern)
@@ -238,6 +263,8 @@ class KeyboardOverlay(QWidget):
         for i, btn in enumerate(self._slot_buttons):
             slot_id = i + 1
             btn.setChecked(slot_id == target_ui_slot)
+
+        self._update_overlay_size()
 
     # =========================================================================
     # UI SETUP
@@ -784,12 +811,20 @@ class KeyboardOverlay(QWidget):
         self._arp_engine.toggle_arp(enabled)
 
         if enabled:
+            self._arp_controls_frame.show()
+
             # Disable SEQ when enabling ARP (mutually exclusive)
-            self._seq_toggle_btn.setChecked(False)
-            self._seq_controls_frame.hide()
-            self._seq_recording = False
-            if self._seq_rec_btn is not None:
-                self._seq_rec_btn.setChecked(False)
+            if self._seq_toggle_btn.isChecked():
+                self._seq_toggle_btn.setChecked(False)
+                self._seq_controls_frame.hide()
+                self._seq_recording = False
+                if self._seq_rec_btn is not None:
+                    self._seq_rec_btn.setChecked(False)
+                # Notify controller to switch MotionMode OFF for SEQ
+                if self._on_seq_mode_changed is not None:
+                    self._on_seq_mode_changed(False)
+        else:
+            self._arp_controls_frame.hide()
 
         self._update_overlay_size()
 
