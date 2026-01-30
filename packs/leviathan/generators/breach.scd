@@ -17,7 +17,7 @@ SynthDef(\forge_leviathan_breach, { |out, freqBus, customBus0|
     var mass, surge, spray, air, drop;
     var bodyOsc, massLayers, surgeEnv, sprayNoise;
     var airBright, dropMod, breachSig;
-    var trig, envTrig;
+    var envTrig;
 
     // Read standard params
     freq = In.kr(freqBus);
@@ -38,13 +38,8 @@ SynthDef(\forge_leviathan_breach, { |out, freqBus, customBus0|
     // DRP: Drop - pitch fall amount after peak
     drop = p[4].linlin(0, 1, 0.0, 0.3);
 
-    // === TRIGGER FOR ENVELOPE SHAPES ===
-    // Use MIDI or clock trigger for surge envelope
-    envTrig = Select.ar(envSource, [
-        Impulse.ar(0),  // OFF - continuous
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),  // CLK
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))  // MIDI
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    envTrig = Impulse.ar(0);
 
     // === SURGE ENVELOPE (pitch rises then falls) ===
     surgeEnv = EnvGen.ar(

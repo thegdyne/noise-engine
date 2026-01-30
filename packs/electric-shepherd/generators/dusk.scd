@@ -25,7 +25,7 @@ SynthDef(\dusk, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var fade, cricket, cool, sorrow, last;
-    var trig, twilightMod;
+    var twilightMod;
     var fadeSig, cricketSig, coolSig, sorrowSig, lastSig;
     var fadeOsc, fadeLFO;
     var cricketTrig, cricketOsc;
@@ -44,13 +44,6 @@ SynthDef(\dusk, { |out, freqBus, customBus0|
     sorrow = p[3];
     sorrow = Lag.kr(sorrow, 0.1);
     last = p[4];
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Overall twilight modulation - very slow fade
     twilightMod = LFTri.kr(0.02).range(0.7, 1);
@@ -101,7 +94,7 @@ SynthDef(\dusk, { |out, freqBus, customBus0|
 
     // === LAST (final glimmers) ===
     // Bright transient moments
-    lastTrig = trig + Dust.ar(last * 3);
+    lastTrig = Dust.ar(last * 3);
     lastOsc = SinOsc.ar(freq * 4);
     lastOsc = lastOsc + (SinOsc.ar(freq * 6) * 0.5);
     lastOsc = lastOsc * EnvGen.ar(Env.perc(0.01, 0.3, 1, -4), lastTrig);

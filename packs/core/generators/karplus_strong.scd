@@ -21,7 +21,6 @@ SynthDef(\karplusStrong, { |out, freqBus, customBus0|
     var p = In.kr(customBus0, 5);
     var excColor, lpfCoeff, fbGain, stretch, retrigRate;
     var exciter, delayTime, delayed, loopSig, loopFilter, exciterTrig;
-    var allMidiTrigs, midiTrig;
 
     freq = In.kr(freqBus);
 
@@ -31,16 +30,8 @@ SynthDef(\karplusStrong, { |out, freqBus, customBus0|
     stretch = p[3];
     retrigRate = p[4];
 
-    // === EXCITER TRIGGER ===
-    // In MIDI mode (envSource=2), use MIDI trigger bus (continuous 30Hz from held key)
-    // Otherwise use internal retrig rate
-    allMidiTrigs = In.ar(midiTrigBus, 8);
-    midiTrig = Select.ar(slotIndex, allMidiTrigs);
-
-    exciterTrig = Select.ar(envSource > 1, [
-        Impulse.ar(retrigRate),  // Internal retrig (envSource 0 or 1)
-        midiTrig                  // MIDI retrig (envSource 2)
-    ]);
+    // Internal retrig rate (end-stage handles envelope/retriggering)
+    exciterTrig = Impulse.ar(retrigRate);
 
     // === SOUND SOURCE ===
     delayTime = (1 / freq.clip(20, 8000)) * stretch.linlin(0, 1, 1, 1.02);

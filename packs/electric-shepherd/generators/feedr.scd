@@ -25,7 +25,6 @@ SynthDef(\feedr, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var hum, cycle, transfer, surge, age;
-    var trig;
     var humSig, cycleSig, transferSig, surgeSig, ageSig;
     var humOsc, humMod;
     var cycleLFO, cycleOsc;
@@ -44,13 +43,6 @@ SynthDef(\feedr, { |out, freqBus, customBus0|
     surge = p[3];
     age = p[4];
     age = Lag.kr(age, 0.05);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === HUM (transformer harmonics) ===
     // 50Hz mains hum with harmonics
@@ -73,7 +65,7 @@ SynthDef(\feedr, { |out, freqBus, customBus0|
 
     // === TRANSFER (energy pulse) ===
     // Triggered bursts of energy flow
-    transferEnv = EnvGen.ar(Env.perc(0.01, 0.5, 1, -4), trig);
+    transferEnv = EnvGen.ar(Env.perc(0.01, 0.5, 1, -4), Impulse.ar(0));
     transferOsc = SinOsc.ar(freq * (1 + (transferEnv * 0.5)));  // Rising pitch
     transferOsc = transferOsc + (Pulse.ar(freq * 2, 0.3) * 0.3);
     // Add "flow" noise
@@ -84,7 +76,7 @@ SynthDef(\feedr, { |out, freqBus, customBus0|
     // Random surge events
     surgeEnv = EnvGen.ar(
         Env.perc(0.001, 0.3, 1, -6),
-        trig + Dust.ar(surge * 2)
+        Dust.ar(surge * 2)
     );
     surgeOsc = SinOsc.ar(freq * 4) * surgeEnv;
     surgeOsc = surgeOsc + (HPF.ar(WhiteNoise.ar, 2000) * surgeEnv * 0.5);

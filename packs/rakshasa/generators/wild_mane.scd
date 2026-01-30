@@ -50,8 +50,6 @@ SynthDef(\forge_rakshasa_wild_mane, { |out, freqBus, customBus0|
     sig = Pan2.ar(sig, panMod);
 
     sig = sig * 4;  // gain boost
-    sig = sig * 8;
-                   clockTrigBus, midiTrigBus, slotIndex);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

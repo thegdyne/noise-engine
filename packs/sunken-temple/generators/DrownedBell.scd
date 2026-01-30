@@ -22,7 +22,7 @@ SynthDef(\drownedbell, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var depth, toll, detune, rust, echo;
-    var trig, bellSig, bellEnv;
+    var bellSig, bellEnv;
     var partials, detuneAmt, waterFilter;
 
     freq = In.kr(freqBus);
@@ -38,13 +38,6 @@ SynthDef(\drownedbell, { |out, freqBus, customBus0|
     echo = p[4];
     echo = Lag.kr(echo, 0.1);
 
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
-
     // Slow pitch drift
     detuneAmt = LFNoise2.kr(0.3 + (detune * 0.5)).range(1 - (detune * 0.05), 1 + (detune * 0.05));
 
@@ -52,7 +45,7 @@ SynthDef(\drownedbell, { |out, freqBus, customBus0|
     // Classic bell ratios with underwater warping
     partials = [1, 2.0, 2.4, 3.0, 4.2, 5.4, 6.8] * freq * detuneAmt;
 
-    bellEnv = EnvGen.ar(Env.perc(0.001, 2 + (toll * 3)), trig + Dust.ar(toll * 0.5));
+    bellEnv = EnvGen.ar(Env.perc(0.001, 2 + (toll * 3)), Dust.ar(toll * 0.5 + 0.2));
 
     bellSig = Mix.fill(7, { |i|
         var partial = partials[i];
@@ -62,7 +55,7 @@ SynthDef(\drownedbell, { |out, freqBus, customBus0|
     });
 
     // Strike transient
-    bellSig = bellSig + (BPF.ar(WhiteNoise.ar, freq * 3, 0.1) * EnvGen.ar(Env.perc(0.001, 0.02), trig) * toll);
+    bellSig = bellSig + (BPF.ar(WhiteNoise.ar, freq * 3, 0.1) * EnvGen.ar(Env.perc(0.001, 0.02), Dust.ar(toll * 0.5 + 0.2)) * toll);
 
     bellSig = bellSig * bellEnv;
 

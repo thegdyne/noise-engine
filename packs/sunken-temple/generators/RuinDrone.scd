@@ -22,7 +22,7 @@ SynthDef(\ruindrone, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var mass, space, crack, age, hollow;
-    var trig, droneSig, massSig, spaceSig, crackSig, hollowSig;
+    var droneSig, massSig, spaceSig, crackSig, hollowSig;
     var drift;
 
     freq = In.kr(freqBus);
@@ -37,13 +37,6 @@ SynthDef(\ruindrone, { |out, freqBus, customBus0|
     age = Lag.kr(age, 0.2);
     hollow = p[4];
     hollow = Lag.kr(hollow, 0.1);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Glacial drift
     drift = LFNoise2.kr(0.1).range(0.995, 1.005);

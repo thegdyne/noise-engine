@@ -22,7 +22,7 @@ SynthDef(\pilgrimstep, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var pace, splash, weight, echo, dread;
-    var trig, stepTrig, stepSig, splashSig, weightSig, dreadSig;
+    var stepTrig, stepSig, splashSig, weightSig, dreadSig;
     var stepEnv, stepRate;
 
     freq = In.kr(freqBus);
@@ -38,16 +38,9 @@ SynthDef(\pilgrimstep, { |out, freqBus, customBus0|
     dread = p[4];
     dread = Lag.kr(dread, 0.2);
 
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
-
     // Step rhythm - slow walking pace
     stepRate = 0.8 + (pace * 1.2);  // 0.8 - 2 Hz
-    stepTrig = trig + Impulse.ar(stepRate * LFNoise1.kr(0.3).range(0.9, 1.1));
+    stepTrig = Impulse.ar(stepRate * LFNoise1.kr(0.3).range(0.9, 1.1));
 
     // === STEP (impact) ===
     stepEnv = EnvGen.ar(Env.perc(0.01, 0.15 + (weight * 0.1)), stepTrig);

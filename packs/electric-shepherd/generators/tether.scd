@@ -25,7 +25,6 @@ SynthDef(\tether, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var flow, pressure, pulse, flex, data;
-    var trig;
     var flowSig, pressureSig, pulseSig, flexSig, dataSig;
     var flowNoise, flowMod;
     var pressureOsc, pressureLFO;
@@ -44,13 +43,6 @@ SynthDef(\tether, { |out, freqBus, customBus0|
     flex = p[3];
     flex = Lag.kr(flex, 0.05);
     data = p[4];
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === FLOW (through tube) ===
     // Filtered noise suggesting air/fluid movement
@@ -75,7 +67,7 @@ SynthDef(\tether, { |out, freqBus, customBus0|
 
     // === PULSE (connection rhythm) ===
     // Regular pulse suggesting data/energy transfer
-    pulseEnv = EnvGen.ar(Env.perc(0.01, 0.2), trig + Impulse.ar(0.8 * (1 + pulse)));
+    pulseEnv = EnvGen.ar(Env.perc(0.01, 0.2), Impulse.ar(0.8 * (1 + pulse)));
     pulseOsc = SinOsc.ar(freq);
     pulseOsc = pulseOsc + (SinOsc.ar(freq * 2) * 0.3);
     // Add "blip" character
@@ -100,7 +92,7 @@ SynthDef(\tether, { |out, freqBus, customBus0|
 
     // === DATA (transfer sounds) ===
     // Digital chirps and bursts
-    dataTrig = trig + Dust.ar(data * 10);
+    dataTrig = Dust.ar(data * 10);
     dataOsc = SinOsc.ar(freq * 8 * TRand.ar(0.5, 2, dataTrig));
     dataOsc = dataOsc * EnvGen.ar(Env.perc(0.001, 0.03), dataTrig);
     // Bitcrushed texture

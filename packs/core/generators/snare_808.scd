@@ -32,12 +32,8 @@ SynthDef(\snare_808, { |out, freqBus, customBus0|
     toneDecay = p[3];
     noiseDecay = p[4];
 
-    // === TRIGGER ===
-    trig = Select.ar(envSource, [
-        DC.ar(0),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    trig = Impulse.ar(0);
 
     // === ENVELOPES ===
     pitchEnv = EnvGen.ar(
@@ -72,7 +68,6 @@ SynthDef(\snare_808, { |out, freqBus, customBus0|
     sig = body + snareNoise;
     sig = sig.tanh;  // Soft clip
 
-    sig = sig * amp;
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

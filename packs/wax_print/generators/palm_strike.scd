@@ -26,11 +26,8 @@ SynthDef(\forge_wax_print_palm_strike, { |out, freqBus, customBus0|
     size = p[3].linexp(0, 1, 1.5, 0.5);
     hand = p[4].linlin(0, 1, 0.0, 1.0);
 
-    envTrig = Select.ar(envSource, [
-        Impulse.ar(0),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    envTrig = Impulse.ar(0);
 
     // Pitch drop on strike
     pitchEnv = EnvGen.ar(Env([2, 1, 0.9], [0.005, 0.1], [\exp, \lin]), envTrig);

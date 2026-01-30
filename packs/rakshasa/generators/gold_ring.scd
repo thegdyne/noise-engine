@@ -41,13 +41,11 @@ SynthDef(\forge_rakshasa_gold_ring, { |out, freqBus, customBus0|
     sig = sig + (shimmer * shine.linlin(1, 4, 0, 0.5));
 
     // Resonant ringing with feedback for chain
-    resonance = CombL.ar(sig, 0.1, 1/freq, decay * chain.linlin(0.9, 0.998, 0.5, 4));
+    resonance = CombL.ar(sig, 0.1, 1/freq, 0.5 * chain.linlin(0.9, 0.998, 0.5, 4));
     sig = sig + (resonance * chain.linlin(0.9, 0.998, 0, 0.4));
 
     // Stereo swing
     sig = Pan2.ar(sig, SinOsc.kr(swing * 0.7).range(-0.5, 0.5));
-
-                   clockTrigBus, midiTrigBus, slotIndex);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

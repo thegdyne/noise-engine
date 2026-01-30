@@ -22,7 +22,7 @@ SynthDef(\ancientdust, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var swirl, sparkle, thick, settle, age;
-    var trig, dustSig, sparkleSig, settleSig, ageSig;
+    var dustSig, sparkleSig, settleSig, ageSig;
     var swirlMod;
 
     freq = In.kr(freqBus);
@@ -37,13 +37,6 @@ SynthDef(\ancientdust, { |out, freqBus, customBus0|
     settle = Lag.kr(settle, 0.1);
     age = p[4];
     age = Lag.kr(age, 0.2);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Swirling modulation
     swirlMod = LFNoise2.kr(0.5 + (swirl * 2)).range(0.5, 1.5);

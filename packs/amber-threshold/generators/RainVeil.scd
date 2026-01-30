@@ -22,7 +22,7 @@ SynthDef(\rainveil, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var density, soft, distant, trickle, mist;
-    var trig, rainSig, trickleSig, mistSig;
+    var rainSig, trickleSig, mistSig;
 
     freq = In.kr(freqBus);
 
@@ -36,13 +36,6 @@ SynthDef(\rainveil, { |out, freqBus, customBus0|
     trickle = Lag.kr(trickle, 0.1);
     mist = p[4];
     mist = Lag.kr(mist, 0.2);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === RAIN (soft noise) ===
     rainSig = PinkNoise.ar;

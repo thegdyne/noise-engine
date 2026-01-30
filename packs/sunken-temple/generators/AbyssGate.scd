@@ -22,7 +22,7 @@ SynthDef(\abyssgate, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var depth, rumble, awaken, pressure, void;
-    var trig, subSig, rumbleSig, awakenSig, pressureSig, voidSig;
+    var subSig, rumbleSig, awakenSig, pressureSig, voidSig;
     var subOsc, driftLFO;
 
     freq = In.kr(freqBus);
@@ -37,13 +37,6 @@ SynthDef(\abyssgate, { |out, freqBus, customBus0|
     pressure = Lag.kr(pressure, 0.2);
     void = p[4];
     void = Lag.kr(void, 0.2);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Glacial drift
     driftLFO = LFNoise2.kr(0.05).range(0.98, 1.02);

@@ -25,7 +25,6 @@ SynthDef(\liminal, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var fluoro, traffic, void, wire, memory;
-    var trig;
     var fluoroSig, trafficSig, voidSig, wireSig, memorySig;
     var fluoroOsc, fluoroMod;
     var trafficNoise, trafficMod;
@@ -46,13 +45,6 @@ SynthDef(\liminal, { |out, freqBus, customBus0|
     wire = Lag.kr(wire, 0.05);
     memory = p[4];
     memory = Lag.kr(memory, 0.1);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === FLUORO (fluorescent buzz) ===
     // 120Hz buzz with harmonics and flicker

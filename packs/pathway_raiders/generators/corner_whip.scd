@@ -14,7 +14,7 @@ SynthDef(\forge_pathway_raiders_corner_whip, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var spd, brk, air, hid, sun;
-    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s;
+    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, q, r, s;
 
     spd = p[0].clip(0, 1);
     brk = p[1].clip(0, 1);

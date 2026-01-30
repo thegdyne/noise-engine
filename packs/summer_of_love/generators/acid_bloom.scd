@@ -5,15 +5,9 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, customBus0|
     var p = In.kr(customBus0, 5);
     var squelch, bloom, trip, dose, sub;
     var osc, subOsc, filtEnv, envTrig, filtFreqMod, saturated;
-    var fallbackAmpBus, envSel, clockIdx, midiIdx, ampEnv;
-    // @forge: inline_post_chain
 
     freq = In.kr(freqBus);
-    // Safety clamp: rq=0 (or negative) can break RLPF / render
-    rq = rq.clip(0.05, 1.0);
-    // amp: prefer explicit ampBus if provided; otherwise fall back to ~params safely
-    fallbackAmpBus = ((~params ? IdentityDictionary.new)[\amplitude] ? 0);
-    amp = In.kr(Select.kr((ampBus >= 0), [fallbackAmpBus, ampBus]));
+
     squelch = p[0];  // Filter env amount
     bloom = p[1];  // Filter env decay
     trip = p[2];  // Resonance boost
@@ -29,29 +23,21 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, customBus0|
 
     sig = osc + subOsc;
 
-    // Create trigger for filter envelope from same sources as amp env
-    // This reads the audio-rate trigger buses
-        envSel = envSource.round.clip(0, 2);
-    clockIdx = clockRate.round.clip(0, 12);
-    midiIdx = slotIndex.round.clip(0, 7);
+    // One-shot trigger (end-stage handles retriggering)
+    envTrig = Impulse.ar(0);
 
-    envTrig = Select.ar(envSel, [
-        DC.ar(0),                                                        // OFF - no trigger
-        Select.ar(clockIdx, In.ar(clockTrigBus, 13)),                   // CLK
-        Select.ar(midiIdx, In.ar(midiTrigBus, 8))                       // MIDI
-    ]);
-// Filter envelope - this is the "acid" character
+    // Filter envelope - this is the "acid" character
     filtEnv = EnvGen.ar(
         Env.perc(0.001, bloom.linexp(0, 1, 0.05, 0.8)),
         envTrig
     );
 
     // Modulate filter cutoff with envelope
-    filtFreqMod = filterFreq * (1 + (filtEnv * squelch * 8));
+    filtFreqMod = 2000 * (1 + (filtEnv * squelch * 8));
 
     // Resonant lowpass - trip boosts resonance beyond UI setting
     // Using RLPF for that 303 character
-    sig = RLPF.ar(sig, filtFreqMod.clip(50, 16000), rq * (1 - (trip * 0.7)).clip(0.1, 1));
+    sig = RLPF.ar(sig, filtFreqMod.clip(50, 16000), (0.3 * (1 - (trip * 0.7))).clip(0.1, 1));
 
     // Distortion/overdrive
     saturated = (sig * (1 + (dose * 4))).tanh;
@@ -60,16 +46,6 @@ SynthDef(\forge_summer_of_love_acid_bloom, { |out, freqBus, customBus0|
     // Compensate for resonance volume loss
     sig = sig * (1 + (trip * 0.5));
 
-    // Note: We skip multiFilter here since we're doing our own acid filter
-    // Inline envVCA + ensure2ch (renderer-safe)
-    ampEnv = Select.ar(envSel, [
-        DC.ar(1),
-        EnvGen.ar(Env.perc(attack.max(0.001), decay.max(0.001)), envTrig),
-        EnvGen.ar(Env.perc(attack.max(0.001), decay.max(0.001)), envTrig)
-    ]);
-    sig = sig * amp * ampEnv;
-    sig = sig.asArray;
-    sig = (sig.size == 1).if({ [sig[0], sig[0]] }, { sig });
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

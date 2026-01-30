@@ -65,8 +65,6 @@ SynthDef(\forge_rakshasa_ritual_chant, { |out, freqBus, customBus0|
     // Subtle stereo
     sig = Pan2.ar(sig, LFNoise2.kr(0.5).range(-0.2, 0.2));
 
-                   clockTrigBus, midiTrigBus, slotIndex);
-
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

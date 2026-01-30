@@ -29,12 +29,8 @@ SynthDef(\forge_leviathan_biolume_ping, { |out, freqBus, customBus0|
     dim = p[3].linexp(0, 1, 0.1, 2.0);
     spark = p[4].linlin(0, 1, 0.0, 1.0);
 
-    // === TRIGGER ===
-    envTrig = Select.ar(envSource, [
-        Impulse.ar(0),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    envTrig = Impulse.ar(0);
 
     // === MAIN PING (bell-like, pure) ===
     mainPing = SinOsc.ar(freq * 4) * EnvGen.ar(Env.perc(0.001, dim), envTrig);

@@ -44,13 +44,8 @@ SynthDef(\thor, { |out, freqBus, customBus0|
     bellows = Lag.kr(bellows, 0.05);
     spark = p[4];
 
-    // === TRIGGER ===
-    // Clamp indices for safety
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    trig = Impulse.ar(0);
 
     // Impact envelope for bed ducking
     impactEnv = EnvGen.ar(Env.perc(0.001, 0.15, 1, -4), trig);
@@ -133,7 +128,6 @@ SynthDef(\thor, { |out, freqBus, customBus0|
     sig = sig.tanh;
 
     sig = ~stereoSpread.(sig, 0.15, 0.2);  // Stereo width for forge ambience
-    sig = sig * amp;
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

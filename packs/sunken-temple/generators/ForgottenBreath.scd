@@ -22,7 +22,7 @@ SynthDef(\forgottenbreath, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var wind, arch, whisper, dust, sigh;
-    var trig, windSig, archSig, whisperSig, dustSig, sighMod;
+    var windSig, archSig, whisperSig, dustSig, sighMod;
     var windNoise, archFreqs;
 
     freq = In.kr(freqBus);
@@ -37,13 +37,6 @@ SynthDef(\forgottenbreath, { |out, freqBus, customBus0|
     dust = Lag.kr(dust, 0.05);
     sigh = p[4];
     sigh = Lag.kr(sigh, 0.2);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Breathing modulation
     sighMod = LFTri.kr(0.15 + (sigh * 0.1)).range(0.3, 1);

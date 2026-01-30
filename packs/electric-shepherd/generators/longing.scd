@@ -25,7 +25,7 @@ SynthDef(\longing, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var yearn, ache, distance, hope, resignation;
-    var trig, breathMod;
+    var breathMod;
     var yearnSig, acheSig, distanceSig, hopeSig, resignationSig;
     var yearnOsc, yearnVib;
     var acheOsc, acheMod;
@@ -45,13 +45,6 @@ SynthDef(\longing, { |out, freqBus, customBus0|
     hope = p[3];
     resignation = p[4];
     resignation = Lag.kr(resignation, 0.1);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Breathing modulation - everything pulses slightly
     breathMod = SinOsc.kr(0.15).range(0.85, 1);
@@ -90,7 +83,7 @@ SynthDef(\longing, { |out, freqBus, customBus0|
 
     // === HOPE (faint glimmers) ===
     // Brief bright moments
-    hopeTrig = trig + Dust.ar(hope * 2);
+    hopeTrig = Dust.ar(hope * 2);
     hopeOsc = SinOsc.ar(freq * 3);  // Higher, brighter
     hopeOsc = hopeOsc + (SinOsc.ar(freq * 4) * 0.5);
     hopeOsc = hopeOsc + (SinOsc.ar(freq * 5) * 0.3);  // Major chord voicing

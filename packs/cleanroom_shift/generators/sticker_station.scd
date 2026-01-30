@@ -14,7 +14,7 @@ SynthDef(\forge_cleanroom_shift_sticker_station, { |out, freqBus, customBus0|
     var sig, trig, freq;
     var p = In.kr(customBus0, 5);
     var drf, grt, spc, drp, shf;
-    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, bed;
+    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, q, bed;
 
     drf = p[0].clip(0, 1);
     grt = p[1].clip(0, 1);

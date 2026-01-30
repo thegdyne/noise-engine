@@ -22,7 +22,7 @@ SynthDef(\stonerain, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var drops, stone, pool, distance, flow;
-    var trig, rainSig, stoneSig, poolSig, flowSig;
+    var rainSig, stoneSig, poolSig, flowSig;
     var dropTrig, stoneRes;
 
     freq = In.kr(freqBus);
@@ -37,13 +37,6 @@ SynthDef(\stonerain, { |out, freqBus, customBus0|
     distance = Lag.kr(distance, 0.2);
     flow = p[4];
     flow = Lag.kr(flow, 0.1);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === RAIN (filtered noise) ===
     rainSig = WhiteNoise.ar;

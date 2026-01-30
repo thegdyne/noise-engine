@@ -23,8 +23,7 @@ SynthDef(\sh101, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var waveform, pulseWidth, subLevel, noiseLevel, filterEnv;
-    var saw, square, sub, noise, filtEnvSig, envOctaves;
-    var envTrig, filtEnvGen;
+    var saw, square, sub, noise;
 
     freq = In.kr(freqBus);
 
@@ -53,27 +52,6 @@ SynthDef(\sh101, { |out, freqBus, customBus0|
     // === NOISE ===
     noise = WhiteNoise.ar;
     sig = sig + (noise * noiseLevel * 0.5);
-
-    // === FILTER ENVELOPE ===
-    // Clock triggers are audio rate - clamp indices for safety
-    envTrig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),                                                          // OFF: no trigger
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),   // CLK
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))             // MIDI
-    ]);
-
-    filtEnvGen = EnvGen.ar(
-        Env.perc(attack.max(0.001), decay.max(0.01)),
-        envTrig
-    );
-
-    // === FILTER MODULATION (octave-based) ===
-    // Exponential scaling gives musical response across full knob range
-    // Max 4 octaves of sweep
-    envOctaves = filtEnvGen * filterEnv * 4;
-    filtEnvSig = filterFreq * (2 ** envOctaves);
-
-    // === FILTER ===
 
     // === OUTPUT ===
     sig = ~stereoSpread.(sig, 0.1, 0.1);  // Slight stereo

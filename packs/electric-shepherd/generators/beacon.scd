@@ -25,7 +25,6 @@ SynthDef(\beacon, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var status, heartbeat, warning, ready, glow;
-    var trig;
     var statusSig, heartbeatSig, warningSig, readySig, glowSig;
     var statusTrig, statusOsc;
     var hbTrig, hbOsc;
@@ -43,13 +42,6 @@ SynthDef(\beacon, { |out, freqBus, customBus0|
     ready = Lag.kr(ready, 0.05);
     glow = p[4];
     glow = Lag.kr(glow, 0.1);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === STATUS (beeps) ===
     // Regular status beeps
@@ -77,7 +69,7 @@ SynthDef(\beacon, { |out, freqBus, customBus0|
 
     // === WARNING (alerts) ===
     // Urgent repeating tone
-    warnTrig = trig + (Impulse.ar(4) * (LFPulse.kr(0.5, 0, 0.3)));  // Intermittent
+    warnTrig = Impulse.ar(4) * (LFPulse.kr(0.5, 0, 0.3));  // Intermittent
     warnOsc = SinOsc.ar(freq * 6);
     warnOsc = warnOsc + (SinOsc.ar(freq * 6.5) * 0.5);  // Beating for urgency
     warnOsc = warnOsc * EnvGen.ar(Env.perc(0.001, 0.1), warnTrig);

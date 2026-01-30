@@ -26,11 +26,8 @@ SynthDef(\forge_wax_print_talking_skin, { |out, freqBus, customBus0|
     stick = p[3].linlin(0, 1, 0.0, 1.0);
     say = p[4].linexp(0, 1, 0.5, 4);  // Phrase rate
 
-    envTrig = Select.ar(envSource, [
-        Impulse.ar(0),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    envTrig = Impulse.ar(0);
 
     // Talk modulation - complex pitch phrase
     talkMod = LFNoise1.kr(say).range(1, talk);

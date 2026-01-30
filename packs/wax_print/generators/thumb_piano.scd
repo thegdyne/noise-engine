@@ -26,11 +26,8 @@ SynthDef(\forge_wax_print_thumb_piano, { |out, freqBus, customBus0|
     pluck = p[3].linlin(0, 1, 0.3, 1.0);
     damp = p[4].linexp(0, 1, 0.1, 1.5);
 
-    envTrig = Select.ar(envSource, [
-        Impulse.ar(0),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    envTrig = Impulse.ar(0);
 
     pluckEnv = EnvGen.ar(Env.perc(0.001, damp), envTrig);
 

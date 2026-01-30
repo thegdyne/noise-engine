@@ -48,8 +48,6 @@ SynthDef(\forge_rakshasa_third_eye, { |out, freqBus, customBus0|
     // Stereo with subtle phase
     sig = [sig, DelayN.ar(sig, 0.01, 0.003)];
 
-                   clockTrigBus, midiTrigBus, slotIndex);
-
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

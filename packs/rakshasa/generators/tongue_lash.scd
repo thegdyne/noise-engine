@@ -20,7 +20,7 @@ SynthDef(\forge_rakshasa_tongue_lash, { |out, freqBus, customBus0|
     drip = p[4].linlin(0, 1, 0.3, 2);  // Decay modifier
 
     // Pitch envelope -- dives down from high on trigger
-    pitchEnv = EnvGen.kr(Env.perc(0.001, decay * drip), doneAction: 0);
+    pitchEnv = EnvGen.kr(Env.perc(0.001, 0.3 * drip), doneAction: 0);
     freq = freq * (1 + ((lash - 1) * pitchEnv));
 
     // Vibrato/curl
@@ -39,8 +39,6 @@ SynthDef(\forge_rakshasa_tongue_lash, { |out, freqBus, customBus0|
 
     // Combine with stereo split
     sig = [tongue1 * 0.7 + (tongue2 * 0.3), tongue2 * 0.7 + (tongue1 * 0.3)];
-
-                   clockTrigBus, midiTrigBus, slotIndex);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

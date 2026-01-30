@@ -25,7 +25,6 @@ SynthDef(\static, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var interference, ghost, degrade, carrier, burst;
-    var trig;
     var interferenceSig, ghostSig, degradeSig, carrierSig, burstSig;
     var intNoise, intMod;
     var ghostOsc, ghostMod, ghostGate;
@@ -44,13 +43,6 @@ SynthDef(\static, { |out, freqBus, customBus0|
     carrier = p[3];
     carrier = Lag.kr(carrier, 0.05);
     burst = p[4];
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === INTERFERENCE (radio static) ===
     // Classic radio static with varying density
@@ -104,7 +96,7 @@ SynthDef(\static, { |out, freqBus, customBus0|
 
     // === BURST (EMF events) ===
     // Sudden electromagnetic burst
-    burstTrig = trig + Dust.ar(burst * 4);
+    burstTrig = Dust.ar(burst * 4);
     burstOsc = WhiteNoise.ar * EnvGen.ar(Env.perc(0.001, 0.1), burstTrig);
     // Add tonal component
     burstOsc = burstOsc + (

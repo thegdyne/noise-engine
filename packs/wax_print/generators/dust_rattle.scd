@@ -25,11 +25,8 @@ SynthDef(\forge_wax_print_dust_rattle, { |out, freqBus, customBus0|
     shake = p[3].linlin(0, 1, 0.3, 1.0);
     ring = p[4].linlin(0, 1, 0.0, 1.0);
 
-    envTrig = Select.ar(envSource, [
-        DC.ar(1),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    envTrig = Impulse.ar(0);
 
     // Particle impacts
     particles = Dust.ar(density * shake) * 0.5;

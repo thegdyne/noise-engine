@@ -22,7 +22,7 @@ SynthDef(\coldshadow, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var chill, dark, creep, breath, void;
-    var trig, chillSig, darkSig, breathSig, voidSig;
+    var chillSig, darkSig, breathSig, voidSig;
     var creepMod;
 
     freq = In.kr(freqBus);
@@ -37,13 +37,6 @@ SynthDef(\coldshadow, { |out, freqBus, customBus0|
     breath = Lag.kr(breath, 0.1);
     void = p[4];
     void = Lag.kr(void, 0.2);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Creeping modulation
     creepMod = LFNoise2.kr(0.1 + (creep * 0.3)).range(0.9, 1.1);

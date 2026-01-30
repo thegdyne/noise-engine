@@ -22,7 +22,7 @@ SynthDef(\voidchant, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var choir, hollow, drift, ghost, prayer;
-    var trig, voiceSig, formants, driftMod, ghostSig, prayerMod;
+    var voiceSig, formants, driftMod, ghostSig, prayerMod;
 
     freq = In.kr(freqBus);
 
@@ -36,13 +36,6 @@ SynthDef(\voidchant, { |out, freqBus, customBus0|
     ghost = Lag.kr(ghost, 0.1);
     prayer = p[4];
     prayer = Lag.kr(prayer, 0.1);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Pitch drift
     driftMod = LFNoise2.kr(0.3 + (drift * 0.5)).range(1 - (drift * 0.03), 1 + (drift * 0.03));

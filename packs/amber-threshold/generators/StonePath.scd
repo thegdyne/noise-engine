@@ -22,7 +22,7 @@ SynthDef(\stonepath, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var steps, stone, grit, hall, weight;
-    var trig, stepTrig, stepSig, gritSig, stoneSig;
+    var stepTrig, stepSig, gritSig, stoneSig;
     var stepEnv, stepRate;
 
     freq = In.kr(freqBus);
@@ -38,16 +38,9 @@ SynthDef(\stonepath, { |out, freqBus, customBus0|
     weight = p[4];
     weight = Lag.kr(weight, 0.1);
 
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
-
     // Step rhythm
     stepRate = 1 + (steps * 2);
-    stepTrig = trig + Impulse.ar(stepRate * LFNoise1.kr(0.5).range(0.85, 1.15));
+    stepTrig = Impulse.ar(stepRate * LFNoise1.kr(0.5).range(0.85, 1.15));
 
     // === STONE (hard impact) ===
     stepEnv = EnvGen.ar(Env.perc(0.001, 0.08 + (weight * 0.05)), stepTrig);

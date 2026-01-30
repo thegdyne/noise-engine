@@ -14,7 +14,7 @@ SynthDef(\forge_pathway_raiders_chain_freewheel, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var spd, brk, air, hid, sun;
-    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s;
+    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, pp, q, r, s;
 
     spd = p[0].clip(0, 1);
     brk = p[1].clip(0, 1);
@@ -49,10 +49,10 @@ n = HPF.ar(PinkNoise.ar(0.15), 600) + BrownNoise.ar(0.12);
 
 // occlusion
 o = (1 - (hid * 0.7)).clip(0.2, 1);
-p = LPF.ar((g + j + m) * o, (8000 - (hid * 6500)).clip(900, 9000));
+pp = LPF.ar((g + j + m) * o, (8000 - (hid * 6500)).clip(900, 9000));
 
 // day mood tilt
-q = XFade2.ar(LPF.ar(p, 3500), p, (sun * 2 - 1));
+q = XFade2.ar(LPF.ar(pp, 3500), pp, (sun * 2 - 1));
 sig = (q * 0.85) + (n * 0.65);
 
     // MANDATORY output chain (this order):

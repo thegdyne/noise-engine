@@ -1,15 +1,13 @@
 // moss_root/lichen_bell — Lightweight end-stage generator
 SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, customBus0|
 
-    var sig, trig, freq, neArr, ne_cut, ne_rq, ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off, ne_env, ne_atkT, ne_relT;
+    var sig, freq;
     var p = In.kr(customBus0, 5);
     var stone, ring, crust, age, spot;
     var exciter, modes, crustNoise, spotPartial;
     var modeRatios, modeAmps, ringTime;
-    // @forge: inline_post_chain
 
     freq = In.kr(freqBus);
-    amp = 0.2;
 
     stone = p[0];
     ring = p[1];
@@ -63,38 +61,6 @@ SynthDef(\forge_moss_root_lichen_bell, { |out, freqBus, customBus0|
     // Subtle stereo from age-induced detuning
     sig = Pan2.ar(Mix(sig), SinOsc.kr(0.15) * age.linlin(0, 1, 0.2, 0.5));
 
-    // MANDATORY output chain
-    neArr = sig.asArray;
-    if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
-
-    // Filter select
-    ne_cut = filterFreq.clip(20, 18000);
-    ne_rq = rq.clip(0.05, 2);
-    ne_lp = RLPF.ar(sig, ne_cut, ne_rq);
-    ne_hp = RHPF.ar(sig, ne_cut, ne_rq);
-    ne_bp = BPF.ar(sig, ne_cut, ne_rq);
-    ne_nt = BRF.ar(sig, ne_cut, ne_rq);
-    ne_lp2 = RLPF.ar(ne_lp, ne_cut, ne_rq);
-    ne_off = sig;
-    sig = Select.ar(filterType.round.clip(0, 5), [ne_lp, ne_hp, ne_bp, ne_nt, ne_lp2, ne_off]);
-
-    // Env VCA
-    ne_atkT = attack.linexp(0, 1, 0.001, 2);
-    ne_relT = decay.linexp(0, 1, 0.05, 4);
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
-    ne_env = Select.kr(envSource.round.clip(0, 2), [
-        1.0,
-        Decay2.kr(A2K.kr(trig), ne_atkT, ne_relT),
-        Decay2.kr(A2K.kr(trig), ne_atkT, ne_relT)
-    ]);
-    sig = sig * ne_env * amp;
-
-    neArr = sig.asArray;
-    if(neArr.size == 1, { sig = [neArr[0], neArr[0]] }, { sig = neArr });
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

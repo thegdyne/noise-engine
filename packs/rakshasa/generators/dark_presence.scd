@@ -52,8 +52,6 @@ SynthDef(\forge_rakshasa_dark_presence, { |out, freqBus, customBus0|
     // Low pass to keep it in the sub/low-mid range
     sig = LPF.ar(sig, abyssFreq * 8);
 
-                   clockTrigBus, midiTrigBus, slotIndex);
-
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

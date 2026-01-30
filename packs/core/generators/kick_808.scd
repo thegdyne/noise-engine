@@ -33,13 +33,8 @@ SynthDef(\kick_808, { |out, freqBus, customBus0|
     drive = Lag.kr(drive, 0.02);  // Smooth to prevent zipper noise
     click = p[4];
 
-    // === TRIGGER ===
-    // Clamp indices for safety
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    trig = Impulse.ar(0);
 
     // === ENVELOPES ===
     // Pitch envelope - fixed fast time, punch controls depth only
@@ -78,7 +73,6 @@ SynthDef(\kick_808, { |out, freqBus, customBus0|
     // === SATURATION ===
     sig = (sig * (1 + (drive * 3))).tanh;
 
-    sig = sig * amp;
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

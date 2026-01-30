@@ -22,7 +22,7 @@ SynthDef(\darkwater, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var tide, murk, drip, current, cold;
-    var trig, tideSig, murkSig, dripSig, currentSig, coldSig;
+    var tideSig, murkSig, dripSig, currentSig, coldSig;
     var tideOsc;
 
     freq = In.kr(freqBus);
@@ -37,13 +37,6 @@ SynthDef(\darkwater, { |out, freqBus, customBus0|
     current = Lag.kr(current, 0.1);
     cold = p[4];
     cold = Lag.kr(cold, 0.2);
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // === TIDE (undulating bass) ===
     tideOsc = LFTri.kr(0.15 + (tide * 0.1)).range(0.7, 1.3);

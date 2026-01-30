@@ -51,8 +51,6 @@ SynthDef(\forge_rakshasa_demon_breath, { |out, freqBus, customBus0|
     // Stereo with slight movement
     sig = Pan2.ar(sig, LFNoise2.kr(0.3).range(-0.3, 0.3));
 
-                   clockTrigBus, midiTrigBus, slotIndex);
-
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

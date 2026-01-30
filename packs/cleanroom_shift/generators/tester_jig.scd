@@ -14,7 +14,7 @@ SynthDef(\forge_cleanroom_shift_tester_jig, { |out, freqBus, customBus0|
     var sig, trig, freq;
     var p = In.kr(customBus0, 5);
     var drf, grt, spc, drp, shf;
-    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, pre;
+    var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, q, pre;
 
     drf = p[0].clip(0, 1);
     grt = p[1].clip(0, 1);
@@ -44,8 +44,8 @@ m = Dust.ar(0.25 + (shf * 2.0));
 n = Decay2.ar(m, 0.001, 0.02);
 o = SinOsc.ar((1600 + (shf * 1800)).clip(600, 5000)) * n * 0.18;
 
-p = LFNoise0.kr(0.7 + (shf * 4)).range(0, 1);
-q = (p - drp).clip(0.15, 1);
+pre = LFNoise0.kr(0.7 + (shf * 4)).range(0, 1);
+q = (pre - drp).clip(0.15, 1);
 
 sig = ((g * 0.55) + (l * 0.9) + (o * 0.6)) * q;
 sig = sig * (1 - (Decay2.kr(a, 0.001, 0.12) * 0.35));

@@ -32,7 +32,7 @@ SynthDef(\forge_rakshasa_fang_strike, { |out, freqBus, customBus0|
     modeFreqs = modeFreqs * (1 + gnawMod);
 
     // Modal decay times based on bone hardness
-    modeDecays = [1.0, 0.7, 0.4, 0.25, 0.15] * decay * snap * bone.linlin(0.9, 0.995, 0.5, 2);
+    modeDecays = [1.0, 0.7, 0.4, 0.25, 0.15] * 0.5 * snap * bone.linlin(0.9, 0.995, 0.5, 2);
 
     // Exciter -- sharp click
     exciter = Impulse.ar(0) * EnvGen.ar(Env.perc(bite, 0.001), doneAction: 0);
@@ -49,8 +49,6 @@ SynthDef(\forge_rakshasa_fang_strike, { |out, freqBus, customBus0|
 
     // Stereo spread based on gnaw
     sig = Pan2.ar(sig, LFNoise2.kr(3) * gnaw * 0.5);
-
-                   clockTrigBus, midiTrigBus, slotIndex);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

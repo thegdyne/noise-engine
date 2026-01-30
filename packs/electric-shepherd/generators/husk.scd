@@ -25,7 +25,7 @@ SynthDef(\husk, { |out, freqBus, customBus0|
     var sig, freq;
     var p = In.kr(customBus0, 5);
     var breath, cavity, servo, empty, twitch;
-    var trig, breathCycle;
+    var breathCycle;
     var breathSig, cavitySig, servoSig, emptySig, twitchSig;
     var breathNoise, breathMod;
     var cavityOsc, cavityExcite;
@@ -44,13 +44,6 @@ SynthDef(\husk, { |out, freqBus, customBus0|
     empty = p[3];
     empty = Lag.kr(empty, 0.1);
     twitch = p[4];
-
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
 
     // Breath cycle - slow inhale/exhale
     breathCycle = LFTri.kr(0.15).range(0, 1);
@@ -77,7 +70,7 @@ SynthDef(\husk, { |out, freqBus, customBus0|
 
     // === SERVO (mechanical movement) ===
     // Triggered mechanical sounds
-    servoTrig = trig + Dust.ar(servo * 3);
+    servoTrig = Dust.ar(servo * 3);
     servoOsc = SinOsc.ar(
         freq * 2 * EnvGen.ar(Env.perc(0.01, 0.1), servoTrig).linexp(0, 1, 0.5, 2)
     );

@@ -33,12 +33,8 @@ SynthDef(\buchla, { |out, freqBus, customBus0|
     lpgDecay = p[3];
     chaos = p[4];
 
-    // === TRIGGER ===
-    trig = Select.ar(envSource, [
-        DC.ar(0),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    trig = Impulse.ar(0);
 
     // === CHAOS SOURCE ===
     chaosLFO = Crackle.ar(1.5 + (chaos * 0.4)) * chaos * 0.3;
@@ -71,7 +67,7 @@ SynthDef(\buchla, { |out, freqBus, customBus0|
     );
 
     // LPG filter frequency follows envelope
-    lpgFreq = lpgEnv.linexp(0, 1, 100, filterFreq);
+    lpgFreq = lpgEnv.linexp(0, 1, 100, 8000);
 
     // Apply LPG - filter + amplitude coupled
     sig = RLPF.ar(sig, lpgFreq, 0.5);
@@ -82,7 +78,6 @@ SynthDef(\buchla, { |out, freqBus, customBus0|
 
     // === OUTPUT ===
     sig = ~stereoSpread.(sig, 0.15, 0.3);
-    sig = sig * amp;
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

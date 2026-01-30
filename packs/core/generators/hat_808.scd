@@ -32,12 +32,8 @@ SynthDef(\hat_808, { |out, freqBus, customBus0|
     hpfAmt = p[3];
     decayMod = p[4];
 
-    // === TRIGGER ===
-    trig = Select.ar(envSource, [
-        DC.ar(0),
-        Select.ar(clockRate.round, In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex, In.ar(midiTrigBus, 8))
-    ]);
+    // One-shot trigger (end-stage handles retriggering)
+    trig = Impulse.ar(0);
 
     // === ENVELOPE ===
     // Decay morphs from ~30ms (closed) to ~300ms (open)
@@ -70,7 +66,6 @@ SynthDef(\hat_808, { |out, freqBus, customBus0|
     sig = sig * env;
     sig = sig.tanh;  // Soft limit
 
-    sig = sig * amp;
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

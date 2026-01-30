@@ -19,14 +19,13 @@ Custom params:
 
 SynthDef(\crumbleecho, { |out, freqBus, customBus0|
 
-    var sig, freq, ampDecay;
+    var sig, freq;
     var p = In.kr(customBus0, 5);
     var fall, size, scatter, hall, structDecay;
-    var trig, fallTrig, impactSig, scatterSig, decaySig;
+    var fallTrig, impactSig, scatterSig, decaySig;
     var impactFreq, impactEnv;
 
     freq = In.kr(freqBus);
-    ampDecay = In.kr(decayBus);
 
     fall = p[0];
     fall = Lag.kr(fall, 0.1);
@@ -39,15 +38,8 @@ SynthDef(\crumbleecho, { |out, freqBus, customBus0|
     structDecay = p[4];
     structDecay = Lag.kr(structDecay, 0.1);
 
-    // === TRIGGER ===
-    trig = Select.ar(envSource.round.clip(0, 2), [
-        DC.ar(0),
-        Select.ar(clockRate.round.clip(0, 12), In.ar(clockTrigBus, 13)),
-        Select.ar(slotIndex.clip(0, 7), In.ar(midiTrigBus, 8))
-    ]);
-
     // Fall trigger
-    fallTrig = trig + Dust.ar(fall * 8 + 1);
+    fallTrig = Dust.ar(fall * 8 + 1);
 
     // === IMPACT (main debris hit) ===
     impactFreq = freq * LinExp.kr(size, 0, 1, 2, 0.3);  // Bigger = lower
