@@ -13,10 +13,10 @@ Clock model:
 - BPM is tracked to convert timer intervals to beat durations
 
 Sync model:
-- Global sync phase accumulates beats and wraps at SYNC_QUANTUM_BEATS (1/16th note)
+- Global sync phase accumulates beats and wraps at SYNC_QUANTUM_BEATS (1 bar = 4 beats)
 - First slot to enter SEQ starts immediately and resets the sync phase
-- Subsequent slots entering SEQ wait for the next sync boundary before starting
-- This keeps all slot sequencers aligned to the same 1/16th grid
+- Subsequent slots entering SEQ wait for the next bar downbeat before starting
+- This keeps all slot sequencers aligned to the same bar grid
 """
 
 from __future__ import annotations
@@ -35,9 +35,9 @@ from src.utils.logger import logger
 # Clock tick interval in milliseconds (~10ms for smooth sequencing)
 TICK_INTERVAL_MS = 10
 
-# Global sync resolution: 1/16th note = 0.25 beats
-# All SEQ slots quantize their start to this grid so they stay in sync.
-SYNC_QUANTUM_BEATS = 0.25
+# Global sync resolution: 1 bar = 4 beats
+# New SEQ slots wait for the next bar downbeat before starting playback.
+SYNC_QUANTUM_BEATS = 4.0
 
 
 class MotionManager:
