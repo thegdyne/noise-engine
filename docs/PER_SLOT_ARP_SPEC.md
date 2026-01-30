@@ -1,22 +1,23 @@
 # Per-Slot Arpeggiator Specification
 
 ---
-status: draft
-version: 1.0
+status: approved
+version: 1.2.1
 date: 2025-01-30
 builds-on: ARP v1.7 (arp_engine.py), Keyboard Overlay R1.2-R1.3
+reviewed-by: AI1, AI2, AI3
 ---
 
 ## What
 
-Decouple the arpeggiator from the keyboard overlay so each generator slot (1–8) has its own independent ArpEngine instance. ARP+HOLD on a slot persists across keyboard hide/show — the generator keeps playing its held arp pattern until the user explicitly turns hold off.
+Decouple the arpeggiator from the keyboard overlay so each generator slot (1-8) has its own independent ArpEngine instance. ARP+HOLD on a slot persists across keyboard hide/show -- the generator keeps playing its held arp pattern until the user explicitly turns hold off.
 
 ## Why
 
 Current behavior: one shared ArpEngine targets multiple slots simultaneously. Closing the keyboard tears everything down. This creates two problems:
 
-1. **No persistence** — you can't set up an arp on slot 1, close the keyboard, and have it keep playing while you work on something else.
-2. **No independence** — all targeted slots share the same pattern, rate, octaves, and hold state. You can't have slot 1 running UP at 1/16 while slot 3 runs DOWN at 1/4.
+1. **No persistence** -- you can't set up an arp on slot 1, close the keyboard, and have it keep playing while you work on something else.
+2. **No independence** -- all targeted slots share the same pattern, rate, octaves, and hold state. You can't have slot 1 running UP at 1/16 while slot 3 runs DOWN at 1/4.
 
 Per-slot arps enable a performance workflow: build up layered arp patterns across multiple generators, each with independent settings, while freely opening and closing the keyboard overlay.
 
@@ -28,29 +29,39 @@ Per-slot arps enable a performance workflow: build up layered arp patterns acros
 
 ```
 KeyboardOverlay
-  └── 1x ArpEngine (shared)
-        ├── targets: Set[int] (multi-slot broadcast)
-        ├── settings: ArpSettings (single)
-        └── runtime: ArpRuntime (single)
+  +-- 1x ArpEngine (shared)
+        |-- targets: Set[int] (multi-slot broadcast)
+        |-- settings: ArpSettings (single)
+        +-- runtime: ArpRuntime (single)
 ```
 
 ### Proposed (v2.0)
 
 ```
 KeyboardController
-  └── ArpSlotManager
-        ├── engines[0]: ArpEngine (slot 1)
-        ├── engines[1]: ArpEngine (slot 2)
-        ├── ...
-        └── engines[7]: ArpEngine (slot 8)
+  +-- ArpSlotManager
+        |-- engines[0..7]: ArpEngine (one per slot, always exists, never removed)
+        +-- bpm_subscription (forwards to all engines)
 
 KeyboardOverlay (UI only)
-  └── shows/edits the ArpEngine for the currently focused slot
+  +-- shows/edits the ArpEngine for the currently focused slot
 ```
 
-### Key Change
+### Key Changes
 
-The ArpEngine moves from being owned by the overlay (UI) to being managed by the KeyboardController (logic). The overlay becomes a pure view/control surface that reads and writes the focused slot's engine state.
+1. **Engine ownership moves** from overlay (UI) to controller (logic)
+2. **One engine per slot** -- no multi-target broadcast
+3. **Overlay becomes stateless** -- pure view/control surface
+4. **BPM forwarding** -- ArpSlotManager subscribes to BPM changes and forwards to all 8 engines (safe to call on IDLE engines -- no-op)
+5. **Engines are never removed** -- reset in-place only, array never mutated after init
+
+### Initialization Order (Required)
+
+1. KeyboardController creates ArpSlotManager (8 engines created eagerly)
+2. KeyboardOverlay created (starts hidden, no engine bound)
+3. First `set_arp_engine()` call happens on keyboard open, not at overlay init
+
+**Rationale:** Prevents null pointer / AttributeError if overlay tries to bind before manager exists.
 
 ---
 
@@ -62,25 +73,35 @@ Owns 8 ArpEngine instances. Lives in KeyboardController.
 
 ```python
 class ArpSlotManager:
-    """Manages per-slot ARP engines."""
-
-    engines: dict[int, ArpEngine]   # slot 0-7 (OSC-indexed)
+    engines: list[ArpEngine]   # Always 8, never None, never removed
 
     def get_engine(self, slot: int) -> ArpEngine
-    def teardown_slot(self, slot: int)
-    def teardown_all(self)
-    def get_active_holds(self) -> list[int]  # slots with ARP+HOLD running
+    def reset_slot(self, slot: int)
+    def reset_all(self)
+    def all_notes_off(self)
+    def get_active_holds(self) -> list[int]
+    def on_bpm_changed(self, bpm: float)
 ```
 
 **Lifecycle:**
 - Created once at KeyboardController init
-- Each engine is lazily initialized on first use (or eagerly — TBD)
+- All 8 engines created eagerly at startup
+- Engines start in IDLE state (no timers running)
 - Engines persist for the lifetime of the application
-- Individual engines can be torn down independently
+- `reset_slot()` resets in-place -- never removes or nulls out `engines[slot]`
+
+### reset_slot() Semantics
+
+1. Cancel any pending scheduled callbacks (timer)
+2. Send note-off for currently sounding note (if any)
+3. Clear active set, latched set, physical-input tracking
+4. Reset settings to defaults (ARP off, HOLD off)
+5. Engine returns to IDLE state (reusable)
+6. Engine object remains in `engines[slot]` -- never None
 
 ### ArpEngine Changes
 
-Each engine targets exactly **one slot** (not a set of slots). Remove `get_targets` callback. The engine always emits to its bound slot.
+Each engine targets exactly **one slot** (not a set of slots).
 
 ```python
 class ArpEngine:
@@ -89,29 +110,38 @@ class ArpEngine:
         self._slot_id = slot_id  # fixed, 0-indexed
 ```
 
-Remove from ArpEngine:
+**Remove from ArpEngine:**
 - `get_targets` callback
 - `notify_targets_changed()`
 - `_handle_target_change()`
-- `last_played_targets` tracking (always single slot)
+- `last_played_targets` tracking
+
+**Add to ArpEngine:**
+- `slot_id` property (read-only)
+- `is_active` property (ARP on and has notes in active set)
+- `has_hold` property (HOLD enabled with latched notes)
+- `currently_sounding_note` property
+
+### ArpEngine.teardown() Sequence
+
+1. Cancel any pending scheduled callbacks (stop timer)
+2. Send note-off for `currently_sounding_note` (if any)
+3. Clear active set, latched set, physical-input tracking
+4. Set ARP off, HOLD off
+5. Engine returns to IDLE state (reusable)
 
 ### KeyboardOverlay Changes
 
-The overlay becomes a **view** for whichever slot's ArpEngine is focused.
+**Remove:**
+- `self._arp_engine` ownership
+- ARP+HOLD persistence logic
 
-**Remove from overlay:**
-- `self._arp_engine` (no longer owns an engine)
-- ARP+HOLD persistence logic (`_should_preserve_arp_session_on_hide`)
+**Add:**
+- `set_arp_engine(engine)` with null guard
+- `sync_ui_from_engine()` -- exhaustive UI sync
+- `_physical_keys_held: set[int]`
 
-**Add to overlay:**
-- `set_arp_engine(engine: ArpEngine | None)` — bind to a slot's engine
-- `sync_ui_from_engine()` — update all ARP controls from engine state
-
-**Target slot selector** changes meaning:
-- Currently: multi-select broadcast targets
-- Proposed: single-select slot focus (radio buttons instead of checkboxes)
-- Clicking a slot switches which ArpEngine the overlay controls
-- Visual indicator for slots that have an active ARP+HOLD (e.g. pulsing border)
+**Target selector:** single-select radio group (1-8)
 
 ---
 
@@ -119,177 +149,86 @@ The overlay becomes a **view** for whichever slot's ArpEngine is focused.
 
 ### Opening the Keyboard (Cmd+K)
 
-1. Auto-switch focused slot to MIDI mode (existing behavior)
-2. Bind overlay to focused slot's ArpEngine
-3. Sync overlay UI from engine state (ARP on/off, rate, pattern, octaves, hold)
-4. If engine has ARP+HOLD active, show ARP controls and current state
-5. If engine is idle, show ARP toggle OFF (don't reset a running engine on another slot)
+1. Auto-switch focused slot to MIDI mode
+2. Get focused slot's engine from ArpSlotManager
+3. Call `set_arp_engine(engine)`
+4. `sync_ui_from_engine()` updates all controls
+5. Clear `_physical_keys_held`
 
 ### Playing Notes
 
 1. Keys route to the **focused slot's** ArpEngine only
-2. If ARP is off: legacy note-on/off directly to focused slot
-3. If ARP is on: keys feed into focused slot's engine as before
+2. If ARP off: direct note-on/off
+3. If ARP on: keys feed into engine
 
 ### Switching Focus (Clicking Slot Buttons)
 
-1. Release all physical keys from **previous** engine (key_release for each held note)
-2. Bind overlay to **new** slot's engine
-3. Sync UI from new engine's state
-4. Previous engine continues running if ARP+HOLD is active (latched notes persist)
-5. Auto-switch new slot to MIDI mode if not already
+1. Capture previous engine reference
+2. Release all physical keys from previous engine
+3. Clear `_physical_keys_held`
+4. Auto-switch new slot to MIDI mode
+5. Get new slot's engine
+6. Call `set_arp_engine(new_engine)`
+7. Previous engine continues if ARP+HOLD active
 
 ### Closing the Keyboard (Cmd+K / ESC)
 
 1. Release all physical keys from focused engine
-2. For **each slot's engine** (0–7):
-   - If ARP+HOLD is active: **keep running** (notes sustain, timer continues)
-   - Otherwise: teardown (note-off, stop timers, reset state)
-3. Hide overlay
+2. Clear `_physical_keys_held`
+3. For each slot engine: if `has_hold`, skip; otherwise `reset_slot()`
+4. Call `set_arp_engine(None)`
+5. Hide overlay
 
-### Turning Off Hold
+### Pack Change / Preset Load
 
-1. Engine exits hold mode
-2. If no physical keys held: active set empties → note-off → engine goes idle
-3. If keyboard is closed and hold was the only thing keeping it alive: engine tears down
-
-### Pack Change While ARP+HOLD Active
-
-1. Pack load resets all slots (generators change, ENV resets)
-2. ArpSlotManager tears down **all** engines (generators changed, MIDI mode lost)
-3. All-notes-off sent to all slots
-4. If keyboard overlay is visible, re-apply MIDI mode to focused slot (existing behavior)
+1. ArpSlotManager `reset_all()`
+2. All-notes-off to all slots
+3. Pack/preset loads
+4. If keyboard visible: re-enable MIDI, re-bind
 
 ### Generator Change on Single Slot
 
-1. If slot's engine has ARP+HOLD active, teardown that engine
-2. Send all-notes-off to that slot
-3. Other slots' engines unaffected
+1. If engine active/has_hold: `reset_slot()`
+2. All-notes-off to slot
+3. Load new generator
+4. If overlay visible and focused: re-enable MIDI, re-bind
 
 ---
 
-## UI Changes
+## Invariants
 
-### Target Row (Bottom of Overlay)
-
-| Current | Proposed |
-|---------|----------|
-| Multi-select checkboxes (1–8) | Single-select radio group (1–8) |
-| "Target:" label | "Slot:" label |
-| Checked = receives notes | Selected = focused for editing |
-| Disabled = not MIDI mode | Disabled = not MIDI mode |
-| — | Active ARP+HOLD indicator (accent border/glow) |
-
-### ARP Hold Indicator
-
-Slots with an active ARP+HOLD (engine running while overlay closed) need a visual indicator. Options:
-
-- **Slot button glow** — accent color border on the target row button
-- **Generator grid badge** — small "ARP" badge on the slot in the main UI
-- Both
-
-The generator grid badge is important because the user needs to see which slots have running arps **when the keyboard is closed**.
-
-### ARP Controls
-
-No change to controls (Rate, Pattern, Oct, Hold). They simply read/write the focused slot's engine instead of a shared engine.
-
----
-
-## State Diagram
-
-```
-Per-slot ArpEngine lifecycle:
-
-    ┌──────────┐
-    │  IDLE    │ ← engine created, no ARP activity
-    └────┬─────┘
-         │ toggle_arp(true)
-    ┌────▼─────┐
-    │ ARP ON   │ ← accepting keys, stepping
-    └────┬─────┘
-         │ toggle_hold(true) + keys latched
-    ┌────▼─────┐
-    │ ARP+HOLD │ ← latched notes, keyboard can close
-    └────┬─────┘
-         │ keyboard closes
-    ┌────▼─────┐
-    │ DETACHED │ ← engine runs independently, overlay gone
-    └────┬─────┘
-         │ keyboard reopens + slot refocused
-    ┌────▼─────┐
-    │ ARP+HOLD │ ← UI reconnects, user can modify or release
-    └────┬─────┘
-         │ toggle_hold(false) + no physical keys
-    ┌────▼─────┐
-    │ TEARDOWN │ → note-off, timers stopped, state reset
-    └──────────┘
-```
+1. One engine per slot, never shared
+2. Engines always exist, never removed, reset in-place
+3. Monophonic per engine (one note sounding)
+4. No stuck notes (all paths to IDLE send note-off)
+5. Overlay is stateless (engines hold all ARP state)
+6. Focus is exclusive (one engine bound at a time, or None)
+7. Physical keys are overlay state, not engine state
+8. Hold survives hide
+9. Hold toggle works regardless of overlay state
+10. Generator change kills one engine
+11. Pack change kills all engines
+12. Reset before change (note-off reaches current generator)
+13. Sync is synchronous
+14. Reference capture before iteration on focus switch
 
 ---
 
 ## Migration Path
 
 ### Phase 1: ArpSlotManager + Single-Slot Engine
-
-1. Create `ArpSlotManager` class
-2. Modify `ArpEngine` to target a single slot (remove multi-target)
-3. Move engine ownership from overlay to controller
-4. Overlay gets `set_arp_engine()` / `sync_ui_from_engine()`
-5. Target row becomes single-select
-
-**Test:** Keyboard works as before but with single-slot targeting. No persistence yet.
-
 ### Phase 2: ARP+HOLD Persistence
-
-1. `_dismiss()` preserves engines with ARP+HOLD
-2. `_show_overlay()` syncs UI from focused engine (may be mid-arp)
-3. Focus switching releases keys from old engine, binds new engine
-4. Pack change / generator change triggers targeted teardown
-
-**Test:** Set up ARP+HOLD on slot 1, close keyboard, hear it continue. Reopen, see state. Turn off hold, it stops.
-
 ### Phase 3: Visual Indicators
 
-1. ARP badge on generator grid slots
-2. Accent border on target row buttons for active holds
-3. Status in console log
-
-**Test:** Visual confirmation of which slots have active arps.
-
 ---
 
-## Files Affected
+## Changelog
 
-| File | Change |
-|------|--------|
-| `src/gui/arp_engine.py` | Remove multi-target, add `slot_id` binding |
-| `src/gui/keyboard_overlay.py` | Remove engine ownership, add `set_arp_engine()`, single-select targets |
-| `src/gui/controllers/keyboard_controller.py` | Add `ArpSlotManager`, engine lifecycle, focus switching |
-| `src/gui/generator_grid.py` | ARP badge indicator on slots (Phase 3) |
-| `src/gui/main_frame.py` | Wire teardown on pack change / generator change |
+### v1.2.1 (2025-01-30) -- APPROVED
+- Added: Explicit prev_engine reference capture in focus switch
+- Added: Invariant #14 (reference capture before iteration)
+- Added: Sequence diagram for focus switch
+- Status: approved
 
----
-
-## Invariants
-
-1. **One engine per slot** — slot 0 always maps to engines[0], never shared
-2. **Monophonic per engine** — at most one ARP note sounding per slot at any time
-3. **No stuck notes** — teardown always sends note-off before clearing state
-4. **Overlay is stateless** — all ARP state lives in engines, overlay just reads/writes
-5. **Focus is exclusive** — overlay controls exactly one engine at a time
-6. **Hold survives hide** — ARP+HOLD engine keeps running when overlay is hidden
-7. **Pack change kills all** — all engines torn down on pack/preset load
-8. **Generator change kills one** — changing a slot's generator tears down only that slot's engine
-
----
-
-## Open Questions
-
-1. **Eager vs lazy engine creation** — Create all 8 at startup, or only when a slot first gets ARP enabled? Lazy saves memory but adds complexity.
-
-2. **Multi-slot broadcast** — Should there be a way to play keys to multiple slots simultaneously (current behavior)? Could add a "LINK" mode that temporarily routes keys to multiple engines. Deferred for now — single-slot is the clean foundation.
-
-3. **Preset save/load** — Should per-slot ARP state be saved in presets? Currently ARP is session-only. Saving hold patterns could be powerful but adds schema complexity. Recommend: defer to future version.
-
-4. **BPM notification** — Currently overlay forwards BPM changes. With per-slot engines, the ArpSlotManager should forward BPM to all active engines, not just the focused one.
+### v1.0 (2025-01-30)
+- Initial draft

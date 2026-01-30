@@ -2,11 +2,15 @@
 KeyboardController - Handles QWERTY keyboard overlay for MIDI input.
 
 Extracted from MainFrame as Phase 7 of the god-file refactor.
-Method names intentionally unchanged from MainFrame for wrapper compatibility.
 
 R1.1: Added focused slot tracking and deferred refresh mechanism.
 R1.2: Added ARP support with BPM integration.
 R1.3: Added application-level event filter for global keyboard capture.
+R2.0: Per-slot ARP (PER_SLOT_ARP_SPEC v1.2.1).
+      - Owns ArpSlotManager (8 engines, one per slot)
+      - Overlay is pure view, bound via set_arp_engine()
+      - Focus switching with prev_engine reference capture
+      - ARP+HOLD persistence across keyboard hide/show
 """
 from __future__ import annotations
 
@@ -14,6 +18,7 @@ from PyQt5.QtWidgets import QApplication, QLineEdit, QTextEdit
 from PyQt5.QtCore import QTimer, QObject, QEvent
 
 from src.gui.keyboard_overlay import KeyboardOverlay
+from src.gui.arp_slot_manager import ArpSlotManager
 from src.utils.logger import logger
 
 
@@ -57,43 +62,87 @@ class KeyboardEventFilter(QObject):
 
 
 class KeyboardController:
-    """Handles QWERTY keyboard overlay for MIDI input."""
+    """
+    Handles QWERTY keyboard overlay for MIDI input (Per-Slot ARP v2.0).
+
+    Owns ArpSlotManager with 8 engines. Overlay is a pure view that gets
+    bound to the focused slot's engine via set_arp_engine().
+    """
 
     def __init__(self, main_frame):
         self.main = main_frame
         self._focused_slot = 1  # Track last-focused slot (1-indexed)
 
+        # Create ArpSlotManager (8 engines created eagerly)
+        self._arp_manager = ArpSlotManager(
+            send_note_on=self._send_midi_note_on,
+            send_note_off=self._send_midi_note_off,
+            send_all_notes_off=self._send_all_notes_off,
+            get_velocity=self._get_overlay_velocity,
+            get_bpm=self._get_current_bpm,
+        )
+
         # Install application-level event filter for global keyboard capture
-        # This allows the keyboard overlay to work even when clicking on main UI
         self._event_filter = KeyboardEventFilter(self)
         QApplication.instance().installEventFilter(self._event_filter)
 
         # Connect to generator_grid slot click events if available
         if hasattr(self.main, 'generator_grid') and self.main.generator_grid is not None:
             self.main.generator_grid.generator_selected.connect(self._on_slot_selected)
-            # Also track env_source changes for live updates
             self.main.generator_grid.generator_env_source_changed.connect(self._on_env_source_changed)
 
         # Connect to BPM changes for ARP clock sync
         if hasattr(self.main, 'bpm_display') and self.main.bpm_display is not None:
             self.main.bpm_display.bpm_changed.connect(self._on_bpm_changed)
 
+    # =========================================================================
+    # PROPERTIES
+    # =========================================================================
+
+    @property
+    def arp_manager(self) -> ArpSlotManager:
+        """Access the ARP slot manager (for main_frame wiring)."""
+        return self._arp_manager
+
+    # =========================================================================
+    # SLOT / ENV SOURCE SIGNALS
+    # =========================================================================
+
     def _on_slot_selected(self, slot_id: int):
         """Track which slot was last selected/clicked (1-indexed)."""
         if 1 <= slot_id <= 8:
+            old_focused = self._focused_slot
             self._focused_slot = slot_id
+
+            # If overlay is visible and slot changed, switch engine
+            if (self.main._keyboard_overlay is not None and
+                self.main._keyboard_overlay.isVisible() and
+                    slot_id != old_focused):
+                self._switch_focus_to_slot(slot_id)
 
     def _on_env_source_changed(self, slot_id: int, source: int):
         """Handle env_source changes - refresh overlay if visible."""
         if (self.main._keyboard_overlay is not None and
-            self.main._keyboard_overlay.isVisible()):
+                self.main._keyboard_overlay.isVisible()):
             self.main._keyboard_overlay._update_slot_buttons()
 
     def _on_bpm_changed(self, bpm: int):
-        """Handle BPM changes - notify overlay for ARP clock sync."""
-        if (self.main._keyboard_overlay is not None and
-            self.main._keyboard_overlay.isVisible()):
-            self.main._keyboard_overlay.notify_bpm_changed(float(bpm))
+        """Handle BPM changes - forward to all engines via manager."""
+        self._arp_manager.on_bpm_changed(float(bpm))
+
+    # =========================================================================
+    # OVERLAY VELOCITY CALLBACK
+    # =========================================================================
+
+    def _get_overlay_velocity(self) -> int:
+        """Get velocity from overlay (callback for ArpEngine)."""
+        if self.main._keyboard_overlay is not None:
+            return self.main._keyboard_overlay.get_velocity()
+        return 100  # Default
+
+    # =========================================================================
+    # BPM
+    # =========================================================================
 
     def _get_current_bpm(self) -> float:
         """Get current BPM from main frame's BPM display or master_bpm."""
@@ -103,15 +152,18 @@ class KeyboardController:
             return float(self.main.master_bpm)
         return 120.0  # Default
 
+    # =========================================================================
+    # KEYBOARD TOGGLE (Cmd+K)
+    # =========================================================================
+
     def _toggle_keyboard_mode(self):
         """Toggle the keyboard overlay for QWERTY-to-MIDI input."""
         if self.main._keyboard_overlay is not None and self.main._keyboard_overlay.isVisible():
-            self.main._keyboard_overlay._dismiss()
+            self._on_keyboard_dismiss()
             return
 
         focus_widget = QApplication.focusWidget()
         if focus_widget is not None:
-            # Only skip for actual text entry widgets, not spinboxes
             if isinstance(focus_widget, (QLineEdit, QTextEdit)):
                 return
 
@@ -123,11 +175,15 @@ class KeyboardController:
                 send_all_notes_off_fn=self._send_all_notes_off,
                 get_focused_slot_fn=self._get_focused_slot,
                 is_slot_midi_mode_fn=self._is_slot_midi_mode,
-                get_bpm_fn=self._get_current_bpm,
+                on_slot_focus_changed_fn=self._on_overlay_slot_focus_changed,
             )
 
         # Auto-switch focused slot to MIDI mode so keyboard works immediately
         self._ensure_focused_slot_midi()
+
+        # Bind focused slot's engine to overlay
+        engine = self._arp_manager.get_engine(self._focused_slot - 1)
+        self.main._keyboard_overlay.set_arp_engine(engine)
 
         overlay_width = self.main._keyboard_overlay.width()
         x = self.main.x() + (self.main.width() - overlay_width) // 2
@@ -137,17 +193,105 @@ class KeyboardController:
         self.main._keyboard_overlay.raise_()
         self.main._keyboard_overlay.activateWindow()
 
-        # Deferred refresh mechanism (R1.1 spec):
-        # Schedule refresh #1 on the next UI event-loop tick
+        # Deferred refresh mechanism (R1.1 spec)
         QTimer.singleShot(0, self._deferred_refresh_overlay)
-        # Schedule refresh #2 at +100ms
         QTimer.singleShot(100, self._deferred_refresh_overlay)
 
     def _deferred_refresh_overlay(self):
         """Deferred refresh for slot button states after overlay opens."""
         if (self.main._keyboard_overlay is not None and
-            self.main._keyboard_overlay.isVisible()):
+                self.main._keyboard_overlay.isVisible()):
             self.main._keyboard_overlay._update_slot_buttons()
+
+    # =========================================================================
+    # FOCUS SWITCHING (per spec v1.2.1 — Invariant #14)
+    # =========================================================================
+
+    def _on_overlay_slot_focus_changed(self, new_slot_ui: int):
+        """
+        Handle overlay slot button click (1-indexed).
+        Called from overlay's _on_target_slot_clicked.
+        """
+        if new_slot_ui == self._focused_slot:
+            return
+        self._switch_focus_to_slot(new_slot_ui)
+
+    def _switch_focus_to_slot(self, new_slot_ui: int):
+        """
+        Switch keyboard focus to a new slot (1-indexed).
+
+        Per spec v1.2.1 Invariant #14: capture prev_engine reference BEFORE
+        any iteration or mutation.
+        """
+        overlay = self.main._keyboard_overlay
+        if overlay is None:
+            self._focused_slot = new_slot_ui
+            return
+
+        # 1. Capture previous engine reference (Invariant #14)
+        prev_slot = self._focused_slot
+        prev_engine = self._arp_manager.get_engine(prev_slot - 1)
+
+        # 2. Release all physical keys from previous engine
+        overlay.release_physical_keys_from_engine()
+
+        # 3. Update focused slot
+        self._focused_slot = new_slot_ui
+
+        # 4. Auto-switch new slot to MIDI mode
+        self._ensure_focused_slot_midi()
+
+        # 5. Get new slot's engine and bind to overlay
+        new_engine = self._arp_manager.get_engine(new_slot_ui - 1)
+        overlay.set_arp_engine(new_engine)
+
+        # 6. Update slot button states
+        overlay._update_slot_buttons()
+
+        # 7. Previous engine continues if ARP+HOLD active (no teardown)
+        logger.debug(
+            f"KeyboardController: focus switched slot {prev_slot} -> {new_slot_ui}, "
+            f"prev has_hold={prev_engine.has_hold}",
+            component="ARP"
+        )
+
+    # =========================================================================
+    # KEYBOARD DISMISS (per spec v1.2.1)
+    # =========================================================================
+
+    def _on_keyboard_dismiss(self):
+        """
+        Handle keyboard overlay dismissal.
+
+        Per spec v1.2.1:
+        1. Release physical keys from focused engine
+        2. For each engine: if has_hold, skip; otherwise reset
+        3. Unbind engine from overlay
+        4. Hide overlay
+        """
+        overlay = self.main._keyboard_overlay
+        if overlay is None:
+            return
+
+        # Overlay's _dismiss() releases physical keys and hides
+        overlay._dismiss()
+
+        # Teardown/preserve engines based on hold state
+        for slot in range(8):
+            engine = self._arp_manager.get_engine(slot)
+            if engine.has_hold:
+                # Preserve: ARP+HOLD keeps playing
+                logger.debug(f"KeyboardController: preserving ARP+HOLD on slot {slot}", component="ARP")
+            else:
+                # Teardown: no hold, clean up
+                self._arp_manager.reset_slot(slot)
+
+        # Unbind engine from overlay
+        overlay.set_arp_engine(None)
+
+    # =========================================================================
+    # OSC SEND HELPERS
+    # =========================================================================
 
     def _send_midi_note_on(self, slot: int, note: int, velocity: int):
         """Send MIDI note-on via OSC. Slot is 0-indexed."""
@@ -162,6 +306,10 @@ class KeyboardController:
     def _send_all_notes_off(self, slot: int):
         if self.main.osc is not None and self.main.osc.client is not None:
             self.main.osc.client.send_message(f"/noise/slot/{slot}/midi/all_notes_off", [])
+
+    # =========================================================================
+    # MIDI MODE HELPERS
+    # =========================================================================
 
     def _ensure_focused_slot_midi(self):
         """Auto-switch focused slot to MIDI mode so keyboard works immediately."""
@@ -194,14 +342,12 @@ class KeyboardController:
         if slot_id < 1 or slot_id > 8:
             return False
 
-        # Get slot from grid (slots dict is keyed by 1-indexed slot_id)
         slot = self.main.generator_grid.slots.get(slot_id)
         if slot is None:
-            return False  # Slot not yet available
+            return False
 
         env_source = slot.env_source
 
-        # Check for MIDI mode (env_source == 2 or "MIDI")
         if isinstance(env_source, int):
             return env_source == 2
         elif isinstance(env_source, str):

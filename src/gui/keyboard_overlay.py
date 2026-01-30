@@ -1,11 +1,14 @@
 """
-Keyboard Mode Overlay - QWERTY keyboard as MIDI input.
+Keyboard Mode Overlay - QWERTY keyboard as MIDI input (Per-Slot ARP v2.0).
 
 CMD+K (macOS) / Ctrl+K (Win/Linux) toggles overlay.
 Keys map to piano notes (Logic-style layout).
 Z/X for octave shift. ESC dismisses.
 
-R1.2: Added arpeggiator (ARP) mode with clock-synced stepping.
+v2.0: Overlay is a pure view — no engine ownership.
+      ArpEngine is bound/unbound via set_arp_engine().
+      Physical keys are overlay state, not engine state.
+      Target selector is single-select (one slot at a time).
 """
 
 from PyQt5.QtCore import Qt, QPoint, QEvent, QTimer
@@ -70,24 +73,21 @@ ARP_PATTERN_ORDER = [ArpPattern.UP, ArpPattern.DOWN, ArpPattern.UPDOWN,
 
 class KeyboardOverlay(QWidget):
     """
-    QWERTY keyboard overlay for MIDI note input with optional arpeggiator.
+    QWERTY keyboard overlay for MIDI note input with per-slot arpeggiator.
+
+    v2.0: Pure view — does not own ArpEngine instances.
+    Engine is bound via set_arp_engine() and unbound via set_arp_engine(None).
+    Physical keys held are overlay state (not engine state).
 
     Slot indices:
     - UI uses 1-8 (matches generator slot labels)
     - OSC uses 0-7 (internal indexing)
     - Conversion happens in send methods
-
-    Usage:
-        overlay = KeyboardOverlay(parent, send_note_on, send_note_off,
-                                  send_all_notes_off, get_focused_slot, is_slot_midi_mode,
-                                  get_bpm)
-        overlay.toggle()
     """
 
     def __init__(self, parent, send_note_on_fn, send_note_off_fn,
                  send_all_notes_off_fn, get_focused_slot_fn, is_slot_midi_mode_fn,
-                 get_bpm_fn: Optional[Callable[[], float]] = None,
-                 rng_seed_override: Optional[int] = None):
+                 on_slot_focus_changed_fn: Optional[Callable[[int], None]] = None):
         super().__init__(parent)
 
         # Callbacks - these expect 0-indexed slot IDs
@@ -97,13 +97,17 @@ class KeyboardOverlay(QWidget):
         # These return/accept 1-indexed slot IDs
         self._get_focused_slot = get_focused_slot_fn
         self._is_slot_midi_mode = is_slot_midi_mode_fn
-        self._get_bpm = get_bpm_fn or (lambda: 120.0)
+        # Callback when user clicks a different slot button
+        self._on_slot_focus_changed = on_slot_focus_changed_fn
 
         # State - internally uses 1-indexed slot IDs (like UI)
         self._octave = 4
         self._velocity = 100
-        self._pressed: dict[int, int] = {}  # qt_key -> midi_note
-        self._target_slots: set[int] = set()  # 1-8 (UI indexed)
+        self._physical_keys_held: dict[int, int] = {}  # qt_key -> midi_note
+        self._target_slot: int = 1  # Single-select (1-indexed)
+
+        # Bound ARP engine (None when no engine bound)
+        self._arp_engine: Optional[ArpEngine] = None
 
         # Dragging state
         self._drag_pos = None
@@ -111,6 +115,7 @@ class KeyboardOverlay(QWidget):
         # UI elements
         self._key_buttons: dict[int, QPushButton] = {}
         self._slot_buttons: list[QPushButton] = []
+        self._slot_button_group: Optional[QButtonGroup] = None
         self._octave_label: QLabel = None
         self._velocity_buttons: list[QPushButton] = []
 
@@ -122,33 +127,65 @@ class KeyboardOverlay(QWidget):
         self._arp_octaves_btn: QPushButton = None
         self._arp_hold_btn: QPushButton = None
 
-        # ARP engine
-        self._arp_engine = ArpEngine(
-            send_note_on=self._arp_send_note_on,
-            send_note_off=self._arp_send_note_off,
-            get_velocity=lambda: self._velocity,
-            get_targets=self._get_target_slots_0indexed,
-            get_bpm=self._get_bpm,
-            rng_seed_override=rng_seed_override,
-        )
-
         self._setup_ui()
         self._apply_style()
 
         # Start hidden
         self.hide()
 
-    def _get_target_slots_0indexed(self) -> Set[int]:
-        """Get target slots as 0-indexed set for ARP engine."""
-        return {slot - 1 for slot in self._target_slots}
+    # =========================================================================
+    # ENGINE BINDING (per spec v1.2.1)
+    # =========================================================================
 
-    def _arp_send_note_on(self, slot: int, note: int, velocity: int):
-        """ARP callback for note on (slot is 0-indexed)."""
-        self._send_note_on(slot, note, velocity)
+    def set_arp_engine(self, engine: Optional[ArpEngine]):
+        """
+        Bind or unbind an ARP engine.
 
-    def _arp_send_note_off(self, slot: int, note: int):
-        """ARP callback for note off (slot is 0-indexed)."""
-        self._send_note_off(slot, note)
+        When bound: UI controls reflect engine state.
+        When unbound (None): ARP controls disabled, keys do nothing.
+        """
+        self._arp_engine = engine
+        if engine is not None:
+            self.sync_ui_from_engine()
+
+    def sync_ui_from_engine(self):
+        """Exhaustive UI sync from bound engine's state."""
+        engine = self._arp_engine
+        if engine is None:
+            # Reset UI to defaults
+            self._arp_toggle_btn.setChecked(False)
+            self._arp_controls_frame.hide()
+            self.setFixedSize(560, 320)
+            return
+
+        settings = engine.get_settings()
+
+        # ARP toggle
+        self._arp_toggle_btn.setChecked(settings.enabled)
+        if settings.enabled:
+            self._arp_controls_frame.show()
+            self.setFixedSize(560, 356)
+        else:
+            self._arp_controls_frame.hide()
+            self.setFixedSize(560, 320)
+
+        # ARP controls
+        self._arp_rate_btn.set_index(settings.rate_index)
+        pattern_idx = ARP_PATTERN_ORDER.index(settings.pattern)
+        self._arp_pattern_btn.set_index(pattern_idx)
+        self._arp_octaves_btn.set_index(settings.octaves - 1)
+        self._arp_hold_btn.setChecked(settings.hold)
+
+        # Target slot button — highlight the engine's slot
+        target_ui_slot = engine.slot_id + 1  # 0-indexed -> 1-indexed
+        self._target_slot = target_ui_slot
+        for i, btn in enumerate(self._slot_buttons):
+            slot_id = i + 1
+            btn.setChecked(slot_id == target_ui_slot)
+
+    # =========================================================================
+    # UI SETUP
+    # =========================================================================
 
     def _setup_ui(self):
         """Build the overlay UI."""
@@ -397,7 +434,7 @@ class KeyboardOverlay(QWidget):
         return frame
 
     def _create_target_slots(self) -> QFrame:
-        """Create target slot selection row."""
+        """Create target slot selection row (single-select radio group)."""
         frame = QFrame()
         frame.setObjectName("keyboard_targets")
 
@@ -410,13 +447,18 @@ class KeyboardOverlay(QWidget):
 
         layout.addSpacing(8)
 
+        # Single-select group (exclusive)
+        self._slot_button_group = QButtonGroup(self)
+        self._slot_button_group.setExclusive(True)
+
         # Slots 1-8 (UI uses 1-indexed)
         for i in range(1, 9):
             btn = QPushButton(str(i))
             btn.setCheckable(True)
             btn.setFixedSize(32, 28)
             btn.setFont(QFont(FONT_FAMILY, 10, QFont.Bold))
-            btn.clicked.connect(lambda checked, slot=i: self._toggle_target_slot(slot))
+            btn.clicked.connect(lambda checked, slot=i: self._on_target_slot_clicked(slot))
+            self._slot_button_group.addButton(btn, i)
             self._slot_buttons.append(btn)
             layout.addWidget(btn)
 
@@ -582,6 +624,10 @@ class KeyboardOverlay(QWidget):
 
     def _on_arp_toggle(self):
         """Handle ARP toggle button click."""
+        if self._arp_engine is None:
+            self._arp_toggle_btn.setChecked(False)
+            return
+
         enabled = self._arp_toggle_btn.isChecked()
         self._arp_engine.toggle_arp(enabled)
 
@@ -593,37 +639,31 @@ class KeyboardOverlay(QWidget):
             self._arp_controls_frame.hide()
             self.setFixedSize(560, 320)
 
-        # Update UI state
-        self._update_arp_ui()
-
     def _on_rate_changed(self, index: int):
         """Handle ARP rate change from CycleButton."""
-        self._arp_engine.set_rate(index)
+        if self._arp_engine is not None:
+            self._arp_engine.set_rate(index)
 
     def _on_pattern_changed(self, index: int):
         """Handle ARP pattern change from CycleButton."""
-        new_pattern = ARP_PATTERN_ORDER[index]
-        self._arp_engine.set_pattern(new_pattern)
+        if self._arp_engine is not None:
+            new_pattern = ARP_PATTERN_ORDER[index]
+            self._arp_engine.set_pattern(new_pattern)
 
     def _on_octaves_changed(self, index: int):
         """Handle ARP octaves change from CycleButton."""
-        new_octaves = index + 1  # Index 0 = 1 octave, etc.
-        self._arp_engine.set_octaves(new_octaves)
+        if self._arp_engine is not None:
+            new_octaves = index + 1  # Index 0 = 1 octave, etc.
+            self._arp_engine.set_octaves(new_octaves)
 
     def _on_hold_toggle(self):
         """Toggle ARP hold/latch mode."""
+        if self._arp_engine is None:
+            self._arp_hold_btn.setChecked(False)
+            return
+
         enabled = self._arp_hold_btn.isChecked()
         self._arp_engine.toggle_hold(enabled)
-
-    def _update_arp_ui(self):
-        """Update ARP UI elements to match engine state."""
-        settings = self._arp_engine.get_settings()
-        self._arp_toggle_btn.setChecked(settings.enabled)
-        self._arp_rate_btn.set_index(settings.rate_index)
-        pattern_idx = ARP_PATTERN_ORDER.index(settings.pattern)
-        self._arp_pattern_btn.set_index(pattern_idx)
-        self._arp_octaves_btn.set_index(settings.octaves - 1)  # Octaves 1-4 -> index 0-3
-        self._arp_hold_btn.setChecked(settings.hold)
 
     # -------------------------------------------------------------------------
     # Header Dragging
@@ -650,49 +690,36 @@ class KeyboardOverlay(QWidget):
     def _set_velocity(self, vel: int):
         self._velocity = vel
 
-    def _toggle_target_slot(self, slot: int):
-        """Toggle target slot. slot is 1-indexed (UI)."""
-        if slot in self._target_slots:
-            self._target_slots.discard(slot)
-        else:
-            self._target_slots.add(slot)
+    def get_velocity(self) -> int:
+        """Get current velocity (used by ArpEngine via callback)."""
+        return self._velocity
 
-        # Notify ARP engine of target change
-        if self._arp_engine.is_enabled():
-            self._arp_engine.notify_targets_changed()
+    def _on_target_slot_clicked(self, slot: int):
+        """Handle single-select target slot click. slot is 1-indexed (UI)."""
+        if slot == self._target_slot:
+            # Already selected — keep it checked (don't allow deselect in exclusive mode)
+            self._slot_buttons[slot - 1].setChecked(True)
+            return
+
+        # Notify controller of focus change (controller handles engine swap)
+        if self._on_slot_focus_changed is not None:
+            self._on_slot_focus_changed(slot)
 
     def _update_slot_buttons(self):
         """
         Update slot button states based on MIDI mode.
 
-        Per R1.1 spec:
-        - ENABLED: slot exists and is MIDI envelope mode - button is interactive
-        - DISABLED: slot exists but not MIDI mode - button is non-interactive
-        - UNKNOWN: slot not yet present - treated as disabled
+        Per spec:
+        - ENABLED: slot exists and is MIDI envelope mode — button is interactive
+        - DISABLED: slot exists but not MIDI mode — button is non-interactive
         """
-        focused = self._get_focused_slot()  # Returns 1-8
-        self._target_slots.clear()
-
         for i, btn in enumerate(self._slot_buttons):
             slot_id = i + 1  # 1-indexed
             is_midi = self._is_slot_midi_mode(slot_id)
             btn.setEnabled(is_midi)
 
-            # Auto-select focused slot if it's in MIDI mode
-            if slot_id == focused and is_midi:
-                btn.setChecked(True)
-                self._target_slots.add(slot_id)
-            else:
-                btn.setChecked(False)
-
-        # If focused slot wasn't MIDI mode, select first available MIDI slot
-        if not self._target_slots:
-            for slot_id in range(1, 9):
-                if self._is_slot_midi_mode(slot_id):
-                    self._slot_buttons[slot_id - 1].setChecked(True)
-                    self._target_slots.add(slot_id)
-                    break
-            # If no MIDI slots available, leave all unchecked (no default to disabled slot)
+            # Check the target slot
+            btn.setChecked(slot_id == self._target_slot)
 
     # -------------------------------------------------------------------------
     # Toggle / Show / Hide
@@ -710,13 +737,6 @@ class KeyboardOverlay(QWidget):
         # Update slot buttons based on current MIDI mode states
         self._update_slot_buttons()
 
-        # Reset ARP state on open (per spec: ARP enable must default to OFF each overlay open)
-        self._arp_engine.teardown()
-        self._arp_toggle_btn.setChecked(False)
-        self._arp_controls_frame.hide()
-        self.setFixedSize(560, 320)
-        self._update_arp_ui()
-
         # Position at bottom-center of parent, 24px margin
         if self.parent():
             parent = self.parent()
@@ -730,18 +750,50 @@ class KeyboardOverlay(QWidget):
         self.setFocus(Qt.ActiveWindowFocusReason)
 
     def _dismiss(self):
-        """Hide overlay and clean up."""
-        # Teardown ARP engine first (handles note-offs for ARP notes)
-        self._arp_engine.teardown()
+        """
+        Hide overlay and release physical keys.
 
-        # Send all_notes_off to ALL slots (0-7 for OSC)
-        for osc_slot in range(8):
-            self._send_all_notes_off(osc_slot)
+        Per spec v1.2.1:
+        1. Release all physical keys from focused engine
+        2. Clear _physical_keys_held
+        3. Controller handles teardown/preservation (not overlay)
+        4. Hide overlay
+        """
+        # Release physical keys from bound engine
+        self._release_all_physical_keys()
 
-        self._pressed.clear()
+        # Clear physical key state
+        self._physical_keys_held.clear()
 
-        # Release keyboard before hiding
+        # Reset key visuals
+        for qt_key in self._key_buttons:
+            self._update_key_visual(qt_key, False)
+
+        # Hide overlay
         self.hide()
+
+    def release_physical_keys_from_engine(self):
+        """
+        Release all physical keys from the currently bound engine.
+        Called by controller before switching engines on focus change.
+        """
+        self._release_all_physical_keys()
+        self._physical_keys_held.clear()
+        for qt_key in self._key_buttons:
+            self._update_key_visual(qt_key, False)
+
+    def _release_all_physical_keys(self):
+        """Release all currently held physical keys from the bound engine."""
+        if self._arp_engine is None:
+            return
+
+        for qt_key, midi_note in list(self._physical_keys_held.items()):
+            if self._arp_engine.is_enabled():
+                self._arp_engine.key_release(midi_note)
+            else:
+                # Legacy: note-off to target slot
+                osc_slot = self._target_slot - 1
+                self._send_note_off(osc_slot, midi_note)
 
     # -------------------------------------------------------------------------
     # Key Event Handling
@@ -761,10 +813,12 @@ class KeyboardOverlay(QWidget):
             event.accept()
             return
 
-        # Number keys 1-8 toggle target slots
+        # Number keys 1-8 switch target slot (single-select)
         if Qt.Key_1 <= event.key() <= Qt.Key_8:
             slot_index = event.key() - Qt.Key_1  # 0-7
-            self._slot_buttons[slot_index].click()
+            slot_id = slot_index + 1  # 1-8
+            if self._is_slot_midi_mode(slot_id):
+                self._slot_buttons[slot_index].click()
             event.accept()
             return
 
@@ -782,19 +836,23 @@ class KeyboardOverlay(QWidget):
             return
 
         # Note key
-        if key in KEY_TO_SEMITONE and key not in self._pressed:
+        if key in KEY_TO_SEMITONE and key not in self._physical_keys_held:
+            if self._arp_engine is None:
+                event.accept()
+                return
+
             semitone = KEY_TO_SEMITONE[key]
             midi_note = self._compute_midi_note(semitone)
 
             if 0 <= midi_note <= 127:
-                self._pressed[key] = midi_note
+                self._physical_keys_held[key] = midi_note
 
                 if self._arp_engine.is_enabled():
-                    # Route to ARP engine
                     self._arp_engine.key_press(midi_note)
                 else:
-                    # Legacy behavior
-                    self._send_note_on_to_targets(midi_note)
+                    # Legacy: direct note-on to target slot
+                    osc_slot = self._target_slot - 1
+                    self._send_note_on(osc_slot, midi_note, self._velocity)
 
                 self._update_key_visual(key, True)
 
@@ -810,15 +868,16 @@ class KeyboardOverlay(QWidget):
         key = event.key()
 
         # Release note
-        if key in self._pressed:
-            midi_note = self._pressed.pop(key)
+        if key in self._physical_keys_held:
+            midi_note = self._physical_keys_held.pop(key)
 
-            if self._arp_engine.is_enabled():
-                # Route to ARP engine
-                self._arp_engine.key_release(midi_note)
-            else:
-                # Legacy behavior
-                self._send_note_off_to_targets(midi_note)
+            if self._arp_engine is not None:
+                if self._arp_engine.is_enabled():
+                    self._arp_engine.key_release(midi_note)
+                else:
+                    # Legacy: note-off to target slot
+                    osc_slot = self._target_slot - 1
+                    self._send_note_off(osc_slot, midi_note)
 
             self._update_key_visual(key, False)
 
@@ -826,7 +885,6 @@ class KeyboardOverlay(QWidget):
 
     def _compute_midi_note(self, semitone: int) -> int:
         """Compute MIDI note from semitone offset and current octave."""
-        # MIDI note = (octave + 1) * 12 + semitone
         return (self._octave + 1) * 12 + semitone
 
     def _handle_octave_change(self, delta: int):
@@ -836,52 +894,43 @@ class KeyboardOverlay(QWidget):
         if new_octave == self._octave:
             return
 
+        if self._arp_engine is None:
+            self._octave = new_octave
+            self._octave_label.setText(str(self._octave))
+            return
+
         if self._arp_engine.is_enabled():
             # For ARP mode: release old notes, press new notes
-            for key, old_note in list(self._pressed.items()):
+            for key, old_note in list(self._physical_keys_held.items()):
                 self._arp_engine.key_release(old_note)
 
                 semitone = KEY_TO_SEMITONE[key]
                 new_note = (new_octave + 1) * 12 + semitone
 
                 if 0 <= new_note <= 127:
-                    self._pressed[key] = new_note
+                    self._physical_keys_held[key] = new_note
                     self._arp_engine.key_press(new_note)
                 else:
-                    del self._pressed[key]
+                    del self._physical_keys_held[key]
                     self._update_key_visual(key, False)
         else:
             # Legacy re-pitch all held notes
-            for key, old_note in list(self._pressed.items()):
-                # Note off for old pitch
-                self._send_note_off_to_targets(old_note)
+            osc_slot = self._target_slot - 1
+            for key, old_note in list(self._physical_keys_held.items()):
+                self._send_note_off(osc_slot, old_note)
 
-                # Compute new pitch
                 semitone = KEY_TO_SEMITONE[key]
                 new_note = (new_octave + 1) * 12 + semitone
 
                 if 0 <= new_note <= 127:
-                    self._pressed[key] = new_note
-                    self._send_note_on_to_targets(new_note)
+                    self._physical_keys_held[key] = new_note
+                    self._send_note_on(osc_slot, new_note, self._velocity)
                 else:
-                    # Note went out of range
-                    del self._pressed[key]
+                    del self._physical_keys_held[key]
                     self._update_key_visual(key, False)
 
         self._octave = new_octave
         self._octave_label.setText(str(self._octave))
-
-    def _send_note_on_to_targets(self, note: int):
-        """Send note_on to all target slots (legacy mode)."""
-        for ui_slot in self._target_slots:
-            osc_slot = ui_slot - 1  # Convert 1-8 to 0-7
-            self._send_note_on(osc_slot, note, self._velocity)
-
-    def _send_note_off_to_targets(self, note: int):
-        """Send note_off to all target slots (legacy mode)."""
-        for ui_slot in self._target_slots:
-            osc_slot = ui_slot - 1  # Convert 1-8 to 0-7
-            self._send_note_off(osc_slot, note)
 
     def _update_key_visual(self, qt_key: int, pressed: bool):
         """Update visual state of a key button."""
@@ -890,15 +939,6 @@ class KeyboardOverlay(QWidget):
             btn.setProperty("pressed", "true" if pressed else "false")
             btn.style().unpolish(btn)
             btn.style().polish(btn)
-
-    # -------------------------------------------------------------------------
-    # BPM Notification (called from controller)
-    # -------------------------------------------------------------------------
-
-    def notify_bpm_changed(self, bpm: float):
-        """Notify overlay of BPM change."""
-        if self._arp_engine.is_enabled():
-            self._arp_engine.notify_bpm_changed(bpm)
 
     # -------------------------------------------------------------------------
     # Show / Hide

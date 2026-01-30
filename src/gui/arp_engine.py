@@ -1,17 +1,18 @@
 """
-Arpeggiator Engine for Keyboard Overlay
+Arpeggiator Engine — Per-Slot (v2.0)
 
-Implements the ARP specification v1.7 with:
+Implements PER_SLOT_ARP_SPEC v1.2.1:
+- Each engine targets exactly one slot (no multi-target broadcast)
 - Serialized event queue for thread-safe operation
 - Master clock integration with fallback timer
 - Pattern generation (UP, DOWN, UPDOWN, RANDOM, ORDER)
-- Hold/latch functionality
-- Velocity tracking per note
+- Hold/latch functionality that persists across overlay hide/show
 
 Key invariants:
-- Monophonic per target: at most one ARP note on per target at any time
-- No stuck notes: all notes turned off on disable/dismiss/empty set
+- Monophonic: at most one ARP note sounding at any time
+- No stuck notes: all notes turned off on teardown/empty set
 - Deterministic: PRNG uses xorshift32, order tracking for ORDER pattern
+- Single slot: engine always emits to self._slot_id
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Callable, Dict, List, Optional, Set
 
 from PyQt5.QtCore import QTimer
 
@@ -119,8 +120,6 @@ class XorShift32:
         if n == 1:
             return 0
 
-        # Compute limit for unbiased sampling
-        # limit = floor(2^32 / n) * n
         limit = (0x100000000 // n) * n
 
         while True:
@@ -142,7 +141,6 @@ class ArpEventType(Enum):
     RATE_CHANGE = auto()
     PATTERN_CHANGE = auto()
     OCTAVES_CHANGE = auto()
-    TARGET_CHANGE = auto()
     BPM_CHANGE = auto()
     MASTER_TICK = auto()
     FALLBACK_FIRE = auto()
@@ -164,7 +162,7 @@ class ArpEvent:
 
 @dataclass
 class ArpSettings:
-    """User-configurable ARP settings (session-only, reset on overlay open)."""
+    """User-configurable ARP settings."""
     enabled: bool = False
     rate_index: int = ARP_DEFAULT_RATE_INDEX
     pattern: ArpPattern = ARP_DEFAULT_PATTERN
@@ -197,7 +195,6 @@ class ArpRuntime:
     # Playback state
     current_step_index: int = 0
     last_played_note: Optional[int] = None
-    last_played_targets: Set[int] = field(default_factory=set)
 
     # Clock/timing
     clock_mode: ClockMode = ClockMode.STOPPED
@@ -210,41 +207,41 @@ class ArpRuntime:
 
 
 # =============================================================================
-# ARP ENGINE
+# ARP ENGINE (Per-Slot v2.0)
 # =============================================================================
 
 class ArpEngine:
     """
-    Arpeggiator engine implementing the ARP specification.
+    Per-slot arpeggiator engine (PER_SLOT_ARP_SPEC v1.2.1).
 
-    All external inputs (UI events, clock ticks, timer callbacks) are posted
+    Each engine targets exactly one slot. All external inputs are posted
     to the event queue and processed serialized.
     """
 
     def __init__(
         self,
+        slot_id: int,
         send_note_on: Callable[[int, int, int], None],
         send_note_off: Callable[[int, int], None],
         get_velocity: Callable[[], int],
-        get_targets: Callable[[], Set[int]],
         get_bpm: Callable[[], float],
         rng_seed_override: Optional[int] = None,
     ):
         """
-        Initialize ARP engine.
+        Initialize ARP engine for a single slot.
 
         Args:
-            send_note_on: Callback to send note on (slot, note, velocity)
-            send_note_off: Callback to send note off (slot, note)
+            slot_id: Target slot (0-indexed, fixed for lifetime)
+            send_note_on: Callback (slot, note, velocity)
+            send_note_off: Callback (slot, note)
             get_velocity: Callback to get current overlay velocity
-            get_targets: Callback to get current target slots
             get_bpm: Callback to get current BPM
             rng_seed_override: Optional seed for deterministic testing
         """
+        self._slot_id = slot_id
         self._send_note_on = send_note_on
         self._send_note_off = send_note_off
         self._get_velocity = get_velocity
-        self._get_targets = get_targets
         self._get_bpm = get_bpm
         self._rng_seed_override = rng_seed_override
 
@@ -265,11 +262,40 @@ class ArpEngine:
         self._liveness_timer = QTimer()
         self._liveness_timer.timeout.connect(self._on_liveness_timer)
 
-        # Legacy note tracking (for notes sent in legacy mode)
-        self._legacy_notes_on: Dict[int, Set[int]] = {}  # note -> set of slots
+        # Legacy note tracking (for notes sent when ARP is off)
+        self._legacy_note_on: Optional[int] = None  # Single slot, single legacy note
 
         # Initialize PRNG
         self._init_prng()
+
+    # =========================================================================
+    # PROPERTIES (per spec v1.2.1)
+    # =========================================================================
+
+    @property
+    def slot_id(self) -> int:
+        """Target slot (0-indexed, read-only)."""
+        return self._slot_id
+
+    @property
+    def is_active(self) -> bool:
+        """True if ARP is enabled and has notes in active set."""
+        return self.settings.enabled and bool(self._get_active_set())
+
+    @property
+    def has_hold(self) -> bool:
+        """True if ARP+HOLD is active with latched notes."""
+        return (self.settings.enabled and self.settings.hold
+                and bool(self.runtime.latched))
+
+    @property
+    def currently_sounding_note(self) -> Optional[int]:
+        """The note currently playing, or None."""
+        return self.runtime.last_played_note
+
+    # =========================================================================
+    # INIT
+    # =========================================================================
 
     def _init_prng(self):
         """Initialize PRNG with seed."""
@@ -278,7 +304,6 @@ class ArpEngine:
             if seed == 0:
                 seed = XorShift32.DEFAULT_SEED
         else:
-            # Generate random seed
             import random
             seed = random.randint(1, 0xFFFFFFFF)
 
@@ -330,7 +355,6 @@ class ArpEngine:
             ArpEventType.RATE_CHANGE: self._handle_rate_change,
             ArpEventType.PATTERN_CHANGE: self._handle_pattern_change,
             ArpEventType.OCTAVES_CHANGE: self._handle_octaves_change,
-            ArpEventType.TARGET_CHANGE: self._handle_target_change,
             ArpEventType.BPM_CHANGE: self._handle_bpm_change,
             ArpEventType.MASTER_TICK: self._handle_master_tick,
             ArpEventType.FALLBACK_FIRE: self._handle_fallback_fire,
@@ -372,10 +396,6 @@ class ArpEngine:
         """Set octave range."""
         self.post_event(ArpEvent(ArpEventType.OCTAVES_CHANGE, {"octaves": octaves}))
 
-    def notify_targets_changed(self):
-        """Notify that target slots have changed."""
-        self.post_event(ArpEvent(ArpEventType.TARGET_CHANGE, {}))
-
     def notify_bpm_changed(self, bpm: float):
         """Notify BPM change."""
         self.post_event(ArpEvent(ArpEventType.BPM_CHANGE, {"bpm": bpm}))
@@ -388,7 +408,7 @@ class ArpEngine:
         ))
 
     def teardown(self):
-        """Tear down ARP engine (overlay dismiss)."""
+        """Tear down ARP engine: stop timers, note-off, reset state."""
         self.post_event(ArpEvent(ArpEventType.TEARDOWN, {}))
 
     def is_enabled(self) -> bool:
@@ -416,24 +436,16 @@ class ArpEngine:
         return self.runtime.physical_order.copy()
 
     def _get_expanded_list(self) -> List[int]:
-        """
-        Compute expanded note list from active set.
-
-        Returns notes in pattern-appropriate order, expanded across octaves.
-        """
+        """Compute expanded note list from active set, across octaves."""
         active_set = self._get_active_set()
         if not active_set:
             return []
 
-        # Base list ordering
         if self.settings.pattern == ArpPattern.ORDER:
-            # Use insertion order
             base_list = [n for n in self._get_active_order() if n in active_set]
         else:
-            # Sorted ascending
             base_list = sorted(active_set)
 
-        # Expand across octaves
         expanded = []
         for octave_offset in range(self.settings.octaves):
             for note in base_list:
@@ -448,10 +460,7 @@ class ArpEngine:
     # =========================================================================
 
     def _select_next_note(self, expanded_list: List[int]) -> int:
-        """
-        Select next note from expanded list based on pattern.
-        Updates current_step_index.
-        """
+        """Select next note from expanded list based on pattern."""
         n = len(expanded_list)
         if n == 0:
             raise ValueError("Cannot select from empty list")
@@ -476,7 +485,6 @@ class ArpEngine:
             elif n == 2:
                 note = expanded_list[idx % 2]
             else:
-                # n >= 3: ping-pong without repeating endpoints
                 seq_len = 2 * n - 2
                 pos = idx % seq_len
                 if pos < n:
@@ -492,7 +500,6 @@ class ArpEngine:
             self.runtime.current_step_index += 1
             return note
 
-        # Fallback
         return expanded_list[0]
 
     # =========================================================================
@@ -500,56 +507,41 @@ class ArpEngine:
     # =========================================================================
 
     def _get_arp_velocity(self, note: int, vel_snapshot: int) -> int:
-        """Get velocity for ARP note using ARP Note On velocity rules."""
-        if note in self.runtime.note_velocity:
-            return self.runtime.note_velocity[note]
-        return vel_snapshot
-
-    def _get_legacy_velocity(self, note: int, vel_snapshot: int) -> int:
-        """Get velocity for legacy note using Legacy Note On velocity rules."""
+        """Get velocity for ARP note."""
         if note in self.runtime.note_velocity:
             return self.runtime.note_velocity[note]
         return vel_snapshot
 
     # =========================================================================
-    # MIDI EMISSION HELPERS
+    # MIDI EMISSION HELPERS (single-slot)
     # =========================================================================
 
-    def _emit_note_on(self, slot: int, note: int, velocity: int):
-        """Emit a note on message."""
-        self._send_note_on(slot, note, velocity)
+    def _emit_note_on(self, note: int, velocity: int):
+        """Emit note on to this engine's slot."""
+        self._send_note_on(self._slot_id, note, velocity)
 
-    def _emit_note_off(self, slot: int, note: int):
-        """Emit a note off message."""
-        self._send_note_off(slot, note)
+    def _emit_note_off(self, note: int):
+        """Emit note off to this engine's slot."""
+        self._send_note_off(self._slot_id, note)
 
-    def _note_off_last_played(self):
-        """Turn off last played ARP note on all last played targets."""
+    def _note_off_currently_sounding(self):
+        """Turn off the currently sounding ARP note."""
         if self.runtime.last_played_note is not None:
-            for slot in self.runtime.last_played_targets:
-                self._emit_note_off(slot, self.runtime.last_played_note)
+            self._emit_note_off(self.runtime.last_played_note)
             self.runtime.last_played_note = None
-            self.runtime.last_played_targets = set()
 
-    def _note_off_legacy(self, note: int):
-        """Turn off a legacy note on all slots it's playing on."""
-        if note in self._legacy_notes_on:
-            for slot in self._legacy_notes_on[note]:
-                self._emit_note_off(slot, note)
-            del self._legacy_notes_on[note]
+    def _note_off_legacy(self):
+        """Turn off legacy note (non-ARP)."""
+        if self._legacy_note_on is not None:
+            self._emit_note_off(self._legacy_note_on)
+            self._legacy_note_on = None
 
-    def _note_off_all_legacy(self):
-        """Turn off all legacy notes."""
-        for note, slots in list(self._legacy_notes_on.items()):
-            for slot in slots:
-                self._emit_note_off(slot, note)
-        self._legacy_notes_on.clear()
-
-    def _note_on_legacy(self, note: int, velocity: int, targets: Set[int]):
-        """Turn on a legacy note on all target slots."""
-        self._legacy_notes_on[note] = targets.copy()
-        for slot in targets:
-            self._emit_note_on(slot, note, velocity)
+    def _note_on_legacy(self, note: int, velocity: int):
+        """Turn on a legacy note on this slot."""
+        # Turn off previous legacy note first
+        self._note_off_legacy()
+        self._legacy_note_on = note
+        self._emit_note_on(note, velocity)
 
     # =========================================================================
     # TIMING HELPERS
@@ -564,10 +556,7 @@ class ArpEngine:
         return beat_ms * beats_per_step
 
     def _start_or_restart_fallback(self, reason: str = ""):
-        """
-        Start or restart fallback timer following the spec procedure.
-        """
-        # Stop existing timer
+        """Start or restart fallback timer."""
         self._fallback_timer.stop()
         self.runtime.fallback_generation += 1
 
@@ -578,10 +567,8 @@ class ArpEngine:
             self.runtime.fallback_timer_running = False
             return
 
-        # First-fire computation
         now = self._now_ms()
 
-        # Choose anchor in priority order
         t_anchor = now
         if self.runtime.last_arp_step_time is not None:
             t_anchor = self.runtime.last_arp_step_time
@@ -590,14 +577,11 @@ class ArpEngine:
         elif self.runtime.last_scheduled_fallback_fire_time is not None:
             t_anchor = self.runtime.last_scheduled_fallback_fire_time
 
-        # Clamp anchor
         t_anchor_effective = min(t_anchor, now)
 
-        # Compute first fire time
         k = max(1, int((now + 1.0 - t_anchor_effective) / interval_ms) + 1)
         t_first = t_anchor_effective + k * interval_ms
 
-        # Schedule timer
         delay_ms = max(1, int(t_first - now))
         self._fallback_timer.start(delay_ms)
 
@@ -637,7 +621,7 @@ class ArpEngine:
     # =========================================================================
 
     def _on_fallback_timer(self):
-        """Fallback timer fired - post event to queue."""
+        """Fallback timer fired."""
         generation = self.runtime.fallback_generation
         t_scheduled = self.runtime.last_scheduled_fallback_fire_time
         t_fired = self._now_ms()
@@ -652,7 +636,7 @@ class ArpEngine:
         ))
 
     def _on_liveness_timer(self):
-        """Liveness timer fired - post event to queue."""
+        """Liveness timer fired."""
         self.post_event(ArpEvent(
             ArpEventType.LIVENESS_CHECK,
             {"t_fired_ms": self._now_ms()}
@@ -668,7 +652,6 @@ class ArpEngine:
         if not 0 <= note <= 127:
             return
 
-        # Sample velocity snapshot at handler entry
         vel_snapshot = self._get_velocity()
 
         # Update physical tracking
@@ -676,15 +659,12 @@ class ArpEngine:
         if note not in self.runtime.physical_order:
             self.runtime.physical_order.append(note)
 
-        # Capture velocity (clamped)
         self.runtime.note_velocity[note] = max(1, min(127, vel_snapshot))
 
         if not self.settings.enabled:
-            # Legacy behavior: emit note on immediately
-            targets = self._get_targets()
-            if targets:
-                velocity = self._get_legacy_velocity(note, vel_snapshot)
-                self._note_on_legacy(note, velocity, targets)
+            # Legacy: direct note-on to this slot
+            velocity = self.runtime.note_velocity.get(note, vel_snapshot)
+            self._note_on_legacy(note, velocity)
         else:
             # ARP enabled
             if self.settings.hold:
@@ -698,7 +678,6 @@ class ArpEngine:
                     if note not in self.runtime.latched_order:
                         self.runtime.latched_order.append(note)
 
-            # Check state transition
             if self._get_active_set():
                 self._state = ArpState.ENABLED_PLAYING
 
@@ -714,12 +693,14 @@ class ArpEngine:
             self.runtime.physical_order.remove(note)
 
         if not self.settings.enabled:
-            # Legacy behavior: emit note off immediately
-            self._note_off_legacy(note)
+            # Legacy: note off for this note
+            if self._legacy_note_on == note:
+                self._note_off_legacy()
         else:
-            # ARP enabled - check if active set becomes empty
+            # ARP: check if active set becomes empty
             if not self._get_active_set():
-                self._note_off_last_played()
+                # Note-off for currently sounding note (not the released key)
+                self._note_off_currently_sounding()
                 self._state = ArpState.ENABLED_IDLE
 
     def _handle_arp_toggle(self, event: ArpEvent):
@@ -729,28 +710,21 @@ class ArpEngine:
         if enabled == self.settings.enabled:
             return
 
-        # Sample velocity snapshot at handler entry
         vel_snapshot = self._get_velocity()
 
         if enabled:
             # DISABLED -> ENABLED
-            # Turn off legacy notes
-            self._note_off_all_legacy()
+            self._note_off_legacy()
 
-            # Initialize playback state
             self.runtime.current_step_index = 0
             self.runtime.last_played_note = None
-            self.runtime.last_played_targets = self._get_targets()
 
-            # Copy physical to latched if hold is on
             if self.settings.hold:
                 self.runtime.latched = self.runtime.physical_held.copy()
                 self.runtime.latched_order = self.runtime.physical_order.copy()
 
-            # Set clock mode to AUTO
             self.runtime.clock_mode = ClockMode.AUTO
 
-            # Start fallback if BPM valid
             bpm = self._get_bpm()
             if bpm > 0:
                 self._start_or_restart_fallback("enable")
@@ -762,22 +736,17 @@ class ArpEngine:
 
         else:
             # ENABLED -> DISABLED
-            # Turn off last played ARP note
-            self._note_off_last_played()
+            self._note_off_currently_sounding()
 
-            # Stop stepping
             self._stop_fallback()
             self._stop_liveness_timer()
             self.runtime.clock_mode = ClockMode.STOPPED
-
-            # Clear playback state
             self.runtime.current_step_index = 0
 
             # Resume legacy sustain for held notes
-            targets = self._get_targets()
             for note in self.runtime.physical_held:
-                velocity = self._get_legacy_velocity(note, vel_snapshot)
-                self._note_on_legacy(note, velocity, targets)
+                velocity = self.runtime.note_velocity.get(note, vel_snapshot)
+                self._note_on_legacy(note, velocity)
 
             self.settings.enabled = False
             self._state = ArpState.DISABLED
@@ -790,12 +759,10 @@ class ArpEngine:
             return
 
         if enabled:
-            # OFF -> ON
             self.settings.hold = True
             self.runtime.latched = self.runtime.physical_held.copy()
             self.runtime.latched_order = self.runtime.physical_order.copy()
         else:
-            # ON -> OFF
             self.settings.hold = False
             self.runtime.latched.clear()
             self.runtime.latched_order.clear()
@@ -804,7 +771,7 @@ class ArpEngine:
 
         # Post-toggle empty-set rule
         if self.settings.enabled and not self._get_active_set():
-            self._note_off_last_played()
+            self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
 
     def _handle_rate_change(self, event: ArpEvent):
@@ -815,7 +782,6 @@ class ArpEngine:
         self.settings.rate_index = rate_index
         self.runtime.current_step_index = 0
 
-        # Restart fallback if in AUTO mode
         if self.settings.enabled and self.runtime.clock_mode == ClockMode.AUTO:
             bpm = self._get_bpm()
             if bpm > 0:
@@ -823,9 +789,8 @@ class ArpEngine:
             else:
                 self._stop_fallback()
 
-        # Check if expanded list becomes empty
         if self.settings.enabled and not self._get_expanded_list():
-            self._note_off_last_played()
+            self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
 
     def _handle_pattern_change(self, event: ArpEvent):
@@ -835,9 +800,8 @@ class ArpEngine:
         self.settings.pattern = pattern
         self.runtime.current_step_index = 0
 
-        # Check if expanded list becomes empty
         if self.settings.enabled and not self._get_expanded_list():
-            self._note_off_last_played()
+            self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
 
     def _handle_octaves_change(self, event: ArpEvent):
@@ -848,7 +812,6 @@ class ArpEngine:
         self.settings.octaves = octaves
         self.runtime.current_step_index = 0
 
-        # Restart fallback if in AUTO mode
         if self.settings.enabled and self.runtime.clock_mode == ClockMode.AUTO:
             bpm = self._get_bpm()
             if bpm > 0:
@@ -856,25 +819,9 @@ class ArpEngine:
             else:
                 self._stop_fallback()
 
-        # Check if expanded list becomes empty
         if self.settings.enabled and not self._get_expanded_list():
-            self._note_off_last_played()
+            self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
-
-    def _handle_target_change(self, event: ArpEvent):
-        """Handle target slot changes."""
-        if not self.settings.enabled:
-            return
-
-        new_targets = self._get_targets()
-
-        if self.runtime.last_played_note is not None:
-            # Note off for removed targets
-            removed = self.runtime.last_played_targets - new_targets
-            for slot in removed:
-                self._emit_note_off(slot, self.runtime.last_played_note)
-
-        self.runtime.last_played_targets = new_targets
 
     def _handle_bpm_change(self, event: ArpEvent):
         """Handle BPM change."""
@@ -894,41 +841,29 @@ class ArpEngine:
         rate_index = event.data.get("rate_index", -1)
         tick_time_ms = event.data.get("tick_time_ms", 0.0)
 
-        # Always update timing info
         self.runtime.last_master_tick_time_by_rate[rate_index] = tick_time_ms
         if rate_index == self.settings.rate_index:
             self.runtime.last_eligible_master_tick_time = tick_time_ms
 
-        # Check stepping eligibility
         if not self.settings.enabled or self.runtime.clock_mode == ClockMode.STOPPED:
             return
 
         if self.runtime.clock_mode == ClockMode.MASTER:
-            # Only step on matching rate
             if rate_index == self.settings.rate_index:
                 self._execute_step(tick_time_ms)
 
         elif self.runtime.clock_mode == ClockMode.AUTO:
-            # Promotion to MASTER
             if rate_index == self.settings.rate_index:
-                # Stop fallback
                 self._stop_fallback()
-
-                # Promote to MASTER
                 self.runtime.clock_mode = ClockMode.MASTER
-
-                # Start liveness timer
                 self._start_liveness_timer()
 
-                # Double-step suppression
                 if self.runtime.last_arp_step_time is not None:
                     delta = abs(tick_time_ms - self.runtime.last_arp_step_time)
                     if delta <= PROMOTION_SUPPRESS_WINDOW_MS:
-                        # Suppress step, just update timing
                         self.runtime.last_arp_step_time = tick_time_ms
                         return
 
-                # Execute step
                 self._execute_step(tick_time_ms)
 
     def _handle_fallback_fire(self, event: ArpEvent):
@@ -937,7 +872,6 @@ class ArpEngine:
         t_scheduled_ms = event.data.get("t_scheduled_ms", 0.0)
         t_fired_ms = event.data.get("t_fired_ms", 0.0)
 
-        # Check eligibility
         if not self.settings.enabled:
             return
         if self.runtime.clock_mode != ClockMode.AUTO:
@@ -947,12 +881,10 @@ class ArpEngine:
         if not self.runtime.fallback_timer_running:
             return
         if generation != self.runtime.fallback_generation:
-            return  # Stale event
+            return
 
-        # Execute step
         self._execute_step(t_fired_ms)
 
-        # Schedule next fire
         bpm = self._get_bpm()
         if bpm <= 0:
             self._stop_fallback()
@@ -963,11 +895,9 @@ class ArpEngine:
             self._stop_fallback()
             return
 
-        # Subsequent-fire computation
         now = self._now_ms()
         t_next = t_scheduled_ms + interval_ms
 
-        # Catch up if late
         while t_next <= now + 1.0:
             t_next += interval_ms
 
@@ -982,15 +912,12 @@ class ArpEngine:
         if self.runtime.clock_mode != ClockMode.MASTER:
             return
 
-        # Check liveness
         timeout_ms = self._get_liveness_timeout_ms()
         now = self._now_ms()
 
         if self.runtime.last_eligible_master_tick_time is None:
-            # No ticks ever received, demote
             self._demote_to_auto()
         elif now - self.runtime.last_eligible_master_tick_time > timeout_ms:
-            # Ticks stopped, demote
             self._demote_to_auto()
 
     def _demote_to_auto(self):
@@ -1006,25 +933,25 @@ class ArpEngine:
             self.runtime.fallback_timer_running = False
 
     def _handle_teardown(self, event: ArpEvent):
-        """Handle overlay teardown."""
-        # Stop timers
+        """Handle teardown: stop timers first, then note-off, then reset."""
+        # 1. Cancel timers (prevents new note-on after teardown)
         self._stop_fallback()
         self._stop_liveness_timer()
         self.runtime.clock_mode = ClockMode.STOPPED
 
-        # Turn off ARP note
-        self._note_off_last_played()
+        # 2. Note-off for currently sounding note
+        self._note_off_currently_sounding()
 
-        # Turn off legacy notes
-        self._note_off_all_legacy()
+        # 3. Note-off for legacy notes
+        self._note_off_legacy()
 
-        # Reset state
+        # 4. Reset state
         self.settings = ArpSettings()
         self.runtime = ArpRuntime()
         self._state = ArpState.DISABLED
-        self._legacy_notes_on.clear()
+        self._legacy_note_on = None
 
-        # Reinitialize PRNG
+        # 5. Reinitialize PRNG
         self._init_prng()
 
     # =========================================================================
@@ -1033,36 +960,25 @@ class ArpEngine:
 
     def _execute_step(self, step_time_ms: float):
         """Execute one ARP step."""
-        # Sample snapshots at handler entry
         vel_snapshot = self._get_velocity()
-        targets_snapshot = self._get_targets()
 
-        # Get expanded list
         expanded_list = self._get_expanded_list()
 
         if not expanded_list:
-            # Empty list - turn off and go idle
-            self._note_off_last_played()
+            self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
             self.runtime.last_arp_step_time = step_time_ms
             return
 
-        # Select next note
         next_note = self._select_next_note(expanded_list)
 
         # Turn off previous note
-        self._note_off_last_played()
+        self._note_off_currently_sounding()
 
-        # Turn on new note (if targets exist)
-        if targets_snapshot:
-            velocity = self._get_arp_velocity(next_note, vel_snapshot)
-            for slot in targets_snapshot:
-                self._emit_note_on(slot, next_note, velocity)
-            self.runtime.last_played_note = next_note
-            self.runtime.last_played_targets = targets_snapshot
-        else:
-            self.runtime.last_played_note = None
-            self.runtime.last_played_targets = set()
+        # Turn on new note
+        velocity = self._get_arp_velocity(next_note, vel_snapshot)
+        self._emit_note_on(next_note, velocity)
+        self.runtime.last_played_note = next_note
 
         self.runtime.last_arp_step_time = step_time_ms
         self._state = ArpState.ENABLED_PLAYING

@@ -284,6 +284,7 @@ class MainFrame(QMainWindow):
         self.generator_grid = GeneratorGrid(rows=2, cols=4)
         self.generator_grid.generator_selected.connect(self.generator.on_generator_selected)  # Legacy
         self.generator_grid.generator_changed.connect(self.generator.on_generator_changed)
+        self.generator_grid.generator_changed.connect(self._on_generator_changed_arp_reset)
         self.generator_grid.generator_parameter_changed.connect(self.generator.on_generator_param_changed)
         self.generator_grid.generator_custom_parameter_changed.connect(self.generator.on_generator_custom_param_changed)
         self.generator_grid.generator_filter_changed.connect(self.generator.on_generator_filter_changed)
@@ -778,6 +779,9 @@ class MainFrame(QMainWindow):
             FXSlotsState, FXSlotState,
         )
 
+        # Reset all ARP engines before loading new pack (per PER_SLOT_ARP_SPEC v1.2.1)
+        self.keyboard.arp_manager.reset_all()
+
         if pack_id == "__all__":
             # All packs — lock cycle to all pack generators, don't load into slots
             cycle_list = get_all_pack_generators()
@@ -826,10 +830,26 @@ class MainFrame(QMainWindow):
             self.preset._apply_preset(PresetState())
             self.preset_name.setText("Init")
 
-        # If keyboard overlay is active, re-apply MIDI mode to focused slot
+        # If keyboard overlay is active, re-apply MIDI mode and re-bind engine
         if self._keyboard_overlay is not None and self._keyboard_overlay.isVisible():
             self.keyboard._ensure_focused_slot_midi()
+            # Re-bind focused slot's engine (pack change may have reset engines)
+            engine = self.keyboard.arp_manager.get_engine(self.keyboard._focused_slot - 1)
+            self._keyboard_overlay.set_arp_engine(engine)
             self._keyboard_overlay._update_slot_buttons()
+
+    def _on_generator_changed_arp_reset(self, slot_id: int, generator_type: str):
+        """Reset ARP engine for a slot when its generator changes (PER_SLOT_ARP_SPEC v1.2.1)."""
+        osc_slot = slot_id - 1  # 1-indexed -> 0-indexed
+        self.keyboard.arp_manager.reset_slot(osc_slot)
+        self.keyboard._send_all_notes_off(osc_slot)
+
+        # If overlay visible and this is the focused slot, re-bind engine
+        if (self._keyboard_overlay is not None and self._keyboard_overlay.isVisible() and
+                self.keyboard._focused_slot == slot_id):
+            self.keyboard._ensure_focused_slot_midi()
+            engine = self.keyboard.arp_manager.get_engine(osc_slot)
+            self._keyboard_overlay.set_arp_engine(engine)
 
     def _update_slot_cycles(self, generator_list):
         """Update all slot cycle buttons to only show given generators."""
