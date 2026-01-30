@@ -8,8 +8,8 @@ Each slot has:
 
 Clock model:
 - QTimer fires every TICK_INTERVAL_MS (~10ms) calling on_tick()
-- Timer auto-starts when any slot enters SEQ mode
-- Timer auto-stops when no slots are in SEQ mode
+- Timer auto-starts when any slot enters SEQ or ARP mode
+- Timer auto-stops when no slots need ticks
 - BPM is tracked to convert timer intervals to beat durations
 
 Sync model:
@@ -17,6 +17,12 @@ Sync model:
 - First slot to enter SEQ starts immediately and resets the sync phase
 - Subsequent slots entering SEQ wait for the next bar downbeat before starting
 - This keeps all slot sequencers aligned to the same bar grid
+
+ARP clock integration:
+- Per-rate phase accumulators (7 rates) track beat boundaries
+- When a rate boundary is crossed, master_tick() is fired to all ARP-mode slots
+- ARP promotes from fallback timer to master clock for grid-locked stepping
+- ARP starts immediately (no bar-wait) but locks to the shared grid
 """
 
 from __future__ import annotations
@@ -28,7 +34,7 @@ from typing import Callable, List, Optional
 from PyQt5.QtCore import QTimer
 
 from src.model.sequencer import MotionMode
-from src.gui.arp_engine import ArpEngine
+from src.gui.arp_engine import ArpEngine, ARP_BEATS_PER_STEP
 from src.gui.seq_engine import SeqEngine
 from src.utils.logger import logger
 
@@ -93,6 +99,10 @@ class MotionManager:
         # Global sync phase — accumulates beats, fires sync pulse every SYNC_QUANTUM_BEATS
         self._sync_phase: float = 0.0
 
+        # Per-rate phase accumulators for ARP master tick delivery
+        # 7 rates (indices 0-6) each with independent phase tracking
+        self._rate_phases: List[float] = [0.0] * len(ARP_BEATS_PER_STEP)
+
         logger.info("MotionManager: 8 slots initialized", component="MOTION")
 
     # =========================================================================
@@ -129,18 +139,20 @@ class MotionManager:
             logger.debug("MotionManager: clock stopped", component="MOTION")
 
     def _update_clock_state(self):
-        """Start or stop clock based on whether any slot needs SEQ ticks."""
-        any_seq = any(
-            s['mode'] == MotionMode.SEQ or s['pending_seq_start']
+        """Start or stop clock based on whether any slot needs ticks."""
+        any_active = any(
+            s['mode'] in (MotionMode.SEQ, MotionMode.ARP) or s['pending_seq_start']
             for s in self._slots
         )
-        if any_seq:
+        if any_active:
             self._start_clock()
         else:
             self._stop_clock()
 
     def on_tick(self, tick_duration_beats: float):
         """Tick all slots with the given beat duration."""
+        now_ms = time.monotonic() * 1000.0
+
         # Check if a sync boundary is crossed this tick
         self._sync_phase += tick_duration_beats
         sync_crossed = False
@@ -148,6 +160,14 @@ class MotionManager:
             sync_crossed = True
             # Keep remainder so we don't drift
             self._sync_phase %= SYNC_QUANTUM_BEATS
+
+        # Check which rate boundaries are crossed (for ARP master ticks)
+        rates_crossed = []
+        for rate_idx, beats_per_step in ARP_BEATS_PER_STEP.items():
+            self._rate_phases[rate_idx] += tick_duration_beats
+            if self._rate_phases[rate_idx] >= beats_per_step:
+                self._rate_phases[rate_idx] %= beats_per_step
+                rates_crossed.append(rate_idx)
 
         for slot in self._slots:
             slot['tick_accumulator'] += tick_duration_beats
@@ -162,6 +182,11 @@ class MotionManager:
                     if sync_crossed and slot['pending_seq_start']:
                         slot['pending_seq_start'] = False
                         slot['seq'].start()
+
+                    # Fire ARP master ticks for crossed rate boundaries
+                    if slot['mode'] == MotionMode.ARP and rates_crossed:
+                        for rate_idx in rates_crossed:
+                            slot['arp'].master_tick(rate_idx, now_ms)
 
                     accumulated = slot['tick_accumulator']
                     slot['tick_accumulator'] = 0.0
