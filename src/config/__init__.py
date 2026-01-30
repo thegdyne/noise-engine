@@ -712,6 +712,8 @@ def _build_generator_cycle():
     
     # 2. Pack generators (grouped by pack, in manifest order)
     for pack in get_enabled_packs():
+        if pack['id'] == 'core':
+            continue  # Core generators already added above
         # Use resolved display names stored during loading (preserves manifest order)
         pack_generators = pack.get('loaded_generators', [])
         
