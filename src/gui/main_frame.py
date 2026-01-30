@@ -762,29 +762,39 @@ class MainFrame(QMainWindow):
         self._mark_dirty()
 
     def on_pack_changed(self, pack_id):
-        # Auto-load pack preset if exists
+        """Load pack generators directly into slots 1-8."""
+        if getattr(self, '_applying_pack', False):
+            return
+        self._applying_pack = True
+        try:
+            self._do_pack_changed(pack_id)
+        finally:
+            self._applying_pack = False
+
+    def _do_pack_changed(self, pack_id):
+        from src.config import get_generators_for_pack
+        from src.presets.preset_schema import PresetState, SlotState
+
         if pack_id:
-            from src.presets.preset_manager import PresetManager
-            from src.presets.preset_schema import PresetState
-            sanitized = pack_id.replace("-", "_").replace(" ", "_").lower()
-            preset_path = PresetManager.DEFAULT_DIR / f"{sanitized}_preset.json"
-            if preset_path.exists():
-                try:
-                    manager = PresetManager()
-                    state = manager.load(preset_path)
-                    self.preset._apply_preset(state)
-                    self.preset_name.setText(state.name)
-                    logger.info(f"Auto-loaded preset for pack '{pack_id}'", component="PACK")
-                except Exception as e:
-                    logger.warning(f"Failed to load pack preset: {e}", component="PACK")
-                    self.preset._apply_preset(PresetState(pack=pack_id))
-                    self.preset_name.setText("Init")
-            else:
-                self.preset._apply_preset(PresetState(pack=pack_id))
-                self.preset_name.setText("Init")
+            # Get this pack's generators (includes "Empty" at index 0)
+            generators = get_generators_for_pack(pack_id)
+            # Strip "Empty" — we want the actual generators
+            generators = [g for g in generators if g != "Empty"]
+
+            # Build slot states: map generators 1:1 to slots
+            slots = []
+            for i in range(8):
+                if i < len(generators):
+                    slots.append(SlotState(generator=generators[i]))
+                else:
+                    slots.append(SlotState())  # Empty slot
+
+            state = PresetState(pack=pack_id, slots=slots)
+            self.preset._apply_preset(state)
+            self.preset_name.setText("Init")
+            logger.info(f"Loaded pack '{pack_id}': {len(generators)} generators into slots", component="PACK")
         else:
-            # Core - clean state
-            from src.presets.preset_schema import PresetState
+            # Core — clear all slots
             self.preset._apply_preset(PresetState())
             self.preset_name.setText("Init")
 
