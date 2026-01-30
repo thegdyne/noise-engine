@@ -1601,6 +1601,12 @@ OSC_PATHS = {
     'boid_clear': '/noise/boid/clear',  # no args - clear all offsets
     # Value stream (SC → Python)
     'bus_values': '/noise/bus/values',  # [targetKey1, value1, ...]
+    # Scope tap
+    'scope_slot': '/noise/scope/slot',          # [slot] 0-7
+    'scope_threshold': '/noise/scope/threshold', # [float] -1.0 to 1.0
+    'scope_freeze': '/noise/scope/freeze',       # [int] 0=live, 1=frozen
+    'scope_enable': '/noise/scope/enable',       # [int] 0=off, 1=on
+    'scope_data': '/noise/scope/data',           # SC → Python: [float, float, ...] waveform
 }
 
 # === WIDGET SIZES ===

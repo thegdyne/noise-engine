@@ -26,6 +26,7 @@ from src.gui.bpm_display import BPMDisplay
 from src.gui.pack_selector import PackSelector
 from src.gui.midi_selector import MIDISelector
 from src.gui.console_panel import ConsolePanel
+from src.gui.scope_widget import ScopeWidget
 from src.gui.mod_routing_state import ModRoutingState, ModConnection, Polarity
 from src.gui.mod_matrix_window import ModMatrixWindow
 from src.gui.crossmod_routing_state import CrossmodRoutingState
@@ -36,6 +37,7 @@ from src.gui.preset_browser import PresetBrowser
 from src.gui.mod_debug import install_mod_debug_hotkey
 from src.gui.theme import COLORS, button_style, FONT_FAMILY, MONO_FONT, FONT_SIZES
 from src.audio.osc_bridge import OSCBridge
+from src.audio.scope_controller import ScopeController
 from src.config import (
     CLOCK_RATE_INDEX, FILTER_TYPE_INDEX, GENERATORS, GENERATOR_CYCLE,
     BPM_DEFAULT, OSC_PATHS, unmap_value, get_param_config
@@ -147,6 +149,9 @@ class MainFrame(QMainWindow):
         self._current_preset_name = None
         self._current_preset_path = None  # Full path to loaded/saved preset
         
+        # Scope tap controller (created on connect)
+        self.scope_controller = None
+
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
         
@@ -346,8 +351,15 @@ class MainFrame(QMainWindow):
         self.fx_grid = FXGrid()
         bottom_layout.addWidget(self.fx_grid)
 
-        # Spacer pushes master chain to the right
+        # Spacer pushes scope + master chain to the right
         bottom_layout.addStretch(1)
+
+        # Scope tap (left of master chain)
+        self.scope_widget = ScopeWidget()
+        self.scope_widget.slot_changed.connect(self._on_scope_slot_changed)
+        self.scope_widget.threshold_changed.connect(self._on_scope_threshold_changed)
+        self.scope_widget.freeze_changed.connect(self._on_scope_freeze_changed)
+        bottom_layout.addWidget(self.scope_widget)
 
         # Master chain (right side) - Heat → Filter → EQ → Comp → Limiter → Output
         self.master_section = MasterChain()
@@ -1111,6 +1123,32 @@ class MainFrame(QMainWindow):
     def cc_learn_manager(self):
         """Compatibility property - cc_learn_manager now lives in MidiCCController."""
         return self.midi_cc.cc_learn_manager
+
+    # ── Scope Tap ─────────────────────────────────────────────────
+
+    def _on_scope_slot_changed(self, slot_idx):
+        """Handle scope slot selection (0-indexed)."""
+        if self.scope_controller:
+            self.scope_controller.set_slot(slot_idx)
+
+    def _on_scope_threshold_changed(self, value):
+        """Handle scope trigger threshold change."""
+        if self.scope_controller:
+            self.scope_controller.set_threshold(value)
+
+    def _on_scope_freeze_changed(self, frozen):
+        """Handle scope freeze toggle."""
+        if self.scope_controller:
+            self.scope_controller.freeze(frozen)
+
+    def _on_scope_data(self, data):
+        """Handle incoming scope waveform data from SC."""
+        import numpy as np
+        try:
+            arr = np.array(data, dtype=np.float32)
+            self.scope_widget.set_waveform(arr)
+        except Exception:
+            pass
 
     def _show_toast(self, message, duration=3000):
         """Show brief toast notification."""

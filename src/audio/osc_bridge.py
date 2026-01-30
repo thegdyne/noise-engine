@@ -41,6 +41,8 @@ class OSCBridge(QObject):
     connection_lost = pyqtSignal()  # Emitted when heartbeat fails
     connection_lost_reason = pyqtSignal(str)  # Reason: "heartbeat_missed", "ping_timeout", etc.
     connection_restored = pyqtSignal()  # Emitted when reconnect succeeds
+    # Scope tap signal
+    scope_data_received = pyqtSignal(object)  # numpy array of floats
     # Audio device signals
     audio_devices_received = pyqtSignal(list, str)  # devices list, current device
     audio_device_changing = pyqtSignal(str)  # device name
@@ -287,6 +289,9 @@ class OSCBridge(QObject):
         # Handle unified bus values from SC (for generator slider visualization)
         dispatcher.map(OSC_PATHS['bus_values'], self._handle_bus_values)
 
+        # Handle scope tap waveform data from SC
+        dispatcher.map(OSC_PATHS['scope_data'], self._handle_scope_data)
+
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
 
@@ -511,6 +516,13 @@ class OSCBridge(QObject):
             i += 2
         if values:
             self.bus_values_received.emit(values)
+
+    def _handle_scope_data(self, address, *args):
+        """Handle scope waveform data from SC (1024 floats)."""
+        if self._shutdown or self._deleted:
+            return
+        if len(args) > 0:
+            self.scope_data_received.emit(args)
 
     def send(self, path_key, args):
         """Send OSC message using SSOT path key.
