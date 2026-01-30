@@ -25,6 +25,8 @@ from .arp_engine import (
     ArpEngine, ArpPattern, ArpSettings,
     ARP_RATE_LABELS, ARP_DEFAULT_RATE_INDEX
 )
+from .seq_engine import SeqEngine, SEQ_RATE_LABELS, SEQ_DEFAULT_RATE_INDEX
+from src.model.sequencer import StepType, MotionMode
 
 # Key -> semitone offset from C (within current octave span)
 KEY_TO_SEMITONE = {
@@ -109,6 +111,11 @@ class KeyboardOverlay(QWidget):
         # Bound ARP engine (None when no engine bound)
         self._arp_engine: Optional[ArpEngine] = None
 
+        # Bound SEQ engine (None when no engine bound)
+        self._seq_engine: Optional[SeqEngine] = None
+        self._seq_recording: bool = False
+        self._seq_input_cursor: int = 0
+
         # Dragging state
         self._drag_pos = None
 
@@ -147,6 +154,45 @@ class KeyboardOverlay(QWidget):
         self._arp_engine = engine
         if engine is not None:
             self.sync_ui_from_engine()
+
+    def set_seq_engine(self, engine: Optional[SeqEngine]):
+        """
+        Bind or unbind a SEQ engine for step recording.
+
+        When bound: overlay can enter step-recording mode.
+        When unbound (None): step recording disabled.
+        """
+        self._seq_engine = engine
+        if engine is None:
+            self._seq_recording = False
+            self._seq_input_cursor = 0
+
+    def set_seq_recording(self, enabled: bool):
+        """Toggle step recording mode."""
+        if self._seq_engine is None:
+            self._seq_recording = False
+            return
+        self._seq_recording = enabled
+        if enabled:
+            self._seq_input_cursor = 0
+
+    def _is_seq_recording_mode(self) -> bool:
+        """Check if currently in SEQ step-recording mode."""
+        return self._seq_recording and self._seq_engine is not None
+
+    def _advance_input_cursor(self):
+        """Advance step-recording cursor with wrap."""
+        if self._seq_engine is None:
+            return
+        length = self._seq_engine.settings.length
+        self._seq_input_cursor = (self._seq_input_cursor + 1) % length
+
+    def _move_input_cursor(self, delta: int):
+        """Move step-recording cursor by delta with wrap."""
+        if self._seq_engine is None:
+            return
+        length = self._seq_engine.settings.length
+        self._seq_input_cursor = (self._seq_input_cursor + delta) % length
 
     def sync_ui_from_engine(self):
         """Exhaustive UI sync from bound engine's state."""
@@ -823,6 +869,12 @@ class KeyboardOverlay(QWidget):
 
         key = event.key()
 
+        # SEQ step recording mode — intercept keys for step input
+        if self._is_seq_recording_mode():
+            self._handle_seq_recording_key(key)
+            event.accept()
+            return
+
         # Octave change
         if key in OCTAVE_KEYS:
             self._handle_octave_change(OCTAVE_KEYS[key])
@@ -933,6 +985,69 @@ class KeyboardOverlay(QWidget):
             btn.setProperty("pressed", "true" if pressed else "false")
             btn.style().unpolish(btn)
             btn.style().polish(btn)
+
+    # -------------------------------------------------------------------------
+    # SEQ Step Recording
+    # -------------------------------------------------------------------------
+
+    def _handle_seq_recording_key(self, key: int):
+        """
+        Handle key press in SEQ recording mode (SH-101 style).
+
+        Key mapping:
+            Note keys (A-K row) -> NOTE step with MIDI pitch, advance cursor
+            Space               -> REST step, advance cursor
+            Tab                 -> TIE step, advance cursor
+            Backspace           -> Move cursor back 1 step
+            Z/X                 -> Octave shift (still works in recording)
+        """
+        if self._seq_engine is None:
+            return
+
+        # Octave change works in recording mode too
+        if key in OCTAVE_KEYS:
+            self._handle_octave_change(OCTAVE_KEYS[key])
+            return
+
+        # Note key -> NOTE step
+        if key in KEY_TO_SEMITONE:
+            semitone = KEY_TO_SEMITONE[key]
+            midi_note = self._compute_midi_note(semitone)
+            if 0 <= midi_note <= 127:
+                self._seq_engine.queue_command({
+                    'type': 'SET_STEP',
+                    'index': self._seq_input_cursor,
+                    'step_type': StepType.NOTE,
+                    'note': midi_note,
+                    'velocity': self._velocity,
+                })
+                self._advance_input_cursor()
+            return
+
+        # Space -> REST step
+        if key == Qt.Key_Space:
+            self._seq_engine.queue_command({
+                'type': 'SET_STEP',
+                'index': self._seq_input_cursor,
+                'step_type': StepType.REST,
+            })
+            self._advance_input_cursor()
+            return
+
+        # Tab -> TIE step
+        if key == Qt.Key_Tab:
+            self._seq_engine.queue_command({
+                'type': 'SET_STEP',
+                'index': self._seq_input_cursor,
+                'step_type': StepType.TIE,
+            })
+            self._advance_input_cursor()
+            return
+
+        # Backspace -> move cursor back
+        if key == Qt.Key_Backspace:
+            self._move_input_cursor(-1)
+            return
 
     # -------------------------------------------------------------------------
     # Show / Hide
