@@ -1,0 +1,16 @@
+{
+  "generator_id": "infra",
+  "name": "INFRA",
+  "synthdef": "forge_q121_infra",
+  "synthesis_method": "fm/am_chorus",
+  "custom_params": [
+    {"key": "pressure", "label": "PRS", "tooltip": "Pressure oscillation depth", "default": 0.6, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "cycle", "label": "CYC", "tooltip": "Pressure cycle rate", "default": 0.3, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "sub", "label": "SUB", "tooltip": "Sub-bass content", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "pulse", "label": "PLS", "tooltip": "Infrasonic pulsation", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "weight", "label": "WGT", "tooltip": "Low-end weight", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

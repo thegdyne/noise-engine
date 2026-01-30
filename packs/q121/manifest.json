@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "q121",
+  "name": "Q121 Wind Tunnel",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Abandoned aeronautical research facility - air, mass, rotation, and resonant industrial cavities",
+  "enabled": true,
+  "generators": [
+    "blades",
+    "airflow",
+    "shroud",
+    "motor",
+    "cavity",
+    "vortex",
+    "infra",
+    "gauge"
+  ]
+}

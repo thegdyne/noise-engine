@@ -92,6 +92,7 @@ packs/user/*
 !packs/kaiju_beats/
 !packs/leviathan/
 !packs/maratus/
+!packs/mirrors/
 !packs/mod_caf/
 !packs/moss_root/
 !packs/nerve_glow/
@@ -99,6 +100,7 @@ packs/user/*
 !packs/overgrown/
 !packs/pathway_raiders/
 !packs/pripyat/
+!packs/q121/
 !packs/rakshasa/
 !packs/rlyeh/
 !packs/scorn/

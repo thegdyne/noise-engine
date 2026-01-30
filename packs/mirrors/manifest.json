@@ -1,0 +1,19 @@
+{
+  "pack_format": 1,
+  "pack_id": "mirrors",
+  "name": "Sound Mirrors",
+  "version": "1.0.0",
+  "author": "CQD_Forge",
+  "description": "Acoustic sound mirror soundscapes - parabolic focusing, concrete resonance, distant detection, marsh winds and abandoned technology inspired by the Denge Sound Mirrors",
+  "enabled": true,
+  "generators": [
+    "dish",
+    "focus",
+    "detect",
+    "marsh",
+    "echo",
+    "warning",
+    "decay",
+    "listen"
+  ]
+}

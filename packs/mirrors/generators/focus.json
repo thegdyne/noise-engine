@@ -1,0 +1,16 @@
+{
+  "generator_id": "focus",
+  "name": "FOCUS",
+  "synthdef": "forge_mirrors_focus",
+  "synthesis_method": "spectral/additive",
+  "custom_params": [
+    {"key": "converge", "label": "CNV", "tooltip": "Wave convergence - harmonic alignment", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "focal", "label": "FCL", "tooltip": "Focal point - intensity peak", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "gather", "label": "GTH", "tooltip": "Sound gathering - partial count", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "distance", "label": "DST", "tooltip": "Source distance - brightness", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "clarity", "label": "CLR", "tooltip": "Signal clarity - noise floor", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}

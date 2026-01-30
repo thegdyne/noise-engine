@@ -1,0 +1,16 @@
+{
+  "generator_id": "marsh",
+  "name": "MARSH",
+  "synthdef": "forge_mirrors_marsh",
+  "synthesis_method": "texture/noise_drone",
+  "custom_params": [
+    {"key": "wind", "label": "WND", "tooltip": "Marsh wind - noise intensity", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "reeds", "label": "RDS", "tooltip": "Reed rustle - high frequency", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "water", "label": "WTR", "tooltip": "Standing water - low resonance", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "flat", "label": "FLT", "tooltip": "Flat landscape - openness", "default": 0.5, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""},
+    {"key": "chill", "label": "CHL", "tooltip": "Coastal chill - character", "default": 0.4, "min": 0.0, "max": 1.0, "curve": "lin", "unit": ""}
+  ],
+  "output_trim_db": -6.0,
+  "midi_retrig": false,
+  "pitch_target": null
+}
