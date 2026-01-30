@@ -23,7 +23,7 @@ SynthDef(\ms20, { |out, freqBus, customBus0|
     var p = In.kr(customBus0, 5);
     var oscMix, ring, filterDrive, hpfAmt, noiseLevel;
     var osc1, osc2, ringMod, noise;
-    var hpfFreq, filtered;
+    var hpfFreq;
 
     freq = In.kr(freqBus);
 
@@ -51,25 +51,15 @@ SynthDef(\ms20, { |out, freqBus, customBus0|
     noise = PinkNoise.ar;
     sig = sig + (noise * noiseLevel * 0.5);
 
-    // === MS-20 FILTER CHARACTER ===
-    // Pre-filter drive (this is key to the MS-20 sound)
+    // === MS-20 CHARACTER ===
+    // Pre-filter drive (key to the MS-20 sound)
     sig = (sig * (1 + (filterDrive * 4))).tanh;
 
-    // High-pass filter (MS-20 has HP before LP)
+    // High-pass filter (MS-20 has HP before LP in signal path)
     hpfFreq = hpfAmt.linexp(0, 1, 20, 2000);
     sig = HPF.ar(sig, hpfFreq);
 
-    // Low-pass filter with aggressive resonance
-    // MS-20 filter self-oscillates and screams at high res
-    // Using MoogFF for that aggressive character
-    filtered = MoogFF.ar(sig, filterFreq, rq.linlin(0.1, 1.0, 3.5, 0) * 0.95);
-
-    // Blend based on filter type (LP/HP/BP modes)
-    sig = Select.ar(filterType, [
-        filtered,  // LP
-        HPF.ar(sig, filterFreq),  // HP
-        BPF.ar(sig, filterFreq, rq, 2)  // BP
-    ]);
+    // Channel strip handles LP/HP/BP filter + envelope downstream
 
     // === OUTPUT ===
     sig = ~stereoSpread.(sig, 0.1, 0.2);
