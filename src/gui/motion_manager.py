@@ -1,32 +1,33 @@
 """
 Motion Manager — Coordinates Arpeggiator and Sequencer per Slot
 
-Prevents race conditions between audio clock thread and UI thread
-during mode switching. Each slot has:
+Each slot has:
 - An ArpEngine instance (from ArpSlotManager)
 - A SeqEngine instance (created here)
 - A per-slot RLock for thread-safe mode transitions
-- A tick_accumulator to prevent dropped time during lock contention
 
-Threading model:
-- Clock thread: calls on_tick() with try-lock (never blocks)
-- UI thread: calls set_mode() which queues pending_mode (with lock)
-- Mode changes execute atomically on the clock thread
-
-P0 CRITICAL: The clock thread never blocks waiting for UI.
-If try-lock fails, time accumulates in tick_accumulator and is
-processed on the next successful lock acquisition.
+Clock model:
+- QTimer fires every TICK_INTERVAL_MS (~10ms) calling on_tick()
+- Timer auto-starts when any slot enters SEQ mode
+- Timer auto-stops when no slots are in SEQ mode
+- BPM is tracked to convert timer intervals to beat durations
 """
 
 from __future__ import annotations
 
+import time
 import threading
 from typing import Callable, List, Optional
+
+from PyQt5.QtCore import QTimer
 
 from src.model.sequencer import MotionMode
 from src.gui.arp_engine import ArpEngine
 from src.gui.seq_engine import SeqEngine
 from src.utils.logger import logger
+
+# Clock tick interval in milliseconds (~10ms for smooth sequencing)
+TICK_INTERVAL_MS = 10
 
 
 class MotionManager:
@@ -43,6 +44,7 @@ class MotionManager:
         arp_engines: List[ArpEngine],
         send_note_on: Callable[[int, int, int], None],
         send_note_off: Callable[[int, int], None],
+        get_bpm: Optional[Callable[[], float]] = None,
     ):
         """
         Initialize MotionManager.
@@ -51,7 +53,9 @@ class MotionManager:
             arp_engines: List of 8 ArpEngine instances (from ArpSlotManager)
             send_note_on: Callback (slot, note, velocity)
             send_note_off: Callback (slot, note)
+            get_bpm: Callback returning current BPM (default 120.0)
         """
+        self._get_bpm = get_bpm or (lambda: 120.0)
         self._slots: List[dict] = []
 
         for i in range(8):
@@ -69,44 +73,76 @@ class MotionManager:
                 'pending_mode': None,
             })
 
+        # QTimer-based clock for SEQ tick delivery
+        self._clock_timer = QTimer()
+        self._clock_timer.setTimerType(1)  # Qt.PreciseTimer
+        self._clock_timer.timeout.connect(self._on_clock_tick)
+        self._last_tick_time: Optional[float] = None
+
         logger.info("MotionManager: 8 slots initialized", component="MOTION")
 
     # =========================================================================
-    # CLOCK TICK (called from audio/clock thread)
+    # CLOCK (QTimer-based)
     # =========================================================================
 
-    def on_tick(self, tick_duration_beats: float):
-        """
-        Called by Master Clock Thread.
+    def _on_clock_tick(self):
+        """QTimer callback — compute beat duration and tick all slots."""
+        now = time.monotonic()
+        if self._last_tick_time is not None:
+            dt_seconds = now - self._last_tick_time
+        else:
+            dt_seconds = TICK_INTERVAL_MS / 1000.0
+        self._last_tick_time = now
 
-        P0 CRITICAL: Never drop time. If lock fails, accumulate beats
-        and apply them on the next successful tick.
-        """
+        bpm = self._get_bpm()
+        if bpm <= 0:
+            return
+        tick_duration_beats = (bpm / 60.0) * dt_seconds
+        self.on_tick(tick_duration_beats)
+
+    def _start_clock(self):
+        """Start the clock timer if not already running."""
+        if not self._clock_timer.isActive():
+            self._last_tick_time = time.monotonic()
+            self._clock_timer.start(TICK_INTERVAL_MS)
+            logger.debug("MotionManager: clock started", component="MOTION")
+
+    def _stop_clock(self):
+        """Stop the clock timer if no slots need it."""
+        if self._clock_timer.isActive():
+            self._clock_timer.stop()
+            self._last_tick_time = None
+            logger.debug("MotionManager: clock stopped", component="MOTION")
+
+    def _update_clock_state(self):
+        """Start or stop clock based on whether any slot is in SEQ mode."""
+        any_seq = any(s['mode'] == MotionMode.SEQ for s in self._slots)
+        if any_seq:
+            self._start_clock()
+        else:
+            self._stop_clock()
+
+    def on_tick(self, tick_duration_beats: float):
+        """Tick all slots with the given beat duration."""
         for slot in self._slots:
-            # Always accumulate time (even if lock fails)
             slot['tick_accumulator'] += tick_duration_beats
 
-            # Try non-blocking acquire
             if slot['lock'].acquire(blocking=False):
                 try:
-                    # Process any pending mode change first
                     if slot['pending_mode'] is not None:
                         self._execute_handover(slot, slot['pending_mode'])
                         slot['pending_mode'] = None
 
-                    # Process accumulated time
                     accumulated = slot['tick_accumulator']
                     slot['tick_accumulator'] = 0.0
                     self._process_slot(slot, accumulated)
                 finally:
                     slot['lock'].release()
-            # If lock fails, time accumulates — processed next tick
 
     def _process_slot(self, slot: dict, tick_duration_beats: float):
         """Process tick for active mode with accumulated time."""
         if slot['mode'] == MotionMode.SEQ:
             slot['seq'].tick(tick_duration_beats)
-        # ARP ticks are handled by ArpEngine's own timer/clock mechanism
 
     # =========================================================================
     # MODE SWITCHING (called from UI thread)
@@ -114,10 +150,8 @@ class MotionManager:
 
     def set_mode(self, slot_idx: int, new_mode: MotionMode):
         """
-        Queue a mode change for a slot (called from UI thread).
-
-        P0 CRITICAL: Don't block waiting for clock. Queue the mode change
-        and let the clock thread execute it atomically.
+        Set mode for a slot. Executes handover immediately since
+        the clock runs on the same (UI) thread via QTimer.
         """
         if slot_idx < 0 or slot_idx >= 8:
             return
@@ -126,12 +160,14 @@ class MotionManager:
         with slot['lock']:
             if slot['mode'] == new_mode:
                 return
-            slot['pending_mode'] = new_mode
+            self._execute_handover(slot, new_mode)
+            slot['pending_mode'] = None
             logger.debug(
-                f"MotionManager: slot {slot_idx} mode change queued: "
-                f"{slot['mode'].name} -> {new_mode.name}",
+                f"MotionManager: slot {slot_idx} mode set: "
+                f"{new_mode.name}",
                 component="MOTION"
             )
+        self._update_clock_state()
 
     def get_mode(self, slot_idx: int) -> MotionMode:
         """Thread-safe mode query."""
@@ -204,9 +240,11 @@ class MotionManager:
             slot['arp'].teardown()
             slot['mode'] = MotionMode.OFF
             slot['pending_mode'] = None
+        self._update_clock_state()
 
     def panic_all(self):
         """Panic all slots."""
         for i in range(8):
             self.panic_slot(i)
+        self._update_clock_state()
         logger.info("MotionManager: all slots panic", component="MOTION")

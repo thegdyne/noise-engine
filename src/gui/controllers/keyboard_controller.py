@@ -93,6 +93,7 @@ class KeyboardController:
             arp_engines=self._arp_manager.engines,
             send_note_on=self._send_midi_note_on,
             send_note_off=self._send_midi_note_off,
+            get_bpm=self._get_current_bpm,
         )
 
         # Install application-level event filter for global keyboard capture
