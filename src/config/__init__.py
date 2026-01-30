@@ -1124,7 +1124,7 @@ _MOD_GENERATOR_CONFIGS["ARSEq+"] = {
          "tooltip": "SEQ: envelopes fire in sequence (1→2→3→4)\nPAR: all fire together"},
         {"key": "clock_mode", "label": "CLK", "steps": 2, "default": 0.0,
          "tooltip": "CLK: sync to clock divisions\nFREE: manual rate control"},
-        {"key": "rate", "label": "RATE", "default": 0.5,
+        {"key": "rate", "label": "RATE", "default": 0.364,
          "tooltip": "Envelope cycle speed\nCLK: division, FREE: frequency"},
     ],
     "output_config": "arseq_plus",

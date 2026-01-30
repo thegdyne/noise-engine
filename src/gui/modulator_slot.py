@@ -306,13 +306,13 @@ class ModulatorSlot(QWidget):
 
         rate_slider = DragSlider(parent=self)
         rate_slider.setRange(0, 1000)
-        rate_slider.setValue(500)
+        rate_slider.setValue(182)  # /16 clock division
         rate_slider.setGeometry(L['rate_x'], y + L['label_h'], L['rate_w'], L['rate_h'])
         rate_slider.valueChanged.connect(lambda v: self._on_rate_changed(v))
         rate_slider.valueChanged.connect(lambda v: self._update_lfo_rate_tooltip(v))
         self.param_widgets.append(rate_slider)
         self.param_sliders['rate'] = rate_slider
-        self._update_lfo_rate_tooltip(500)  # Sets initial tooltip
+        self._update_lfo_rate_tooltip(182)  # Sets initial tooltip
 
         # ROTATE button
         lbl = QLabel("ROT", self)
@@ -501,13 +501,13 @@ class ModulatorSlot(QWidget):
 
         rate_slider = DragSlider(parent=self)
         rate_slider.setRange(0, 1000)
-        rate_slider.setValue(500)
+        rate_slider.setValue(364)  # /4 clock division
         rate_slider.setGeometry(L['rate_x'], y + L['label_h'], L['rate_w'], L['rate_h'])
         rate_slider.valueChanged.connect(lambda v: self._on_rate_changed(v))
         rate_slider.valueChanged.connect(lambda v: self._update_arseq_rate_tooltip(v))
         self.param_widgets.append(rate_slider)
         self.param_sliders['rate'] = rate_slider
-        self._update_arseq_rate_tooltip(500)
+        self._update_arseq_rate_tooltip(364)
 
         for w in self.param_widgets:
             w.show()

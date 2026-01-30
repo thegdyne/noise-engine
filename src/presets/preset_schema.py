@@ -394,9 +394,9 @@ class ModSlotState:
 class ModSourcesState:
     """All modulation sources - Phase 3."""
     slots: list = field(default_factory=lambda: [
-        ModSlotState(generator_name="LFO"),
+        ModSlotState(generator_name="LFO", params={"rate": 0.182}),
         ModSlotState(generator_name="Sloth"),
-        ModSlotState(generator_name="ARSEq+"),
+        ModSlotState(generator_name="ARSEq+", params={"rate": 0.364}),
         ModSlotState(generator_name="SauceOfGrav"),
     ])
 
