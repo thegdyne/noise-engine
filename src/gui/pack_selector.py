@@ -71,8 +71,10 @@ class PackSelector(QWidget):
         # All packs combined
         self.combo.addItem("All", "__all__")
 
-        # Individual packs
+        # Individual packs (skip core — already hardcoded above)
         for pack in get_enabled_packs():
+            if pack['id'] == 'core':
+                continue
             self.combo.addItem(pack['display_name'], pack['id'])
         
         # Set current selection
