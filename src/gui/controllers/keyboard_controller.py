@@ -302,18 +302,27 @@ class KeyboardController:
         # Overlay's _dismiss() releases physical keys and hides
         overlay._dismiss()
 
-        # Teardown/preserve engines based on hold state
+        # Teardown/preserve engines based on hold state and SEQ activity
         for slot in range(8):
             engine = self._arp_manager.get_engine(slot)
-            if engine.has_hold:
-                # Preserve: ARP+HOLD keeps playing
-                logger.debug(f"KeyboardController: preserving ARP+HOLD on slot {slot}", component="ARP")
-            else:
-                # Teardown: no hold, clean up
-                self._arp_manager.reset_slot(slot)
+            mode = self._motion_manager.get_mode(slot)
 
-        # Stop any active SEQ slots
-        self._motion_manager.panic_all()
+            if mode == MotionMode.SEQ:
+                # Preserve: SEQ keeps running (same as ARP+HOLD)
+                logger.debug(
+                    f"KeyboardController: preserving SEQ on slot {slot}",
+                    component="SEQ"
+                )
+            elif engine.has_hold:
+                # Preserve: ARP+HOLD keeps playing
+                logger.debug(
+                    f"KeyboardController: preserving ARP+HOLD on slot {slot}",
+                    component="ARP"
+                )
+            else:
+                # Teardown: nothing active, clean up
+                self._motion_manager.panic_slot(slot)
+                self._arp_manager.reset_slot(slot)
 
         # Unbind engines from overlay
         overlay.set_seq_engine(None)

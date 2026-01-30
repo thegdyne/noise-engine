@@ -211,7 +211,7 @@ class KeyboardOverlay(QWidget):
             # Reset UI to defaults
             self._arp_toggle_btn.setChecked(False)
             self._arp_controls_frame.hide()
-            self.setFixedSize(560, 320)
+            self._update_overlay_size()
             return
 
         settings = engine.get_settings()
@@ -220,10 +220,10 @@ class KeyboardOverlay(QWidget):
         self._arp_toggle_btn.setChecked(settings.enabled)
         if settings.enabled:
             self._arp_controls_frame.show()
-            self.setFixedSize(560, 356)
         else:
             self._arp_controls_frame.hide()
-            self.setFixedSize(560, 320)
+
+        self._update_overlay_size()
 
         # ARP controls
         self._arp_rate_btn.set_index(settings.rate_index)
