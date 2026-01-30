@@ -707,18 +707,14 @@ class KeyboardOverlay(QWidget):
 
     def _update_slot_buttons(self):
         """
-        Update slot button states based on MIDI mode.
+        Update slot button states.
 
-        Per spec:
-        - ENABLED: slot exists and is MIDI envelope mode — button is interactive
-        - DISABLED: slot exists but not MIDI mode — button is non-interactive
+        All 8 buttons are always enabled — clicking any slot auto-switches
+        it to MIDI mode (handled by controller). Only the target slot is checked.
         """
         for i, btn in enumerate(self._slot_buttons):
             slot_id = i + 1  # 1-indexed
-            is_midi = self._is_slot_midi_mode(slot_id)
-            btn.setEnabled(is_midi)
-
-            # Check the target slot
+            btn.setEnabled(True)
             btn.setChecked(slot_id == self._target_slot)
 
     # -------------------------------------------------------------------------
@@ -816,9 +812,7 @@ class KeyboardOverlay(QWidget):
         # Number keys 1-8 switch target slot (single-select)
         if Qt.Key_1 <= event.key() <= Qt.Key_8:
             slot_index = event.key() - Qt.Key_1  # 0-7
-            slot_id = slot_index + 1  # 1-8
-            if self._is_slot_midi_mode(slot_id):
-                self._slot_buttons[slot_index].click()
+            self._slot_buttons[slot_index].click()
             event.accept()
             return
 
