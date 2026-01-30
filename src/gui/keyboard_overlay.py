@@ -1559,7 +1559,9 @@ class KeyboardOverlay(QWidget):
             Note keys (A-K row) -> NOTE step with MIDI pitch, advance cursor
             Space               -> REST step, advance cursor
             Tab                 -> TIE step, advance cursor
-            Backspace           -> Move cursor back 1 step
+            Left/Right arrows   -> Move cursor without editing
+            Backspace           -> Clear step to REST, move cursor back
+            Delete              -> Clear step to REST (cursor stays)
             Z/X                 -> Octave shift (still works in recording)
         """
         if self._seq_engine is None:
@@ -1576,7 +1578,7 @@ class KeyboardOverlay(QWidget):
             midi_note = self._compute_midi_note(semitone)
             if 0 <= midi_note <= 127:
                 # Write step directly for immediate grid display
-        
+
                 self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
                     step_type=StepType.NOTE, note=midi_note, velocity=self._velocity,
                 )
@@ -1592,7 +1594,7 @@ class KeyboardOverlay(QWidget):
 
         # Space -> REST step
         if key == Qt.Key_Space:
-    
+
             self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
                 step_type=StepType.REST,
             )
@@ -1603,7 +1605,7 @@ class KeyboardOverlay(QWidget):
 
         # Tab -> TIE step
         if key == Qt.Key_Tab:
-    
+
             self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
                 step_type=StepType.TIE,
             )
@@ -1612,9 +1614,33 @@ class KeyboardOverlay(QWidget):
             self._refresh_step_grid()
             return
 
-        # Backspace -> move cursor back
-        if key == Qt.Key_Backspace:
+        # Left/Right arrows -> move cursor
+        if key == Qt.Key_Left:
             self._move_input_cursor(-1)
+            self._refresh_step_grid()
+            return
+
+        if key == Qt.Key_Right:
+            self._move_input_cursor(1)
+            self._refresh_step_grid()
+            return
+
+        # Backspace -> clear step to REST, move cursor back
+        if key == Qt.Key_Backspace:
+            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+                step_type=StepType.REST,
+            )
+            self._seq_engine.steps_version += 1
+            self._move_input_cursor(-1)
+            self._refresh_step_grid()
+            return
+
+        # Delete -> clear step to REST (cursor stays)
+        if key == Qt.Key_Delete:
+            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+                step_type=StepType.REST,
+            )
+            self._seq_engine.steps_version += 1
             self._refresh_step_grid()
             return
 
