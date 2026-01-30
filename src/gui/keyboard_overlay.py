@@ -956,6 +956,8 @@ class KeyboardOverlay(QWidget):
                 self._seq_recording = False
                 if self._seq_rec_btn is not None:
                     self._seq_rec_btn.setChecked(False)
+                if self._seq_play_btn is not None:
+                    self._seq_play_btn.setChecked(False)
                 # Notify controller to switch MotionMode OFF for SEQ
                 if self._on_seq_mode_changed is not None:
                     self._on_seq_mode_changed(False)
@@ -995,7 +997,7 @@ class KeyboardOverlay(QWidget):
     # -------------------------------------------------------------------------
 
     def _on_seq_toggle(self):
-        """Handle SEQ toggle button click."""
+        """Handle SEQ toggle button click — shows/hides SEQ UI controls."""
         enabled = self._seq_toggle_btn.isChecked()
 
         if enabled:
@@ -1014,16 +1016,18 @@ class KeyboardOverlay(QWidget):
             self._refresh_step_grid()
             self._grid_refresh_timer.start()
         else:
+            # Turning SEQ off — also stop playback
+            if self._seq_play_btn.isChecked():
+                self._seq_play_btn.setChecked(False)
+                if self._on_seq_mode_changed is not None:
+                    self._on_seq_mode_changed(False)
+
             self._seq_controls_frame.hide()
             self._seq_grid_frame.hide()
             self._grid_refresh_timer.stop()
             self._seq_recording = False
             if self._seq_rec_btn is not None:
                 self._seq_rec_btn.setChecked(False)
-
-        # Notify controller of mode change
-        if self._on_seq_mode_changed is not None:
-            self._on_seq_mode_changed(enabled)
 
         self._update_overlay_size()
 
@@ -1039,11 +1043,16 @@ class KeyboardOverlay(QWidget):
             self._seq_engine.set_length(new_length)
 
     def _on_seq_play_toggle(self):
-        """Toggle sequence playback."""
+        """Toggle sequence playback — sets MotionMode via controller."""
         if self._seq_engine is None:
             self._seq_play_btn.setChecked(False)
             return
-        self._seq_engine.toggle_playback()
+
+        playing = self._seq_play_btn.isChecked()
+
+        # Notify controller to set MotionMode (which starts/stops the engine)
+        if self._on_seq_mode_changed is not None:
+            self._on_seq_mode_changed(playing)
 
     def _on_seq_rec_toggle(self):
         """Toggle step recording mode."""
