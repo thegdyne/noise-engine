@@ -30,8 +30,8 @@ SynthDef(\forge_core_b258_master, { |out, freqBus, customBus0|
     shape = Lag.kr(p[0], 0.08);
     fold  = Lag.kr(p[1], 0.06);
     glide = p[2].linexp(0, 1, 0.001, 0.5);
-    sym   = Lag.kr(p[3].linlin(0, 1, -0.35, 0.35), 0.06);
-    drive = p[4].linexp(0, 1, 1, 6);
+    sym   = Lag.kr(p[3].linlin(0, 1, -1.05, 1.05), 0.06);
+    drive = p[4].linexp(0, 1, 1, 18);
 
     // Frequency with Inertia: Clamped to 5Hz - 20kHz range
     freq = Lag.kr(In.kr(freqBus).clip(5, 20000), glide);
@@ -41,19 +41,19 @@ SynthDef(\forge_core_b258_master, { |out, freqBus, customBus0|
 
     // SYM: Fold-center offset + Geometric Skew (Odd/Even tilt)
     foldSig = sine + sym;
-    foldSig = foldSig + (foldSig.squared * (sym * 0.4));
+    foldSig = foldSig + (foldSig.squared * (sym * 1.2));
 
     // Strong Reciprocal Law: fold collapses as shape rises
     // Frequency-dependent scaling: taper fold at high pitches to prevent aliasing
     foldAmt = fold * (1 - shape).squared * freq.explin(1000, 8000, 1, 0.35);
 
     // Stabilized Drive Stage
-    foldSig = foldSig * (1 + (foldAmt * 8));
+    foldSig = foldSig * (1 + (foldAmt * 24));
 
     // 7-stage cascade with evolving thresholds
     stages.do { |i|
         var t = (0.9 - (i * 0.04)).clip(0.55, 0.95);
-        var rec = 1.2 + (i * 0.02);
+        var rec = 1.6 + (i * 0.06);
         foldSig = foldSig.fold2(t);
         foldSig = (foldSig * rec).tanh;
     };
