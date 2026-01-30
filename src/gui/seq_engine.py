@@ -108,6 +108,11 @@ class SeqEngine:
         """Current rate index."""
         return self._rate_index
 
+    @property
+    def is_playing(self) -> bool:
+        """Whether the sequencer is currently playing."""
+        return self._playing
+
     # =========================================================================
     # TICK (called by MotionManager from clock thread)
     # =========================================================================
@@ -315,6 +320,12 @@ class SeqEngine:
             self.current_step_index = 0
             self.steps_version += 1
 
+        elif cmd_type == 'TOGGLE_PLAYBACK':
+            if self._playing:
+                self.stop()
+            else:
+                self.start()
+
     # =========================================================================
     # SETTINGS ACCESS
     # =========================================================================
@@ -334,3 +345,7 @@ class SeqEngine:
     def set_play_mode(self, play_mode: PlayMode):
         """Set play mode from UI (queued for thread safety)."""
         self.queue_command({'type': 'SET_PLAY_MODE', 'play_mode': play_mode})
+
+    def toggle_playback(self):
+        """Toggle play/stop from UI (queued for thread safety)."""
+        self.queue_command({'type': 'TOGGLE_PLAYBACK'})

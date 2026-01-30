@@ -142,7 +142,10 @@ class KeyboardOverlay(QWidget):
         self._seq_controls_frame: QFrame = None
         self._seq_rate_btn = None
         self._seq_length_btn = None
+        self._seq_play_btn: QPushButton = None
         self._seq_rec_btn: QPushButton = None
+        self._seq_rest_btn: QPushButton = None
+        self._seq_tie_btn: QPushButton = None
 
         self._setup_ui()
         self._apply_style()
@@ -192,11 +195,14 @@ class KeyboardOverlay(QWidget):
             if self._seq_engine is not None:
                 self._seq_rate_btn.set_index(self._seq_engine.rate_index)
                 self._seq_length_btn.set_index(self._seq_engine.settings.length - 1)
+                self._seq_play_btn.setChecked(self._seq_engine.is_playing)
         else:
             self._seq_controls_frame.hide()
             self._seq_recording = False
             if self._seq_rec_btn is not None:
                 self._seq_rec_btn.setChecked(False)
+            if self._seq_play_btn is not None:
+                self._seq_play_btn.setChecked(False)
 
         self._update_overlay_size()
 
@@ -495,16 +501,47 @@ class KeyboardOverlay(QWidget):
         self._seq_length_btn.index_changed.connect(self._on_seq_length_changed)
         layout.addWidget(self._seq_length_btn)
 
-        layout.addSpacing(8)
+        layout.addSpacing(12)
+
+        # PLAY button (toggle playback)
+        self._seq_play_btn = QPushButton("PLAY")
+        self._seq_play_btn.setCheckable(True)
+        self._seq_play_btn.setFixedSize(46, 24)
+        self._seq_play_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
+        self._seq_play_btn.setToolTip("Start/stop sequence playback")
+        self._seq_play_btn.clicked.connect(self._on_seq_play_toggle)
+        layout.addWidget(self._seq_play_btn)
+
+        layout.addSpacing(4)
 
         # REC button (toggle step recording)
         self._seq_rec_btn = QPushButton("REC")
         self._seq_rec_btn.setCheckable(True)
         self._seq_rec_btn.setFixedSize(40, 24)
         self._seq_rec_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
-        self._seq_rec_btn.setToolTip("Step record: keys enter notes, Space=rest, Tab=tie")
+        self._seq_rec_btn.setToolTip("Step record mode (keys enter notes)")
         self._seq_rec_btn.clicked.connect(self._on_seq_rec_toggle)
         layout.addWidget(self._seq_rec_btn)
+
+        layout.addSpacing(4)
+
+        # REST button (insert rest step)
+        self._seq_rest_btn = QPushButton("REST")
+        self._seq_rest_btn.setFixedSize(44, 24)
+        self._seq_rest_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._seq_rest_btn.setToolTip("Insert rest step (or press Space)")
+        self._seq_rest_btn.clicked.connect(self._on_seq_rest_clicked)
+        layout.addWidget(self._seq_rest_btn)
+
+        layout.addSpacing(4)
+
+        # TIE button (insert tie step)
+        self._seq_tie_btn = QPushButton("TIE")
+        self._seq_tie_btn.setFixedSize(36, 24)
+        self._seq_tie_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._seq_tie_btn.setToolTip("Insert tie/sustain step (or press Tab)")
+        self._seq_tie_btn.clicked.connect(self._on_seq_tie_clicked)
+        layout.addWidget(self._seq_tie_btn)
 
         layout.addStretch()
 
@@ -897,10 +934,45 @@ class KeyboardOverlay(QWidget):
             new_length = index + 1  # Index 0 = length 1, etc.
             self._seq_engine.set_length(new_length)
 
+    def _on_seq_play_toggle(self):
+        """Toggle sequence playback."""
+        if self._seq_engine is None:
+            self._seq_play_btn.setChecked(False)
+            return
+        self._seq_engine.toggle_playback()
+
     def _on_seq_rec_toggle(self):
         """Toggle step recording mode."""
         enabled = self._seq_rec_btn.isChecked()
         self.set_seq_recording(enabled)
+
+    def _on_seq_rest_clicked(self):
+        """Insert a REST step at the current cursor position."""
+        if self._seq_engine is None:
+            return
+        if not self._seq_recording:
+            self.set_seq_recording(True)
+            self._seq_rec_btn.setChecked(True)
+        self._seq_engine.queue_command({
+            'type': 'SET_STEP',
+            'index': self._seq_input_cursor,
+            'step_type': StepType.REST,
+        })
+        self._advance_input_cursor()
+
+    def _on_seq_tie_clicked(self):
+        """Insert a TIE step at the current cursor position."""
+        if self._seq_engine is None:
+            return
+        if not self._seq_recording:
+            self.set_seq_recording(True)
+            self._seq_rec_btn.setChecked(True)
+        self._seq_engine.queue_command({
+            'type': 'SET_STEP',
+            'index': self._seq_input_cursor,
+            'step_type': StepType.TIE,
+        })
+        self._advance_input_cursor()
 
     # -------------------------------------------------------------------------
     # Overlay Sizing
@@ -1213,7 +1285,7 @@ class KeyboardOverlay(QWidget):
             self._handle_octave_change(OCTAVE_KEYS[key])
             return
 
-        # Note key -> NOTE step
+        # Note key -> NOTE step + audition
         if key in KEY_TO_SEMITONE:
             semitone = KEY_TO_SEMITONE[key]
             midi_note = self._compute_midi_note(semitone)
@@ -1226,6 +1298,11 @@ class KeyboardOverlay(QWidget):
                     'velocity': self._velocity,
                 })
                 self._advance_input_cursor()
+
+                # Audition: play note briefly so user hears what was entered
+                osc_slot = self._target_slot - 1
+                self._send_note_on(osc_slot, midi_note, self._velocity)
+                QTimer.singleShot(200, lambda n=midi_note, s=osc_slot: self._send_note_off(s, n))
             return
 
         # Space -> REST step
