@@ -26,7 +26,7 @@ from .arp_engine import (
     ARP_RATE_LABELS, ARP_DEFAULT_RATE_INDEX
 )
 from .seq_engine import SeqEngine, SEQ_RATE_LABELS, SEQ_DEFAULT_RATE_INDEX
-from src.model.sequencer import StepType, MotionMode
+from src.model.sequencer import StepType, SeqStep, MotionMode
 
 # Key -> semitone offset from C (within current octave span)
 KEY_TO_SEMITONE = {
@@ -147,6 +147,13 @@ class KeyboardOverlay(QWidget):
         self._seq_rest_btn: QPushButton = None
         self._seq_tie_btn: QPushButton = None
 
+        # Step grid UI
+        self._seq_grid_frame: QFrame = None
+        self._step_cells: list[QPushButton] = []
+        self._last_steps_version: int = -1
+        self._last_playhead: int = -1
+        self._grid_refresh_timer: QTimer = None
+
         self._setup_ui()
         self._apply_style()
 
@@ -191,13 +198,18 @@ class KeyboardOverlay(QWidget):
 
         if seq_active:
             self._seq_controls_frame.show()
+            self._seq_grid_frame.show()
             # Sync control values from engine
             if self._seq_engine is not None:
                 self._seq_rate_btn.set_index(self._seq_engine.rate_index)
                 self._seq_length_btn.set_index(self._seq_engine.settings.length - 1)
                 self._seq_play_btn.setChecked(self._seq_engine.is_playing)
+            self._refresh_step_grid()
+            self._grid_refresh_timer.start()
         else:
             self._seq_controls_frame.hide()
+            self._seq_grid_frame.hide()
+            self._grid_refresh_timer.stop()
             self._seq_recording = False
             if self._seq_rec_btn is not None:
                 self._seq_rec_btn.setChecked(False)
@@ -297,6 +309,10 @@ class KeyboardOverlay(QWidget):
         # SEQ controls row (hidden when SEQ off)
         self._seq_controls_frame = self._create_seq_controls()
         layout.addWidget(self._seq_controls_frame)
+
+        # SEQ step grid (hidden when SEQ off)
+        self._seq_grid_frame = self._create_step_grid()
+        layout.addWidget(self._seq_grid_frame)
 
         # Keyboard area
         keyboard = self._create_keyboard()
@@ -547,6 +563,39 @@ class KeyboardOverlay(QWidget):
 
         return frame
 
+    def _create_step_grid(self) -> QFrame:
+        """Create 16-cell step grid visualization (hidden when SEQ off)."""
+        frame = QFrame()
+        frame.setObjectName("keyboard_step_grid")
+        frame.setFixedHeight(40)
+        frame.hide()
+
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(2)
+
+        self._step_cells = []
+        for i in range(16):
+            cell = QPushButton("")
+            cell.setFixedSize(32, 28)
+            cell.setFont(QFont(FONT_FAMILY, 8))
+            cell.setObjectName("step_cell")
+            cell.setProperty("step_state", "empty")
+            cell.setProperty("cursor_here", "false")
+            cell.setProperty("playhead", "false")
+            cell.clicked.connect(lambda checked, idx=i: self._on_step_cell_clicked(idx))
+            layout.addWidget(cell)
+            self._step_cells.append(cell)
+
+        layout.addStretch()
+
+        # Timer for playhead refresh during playback
+        self._grid_refresh_timer = QTimer(self)
+        self._grid_refresh_timer.setInterval(50)
+        self._grid_refresh_timer.timeout.connect(self._refresh_step_grid)
+
+        return frame
+
     def _create_keyboard(self) -> QFrame:
         """Create the piano keyboard visualization."""
         keyboard = QFrame()
@@ -751,6 +800,54 @@ class KeyboardOverlay(QWidget):
                 color: {accent};
             }}
 
+            #keyboard_step_grid {{
+                background: {COLORS['background_dark']};
+                border-bottom: 1px solid {COLORS['border']};
+            }}
+
+            #step_cell {{
+                background: {COLORS['background']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 3px;
+                color: {COLORS['text_dim']};
+                font-size: {FONT_SIZES['small']}px;
+            }}
+
+            #step_cell:hover {{
+                border-color: {accent_dim};
+            }}
+
+            #step_cell[step_state="note"] {{
+                background: {accent_bg};
+                color: {accent};
+                border-color: {accent_dim};
+            }}
+
+            #step_cell[step_state="rest"] {{
+                background: {COLORS['background_dark']};
+                color: {COLORS['text_dim']};
+            }}
+
+            #step_cell[step_state="tie"] {{
+                background: #1a1a0a;
+                color: #aaaa00;
+                border-color: #555500;
+            }}
+
+            #step_cell[step_state="inactive"] {{
+                background: {COLORS['background_dark']};
+                border-color: transparent;
+                color: transparent;
+            }}
+
+            #step_cell[cursor_here="true"] {{
+                border: 2px solid #00ccff;
+            }}
+
+            #step_cell[playhead="true"] {{
+                border: 2px solid {accent};
+            }}
+
             #keyboard_keys {{
                 background: {COLORS['background_dark']};
             }}
@@ -854,6 +951,8 @@ class KeyboardOverlay(QWidget):
             if self._seq_toggle_btn.isChecked():
                 self._seq_toggle_btn.setChecked(False)
                 self._seq_controls_frame.hide()
+                self._seq_grid_frame.hide()
+                self._grid_refresh_timer.stop()
                 self._seq_recording = False
                 if self._seq_rec_btn is not None:
                     self._seq_rec_btn.setChecked(False)
@@ -911,8 +1010,13 @@ class KeyboardOverlay(QWidget):
             self._arp_controls_frame.hide()
 
             self._seq_controls_frame.show()
+            self._seq_grid_frame.show()
+            self._refresh_step_grid()
+            self._grid_refresh_timer.start()
         else:
             self._seq_controls_frame.hide()
+            self._seq_grid_frame.hide()
+            self._grid_refresh_timer.stop()
             self._seq_recording = False
             if self._seq_rec_btn is not None:
                 self._seq_rec_btn.setChecked(False)
@@ -953,12 +1057,13 @@ class KeyboardOverlay(QWidget):
         if not self._seq_recording:
             self.set_seq_recording(True)
             self._seq_rec_btn.setChecked(True)
-        self._seq_engine.queue_command({
-            'type': 'SET_STEP',
-            'index': self._seq_input_cursor,
-            'step_type': StepType.REST,
-        })
+
+        self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+            step_type=StepType.REST,
+        )
+        self._seq_engine.steps_version += 1
         self._advance_input_cursor()
+        self._refresh_step_grid()
 
     def _on_seq_tie_clicked(self):
         """Insert a TIE step at the current cursor position."""
@@ -967,12 +1072,13 @@ class KeyboardOverlay(QWidget):
         if not self._seq_recording:
             self.set_seq_recording(True)
             self._seq_rec_btn.setChecked(True)
-        self._seq_engine.queue_command({
-            'type': 'SET_STEP',
-            'index': self._seq_input_cursor,
-            'step_type': StepType.TIE,
-        })
+
+        self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+            step_type=StepType.TIE,
+        )
+        self._seq_engine.steps_version += 1
         self._advance_input_cursor()
+        self._refresh_step_grid()
 
     # -------------------------------------------------------------------------
     # Overlay Sizing
@@ -985,6 +1091,8 @@ class KeyboardOverlay(QWidget):
             base += 36
         if self._seq_controls_frame.isVisible():
             base += 36
+        if self._seq_grid_frame.isVisible():
+            base += 40
         self.setFixedSize(560, base)
 
     # -------------------------------------------------------------------------
@@ -1086,6 +1194,10 @@ class KeyboardOverlay(QWidget):
         # Reset key visuals
         for qt_key in self._key_buttons:
             self._update_key_visual(qt_key, False)
+
+        # Stop grid refresh timer
+        if self._grid_refresh_timer is not None:
+            self._grid_refresh_timer.stop()
 
         # Hide overlay
         self.hide()
@@ -1263,6 +1375,85 @@ class KeyboardOverlay(QWidget):
             btn.style().polish(btn)
 
     # -------------------------------------------------------------------------
+    # Step Grid
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def _note_name(midi_note: int) -> str:
+        """Convert MIDI note number to display name (e.g. 60 -> C4)."""
+        names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+        octave = (midi_note // 12) - 1
+        name = names[midi_note % 12]
+        return f"{name}{octave}"
+
+    def _refresh_step_grid(self):
+        """Update step grid cells from engine state."""
+        if self._seq_engine is None:
+            return
+
+        settings = self._seq_engine.settings
+        length = settings.length
+        playhead = self._seq_engine.current_step_index
+        is_playing = self._seq_engine.is_playing
+
+        for i, cell in enumerate(self._step_cells):
+            needs_restyle = False
+
+            if i >= length:
+                # Beyond active length — inactive
+                new_state = "inactive"
+                new_text = ""
+            else:
+                step = settings.steps[i]
+                if step.step_type == StepType.NOTE:
+                    new_state = "note"
+                    new_text = self._note_name(step.note)
+                elif step.step_type == StepType.TIE:
+                    new_state = "tie"
+                    new_text = "~"
+                else:
+                    new_state = "rest"
+                    new_text = "-"
+
+            # Update step state property
+            if cell.property("step_state") != new_state:
+                cell.setProperty("step_state", new_state)
+                needs_restyle = True
+
+            # Update cursor indicator (recording cursor)
+            cursor_val = "true" if (self._seq_recording and i == self._seq_input_cursor and i < length) else "false"
+            if cell.property("cursor_here") != cursor_val:
+                cell.setProperty("cursor_here", cursor_val)
+                needs_restyle = True
+
+            # Update playhead indicator
+            playhead_val = "true" if (is_playing and i == playhead and i < length) else "false"
+            if cell.property("playhead") != playhead_val:
+                cell.setProperty("playhead", playhead_val)
+                needs_restyle = True
+
+            cell.setText(new_text)
+
+            if needs_restyle:
+                cell.style().unpolish(cell)
+                cell.style().polish(cell)
+
+    def _on_step_cell_clicked(self, index: int):
+        """Handle click on a step grid cell — move recording cursor there."""
+        if self._seq_engine is None:
+            return
+        if index >= self._seq_engine.settings.length:
+            return
+
+        # Enter recording mode if not already
+        if not self._seq_recording:
+            self.set_seq_recording(True)
+            self._seq_rec_btn.setChecked(True)
+
+        self._seq_input_cursor = index
+        self._refresh_step_grid()
+
+    # -------------------------------------------------------------------------
     # SEQ Step Recording
     # -------------------------------------------------------------------------
 
@@ -1290,14 +1481,14 @@ class KeyboardOverlay(QWidget):
             semitone = KEY_TO_SEMITONE[key]
             midi_note = self._compute_midi_note(semitone)
             if 0 <= midi_note <= 127:
-                self._seq_engine.queue_command({
-                    'type': 'SET_STEP',
-                    'index': self._seq_input_cursor,
-                    'step_type': StepType.NOTE,
-                    'note': midi_note,
-                    'velocity': self._velocity,
-                })
+                # Write step directly for immediate grid display
+        
+                self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+                    step_type=StepType.NOTE, note=midi_note, velocity=self._velocity,
+                )
+                self._seq_engine.steps_version += 1
                 self._advance_input_cursor()
+                self._refresh_step_grid()
 
                 # Audition: play note briefly so user hears what was entered
                 osc_slot = self._target_slot - 1
@@ -1307,27 +1498,30 @@ class KeyboardOverlay(QWidget):
 
         # Space -> REST step
         if key == Qt.Key_Space:
-            self._seq_engine.queue_command({
-                'type': 'SET_STEP',
-                'index': self._seq_input_cursor,
-                'step_type': StepType.REST,
-            })
+    
+            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+                step_type=StepType.REST,
+            )
+            self._seq_engine.steps_version += 1
             self._advance_input_cursor()
+            self._refresh_step_grid()
             return
 
         # Tab -> TIE step
         if key == Qt.Key_Tab:
-            self._seq_engine.queue_command({
-                'type': 'SET_STEP',
-                'index': self._seq_input_cursor,
-                'step_type': StepType.TIE,
-            })
+    
+            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+                step_type=StepType.TIE,
+            )
+            self._seq_engine.steps_version += 1
             self._advance_input_cursor()
+            self._refresh_step_grid()
             return
 
         # Backspace -> move cursor back
         if key == Qt.Key_Backspace:
             self._move_input_cursor(-1)
+            self._refresh_step_grid()
             return
 
     # -------------------------------------------------------------------------
