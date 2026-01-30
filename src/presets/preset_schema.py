@@ -24,6 +24,12 @@ NUM_SLOTS = 8
 NUM_CUSTOM_PARAMS = 5
 GAIN_STAGES = 3       # 0=0dB, 1=+6dB, 2=+12dB
 
+# ARP settings per slot
+ARP_RATES = 7         # 0-6: 1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1
+ARP_PATTERNS = 5      # 0=UP, 1=DOWN, 2=UPDOWN, 3=RANDOM, 4=ORDER
+ARP_OCTAVES_MIN = 1
+ARP_OCTAVES_MAX = 4
+
 # Phase 2: Master section constants
 BPM_MIN = 20
 BPM_MAX = 300
@@ -70,7 +76,13 @@ class SlotState:
     midi_channel: int = 1
     transpose: int = 2  # Index into TRANSPOSE_OPTIONS (0-4), default 2 = 0 semitones
     portamento: float = 0.0  # 0-1 normalized glide time
-    
+    # ARP settings
+    arp_enabled: bool = False
+    arp_rate: int = 3  # Index into ARP_RATE_LABELS (0-6), default 3 = 1/8
+    arp_pattern: int = 0  # 0=UP, 1=DOWN, 2=UPDOWN, 3=RANDOM, 4=ORDER
+    arp_octaves: int = 1  # 1-4
+    arp_hold: bool = False
+
     def to_dict(self) -> dict:
         return {
             "generator": self.generator,
@@ -92,6 +104,11 @@ class SlotState:
             "midi_channel": self.midi_channel,
             "transpose": self.transpose,
             "portamento": self.portamento,
+            "arp_enabled": self.arp_enabled,
+            "arp_rate": self.arp_rate,
+            "arp_pattern": self.arp_pattern,
+            "arp_octaves": self.arp_octaves,
+            "arp_hold": self.arp_hold,
         }
     
     @classmethod
@@ -115,6 +132,11 @@ class SlotState:
             midi_channel=data.get("midi_channel", 1),
             transpose=data.get("transpose", 2),
             portamento=data.get("portamento", 0.0),
+            arp_enabled=data.get("arp_enabled", False),
+            arp_rate=data.get("arp_rate", 3),
+            arp_pattern=data.get("arp_pattern", 0),
+            arp_octaves=data.get("arp_octaves", 1),
+            arp_hold=data.get("arp_hold", False),
         )
 
 
@@ -1037,7 +1059,40 @@ def _validate_slot(slot: dict, prefix: str, strict: bool = False) -> tuple:
         warnings.append(warning)
     if port is not None and port > 1.0:
         slot["portamento"] = 0.0  # Reset legacy out-of-range values
-    
+
+    # ARP settings (optional — old presets won't have them)
+    arp_enabled = slot.get("arp_enabled")
+    if arp_enabled is not None and not isinstance(arp_enabled, bool):
+        errors.append(f"{prefix}.arp_enabled must be bool, got {type(arp_enabled).__name__}")
+
+    arp_rate = slot.get("arp_rate")
+    if arp_rate is not None:
+        arp_rate, warning = _coerce_int(arp_rate, f"{prefix}.arp_rate")
+        if warning:
+            warnings.append(warning)
+        if arp_rate is not None and not (0 <= arp_rate < ARP_RATES):
+            errors.append(f"{prefix}.arp_rate must be 0-{ARP_RATES-1}, got {arp_rate}")
+
+    arp_pattern = slot.get("arp_pattern")
+    if arp_pattern is not None:
+        arp_pattern, warning = _coerce_int(arp_pattern, f"{prefix}.arp_pattern")
+        if warning:
+            warnings.append(warning)
+        if arp_pattern is not None and not (0 <= arp_pattern < ARP_PATTERNS):
+            errors.append(f"{prefix}.arp_pattern must be 0-{ARP_PATTERNS-1}, got {arp_pattern}")
+
+    arp_octaves = slot.get("arp_octaves")
+    if arp_octaves is not None:
+        arp_octaves, warning = _coerce_int(arp_octaves, f"{prefix}.arp_octaves")
+        if warning:
+            warnings.append(warning)
+        if arp_octaves is not None and not (ARP_OCTAVES_MIN <= arp_octaves <= ARP_OCTAVES_MAX):
+            errors.append(f"{prefix}.arp_octaves must be {ARP_OCTAVES_MIN}-{ARP_OCTAVES_MAX}, got {arp_octaves}")
+
+    arp_hold = slot.get("arp_hold")
+    if arp_hold is not None and not isinstance(arp_hold, bool):
+        errors.append(f"{prefix}.arp_hold must be bool, got {type(arp_hold).__name__}")
+
     return errors, warnings
 
 

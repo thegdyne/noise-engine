@@ -92,7 +92,17 @@ class PresetController:
         slots = []
         for slot_id in range(1, 9):
             slot_widget = self.main.generator_grid.slots[slot_id]
-            slots.append(SlotState.from_dict(slot_widget.get_state()))
+            slot_dict = slot_widget.get_state()
+            # Inject ARP settings from arp_manager
+            if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'arp_manager'):
+                engine = self.main.keyboard.arp_manager.get_engine(slot_id - 1)
+                arp = engine.get_settings()
+                slot_dict["arp_enabled"] = arp.enabled
+                slot_dict["arp_rate"] = arp.rate_index
+                slot_dict["arp_pattern"] = list(type(arp.pattern)).index(arp.pattern)
+                slot_dict["arp_octaves"] = arp.octaves
+                slot_dict["arp_hold"] = arp.hold
+            slots.append(SlotState.from_dict(slot_dict))
 
         channels = []
         for ch_id in range(1, 9):
@@ -174,6 +184,21 @@ class PresetController:
             if slot_id <= 8:
                 slot_widget = self.main.generator_grid.slots[slot_id]
                 slot_widget.set_state(slot_state.to_dict())
+
+        # Restore ARP settings to each slot's engine
+        if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'arp_manager'):
+            from src.gui.arp_engine import ArpPattern
+            patterns = list(ArpPattern)
+            for i, slot_state in enumerate(state.slots):
+                if i < 8:
+                    engine = self.main.keyboard.arp_manager.get_engine(i)
+                    pattern_idx = slot_state.arp_pattern
+                    pattern = patterns[pattern_idx] if 0 <= pattern_idx < len(patterns) else ArpPattern.UP
+                    engine.set_rate(slot_state.arp_rate)
+                    engine.set_pattern(pattern)
+                    engine.set_octaves(slot_state.arp_octaves)
+                    engine.toggle_hold(slot_state.arp_hold)
+                    engine.toggle_arp(slot_state.arp_enabled)
 
         for i, channel_state in enumerate(state.mixer.channels):
             ch_id = i + 1
