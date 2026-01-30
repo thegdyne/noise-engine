@@ -109,6 +109,7 @@ class KeyboardOverlay(QWidget):
         self._octave = 4
         self._velocity = 100
         self._physical_keys_held: dict[int, int] = {}  # qt_key -> midi_note
+        self._mouse_held_note: Optional[int] = None  # MIDI note from mouse-held key
         self._target_slot: int = 1  # Single-select (1-indexed)
 
         # Bound ARP engine (None when no engine bound)
@@ -620,7 +621,8 @@ class KeyboardOverlay(QWidget):
                 qt_key = getattr(Qt, f"Key_{label}", None)
                 if qt_key:
                     self._key_buttons[qt_key] = btn
-                    btn.clicked.connect(lambda checked, k=qt_key: self._on_key_button_clicked(k))
+                    btn.pressed.connect(lambda k=qt_key: self._on_key_button_pressed(k))
+                    btn.released.connect(self._on_key_button_released)
             else:
                 btn = QWidget()
                 btn.setFixedSize(36, 40)
@@ -645,7 +647,8 @@ class KeyboardOverlay(QWidget):
                 qt_key = getattr(Qt, f"Key_{label}", None)
             if qt_key:
                 self._key_buttons[qt_key] = btn
-                btn.clicked.connect(lambda checked, k=qt_key: self._on_key_button_clicked(k))
+                btn.pressed.connect(lambda k=qt_key: self._on_key_button_pressed(k))
+                btn.released.connect(self._on_key_button_released)
             white_row.addWidget(btn)
 
         white_row.addStretch()
@@ -1162,8 +1165,8 @@ class KeyboardOverlay(QWidget):
     # Key Button Mouse Click
     # -------------------------------------------------------------------------
 
-    def _on_key_button_clicked(self, qt_key: int):
-        """Handle mouse click on an on-screen piano key button."""
+    def _on_key_button_pressed(self, qt_key: int):
+        """Handle mouse press on an on-screen piano key button."""
         if qt_key not in KEY_TO_SEMITONE:
             return
 
@@ -1181,10 +1184,30 @@ class KeyboardOverlay(QWidget):
             self._advance_input_cursor()
             self._refresh_step_grid()
 
-        # Audition: play note briefly so user hears the key
+        # Stop any previously held mouse note
+        if self._mouse_held_note is not None:
+            osc_slot = self._target_slot - 1
+            self._send_note_off(osc_slot, self._mouse_held_note)
+
+        # Start note on mouse press (sustains until release)
         osc_slot = self._target_slot - 1
+        self._mouse_held_note = midi_note
         self._send_note_on(osc_slot, midi_note, self._velocity)
-        QTimer.singleShot(200, lambda n=midi_note, s=osc_slot: self._send_note_off(s, n))
+        self._update_key_visual(qt_key, True)
+
+    def _on_key_button_released(self):
+        """Handle mouse release on an on-screen piano key button."""
+        if self._mouse_held_note is not None:
+            osc_slot = self._target_slot - 1
+            self._send_note_off(osc_slot, self._mouse_held_note)
+            # Find and reset the key visual
+            for k, btn in self._key_buttons.items():
+                if k in KEY_TO_SEMITONE:
+                    semitone = KEY_TO_SEMITONE[k]
+                    if self._compute_midi_note(semitone) == self._mouse_held_note:
+                        self._update_key_visual(k, False)
+                        break
+            self._mouse_held_note = None
 
     # -------------------------------------------------------------------------
     # Toggle / Show / Hide
@@ -1226,6 +1249,12 @@ class KeyboardOverlay(QWidget):
         """
         # Release physical keys from bound engine
         self._release_all_physical_keys()
+
+        # Release mouse-held note
+        if self._mouse_held_note is not None:
+            osc_slot = self._target_slot - 1
+            self._send_note_off(osc_slot, self._mouse_held_note)
+            self._mouse_held_note = None
 
         # Clear physical key state
         self._physical_keys_held.clear()
