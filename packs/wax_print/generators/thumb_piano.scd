@@ -58,7 +58,6 @@ SynthDef(\forge_wax_print_thumb_piano, { |out, freqBus, customBus0|
     sig = tineOsc + buzzRattle + boxRes;
     sig = (sig * 1.5).tanh * 0.6;
 
-    sig = ~stereoSpread.(sig, 0.15, 0.25);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

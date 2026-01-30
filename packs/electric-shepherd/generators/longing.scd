@@ -106,7 +106,6 @@ SynthDef(\longing, { |out, freqBus, customBus0|
     // Very soft limiting - keep the gentleness
     sig = (sig * 0.9).tanh;
 
-    sig = ~stereoSpread.(sig, 0.06, 0.2);  // Gentle, slow movement
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

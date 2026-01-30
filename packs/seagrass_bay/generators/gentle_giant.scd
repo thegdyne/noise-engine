@@ -43,7 +43,6 @@ SynthDef(\forge_seagrass_bay_gentle_giant, { |out, freqBus, customBus0|
     sig = LPF.ar(sig, grace.linexp(0, 1, 3000, 12000));
 
     // Warm stereo spread
-    sig = ~stereoSpread.(sig, 0.15, 0.35);
 
     // Standard output chain
     // Mandatory tail

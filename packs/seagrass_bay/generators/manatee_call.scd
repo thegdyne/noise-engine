@@ -39,7 +39,6 @@ SynthDef(\forge_seagrass_bay_manatee_call, { |out, freqBus, customBus0|
     sig = sig + (echoSig * echo * 0.4);
 
     // Gentle stereo
-    sig = ~stereoSpread.(sig, 0.3, 0.25);
 
     // Standard output chain
     // Mandatory tail

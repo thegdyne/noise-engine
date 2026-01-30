@@ -69,7 +69,6 @@ SynthDef(\forge_leviathan_biolume_ping, { |out, freqBus, customBus0|
     sig = sig.tanh * 0.7;
 
     // === OUTPUT CHAIN ===
-    sig = ~stereoSpread.(sig, 0.3, 0.5);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

@@ -55,7 +55,6 @@ SynthDef(\forge_wax_print_talking_skin, { |out, freqBus, customBus0|
     sig = membrane + stickHit;
     sig = (sig * 2).tanh * 0.5;
 
-    sig = ~stereoSpread.(sig, 0.15, 0.2);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

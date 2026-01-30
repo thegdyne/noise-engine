@@ -52,7 +52,6 @@ SynthDef(\forge_summer_of_love_crowd_murmur, { |out, freqBus, customBus0|
     sig = sig + (CombL.ar(sig, 0.1, distance.linlin(0, 1, 0.01, 0.05), distance * 0.5) * distance * 0.3);
 
     // Stereo spread for space
-    sig = ~stereoSpread.(sig, 0.15 + (movement * 0.2), space * 0.8);
 
     // Apply standard processing chain
     sig = sig * 4;  // gain boost

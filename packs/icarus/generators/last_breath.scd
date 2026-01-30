@@ -38,7 +38,6 @@ SynthDef(\forge_icarus_last_breath, { |out, freqBus, customBus0|
     sig = (pulse + inhale + body) * final;
 
     // Intimate stereo - close to the heart
-    sig = ~stereoSpread.(sig, 0.05, 0.2);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

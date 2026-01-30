@@ -82,7 +82,6 @@ SynthDef(\abyssgate, { |out, freqBus, customBus0|
     sig = subSig + rumbleSig + awakenSig + pressureSig + voidSig;
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.15, 0.1);  // Mostly mono for sub
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

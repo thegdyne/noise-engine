@@ -76,7 +76,6 @@ SynthDef(\voidchant, { |out, freqBus, customBus0|
     sig = voiceSig * 0.4;
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.35, 0.15);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

@@ -81,7 +81,6 @@ SynthDef(\forge_leviathan_abyss_drone, { |out, freqBus, customBus0|
     sig = (sig * 1.5).tanh * 0.7;
 
     // === OUTPUT CHAIN ===
-    sig = ~stereoSpread.(sig, 0.05, 0.3);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

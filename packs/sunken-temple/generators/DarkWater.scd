@@ -83,7 +83,6 @@ SynthDef(\darkwater, { |out, freqBus, customBus0|
     sig = tideSig + murkSig + dripSig + currentSig + coldSig;
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.25, 0.2);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

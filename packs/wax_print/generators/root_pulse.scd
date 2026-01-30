@@ -58,7 +58,6 @@ SynthDef(\forge_wax_print_root_pulse, { |out, freqBus, customBus0|
     // Gentle saturation for warmth
     sig = (sig * 1.5).tanh * 0.6;
 
-    sig = ~stereoSpread.(sig, 0.08, 0.15);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

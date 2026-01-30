@@ -60,7 +60,6 @@ SynthDef(\forge_wax_print_village_call, { |out, freqBus, customBus0|
     sig = formants + breathNoise;
     sig = (sig * 1.5).tanh * 0.5;
 
-    sig = ~stereoSpread.(sig, 0.1, 0.3 * choir);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

@@ -67,7 +67,6 @@ SynthDef(\forge_summer_of_love_cosmic_choir, { |out, freqBus, customBus0|
     sig = sig + shimmer;
 
     // Wide stereo for cosmic feel
-    sig = ~stereoSpread.(sig, 0.1, 0.7);
 
     // Apply standard processing chain
 

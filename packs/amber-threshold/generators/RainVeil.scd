@@ -73,7 +73,6 @@ SynthDef(\rainveil, { |out, freqBus, customBus0|
 
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.5, 0.25);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

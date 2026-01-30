@@ -50,7 +50,6 @@ SynthDef(\forge_seagrass_bay_surface_light, { |out, freqBus, customBus0|
     sig = sig * sun.linlin(0, 1, 0.5, 1.2);
 
     // Wide stereo for shimmering effect
-    sig = ~stereoSpread.(sig, rippleMod * 0.1, 0.6);
 
     // Standard output chain
     // Mandatory tail

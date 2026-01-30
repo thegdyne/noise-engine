@@ -84,7 +84,6 @@ SynthDef(\forge_leviathan_breach, { |out, freqBus, customBus0|
     sig = (sig * 2).clip(-1, 1) * 0.7;
 
     // === OUTPUT CHAIN ===
-    sig = ~stereoSpread.(sig, 0.1, 0.4);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

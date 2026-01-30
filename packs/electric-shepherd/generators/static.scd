@@ -116,7 +116,6 @@ SynthDef(\static, { |out, freqBus, customBus0|
     // Soft limiting
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.2, 0.3);  // Wide and jittery
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

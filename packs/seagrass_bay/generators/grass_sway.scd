@@ -42,7 +42,6 @@ SynthDef(\forge_seagrass_bay_grass_sway, { |out, freqBus, customBus0|
     sig = sig + rootOsc;
 
     // Gentle stereo
-    sig = ~stereoSpread.(sig, swayRate, 0.4);
 
     // Standard output chain
     // Mandatory tail

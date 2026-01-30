@@ -46,7 +46,6 @@ SynthDef(\forge_aurora_cave_cavern, { |out, freqBus, customBus0|
     sig = AllpassL.ar(sig, 0.1, 0.037, 0.4);
     sig = AllpassL.ar(sig, 0.1, 0.059, 0.35);
 
-    sig = ~stereoSpread.(sig, 0.3, 0.5);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

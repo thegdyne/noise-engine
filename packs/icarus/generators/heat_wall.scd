@@ -40,7 +40,6 @@ SynthDef(\forge_icarus_heat_wall, { |out, freqBus, customBus0|
     sig = burn + glow + crackle;
 
     // Stereo spread - heat shimmer
-    sig = ~stereoSpread.(sig, 0.15, 0.35);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

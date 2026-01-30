@@ -68,7 +68,6 @@ SynthDef(\forge_leviathan_pressure_wave, { |out, freqBus, customBus0|
     sig = (sig * 2).tanh * 0.5;
 
     // === OUTPUT CHAIN ===
-    sig = ~stereoSpread.(sig, 0.08, 0.2);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

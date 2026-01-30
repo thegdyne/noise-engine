@@ -76,7 +76,6 @@ SynthDef(\torchflicker, { |out, freqBus, customBus0|
     sig = flameSig + crackleSig + roarSig + warmSig;
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.3, 0.2);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

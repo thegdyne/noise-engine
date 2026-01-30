@@ -82,7 +82,6 @@ SynthDef(\pilgrimstep, { |out, freqBus, customBus0|
 
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.2, 0.15);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

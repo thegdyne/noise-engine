@@ -38,7 +38,6 @@ SynthDef(\forge_icarus_ash, { |out, freqBus, customBus0|
     sig = particles + glow + fine + (echo * memory);
 
     // Wide scatter across stereo field
-    sig = ~stereoSpread.(sig, 0.5, 0.8);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

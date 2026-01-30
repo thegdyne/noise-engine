@@ -42,7 +42,6 @@ SynthDef(\forge_nerve_glow_cartglow, { |out, freqBus, customBus0|
     sig = sig + (sig * SinOsc.kr(4, 0, 0.1));
 
     // Stereo spread
-    sig = ~stereoSpread.(sig, 0.5, 0.3);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

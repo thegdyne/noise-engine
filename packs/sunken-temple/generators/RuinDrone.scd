@@ -78,7 +78,6 @@ SynthDef(\ruindrone, { |out, freqBus, customBus0|
     sig = massSig + spaceSig + crackSig + droneSig + hollowSig;
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.4, 0.1);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

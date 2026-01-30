@@ -68,7 +68,6 @@ SynthDef(\forge_leviathan_tidal_breath, { |out, freqBus, customBus0|
     sig = (sig * 1.5).tanh * 0.6;
 
     // === OUTPUT CHAIN ===
-    sig = ~stereoSpread.(sig, rhythm, 0.3);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

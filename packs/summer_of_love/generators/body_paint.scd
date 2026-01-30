@@ -38,7 +38,6 @@ SynthDef(\forge_summer_of_love_body_paint, { |out, freqBus, customBus0|
     sig = sig + shineOsc;
 
     // Gentle stereo spread
-    sig = ~stereoSpread.(sig, 0.2, 0.4);
 
     // Apply standard processing chain
 

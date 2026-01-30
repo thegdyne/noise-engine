@@ -108,7 +108,6 @@ SynthDef(\tether, { |out, freqBus, customBus0|
     // Soft limiting
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.12, 0.18);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

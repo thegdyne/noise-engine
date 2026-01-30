@@ -45,7 +45,6 @@ SynthDef(\forge_wax_print_dust_rattle, { |out, freqBus, customBus0|
     sig = sig * EnvGen.ar(Env.perc(0.001, 0.3), Trig.ar(envTrig, 0.01));
     sig = (sig * 3).tanh * 0.5;
 
-    sig = ~stereoSpread.(sig, 0.3, 0.5);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

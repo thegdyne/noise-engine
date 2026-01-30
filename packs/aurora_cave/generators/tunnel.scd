@@ -57,7 +57,6 @@ SynthDef(\forge_aurora_cave_tunnel, { |out, freqBus, customBus0|
     // Damping based on length (longer = darker)
     sig = LPF.ar(sig, length.linexp(0, 1, 4000, 1500));
 
-    sig = ~stereoSpread.(sig, 0.4, 0.6);
     sig = sig * 4;
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

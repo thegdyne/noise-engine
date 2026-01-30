@@ -61,7 +61,6 @@ SynthDef(\forge_summer_of_love_park_bell, { |out, freqBus, customBus0|
     sig = sig.tanh * 0.7;
 
     // Subtle stereo spread
-    sig = ~stereoSpread.(sig, 0.3, 0.4);
 
     // Apply standard processing chain
 

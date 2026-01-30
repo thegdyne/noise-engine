@@ -56,7 +56,6 @@ SynthDef(\forge_aurora_cave_gloice, { |out, freqBus, customBus0|
     // Glow saturation
     sig = (sig * (1 + glow)).tanh * (1 / (1 + (glow * 0.5)));
 
-    sig = ~stereoSpread.(sig, 0.5, 0.7);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

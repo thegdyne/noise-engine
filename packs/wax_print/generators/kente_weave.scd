@@ -52,7 +52,6 @@ SynthDef(\forge_wax_print_kente_weave, { |out, freqBus, customBus0|
     sig = baseOsc + weftCross + harmLayer + goldShine;
     sig = (sig * 2).tanh * 0.5;
 
-    sig = ~stereoSpread.(sig, 0.2, 0.3);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

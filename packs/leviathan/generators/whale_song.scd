@@ -78,7 +78,6 @@ SynthDef(\forge_leviathan_whale_song, { |out, freqBus, customBus0|
     sig = (sig * 1.5).tanh * 0.6;
 
     // === OUTPUT CHAIN ===
-    sig = ~stereoSpread.(sig, 0.1, 0.25);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

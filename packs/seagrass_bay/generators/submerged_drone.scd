@@ -36,7 +36,6 @@ SynthDef(\forge_seagrass_bay_submerged_drone, { |out, freqBus, customBus0|
     sig = LPF.ar(sig, murk.linexp(0, 1, 8000, 800));
 
     // Stereo spread
-    sig = ~stereoSpread.(sig, 0.1, 0.3);
 
     // Standard output chain
     // Mandatory tail

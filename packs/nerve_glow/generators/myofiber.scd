@@ -50,7 +50,6 @@ SynthDef(\forge_nerve_glow_myofiber, { |out, freqBus, customBus0|
     sig = (sig * 1.5).tanh * 0.7;
 
     // Stereo spread
-    sig = ~stereoSpread.(sig, 0.3, 0.2);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

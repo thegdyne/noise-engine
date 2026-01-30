@@ -104,7 +104,6 @@ SynthDef(\beacon, { |out, freqBus, customBus0|
     // Soft limiting
     sig = sig.tanh;
 
-    sig = ~stereoSpread.(sig, 0.08, 0.12);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

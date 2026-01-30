@@ -34,7 +34,6 @@ SynthDef(\example_pulse_bass, { |out, freqBus, customBus0|
 
     sig = (pulse * 0.7) + sub;
 
-    sig = ~stereoSpread.(sig, 0.2, 0.1);
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
     ReplaceOut.ar(out, sig);

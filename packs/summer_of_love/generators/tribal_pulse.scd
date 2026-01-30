@@ -63,7 +63,6 @@ SynthDef(\forge_summer_of_love_tribal_pulse, { |out, freqBus, customBus0|
     sig = sig.tanh;
 
     // Subtle stereo for natural placement
-    sig = ~stereoSpread.(sig, 0.1, 0.2);
 
     // Apply standard processing chain
 

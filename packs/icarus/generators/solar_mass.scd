@@ -42,7 +42,6 @@ SynthDef(\forge_icarus_solar_mass, { |out, freqBus, customBus0|
     sig = (drive + sub + high) * gravity;
 
     // Gentle stereo spread
-    sig = ~stereoSpread.(sig, 0.1, 0.3);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

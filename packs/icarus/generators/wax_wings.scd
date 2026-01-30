@@ -38,7 +38,6 @@ SynthDef(\forge_icarus_wax_wings, { |out, freqBus, customBus0|
     sig = tone;
 
     // Gentle stereo spread
-    sig = ~stereoSpread.(sig, 0.2, 0.4);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);

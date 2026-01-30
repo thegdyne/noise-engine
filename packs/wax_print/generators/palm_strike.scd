@@ -54,7 +54,6 @@ SynthDef(\forge_wax_print_palm_strike, { |out, freqBus, customBus0|
 
     sig = (sig * 2).clip(-1, 1) * 0.6;
 
-    sig = ~stereoSpread.(sig, 0.1, 0.2);
 
     // Mandatory tail
     sig = NumChannels.ar(sig, 2);
