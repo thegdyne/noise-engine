@@ -44,7 +44,8 @@ SynthDef(\forge_core_b258_master, { |out, freqBus, customBus0|
     foldSig = foldSig + (foldSig.squared * (sym * 0.25));
 
     // Strong Reciprocal Law: fold collapses as shape rises
-    foldAmt = fold * (1 - shape).squared;
+    // Frequency-dependent scaling: taper fold at high pitches to prevent aliasing
+    foldAmt = fold * (1 - shape).squared * freq.explin(500, 8000, 1, 0.3);
 
     // Stabilized Drive Stage
     foldSig = foldSig * (1 + (foldAmt * 5));
@@ -57,6 +58,8 @@ SynthDef(\forge_core_b258_master, { |out, freqBus, customBus0|
         foldSig = (foldSig * rec).tanh;
     };
     foldSig = foldSig * 0.8;
+    // Post-fold anti-alias: frequency-tracking LPF catches residual foldover
+    foldSig = LPF.ar(foldSig, (freq * 6).clip(200, 18000));
     foldSig = LeakDC.ar(foldSig);
 
     // --- BRANCH B: THE TARGET (De-aliased Sawtooth) ---
