@@ -799,10 +799,10 @@ class MainFrame(QMainWindow):
                 else:
                     slots.append(SlotState())  # Empty slot
 
-            # All channels muted — user unmutes what they want to hear
-            mixer = MixerState(
-                channels=[ChannelState(mute=True) for _ in range(8)]
-            )
+            # Ch1 at -1dB unmuted, channels 2-8 muted with faders at minimum
+            channels = [ChannelState(volume=0.891, mute=False)]
+            channels.extend(ChannelState(volume=0.0, mute=True) for _ in range(7))
+            mixer = MixerState(channels=channels)
 
             state = PresetState(pack=pack_id, slots=slots, mixer=mixer)
             self.preset._apply_preset(state)
