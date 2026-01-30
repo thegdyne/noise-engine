@@ -251,6 +251,7 @@ _CORE_GENERATOR_ORDER = [
     "C64 SID",
     "Buchla",
     "B258 Master",
+    "B258 Extreme",
     "Drone",
     # 808 Drums
     "808 Kick",
