@@ -67,8 +67,11 @@ class PackSelector(QWidget):
         
         # Core is always first
         self.combo.addItem("Core", None)
-        
-        # Add enabled packs
+
+        # All packs combined
+        self.combo.addItem("All", "__all__")
+
+        # Individual packs
         for pack in get_enabled_packs():
             self.combo.addItem(pack['display_name'], pack['id'])
         

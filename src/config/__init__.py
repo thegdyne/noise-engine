@@ -465,11 +465,15 @@ def set_current_pack(pack_id):
     if pack_id is None:
         _CURRENT_PACK = None
         return True
-    
+
+    if pack_id == "__all__":
+        _CURRENT_PACK = "__all__"
+        return True
+
     if pack_id in _PACK_CONFIGS and _PACK_CONFIGS[pack_id].get('enabled', False):
         _CURRENT_PACK = pack_id
         return True
-    
+
     # Pack not found, fall back to Core
     _CURRENT_PACK = None
     return False
@@ -504,11 +508,24 @@ def get_generators_for_pack(pack_id=None):
 def get_current_generators():
     """
     Get generators for currently selected pack.
-    
+
     Returns:
         list: Generator names for current pack (or Core)
     """
     return get_generators_for_pack(_CURRENT_PACK)
+
+
+def get_all_pack_generators():
+    """
+    Get all generators from all enabled packs (no core, no separators).
+
+    Returns:
+        list: ["Empty"] + all pack generator names in pack order
+    """
+    result = ["Empty"]
+    for pack in get_enabled_packs():
+        result.extend(pack.get('loaded_generators', []))
+    return result
 
 
 

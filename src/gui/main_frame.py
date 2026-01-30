@@ -772,20 +772,30 @@ class MainFrame(QMainWindow):
             self._applying_pack = False
 
     def _do_pack_changed(self, pack_id):
-        from src.config import get_generators_for_pack
+        from src.config import get_generators_for_pack, get_all_pack_generators
         from src.presets.preset_schema import PresetState, SlotState, MixerState, ChannelState
 
+        if pack_id == "__all__":
+            # All packs — lock cycle to all pack generators, don't load into slots
+            cycle_list = get_all_pack_generators()
+            self._update_slot_cycles(cycle_list)
+            return
+
         if pack_id:
-            # Get this pack's generators (includes "Empty" at index 0)
+            # Specific pack — get its generators
             generators = get_generators_for_pack(pack_id)
-            # Strip "Empty" — we want the actual generators
-            generators = [g for g in generators if g != "Empty"]
+
+            # Lock cycle buttons to this pack's generators
+            self._update_slot_cycles(generators)
+
+            # Strip "Empty" for slot assignment
+            gen_names = [g for g in generators if g != "Empty"]
 
             # Build slot states: map generators 1:1 to slots
             slots = []
             for i in range(8):
-                if i < len(generators):
-                    slots.append(SlotState(generator=generators[i]))
+                if i < len(gen_names):
+                    slots.append(SlotState(generator=gen_names[i]))
                 else:
                     slots.append(SlotState())  # Empty slot
 
@@ -797,11 +807,24 @@ class MainFrame(QMainWindow):
             state = PresetState(pack=pack_id, slots=slots, mixer=mixer)
             self.preset._apply_preset(state)
             self.preset_name.setText("Init")
-            logger.info(f"Loaded pack '{pack_id}': {len(generators)} generators into slots (all muted)", component="PACK")
+            logger.info(f"Loaded pack '{pack_id}': {len(gen_names)} generators into slots (all muted)", component="PACK")
         else:
-            # Core — clear all slots
+            # Core — lock cycle to core generators, clear all slots
+            core_generators = get_generators_for_pack(None)
+            self._update_slot_cycles(core_generators)
             self.preset._apply_preset(PresetState())
             self.preset_name.setText("Init")
+
+    def _update_slot_cycles(self, generator_list):
+        """Update all slot cycle buttons to only show given generators."""
+        for slot in self.generator_grid.slots.values():
+            current = slot.type_btn.get_value()
+            slot.type_btn.set_values(generator_list)
+            # Preserve current selection if it exists in new list
+            if current in generator_list:
+                slot.type_btn.set_value(current)
+            else:
+                slot.type_btn.set_value(generator_list[0])
 
     def showEvent(self, event):
         """Auto-connect if SC is ready (launched via ne-run)."""
