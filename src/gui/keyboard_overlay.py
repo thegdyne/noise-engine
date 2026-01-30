@@ -90,7 +90,7 @@ class KeyboardOverlay(QWidget):
     def __init__(self, parent, send_note_on_fn, send_note_off_fn,
                  send_all_notes_off_fn, get_focused_slot_fn, is_slot_midi_mode_fn,
                  on_slot_focus_changed_fn: Optional[Callable[[int], None]] = None,
-                 on_seq_mode_changed_fn: Optional[Callable[[bool], None]] = None):
+                 on_seq_mode_changed_fn: Optional[Callable[[bool, int], None]] = None):
         super().__init__(parent)
 
         # Callbacks - these expect 0-indexed slot IDs
@@ -102,7 +102,7 @@ class KeyboardOverlay(QWidget):
         self._is_slot_midi_mode = is_slot_midi_mode_fn
         # Callback when user clicks a different slot button
         self._on_slot_focus_changed = on_slot_focus_changed_fn
-        # Callback when SEQ mode toggled (True=enabled, False=disabled)
+        # Callback when SEQ mode toggled (enabled: bool, slot_0idx: int)
         self._on_seq_mode_changed = on_seq_mode_changed_fn
 
         # State - internally uses 1-indexed slot IDs (like UI)
@@ -959,8 +959,8 @@ class KeyboardOverlay(QWidget):
                 if self._seq_play_btn is not None:
                     self._seq_play_btn.setChecked(False)
                 # Notify controller to switch MotionMode OFF for SEQ
-                if self._on_seq_mode_changed is not None:
-                    self._on_seq_mode_changed(False)
+                if self._on_seq_mode_changed is not None and self._seq_engine is not None:
+                    self._on_seq_mode_changed(False, self._seq_engine.slot_id)
         else:
             self._arp_controls_frame.hide()
 
@@ -1019,8 +1019,8 @@ class KeyboardOverlay(QWidget):
             # Turning SEQ off — also stop playback
             if self._seq_play_btn.isChecked():
                 self._seq_play_btn.setChecked(False)
-                if self._on_seq_mode_changed is not None:
-                    self._on_seq_mode_changed(False)
+                if self._on_seq_mode_changed is not None and self._seq_engine is not None:
+                    self._on_seq_mode_changed(False, self._seq_engine.slot_id)
 
             self._seq_controls_frame.hide()
             self._seq_grid_frame.hide()
@@ -1052,7 +1052,7 @@ class KeyboardOverlay(QWidget):
 
         # Notify controller to set MotionMode (which starts/stops the engine)
         if self._on_seq_mode_changed is not None:
-            self._on_seq_mode_changed(playing)
+            self._on_seq_mode_changed(playing, self._seq_engine.slot_id)
 
     def _on_seq_rec_toggle(self):
         """Toggle step recording mode."""

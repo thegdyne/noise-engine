@@ -341,23 +341,24 @@ class KeyboardController:
     # SEQ MODE CHANGE
     # =========================================================================
 
-    def _on_seq_mode_changed(self, enabled: bool):
+    def _on_seq_mode_changed(self, enabled: bool, slot_0idx: int):
         """
-        Handle SEQ toggle from overlay.
+        Handle SEQ mode change from overlay.
 
-        Sets MotionMode for the focused slot via MotionManager.
+        Args:
+            enabled: True to start SEQ, False to stop
+            slot_0idx: Target slot (0-indexed, from bound SeqEngine)
         """
-        slot_0idx = self._focused_slot - 1
         if enabled:
             self._motion_manager.set_mode(slot_0idx, MotionMode.SEQ)
             logger.debug(
-                f"KeyboardController: SEQ enabled on slot {self._focused_slot}",
+                f"KeyboardController: SEQ enabled on slot {slot_0idx}",
                 component="SEQ"
             )
         else:
             self._motion_manager.set_mode(slot_0idx, MotionMode.OFF)
             logger.debug(
-                f"KeyboardController: SEQ disabled on slot {self._focused_slot}",
+                f"KeyboardController: SEQ disabled on slot {slot_0idx}",
                 component="SEQ"
             )
 
