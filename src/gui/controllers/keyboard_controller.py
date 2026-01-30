@@ -126,6 +126,9 @@ class KeyboardController:
                 get_bpm_fn=self._get_current_bpm,
             )
 
+        # Auto-switch focused slot to MIDI mode so keyboard works immediately
+        self._ensure_focused_slot_midi()
+
         overlay_width = self.main._keyboard_overlay.width()
         x = self.main.x() + (self.main.width() - overlay_width) // 2
         y = self.main.y() + self.main.height() - self.main._keyboard_overlay.height() - 24
@@ -159,6 +162,22 @@ class KeyboardController:
     def _send_all_notes_off(self, slot: int):
         if self.main.osc is not None and self.main.osc.client is not None:
             self.main.osc.client.send_message(f"/noise/slot/{slot}/midi/all_notes_off", [])
+
+    def _ensure_focused_slot_midi(self):
+        """Auto-switch focused slot to MIDI mode so keyboard works immediately."""
+        slot_id = self._focused_slot
+        if self._is_slot_midi_mode(slot_id):
+            return  # Already MIDI
+
+        slot = self.main.generator_grid.slots.get(slot_id)
+        if slot is None:
+            return
+
+        # Switch ENV source to MIDI (index 2)
+        slot.env_btn.blockSignals(True)
+        slot.env_btn.set_index(2)
+        slot.env_btn.blockSignals(False)
+        slot.on_env_source_changed("MIDI")
 
     def _get_focused_slot(self) -> int:
         """Return currently focused slot (1-indexed for UI)."""
