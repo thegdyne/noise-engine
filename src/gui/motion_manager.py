@@ -11,6 +11,12 @@ Clock model:
 - Timer auto-starts when any slot enters SEQ mode
 - Timer auto-stops when no slots are in SEQ mode
 - BPM is tracked to convert timer intervals to beat durations
+
+Sync model:
+- Global sync phase accumulates beats and wraps at SYNC_QUANTUM_BEATS (1/16th note)
+- First slot to enter SEQ starts immediately and resets the sync phase
+- Subsequent slots entering SEQ wait for the next sync boundary before starting
+- This keeps all slot sequencers aligned to the same 1/16th grid
 """
 
 from __future__ import annotations
@@ -28,6 +34,10 @@ from src.utils.logger import logger
 
 # Clock tick interval in milliseconds (~10ms for smooth sequencing)
 TICK_INTERVAL_MS = 10
+
+# Global sync resolution: 1/16th note = 0.25 beats
+# All SEQ slots quantize their start to this grid so they stay in sync.
+SYNC_QUANTUM_BEATS = 0.25
 
 
 class MotionManager:
@@ -71,6 +81,7 @@ class MotionManager:
                 'mode': MotionMode.OFF,
                 'tick_accumulator': 0.0,
                 'pending_mode': None,
+                'pending_seq_start': False,
             })
 
         # QTimer-based clock for SEQ tick delivery
@@ -78,6 +89,9 @@ class MotionManager:
         self._clock_timer.setTimerType(1)  # Qt.PreciseTimer
         self._clock_timer.timeout.connect(self._on_clock_tick)
         self._last_tick_time: Optional[float] = None
+
+        # Global sync phase — accumulates beats, fires sync pulse every SYNC_QUANTUM_BEATS
+        self._sync_phase: float = 0.0
 
         logger.info("MotionManager: 8 slots initialized", component="MOTION")
 
@@ -115,8 +129,11 @@ class MotionManager:
             logger.debug("MotionManager: clock stopped", component="MOTION")
 
     def _update_clock_state(self):
-        """Start or stop clock based on whether any slot is in SEQ mode."""
-        any_seq = any(s['mode'] == MotionMode.SEQ for s in self._slots)
+        """Start or stop clock based on whether any slot needs SEQ ticks."""
+        any_seq = any(
+            s['mode'] == MotionMode.SEQ or s['pending_seq_start']
+            for s in self._slots
+        )
         if any_seq:
             self._start_clock()
         else:
@@ -124,6 +141,14 @@ class MotionManager:
 
     def on_tick(self, tick_duration_beats: float):
         """Tick all slots with the given beat duration."""
+        # Check if a sync boundary is crossed this tick
+        self._sync_phase += tick_duration_beats
+        sync_crossed = False
+        if self._sync_phase >= SYNC_QUANTUM_BEATS:
+            sync_crossed = True
+            # Keep remainder so we don't drift
+            self._sync_phase %= SYNC_QUANTUM_BEATS
+
         for slot in self._slots:
             slot['tick_accumulator'] += tick_duration_beats
 
@@ -132,6 +157,11 @@ class MotionManager:
                     if slot['pending_mode'] is not None:
                         self._execute_handover(slot, slot['pending_mode'])
                         slot['pending_mode'] = None
+
+                    # Start pending SEQ slots on sync boundary
+                    if sync_crossed and slot['pending_seq_start']:
+                        slot['pending_seq_start'] = False
+                        slot['seq'].start()
 
                     accumulated = slot['tick_accumulator']
                     slot['tick_accumulator'] = 0.0
@@ -182,7 +212,7 @@ class MotionManager:
         Atomic mode switch (called from clock thread with lock held):
         1. Stop old mode (panic + reset)
         2. Update mode
-        3. Start new mode if applicable
+        3. Start new mode if applicable (SEQ waits for sync boundary)
         """
         old_mode = slot['mode']
 
@@ -190,6 +220,7 @@ class MotionManager:
         if old_mode == MotionMode.SEQ:
             slot['seq'].panic()
             slot['seq'].reset_phase()
+            slot['pending_seq_start'] = False
         elif old_mode == MotionMode.ARP:
             slot['arp'].teardown()
 
@@ -198,7 +229,19 @@ class MotionManager:
 
         # Start new mode
         if new_mode == MotionMode.SEQ:
-            slot['seq'].start()
+            # If clock is already running (other slots active), wait for
+            # next 1/16th sync boundary so all SEQs stay aligned.
+            # If clock is NOT running, this is the first SEQ — start immediately
+            # and reset the global sync phase so future slots align to us.
+            any_other_seq = any(
+                s['mode'] == MotionMode.SEQ and s is not slot
+                for s in self._slots
+            )
+            if any_other_seq:
+                slot['pending_seq_start'] = True
+            else:
+                self._sync_phase = 0.0
+                slot['seq'].start()
 
         logger.debug(
             f"MotionManager: handover executed {old_mode.name} -> {new_mode.name}",
@@ -240,6 +283,7 @@ class MotionManager:
             slot['arp'].teardown()
             slot['mode'] = MotionMode.OFF
             slot['pending_mode'] = None
+            slot['pending_seq_start'] = False
         self._update_clock_state()
 
     def panic_all(self):
