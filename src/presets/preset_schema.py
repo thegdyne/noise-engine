@@ -1030,13 +1030,13 @@ def _validate_slot(slot: dict, prefix: str, strict: bool = False) -> tuple:
     if tr is not None and not (0 <= tr <= 4):
         errors.append(f"{prefix}.transpose must be 0-4, got {tr}")
     
-    # Portamento
+    # Portamento (legacy — clamp old presets that stored raw values)
     port = slot.get("portamento", 0.0)
     port, warning = _coerce_float(port, f"{prefix}.portamento")
     if warning:
         warnings.append(warning)
-    if port is not None and not (0.0 <= port <= 1.0):
-        errors.append(f"{prefix}.portamento must be 0-1, got {port}")
+    if port is not None and port > 1.0:
+        slot["portamento"] = 0.0  # Reset legacy out-of-range values
     
     return errors, warnings
 
