@@ -773,7 +773,7 @@ class MainFrame(QMainWindow):
 
     def _do_pack_changed(self, pack_id):
         from src.config import get_generators_for_pack
-        from src.presets.preset_schema import PresetState, SlotState
+        from src.presets.preset_schema import PresetState, SlotState, MixerState, ChannelState
 
         if pack_id:
             # Get this pack's generators (includes "Empty" at index 0)
@@ -789,10 +789,15 @@ class MainFrame(QMainWindow):
                 else:
                     slots.append(SlotState())  # Empty slot
 
-            state = PresetState(pack=pack_id, slots=slots)
+            # All channels muted — user unmutes what they want to hear
+            mixer = MixerState(
+                channels=[ChannelState(mute=True) for _ in range(8)]
+            )
+
+            state = PresetState(pack=pack_id, slots=slots, mixer=mixer)
             self.preset._apply_preset(state)
             self.preset_name.setText("Init")
-            logger.info(f"Loaded pack '{pack_id}': {len(generators)} generators into slots", component="PACK")
+            logger.info(f"Loaded pack '{pack_id}': {len(generators)} generators into slots (all muted)", component="PACK")
         else:
             # Core — clear all slots
             self.preset._apply_preset(PresetState())
