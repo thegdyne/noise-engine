@@ -560,6 +560,16 @@ class KeyboardOverlay(QWidget):
         self._seq_tie_btn.clicked.connect(self._on_seq_tie_clicked)
         layout.addWidget(self._seq_tie_btn)
 
+        layout.addSpacing(12)
+
+        # CLR button (clear entire sequence)
+        self._seq_clear_btn = QPushButton("CLR")
+        self._seq_clear_btn.setFixedSize(36, 24)
+        self._seq_clear_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._seq_clear_btn.setToolTip("Clear entire sequence")
+        self._seq_clear_btn.clicked.connect(self._on_seq_clear_clicked)
+        layout.addWidget(self._seq_clear_btn)
+
         layout.addStretch()
 
         return frame
@@ -1092,6 +1102,22 @@ class KeyboardOverlay(QWidget):
         )
         self._seq_engine.steps_version += 1
         self._advance_input_cursor()
+        self._refresh_step_grid()
+
+    def _on_seq_clear_clicked(self):
+        """Clear the entire sequence (all steps to REST, length to 16, cursor to 0)."""
+        if self._seq_engine is None:
+            return
+        self._seq_engine.settings.steps = [SeqStep() for _ in range(16)]
+        self._seq_engine.settings.length = 16
+        self._seq_engine.current_step_index = 0
+        self._seq_engine.steps_version += 1
+        self._seq_input_cursor = 0
+        # Update length button to reflect reset
+        if hasattr(self, '_seq_length_btn'):
+            self._seq_length_btn.blockSignals(True)
+            self._seq_length_btn.set_index(15)  # Index 15 = length 16
+            self._seq_length_btn.blockSignals(False)
         self._refresh_step_grid()
 
     # -------------------------------------------------------------------------
