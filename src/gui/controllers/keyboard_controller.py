@@ -350,6 +350,8 @@ class KeyboardController:
             slot_0idx: Target slot (0-indexed, from bound SeqEngine)
         """
         if enabled:
+            # Ensure slot is in MIDI mode so it responds to note triggers
+            self._ensure_slot_midi(slot_0idx + 1)
             self._motion_manager.set_mode(slot_0idx, MotionMode.SEQ)
             logger.debug(
                 f"KeyboardController: SEQ enabled on slot {slot_0idx}",
@@ -386,7 +388,10 @@ class KeyboardController:
 
     def _ensure_focused_slot_midi(self):
         """Auto-switch focused slot to MIDI mode so keyboard works immediately."""
-        slot_id = self._focused_slot
+        self._ensure_slot_midi(self._focused_slot)
+
+    def _ensure_slot_midi(self, slot_id: int):
+        """Ensure a slot is in MIDI envelope mode (1-indexed)."""
         if self._is_slot_midi_mode(slot_id):
             return  # Already MIDI
 
