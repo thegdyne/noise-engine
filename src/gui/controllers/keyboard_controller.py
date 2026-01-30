@@ -11,6 +11,10 @@ R2.0: Per-slot ARP (PER_SLOT_ARP_SPEC v1.2.1).
       - Overlay is pure view, bound via set_arp_engine()
       - Focus switching with prev_engine reference capture
       - ARP+HOLD persistence across keyboard hide/show
+R3.0: SH-101 Step Sequencer + MotionManager.
+      - Owns MotionManager (8 SEQ engines + mode coordination)
+      - SEQ toggle in overlay with Rate, Length, REC controls
+      - Step recording via QWERTY keys
 """
 from __future__ import annotations
 
@@ -19,6 +23,8 @@ from PyQt5.QtCore import QTimer, QObject, QEvent
 
 from src.gui.keyboard_overlay import KeyboardOverlay
 from src.gui.arp_slot_manager import ArpSlotManager
+from src.gui.motion_manager import MotionManager
+from src.model.sequencer import MotionMode
 from src.utils.logger import logger
 
 
@@ -82,6 +88,13 @@ class KeyboardController:
             get_bpm=self._get_current_bpm,
         )
 
+        # Create MotionManager (8 SEQ engines + mode coordination)
+        self._motion_manager = MotionManager(
+            arp_engines=self._arp_manager.engines,
+            send_note_on=self._send_midi_note_on,
+            send_note_off=self._send_midi_note_off,
+        )
+
         # Install application-level event filter for global keyboard capture
         self._event_filter = KeyboardEventFilter(self)
         QApplication.instance().installEventFilter(self._event_filter)
@@ -103,6 +116,11 @@ class KeyboardController:
     def arp_manager(self) -> ArpSlotManager:
         """Access the ARP slot manager (for main_frame wiring)."""
         return self._arp_manager
+
+    @property
+    def motion_manager(self) -> MotionManager:
+        """Access the MotionManager (for clock wiring)."""
+        return self._motion_manager
 
     # =========================================================================
     # SLOT / ENV SOURCE SIGNALS
@@ -176,14 +194,19 @@ class KeyboardController:
                 get_focused_slot_fn=self._get_focused_slot,
                 is_slot_midi_mode_fn=self._is_slot_midi_mode,
                 on_slot_focus_changed_fn=self._on_overlay_slot_focus_changed,
+                on_seq_mode_changed_fn=self._on_seq_mode_changed,
             )
 
         # Auto-switch focused slot to MIDI mode so keyboard works immediately
         self._ensure_focused_slot_midi()
 
-        # Bind focused slot's engine to overlay
-        engine = self._arp_manager.get_engine(self._focused_slot - 1)
+        # Bind focused slot's engines to overlay
+        slot_0idx = self._focused_slot - 1
+        engine = self._arp_manager.get_engine(slot_0idx)
         self.main._keyboard_overlay.set_arp_engine(engine)
+
+        seq_engine = self._motion_manager.get_seq_engine(slot_0idx)
+        self.main._keyboard_overlay.set_seq_engine(seq_engine)
 
         overlay_width = self.main._keyboard_overlay.width()
         x = self.main.x() + (self.main.width() - overlay_width) // 2
@@ -240,9 +263,13 @@ class KeyboardController:
         # 4. Auto-switch new slot to MIDI mode
         self._ensure_focused_slot_midi()
 
-        # 5. Get new slot's engine and bind to overlay
-        new_engine = self._arp_manager.get_engine(new_slot_ui - 1)
+        # 5. Get new slot's engines and bind to overlay
+        new_0idx = new_slot_ui - 1
+        new_engine = self._arp_manager.get_engine(new_0idx)
         overlay.set_arp_engine(new_engine)
+
+        new_seq = self._motion_manager.get_seq_engine(new_0idx)
+        overlay.set_seq_engine(new_seq)
 
         # 6. Update slot button states
         overlay._update_slot_buttons()
@@ -285,8 +312,36 @@ class KeyboardController:
                 # Teardown: no hold, clean up
                 self._arp_manager.reset_slot(slot)
 
-        # Unbind engine from overlay
+        # Stop any active SEQ slots
+        self._motion_manager.panic_all()
+
+        # Unbind engines from overlay
+        overlay.set_seq_engine(None)
         overlay.set_arp_engine(None)
+
+    # =========================================================================
+    # SEQ MODE CHANGE
+    # =========================================================================
+
+    def _on_seq_mode_changed(self, enabled: bool):
+        """
+        Handle SEQ toggle from overlay.
+
+        Sets MotionMode for the focused slot via MotionManager.
+        """
+        slot_0idx = self._focused_slot - 1
+        if enabled:
+            self._motion_manager.set_mode(slot_0idx, MotionMode.SEQ)
+            logger.debug(
+                f"KeyboardController: SEQ enabled on slot {self._focused_slot}",
+                component="SEQ"
+            )
+        else:
+            self._motion_manager.set_mode(slot_0idx, MotionMode.OFF)
+            logger.debug(
+                f"KeyboardController: SEQ disabled on slot {self._focused_slot}",
+                component="SEQ"
+            )
 
     # =========================================================================
     # OSC SEND HELPERS

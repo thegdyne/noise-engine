@@ -89,7 +89,8 @@ class KeyboardOverlay(QWidget):
 
     def __init__(self, parent, send_note_on_fn, send_note_off_fn,
                  send_all_notes_off_fn, get_focused_slot_fn, is_slot_midi_mode_fn,
-                 on_slot_focus_changed_fn: Optional[Callable[[int], None]] = None):
+                 on_slot_focus_changed_fn: Optional[Callable[[int], None]] = None,
+                 on_seq_mode_changed_fn: Optional[Callable[[bool], None]] = None):
         super().__init__(parent)
 
         # Callbacks - these expect 0-indexed slot IDs
@@ -101,6 +102,8 @@ class KeyboardOverlay(QWidget):
         self._is_slot_midi_mode = is_slot_midi_mode_fn
         # Callback when user clicks a different slot button
         self._on_slot_focus_changed = on_slot_focus_changed_fn
+        # Callback when SEQ mode toggled (True=enabled, False=disabled)
+        self._on_seq_mode_changed = on_seq_mode_changed_fn
 
         # State - internally uses 1-indexed slot IDs (like UI)
         self._octave = 4
@@ -133,6 +136,13 @@ class KeyboardOverlay(QWidget):
         self._arp_pattern_btn: QPushButton = None
         self._arp_octaves_btn: QPushButton = None
         self._arp_hold_btn: QPushButton = None
+
+        # SEQ UI elements
+        self._seq_toggle_btn: QPushButton = None
+        self._seq_controls_frame: QFrame = None
+        self._seq_rate_btn = None
+        self._seq_length_btn = None
+        self._seq_rec_btn: QPushButton = None
 
         self._setup_ui()
         self._apply_style()
@@ -251,6 +261,10 @@ class KeyboardOverlay(QWidget):
         self._arp_controls_frame = self._create_arp_controls()
         layout.addWidget(self._arp_controls_frame)
 
+        # SEQ controls row (hidden when SEQ off)
+        self._seq_controls_frame = self._create_seq_controls()
+        layout.addWidget(self._seq_controls_frame)
+
         # Keyboard area
         keyboard = self._create_keyboard()
         layout.addWidget(keyboard)
@@ -288,6 +302,17 @@ class KeyboardOverlay(QWidget):
         self._arp_toggle_btn.setToolTip("Toggle Arpeggiator")
         self._arp_toggle_btn.clicked.connect(self._on_arp_toggle)
         layout.addWidget(self._arp_toggle_btn)
+
+        layout.addSpacing(4)
+
+        # SEQ toggle button
+        self._seq_toggle_btn = QPushButton("SEQ")
+        self._seq_toggle_btn.setCheckable(True)
+        self._seq_toggle_btn.setFixedSize(40, 24)
+        self._seq_toggle_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
+        self._seq_toggle_btn.setToolTip("Toggle Step Sequencer")
+        self._seq_toggle_btn.clicked.connect(self._on_seq_toggle)
+        layout.addWidget(self._seq_toggle_btn)
 
         layout.addStretch()
 
@@ -399,6 +424,60 @@ class KeyboardOverlay(QWidget):
         self._arp_hold_btn.setToolTip("Latch notes (toggle on key press)")
         self._arp_hold_btn.clicked.connect(self._on_hold_toggle)
         layout.addWidget(self._arp_hold_btn)
+
+        layout.addStretch()
+
+        return frame
+
+    def _create_seq_controls(self) -> QFrame:
+        """Create SEQ controls row (visible only when SEQ enabled)."""
+        frame = QFrame()
+        frame.setObjectName("keyboard_seq_controls")
+        frame.setFixedHeight(36)
+        frame.hide()  # Hidden by default
+
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(12, 4, 12, 4)
+        layout.setSpacing(8)
+
+        # Rate button
+        rate_label = QLabel("Rate:")
+        rate_label.setFont(QFont(FONT_FAMILY, 10))
+        layout.addWidget(rate_label)
+
+        self._seq_rate_btn = CycleButton(list(SEQ_RATE_LABELS), SEQ_DEFAULT_RATE_INDEX)
+        self._seq_rate_btn.setFixedSize(50, 24)
+        self._seq_rate_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._seq_rate_btn.setToolTip("SEQ rate (click or drag)")
+        self._seq_rate_btn.invert_drag = True
+        self._seq_rate_btn.index_changed.connect(self._on_seq_rate_changed)
+        layout.addWidget(self._seq_rate_btn)
+
+        layout.addSpacing(8)
+
+        # Length button
+        len_label = QLabel("Len:")
+        len_label.setFont(QFont(FONT_FAMILY, 10))
+        layout.addWidget(len_label)
+
+        length_labels = [str(i) for i in range(1, 17)]
+        self._seq_length_btn = CycleButton(length_labels, 15)  # Default 16
+        self._seq_length_btn.setFixedSize(36, 24)
+        self._seq_length_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._seq_length_btn.setToolTip("Sequence length (click or drag)")
+        self._seq_length_btn.index_changed.connect(self._on_seq_length_changed)
+        layout.addWidget(self._seq_length_btn)
+
+        layout.addSpacing(8)
+
+        # REC button (toggle step recording)
+        self._seq_rec_btn = QPushButton("REC")
+        self._seq_rec_btn.setCheckable(True)
+        self._seq_rec_btn.setFixedSize(40, 24)
+        self._seq_rec_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
+        self._seq_rec_btn.setToolTip("Step record: keys enter notes, Space=rest, Tab=tie")
+        self._seq_rec_btn.clicked.connect(self._on_seq_rec_toggle)
+        layout.addWidget(self._seq_rec_btn)
 
         layout.addStretch()
 
@@ -581,6 +660,33 @@ class KeyboardOverlay(QWidget):
                 color: {accent};
             }}
 
+            #keyboard_seq_controls {{
+                background: {COLORS['background']};
+                border-bottom: 1px solid {COLORS['border']};
+            }}
+
+            #keyboard_seq_controls QLabel {{
+                color: {COLORS['text_bright']};
+            }}
+
+            #keyboard_seq_controls QPushButton {{
+                background: {COLORS['background_highlight']};
+                border: 1px solid {COLORS['border_light']};
+                border-radius: 4px;
+                color: {accent};
+            }}
+
+            #keyboard_seq_controls QPushButton:hover {{
+                border-color: {accent_dim};
+                background: {accent_bg};
+            }}
+
+            #keyboard_seq_controls QPushButton:checked {{
+                background: {accent_bg};
+                border: 1px solid {accent};
+                color: {accent};
+            }}
+
             #keyboard_keys {{
                 background: {COLORS['background_dark']};
             }}
@@ -677,13 +783,15 @@ class KeyboardOverlay(QWidget):
         enabled = self._arp_toggle_btn.isChecked()
         self._arp_engine.toggle_arp(enabled)
 
-        # Show/hide ARP controls
         if enabled:
-            self._arp_controls_frame.show()
-            self.setFixedSize(560, 356)  # Taller to fit controls
-        else:
-            self._arp_controls_frame.hide()
-            self.setFixedSize(560, 320)
+            # Disable SEQ when enabling ARP (mutually exclusive)
+            self._seq_toggle_btn.setChecked(False)
+            self._seq_controls_frame.hide()
+            self._seq_recording = False
+            if self._seq_rec_btn is not None:
+                self._seq_rec_btn.setChecked(False)
+
+        self._update_overlay_size()
 
     def _on_rate_changed(self, index: int):
         """Handle ARP rate change from CycleButton."""
@@ -710,6 +818,67 @@ class KeyboardOverlay(QWidget):
 
         enabled = self._arp_hold_btn.isChecked()
         self._arp_engine.toggle_hold(enabled)
+
+    # -------------------------------------------------------------------------
+    # SEQ Control Handlers
+    # -------------------------------------------------------------------------
+
+    def _on_seq_toggle(self):
+        """Handle SEQ toggle button click."""
+        enabled = self._seq_toggle_btn.isChecked()
+
+        if enabled:
+            if self._seq_engine is None:
+                self._seq_toggle_btn.setChecked(False)
+                return
+
+            # Disable ARP when enabling SEQ (mutually exclusive)
+            if self._arp_engine is not None and self._arp_engine.is_enabled():
+                self._arp_engine.toggle_arp(False)
+            self._arp_toggle_btn.setChecked(False)
+            self._arp_controls_frame.hide()
+
+            self._seq_controls_frame.show()
+        else:
+            self._seq_controls_frame.hide()
+            self._seq_recording = False
+            if self._seq_rec_btn is not None:
+                self._seq_rec_btn.setChecked(False)
+
+        # Notify controller of mode change
+        if self._on_seq_mode_changed is not None:
+            self._on_seq_mode_changed(enabled)
+
+        self._update_overlay_size()
+
+    def _on_seq_rate_changed(self, index: int):
+        """Handle SEQ rate change from CycleButton."""
+        if self._seq_engine is not None:
+            self._seq_engine.set_rate(index)
+
+    def _on_seq_length_changed(self, index: int):
+        """Handle SEQ length change from CycleButton."""
+        if self._seq_engine is not None:
+            new_length = index + 1  # Index 0 = length 1, etc.
+            self._seq_engine.set_length(new_length)
+
+    def _on_seq_rec_toggle(self):
+        """Toggle step recording mode."""
+        enabled = self._seq_rec_btn.isChecked()
+        self.set_seq_recording(enabled)
+
+    # -------------------------------------------------------------------------
+    # Overlay Sizing
+    # -------------------------------------------------------------------------
+
+    def _update_overlay_size(self):
+        """Update overlay height based on which control rows are visible."""
+        base = 320
+        if self._arp_controls_frame.isVisible():
+            base += 36
+        if self._seq_controls_frame.isVisible():
+            base += 36
+        self.setFixedSize(560, base)
 
     # -------------------------------------------------------------------------
     # Header Dragging
