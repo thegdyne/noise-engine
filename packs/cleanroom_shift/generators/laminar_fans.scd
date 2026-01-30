@@ -30,9 +30,9 @@ a = HPF.ar(a, 80);
 b = (0.03 + (shf * 0.12)).clip(0.03, 0.2);
 c = LFNoise1.kr(b).range(0.6, 1.4);
 
-d = (filterFreq * (0.5 + (c * 0.7))).clip(120, 9000);
-e = Resonz.ar(a, d, (0.03 + (rq * 0.06)).clip(0.02, 0.25)) * 8;
-f = Resonz.ar(a, (d * 1.6).clip(120, 12000), (0.02 + (rq * 0.05)).clip(0.02, 0.2)) * 6;
+d = (freq * (0.5 + (c * 0.7))).clip(120, 9000);
+e = Resonz.ar(a, d, 0.05) * 8;
+f = Resonz.ar(a, (d * 1.6).clip(120, 12000), 0.04) * 6;
 
 g = LFNoise0.kr(0.6 + (shf * 3)).range(0, 1);
 h = (g - drp).clip(0.15, 1);

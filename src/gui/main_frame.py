@@ -773,7 +773,10 @@ class MainFrame(QMainWindow):
 
     def _do_pack_changed(self, pack_id):
         from src.config import get_generators_for_pack, get_all_pack_generators
-        from src.presets.preset_schema import PresetState, SlotState, MixerState, ChannelState
+        from src.presets.preset_schema import (
+            PresetState, SlotState, MixerState, ChannelState,
+            FXSlotsState, FXSlotState,
+        )
 
         if pack_id == "__all__":
             # All packs — lock cycle to all pack generators, don't load into slots
@@ -804,7 +807,15 @@ class MainFrame(QMainWindow):
             channels.extend(ChannelState(volume=0.0, mute=True) for _ in range(7))
             mixer = MixerState(channels=channels)
 
-            state = PresetState(pack=pack_id, slots=slots, mixer=mixer)
+            # FX3 (Chorus) and FX4 (LoFi) bypassed by default
+            fx_slots = FXSlotsState(slots=[
+                FXSlotState(fx_type='Echo', p1=0.3, p2=0.3, p3=0.7, p4=0.1),
+                FXSlotState(fx_type='Reverb', p1=0.75, p2=0.65, p3=0.7, p4=0.5),
+                FXSlotState(fx_type='Chorus', bypassed=True),
+                FXSlotState(fx_type='LoFi', bypassed=True),
+            ])
+
+            state = PresetState(pack=pack_id, slots=slots, mixer=mixer, fx_slots=fx_slots)
             self.preset._apply_preset(state)
             self.preset_name.setText("Init")
             logger.info(f"Loaded pack '{pack_id}': {len(gen_names)} generators into slots (all muted)", component="PACK")

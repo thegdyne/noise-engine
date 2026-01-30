@@ -28,7 +28,7 @@ SynthDef(\forge_pathway_raiders_garden_air_road_park, { |out, freqBus, customBus
 a = PinkNoise.ar(0.12) + (BrownNoise.ar(0.07));
 b = HPF.ar(a, 60);
 c = LFNoise1.kr(0.04 + (air * 0.16)).range(0.6, 1.5);
-d = (filterFreq * (0.35 + (c * 0.85))).clip(120, 8500);
+d = (freq * (0.35 + (c * 0.85))).clip(120, 8500);
 e = Resonz.ar(b, d, 0.08) * 3.5;
 
 // distant road: low band rumble (very low)
