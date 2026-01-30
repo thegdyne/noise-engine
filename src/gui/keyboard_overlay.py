@@ -620,6 +620,7 @@ class KeyboardOverlay(QWidget):
                 qt_key = getattr(Qt, f"Key_{label}", None)
                 if qt_key:
                     self._key_buttons[qt_key] = btn
+                    btn.clicked.connect(lambda checked, k=qt_key: self._on_key_button_clicked(k))
             else:
                 btn = QWidget()
                 btn.setFixedSize(36, 40)
@@ -644,6 +645,7 @@ class KeyboardOverlay(QWidget):
                 qt_key = getattr(Qt, f"Key_{label}", None)
             if qt_key:
                 self._key_buttons[qt_key] = btn
+                btn.clicked.connect(lambda checked, k=qt_key: self._on_key_button_clicked(k))
             white_row.addWidget(btn)
 
         white_row.addStretch()
@@ -1155,6 +1157,34 @@ class KeyboardOverlay(QWidget):
             slot_id = i + 1  # 1-indexed
             btn.setEnabled(True)
             btn.setChecked(slot_id == self._target_slot)
+
+    # -------------------------------------------------------------------------
+    # Key Button Mouse Click
+    # -------------------------------------------------------------------------
+
+    def _on_key_button_clicked(self, qt_key: int):
+        """Handle mouse click on an on-screen piano key button."""
+        if qt_key not in KEY_TO_SEMITONE:
+            return
+
+        semitone = KEY_TO_SEMITONE[qt_key]
+        midi_note = self._compute_midi_note(semitone)
+        if midi_note < 0 or midi_note > 127:
+            return
+
+        # SEQ recording mode — enter note at cursor
+        if self._is_seq_recording_mode():
+            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
+                step_type=StepType.NOTE, note=midi_note, velocity=self._velocity,
+            )
+            self._seq_engine.steps_version += 1
+            self._advance_input_cursor()
+            self._refresh_step_grid()
+
+        # Audition: play note briefly so user hears the key
+        osc_slot = self._target_slot - 1
+        self._send_note_on(osc_slot, midi_note, self._velocity)
+        QTimer.singleShot(200, lambda n=midi_note, s=osc_slot: self._send_note_off(s, n))
 
     # -------------------------------------------------------------------------
     # Toggle / Show / Hide
