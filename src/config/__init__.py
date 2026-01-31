@@ -288,6 +288,8 @@ _CORE_GENERATOR_ORDER = [
     "PT Chaos",
     "Geiger",
     "Giant B0N0",
+    # Test / diagnostic
+    "Scope Test",
 ]
 
 # Dynamic generator cycle (built after loading)
