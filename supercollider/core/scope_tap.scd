@@ -116,6 +116,64 @@
         });
     }, '/noise/scope/enable');
 
+    // === DEBUG CAPTURE ===
+    // Captures raw intermediate bus audio + scope buffer simultaneously to CSV
+    // Triggered by /noise/scope/debug from Python
+    OSCdef(\scopeDebug, { |msg|
+        var slot = ~scopeTappedSlot ? 0;
+        var inBus = ~intermediateBus[slot];
+        var rawBuf = Buffer.alloc(s, 2048, 1);  // 2048 samples raw capture
+
+        "[Scope Debug] Capturing slot % ...".format(slot + 1).postln;
+
+        // One-shot synth: records 2048 raw samples from intermediate bus
+        SynthDef(\scope_debug_capture, { |bus, buf|
+            var sig = Mix.ar(In.ar(bus, 2)) * 0.5;
+            RecordBuf.ar(sig, buf, loop: 0, doneAction: 2);
+        }).add;
+
+        s.sync;
+
+        // Start capture synth (runs once then frees itself)
+        Synth(\scope_debug_capture, [
+            \bus, inBus.index,
+            \buf, rawBuf.bufnum
+        ], ~masterGroup, \addToTail);
+
+        // Wait for capture to complete (~46ms at 44100)
+        0.1.wait;
+
+        // Read both buffers
+        rawBuf.loadToFloatArray(action: { |rawData|
+            ~scopeBuf.loadToFloatArray(action: { |scopeData|
+                var wp = ~scopeWritePos ? 0;
+                var path = Platform.userHomeDir +/+ "Downloads" +/+ "scope_debug.csv";
+                var file = File(path, "w");
+
+                // Header
+                file.write("sample,raw_audio,scope_buffer\n");
+
+                // Write samples (raw is 2048, scope is 1024)
+                2048.do { |i|
+                    var raw = rawData[i];
+                    var scope = if(i < 1024, { scopeData[i] }, { "" });
+                    file.write("%,%,%\n".format(i, raw, scope));
+                };
+
+                file.close;
+                rawBuf.free;
+
+                "[Scope Debug] Saved to %".format(path).postln;
+                "[Scope Debug] Write position was: %".format(wp).postln;
+
+                // Notify Python
+                if(~pythonAddr.notNil, {
+                    ~pythonAddr.sendMsg('/noise/scope/debug/done', path, wp);
+                });
+            });
+        });
+    }, '/noise/scope/debug');
+
     // === DATA STREAMING ROUTINE ===
     // Reads buffer at ~30fps and sends to Python with write position
     ~scopeStreamRoutine = Routine({

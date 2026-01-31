@@ -427,6 +427,10 @@ class MainFrame(QMainWindow):
         preset_browser_shortcut = QShortcut(QKeySequence("Ctrl+P"), self)
         preset_browser_shortcut.activated.connect(self._toggle_preset_browser)
 
+        # Shortcut: scope debug capture (Ctrl+D / Cmd+D)
+        scope_debug_shortcut = QShortcut(QKeySequence("Ctrl+D"), self)
+        scope_debug_shortcut.activated.connect(self._on_scope_debug_capture)
+
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
         
@@ -1141,6 +1145,16 @@ class MainFrame(QMainWindow):
         if self.scope_controller:
             self.scope_controller.freeze(frozen)
 
+    def _on_scope_debug_capture(self):
+        """Trigger scope debug capture (Ctrl+D).
+        Captures SC raw audio + scope buffer, and Python display frame to CSV files.
+        """
+        if self.scope_controller:
+            self.scope_controller.debug_capture()
+            self._show_toast("Scope debug capture → ~/Downloads/")
+        else:
+            self._show_toast("Scope not connected")
+
     def _on_scope_data(self, data):
         """Handle incoming scope waveform data from SC.
 
@@ -1154,10 +1168,13 @@ class MainFrame(QMainWindow):
             write_pos = int(data[0])
             buf = np.array(data[1:], dtype=np.float32)
             if write_pos > 0 and write_pos <= len(buf):
-                # Only show the valid region from trigger point to write head
-                self.scope_widget.set_waveform(buf[:write_pos])
+                trimmed = buf[:write_pos]
             else:
-                self.scope_widget.set_waveform(buf)
+                trimmed = buf
+            self.scope_widget.set_waveform(trimmed)
+            # Store frame for debug capture
+            if self.scope_controller:
+                self.scope_controller.store_display_frame(write_pos, buf, trimmed)
         except Exception:
             pass
 
