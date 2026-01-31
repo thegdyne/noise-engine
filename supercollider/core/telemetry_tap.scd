@@ -142,7 +142,7 @@
             "[Telemetry] Invalid slot for wave capture: %".format(slot).warn;
         } {
             if (enable) {
-                var buf = ~telemetry.allocWaveBuffer.(idx);
+                var buf = ~telemetry[\allocWaveBuffer].value(idx);
                 // ~intermediateBus uses 0-based index (from endstage.scd)
                 var inBus = ~intermediateBus[idx];
 
@@ -158,13 +158,27 @@
                     "[Telemetry] No intermediate bus for slot %".format(slot).warn;
                 };
             } {
-                ~telemetry.freeWaveBuffer.(idx);
+                ~telemetry[\freeWaveBuffer].value(idx);
                 "[Telemetry] Wave capture stopped for slot %".format(slot).postln;
             };
         };
     }, '/noise/telem/wave/enable');
 
     "  [Telemetry] OSC handler /noise/telem/wave/enable registered".postln;
+
+    // =========================================================================
+    // OSC HANDLER: /noise/telem/gen (relay SendReply data to Python)
+    // =========================================================================
+
+    OSCdef(\telemGen, { |msg, time, addr, recvPort|
+        // SendReply format: [cmdName, nodeID, replyID, ...data]
+        // Forward data values (msg[3..]) to Python via ~pythonAddr
+        if (~pythonAddr.notNil) {
+            ~pythonAddr.sendMsg('/noise/telem/gen', *msg[3..]);
+        };
+    }, '/noise/telem/gen');
+
+    "  [Telemetry] OSC handler /noise/telem/gen relay registered".postln;
 
     // =========================================================================
     // OSC HANDLER: /noise/telem/wave/ready (internal — burst buffer to Python)
@@ -193,9 +207,10 @@
 
     ~telemetry.cleanup = {
         8.do { |i|
-            ~telemetry.freeWaveBuffer.(i);
+            ~telemetry[\freeWaveBuffer].value(i);
         };
         OSCdef(\telemEnable).free;
+        OSCdef(\telemGen).free;
         OSCdef(\telemWaveEnable).free;
         OSCdef(\telemWaveReady).free;
         "[Telemetry] Cleaned up".postln;
