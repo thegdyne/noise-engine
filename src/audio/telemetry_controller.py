@@ -472,8 +472,12 @@ class TelemetryController(QObject):
     def get_ideal_waveform(self, data: dict = None) -> np.ndarray:
         """Generate ideal B258 waveform from current or provided telemetry data.
 
+        In hardware mode, there is no ideal — returns None.
         Returns phase-aligned ideal waveform array, or None if no data.
         """
+        if self.is_hw_mode:
+            return None
+
         if data is None:
             data = self.get_latest()
         if data is None:
@@ -490,8 +494,33 @@ class TelemetryController(QObject):
         phase = data.get('phase', 0)
         return self.ideal.align_to_phase(ideal, phase)
 
+    def get_delta_waveform(self) -> np.ndarray:
+        """Compute |actual - ideal| delta trace for Digital Twin comparison.
+
+        Returns absolute difference array, or None if either waveform
+        is unavailable or lengths don't match.
+        """
+        if self.current_waveform is None:
+            return None
+
+        ideal = self.get_ideal_waveform()
+        if ideal is None:
+            return None
+
+        actual = self.current_waveform
+        if len(actual) != len(ideal):
+            return None
+
+        return np.abs(actual - ideal).astype(np.float32)
+
     def get_ideal_rms(self, data: dict = None) -> dict:
-        """Compute ideal RMS for each stage from current telemetry params."""
+        """Compute ideal RMS for each stage from current telemetry params.
+
+        In hardware mode, returns None (no ideal reference).
+        """
+        if self.is_hw_mode:
+            return None
+
         if data is None:
             data = self.get_latest()
         if data is None:
@@ -504,6 +533,19 @@ class TelemetryController(QObject):
             p3_sym_raw=data.get('p3', 0.5),
             p4_sat=data.get('p4', 0),
         )
+
+    def has_phase_lock_warning(self, data: dict = None) -> bool:
+        """Check if frequency reports 48kHz (Schmitt trigger not locking).
+
+        Returns True if freq == 48000.0 (±100), indicating the phase
+        tracker is seeing sample rate rather than actual pitch.
+        """
+        if data is None:
+            data = self.get_latest()
+        if data is None:
+            return False
+        freq = data.get('freq', 0)
+        return abs(freq - 48000.0) < 100
 
     # -----------------------------------------------------------------
     # Query
@@ -536,6 +578,12 @@ class TelemetryController(QObject):
         # Hardware DNA fields (populated when waveform capture is active)
         hw_dna = self._compute_hw_dna(ideal_wave)
 
+        # Delta trace (Digital Twin visualizer)
+        delta_wave = self.get_delta_waveform()
+
+        # Phase lock integrity check
+        phase_lock_warning = self.has_phase_lock_warning(latest)
+
         result = {
             'frame': latest,
             'waveform': (
@@ -545,9 +593,13 @@ class TelemetryController(QObject):
             'ideal_waveform': (
                 ideal_wave.tolist() if ideal_wave is not None else None
             ),
+            'delta_waveform': (
+                delta_wave.tolist() if delta_wave is not None else None
+            ),
             'ideal_rms': ideal_rms,
             'history_length': len(self.history),
             'captured_at': datetime.now().isoformat(),
+            'phase_lock_warning': phase_lock_warning,
             'provenance': {
                 'generator_id': self.current_generator_id,
                 'synthdef': self.current_synthdef_name,
@@ -559,6 +611,13 @@ class TelemetryController(QObject):
         }
 
         if hw_dna is not None:
+            # Include SYM and SAT from params for DNA provenance
+            hw_dna['symmetry'] = latest.get('p3', 0.5)
+            hw_dna['saturation'] = latest.get('p4', 0.0)
+            hw_dna['rms_stage1'] = latest.get('rms_stage1', 0)
+            hw_dna['peak'] = latest.get('peak', 0)
+            if phase_lock_warning:
+                hw_dna['phase_lock_warning'] = True
             result['hw_dna'] = hw_dna
 
         return result

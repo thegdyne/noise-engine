@@ -1,4 +1,4 @@
-// core/hw_assessment_tap — Hardware DNA Probe for external gear profiling
+// external_telemetry/hw_assessment_tap — Hardware DNA Probe
 /*
 Hardware Assessment Tap — Phase 1: Digital Twin Profiling
 
@@ -12,102 +12,93 @@ system for real-time comparison with IdealOverlay. Use this to:
 SAFETY: User must attenuate hardware signal with MOTU M6 front-panel
 GAIN knobs until Stage 1 Peak stays below 0.95.
 
-Phase tracking uses a Schmitt trigger (hysteresis ±0.05) for jitter-free
-zero-crossing detection on noisy/complex hardware waveforms.
+Phase tracking uses a Schmitt trigger with Latch-based hysteresis for
+jitter-free zero-crossing detection on noisy/complex hardware waveforms.
 
 Custom params:
-  - P0 input_chan: MOTU M6 input channel (0-5)
-  - P1 input_gain: Level normalization multiplier (0-4x)
-  - P2 mix: Reserved (unused in Phase 1)
-  - P3 symmetry: Sent to telemetry for IdealOverlay bias alignment
-  - P4 saturation: Sent to telemetry for IdealOverlay saturation matching
+  - P0 CHN: MOTU M6 input channel (0-5)
+  - P1 LVL: Level normalization multiplier (0-4x)
+  - P2 MIX: Reserved for Phase 2 (Hardware/Digital blend)
+  - P3 SYM: Sent to telemetry for IdealOverlay DC bias alignment
+  - P4 SAT: Sent to telemetry for IdealOverlay saturation matching
+
+Stage contract (mirrors internal generators):
+  - Stage 1 (Actual):    Raw hardware input (pre-normalization)
+  - Stage 2 (Normalized): Gain-adjusted, clipped ±1 (via P1/LVL)
+  - Stage 3 (Reference):  Calibrated benchmark transform (LeakDC + 0.66)
 
 Telemetry taps (when telemetryRate > 0):
-  - stage1: Raw hardware input (pre-normalization)
-  - stage2: Normalized input (post-gain, clipped to ±1)
-  - stage3: Output stage (same chain as B258/Reference Sine)
+  - freq: Schmitt-trigger derived pitch (not freqBus)
+  - phase: Period-measured ramp for overlay alignment
+  - rms/peak: Per-stage amplitude tracking
 */
 
 SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0, telemetryRate=0|
-    var sig, freq, p;
-    var inputChan, inGain;
-    var hw, stage1, stage2, stage3;
-    var phase, badValue;
+	var sig, freq, p;
+	var hw, stage1, stage2, stage3;
+	var phase, badValue;
 
-    // Schmitt trigger variables
-    var schmittLo = -0.05, schmittHi = 0.05;
-    var belowLo, aboveHi, armed, zc;
-    var period, sampPerCycle, phaseInc;
+	// Schmitt trigger variables
+	var hasDropped, zc;
+	var sampBetween;
 
-    // Contiguous 5-channel custom bus read
-    p = In.kr(customBus0, 5);
+	// Contiguous 5-channel custom bus read
+	p = In.kr(customBus0, 5);
 
-    // --- PARAMETER MAPPING ---
-    inputChan = Lag.kr(p[0].round(1).clip(0, 5), 0.1);  // P0: Input channel (integer)
-    inGain    = Lag.kr(p[1].clip(0, 4), 0.05);           // P1: Level normalization
+	// --- HARDWARE INPUT (DC-coupled bypass) ---
+	// Select MOTU M6 input by channel param
+	hw = SoundIn.ar(p[0].round(1).clip(0, 5));
+	// LeakDC with coeff 1.0 = transparent bypass (no DC removal)
+	hw = LeakDC.ar(hw, 1.0);
 
-    // Frequency from bus (used for reference only)
-    freq = In.kr(freqBus).clip(5, 20000);
+	// Stage 1: Raw hardware input
+	stage1 = hw;
 
-    // --- HARDWARE TAP ---
-    // Read all 6 MOTU M6 inputs, select by channel param
-    hw = Select.ar(inputChan, SoundIn.ar((0..5)));
+	// --- SCHMITT-TRIGGERED PHASE SYNC ---
+	// Latch-based hysteresis: must drop below -0.05 before arming,
+	// then trigger on next rising edge through +0.05
+	hasDropped = hw < -0.05;
+	zc = (hw > 0.05) * Latch.ar(hasDropped, Impulse.ar(SampleRate.ir));
 
-    // Stage 1: Raw hardware input (DC-transparent for assessment)
-    stage1 = hw;
+	// Period measurement (sample-accurate frequency tracking)
+	sampBetween = (Timer.ar(zc) * SampleRate.ir).clip(
+		SampleRate.ir / 5000,  // Max 5kHz
+		SampleRate.ir / 10     // Min 10Hz
+	);
+	// Correct frequency from period measurement
+	freq = SampleRate.ir / sampBetween;
 
-    // --- SCHMITT-TRIGGERED PHASE SYNC ---
-    // Hysteresis: must drop below -0.05 before allowing new +0.05 trigger
-    // Prevents double-triggering on noisy or complex waveforms
-    belowLo = hw < schmittLo;
-    aboveHi = hw > schmittHi;
+	// High-fidelity phase ramp for Python overlay alignment
+	phase = Phasor.ar(trig: zc, rate: (1.0 / sampBetween), start: 0, end: 1.0);
 
-    // SetResetFF: arms (goes high) when signal drops below low threshold,
-    // disarms (goes low) when signal rises above high threshold
-    armed = SetResetFF.ar(belowLo, aboveHi);
+	// --- NORMALIZED STAGE ---
+	// Stage 2: Gain-adjusted, clipped to safe range
+	stage2 = (hw * Lag.kr(p[1].clip(0, 4), 0.05)).clip(-1, 1);
 
-    // Zero-crossing trigger: rising edge through schmittHi while armed
-    zc = Trig1.ar(aboveHi * armed, SampleDur.ir);
+	// --- OUTPUT STAGE ---
+	// Same chain as B258/Reference Sine for apples-to-apples comparison
+	sig = LeakDC.ar(stage2, 0.9999) * 0.66;
+	stage3 = sig;
 
-    // Period measurement (Timer counts seconds between triggers)
-    period = Timer.ar(zc).max(SampleDur.ir);
-    sampPerCycle = (period * SampleRate.ir).clip(
-        SampleRate.ir / 5000,  // Max 5kHz
-        SampleRate.ir / 10     // Min 10Hz
-    );
+	// Bad value detection
+	badValue = CheckBadValues.ar(sig, post: 0);
 
-    // High-fidelity phase ramp for Python overlay alignment
-    phaseInc = 1.0 / sampPerCycle;
-    phase = Phasor.ar(zc, phaseInc, 0, 1);
+	// === TELEMETRY (only active when telemetryRate > 0) ===
+	SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
+		slotIndex,
+		A2K.kr(freq),                                    // Schmitt-derived frequency
+		A2K.kr(phase),                                   // Period-measured phase ramp
+		p[0], p[1], p[2], p[3], p[4],                   // P0-P4 raw values
+		Amplitude.ar(stage1, 0.01, 0.1),                 // RMS of raw hardware
+		Amplitude.ar(stage2, 0.01, 0.1),                 // RMS of normalized
+		Amplitude.ar(stage3, 0.01, 0.1),                 // RMS of output
+		Peak.ar(stage1, Impulse.kr(telemetryRate.max(0.1))).lag(0.1),  // Peak of RAW input
+		A2K.kr(badValue)
+	]);
 
-    // --- NORMALIZED STAGE ---
-    // Stage 2: Gain-adjusted, clipped to safe range
-    stage2 = (hw * inGain).clip(-1, 1);
-
-    // --- OUTPUT STAGE ---
-    // Same chain as B258/Reference Sine for apples-to-apples comparison
-    sig = LeakDC.ar(stage2, 0.9999) * 0.66;
-    stage3 = sig;
-
-    // Bad value detection
-    badValue = CheckBadValues.ar(sig, post: 0);
-
-    // === TELEMETRY (only active when telemetryRate > 0) ===
-    SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
-        slotIndex,
-        A2K.kr(1.0 / period.max(SampleDur.ir)),    // Detected frequency from hardware
-        A2K.kr(phase),                               // Schmitt-triggered phase ramp
-        p[0], p[1], p[2], p[3], p[4],              // P0-P4 raw values
-        Amplitude.ar(stage1, 0.01, 0.1),            // RMS of raw hardware
-        Amplitude.ar(stage2, 0.01, 0.1),            // RMS of normalized
-        Amplitude.ar(stage3, 0.01, 0.1),            // RMS of output
-        Peak.ar(stage1, Impulse.kr(telemetryRate.max(0.1))).lag(0.1),  // Peak of RAW input
-        A2K.kr(badValue)
-    ]);
-
-    // --- MANDATORY TAIL ---
-    sig = NumChannels.ar(sig, 2);
-    ReplaceOut.ar(out, sig);
+	// --- MANDATORY TAIL ---
+	sig = NumChannels.ar(sig, 2);
+	ReplaceOut.ar(out, sig);
 }).add;
 
 "  [x] forge_core_hw_assessment_tap loaded (Hardware DNA Probe)".postln;
