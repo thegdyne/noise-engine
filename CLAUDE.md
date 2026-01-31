@@ -151,6 +151,13 @@ SynthDef(\name, { |out, freqBus, cutoffBus, resBus, attackBus, decayBus,
 
 **Note:** `output_trim_db` is optional (defaults to 0.0). Use for hot generators that need attenuation.
 
+### Adding a New Core Generator (Checklist)
+1. Create `packs/core/generators/<name>.scd` — SynthDef (lightweight end-stage pattern)
+2. Create `packs/core/generators/<name>.json` — Config metadata
+3. **Add the display name to `_CORE_GENERATOR_ORDER` in `src/config/__init__.py`** — without this the generator won't appear in the UI cycle
+
+Pack generators use their `manifest.json` instead of step 3.
+
 ## Do NOT
 
 - Use horizontal sliders (except sequencer)
