@@ -69,7 +69,7 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     sig = (sig * p4_sat.linexp(0, 1, 1, 18)).tanh;
 
     // Output stage — near-transparent DC block + normalized gain
-    sig = LeakDC.ar(sig, 0.9999) * 0.68;
+    sig = LeakDC.ar(sig, 0.9999) * 0.66;
     stage3 = sig;  // TAP: Final output
 
     // Bad value detection (catches NaN/inf from extreme settings)

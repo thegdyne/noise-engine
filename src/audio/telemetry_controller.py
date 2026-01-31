@@ -53,7 +53,7 @@ class IdealOverlay:
             sig = tanh(sig * linexp(p4, 0,1, 1,18))
 
         Output (near-transparent DC block + normalized gain):
-            sig = LeakDC(sig, 0.9999) * 0.68
+            sig = LeakDC(sig, 0.9999) * 0.66
 
     All methods operate on a single normalized cycle (0 to 2*pi).
     Phase alignment uses the normalized 0-1 phase from SC's Phasor.ar.
@@ -222,7 +222,7 @@ class IdealOverlay:
         sig = np.tanh(sig * sat_drive)
 
         # --- OUTPUT (line 72) — near-transparent DC block + normalized gain ---
-        sig = self._leak_dc(sig, 0.9999) * 0.68
+        sig = self._leak_dc(sig, 0.9999) * 0.66
 
         return sig.astype(np.float32)
 
@@ -274,7 +274,7 @@ class IdealOverlay:
         # Stage 3: post-saturation + output (near-transparent DC block + normalized gain)
         sat_drive = self._linexp(p4_sat, 0, 1, 1, 18)
         sig = np.tanh(stage2 * sat_drive)
-        stage3 = self._leak_dc(sig, 0.9999) * 0.68
+        stage3 = self._leak_dc(sig, 0.9999) * 0.66
 
         return {
             'stage1': stage1.astype(np.float32),
