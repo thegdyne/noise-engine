@@ -106,10 +106,15 @@ class WaveformDisplay(QWidget):
         self._actual = None     # np.ndarray
         self._ideal = None      # np.ndarray
         self._show_ideal = True
+        self._capture_enabled = False
 
     def set_waveform(self, actual, ideal=None):
         self._actual = actual
         self._ideal = ideal
+        self.update()
+
+    def set_capture_enabled(self, enabled):
+        self._capture_enabled = enabled
         self.update()
 
     def set_show_ideal(self, show):
@@ -150,7 +155,10 @@ class WaveformDisplay(QWidget):
         if self._actual is None:
             p.setPen(QColor(COLORS['text_dim']))
             p.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
-            p.drawText(0, 0, w, h, Qt.AlignCenter, "No waveform data")
+            if not self._capture_enabled:
+                p.drawText(0, 0, w, h, Qt.AlignCenter, "Capture OFF")
+            else:
+                p.drawText(0, 0, w, h, Qt.AlignCenter, "Waiting for waveform...")
 
         p.end()
 
@@ -417,6 +425,7 @@ class TelemetryWidget(QWidget):
 
     def _on_wave_enable_toggled(self, checked):
         slot = self.slot_combo.currentIndex()
+        self.waveform_display.set_capture_enabled(checked)
         if checked:
             # Bump to capture rate for waveform data
             self.controller.set_rate(TelemetryController.CAPTURE_RATE)
@@ -424,6 +433,8 @@ class TelemetryWidget(QWidget):
             self._timer.setInterval(66)  # ~15fps for smooth waveform
         else:
             self.controller.disable_waveform(slot)
+            self.controller.current_waveform = None  # Clear stale buffer
+            self.waveform_display.set_waveform(None)
             # Drop back to monitor rate
             self.controller.set_rate(TelemetryController.MONITOR_RATE)
             self._timer.setInterval(125)  # ~8fps for info-only

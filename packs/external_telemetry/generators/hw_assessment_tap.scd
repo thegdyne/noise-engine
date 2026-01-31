@@ -12,7 +12,7 @@ system for real-time comparison with IdealOverlay. Use this to:
 SAFETY: User must attenuate hardware signal with MOTU M6 front-panel
 GAIN knobs until Stage 1 Peak stays below 0.95.
 
-Phase tracking uses a Schmitt trigger with Latch-based hysteresis for
+Phase tracking uses a Schmitt trigger (SetResetFF hysteresis ±0.05) for
 jitter-free zero-crossing detection on noisy/complex hardware waveforms.
 
 Custom params:
@@ -39,7 +39,8 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	var phase, badValue;
 
 	// Schmitt trigger variables
-	var hasDropped, zc;
+	var schmittLo = -0.05, schmittHi = 0.05;
+	var belowLo, aboveHi, armed, zc;
 	var sampBetween;
 
 	// Contiguous 5-channel custom bus read
@@ -55,10 +56,17 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	stage1 = hw;
 
 	// --- SCHMITT-TRIGGERED PHASE SYNC ---
-	// Latch-based hysteresis: must drop below -0.05 before arming,
-	// then trigger on next rising edge through +0.05
-	hasDropped = hw < -0.05;
-	zc = (hw > 0.05) * Latch.ar(hasDropped, Impulse.ar(SampleRate.ir));
+	// SetResetFF hysteresis: arms when signal drops below -0.05,
+	// fires trigger on next rising edge through +0.05
+	belowLo = hw < schmittLo;
+	aboveHi = hw > schmittHi;
+
+	// SetResetFF: goes HIGH on set (belowLo), LOW on reset (aboveHi)
+	// Armed = true after signal has been below low threshold
+	armed = SetResetFF.ar(belowLo, aboveHi);
+
+	// Zero-crossing trigger: single-sample pulse when above +0.05 while armed
+	zc = Trig1.ar(aboveHi * armed, SampleDur.ir);
 
 	// Period measurement (sample-accurate frequency tracking)
 	sampBetween = (Timer.ar(zc) * SampleRate.ir).clip(

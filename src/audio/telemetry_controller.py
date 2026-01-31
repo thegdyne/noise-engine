@@ -535,17 +535,19 @@ class TelemetryController(QObject):
         )
 
     def has_phase_lock_warning(self, data: dict = None) -> bool:
-        """Check if frequency reports 48kHz (Schmitt trigger not locking).
+        """Check if frequency is stuck at a clipping boundary.
 
-        Returns True if freq == 48000.0 (±100), indicating the phase
-        tracker is seeing sample rate rather than actual pitch.
+        Returns True if freq == 5000.0 (max clamp) or 48000.0 (sample rate),
+        indicating the Schmitt trigger is not locking to actual pitch.
         """
         if data is None:
             data = self.get_latest()
         if data is None:
             return False
         freq = data.get('freq', 0)
-        return abs(freq - 48000.0) < 100
+        # 5000 Hz = max freq clamp (SampleRate/5000 samples minimum period)
+        # 48000 Hz = sample rate (Timer never triggered)
+        return abs(freq - 5000.0) < 10 or abs(freq - 48000.0) < 100
 
     # -----------------------------------------------------------------
     # Query
