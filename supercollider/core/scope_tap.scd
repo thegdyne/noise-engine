@@ -22,11 +22,13 @@
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
 
-        // 2. Rising-Edge Trigger (Audio-Rate, Zero-Jitter)
-        // Fires single-sample impulse when signal crosses threshold going positive
+        // 2. Rising-Edge Trigger with Holdoff
+        // Fires when signal crosses threshold going positive.
+        // Trig1 holdoff = buffer duration: suppresses re-triggers until
+        // the Phasor has swept the entire buffer, preventing partial fills.
         trig = Trig1.ar(
             (mono >= threshold) & (Delay1.ar(mono) < threshold),
-            SampleDur.ir
+            BufDur.kr(buf)
         );
 
         // 3. Phase-Locked Write Position
