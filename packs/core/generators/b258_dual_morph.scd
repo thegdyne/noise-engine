@@ -68,8 +68,8 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     // --- FINAL SATURATION ---
     sig = (sig * p4_sat.linexp(0, 1, 1, 18)).tanh;
 
-    // Output stage — single DC block at end of chain (0.995 coeff)
-    sig = LeakDC.ar(sig, 0.995) * 0.8;
+    // Output stage — relaxed DC block (0.9995 = very low cutoff, no droop)
+    sig = LeakDC.ar(sig, 0.9995);
     stage3 = sig;  // TAP: Final output
 
     // Bad value detection (catches NaN/inf from extreme settings)

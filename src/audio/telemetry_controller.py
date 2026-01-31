@@ -52,8 +52,8 @@ class IdealOverlay:
         Saturation:
             sig = tanh(sig * linexp(p4, 0,1, 1,18))
 
-        Output (single DC block):
-            sig = LeakDC(sig, 0.995) * 0.8
+        Output (relaxed DC block):
+            sig = LeakDC(sig, 0.9995)
 
     All methods operate on a single normalized cycle (0 to 2*pi).
     Phase alignment uses the normalized 0-1 phase from SC's Phasor.ar.
@@ -221,8 +221,8 @@ class IdealOverlay:
         sat_drive = self._linexp(p4_sat, 0, 1, 1, 18)
         sig = np.tanh(sig * sat_drive)
 
-        # --- OUTPUT (line 72) — single DC block at end of chain ---
-        sig = self._leak_dc(sig, 0.995) * 0.8
+        # --- OUTPUT (line 72) — relaxed DC block, no gain reduction ---
+        sig = self._leak_dc(sig, 0.9995)
 
         return sig.astype(np.float32)
 
@@ -271,10 +271,10 @@ class IdealOverlay:
         pan = self._linlin(p2_mix, 0, 1, -1, 1)
         stage2 = self._xfade2(sqr, saw, pan)
 
-        # Stage 3: post-saturation + output (single DC block at end)
+        # Stage 3: post-saturation + output (relaxed DC block, no gain reduction)
         sat_drive = self._linexp(p4_sat, 0, 1, 1, 18)
         sig = np.tanh(stage2 * sat_drive)
-        stage3 = self._leak_dc(sig, 0.995) * 0.8
+        stage3 = self._leak_dc(sig, 0.9995)
 
         return {
             'stage1': stage1.astype(np.float32),
