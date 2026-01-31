@@ -472,12 +472,10 @@ class TelemetryController(QObject):
     def get_ideal_waveform(self, data: dict = None) -> np.ndarray:
         """Generate ideal B258 waveform from current or provided telemetry data.
 
-        In hardware mode, there is no ideal — returns None.
+        In hardware mode, the B258 model serves as the Digital Twin reference.
+        User adjusts SYM (P3) and SAT (P4) until ideal matches hardware.
         Returns phase-aligned ideal waveform array, or None if no data.
         """
-        if self.is_hw_mode:
-            return None
-
         if data is None:
             data = self.get_latest()
         if data is None:
@@ -516,11 +514,8 @@ class TelemetryController(QObject):
     def get_ideal_rms(self, data: dict = None) -> dict:
         """Compute ideal RMS for each stage from current telemetry params.
 
-        In hardware mode, returns None (no ideal reference).
+        In hardware mode, serves as Digital Twin reference RMS targets.
         """
-        if self.is_hw_mode:
-            return None
-
         if data is None:
             data = self.get_latest()
         if data is None:

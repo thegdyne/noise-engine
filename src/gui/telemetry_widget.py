@@ -105,12 +105,15 @@ class WaveformDisplay(QWidget):
         self.setMinimumSize(280, 140)
         self._actual = None     # np.ndarray
         self._ideal = None      # np.ndarray
+        self._delta = None      # np.ndarray — |actual - ideal|
         self._show_ideal = True
+        self._show_delta = False
         self._capture_enabled = False
 
-    def set_waveform(self, actual, ideal=None):
+    def set_waveform(self, actual, ideal=None, delta=None):
         self._actual = actual
         self._ideal = ideal
+        self._delta = delta
         self.update()
 
     def set_capture_enabled(self, enabled):
@@ -119,6 +122,10 @@ class WaveformDisplay(QWidget):
 
     def set_show_ideal(self, show):
         self._show_ideal = show
+        self.update()
+
+    def set_show_delta(self, show):
+        self._show_delta = show
         self.update()
 
     def paintEvent(self, event):
@@ -146,6 +153,10 @@ class WaveformDisplay(QWidget):
         # Draw actual trace
         if self._actual is not None and len(self._actual) > 1:
             self._draw_trace(p, self._actual, COLORS['scope_trace_a'], 1.5)
+
+        # Draw delta trace (|actual - ideal|, rendered from center line up)
+        if self._show_delta and self._delta is not None and len(self._delta) > 1:
+            self._draw_trace(p, self._delta, COLORS['scope_trace_c'], 1.0)
 
         # Border
         p.setPen(QPen(QColor(COLORS['border']), 1))
@@ -368,6 +379,11 @@ class TelemetryWidget(QWidget):
         self.ideal_cb.toggled.connect(self._on_ideal_toggled)
         wave_row.addWidget(self.ideal_cb)
 
+        self.delta_cb = QCheckBox("Delta")
+        self.delta_cb.setStyleSheet(f"color: {COLORS['text']}; font-size: {FONT_SIZES['small']}px;")
+        self.delta_cb.toggled.connect(self._on_delta_toggled)
+        wave_row.addWidget(self.delta_cb)
+
         wave_row.addStretch()
         layout.addLayout(wave_row)
 
@@ -441,6 +457,9 @@ class TelemetryWidget(QWidget):
 
     def _on_ideal_toggled(self, checked):
         self.waveform_display.set_show_ideal(checked)
+
+    def _on_delta_toggled(self, checked):
+        self.waveform_display.set_show_delta(checked)
 
     def _on_snapshot(self):
         snap = self.controller.snapshot()
@@ -572,7 +591,8 @@ class TelemetryWidget(QWidget):
         # Waveform
         actual = self.controller.current_waveform
         ideal = self.controller.get_ideal_waveform(data) if self.ideal_cb.isChecked() else None
-        self.waveform_display.set_waveform(actual, ideal)
+        delta = self.controller.get_delta_waveform() if self.delta_cb.isChecked() else None
+        self.waveform_display.set_waveform(actual, ideal, delta)
 
         # Frame count
         self.frame_count_label.setText(f"Frames: {len(self.controller.history)}")
