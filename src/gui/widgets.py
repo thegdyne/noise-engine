@@ -640,6 +640,7 @@ class CycleButton(QPushButton):
         self.invert_drag = False  # If True, drag up = lower index, drag down = higher index
         self.sensitivity_key = 'cycle'  # Key prefix for DRAG_SENSITIVITY lookup
         self.skip_prefix = None  # Skip values starting with this prefix (e.g., "────" for separators)
+        self.section_boundary = None  # Wrap within sections delimited by this prefix
         # Text alignment for custom paint (stylesheet text-align is ignored)
         self.text_alignment = Qt.AlignVCenter | Qt.AlignHCenter
         self.text_padding_lr = 3  # default padding for custom draw
@@ -661,6 +662,31 @@ class CycleButton(QPushButton):
         if self.skip_prefix is None:
             return False
         return self.values[index].startswith(self.skip_prefix)
+
+    def _section_bounds(self):
+        """Return (start, end) indices of the current section.
+
+        A section is the range between boundary markers.
+        Returns (0, len-1) if no section_boundary is set.
+        """
+        if self.section_boundary is None:
+            return 0, len(self.values) - 1
+
+        # Find section start: scan backward from current index
+        start = 0
+        for i in range(self.index - 1, -1, -1):
+            if self.values[i].startswith(self.section_boundary):
+                start = i + 1
+                break
+
+        # Find section end: scan forward from current index
+        end = len(self.values) - 1
+        for i in range(self.index + 1, len(self.values)):
+            if self.values[i].startswith(self.section_boundary):
+                end = i - 1
+                break
+
+        return start, end
         
     def _update_display(self):
         """Update button text."""
@@ -698,48 +724,68 @@ class CycleButton(QPushButton):
         self._update_display()
 
     def cycle_forward(self):
-        """Move to next value (higher index), skipping skip_prefix entries."""
+        """Move to next value (higher index), skipping skip_prefix entries.
+
+        If section_boundary is set, wraps within the current section.
+        """
+        sec_start, sec_end = self._section_bounds()
         start_index = self.index
         attempts = 0
         max_attempts = len(self.values)
-        
+
         while attempts < max_attempts:
-            if self.wrap:
+            if self.section_boundary is not None:
+                # Wrap within section
+                if self.index >= sec_end:
+                    self.index = sec_start
+                else:
+                    self.index += 1
+            elif self.wrap:
                 self.index = (self.index + 1) % len(self.values)
             else:
                 self.index = min(self.index + 1, len(self.values) - 1)
-            
+
             if not self._should_skip(self.index):
                 break
-            
+
             # Prevent infinite loop if all values are skippable
             attempts += 1
             if self.index == start_index:
                 break
-        
+
         self._update_display()
         self._emit_signals()
         
     def cycle_backward(self):
-        """Move to previous value (lower index), skipping skip_prefix entries."""
+        """Move to previous value (lower index), skipping skip_prefix entries.
+
+        If section_boundary is set, wraps within the current section.
+        """
+        sec_start, sec_end = self._section_bounds()
         start_index = self.index
         attempts = 0
         max_attempts = len(self.values)
-        
+
         while attempts < max_attempts:
-            if self.wrap:
+            if self.section_boundary is not None:
+                # Wrap within section
+                if self.index <= sec_start:
+                    self.index = sec_end
+                else:
+                    self.index -= 1
+            elif self.wrap:
                 self.index = (self.index - 1) % len(self.values)
             else:
                 self.index = max(self.index - 1, 0)
-            
+
             if not self._should_skip(self.index):
                 break
-            
+
             # Prevent infinite loop
             attempts += 1
             if self.index == start_index:
                 break
-        
+
         self._update_display()
         self._emit_signals()
         
@@ -769,15 +815,21 @@ class CycleButton(QPushButton):
             
             # Up = higher index (toward x2, x4 = faster triggers)
             new_index = self.drag_start_index + steps
-            
-            if self.wrap:
+
+            if self.section_boundary is not None:
+                # Clamp within section bounds
+                sec_start, sec_end = self._section_bounds()
+                section_len = sec_end - sec_start + 1
+                if section_len > 0:
+                    new_index = sec_start + ((new_index - sec_start) % section_len)
+            elif self.wrap:
                 new_index = new_index % len(self.values)
             elif self.wrap_at_start and new_index < 0:
                 # Only wrap when going below 0 (up from Empty)
                 new_index = len(self.values) + (new_index % len(self.values))
             else:
                 new_index = max(0, min(len(self.values) - 1, new_index))
-            
+
             # Skip over separator entries
             if self._should_skip(new_index):
                 direction = 1 if steps >= 0 else -1
