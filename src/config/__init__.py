@@ -1611,6 +1611,8 @@ OSC_PATHS = {
     'scope_freeze': '/noise/scope/freeze',       # [int] 0=live, 1=frozen
     'scope_enable': '/noise/scope/enable',       # [int] 0=off, 1=on
     'scope_data': '/noise/scope/data',           # SC → Python: [float, float, ...] waveform
+    'scope_debug': '/noise/scope/debug',         # Python → SC: trigger debug capture
+    'scope_debug_done': '/noise/scope/debug/done', # SC → Python: [path, write_pos] capture complete
 }
 
 # === WIDGET SIZES ===
