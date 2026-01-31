@@ -1159,7 +1159,9 @@ class MainFrame(QMainWindow):
         """Handle incoming scope waveform data from SC.
 
         First element is write position (int), rest is 1024 buffer samples.
-        Only the valid region (0 to write_pos) contains the current waveform.
+        The buffer is phase-locked by the trigger - for periodic signals the
+        entire buffer contains valid waveform data regardless of write_pos.
+        We display the full buffer to avoid variability from async write_pos sampling.
         """
         import numpy as np
         try:
@@ -1167,14 +1169,12 @@ class MainFrame(QMainWindow):
                 return
             write_pos = int(data[0])
             buf = np.array(data[1:], dtype=np.float32)
-            if write_pos > 0 and write_pos <= len(buf):
-                trimmed = buf[:write_pos]
-            else:
-                trimmed = buf
-            self.scope_widget.set_waveform(trimmed)
+            # Display full buffer - trigger ensures phase-coherent content.
+            # write_pos is only useful for debug diagnostics, not for trimming.
+            self.scope_widget.set_waveform(buf)
             # Store frame for debug capture
             if self.scope_controller:
-                self.scope_controller.store_display_frame(write_pos, buf, trimmed)
+                self.scope_controller.store_display_frame(write_pos, buf, buf)
         except Exception:
             pass
 
