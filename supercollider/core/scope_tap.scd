@@ -177,25 +177,32 @@
     }, '/noise/scope/debug');
 
     // === DATA STREAMING ROUTINE ===
-    // Reads buffer at ~30fps and sends to Python with write position
+    // Detects sweep completion (write_pos wraps high→low) and sends
+    // the cleanly completed buffer to Python. Polls at 60Hz for reliable
+    // wrap detection; effective display rate matches signal frequency.
+    ~scopeLastWp = 0;
     ~scopeStreamRoutine = Routine({
         loop {
             if(~scopeStreamActive == true, {
                 if(~scopeFrozen != true, {
                     var wp = ~scopeWritePos ? 0;
-                    ~scopeBuf.loadToFloatArray(action: { |data|
-                        if(~pythonAddr.notNil && ~scopeStreamActive, {
-                            // First value is the write position, rest is buffer data
-                            ~pythonAddr.sendMsg(
-                                '/noise/scope/data',
-                                wp,
-                                *data.as(Array)
-                            );
+                    // Detect sweep completion: write_pos dropped from >50% to <50%
+                    // This means the Phasor just triggered (reset to 0) after filling the buffer.
+                    if((~scopeLastWp > 512) && (wp < 512), {
+                        ~scopeBuf.loadToFloatArray(action: { |data|
+                            if(~pythonAddr.notNil && ~scopeStreamActive, {
+                                ~pythonAddr.sendMsg(
+                                    '/noise/scope/data',
+                                    wp,
+                                    *data.as(Array)
+                                );
+                            });
                         });
                     });
+                    ~scopeLastWp = wp;
                 });
             });
-            (1/30).wait;  // ~30fps
+            (1/60).wait;  // Poll at 60Hz for reliable wrap detection
         };
     }).play(AppClock);
 
