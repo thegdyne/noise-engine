@@ -1,0 +1,59 @@
+{
+  "generator_id": "core_b258_dual_morph",
+  "name": "B258 Dual Morph",
+  "synthesis_method": "shaping",
+  "synthdef": "forge_core_b258_dual_morph",
+  "output_trim_db": -5.0,
+  "custom_params": [
+    {
+      "key": "sine_sqr",
+      "label": "S>SQ",
+      "tooltip": "Mutate sine into square via high-gain clipping. Pure sine at 0, aggressive square at 1.",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sine_saw",
+      "label": "S>SW",
+      "tooltip": "Mutate sine into saw via phase distortion. Pure sine at 0, sharp sawtooth at 1.",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mix",
+      "label": "MIX",
+      "tooltip": "Balance between Square shaper (min) and Saw shaper (max).",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "symmetry",
+      "label": "SYM",
+      "tooltip": "DC bias injection. Creates PWM on square branch and slope tilt on saw branch.",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "saturation",
+      "label": "SAT",
+      "tooltip": "Final analog warmth and harmonic glue via tanh drive.",
+      "default": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
+}
