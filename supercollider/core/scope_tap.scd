@@ -1,6 +1,6 @@
 /*
  * Noise Engine Scope Tap Infrastructure
- * Version: 0.8.15
+ * Version: 0.8.16
  *
  * Hardware-grade oscilloscope for monitoring generator slot outputs.
  * Taps the intermediate bus (pre-end-stage) for raw generator waveforms.
@@ -9,6 +9,7 @@
  *   - Two buffers: SynthDef writes to one, sclang reads the other
  *   - Trigger quantized to control-rate so ToggleFF and Phasor reset
  *     happen on the SAME clock boundary (eliminates ~64 sample bleed)
+ *   - Gated writing: Trig1.ar stops writer after exactly one buffer fill
  *   - Toggle-driven push: only streams data when toggle changes
  *   - Read-in-flight gating prevents async race conditions
  *   - LeakDC + HPF conditioning for trigger detection only (raw signal to buffer)
@@ -18,7 +19,7 @@
     "Setting up scope tap...".postln;
 
     SynthDef(\forge_core_scope_tap, { |inBus, buf0, buf1, threshold=0.0|
-        var sig, mono, trigSig, edge, kEdge, kTrig, aTrig, toggle, phase, activeBuf;
+        var sig, mono, trigSig, edge, kEdge, kTrig, aTrig, toggle, phase, activeBuf, aWriteGate;
 
         // 1. Tap: raw mono for display, conditioned copy for trigger only
         sig = In.ar(inBus, 2);
@@ -42,15 +43,20 @@
         // 6. Double-buffer toggle (Aligned to the same block boundary)
         toggle = ToggleFF.kr(kTrig);
 
-        // 7. Phase-locked write position
-        phase = Phasor.ar(aTrig, 1, 0, BufFrames.kr(buf0) - 1);
+        // 7. Gate writing for exactly one buffer duration (prevents wrap overwrite)
+        // This ensures that while sclang is reading the buffer, the writer isn't lapping it.
+        aWriteGate = Trig1.ar(aTrig, BufDur.kr(buf0));
 
-        // 8. Write to active buffer
+        // 8. Phase advances only during capture window
+        // rate = aWriteGate means the counter stops advancing at the end of the sweep.
+        phase = Phasor.ar(aTrig, aWriteGate, 0, BufFrames.kr(buf0) - 1);
+
+        // 9. Write to active buffer (only while gate is high)
+        // Multiplying mono by aWriteGate provides extra safety against trailing samples.
         activeBuf = Select.kr(toggle, [buf0, buf1]);
-        BufWr.ar(mono, activeBuf, phase);
+        BufWr.ar(mono * aWriteGate, activeBuf, phase);
 
-        // 9. Status feedback: emit on SWEEP START (kTrig fires when new sweep begins)
-        // At this moment, the PREVIOUS buffer is complete and safe to read.
+        // 10. Status feedback: emit on sweep completion (toggle change)
         SendReply.kr(kTrig, '/scope/status', [
             toggle,
             0  // Phase is implicitly 0 at sweep start; kr-aligned
@@ -63,7 +69,7 @@
         RecordBuf.ar(sig, buf, loop: 0, doneAction: 2);
     }).add;
 
-    "  [x] Scope tap SynthDef ready (forge_core_scope_tap, ping-pong v0.8.15)".postln;
+    "  [x] Scope tap SynthDef ready (forge_core_scope_tap, ping-pong v0.8.16)".postln;
 };
 
 // === BOOT SCOPE TAP ===
