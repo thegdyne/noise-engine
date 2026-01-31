@@ -78,20 +78,18 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     badValue = CheckBadValues.ar(sig, post: 0);
 
     // === TELEMETRY (only active when telemetryRate > 0) ===
-    // Zero CPU overhead when disabled
-    (telemetryRate > 0).if {
-        SendReply.kr(Impulse.kr(telemetryRate), '/noise/telem/gen', [
-            slotIndex,                              // Slot index for routing
-            freq,                                   // Current frequency
-            A2K.kr(phase),                          // Normalized 0-1 phase
-            p[0], p[1], p[2], p[3], p[4],          // P0-P4 raw values
-            Amplitude.ar(stage1, 0.01, 0.1),        // RMS of pure sine
-            Amplitude.ar(stage2, 0.01, 0.1),        // RMS after morph
-            Amplitude.ar(stage3, 0.01, 0.1),        // RMS final output
-            Peak.ar(sig, Impulse.kr(telemetryRate)).lag(0.1),  // Peak level
-            A2K.kr(badValue)                        // 0=clean, 1=NaN, 2=inf
-        ]);
-    };
+    // Impulse.kr(0) fires once at init; gate it with (telemetryRate > 0) for true silence
+    SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
+        slotIndex,                              // Slot index for routing
+        freq,                                   // Current frequency
+        A2K.kr(phase),                          // Normalized 0-1 phase
+        p[0], p[1], p[2], p[3], p[4],          // P0-P4 raw values
+        Amplitude.ar(stage1, 0.01, 0.1),        // RMS of pure sine
+        Amplitude.ar(stage2, 0.01, 0.1),        // RMS after morph
+        Amplitude.ar(stage3, 0.01, 0.1),        // RMS final output
+        Peak.ar(sig, Impulse.kr(telemetryRate.max(0.1))).lag(0.1),  // Peak level
+        A2K.kr(badValue)                        // 0=clean, 1=NaN, 2=inf
+    ]);
 
     // --- MANDATORY TAIL ---
     sig = NumChannels.ar(sig, 2);
