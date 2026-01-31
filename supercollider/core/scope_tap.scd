@@ -29,11 +29,12 @@
         edge = (trigSig >= threshold) & (Delay1.ar(trigSig) < (threshold - 0.001));
 
         // 3. CRITICAL: Quantize to control-rate
-        // This aligns the toggle switch and Phasor reset to the SAME
-        // control block boundary, eliminating the ~64 sample bleed.
-        kEdge = A2K.kr(edge);
+        // T2K captures any trigger within the block (A2K would miss 1-sample impulses).
+        // T2A converts back to a clean single-sample impulse for Phasor reset.
+        // This aligns toggle + reset to the SAME clock boundary.
+        kEdge = T2K.kr(edge);
         kTrig = Trig1.kr(kEdge, BufDur.kr(buf0));  // Holdoff = buffer duration
-        aTrig = K2A.ar(kTrig);  // Back to ar for Phasor reset
+        aTrig = T2A.ar(kTrig);  // Single-sample impulse for Phasor reset
 
         // 4. Double-buffer toggle (kr, aligned with kTrig)
         toggle = ToggleFF.kr(kTrig);
