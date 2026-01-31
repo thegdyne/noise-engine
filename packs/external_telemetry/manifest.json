@@ -1,0 +1,12 @@
+{
+  "pack_format": 1,
+  "pack_id": "external_telemetry",
+  "name": "External Telemetry",
+  "version": "1.0.0",
+  "author": "Noise Engine",
+  "description": "Telemetry tools for profiling external hardware gear via audio input.",
+  "enabled": true,
+  "generators": [
+    "hw_assessment_tap"
+  ]
+}
