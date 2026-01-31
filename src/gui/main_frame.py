@@ -1158,23 +1158,19 @@ class MainFrame(QMainWindow):
     def _on_scope_data(self, data):
         """Handle incoming scope waveform data from SC.
 
-        First element is write position (int), rest is 1024 buffer samples.
-        The buffer is phase-locked by the trigger - for periodic signals the
-        entire buffer contains valid waveform data regardless of write_pos.
-        We display the full buffer to avoid variability from async write_pos sampling.
+        Data is the full 1024-sample frozen buffer (no write_pos prefix).
+        RecordBuf with loop:0 guarantees the buffer is complete and unchanging
+        when sent — sclang only reads during the frozen phase.
         """
         import numpy as np
         try:
-            if len(data) < 2:
+            if len(data) < 1:
                 return
-            write_pos = int(data[0])
-            buf = np.array(data[1:], dtype=np.float32)
-            # Display full buffer - trigger ensures phase-coherent content.
-            # write_pos is only useful for debug diagnostics, not for trimming.
+            buf = np.array(data, dtype=np.float32)
             self.scope_widget.set_waveform(buf)
             # Store frame for debug capture
             if self.scope_controller:
-                self.scope_controller.store_display_frame(write_pos, buf, buf)
+                self.scope_controller.store_display_frame(0, buf, buf)
         except Exception:
             pass
 
