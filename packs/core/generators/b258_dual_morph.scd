@@ -58,7 +58,7 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
 
     // --- BRANCH B: SINE TO SAW (Phase Distortion) ---
     // Warp sine into saw by mixing in phase-synced ramp
-    saw = (sine * (1 - p1_sineSaw)) + (LFSaw.ar(freq, 1, p1_sineSaw));
+    saw = (sine * (1 - p1_sineSaw)) + (LFSaw.ar(freq, 1) * p1_sineSaw);
     saw = (saw + (p3_sym * 0.5)).clip2(1.0);
 
     // --- MIX: Balance between Square and Saw branches ---
@@ -68,8 +68,8 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     // --- FINAL SATURATION ---
     sig = (sig * p4_sat.linexp(0, 1, 1, 18)).tanh;
 
-    // Output stage — relaxed DC block (0.9995 = very low cutoff, no droop)
-    sig = LeakDC.ar(sig, 0.9995);
+    // Output stage — relaxed DC block + calibrated gain
+    sig = LeakDC.ar(sig, 0.9998) * 0.85;
     stage3 = sig;  // TAP: Final output
 
     // Bad value detection (catches NaN/inf from extreme settings)
