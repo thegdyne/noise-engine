@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
 )
 
+from src.audio.telemetry_controller import TelemetryController
 from src.gui.theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES
 
 
@@ -360,10 +361,14 @@ class TelemetryWidget(QWidget):
         layout.addLayout(bottom_row)
 
     def _setup_refresh_timer(self):
-        """Refresh UI at 15fps (matches default telemetry rate)."""
+        """Refresh UI — rate adapts to telemetry mode.
+
+        Monitor mode (5Hz data): refresh at ~8fps (125ms) — lightweight.
+        Capture mode (30Hz data): refresh at ~15fps (66ms) — smooth waveform.
+        """
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._refresh)
-        self._timer.start(66)  # ~15fps
+        self._timer.start(125)  # Start at monitor rate (~8fps)
 
     # ── Event Handlers ──
 
@@ -378,13 +383,22 @@ class TelemetryWidget(QWidget):
         else:
             self.controller.disable()
             self.enable_btn.setText("Enable")
+            # Also stop wave capture if running
+            if self.wave_enable_cb.isChecked():
+                self.wave_enable_cb.setChecked(False)
 
     def _on_wave_enable_toggled(self, checked):
         slot = self.slot_combo.currentIndex()
         if checked:
+            # Bump to capture rate for waveform data
+            self.controller.set_rate(TelemetryController.CAPTURE_RATE)
             self.controller.enable_waveform(slot)
+            self._timer.setInterval(66)  # ~15fps for smooth waveform
         else:
             self.controller.disable_waveform(slot)
+            # Drop back to monitor rate
+            self.controller.set_rate(TelemetryController.MONITOR_RATE)
+            self._timer.setInterval(125)  # ~8fps for info-only
 
     def _on_ideal_toggled(self, checked):
         self.waveform_display.set_show_ideal(checked)

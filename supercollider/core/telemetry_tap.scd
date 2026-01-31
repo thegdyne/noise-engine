@@ -55,10 +55,10 @@
         // Write to buffer
         BufWr.ar(mono, bufnum, capturePhase);
 
-        // Notify when frame completes (12Hz max, at frame start only)
+        // Notify when frame completes (10Hz burst cap, at frame start only)
         // A2K.kr converts audio-rate capturePhase comparison to control rate
         SendReply.kr(
-            Impulse.kr(12) * A2K.kr(capturePhase < 1),
+            Impulse.kr(10) * A2K.kr(capturePhase < 1),
             '/noise/telem/wave/ready',
             [slotIndex, A2K.kr(freq)]
         );

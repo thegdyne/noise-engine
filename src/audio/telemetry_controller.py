@@ -325,8 +325,13 @@ class TelemetryController(QObject):
       to OSCBridge signals by ConnectionController
     - Does NOT register its own OSC handlers
 
-    Signals are emitted by OSCBridge, not this controller.
+    Two-tier rate model:
+    - MONITOR_RATE (5Hz): Light info-only mode for meters/params
+    - CAPTURE_RATE (30Hz): Higher rate when waveform capture is active
     """
+
+    MONITOR_RATE = 5    # Hz — info-only: meters, params, peak
+    CAPTURE_RATE = 30   # Hz — active waveform capture mode
 
     def __init__(self, osc_bridge):
         super().__init__()
@@ -335,7 +340,7 @@ class TelemetryController(QObject):
         # State
         self.enabled = False
         self.target_slot = 0
-        self.current_rate = 15
+        self.current_rate = 0
 
         # History buffer (rolling)
         self.history = deque(maxlen=300)  # ~10 seconds at 30fps
@@ -355,18 +360,20 @@ class TelemetryController(QObject):
     # Enable / disable
     # -----------------------------------------------------------------
 
-    def enable(self, slot: int, rate: int = 15):
+    def enable(self, slot: int, rate: int = None):
         """Enable telemetry for a specific slot.
 
         Args:
             slot: Generator slot index (0-7)
-            rate: Update rate in Hz (5-60, default 15)
+            rate: Update rate in Hz (default: MONITOR_RATE)
         """
         if not 0 <= slot < 8:
             logger.warning(f"[Telemetry] Invalid slot: {slot}")
             return
 
-        rate = max(5, min(60, rate))
+        if rate is None:
+            rate = self.MONITOR_RATE
+        rate = max(1, min(60, rate))
         self.target_slot = slot
         self.current_rate = rate
         self.enabled = True
@@ -382,6 +389,17 @@ class TelemetryController(QObject):
             self.osc.send('telem_enable', [self.target_slot + 1, 0])
             self.enabled = False
             logger.info("[Telemetry] Disabled")
+
+    def set_rate(self, rate: int):
+        """Change telemetry rate without resetting state."""
+        if not self.enabled:
+            return
+        rate = max(1, min(60, rate))
+        if rate == self.current_rate:
+            return
+        self.current_rate = rate
+        self.osc.send('telem_enable', [self.target_slot + 1, rate])
+        logger.info(f"[Telemetry] Rate changed to {rate}Hz")
 
     def set_slot(self, slot: int):
         """Switch to monitoring a different slot."""
