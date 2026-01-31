@@ -42,13 +42,13 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0|
     // --- BRANCH A: SINE TO SQUARE (High Gain Clipping) ---
     // Symmetry/bias applied before clipping = PWM effect
     sqr = (sine + p3_sym) * p0_sineSq.linexp(0, 1, 1, 120);
-    sqr = sqr.clip2(0.85);
+    sqr = sqr.clip2(1.0);
     sqr = LeakDC.ar(sqr);
 
     // --- BRANCH B: SINE TO SAW (Phase Distortion) ---
     // Warp sine into saw by mixing in phase-synced ramp
     saw = (sine * (1 - p1_sineSaw)) + (LFSaw.ar(freq, 1, p1_sineSaw));
-    saw = (saw + (p3_sym * 0.5)).clip2(0.9);
+    saw = (saw + (p3_sym * 0.5)).clip2(1.0);
     saw = LeakDC.ar(saw);
 
     // --- MIX: Balance between Square and Saw branches ---
