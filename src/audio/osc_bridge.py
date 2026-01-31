@@ -44,6 +44,9 @@ class OSCBridge(QObject):
     # Scope tap signals
     scope_data_received = pyqtSignal(object)  # numpy array of floats
     scope_debug_done_received = pyqtSignal(str)  # SC csv path
+    # Telemetry signals (development tool)
+    telem_data_received = pyqtSignal(int, object)      # slot, data dict
+    telem_waveform_received = pyqtSignal(int, object)   # slot, samples tuple
     # Audio device signals
     audio_devices_received = pyqtSignal(list, str)  # devices list, current device
     audio_device_changing = pyqtSignal(str)  # device name
@@ -296,6 +299,10 @@ class OSCBridge(QObject):
         # Handle scope debug capture completion from SC
         dispatcher.map(OSC_PATHS['scope_debug_done'], self._handle_scope_debug_done)
 
+        # Telemetry (development tool)
+        dispatcher.map(OSC_PATHS['telem_gen'], self._handle_telem_gen)
+        dispatcher.map(OSC_PATHS['telem_wave'], self._handle_telem_wave)
+
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
 
@@ -534,6 +541,45 @@ class OSCBridge(QObject):
             return
         sc_path = str(args[0]) if len(args) > 0 else ""
         self.scope_debug_done_received.emit(sc_path)
+
+    def _handle_telem_gen(self, address, *args):
+        """Handle /noise/telem/gen from SC.
+
+        Args: [slot, freq, phase, p0, p1, p2, p3, p4, rms1, rms2, rms3, peak, badValue]
+        """
+        if self._shutdown or self._deleted:
+            return
+        if len(args) < 12:
+            return
+        slot = int(args[0])
+        data = {
+            'slot': slot,
+            'freq': float(args[1]),
+            'phase': float(args[2]),
+            'p0': float(args[3]),
+            'p1': float(args[4]),
+            'p2': float(args[5]),
+            'p3': float(args[6]),
+            'p4': float(args[7]),
+            'rms_stage1': float(args[8]),
+            'rms_stage2': float(args[9]),
+            'rms_stage3': float(args[10]),
+            'peak': float(args[11]),
+            'bad_value': int(args[12]) if len(args) > 12 else 0,
+        }
+        self.telem_data_received.emit(slot, data)
+
+    def _handle_telem_wave(self, address, *args):
+        """Handle /noise/telem/wave from SC.
+
+        Args: [slot, ...128 samples]
+        """
+        if self._shutdown or self._deleted:
+            return
+        if len(args) < 2:
+            return
+        slot = int(args[0])
+        self.telem_waveform_received.emit(slot, args[1:])
 
     def send(self, path_key, args):
         """Send OSC message using SSOT path key.

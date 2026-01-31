@@ -191,7 +191,8 @@ Invariants:
         newGen = Synth(genType, [
             \out, ~intermediateBus[idx].index,
             \freqBus, freqBusIdx,
-            \customBus0, custom0Idx
+            \customBus0, custom0Idx,
+            \slotIndex, slotID  // For telemetry routing (ignored by generators without this arg)
         ], ~genSubGroup[idx], \addToTail);
 
         // Free the old generator/silence (ReplaceOut means no glitch during overlap)

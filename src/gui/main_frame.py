@@ -152,6 +152,10 @@ class MainFrame(QMainWindow):
         # Scope tap controller (created on connect)
         self.scope_controller = None
 
+        # Telemetry controller (created on connect, dev tool)
+        self.telemetry_controller = None
+        self._telemetry_widget = None
+
         # Scope repaint throttling (~30fps instead of per-message)
         self._mod_scope_dirty = set()
         
@@ -431,9 +435,13 @@ class MainFrame(QMainWindow):
         scope_debug_shortcut = QShortcut(QKeySequence("Ctrl+D"), self)
         scope_debug_shortcut.activated.connect(self._on_scope_debug_capture)
 
+        # Shortcut: telemetry monitor (Ctrl+Shift+T / Cmd+Shift+T)
+        telem_shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
+        telem_shortcut.activated.connect(self._show_telemetry)
+
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
-        
+
         # Log startup
         logger.info("Noise Engine started", component="APP")
         
@@ -1197,4 +1205,24 @@ class MainFrame(QMainWindow):
         toast.show()
 
         QTimer.singleShot(duration, toast.deleteLater)
+
+    # ── Telemetry (Dev Tool) ─────────────────────────────────────
+
+    def _show_telemetry(self):
+        """Show or raise the telemetry widget (Ctrl+Shift+T)."""
+        if self.telemetry_controller is None:
+            self._show_toast("Connect to SC first")
+            return
+
+        if self._telemetry_widget is None:
+            from src.gui.telemetry_widget import TelemetryWidget
+            self._telemetry_widget = TelemetryWidget(self.telemetry_controller)
+            self._telemetry_widget.setAttribute(Qt.WA_DeleteOnClose)
+            self._telemetry_widget.destroyed.connect(
+                lambda: setattr(self, '_telemetry_widget', None)
+            )
+
+        self._telemetry_widget.show()
+        self._telemetry_widget.raise_()
+        self._telemetry_widget.activateWindow()
 

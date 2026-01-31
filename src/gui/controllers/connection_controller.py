@@ -12,6 +12,7 @@ from src.config import OSC_PATHS
 from src.gui.theme import COLORS
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
 from src.audio.scope_controller import ScopeController
+from src.audio.telemetry_controller import TelemetryController
 from src.utils.logger import logger
 
 
@@ -94,6 +95,13 @@ class ConnectionController:
                 self.main.scope_controller = ScopeController(self.main.osc)
                 self.main.scope_controller.enable()
 
+                # Initialize telemetry controller (development tool)
+                self.main.telemetry_controller = TelemetryController(self.main.osc)
+                self.main.osc.telem_data_received.connect(
+                    self.main.telemetry_controller.on_data)
+                self.main.osc.telem_waveform_received.connect(
+                    self.main.telemetry_controller.on_waveform)
+
                 # Send current MIDI device if one is selected
                 current_midi = self.main.midi_selector.get_current_device()
                 logger.info(f"MIDI device at connect: {current_midi!r}", component="OSC")
@@ -135,6 +143,17 @@ class ConnectionController:
             if self.main.scope_controller:
                 self.main.scope_controller.disable()
                 self.main.scope_controller = None
+            # Disable telemetry
+            if getattr(self.main, 'telemetry_controller', None):
+                self.main.telemetry_controller.disable()
+                try:
+                    self.main.osc.telem_data_received.disconnect(
+                        self.main.telemetry_controller.on_data)
+                    self.main.osc.telem_waveform_received.disconnect(
+                        self.main.telemetry_controller.on_waveform)
+                except TypeError:
+                    pass
+                self.main.telemetry_controller = None
             self.main.osc.disconnect()
             self.main.osc_connected = False
             self.main._set_header_buttons_enabled(False)
@@ -181,6 +200,16 @@ class ConnectionController:
         # Resync threshold to SC (SC resets to 0.0 on reboot)
         self.main.scope_controller.set_threshold(self.main.scope_widget._threshold)
         self.main.scope_controller.set_slot(self.main.scope_widget._active_slot)
+
+        # Re-initialize telemetry controller
+        if getattr(self.main, 'telemetry_controller', None) is None:
+            self.main.telemetry_controller = TelemetryController(self.main.osc)
+        else:
+            self.main.telemetry_controller.osc = self.main.osc
+        self.main.osc.telem_data_received.connect(
+            self.main.telemetry_controller.on_data)
+        self.main.osc.telem_waveform_received.connect(
+            self.main.telemetry_controller.on_waveform)
 
         # Clear mod routing (SC has fresh state after restart)
         self.main.mod_routing.clear()

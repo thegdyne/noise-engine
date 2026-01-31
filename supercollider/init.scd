@@ -179,6 +179,10 @@ s.waitForBoot({
     (~basePath +/+ "core/scope_tap.scd").load;
     ~setupScopeTap.();
 
+    // Load telemetry tap (development tool)
+    (~basePath +/+ "core/telemetry_tap.scd").load;
+    ~setupTelemetryTap.();
+
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
     ~setupOSC.();
@@ -211,6 +215,9 @@ s.waitForBoot({
     // Boot scope tap (after endstage infra provides ~intermediateBus + groups)
     ~bootScopeTap.();
     ~setupScopeTapOSC.();
+
+    // Boot telemetry tap (after endstage infra provides ~intermediateBus + ~generators)
+    ~bootTelemetryTap.();
 
     ~startFxMixer.();
     ~setupFxMixerOSC.();
@@ -245,6 +252,7 @@ s.waitForBoot({
     "[x] 4 FX slots ready (UI Refresh)".postln;
     "[x] 8 cross-mod buses ready".postln;
     "[x] Scope tap ready (ping-pong v0.8.15, 1024 samples)".postln;
+    "[x] Telemetry tap ready (dev tool)".postln;
     "[x] Boid modulation ready (via bus unification)".postln;
     ("[x] OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
