@@ -54,14 +54,12 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     // --- BRANCH A: SINE TO SQUARE (High Gain Clipping) ---
     // Symmetry/bias applied before clipping = PWM effect
     sqr = (sine + p3_sym) * p0_sineSq.linexp(0, 1, 1, 120);
-    sqr = sqr.clip2(0.85);
-    sqr = LeakDC.ar(sqr);
+    sqr = sqr.clip2(1.0);
 
     // --- BRANCH B: SINE TO SAW (Phase Distortion) ---
     // Warp sine into saw by mixing in phase-synced ramp
     saw = (sine * (1 - p1_sineSaw)) + (LFSaw.ar(freq, 1, p1_sineSaw));
-    saw = (saw + (p3_sym * 0.5)).clip2(0.9);
-    saw = LeakDC.ar(saw);
+    saw = (saw + (p3_sym * 0.5)).clip2(1.0);
 
     // --- MIX: Balance between Square and Saw branches ---
     sig = XFade2.ar(sqr, saw, p2_mix.linlin(0, 1, -1, 1));
@@ -70,8 +68,8 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     // --- FINAL SATURATION ---
     sig = (sig * p4_sat.linexp(0, 1, 1, 18)).tanh;
 
-    // Output stage
-    sig = LeakDC.ar(sig) * 0.8;
+    // Output stage — single DC block at end of chain (0.995 coeff)
+    sig = LeakDC.ar(sig, 0.995) * 0.8;
     stage3 = sig;  // TAP: Final output
 
     // Bad value detection (catches NaN/inf from extreme settings)

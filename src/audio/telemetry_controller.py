@@ -40,13 +40,11 @@ class IdealOverlay:
 
         Branch A (Square):
             sqr = (sine + sym) * linexp(p0, 0,1, 1,120)
-            sqr = clip2(sqr, 0.85)
-            sqr = LeakDC(sqr)
+            sqr = clip2(sqr, 1.0)
 
         Branch B (Saw):
             saw = sine * (1 - p1) + LFSaw(freq, iphase=1) * p1
-            saw = clip2(saw + sym*0.5, 0.9)
-            saw = LeakDC(saw)
+            saw = clip2(saw + sym*0.5, 1.0)
 
         Mix:
             sig = XFade2(sqr, saw, linlin(p2, 0,1, -1,1))
@@ -54,8 +52,8 @@ class IdealOverlay:
         Saturation:
             sig = tanh(sig * linexp(p4, 0,1, 1,18))
 
-        Output:
-            sig = LeakDC(sig) * 0.8
+        Output (single DC block):
+            sig = LeakDC(sig, 0.995) * 0.8
 
     All methods operate on a single normalized cycle (0 to 2*pi).
     Phase alignment uses the normalized 0-1 phase from SC's Phasor.ar.
@@ -201,19 +199,17 @@ class IdealOverlay:
         # --- SINE SEED (line 40) ---
         sine = np.sin(self.t)
 
-        # --- BRANCH A: SINE TO SQUARE (lines 43-46) ---
+        # --- BRANCH A: SINE TO SQUARE (lines 54-57) ---
         # Drive = linexp(p0, 0, 1, 1, 120)
         sqr_drive = self._linexp(p0_sine_sq, 0, 1, 1, 120)
-        sqr = (sine + p3_sym) * sqr_drive   # line 44
-        sqr = self._clip2(sqr, 0.85)        # line 45
-        sqr = self._leak_dc(sqr)            # line 46
+        sqr = (sine + p3_sym) * sqr_drive   # line 56
+        sqr = self._clip2(sqr, 1.0)         # line 57
 
-        # --- BRANCH B: SINE TO SAW (lines 49-52) ---
+        # --- BRANCH B: SINE TO SAW (lines 59-62) ---
         # LFSaw.ar(freq, 1, p1_sineSaw) = LFSaw(iphase=1) * p1
         lf_saw = self.ideal_saw_sc()
-        saw = (sine * (1 - p1_sine_saw)) + (lf_saw * p1_sine_saw)  # line 50
-        saw = self._clip2(saw + (p3_sym * 0.5), 0.9)               # line 51
-        saw = self._leak_dc(saw)                                    # line 52
+        saw = (sine * (1 - p1_sine_saw)) + (lf_saw * p1_sine_saw)  # line 61
+        saw = self._clip2(saw + (p3_sym * 0.5), 1.0)               # line 62
 
         # --- MIX (line 55) ---
         # XFade2.ar(sqr, saw, p2_mix.linlin(0, 1, -1, 1))
@@ -225,8 +221,8 @@ class IdealOverlay:
         sat_drive = self._linexp(p4_sat, 0, 1, 1, 18)
         sig = np.tanh(sig * sat_drive)
 
-        # --- OUTPUT (line 61) ---
-        sig = self._leak_dc(sig) * 0.8
+        # --- OUTPUT (line 72) — single DC block at end of chain ---
+        sig = self._leak_dc(sig, 0.995) * 0.8
 
         return sig.astype(np.float32)
 
@@ -264,23 +260,21 @@ class IdealOverlay:
         # Branch A
         sqr_drive = self._linexp(p0_sine_sq, 0, 1, 1, 120)
         sqr = (sine + p3_sym) * sqr_drive
-        sqr = self._clip2(sqr, 0.85)
-        sqr = self._leak_dc(sqr)
+        sqr = self._clip2(sqr, 1.0)
 
         # Branch B
         lf_saw = self.ideal_saw_sc()
         saw = (sine * (1 - p1_sine_saw)) + (lf_saw * p1_sine_saw)
-        saw = self._clip2(saw + (p3_sym * 0.5), 0.9)
-        saw = self._leak_dc(saw)
+        saw = self._clip2(saw + (p3_sym * 0.5), 1.0)
 
         # Stage 2: post-morph
         pan = self._linlin(p2_mix, 0, 1, -1, 1)
         stage2 = self._xfade2(sqr, saw, pan)
 
-        # Stage 3: post-saturation + output
+        # Stage 3: post-saturation + output (single DC block at end)
         sat_drive = self._linexp(p4_sat, 0, 1, 1, 18)
         sig = np.tanh(stage2 * sat_drive)
-        stage3 = self._leak_dc(sig) * 0.8
+        stage3 = self._leak_dc(sig, 0.995) * 0.8
 
         return {
             'stage1': stage1.astype(np.float32),
