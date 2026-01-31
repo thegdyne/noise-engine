@@ -5,56 +5,60 @@
  * Hardware-grade oscilloscope for monitoring generator slot outputs.
  * Taps the intermediate bus (pre-end-stage) for raw generator waveforms.
  *
- * Architecture (RecordBuf + Frozen-Gate):
- *   - Single buffer, RecordBuf writes once per trigger (loop:0), then stops
- *   - Sweep timer tracks elapsed time since trigger
- *   - SendReply reports "writing" vs "frozen" state at 60Hz
- *   - sclang only reads buffer when frozen (guaranteed tear-free)
- *   - 2x holdoff ensures generous frozen window for reliable reads
+ * Architecture (Server-Managed Ping-Pong with AR/KR Alignment):
+ *   - Two buffers: SynthDef writes to one, sclang reads the other
+ *   - Trigger quantized to control-rate so ToggleFF and Phasor reset
+ *     happen on the SAME clock boundary (eliminates ~64 sample bleed)
+ *   - Toggle-driven push: only streams data when toggle changes
+ *   - Read-in-flight gating prevents async race conditions
+ *   - LeakDC + HPF conditioning for clean trigger detection
  */
 
 ~setupScopeTap = {
     "Setting up scope tap...".postln;
 
-    SynthDef(\forge_core_scope_tap, { |inBus, buf, threshold=0.0|
-        var sig, mono, trig, elapsed, writing;
+    SynthDef(\forge_core_scope_tap, { |inBus, buf0, buf1, threshold=0.0|
+        var sig, mono, edge, kEdge, kTrig, aTrig, toggle, phase, activeBuf;
 
-        // 1. Canonical Tap (Intermediate Bus -> Mono Sum)
+        // 1. Tap and condition
         sig = In.ar(inBus, 2);
-        mono = Mix.ar(sig) * 0.5;
+        mono = LeakDC.ar(Mix.ar(sig) * 0.5);  // Remove DC offset
+        mono = HPF.ar(mono, 5);                // Remove sub-bass rumble from trigger
 
-        // 2. Rising-Edge Trigger with Holdoff
-        // Holdoff = 2x buffer duration: write phase + frozen phase.
-        // During frozen phase, RecordBuf has stopped and buffer is safe to read.
-        trig = Trig1.ar(
-            (mono >= threshold) & (Delay1.ar(mono) < threshold),
-            BufDur.kr(buf) * 2
-        );
+        // 2. Rising-edge detect (audio-rate) with hysteresis
+        edge = (mono >= threshold) & (Delay1.ar(mono) < (threshold - 0.001));
 
-        // 3. RecordBuf writes once per trigger, stops at buffer end (loop:0)
-        // On trigger: resets to position 0 and starts recording
-        // After BufFrames samples: stops writing, buffer is frozen
-        RecordBuf.ar(mono, buf,
-            offset: 0,
-            recLevel: 1,
-            preLevel: 0,
-            run: 1,
-            loop: 0,
-            trigger: trig
-        );
+        // 3. CRITICAL: Quantize to control-rate
+        // This aligns the toggle switch and Phasor reset to the SAME
+        // control block boundary, eliminating the ~64 sample bleed.
+        kEdge = A2K.kr(edge);
+        kTrig = Trig1.kr(kEdge, BufDur.kr(buf0));  // Holdoff = buffer duration
+        aTrig = K2A.ar(kTrig);  // Back to ar for Phasor reset
 
-        // 4. Track buffer state via elapsed time since trigger
-        // Sweep resets to 0 on trigger, counts up in seconds
-        elapsed = Sweep.ar(trig);
-        writing = (elapsed < BufDur.kr(buf));  // 1 = writing, 0 = frozen
+        // 4. Double-buffer toggle (kr, aligned with kTrig)
+        toggle = ToggleFF.kr(kTrig);
 
-        // 5. Report state: writing flag (0=frozen/safe, 1=writing)
-        SendReply.kr(Impulse.kr(60), '/scope/state', [
-            A2K.kr(writing)
+        // 5. Phase-locked write position (resets on same boundary as toggle)
+        phase = Phasor.ar(aTrig, 1, 0, BufFrames.kr(buf0) - 1);
+
+        // 6. Write to active buffer
+        activeBuf = Select.kr(toggle, [buf0, buf1]);
+        BufWr.ar(mono, activeBuf, phase);
+
+        // 7. Status feedback: toggle + phase at 30Hz
+        SendReply.kr(Impulse.kr(30), '/scope/status', [
+            toggle,
+            A2K.kr(phase)
         ]);
     }).add;
 
-    "  [x] Scope tap SynthDef ready (forge_core_scope_tap, frozen-gate)".postln;
+    // Debug capture SynthDef (defined once at setup, not per-capture)
+    SynthDef(\scope_debug_capture, { |bus, buf|
+        var sig = Mix.ar(In.ar(bus, 2)) * 0.5;
+        RecordBuf.ar(sig, buf, loop: 0, doneAction: 2);
+    }).add;
+
+    "  [x] Scope tap SynthDef ready (forge_core_scope_tap, ping-pong v0.8.15)".postln;
 };
 
 // === BOOT SCOPE TAP ===
@@ -63,24 +67,29 @@
 ~bootScopeTap = {
     "Booting scope tap...".postln;
 
-    // Allocate scope buffer (1024 samples, mono)
-    ~scopeBuf = Buffer.alloc(s, 1024, 1);
+    // Allocate two scope buffers (1024 samples each, mono)
+    ~scopeBuf0 = Buffer.alloc(s, 1024, 1);
+    ~scopeBuf1 = Buffer.alloc(s, 1024, 1);
 
     // Create scope tap synth - runs after all generators
     ~scopeTapSynth = Synth(\forge_core_scope_tap, [
         \inBus, ~intermediateBus[0].index,  // Default to slot 1
-        \buf, ~scopeBuf.bufnum,
+        \buf0, ~scopeBuf0.bufnum,
+        \buf1, ~scopeBuf1.bufnum,
         \threshold, 0.0
     ], ~masterGroup, \addToTail);
 
     // Streaming state
     ~scopeStreamActive = false;
     ~scopeFrozen = false;
-    ~scopeTappedSlot = 0;  // 0-indexed
-    ~scopeWriting = 1;     // Start as "writing" until first sweep completes
+    ~scopeTappedSlot = 0;       // 0-indexed
+    ~scopeToggle = 0;           // Which buffer is being written (0 or 1)
+    ~scopeLastReadToggle = -1;  // Track last read toggle to detect changes
+    ~scopeReadInFlight = false; // Prevents overlapping async reads
+    ~scopePhase = 0;            // Last known write position
 
-    "  [x] Scope tap booted (buf=%, synth=%)".format(
-        ~scopeBuf.bufnum, ~scopeTapSynth.nodeID
+    "  [x] Scope tap booted (buf0=%, buf1=%, synth=%)".format(
+        ~scopeBuf0.bufnum, ~scopeBuf1.bufnum, ~scopeTapSynth.nodeID
     ).postln;
 };
 
@@ -89,10 +98,36 @@
 ~setupScopeTapOSC = {
     "Setting up scope tap OSC...".postln;
 
-    // Receive buffer state from SynthDef (0=frozen, 1=writing)
-    OSCdef(\scopeState, { |msg|
-        ~scopeWriting = msg[3].asInteger;
-    }, '/scope/state');
+    // Receive status from SynthDef: toggle + phase
+    OSCdef(\scopeStatus, { |msg|
+        var newToggle = msg[3].asInteger.clip(0, 1);
+        var phase = msg[4].asInteger.clip(0, 1023);
+        ~scopePhase = phase;
+
+        // Toggle-driven push: only read when toggle changes
+        // (means a new sweep just started → previous buffer is complete)
+        if(newToggle != ~scopeToggle, {
+            ~scopeToggle = newToggle;
+
+            if(~scopeStreamActive == true && ~scopeFrozen != true, {
+                if(~scopeReadInFlight.not, {
+                    // Read the INACTIVE buffer (opposite of current toggle)
+                    var readBuf = if(newToggle == 1, { ~scopeBuf0 }, { ~scopeBuf1 });
+                    ~scopeReadInFlight = true;
+                    ~scopeLastReadToggle = newToggle;
+                    readBuf.loadToFloatArray(action: { |data|
+                        ~scopeReadInFlight = false;
+                        if(~pythonAddr.notNil && ~scopeStreamActive, {
+                            ~pythonAddr.sendMsg(
+                                '/noise/scope/data',
+                                *data.as(Array)
+                            );
+                        });
+                    });
+                });
+            });
+        });
+    }, '/scope/status');
 
     // Set which slot to tap (0-7)
     OSCdef(\scopeSlot, { |msg|
@@ -122,6 +157,7 @@
         var enabled = msg[1].asInteger;
         if(enabled == 1, {
             ~scopeStreamActive = true;
+            ~scopeLastReadToggle = -1;  // Reset so first toggle change triggers read
             "[Scope] Streaming enabled".postln;
         }, {
             ~scopeStreamActive = false;
@@ -130,79 +166,69 @@
     }, '/noise/scope/enable');
 
     // === DEBUG CAPTURE ===
-    // Captures raw intermediate bus audio + scope buffer simultaneously to CSV
+    // Captures raw intermediate bus audio + inactive scope buffer to CSV
+    // Wrapped in fork for Routine context (s.sync / wait require it)
     OSCdef(\scopeDebug, { |msg|
-        var slot = ~scopeTappedSlot ? 0;
-        var inBus = ~intermediateBus[slot];
-        var rawBuf = Buffer.alloc(s, 2048, 1);
+        fork {
+            var slot = ~scopeTappedSlot ? 0;
+            var inBus = ~intermediateBus[slot];
+            var rawBuf = Buffer.alloc(s, 2048, 1);
+            var readBuf = if(~scopeToggle == 1, { ~scopeBuf0 }, { ~scopeBuf1 });
 
-        "[Scope Debug] Capturing slot % ...".format(slot + 1).postln;
+            "[Scope Debug] Capturing slot % ...".format(slot + 1).postln;
 
-        SynthDef(\scope_debug_capture, { |bus, buf|
-            var sig = Mix.ar(In.ar(bus, 2)) * 0.5;
-            RecordBuf.ar(sig, buf, loop: 0, doneAction: 2);
-        }).add;
+            s.sync;
 
-        s.sync;
+            Synth(\scope_debug_capture, [
+                \bus, inBus.index,
+                \buf, rawBuf.bufnum
+            ], ~masterGroup, \addToTail);
 
-        Synth(\scope_debug_capture, [
-            \bus, inBus.index,
-            \buf, rawBuf.bufnum
-        ], ~masterGroup, \addToTail);
+            0.1.wait;
 
-        0.1.wait;
+            rawBuf.loadToFloatArray(action: { |rawData|
+                readBuf.loadToFloatArray(action: { |scopeData|
+                    var path = Platform.userHomeDir +/+ "Downloads" +/+ "scope_debug.csv";
+                    var file = File(path, "w");
 
-        rawBuf.loadToFloatArray(action: { |rawData|
-            ~scopeBuf.loadToFloatArray(action: { |scopeData|
-                var path = Platform.userHomeDir +/+ "Downloads" +/+ "scope_debug.csv";
-                var file = File(path, "w");
+                    file.write("sample,raw_audio,scope_buffer\n");
 
-                file.write("sample,raw_audio,scope_buffer\n");
+                    2048.do { |i|
+                        var raw = rawData[i];
+                        var scope = if(i < 1024, { scopeData[i] }, { "" });
+                        file.write("%,%,%\n".format(i, raw, scope));
+                    };
 
-                2048.do { |i|
-                    var raw = rawData[i];
-                    var scope = if(i < 1024, { scopeData[i] }, { "" });
-                    file.write("%,%,%\n".format(i, raw, scope));
-                };
+                    file.close;
+                    rawBuf.free;
 
-                file.close;
-                rawBuf.free;
+                    "[Scope Debug] Saved to %".format(path).postln;
 
-                "[Scope Debug] Saved to %".format(path).postln;
-
-                if(~pythonAddr.notNil, {
-                    ~pythonAddr.sendMsg('/noise/scope/debug/done', path);
-                });
-            });
-        });
-    }, '/noise/scope/debug');
-
-    // === DATA STREAMING ROUTINE ===
-    // Polls at 60Hz. Only reads buffer when state is "frozen" (writing=0).
-    // RecordBuf with loop:0 stops after filling the buffer, so during the
-    // frozen phase the buffer is guaranteed complete and unchanging.
-    ~scopeStreamRoutine = Routine({
-        loop {
-            if(~scopeStreamActive == true, {
-                if(~scopeFrozen != true, {
-                    if(~scopeWriting == 0, {
-                        // Buffer is frozen — safe to read
-                        ~scopeBuf.loadToFloatArray(action: { |data|
-                            if(~pythonAddr.notNil && ~scopeStreamActive, {
-                                ~pythonAddr.sendMsg(
-                                    '/noise/scope/data',
-                                    *data.as(Array)
-                                );
-                            });
-                        });
+                    if(~pythonAddr.notNil, {
+                        ~pythonAddr.sendMsg('/noise/scope/debug/done', path);
                     });
                 });
             });
-            (1/60).wait;  // 60Hz polling for responsive frozen-state detection
         };
-    }).play(AppClock);
+    }, '/noise/scope/debug');
 
     "  [x] Scope tap OSC handlers ready".postln;
+};
+
+// === CLEANUP ===
+~shutdownScopeTap = {
+    "[Scope] Shutting down...".postln;
+    if(~scopeTapSynth.notNil, { ~scopeTapSynth.free; ~scopeTapSynth = nil });
+    if(~scopeBuf0.notNil, { ~scopeBuf0.free; ~scopeBuf0 = nil });
+    if(~scopeBuf1.notNil, { ~scopeBuf1.free; ~scopeBuf1 = nil });
+    OSCdef(\scopeStatus).free;
+    OSCdef(\scopeSlot).free;
+    OSCdef(\scopeThreshold).free;
+    OSCdef(\scopeFreeze).free;
+    OSCdef(\scopeEnable).free;
+    OSCdef(\scopeDebug).free;
+    ~scopeStreamActive = false;
+    "[Scope] Shutdown complete".postln;
 };
 
 "scope_tap.scd loaded".postln;

@@ -244,7 +244,7 @@ s.waitForBoot({
     "[x] 4 mod source slots ready".postln;
     "[x] 4 FX slots ready (UI Refresh)".postln;
     "[x] 8 cross-mod buses ready".postln;
-    "[x] Scope tap ready (frozen-gate, 1024 samples)".postln;
+    "[x] Scope tap ready (ping-pong v0.8.15, 1024 samples)".postln;
     "[x] Boid modulation ready (via bus unification)".postln;
     ("[x] OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
