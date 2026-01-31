@@ -16,9 +16,11 @@ if (thisProcess.nowExecutingPath.isNil) {
 
 // Configure server options BEFORE booting
 (
-s.options.numAudioBusChannels = 256;  // Plenty of audio buses
-s.options.numControlBusChannels = 4096;
-s.options.memSize = 65536;  // More memory for buffers
+s.options.numAudioBusChannels = 512;     // Headroom for intermediate + FX routing
+s.options.numControlBusChannels = 4096;  // ~420 used (buses + bus_unification 176)
+s.options.memSize = 131072;              // 128MB — headroom for telemetry buffers
+s.options.numBuffers = 2048;             // Scope + telemetry wave capture buffers
+s.options.maxNodes = 4096;               // Headroom for crossmod + FX chains
 );
 
 // === FORCE FIXED OSC PORT ===
