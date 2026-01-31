@@ -49,10 +49,11 @@
         activeBuf = Select.kr(toggle, [buf0, buf1]);
         BufWr.ar(mono, activeBuf, phase);
 
-        // 9. Status feedback: toggle + phase at 30Hz
-        SendReply.kr(Impulse.kr(30), '/scope/status', [
+        // 9. Status feedback: emit on SWEEP START (kTrig fires when new sweep begins)
+        // At this moment, the PREVIOUS buffer is complete and safe to read.
+        SendReply.kr(kTrig, '/scope/status', [
             toggle,
-            A2K.kr(phase)
+            0  // Phase is implicitly 0 at sweep start; kr-aligned
         ]);
     }).add;
 

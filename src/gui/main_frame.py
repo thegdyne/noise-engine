@@ -1158,21 +1158,26 @@ class MainFrame(QMainWindow):
     def _on_scope_data(self, data):
         """Handle incoming scope waveform data from SC.
 
-        Data is the full 1024-sample frozen buffer (no write_pos prefix).
-        RecordBuf with loop:0 guarantees the buffer is complete and unchanging
-        when sent — sclang only reads during the frozen phase.
+        Uses decode_scope_payload for flexible 1024/1025 format support.
+        With v0.8.16 server-side alignment, phase is implicitly 0.
         """
-        import numpy as np
         try:
-            if len(data) < 1:
+            if not self.scope_controller:
                 return
-            buf = np.array(data, dtype=np.float32)
+            phase, buf = self.scope_controller.decode_scope_payload(data)
+            if buf is None or len(buf) < 1:
+                return
             self.scope_widget.set_waveform(buf)
             # Store frame for debug capture
-            if self.scope_controller:
-                self.scope_controller.store_display_frame(0, buf, buf)
+            self.scope_controller.store_display_frame(phase, buf, buf)
         except Exception:
             pass
+
+    def _on_scope_debug_done(self, sc_path):
+        """Handle SC scope debug capture completion."""
+        if self.scope_controller:
+            self.scope_controller.on_sc_debug_done(sc_path)
+            self._show_toast("Scope debug capture saved")
 
     def _show_toast(self, message, duration=3000):
         """Show brief toast notification."""
