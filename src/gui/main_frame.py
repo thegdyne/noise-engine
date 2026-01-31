@@ -1142,11 +1142,22 @@ class MainFrame(QMainWindow):
             self.scope_controller.freeze(frozen)
 
     def _on_scope_data(self, data):
-        """Handle incoming scope waveform data from SC."""
+        """Handle incoming scope waveform data from SC.
+
+        First element is write position (int), rest is 1024 buffer samples.
+        Only the valid region (0 to write_pos) contains the current waveform.
+        """
         import numpy as np
         try:
-            arr = np.array(data, dtype=np.float32)
-            self.scope_widget.set_waveform(arr)
+            if len(data) < 2:
+                return
+            write_pos = int(data[0])
+            buf = np.array(data[1:], dtype=np.float32)
+            if write_pos > 0 and write_pos <= len(buf):
+                # Only show the valid region from trigger point to write head
+                self.scope_widget.set_waveform(buf[:write_pos])
+            else:
+                self.scope_widget.set_waveform(buf)
         except Exception:
             pass
 
