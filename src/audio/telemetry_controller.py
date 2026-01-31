@@ -333,6 +333,12 @@ class TelemetryController(QObject):
     MONITOR_RATE = 5    # Hz — info-only: meters, params, peak
     CAPTURE_RATE = 30   # Hz — active waveform capture mode
 
+    # Hardware DNA Probe detection
+    HW_SYNTHDEF = 'forge_core_hw_assessment_tap'
+    HW_GENERATOR_NAME = 'Hardware DNA Probe'
+    HW_PARAM_LABELS = ['CHN', 'LVL', 'MIX', 'SYM', 'SAT']
+    DEFAULT_PARAM_LABELS = ['P0', 'P1', 'P2', 'P3', 'P4']
+
     def __init__(self, osc_bridge):
         super().__init__()
         self.osc = osc_bridge
@@ -413,6 +419,21 @@ class TelemetryController(QObject):
             self.history.clear()
         else:
             self.target_slot = slot
+
+    def set_generator_context(self, name: str, synthdef: str):
+        """Update the current generator context for this slot."""
+        self.current_generator_id = name or ""
+        self.current_synthdef_name = synthdef or ""
+
+    @property
+    def is_hw_mode(self) -> bool:
+        """True when monitoring the Hardware DNA Probe."""
+        return self.current_synthdef_name == self.HW_SYNTHDEF
+
+    @property
+    def param_labels(self) -> list:
+        """Return param labels appropriate for the current generator."""
+        return self.HW_PARAM_LABELS if self.is_hw_mode else self.DEFAULT_PARAM_LABELS
 
     def enable_waveform(self, slot: int):
         """Enable waveform capture for a slot."""

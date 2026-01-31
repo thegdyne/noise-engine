@@ -1216,7 +1216,7 @@ class MainFrame(QMainWindow):
 
         if self._telemetry_widget is None:
             from src.gui.telemetry_widget import TelemetryWidget
-            self._telemetry_widget = TelemetryWidget(self.telemetry_controller)
+            self._telemetry_widget = TelemetryWidget(self.telemetry_controller, main_frame=self)
             self._telemetry_widget.setAttribute(Qt.WA_DeleteOnClose)
             self._telemetry_widget.destroyed.connect(
                 lambda: setattr(self, '_telemetry_widget', None)

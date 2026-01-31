@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.audio.telemetry_controller import TelemetryController
+from src.config import get_generator_synthdef
 from src.gui.theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES
 
 
@@ -177,9 +178,10 @@ class WaveformDisplay(QWidget):
 class TelemetryWidget(QWidget):
     """Development-only DSP telemetry monitor window."""
 
-    def __init__(self, controller, parent=None):
+    def __init__(self, controller, main_frame=None, parent=None):
         super().__init__(parent)
         self.controller = controller
+        self.main_frame = main_frame
         self.setWindowTitle("DEV: Telemetry Monitor")
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
         self.setMinimumSize(480, 400)
@@ -258,6 +260,28 @@ class TelemetryWidget(QWidget):
 
         layout.addLayout(top_row)
 
+        # ── Signal indicator row ──
+        signal_row = QHBoxLayout()
+        signal_row.setSpacing(6)
+
+        self.signal_dot = QLabel("\u25CF")  # filled circle
+        self.signal_dot.setFixedWidth(16)
+        self.signal_dot.setAlignment(Qt.AlignCenter)
+        self.signal_dot.setStyleSheet(
+            f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['label']}px; background: transparent;"
+        )
+        signal_row.addWidget(self.signal_dot)
+
+        self.source_label = QLabel("---")
+        self.source_label.setStyleSheet(
+            f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['small']}px; "
+            f"font-family: {MONO_FONT}; font-weight: bold; background: transparent;"
+        )
+        signal_row.addWidget(self.source_label)
+
+        signal_row.addStretch()
+        layout.addLayout(signal_row)
+
         # ── Separator ──
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
@@ -268,14 +292,16 @@ class TelemetryWidget(QWidget):
         param_grid = QGridLayout()
         param_grid.setSpacing(4)
 
-        param_labels = ["FRQ", "P0", "P1", "P2", "P3", "P4"]
+        self._param_header_labels = []  # QLabel refs for dynamic relabeling
         self.param_values = {}
+        self._param_keys = ["FRQ", "P0", "P1", "P2", "P3", "P4"]
 
-        for col, name in enumerate(param_labels):
+        for col, name in enumerate(self._param_keys):
             lbl = QLabel(name)
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
             param_grid.addWidget(lbl, 0, col)
+            self._param_header_labels.append(lbl)
 
             val = QLabel("---")
             val.setAlignment(Qt.AlignCenter)
@@ -375,9 +401,11 @@ class TelemetryWidget(QWidget):
     def _on_slot_changed(self, index):
         self.controller.set_slot(index)
         self.core_lock_label.setText("")
+        self._update_generator_context()
 
     def _on_enable_toggled(self, checked):
         if checked:
+            self._update_generator_context()
             self.controller.enable(self.slot_combo.currentIndex())
             self.enable_btn.setText("Disable")
         else:
@@ -421,6 +449,67 @@ class TelemetryWidget(QWidget):
         if path:
             self.controller.export_history(path)
 
+    # ── Generator context ──
+
+    def _update_generator_context(self):
+        """Query main_frame for the generator on the current slot and update controller."""
+        slot_id = self.slot_combo.currentIndex() + 1  # main_frame uses 1-based
+        gen_name = ""
+        synthdef = ""
+
+        if self.main_frame is not None:
+            synthdef_name = self.main_frame.active_generators.get(slot_id, "")
+            if synthdef_name:
+                synthdef = synthdef_name
+                # Reverse-lookup display name from generator grid
+                slot_widget = self.main_frame.generator_grid.get_slot(slot_id)
+                if slot_widget:
+                    gen_name = slot_widget.generator_type or ""
+
+        self.controller.set_generator_context(gen_name, synthdef)
+        self._update_param_labels()
+        self._update_source_label(gen_name)
+
+    def _update_param_labels(self):
+        """Update param header labels based on current generator."""
+        labels = ["FRQ"] + self.controller.param_labels
+        for i, lbl_widget in enumerate(self._param_header_labels):
+            lbl_widget.setText(labels[i])
+
+    def _update_source_label(self, gen_name: str):
+        """Update the source label text."""
+        if not gen_name:
+            self.source_label.setText("---")
+            self.source_label.setStyleSheet(
+                f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['small']}px; "
+                f"font-family: {MONO_FONT}; font-weight: bold; background: transparent;"
+            )
+        elif self.controller.is_hw_mode:
+            self.source_label.setText(f"EXT INPUT  \u2022  {gen_name}")
+            self.source_label.setStyleSheet(
+                f"color: {COLORS['meter_warn']}; font-size: {FONT_SIZES['small']}px; "
+                f"font-family: {MONO_FONT}; font-weight: bold; background: transparent;"
+            )
+        else:
+            self.source_label.setText(f"INTERNAL  \u2022  {gen_name}")
+            self.source_label.setStyleSheet(
+                f"color: {COLORS['text']}; font-size: {FONT_SIZES['small']}px; "
+                f"font-family: {MONO_FONT}; font-weight: bold; background: transparent;"
+            )
+
+    def _update_signal_dot(self, rms_stage1: float):
+        """Update signal presence dot color based on stage 1 RMS."""
+        if rms_stage1 > 0.005:
+            # Signal present — green
+            self.signal_dot.setStyleSheet(
+                f"color: {COLORS['meter_normal']}; font-size: {FONT_SIZES['label']}px; background: transparent;"
+            )
+        else:
+            # No signal — dim
+            self.signal_dot.setStyleSheet(
+                f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['label']}px; background: transparent;"
+            )
+
     # ── Refresh ──
 
     def _refresh(self):
@@ -438,9 +527,13 @@ class TelemetryWidget(QWidget):
         self.param_values["P4"].setText(f"{data.get('p4', 0):.3f}")
 
         # Stage meters
-        self.meter_stage1.set_value(data.get('rms_stage1', 0))
+        rms1 = data.get('rms_stage1', 0)
+        self.meter_stage1.set_value(rms1)
         self.meter_stage2.set_value(data.get('rms_stage2', 0))
         self.meter_stage3.set_value(data.get('rms_stage3', 0))
+
+        # Signal presence dot
+        self._update_signal_dot(rms1)
 
         # Peak
         peak = data.get('peak', 0)
