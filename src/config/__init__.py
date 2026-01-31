@@ -252,6 +252,7 @@ _CORE_GENERATOR_ORDER = [
     "Buchla",
     "B258 Master",
     "B258 Extreme",
+    "B258 Dual Morph",
     "Drone",
     # 808 Drums
     "808 Kick",
