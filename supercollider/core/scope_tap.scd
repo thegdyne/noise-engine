@@ -1,6 +1,6 @@
 /*
  * Noise Engine Scope Tap Infrastructure
- * Version: 0.8.16
+ * Version: 0.8.17
  *
  * Hardware-grade oscilloscope for monitoring generator slot outputs.
  * Taps the intermediate bus (pre-end-stage) for raw generator waveforms.
@@ -9,6 +9,7 @@
  *   - Two buffers: SynthDef writes to one, sclang reads the other
  *   - Trigger quantized to control-rate so ToggleFF and Phasor reset
  *     happen on the SAME clock boundary (eliminates ~64 sample bleed)
+ *   - Sample-accurate: BlockOffset pins Phasor start to exact trigger sample
  *   - Gated writing: Trig1.ar stops writer after exactly one buffer fill
  *   - Toggle-driven push: only streams data when toggle changes
  *   - Read-in-flight gating prevents async race conditions
@@ -19,7 +20,7 @@
     "Setting up scope tap...".postln;
 
     SynthDef(\forge_core_scope_tap, { |inBus, buf0, buf1, threshold=0.0|
-        var sig, mono, trigSig, edge, kEdge, kTrig, aTrig, toggle, phase, activeBuf, aWriteGate;
+        var sig, mono, trigSig, edge, kEdge, kTrig, aTrig, toggle, phase, activeBuf, aWriteGate, kOffset;
 
         // 1. Tap: raw mono for display, conditioned copy for trigger only
         sig = In.ar(inBus, 2);
@@ -29,38 +30,35 @@
         // 2. Rising-edge detect (audio-rate) with hysteresis
         edge = (trigSig >= threshold) & (Delay1.ar(trigSig) < (threshold - 0.001));
 
-        // 3. Reliable ar->kr trigger capture
-        // T2K ensures we never miss a 1-sample impulse within a block
+        // 3. Reliable ar->kr trigger capture (lossless)
         kEdge = T2K.kr(edge);
 
         // 4. Retrigger inhibit (Holdoff)
-        // Prevents a new sweep from starting until the current one is finished
         kTrig = Trig1.kr(kEdge, BufDur.kr(buf0));
 
-        // 5. Single-sample audio reset impulse for Phasor
+        // 5. Sub-sample offset calculation
+        // Captures exactly how many samples into the block the trigger hit.
+        kOffset = Latch.kr(BlockOffset.kr(kTrig), kTrig);
+
+        // 6. Single-sample audio reset impulse
         aTrig = T2A.ar(kTrig);
 
-        // 6. Double-buffer toggle (Aligned to the same block boundary)
+        // 7. Double-buffer toggle (block-aligned)
         toggle = ToggleFF.kr(kTrig);
 
-        // 7. Gate writing for exactly one buffer duration (prevents wrap overwrite)
-        // This ensures that while sclang is reading the buffer, the writer isn't lapping it.
+        // 8. One-shot write gate (one full sweep)
         aWriteGate = Trig1.ar(aTrig, BufDur.kr(buf0));
 
-        // 8. Phase advances only during capture window
-        // rate = aWriteGate means the counter stops advancing at the end of the sweep.
-        phase = Phasor.ar(aTrig, aWriteGate, 0, BufFrames.kr(buf0) - 1);
+        // 9. Sample-locked phase counter
+        // Starts at kOffset instead of 0 to align with the exact trigger sample.
+        phase = Phasor.ar(aTrig, aWriteGate, kOffset, BufFrames.kr(buf0) - 1, kOffset);
 
-        // 9. Write to active buffer (only while gate is high)
-        // Multiplying mono by aWriteGate provides extra safety against trailing samples.
+        // 10. Gated write to active buffer
         activeBuf = Select.kr(toggle, [buf0, buf1]);
         BufWr.ar(mono * aWriteGate, activeBuf, phase);
 
-        // 10. Status feedback: emit on sweep completion (toggle change)
-        SendReply.kr(kTrig, '/scope/status', [
-            toggle,
-            0  // Phase is implicitly 0 at sweep start; kr-aligned
-        ]);
+        // 11. Status feedback: toggle-driven push
+        SendReply.kr(kTrig, '/scope/status', [toggle, 0]);
     }).add;
 
     // Debug capture SynthDef (defined once at setup, not per-capture)
@@ -69,7 +67,7 @@
         RecordBuf.ar(sig, buf, loop: 0, doneAction: 2);
     }).add;
 
-    "  [x] Scope tap SynthDef ready (forge_core_scope_tap, ping-pong v0.8.16)".postln;
+    "  [x] Scope tap SynthDef ready (forge_core_scope_tap, ping-pong v0.8.17)".postln;
 };
 
 // === BOOT SCOPE TAP ===
