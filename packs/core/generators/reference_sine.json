@@ -1,0 +1,59 @@
+{
+  "generator_id": "core_reference_sine",
+  "name": "Reference Sine",
+  "synthesis_method": "diagnostic",
+  "synthdef": "forge_core_reference_sine",
+  "output_trim_db": 0.0,
+  "custom_params": [
+    {
+      "key": "unused_0",
+      "label": "---",
+      "tooltip": "Not used. Reference Sine has no custom parameters.",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unused_1",
+      "label": "---",
+      "tooltip": "Not used. Reference Sine has no custom parameters.",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unused_2",
+      "label": "---",
+      "tooltip": "Not used. Reference Sine has no custom parameters.",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unused_3",
+      "label": "---",
+      "tooltip": "Not used. Reference Sine has no custom parameters.",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unused_4",
+      "label": "---",
+      "tooltip": "Not used. Reference Sine has no custom parameters.",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
+}
