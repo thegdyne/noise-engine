@@ -7,8 +7,9 @@
  *
  * Architecture:
  *   - SynthDef writes triggered mono signal into a buffer
+ *   - SendReply reports write position at control rate
  *   - sclang Routine reads buffer at 30fps and streams to Python
- *   - Python displays with QPainter (Kassutronics aesthetic)
+ *   - Python displays only the valid region (trigger point to write head)
  */
 
 ~setupScopeTap = {
@@ -34,6 +35,9 @@
 
         // 4. Write to buffer
         BufWr.ar(mono, buf, phase);
+
+        // 5. Report write position at control rate (for Python to know valid region)
+        SendReply.kr(Impulse.kr(60), '/scope/writepos', [A2K.kr(phase)]);
     }).add;
 
     "  [x] Scope tap SynthDef ready (forge_core_scope_tap)".postln;
@@ -60,6 +64,7 @@
     ~scopeStreamActive = false;
     ~scopeFrozen = false;
     ~scopeTappedSlot = 0;  // 0-indexed
+    ~scopeWritePos = 0;    // Last known write position
 
     "  [x] Scope tap booted (buf=%, synth=%)".format(
         ~scopeBuf.bufnum, ~scopeTapSynth.nodeID
@@ -71,13 +76,17 @@
 ~setupScopeTapOSC = {
     "Setting up scope tap OSC...".postln;
 
+    // Capture write position from SynthDef
+    OSCdef(\scopeWritePos, { |msg|
+        ~scopeWritePos = msg[3].asInteger.clip(0, 1023);
+    }, '/scope/writepos');
+
     // Set which slot to tap (0-7)
     OSCdef(\scopeSlot, { |msg|
         var slot = msg[1].asInteger.clip(0, 7);
         if(~intermediateBus.notNil && ~scopeTapSynth.notNil, {
             ~scopeTappedSlot = slot;
             ~scopeTapSynth.set(\inBus, ~intermediateBus[slot].index);
-            // "[Scope] Tapped slot %".format(slot + 1).postln;
         });
     }, '/noise/scope/slot');
 
@@ -93,7 +102,6 @@
     OSCdef(\scopeFreeze, { |msg|
         var frozen = msg[1].asInteger;
         ~scopeFrozen = (frozen == 1);
-        // "[Scope] Frozen: %".format(~scopeFrozen).postln;
     }, '/noise/scope/freeze');
 
     // Enable/disable streaming
@@ -109,16 +117,18 @@
     }, '/noise/scope/enable');
 
     // === DATA STREAMING ROUTINE ===
-    // Reads buffer at ~30fps and sends to Python
+    // Reads buffer at ~30fps and sends to Python with write position
     ~scopeStreamRoutine = Routine({
         loop {
             if(~scopeStreamActive == true, {
                 if(~scopeFrozen != true, {
+                    var wp = ~scopeWritePos ? 0;
                     ~scopeBuf.loadToFloatArray(action: { |data|
                         if(~pythonAddr.notNil && ~scopeStreamActive, {
-                            // Send as flat array of floats
+                            // First value is the write position, rest is buffer data
                             ~pythonAddr.sendMsg(
                                 '/noise/scope/data',
+                                wp,
                                 *data.as(Array)
                             );
                         });
