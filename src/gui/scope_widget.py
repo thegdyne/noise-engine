@@ -200,7 +200,7 @@ class ScopeWidget(QFrame):
         # Freeze button
         self._freeze_btn = QPushButton("FRZ")
         self._freeze_btn.setFixedSize(32, 16)
-        self._freeze_btn.setFont(QFont(MONO_FONT, 8, QFont.Bold))
+        self._freeze_btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
         self._freeze_btn.setCheckable(True)
         self._freeze_btn.setStyleSheet(self._freeze_style(False))
         self._freeze_btn.clicked.connect(self._on_freeze_clicked)
@@ -226,7 +226,7 @@ class ScopeWidget(QFrame):
         for i in range(8):
             btn = QPushButton(str(i + 1))
             btn.setFixedSize(22, 16)
-            btn.setFont(QFont(MONO_FONT, 8, QFont.Bold))
+            btn.setFont(QFont(MONO_FONT, FONT_SIZES['tiny'], QFont.Bold))
             btn.setStyleSheet(self._slot_btn_style(i == 0))
             btn.clicked.connect(lambda checked, idx=i: self._on_slot_clicked(idx))
             self._slot_btns.append(btn)
@@ -236,7 +236,7 @@ class ScopeWidget(QFrame):
 
         # Trigger threshold label (drag to adjust)
         trig_label = QLabel("TRIG")
-        trig_label.setFont(QFont(MONO_FONT, 7))
+        trig_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         trig_label.setStyleSheet(f"color: {SCOPE_TRIGGER}; background: transparent; border: none;")
         controls.addWidget(trig_label)
 
@@ -358,7 +358,7 @@ class TrigDragLabel(QLabel):
 
         self.setFixedSize(36, 16)
         self.setAlignment(Qt.AlignCenter)
-        self.setFont(QFont(MONO_FONT, 8))
+        self.setFont(QFont(MONO_FONT, FONT_SIZES['tiny']))
         self.setStyleSheet(f"""
             QLabel {{
                 background-color: {COLORS['background_dark']};
