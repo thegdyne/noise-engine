@@ -254,6 +254,7 @@ _CORE_GENERATOR_ORDER = [
     "B258 Extreme",
     "B258 Dual Morph",
     "Reference Sine",
+    "Hardware DNA Probe",
     "Drone",
     # 808 Drums
     "808 Kick",

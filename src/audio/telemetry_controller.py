@@ -500,7 +500,7 @@ class TelemetryController(QObject):
         """Capture current state with provenance for reproducibility.
 
         Returns:
-            Dict with frame, waveform, ideal, and provenance data.
+            Dict with frame, waveform, ideal, provenance, and hw_dna data.
             None if no telemetry data available.
         """
         if not self.history:
@@ -512,7 +512,10 @@ class TelemetryController(QObject):
         ideal_wave = self.get_ideal_waveform(latest)
         ideal_rms = self.get_ideal_rms(latest)
 
-        return {
+        # Hardware DNA fields (populated when waveform capture is active)
+        hw_dna = self._compute_hw_dna(ideal_wave)
+
+        result = {
             'frame': latest,
             'waveform': (
                 self.current_waveform.tolist()
@@ -534,6 +537,11 @@ class TelemetryController(QObject):
             }
         }
 
+        if hw_dna is not None:
+            result['hw_dna'] = hw_dna
+
+        return result
+
     def export_history(self, path: str):
         """Export full telemetry history to JSON."""
         data = {
@@ -550,6 +558,47 @@ class TelemetryController(QObject):
         logger.info(
             f"[Telemetry] Exported {len(self.history)} frames to {path}"
         )
+
+    def _compute_hw_dna(self, ideal_wave) -> dict:
+        """Compute hardware DNA profiling fields from waveform capture.
+
+        Returns dict with hw_dc_bias, rms_error, harmonic_signature,
+        or None if no waveform data is available.
+        """
+        if self.current_waveform is None:
+            return None
+
+        wave = self.current_waveform
+        n = len(wave)
+
+        # DC bias: average value of captured waveform
+        hw_dc_bias = float(np.mean(wave))
+
+        # RMS error: std deviation between actual and ideal waveforms
+        rms_error = 0.0
+        if ideal_wave is not None and len(ideal_wave) == n:
+            rms_error = float(np.std(wave - ideal_wave))
+
+        # Harmonic signature: 8-bin FFT magnitude map
+        fft = np.fft.rfft(wave)
+        magnitudes = np.abs(fft)
+        # Bin into 8 bands (skip DC bin)
+        n_bins = 8
+        band_size = max(1, (len(magnitudes) - 1) // n_bins)
+        harmonic_signature = []
+        for i in range(n_bins):
+            start = 1 + i * band_size
+            end = min(1 + (i + 1) * band_size, len(magnitudes))
+            if start < len(magnitudes):
+                harmonic_signature.append(float(np.mean(magnitudes[start:end])))
+            else:
+                harmonic_signature.append(0.0)
+
+        return {
+            'hw_dc_bias': hw_dc_bias,
+            'rms_error': rms_error,
+            'harmonic_signature': harmonic_signature,
+        }
 
     def _get_git_hash(self) -> str:
         """Get current git hash for provenance tracking."""
