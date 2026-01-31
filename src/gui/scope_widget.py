@@ -15,7 +15,7 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath, QFont
 
 import numpy as np
 
-from .theme import COLORS, MONO_FONT, FONT_SIZES, get
+from .theme import COLORS, MONO_FONT, FONT_SIZES
 
 
 # =============================================================================

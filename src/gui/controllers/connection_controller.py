@@ -168,11 +168,16 @@ class ConnectionController:
         # Resend current state
         self.main.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.main.master_bpm])
 
-        # Re-enable scope tap
+        # Re-enable scope tap (reconnect signal + resync state)
+        self.main.osc.scope_data_received.connect(self.main._on_scope_data)
         if self.main.scope_controller is None:
             self.main.scope_controller = ScopeController(self.main.osc)
-        self.main.scope_controller.osc = self.main.osc
+        else:
+            self.main.scope_controller.osc = self.main.osc
         self.main.scope_controller.enable()
+        # Resync threshold to SC (SC resets to 0.0 on reboot)
+        self.main.scope_controller.set_threshold(self.main.scope_widget._threshold)
+        self.main.scope_controller.set_slot(self.main.scope_widget._active_slot)
 
         # Clear mod routing (SC has fresh state after restart)
         self.main.mod_routing.clear()
