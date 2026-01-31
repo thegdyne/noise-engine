@@ -175,6 +175,10 @@ s.waitForBoot({
     (~basePath +/+ "core/endstage.scd").load;
     ~setupEndstage.();
 
+    // Load scope tap (after endstage SynthDef exists, before boot)
+    (~basePath +/+ "core/scope_tap.scd").load;
+    ~setupScopeTap.();
+
     // Load OSC handlers (after everything else exists)
     (~basePath +/+ "core/osc_handlers.scd").load;
     ~setupOSC.();
@@ -203,6 +207,10 @@ s.waitForBoot({
     // Boot end-stage infrastructure (after groups exist from ~startClock,
     // after ~setupEndstage defined SynthDefs, after bus_unification allocated buses)
     ~bootEndstageInfra.();
+
+    // Boot scope tap (after endstage infra provides ~intermediateBus + groups)
+    ~bootScopeTap.();
+    ~setupScopeTapOSC.();
 
     ~startFxMixer.();
     ~setupFxMixerOSC.();
@@ -236,6 +244,7 @@ s.waitForBoot({
     "[x] 4 mod source slots ready".postln;
     "[x] 4 FX slots ready (UI Refresh)".postln;
     "[x] 8 cross-mod buses ready".postln;
+    "[x] Scope tap ready (1024-sample buffer)".postln;
     "[x] Boid modulation ready (via bus unification)".postln;
     ("[x] OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;

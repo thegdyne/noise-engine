@@ -11,6 +11,7 @@ from PyQt5.QtCore import QTimer
 from src.config import OSC_PATHS
 from src.gui.theme import COLORS
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
+from src.audio.scope_controller import ScopeController
 from src.utils.logger import logger
 
 
@@ -62,6 +63,7 @@ class ConnectionController:
             self.main.osc.mod_values_received.connect(self.main.modulation.on_mod_values_received)
             self.main.osc.extmod_values_received.connect(self.main.modulation.on_extmod_values_received)
             self.main.osc.bus_values_received.connect(self.main.modulation.on_bus_values_received)
+            self.main.osc.scope_data_received.connect(self.main._on_scope_data)
             if self.main.osc.connect():
                 self.main.osc_connected = True
                 # Initialize crossmod OSC bridge
@@ -86,6 +88,10 @@ class ConnectionController:
                 
                 # Query audio devices
                 self.main.osc.query_audio_devices()
+
+                # Initialize and enable scope tap
+                self.main.scope_controller = ScopeController(self.main.osc)
+                self.main.scope_controller.enable()
 
                 # Send current MIDI device if one is selected
                 current_midi = self.main.midi_selector.get_current_device()
@@ -120,8 +126,13 @@ class ConnectionController:
                 self.main.osc.mod_values_received.disconnect(self.main.modulation.on_mod_values_received)
                 self.main.osc.extmod_values_received.disconnect(self.main.modulation.on_extmod_values_received)
                 self.main.osc.bus_values_received.disconnect(self.main.modulation.on_bus_values_received)
+                self.main.osc.scope_data_received.disconnect(self.main._on_scope_data)
             except TypeError:
                 pass  # Signals weren't connected
+            # Disable scope streaming
+            if self.main.scope_controller:
+                self.main.scope_controller.disable()
+                self.main.scope_controller = None
             self.main.osc.disconnect()
             self.main.osc_connected = False
             self.main._set_header_buttons_enabled(False)
@@ -156,6 +167,17 @@ class ConnectionController:
         
         # Resend current state
         self.main.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.main.master_bpm])
+
+        # Re-enable scope tap (reconnect signal + resync state)
+        self.main.osc.scope_data_received.connect(self.main._on_scope_data)
+        if self.main.scope_controller is None:
+            self.main.scope_controller = ScopeController(self.main.osc)
+        else:
+            self.main.scope_controller.osc = self.main.osc
+        self.main.scope_controller.enable()
+        # Resync threshold to SC (SC resets to 0.0 on reboot)
+        self.main.scope_controller.set_threshold(self.main.scope_widget._threshold)
+        self.main.scope_controller.set_slot(self.main.scope_widget._active_slot)
 
         # Clear mod routing (SC has fresh state after restart)
         self.main.mod_routing.clear()
