@@ -1170,8 +1170,8 @@ class MainFrame(QMainWindow):
             self.scope_widget.set_waveform(buf)
             # Store frame for debug capture
             self.scope_controller.store_display_frame(phase, buf, buf)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Scope data error: {e}", component="SCOPE")
 
     def _on_scope_debug_done(self, sc_path):
         """Handle SC scope debug capture completion."""
