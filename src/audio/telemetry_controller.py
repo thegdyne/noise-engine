@@ -36,7 +36,7 @@ class IdealOverlay:
 
     The B258 SynthDef (b258_dual_morph.scd) has this signal flow:
 
-        sine = SinOsc.ar(freq)
+        sine = SinOsc.ar(freq) * 0.8
 
         Branch A (Square):
             sqr = (sine + sym) * linexp(p0, 0,1, 1,120)
@@ -52,8 +52,8 @@ class IdealOverlay:
         Saturation:
             sig = tanh(sig * linexp(p4, 0,1, 1,18))
 
-        Output (relaxed DC block + calibrated gain):
-            sig = LeakDC(sig, 0.9998) * 0.85
+        Output (near-transparent DC block + normalized gain):
+            sig = LeakDC(sig, 0.9999) * 0.68
 
     All methods operate on a single normalized cycle (0 to 2*pi).
     Phase alignment uses the normalized 0-1 phase from SC's Phasor.ar.
@@ -196,8 +196,8 @@ class IdealOverlay:
         # Lag.kr smoothing is irrelevant for ideal (steady-state)
         p3_sym = self._linlin(p3_sym_raw, 0, 1, -0.85, 0.85)
 
-        # --- SINE SEED (line 40) ---
-        sine = np.sin(self.t)
+        # --- SINE SEED (line 51) — calibrated amplitude ---
+        sine = np.sin(self.t) * 0.8
 
         # --- BRANCH A: SINE TO SQUARE (lines 54-57) ---
         # Drive = linexp(p0, 0, 1, 1, 120)
@@ -221,8 +221,8 @@ class IdealOverlay:
         sat_drive = self._linexp(p4_sat, 0, 1, 1, 18)
         sig = np.tanh(sig * sat_drive)
 
-        # --- OUTPUT (line 72) — relaxed DC block + calibrated gain ---
-        sig = self._leak_dc(sig, 0.9998) * 0.85
+        # --- OUTPUT (line 72) — near-transparent DC block + normalized gain ---
+        sig = self._leak_dc(sig, 0.9999) * 0.68
 
         return sig.astype(np.float32)
 
@@ -253,8 +253,8 @@ class IdealOverlay:
         """
         p3_sym = self._linlin(p3_sym_raw, 0, 1, -0.85, 0.85)
 
-        # Stage 1: sine seed
-        sine = np.sin(self.t)
+        # Stage 1: sine seed (calibrated amplitude)
+        sine = np.sin(self.t) * 0.8
         stage1 = sine.copy()
 
         # Branch A
@@ -271,10 +271,10 @@ class IdealOverlay:
         pan = self._linlin(p2_mix, 0, 1, -1, 1)
         stage2 = self._xfade2(sqr, saw, pan)
 
-        # Stage 3: post-saturation + output (relaxed DC block + calibrated gain)
+        # Stage 3: post-saturation + output (near-transparent DC block + normalized gain)
         sat_drive = self._linexp(p4_sat, 0, 1, 1, 18)
         sig = np.tanh(stage2 * sat_drive)
-        stage3 = self._leak_dc(sig, 0.9998) * 0.85
+        stage3 = self._leak_dc(sig, 0.9999) * 0.68
 
         return {
             'stage1': stage1.astype(np.float32),

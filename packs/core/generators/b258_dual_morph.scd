@@ -47,8 +47,8 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     // Phase tracking for Python sync (normalized 0-1)
     phase = Phasor.ar(0, freq * SampleDur.ir, 0, 1);
 
-    // --- SINE SEED ---
-    sine = SinOsc.ar(freq, 0);
+    // --- SINE SEED (calibrated to ~0.707 RMS) ---
+    sine = SinOsc.ar(freq, 0) * 0.8;
     stage1 = sine;  // TAP: Pure sine input
 
     // --- BRANCH A: SINE TO SQUARE (High Gain Clipping) ---
@@ -68,8 +68,8 @@ SynthDef(\forge_core_b258_dual_morph, { |out, freqBus, customBus0, slotIndex=0, 
     // --- FINAL SATURATION ---
     sig = (sig * p4_sat.linexp(0, 1, 1, 18)).tanh;
 
-    // Output stage — relaxed DC block + calibrated gain
-    sig = LeakDC.ar(sig, 0.9998) * 0.85;
+    // Output stage — near-transparent DC block + normalized gain
+    sig = LeakDC.ar(sig, 0.9999) * 0.68;
     stage3 = sig;  // TAP: Final output
 
     // Bad value detection (catches NaN/inf from extreme settings)
