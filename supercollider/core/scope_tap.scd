@@ -11,22 +11,22 @@
  *     happen on the SAME clock boundary (eliminates ~64 sample bleed)
  *   - Toggle-driven push: only streams data when toggle changes
  *   - Read-in-flight gating prevents async race conditions
- *   - LeakDC + HPF conditioning for clean trigger detection
+ *   - LeakDC + HPF conditioning for trigger detection only (raw signal to buffer)
  */
 
 ~setupScopeTap = {
     "Setting up scope tap...".postln;
 
     SynthDef(\forge_core_scope_tap, { |inBus, buf0, buf1, threshold=0.0|
-        var sig, mono, edge, kEdge, kTrig, aTrig, toggle, phase, activeBuf;
+        var sig, mono, trigSig, edge, kEdge, kTrig, aTrig, toggle, phase, activeBuf;
 
-        // 1. Tap and condition
+        // 1. Tap: raw mono for display, conditioned copy for trigger only
         sig = In.ar(inBus, 2);
-        mono = LeakDC.ar(Mix.ar(sig) * 0.5);  // Remove DC offset
-        mono = HPF.ar(mono, 5);                // Remove sub-bass rumble from trigger
+        mono = Mix.ar(sig) * 0.5;                      // Raw signal → buffer
+        trigSig = HPF.ar(LeakDC.ar(mono), 5);           // Conditioned → trigger detection only
 
         // 2. Rising-edge detect (audio-rate) with hysteresis
-        edge = (mono >= threshold) & (Delay1.ar(mono) < (threshold - 0.001));
+        edge = (trigSig >= threshold) & (Delay1.ar(trigSig) < (threshold - 0.001));
 
         // 3. CRITICAL: Quantize to control-rate
         // This aligns the toggle switch and Phasor reset to the SAME
