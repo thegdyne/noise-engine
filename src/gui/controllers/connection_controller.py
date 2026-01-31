@@ -64,6 +64,7 @@ class ConnectionController:
             self.main.osc.extmod_values_received.connect(self.main.modulation.on_extmod_values_received)
             self.main.osc.bus_values_received.connect(self.main.modulation.on_bus_values_received)
             self.main.osc.scope_data_received.connect(self.main._on_scope_data)
+            self.main.osc.scope_debug_done_received.connect(self.main._on_scope_debug_done)
             if self.main.osc.connect():
                 self.main.osc_connected = True
                 # Initialize crossmod OSC bridge
@@ -127,6 +128,7 @@ class ConnectionController:
                 self.main.osc.extmod_values_received.disconnect(self.main.modulation.on_extmod_values_received)
                 self.main.osc.bus_values_received.disconnect(self.main.modulation.on_bus_values_received)
                 self.main.osc.scope_data_received.disconnect(self.main._on_scope_data)
+                self.main.osc.scope_debug_done_received.disconnect(self.main._on_scope_debug_done)
             except TypeError:
                 pass  # Signals weren't connected
             # Disable scope streaming
@@ -170,6 +172,7 @@ class ConnectionController:
 
         # Re-enable scope tap (reconnect signal + resync state)
         self.main.osc.scope_data_received.connect(self.main._on_scope_data)
+        self.main.osc.scope_debug_done_received.connect(self.main._on_scope_debug_done)
         if self.main.scope_controller is None:
             self.main.scope_controller = ScopeController(self.main.osc)
         else:
