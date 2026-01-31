@@ -137,7 +137,7 @@ class GeneratorSlot(QWidget):
                                    L['gen_label_w'], L['gen_label_h'])
         
         self.type_btn = CycleButton(GENERATOR_CYCLE, parent=self)
-        self.type_btn.skip_prefix = "────"  # Skip pack separator lines when cycling
+        self.type_btn.section_boundary = "────"  # Wrap within pack sections (core stays in core)
         self.type_btn.setGeometry(L['selector_x'], L['selector_y'],
                                    L['selector_w'], L['selector_h'])
         self.type_btn.value_changed.connect(self.on_generator_type_changed)
