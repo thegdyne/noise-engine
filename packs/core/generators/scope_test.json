@@ -1,0 +1,57 @@
+{
+  "name": "Scope Test",
+  "synthdef": "scope_test",
+  "synthesis_method": "classic/test",
+  "custom_params": [
+    {
+      "key": "wave",
+      "label": "WAV",
+      "tooltip": "Waveform: Sine / Tri / Square / Pulse",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "pw",
+      "label": "PW",
+      "tooltip": "Pulse width (pulse mode only)",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unused1",
+      "label": "---",
+      "tooltip": "",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unused2",
+      "label": "---",
+      "tooltip": "",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "unused3",
+      "label": "---",
+      "tooltip": "",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
+}
