@@ -1,22 +1,23 @@
 /*
  * Noise Engine Scope Tap Infrastructure
- * Version: 0.8.13
+ * Version: 0.8.14
  *
  * Hardware-grade oscilloscope for monitoring generator slot outputs.
  * Taps the intermediate bus (pre-end-stage) for raw generator waveforms.
  *
- * Architecture:
- *   - SynthDef writes triggered mono signal into a buffer
- *   - SendReply reports write position at control rate
- *   - sclang Routine reads buffer at 30fps and streams to Python
- *   - Python displays only the valid region (trigger point to write head)
+ * Architecture (Double Buffer - Tear-Free):
+ *   - Two buffers: SynthDef writes to one, Python reads the other
+ *   - ToggleFF swaps active buffer on each trigger
+ *   - SendReply reports which buffer is active + write position
+ *   - sclang Routine reads the INACTIVE (frozen) buffer at 30fps
+ *   - Zero tearing: the read buffer is never being written to
  */
 
 ~setupScopeTap = {
     "Setting up scope tap...".postln;
 
-    SynthDef(\forge_core_scope_tap, { |inBus, buf, threshold=0.0|
-        var sig, mono, trig, phase;
+    SynthDef(\forge_core_scope_tap, { |inBus, buf0, buf1, threshold=0.0|
+        var sig, mono, trig, phase, kTrig, toggle, activeBuf;
 
         // 1. Canonical Tap (Intermediate Bus -> Mono Sum)
         sig = In.ar(inBus, 2);
@@ -24,25 +25,33 @@
 
         // 2. Rising-Edge Trigger with Holdoff
         // Fires when signal crosses threshold going positive.
-        // Trig1 holdoff = buffer duration: suppresses re-triggers until
-        // the Phasor has swept the entire buffer, preventing partial fills.
+        // Holdoff = buffer duration: ensures full sweep before re-trigger.
         trig = Trig1.ar(
             (mono >= threshold) & (Delay1.ar(mono) < threshold),
-            BufDur.kr(buf)
+            BufDur.kr(buf0)
         );
 
-        // 3. Phase-Locked Write Position
-        // Resets to 0 on every trigger, ensuring frame starts at threshold crossing
-        phase = Phasor.ar(trig, 1, 0, BufFrames.kr(buf));
+        // 3. Double Buffer Toggle
+        // Flips 0/1 on each trigger so we alternate which buffer is written.
+        // Control-rate toggle avoids audio/kr boundary issues with BufWr.
+        kTrig = T2K.kr(trig);
+        toggle = ToggleFF.kr(kTrig);
 
-        // 4. Write to buffer
-        BufWr.ar(mono, buf, phase);
+        // 4. Phase-Locked Write Position
+        phase = Phasor.ar(trig, 1, 0, BufFrames.kr(buf0));
 
-        // 5. Report write position at control rate (for Python to know valid region)
-        SendReply.kr(Impulse.kr(60), '/scope/writepos', [A2K.kr(phase)]);
+        // 5. Write to the ACTIVE buffer (toggle=0 → buf0, toggle=1 → buf1)
+        activeBuf = Select.kr(toggle, [buf0, buf1]);
+        BufWr.ar(mono, activeBuf, phase);
+
+        // 6. Report state: write position + which buffer is active
+        SendReply.kr(Impulse.kr(60), '/scope/writepos', [
+            A2K.kr(phase),
+            toggle   // 0 = writing buf0 (read buf1), 1 = writing buf1 (read buf0)
+        ]);
     }).add;
 
-    "  [x] Scope tap SynthDef ready (forge_core_scope_tap)".postln;
+    "  [x] Scope tap SynthDef ready (forge_core_scope_tap, double-buffer)".postln;
 };
 
 // === BOOT SCOPE TAP ===
@@ -51,14 +60,16 @@
 ~bootScopeTap = {
     "Booting scope tap...".postln;
 
-    // Allocate scope buffer (1024 samples, mono)
-    ~scopeBuf = Buffer.alloc(s, 1024, 1);
+    // Allocate two scope buffers (1024 samples each, mono)
+    ~scopeBuf0 = Buffer.alloc(s, 1024, 1);
+    ~scopeBuf1 = Buffer.alloc(s, 1024, 1);
 
     // Create scope tap synth - runs after all generators
     // Place in ~masterGroup at tail so it runs after everything
     ~scopeTapSynth = Synth(\forge_core_scope_tap, [
         \inBus, ~intermediateBus[0].index,  // Default to slot 1
-        \buf, ~scopeBuf.bufnum,
+        \buf0, ~scopeBuf0.bufnum,
+        \buf1, ~scopeBuf1.bufnum,
         \threshold, 0.0
     ], ~masterGroup, \addToTail);
 
@@ -67,9 +78,10 @@
     ~scopeFrozen = false;
     ~scopeTappedSlot = 0;  // 0-indexed
     ~scopeWritePos = 0;    // Last known write position
+    ~scopeActiveToggle = 0; // Which buffer is being written to (0 or 1)
 
-    "  [x] Scope tap booted (buf=%, synth=%)".format(
-        ~scopeBuf.bufnum, ~scopeTapSynth.nodeID
+    "  [x] Scope tap booted (buf0=%, buf1=%, synth=%)".format(
+        ~scopeBuf0.bufnum, ~scopeBuf1.bufnum, ~scopeTapSynth.nodeID
     ).postln;
 };
 
@@ -78,9 +90,10 @@
 ~setupScopeTapOSC = {
     "Setting up scope tap OSC...".postln;
 
-    // Capture write position from SynthDef
+    // Capture write position + active buffer toggle from SynthDef
     OSCdef(\scopeWritePos, { |msg|
         ~scopeWritePos = msg[3].asInteger.clip(0, 1023);
+        ~scopeActiveToggle = msg[4].asInteger.clip(0, 1);
     }, '/scope/writepos');
 
     // Set which slot to tap (0-7)
@@ -125,6 +138,8 @@
         var slot = ~scopeTappedSlot ? 0;
         var inBus = ~intermediateBus[slot];
         var rawBuf = Buffer.alloc(s, 2048, 1);  // 2048 samples raw capture
+        // Read the inactive (frozen) buffer for scope data
+        var readBuf = if(~scopeActiveToggle == 1, { ~scopeBuf0 }, { ~scopeBuf1 });
 
         "[Scope Debug] Capturing slot % ...".format(slot + 1).postln;
 
@@ -147,7 +162,7 @@
 
         // Read both buffers
         rawBuf.loadToFloatArray(action: { |rawData|
-            ~scopeBuf.loadToFloatArray(action: { |scopeData|
+            readBuf.loadToFloatArray(action: { |scopeData|
                 var wp = ~scopeWritePos ? 0;
                 var path = Platform.userHomeDir +/+ "Downloads" +/+ "scope_debug.csv";
                 var file = File(path, "w");
@@ -177,32 +192,28 @@
     }, '/noise/scope/debug');
 
     // === DATA STREAMING ROUTINE ===
-    // Detects sweep completion (write_pos wraps high→low) and sends
-    // the cleanly completed buffer to Python. Polls at 60Hz for reliable
-    // wrap detection; effective display rate matches signal frequency.
-    ~scopeLastWp = 0;
+    // Reads the INACTIVE buffer (not being written to) at 30fps.
+    // Double buffering guarantees zero tearing — the read buffer is always
+    // a complete, frozen sweep from the previous trigger cycle.
     ~scopeStreamRoutine = Routine({
         loop {
             if(~scopeStreamActive == true, {
                 if(~scopeFrozen != true, {
                     var wp = ~scopeWritePos ? 0;
-                    // Detect sweep completion: write_pos dropped from >50% to <50%
-                    // This means the Phasor just triggered (reset to 0) after filling the buffer.
-                    if((~scopeLastWp > 512) && (wp < 512), {
-                        ~scopeBuf.loadToFloatArray(action: { |data|
-                            if(~pythonAddr.notNil && ~scopeStreamActive, {
-                                ~pythonAddr.sendMsg(
-                                    '/noise/scope/data',
-                                    wp,
-                                    *data.as(Array)
-                                );
-                            });
+                    // Read the INACTIVE buffer (opposite of active toggle)
+                    var readBuf = if(~scopeActiveToggle == 1, { ~scopeBuf0 }, { ~scopeBuf1 });
+                    readBuf.loadToFloatArray(action: { |data|
+                        if(~pythonAddr.notNil && ~scopeStreamActive, {
+                            ~pythonAddr.sendMsg(
+                                '/noise/scope/data',
+                                wp,
+                                *data.as(Array)
+                            );
                         });
                     });
-                    ~scopeLastWp = wp;
                 });
             });
-            (1/60).wait;  // Poll at 60Hz for reliable wrap detection
+            (1/30).wait;  // 30fps — reading frozen buffer, no tearing risk
         };
     }).play(AppClock);
 
