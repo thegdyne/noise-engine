@@ -28,25 +28,28 @@
         // 2. Rising-edge detect (audio-rate) with hysteresis
         edge = (trigSig >= threshold) & (Delay1.ar(trigSig) < (threshold - 0.001));
 
-        // 3. CRITICAL: Quantize to control-rate
-        // T2K captures any trigger within the block (A2K would miss 1-sample impulses).
-        // T2A converts back to a clean single-sample impulse for Phasor reset.
-        // This aligns toggle + reset to the SAME clock boundary.
+        // 3. Reliable ar->kr trigger capture
+        // T2K ensures we never miss a 1-sample impulse within a block
         kEdge = T2K.kr(edge);
-        kTrig = Trig1.kr(kEdge, BufDur.kr(buf0));  // Holdoff = buffer duration
-        aTrig = T2A.ar(kTrig);  // Single-sample impulse for Phasor reset
 
-        // 4. Double-buffer toggle (kr, aligned with kTrig)
+        // 4. Retrigger inhibit (Holdoff)
+        // Prevents a new sweep from starting until the current one is finished
+        kTrig = Trig1.kr(kEdge, BufDur.kr(buf0));
+
+        // 5. Single-sample audio reset impulse for Phasor
+        aTrig = T2A.ar(kTrig);
+
+        // 6. Double-buffer toggle (Aligned to the same block boundary)
         toggle = ToggleFF.kr(kTrig);
 
-        // 5. Phase-locked write position (resets on same boundary as toggle)
+        // 7. Phase-locked write position
         phase = Phasor.ar(aTrig, 1, 0, BufFrames.kr(buf0) - 1);
 
-        // 6. Write to active buffer
+        // 8. Write to active buffer
         activeBuf = Select.kr(toggle, [buf0, buf1]);
         BufWr.ar(mono, activeBuf, phase);
 
-        // 7. Status feedback: toggle + phase at 30Hz
+        // 9. Status feedback: toggle + phase at 30Hz
         SendReply.kr(Impulse.kr(30), '/scope/status', [
             toggle,
             A2K.kr(phase)
