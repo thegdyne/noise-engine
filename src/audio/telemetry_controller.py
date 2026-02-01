@@ -613,9 +613,17 @@ class TelemetryController(QObject):
             hw_body_amp = 0.5 * (hi - lo)
             hw_dc_bias = 0.5 * (hi + lo)
         else:
-            # Fallback: use peak3 from SC (stage3 peak), then legacy peak
+            # Fallback when no waveform data (buffer not ready / monitor-only).
+            # For Square, use rms_stage3 as body proxy — RMS of a perfect square
+            # equals its amplitude, avoiding overshoot inflation from peak.
+            # For Sine/Saw, peak is appropriate.
             p3_peak = data.get('peak3')
-            hw_body_amp = p3_peak if p3_peak is not None else data.get('peak', 0.66)
+            peak_ref = p3_peak if p3_peak is not None else data.get('peak', 0.66)
+
+            if ref_val == 0.5:
+                hw_body_amp = data.get('rms_stage3', peak_ref * 0.707)
+            else:
+                hw_body_amp = peak_ref
             hw_dc_bias = 0.0
 
         if ref_val == 0.5:
@@ -677,12 +685,13 @@ class TelemetryController(QObject):
             return None
 
         if self.is_hw_mode:
-            # HW mode: compute RMS from the Digital Twin ideal waveform
+            # HW mode: compute RMS from the Digital Twin ideal waveform.
+            # Return full S1/S2/S3 keys to prevent UI KeyErrors.
             ideal = self.get_ideal_waveform(data)
             if ideal is not None:
                 rms_val = float(np.sqrt(np.mean(ideal ** 2)))
-                return {'rms_stage3': rms_val}
-            return {}
+                return {'rms_stage1': 0.0, 'rms_stage2': 0.0, 'rms_stage3': rms_val}
+            return {'rms_stage1': 0.0, 'rms_stage2': 0.0, 'rms_stage3': 0.0}
 
         return self.ideal.ideal_b258_rms(
             p0_sine_sq=data.get('p0', 0),
@@ -893,7 +902,9 @@ class TelemetryController(QObject):
             return None
 
         latest = self.history[-1].copy()
-        latest.pop('waveform', None)  # Strip injected ndarray (serialized separately below)
+        # Strip injected numpy arrays only; preserve list-based waveform data
+        if isinstance(latest.get('waveform'), np.ndarray):
+            del latest['waveform']
 
         # Include ideal waveform for comparison
         ideal_wave = self.get_ideal_waveform(latest)
@@ -948,11 +959,12 @@ class TelemetryController(QObject):
 
     def export_history(self, path: str):
         """Export full telemetry history to JSON."""
-        # Strip injected ndarray 'waveform' keys before serialization
+        # Strip injected numpy arrays only; preserve list-based waveform data
         clean_history = []
         for frame in self.history:
             f = frame.copy()
-            f.pop('waveform', None)
+            if isinstance(f.get('waveform'), np.ndarray):
+                del f['waveform']
             clean_history.append(f)
         data = {
             'history': clean_history,
