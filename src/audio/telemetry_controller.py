@@ -561,36 +561,48 @@ class TelemetryController(QObject):
             # Map 0.0-1.0 slider to -0.8..+0.8 threshold (10%-90% duty range)
             pw_threshold = -0.8 + (sym * 1.6)
             base_wave = np.where(np.sin(self.ideal.t) > pw_threshold, 1.0, -1.0)
+
+            # Slew limiter: models slow op-amp rise/fall time (SAT/P4 controls rate).
+            # Constrains max voltage change per sample — diagonal transitions, not tanh curves.
+            sat_raw = data.get('p4', 0.0)
+            slew_rate = 0.05 + (sat_raw * 2.0)  # 0.05 (max slew = slow) to 2.05 (near instant)
+            slewed = np.empty_like(base_wave)
+            slewed[0] = base_wave[0]
+            for n in range(1, len(base_wave)):
+                diff = base_wave[n] - slewed[n - 1]
+                slewed[n] = slewed[n - 1] + np.clip(diff, -slew_rate, slew_rate)
+
             # RC high-pass filter: models AC-coupling capacitor discharge.
             # tau maps from SYM deviation: 0.5=flat (long tau), edges=droop (short tau).
-            # Range 0.001-0.1 cycle-periods covers gentle droop to aggressive sag.
             sym_dev = abs(sym - 0.5) * 2.0  # 0 at center, 1 at edges
             tau = 0.1 - sym_dev * 0.099  # 0.1 (flat) down to 0.001 (max sag)
-            dt = 1.0 / self.ideal.n_samples  # Sample period relative to one cycle
+            dt = 1.0 / self.ideal.n_samples
             alpha = tau / (tau + dt)
-            filtered = np.empty_like(base_wave)
+            filtered = np.empty_like(slewed)
             filtered[0] = 0.0
-            for n in range(1, len(base_wave)):
-                filtered[n] = alpha * (filtered[n - 1] + base_wave[n] - base_wave[n - 1])
+            for n in range(1, len(slewed)):
+                filtered[n] = alpha * (filtered[n - 1] + slewed[n] - slewed[n - 1])
             base_wave = filtered
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
             saw = self.ideal.ideal_saw_sc()
             base_wave = saw + sym_offset * tilt_mult
 
-        # Apply global Saturation (P4) with unity-gain compensation
-        # Squared curve: 4x more resolution in the lower half of the slider
-        sat_raw = data.get('p4', 0.0)
-        sat_drive = 1.0 + (sat_raw ** 2 * 6.0)
-        saturated = np.tanh(base_wave * sat_drive)
-        # Unity-gain compensation: divide by tanh(drive) so peak stays locked
-        # regardless of SAT position (prevents volume jump when sweeping SAT)
-        comp = np.tanh(sat_drive) if sat_drive > 1.0 else 1.0
+        # Saturation: Square uses slew limiter (above), Sine/Saw use tanh curve
+        if ref_val != 0.5:
+            sat_raw = data.get('p4', 0.0)
+            sat_drive = 1.0 + (sat_raw ** 2 * 6.0)
+            shaped = np.tanh(base_wave * sat_drive)
+            comp = np.tanh(sat_drive) if sat_drive > 1.0 else 1.0
+            shaped = shaped / comp
+        else:
+            shaped = base_wave  # Square already slew-limited + RC filtered
+
         # Dynamic peak: match hardware amplitude instead of hardcoded 0.66
         hw_peak = data.get('peak', 0.66)
         # Body scalar: shrink digital twin inside hw peak to match the actual
         # plateau amplitude (e.g. peak=0.68 but body=0.44)
-        ideal = (saturated / comp) * hw_peak * self.body_gain
+        ideal = shaped * hw_peak * self.body_gain
 
         # DC null: remove mean to prevent SYM from biasing ERR.
         # Bypassed in Square mode so manual vertical offset can work against
