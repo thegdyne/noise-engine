@@ -19,7 +19,7 @@
       "key": "input_gain",
       "label": "LVL",
       "tooltip": "Digital gain normalization. 1.0 = unity, 4.0 = max boost. Target: Stage 2 RMS = 0.7027.",
-      "default": 1.0,
+      "default": 0.25,
       "min": 0.0,
       "max": 4.0,
       "curve": "lin",
