@@ -497,7 +497,11 @@ class TelemetryController(QObject):
         self.current_waveform = np.asarray(samples, dtype=np.float32)
 
         # Live RMS error against the Digital Twin ideal (10-frame rolling average)
-        ideal = self.get_ideal_waveform()
+        # Inject waveform into latest data so get_ideal_waveform can measure body amp
+        latest = self.get_latest()
+        if latest is not None:
+            latest['waveform'] = self.current_waveform
+        ideal = self.get_ideal_waveform(latest)
         if ideal is not None and len(ideal) == len(self.current_waveform):
             diff = np.clip(self.current_waveform - ideal, -5.0, 5.0)
             frame_err = float(np.std(diff))
@@ -601,22 +605,48 @@ class TelemetryController(QObject):
         else:
             shaped = base_wave  # Square already slew-limited + RC filtered
 
-        # Dynamic peak: match hardware amplitude instead of hardcoded 0.66
-        hw_peak = data.get('peak', 0.66)
-        # Body scalar: shrink digital twin inside hw peak to match the actual
-        # plateau amplitude (e.g. peak=0.68 but body=0.44)
-        ideal = shaped * hw_peak * self.body_gain
+        # =================================================================
+        # AMPLITUDE STAGING — Forensic Body Matching
+        # =================================================================
+        # The 'peak' metric includes transient spikes from slew/ringing and
+        # does NOT represent the steady-state plateau voltage. We measure
+        # the true body amplitude directly from the captured waveform using
+        # median-split plateau detection: split by mean, take median of
+        # high/low segments → robust against transients and noise.
+        # =================================================================
 
-        # DC null: remove mean to prevent SYM from biasing ERR.
-        # Bypassed in Square mode so manual vertical offset can work against
-        # the actual DC content of the square wave.
-        if ref_val != 0.5:
+        hw_wave = data.get('waveform')
+        if hw_wave is not None:
+            hw_arr = np.asarray(hw_wave, dtype=np.float64)
+            hw_mean = float(np.mean(hw_arr))
+
+            hi = hw_arr[hw_arr >= hw_mean]
+            lo = hw_arr[hw_arr < hw_mean]
+
+            if hi.size > 0 and lo.size > 0:
+                hw_body_amp = 0.5 * (float(np.median(hi)) - float(np.median(lo)))
+            else:
+                hw_body_amp = float(np.max(np.abs(hw_arr - hw_mean)))
+        else:
+            # Fallback when no waveform data (initial load / monitor-only)
+            hw_body_amp = data.get('peak', 0.66)
+            hw_mean = 0.0
+
+        if ref_val == 0.5:
+            # SQUARE: scale to measured body amplitude, not transient peak.
+            # body_gain is a fine-tune multiplier around 1.0.
+            ideal = shaped * hw_body_amp * self.body_gain
+            # Match hardware DC bias first, then add manual offset as trim
+            ideal = ideal + hw_mean + self.v_offset
+        else:
+            # SINE / SAW: standard peak scaling
+            hw_peak = data.get('peak', 0.66)
+            ideal = shaped * hw_peak * self.body_gain
+            # DC null: remove mean to prevent SYM from biasing ERR
             ideal = ideal - np.mean(ideal)
-
-        # Vertical offset: slide the wave up/down to match hardware DC bias
-        # (high/low state asymmetry in analog circuits)
-        if self.v_offset != 0.0:
-            ideal = ideal + self.v_offset
+            # Vertical offset as manual trim
+            if self.v_offset != 0.0:
+                ideal = ideal + self.v_offset
 
         # Phase inversion toggle for 180° correction
         if self.phase_inverted:
@@ -713,6 +743,9 @@ class TelemetryController(QObject):
 
         target = self.current_waveform.copy()
         is_square = self.active_ref_name == "SQUARE"
+
+        # Inject waveform into data so get_ideal_waveform can measure body amplitude
+        data['waveform'] = target
 
         # Snapshot current values as starting point
         current_phase = self.phase_offset

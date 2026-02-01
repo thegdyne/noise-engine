@@ -959,8 +959,10 @@ class TelemetryWidget(QWidget):
             if self.core_lock_label.text():
                 self.core_lock_label.setText("")
 
-        # Waveform
+        # Waveform — inject actual waveform into data for forensic body measurement
         actual = self.controller.current_waveform
+        if actual is not None:
+            data['waveform'] = actual
         ideal = self.controller.get_ideal_waveform(data) if self.ideal_cb.isChecked() else None
         delta = self.controller.get_delta_waveform() if self.delta_cb.isChecked() else None
         self.waveform_display.set_waveform(actual, ideal, delta)
