@@ -448,6 +448,7 @@ class TelemetryController(QObject):
         Tears down internal capture on old slot.
         Optimistically starts internal tap on new slot (to ensure immediate meters).
         set_generator_context() will correct this if the new slot ends up being External.
+        Waveform capture is NOT transferred here — set_generator_context() handles it.
         """
         if not 0 <= slot < 8:
             return
@@ -473,14 +474,12 @@ class TelemetryController(QObject):
             self.osc.send('telem_enable', [new_idx, self.current_rate])
 
             # Optimistically start Internal Tap.
-            # If the new generator is External, set_generator_context will stop this shortly.
-            # This prevents "dead meters" during the context switch lag.
+            # set_generator_context() will stop this shortly if the new generator is External.
             self.osc.send('telem_tap_enable', [new_idx, self.current_rate])
 
-            # If waveform was active and we know we are internal, transfer it.
-            # Otherwise, wait for context update.
-            if self.waveform_active and self._capture_type == self.CAPTURE_INTERNAL:
-                self.enable_waveform(slot)
+            # NOTE: We do NOT auto-start waveform capture here.
+            # We let set_generator_context() handle that once it determines the
+            # correct capture type (Internal vs External) to avoid unnecessary synth churn.
 
             self.history.clear()
             self.current_waveform = None
