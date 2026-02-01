@@ -640,6 +640,23 @@ class TelemetryController(QObject):
                 or abs(freq - 48000.0) < 100)
 
     # -----------------------------------------------------------------
+    # Preset state
+    # -----------------------------------------------------------------
+
+    def get_state(self) -> dict:
+        """Return telemetry tuning state for preset save."""
+        return {
+            'phase_inverted': self.phase_inverted,
+            'phase_offset': self.phase_offset,
+        }
+
+    def set_state(self, state: dict):
+        """Restore telemetry tuning state from preset load."""
+        self.phase_inverted = state.get('phase_inverted', False)
+        self.phase_offset = state.get('phase_offset', 0.0)
+        self._err_history.clear()
+
+    # -----------------------------------------------------------------
     # Query
     # -----------------------------------------------------------------
 

@@ -143,6 +143,9 @@ class PresetController:
         fx_slots = FXSlotsState.from_dict(self.main.fx_grid.get_state()) if hasattr(self.main, 'fx_grid') else FXSlotsState()
         midi_mappings = self.main.cc_mapping_manager.to_dict()
         boids = self.main.boid.get_state_dict() if hasattr(self.main, 'boid') else {}
+        telemetry = {}
+        if getattr(self.main, 'telemetry_controller', None) is not None:
+            telemetry = self.main.telemetry_controller.get_state()
         current_pack = get_current_pack()
 
         state = PresetState(
@@ -158,6 +161,7 @@ class PresetController:
             fx_slots=fx_slots,
             midi_mappings=midi_mappings,
             boids=boids,
+            telemetry=telemetry,
         )
         
         state.version = PRESET_VERSION
@@ -317,6 +321,16 @@ class PresetController:
                 self.main.boid_panel.set_row_slot3(s.row_slot3)
                 self.main.boid_panel.set_row_slot4(s.row_slot4)
                 self.main.boid_panel.set_preset(s.behavior_preset)
+
+        # Load telemetry tuning state (INV, OS)
+        if state.telemetry and getattr(self.main, 'telemetry_controller', None) is not None:
+            self.main.telemetry_controller.set_state(state.telemetry)
+            # Sync widget UI if open
+            tw = getattr(self.main, '_telemetry_widget', None)
+            if tw is not None:
+                tw.inv_btn.setChecked(state.telemetry.get('phase_inverted', False))
+                offset_slider = int(state.telemetry.get('phase_offset', 0.0) * 1280.0)
+                tw.os_slider.setValue(max(-640, min(640, offset_slider)))
 
         if state.midi_mappings:
             for controls in self.main.cc_mapping_manager.get_all_mappings().values():

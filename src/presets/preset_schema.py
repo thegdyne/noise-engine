@@ -837,6 +837,8 @@ class PresetState:
     midi_mappings: dict = field(default_factory=dict)  # Optional MIDI CC mappings
     # Boid modulation state
     boids: dict = field(default_factory=dict)  # BoidState.to_dict() or empty
+    # Telemetry tuning state (phase_inverted, phase_offset, etc.)
+    telemetry: dict = field(default_factory=dict)
     # R1.1 metadata additions
     tags: list = field(default_factory=list)  # list[str]
     rating: int = 0  # 0-5 integer rating
@@ -860,6 +862,7 @@ class PresetState:
             "fx_slots": self.fx_slots.to_dict(),
             "midi_mappings": self.midi_mappings,
             "boids": self.boids,
+            "telemetry": self.telemetry,
             # R1.1 metadata
             "tags": self.tags,
             "rating": self.rating,
@@ -901,6 +904,7 @@ class PresetState:
             fx_slots=FXSlotsState.from_dict(data.get("fx_slots", {})),
             midi_mappings=data.get("midi_mappings", {}),
             boids=data.get("boids", {}),
+            telemetry=data.get("telemetry", {}),
             # R1.1 metadata
             tags=list(data.get("tags", [])),
             rating=rating,
