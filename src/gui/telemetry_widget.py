@@ -460,14 +460,26 @@ class TelemetryWidget(QWidget):
     def _on_enable_toggled(self, checked):
         if checked:
             self._update_generator_context()
+            # controller.enable() auto-starts waveform capture at CAPTURE_RATE
             self.controller.enable(self.slot_combo.currentIndex())
             self.enable_btn.setText("Disable")
+            # Sync UI: auto-check Capture, set fast refresh
+            self.wave_enable_cb.blockSignals(True)
+            self.wave_enable_cb.setChecked(True)
+            self.wave_enable_cb.blockSignals(False)
+            self.waveform_display.set_capture_enabled(True)
+            self._timer.setInterval(66)  # ~15fps for smooth waveform
         else:
             self.controller.disable()
             self.enable_btn.setText("Enable")
-            # Also stop wave capture if running
-            if self.wave_enable_cb.isChecked():
-                self.wave_enable_cb.setChecked(False)
+            # Sync UI: uncheck Capture
+            self.wave_enable_cb.blockSignals(True)
+            self.wave_enable_cb.setChecked(False)
+            self.wave_enable_cb.blockSignals(False)
+            self.waveform_display.set_capture_enabled(False)
+            self.controller.current_waveform = None
+            self.waveform_display.set_waveform(None)
+            self._timer.setInterval(125)
 
     def _on_wave_enable_toggled(self, checked):
         slot = self.slot_combo.currentIndex()
@@ -475,10 +487,14 @@ class TelemetryWidget(QWidget):
         if checked:
             # Bump to capture rate for waveform data
             self.controller.set_rate(TelemetryController.CAPTURE_RATE)
-            self.controller.enable_waveform(slot)
+            if not self.controller.waveform_active:
+                self.controller.enable_waveform(slot)
+                self.controller.waveform_active = True
             self._timer.setInterval(66)  # ~15fps for smooth waveform
         else:
-            self.controller.disable_waveform(slot)
+            if self.controller.waveform_active:
+                self.controller.disable_waveform(slot)
+                self.controller.waveform_active = False
             self.controller.current_waveform = None  # Clear stale buffer
             self.waveform_display.set_waveform(None)
             # Drop back to monitor rate
@@ -649,9 +665,6 @@ class TelemetryWidget(QWidget):
 
     def closeEvent(self, event):
         """Disable telemetry when window closes."""
-        self.controller.disable()
-        slot = self.slot_combo.currentIndex()
-        if self.wave_enable_cb.isChecked():
-            self.controller.disable_waveform(slot)
+        self.controller.disable()  # Also stops waveform capture
         self._timer.stop()
         event.accept()

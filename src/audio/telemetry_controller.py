@@ -345,6 +345,7 @@ class TelemetryController(QObject):
 
         # State
         self.enabled = False
+        self.waveform_active = False
         self.target_slot = 0
         self.current_rate = 0
 
@@ -369,29 +370,37 @@ class TelemetryController(QObject):
     def enable(self, slot: int, rate: int = None):
         """Enable telemetry for a specific slot.
 
+        Automatically starts waveform capture at CAPTURE_RATE so the
+        scope displays live data without requiring a separate checkbox.
+
         Args:
             slot: Generator slot index (0-7)
-            rate: Update rate in Hz (default: MONITOR_RATE)
+            rate: Update rate in Hz (default: CAPTURE_RATE for waveform)
         """
         if not 0 <= slot < 8:
             logger.warning(f"[Telemetry] Invalid slot: {slot}")
             return
 
         if rate is None:
-            rate = self.MONITOR_RATE
+            rate = self.CAPTURE_RATE
         rate = max(1, min(60, rate))
         self.target_slot = slot
         self.current_rate = rate
         self.enabled = True
+        self.waveform_active = True
         self.history.clear()
 
         # SC uses 1-based slots
         self.osc.send('telem_enable', [slot + 1, rate])
-        logger.info(f"[Telemetry] Enabled for slot {slot} at {rate}Hz")
+        self.enable_waveform(slot)
+        logger.info(f"[Telemetry] Enabled for slot {slot} at {rate}Hz (waveform auto-started)")
 
     def disable(self):
-        """Disable telemetry."""
+        """Disable telemetry and waveform capture."""
         if self.enabled:
+            if self.waveform_active:
+                self.disable_waveform(self.target_slot)
+                self.waveform_active = False
             self.osc.send('telem_enable', [self.target_slot + 1, 0])
             self.enabled = False
             logger.info("[Telemetry] Disabled")
@@ -408,15 +417,27 @@ class TelemetryController(QObject):
         logger.info(f"[Telemetry] Rate changed to {rate}Hz")
 
     def set_slot(self, slot: int):
-        """Switch to monitoring a different slot."""
+        """Switch to monitoring a different slot.
+
+        If waveform capture is active, transfers it to the new slot
+        to prevent OSC crosstalk between slots.
+        """
         if not 0 <= slot < 8:
             return
+        old_slot = self.target_slot
         if self.enabled:
+            # Stop waveform on old slot before switching
+            if self.waveform_active:
+                self.disable_waveform(old_slot)
             # Disable old slot, enable new
-            self.osc.send('telem_enable', [self.target_slot + 1, 0])
+            self.osc.send('telem_enable', [old_slot + 1, 0])
             self.target_slot = slot
             self.osc.send('telem_enable', [slot + 1, self.current_rate])
+            # Restart waveform on new slot
+            if self.waveform_active:
+                self.enable_waveform(slot)
             self.history.clear()
+            self.current_waveform = None
         else:
             self.target_slot = slot
 
@@ -530,12 +551,14 @@ class TelemetryController(QObject):
         )
 
     def has_phase_lock_warning(self, data: dict = None) -> bool:
-        """Check if reference frequency is missing or at a known bad boundary.
+        """Check if Schmidt-measured frequency is at a clamp boundary.
 
-        Now that freq comes from freqBus (engine reference), this catches:
-        - freq near 0 (bus unset / no generator active)
-        - freq at 5000 or 48000 (legacy Schmitt clamp values, shouldn't
-          appear with freqBus but kept as safety net)
+        Returns True when freq is stuck at a known limit, indicating
+        the Schmidt trigger is not locking to actual pitch:
+        - freq < 1 Hz (no signal / trigger never fired)
+        - freq near 2000 Hz (lockout max clamp)
+        - freq near 10 Hz (period max clamp)
+        - freq near 48000 Hz (sample rate — Timer never triggered)
         """
         if data is None:
             data = self.get_latest()
@@ -544,7 +567,9 @@ class TelemetryController(QObject):
         freq = data.get('freq', 0)
         if freq < 1:
             return True
-        return abs(freq - 5000.0) < 10 or abs(freq - 48000.0) < 100
+        return (abs(freq - 2000.0) < 10
+                or abs(freq - 10.0) < 1
+                or abs(freq - 48000.0) < 100)
 
     # -----------------------------------------------------------------
     # Query
