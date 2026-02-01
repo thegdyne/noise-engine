@@ -234,7 +234,11 @@ class WaveformDisplay(QWidget):
 # =============================================================================
 
 class MidiHSlider(QSlider):
-    """Horizontal slider with MIDI CC learn support for telemetry window."""
+    """Horizontal slider with MIDI CC learn support for telemetry window.
+
+    Hold Shift for 10x finer steps (singleStep=1 becomes effectively 0.1x
+    by requiring 10 scroll events per step).
+    """
 
     def __init__(self, main_frame_ref=None, parent=None):
         super().__init__(Qt.Horizontal, parent)
@@ -242,6 +246,22 @@ class MidiHSlider(QSlider):
         self._midi_armed = False
         self._midi_mapped = False
         self._cc_ghost = None
+        self._shift_accum = 0  # Accumulator for shift-key fine steps
+
+    def wheelEvent(self, event):
+        from PyQt5.QtWidgets import QApplication
+        if QApplication.keyboardModifiers() & Qt.ShiftModifier:
+            # Accumulate scroll ticks; only step when 10 ticks collected
+            delta = event.angleDelta().y()
+            self._shift_accum += delta
+            if abs(self._shift_accum) >= 1200:  # 10 normal ticks (120 each)
+                step = 1 if self._shift_accum > 0 else -1
+                self.setValue(self.value() + step)
+                self._shift_accum = 0
+            event.accept()
+        else:
+            self._shift_accum = 0
+            super().wheelEvent(event)
 
     def set_midi_armed(self, armed):
         self._midi_armed = armed

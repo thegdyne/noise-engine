@@ -563,11 +563,15 @@ class TelemetryController(QObject):
             saw = self.ideal.ideal_saw_sc()
             base_wave = saw + sym_offset * tilt_mult
 
-        # Apply global Saturation (P4) and Output Normalization (0.66)
+        # Apply global Saturation (P4) with unity-gain compensation
         # Squared curve: 4x more resolution in the lower half of the slider
         sat_raw = data.get('p4', 0.0)
         sat_drive = 1.0 + (sat_raw ** 2 * 6.0)
-        ideal = np.tanh(base_wave * sat_drive) * 0.66
+        saturated = np.tanh(base_wave * sat_drive)
+        # Unity-gain compensation: divide by tanh(drive) so peak stays at ~0.66
+        # regardless of SAT position (prevents volume jump when sweeping SAT)
+        comp = np.tanh(sat_drive) if sat_drive > 1.0 else 1.0
+        ideal = (saturated / comp) * 0.66
         ideal = ideal - np.mean(ideal)  # Null DC — prevent SYM from biasing ERR
 
         # Phase inversion toggle for 180° correction
