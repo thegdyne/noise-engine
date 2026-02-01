@@ -106,7 +106,9 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	// When not locked, preserve old buffer value (don't erase with zeros).
 	waveBuf = LocalBuf(128);
 	waveIdx = (phase * 127).floor.clip(0, 127);
-	idxChanged = waveIdx != Delay1.ar(waveIdx);
+	// Detect index change: abs(current - previous) > 0 stays in UGen graph
+	// (SC's != returns a Boolean, not a UGen — can't multiply with locked)
+	idxChanged = (waveIdx - Delay1.ar(waveIdx)).abs > 0;
 	bufOld = BufRd.ar(1, waveBuf, waveIdx);
 	bufWrite = Select.ar(locked * idxChanged, [bufOld, stage3]);
 	BufWr.ar(bufWrite, waveBuf, waveIdx, loop: 1);
