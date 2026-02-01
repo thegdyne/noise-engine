@@ -1221,6 +1221,8 @@ class MainFrame(QMainWindow):
             self._telemetry_widget.destroyed.connect(
                 lambda: setattr(self, '_telemetry_widget', None)
             )
+            # Resolve any deferred MIDI mappings for telemetry controls
+            self.cc_mapping_manager.resolve_deferred(self.midi_cc._find_control_by_name)
 
         self._telemetry_widget.show()
         self._telemetry_widget.raise_()

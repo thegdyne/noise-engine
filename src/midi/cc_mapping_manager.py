@@ -26,6 +26,8 @@ class MidiCCMappingManager(QObject):
         self._mappings = {}
         # Pickup state: (channel, cc) -> {control: caught}
         self._caught = {}
+        # Deferred mappings: name -> {channel, cc} for controls not yet created
+        self._deferred = {}
 
     def add_mapping(self, channel, cc, control):
         """Add mapping from (channel, cc) to control.
@@ -178,9 +180,26 @@ class MidiCCMappingManager(QObject):
             find_control_func: Function(name) -> control widget or None
         """
         self.clear_all()
+        self._deferred = {}
         for name, mapping in data.items():
             control = find_control_func(name)
             if control:
                 self.add_mapping(mapping['channel'], mapping['cc'], control)
                 if hasattr(control, 'set_midi_mapped'):
                     control.set_midi_mapped(True)
+            else:
+                # Control not yet created — stash for later resolution
+                self._deferred[name] = mapping
+
+    def resolve_deferred(self, find_control_func):
+        """Retry any deferred mappings (for late-created widgets like telemetry)."""
+        resolved = []
+        for name, mapping in self._deferred.items():
+            control = find_control_func(name)
+            if control:
+                self.add_mapping(mapping['channel'], mapping['cc'], control)
+                if hasattr(control, 'set_midi_mapped'):
+                    control.set_midi_mapped(True)
+                resolved.append(name)
+        for name in resolved:
+            del self._deferred[name]
