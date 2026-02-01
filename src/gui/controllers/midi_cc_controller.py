@@ -135,8 +135,13 @@ class MidiCCController:
         logger.info("MIDI Learn cancelled", component="MIDI")
 
     def _find_control_by_name(self, name):
-        """Find a control widget by objectName."""
-        return self.main.findChild(QWidget, name)
+        """Find a control widget by objectName (includes telemetry window)."""
+        result = self.main.findChild(QWidget, name)
+        if result is None:
+            tw = getattr(self.main, '_telemetry_widget', None)
+            if tw is not None:
+                result = tw.findChild(QWidget, name)
+        return result
 
     def save_midi_mappings(self):
         """Save MIDI mappings - dialog pre-fills with current name."""

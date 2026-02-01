@@ -17,7 +17,7 @@ import numpy as np
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QPen, QColor
 from PyQt5.QtWidgets import (  # noqa: E501
-    QSlider,
+    QSlider, QMenu,
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QComboBox, QCheckBox, QFrame,
     QFileDialog,
@@ -26,6 +26,7 @@ from PyQt5.QtWidgets import (  # noqa: E501
 from src.audio.telemetry_controller import TelemetryController
 from src.config import get_generator_synthdef
 from src.gui.theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES
+from src.gui.widgets import MidiButton
 
 
 # =============================================================================
@@ -229,6 +230,66 @@ class WaveformDisplay(QWidget):
 
 
 # =============================================================================
+# MIDI-LEARNABLE HORIZONTAL SLIDER (for telemetry controls)
+# =============================================================================
+
+class MidiHSlider(QSlider):
+    """Horizontal slider with MIDI CC learn support for telemetry window."""
+
+    def __init__(self, main_frame_ref=None, parent=None):
+        super().__init__(Qt.Horizontal, parent)
+        self._main_frame_ref = main_frame_ref
+        self._midi_armed = False
+        self._midi_mapped = False
+        self._cc_ghost = None
+
+    def set_midi_armed(self, armed):
+        self._midi_armed = armed
+        self.update()
+
+    def set_midi_mapped(self, mapped):
+        self._midi_mapped = mapped
+        self.update()
+
+    def set_cc_ghost(self, norm_value):
+        self._cc_ghost = norm_value
+        self.update()
+
+    def _get_main_frame(self):
+        return self._main_frame_ref
+
+    def _start_midi_learn(self):
+        mf = self._get_main_frame()
+        if mf:
+            mf.cc_learn_manager.start_learn(self)
+
+    def _clear_midi_mapping(self):
+        mf = self._get_main_frame()
+        if mf:
+            mf.cc_mapping_manager.remove_mapping(self)
+            self.set_midi_mapped(False)
+
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+        mf = self._get_main_frame()
+        if not mf:
+            return
+        if self._midi_mapped:
+            menu.addAction("Clear MIDI Mapping", self._clear_midi_mapping)
+        menu.addAction("MIDI Learn", self._start_midi_learn)
+        menu.exec_(event.globalPos())
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._midi_mapped:
+            painter = QPainter(self)
+            painter.setBrush(QColor('#FF00FF'))
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(self.width() - 6, 1, 4, 4)
+            painter.end()
+
+
+# =============================================================================
 # TELEMETRY WIDGET (main window)
 # =============================================================================
 
@@ -423,24 +484,27 @@ class TelemetryWidget(QWidget):
         self.delta_cb.toggled.connect(self._on_delta_toggled)
         wave_row.addWidget(self.delta_cb)
 
-        self.inv_btn = QPushButton("INV")
+        self.inv_btn = MidiButton("INV")
         self.inv_btn.setCheckable(True)
         self.inv_btn.setFixedWidth(40)
+        self.inv_btn.setObjectName("telemetry_inv")
         self.inv_btn.setStyleSheet(f"font-size: {FONT_SIZES['tiny']}px;")
         self.inv_btn.toggled.connect(self._on_inv_toggled)
+        self.inv_btn._get_main_frame = lambda: self.main_frame
         wave_row.addWidget(self.inv_btn)
 
         os_label = QLabel("OS")
         os_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
         wave_row.addWidget(os_label)
 
-        self.os_slider = QSlider(Qt.Horizontal)
+        self.os_slider = MidiHSlider(main_frame_ref=self.main_frame)
         self.os_slider.setMinimum(-640)
         self.os_slider.setMaximum(640)
         self.os_slider.setValue(0)
         self.os_slider.setSingleStep(1)
         self.os_slider.setPageStep(64)
         self.os_slider.setFixedWidth(80)
+        self.os_slider.setObjectName("telemetry_os")
         self.os_slider.valueChanged.connect(self._on_os_changed)
         wave_row.addWidget(self.os_slider)
 
