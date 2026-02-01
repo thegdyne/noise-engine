@@ -83,7 +83,7 @@
     OSCdef(\telemEnable, { |msg|
         var slot = msg[1].asInteger;
         var rate = msg[2].asInteger;
-        if (slot.inRange(1, 8)) {
+        if ((slot >= 1) && (slot <= 8)) {
             ~telemetry.enabled[slot-1] = (rate > 0);
             ~telemetry.rates[slot-1] = rate;
             if (~generators[slot].notNil) { ~generators[slot].set(\telemetryRate, rate); };
@@ -96,7 +96,7 @@
         var rate = msg[2].asInteger;
         var idx = slot - 1;
 
-        if (slot.inRange(1, 8)) {
+        if ((slot >= 1) && (slot <= 8)) {
             // Always free existing first to prevent dupes/leaks
             if (~telemetry.tapSynths[idx].notNil) {
                 ~telemetry.tapSynths[idx].free;
@@ -123,10 +123,11 @@
         var slot = msg[1].asInteger;
         var enable = msg[2].asInteger > 0;
         var idx = slot - 1;
+        var buf;
 
-        if (slot.inRange(1, 8)) {
+        if ((slot >= 1) && (slot <= 8)) {
             if (enable) {
-                var buf = ~telemetry[\allocWaveBuffer].value(idx);
+                buf = ~telemetry[\allocWaveBuffer].value(idx);
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
                 if (~intermediateBus[idx].notNil) {
                     // Must pass .index (raw integer) to Synth
