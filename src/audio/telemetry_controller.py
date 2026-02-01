@@ -535,11 +535,21 @@ class TelemetryController(QObject):
 
         sym = data.get('p3', 0.5)
 
-        # 2. GENERATION (using strictly snapped ref_val)
-        sym_offset = (sym - 0.5) * 2.5  # Amplified SYM range for visible response
+        # 2. DYNAMIC SCALING: shape-specific SYM sensitivity
+        if ref_val == 0.0:
+            sym_mult = 0.3   # Sine: gentle — preserve existing match
+            tilt_mult = 0.0
+        elif ref_val == 0.5:
+            sym_mult = 3.5   # Square: wide pulse-width range
+            tilt_mult = 0.0
+        else:
+            sym_mult = 5.0   # Saw: handle Buchla's curved ramp
+            tilt_mult = 1.2  # Aggressive DC tilt for slope matching
+
+        sym_offset = (sym - 0.5) * sym_mult
 
         if ref_val == 0.0:
-            # MODE: PURE SINE — unity peak so stage3 (0.66) aligns with S2 target
+            # MODE: PURE SINE
             base_wave = np.sin(self.ideal.t) * 1.0 + sym_offset * 0.3
         elif ref_val == 0.5:
             # MODE: GENERIC SQUARE — SYM controls duty cycle offset
@@ -548,7 +558,7 @@ class TelemetryController(QObject):
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
             saw = self.ideal.ideal_saw_sc()
-            base_wave = saw + sym_offset * 0.6
+            base_wave = saw + sym_offset * tilt_mult
 
         # Apply global Saturation (P4) and Output Normalization (0.66)
         sat_drive = 1.0 + (data.get('p4', 0.0) * 17.0)
