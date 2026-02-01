@@ -435,9 +435,11 @@ class TelemetryWidget(QWidget):
         wave_row.addWidget(os_label)
 
         self.os_slider = QSlider(Qt.Horizontal)
-        self.os_slider.setMinimum(-64)
-        self.os_slider.setMaximum(64)
+        self.os_slider.setMinimum(-640)
+        self.os_slider.setMaximum(640)
         self.os_slider.setValue(0)
+        self.os_slider.setSingleStep(1)
+        self.os_slider.setPageStep(64)
         self.os_slider.setFixedWidth(80)
         self.os_slider.valueChanged.connect(self._on_os_changed)
         wave_row.addWidget(self.os_slider)
@@ -540,7 +542,7 @@ class TelemetryWidget(QWidget):
         self.controller._err_history.clear()  # Reset rolling average on flip
 
     def _on_os_changed(self, value):
-        self.controller.phase_offset = value / 128.0  # -64..+64 maps to -0.5..+0.5
+        self.controller.phase_offset = value / 1280.0  # -640..+640 maps to -0.5..+0.5
         self.controller._err_history.clear()
 
     def _on_snapshot(self):
