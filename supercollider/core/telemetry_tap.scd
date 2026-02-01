@@ -49,17 +49,22 @@
     }).add;
 
     // --- 2. Internal Data Tap Synth (Audio -> OSC Data) ---
-    SynthDef(\forge_internal_telem_tap, { |inBus, slotIndex=0, telemetryRate=0|
+    // Reads audio from ~intermediateBus and control params from customBus0
+    // to provide full telemetry (RMS, peak, freq, params) for any generator.
+    SynthDef(\forge_internal_telem_tap, { |inBus, customBus, slotIndex=0, telemetryRate=0|
         var sig = In.ar(inBus, 2);
+        var p = In.kr(customBus, 5);
         var mono = Mix(sig) * 0.5;
         var rms = Amplitude.ar(mono, 0.01, 0.1);
         var peak = Peak.ar(mono, Impulse.kr(telemetryRate.max(0.1))).lag(0.1);
         var freq = ZeroCrossing.ar(mono).max(20).min(20000);
 
         SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
-            slotIndex, freq, 0, 0, 0, 0, 0, 0, // Phase/Params placeholders
-            rms, rms, rms, // Stages 1-3
-            peak, 0, peak  // BadVal, Peak3
+            slotIndex, freq,
+            0,                            // Phase (no bus available)
+            p[0], p[1], p[2], p[3], p[4], // Real params from control bus
+            rms, rms, rms,                // Stages 1-3
+            peak, 0, peak                 // BadVal, Peak3
         ]);
     }).add;
 
@@ -95,6 +100,7 @@
         var slot = msg[1].asInteger;
         var rate = msg[2].asInteger;
         var idx = slot - 1;
+        var custom0Idx, slotKey, useUnified;
 
         if ((slot >= 1) && (slot <= 8)) {
             // Always free existing first to prevent dupes/leaks
@@ -105,12 +111,21 @@
 
             if (rate > 0) {
                 if (~intermediateBus[idx].notNil) {
-                    // Must pass .index (raw integer) to Synth, not the Bus object
+                    // Look up customBus0 (same pattern as endstage.scd)
+                    slotKey = slot.asString;
+                    useUnified = ~genUnifiedSlots.includes(slot);
+                    if (useUnified) {
+                        custom0Idx = ~busRegistry[("gen_" ++ slotKey ++ "_custom0").asSymbol].index;
+                    } {
+                        custom0Idx = ~genParams[slot][\custom][0].index;
+                    };
+
                     ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
                         \inBus, ~intermediateBus[idx].index,
+                        \customBus, custom0Idx,
                         \slotIndex, idx, \telemetryRate, rate
                     ], ~fxGroup, \addAfter);
-                    "[Telemetry] Internal Tap START slot %".format(slot).postln;
+                    "[Telemetry] Internal Tap START slot % (customBus: %)".format(slot, custom0Idx).postln;
                 };
             } {
                 "[Telemetry] Internal Tap STOP slot %".format(slot).postln;
