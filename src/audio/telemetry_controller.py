@@ -577,8 +577,18 @@ class TelemetryController(QObject):
         comp = np.tanh(sat_drive) if sat_drive > 1.0 else 1.0
         # Dynamic peak: match hardware amplitude instead of hardcoded 0.66
         hw_peak = data.get('peak', 0.66)
-        ideal = (saturated / comp) * hw_peak
+        # P1 (LVL) as body scalar: shrink digital twin inside hw peak to match
+        # the actual plateau amplitude (e.g. peak=0.68 but body=0.44)
+        gain_scalar = data.get('p1', 1.0)
+        ideal = (saturated / comp) * hw_peak * gain_scalar
+
         ideal = ideal - np.mean(ideal)  # Null DC — prevent SYM from biasing ERR
+
+        # P0 (CHN) as vertical offset: slide the wave up/down to match
+        # hardware DC bias (high/low state asymmetry). Applied after DC null
+        # so the offset is preserved.
+        offset = (data.get('p0', 0.5) - 0.5) * 0.2
+        ideal = ideal + offset
 
         # Phase inversion toggle for 180° correction
         if self.phase_inverted:
