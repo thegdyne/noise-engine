@@ -545,7 +545,7 @@ class OSCBridge(QObject):
     def _handle_telem_gen(self, address, *args):
         """Handle /noise/telem/gen from SC.
 
-        Args: [slot, freq, phase, p0, p1, p2, p3, p4, rms1, rms2, rms3, peak, badValue]
+        Args: [slot, freq, phase, p0, p1, p2, p3, p4, rms1, rms2, rms3, peak, badValue, peak3]
         """
         if self._shutdown or self._deleted:
             return
@@ -566,6 +566,7 @@ class OSCBridge(QObject):
             'rms_stage3': float(args[10]),
             'peak': float(args[11]),
             'bad_value': int(args[12]) if len(args) > 12 else 0,
+            'peak3': float(args[13]) if len(args) > 13 else None,
         }
         self.telem_data_received.emit(slot, data)
 

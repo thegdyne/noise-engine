@@ -37,11 +37,12 @@ Telemetry taps (when telemetryRate > 0):
   - freq: Schmidt-measured hardware frequency (for Hz labels + lock detection)
   - phase: Period-measured ramp (for overlay alignment)
   - rms/peak: Per-stage amplitude tracking
+  - peak3: Stage 3 peak for correct amplitude scaling in Digital Twin
 */
 
 SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, telemetryRate=0|
 	var sig, freq, p;
-	var hw, hw_dc, stage1, stage2, stage3;
+	var hw, hw_dc, stage1, stage2, stage2_pre, stage3;
 	var phase, badValue;
 
 	// Schmidt hysteresis (±0.15 to ignore analog ringing)
@@ -54,6 +55,7 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 
 	// Phase-wrapped waveform capture (128-sample single-cycle table)
 	var waveBuf, waveIdx, waveOut;
+	var idxChanged, bufOld, bufWrite;
 
 	// Phase lock gate
 	var locked;
@@ -64,7 +66,10 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	hw = SoundIn.ar(p[0].round(1).clip(0, 5));
 	stage1 = hw;
 
-	// --- 2. PHASE TRACKING (Schmidt ±0.15) ---
+	// --- 2. PRE-CALC STAGE 2 (for lock detection on boosted signal) ---
+	stage2_pre = (hw * Lag.kr(p[1].clip(0, 4), 0.05)).clip(-1, 1);
+
+	// --- 3. PHASE TRACKING (Schmidt ±0.15) ---
 	// DC correction: 16384-sample RunningSum (~340ms) averages multiple
 	// cycles even at 10Hz, preventing bias from tracking the waveform.
 	dcBias = RunningSum.ar(hw, 16384) / 16384;
@@ -84,26 +89,32 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	);
 	freq = SampleRate.ir / sampBetween;
 
-	// Phase lock gate: signal present AND freq in sane audio range
-	locked = (Amplitude.ar(stage1, 0.01, 0.1) > 0.005) * (freq > 11) * (freq < 1900);
+	// Phase lock gate: use stage2_pre amplitude so quiet signals boosted
+	// by LVL still lock (stage1 may be below threshold before gain)
+	locked = (Amplitude.ar(stage2_pre, 0.01, 0.1) > 0.005) * (freq > 11) * (freq < 1900);
 
 	// Phase ramp for overlay alignment
 	phase = Phasor.ar(trig: zc, rate: (1.0 / sampBetween), start: 0, end: 1.0);
 
-	// --- 3. STAGE CONTRACT ---
-	stage2 = (hw * Lag.kr(p[1].clip(0, 4), 0.05)).clip(-1, 1);
+	// --- 4. STAGE CONTRACT ---
+	stage2 = stage2_pre;
 	stage3 = LeakDC.ar(stage2, 0.9999) * 0.66;
 	badValue = CheckBadValues.ar(stage3, post: 0);
 
-	// --- 4. PHASE-WRAPPED CAPTURE (128 samples) ---
-	// .floor prevents fractional smearing; locked gate zeros write on unlock
+	// --- 5. ROBUST PHASE-WRAPPED CAPTURE (128 samples) ---
+	// Sample & Hold: only write when index changes AND locked.
+	// When not locked, preserve old buffer value (don't erase with zeros).
 	waveBuf = LocalBuf(128);
 	waveIdx = (phase * 127).floor.clip(0, 127);
-	BufWr.ar(stage3 * locked, waveBuf, waveIdx, loop: 1);
+	idxChanged = waveIdx != Delay1.ar(waveIdx);
+	bufOld = BufRd.ar(1, waveBuf, waveIdx);
+	bufWrite = Select.ar(locked * idxChanged, [bufOld, stage3]);
+	BufWr.ar(bufWrite, waveBuf, waveIdx, loop: 1);
 	waveOut = BufRd.kr(1, waveBuf, Array.series(128, 0, 1));
 
-	// --- 5. TELEMETRY EMISSION ---
+	// --- 6. TELEMETRY EMISSION ---
 	// Path A: Meters/Params (always when telemetry active)
+	// peak3 appended at end for correct stage3 amplitude scaling
 	SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
 		slotIndex,
 		A2K.kr(freq), A2K.kr(phase),
@@ -112,7 +123,8 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 		Amplitude.ar(stage2, 0.01, 0.1),
 		Amplitude.ar(stage3, 0.01, 0.1),
 		Peak.ar(stage1, Impulse.kr(telemetryRate.max(0.1))).lag(0.1),
-		A2K.kr(badValue)
+		A2K.kr(badValue),
+		Peak.ar(stage3, Impulse.kr(telemetryRate.max(0.1))).lag(0.1)
 	]);
 
 	// Path B: Waveform frame (capture mode only, locked only)

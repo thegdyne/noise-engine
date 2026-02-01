@@ -563,33 +563,22 @@ class TelemetryController(QObject):
             base_wave = np.sin(self.ideal.t) * 1.0 + sym_offset
         elif ref_val == 0.5:
             # MODE: GENERIC SQUARE — SYM (P3) controls Pulse Width (duty cycle)
-            # Map 0.0-1.0 slider to -0.8..+0.8 threshold (10%-90% duty range)
-            pw_threshold = -0.8 + (sym * 1.6)
+            # Trigonometric duty cycle mapping: SYM 0→10%, SYM 1→90%
+            duty = 0.1 + (sym * 0.8)
+            pw_threshold = float(np.sin((0.5 - duty) * np.pi))
             base_wave = np.where(np.sin(self.ideal.t) > pw_threshold, 1.0, -1.0)
 
             # Slew limiter: models slow op-amp rise/fall time (SAT/P4 controls rate).
-            # Squared curve gives more resolution in the slow-slew region where
-            # vintage op-amp ramps live.
+            # Linear mapping decoupled from body gain: 0.05 (slow) to 2.0 (fast).
             sat_raw = data.get('p4', 0.0)
-            slew_rate = 0.01 + (sat_raw ** 2 * 4.0)  # 0.01 (slow ramp) to 4.01 (instant)
+            slew_rate = 0.05 + (sat_raw * 1.95)
             slewed = np.empty_like(base_wave)
             slewed[0] = base_wave[0]
             for n in range(1, len(base_wave)):
                 diff = base_wave[n] - slewed[n - 1]
                 slewed[n] = slewed[n - 1] + np.clip(diff, -slew_rate, slew_rate)
 
-            # RC high-pass filter: models AC-coupling capacitor discharge.
-            # tau range 10.0 (nearly flat) to 0.01 (aggressive sag) matches
-            # real 258 capacitor behaviour at typical oscillator frequencies.
-            sym_dev = abs(sym - 0.5) * 2.0  # 0 at center, 1 at edges
-            tau = 10.0 - sym_dev * 9.99  # 10.0 (flat) down to 0.01 (max sag)
-            dt = 1.0 / self.ideal.n_samples
-            alpha = tau / (tau + dt)
-            filtered = np.empty_like(slewed)
-            filtered[0] = 0.0
-            for n in range(1, len(slewed)):
-                filtered[n] = alpha * (filtered[n - 1] + slewed[n] - slewed[n - 1])
-            base_wave = filtered
+            base_wave = slewed
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
             saw = self.ideal.ideal_saw_sc()
@@ -610,37 +599,35 @@ class TelemetryController(QObject):
         # =================================================================
         # The 'peak' metric includes transient spikes from slew/ringing and
         # does NOT represent the steady-state plateau voltage. We measure
-        # the true body amplitude directly from the captured waveform using
-        # median-split plateau detection: split by mean, take median of
-        # high/low segments → robust against transients and noise.
+        # the true body amplitude using 10th/90th percentile plateau
+        # detection from the captured waveform, ignoring transient spikes.
         # =================================================================
 
         hw_wave = data.get('waveform')
         if hw_wave is not None:
             hw_arr = np.asarray(hw_wave, dtype=np.float64)
-            hw_mean = float(np.mean(hw_arr))
-
-            hi = hw_arr[hw_arr >= hw_mean]
-            lo = hw_arr[hw_arr < hw_mean]
-
-            if hi.size > 0 and lo.size > 0:
-                hw_body_amp = 0.5 * (float(np.median(hi)) - float(np.median(lo)))
-            else:
-                hw_body_amp = float(np.max(np.abs(hw_arr - hw_mean)))
+            # Percentile-based plateau detection: 10th/90th ignores transient
+            # spikes that inflate peak (e.g. 0.68V peak vs 0.375V plateau)
+            hi = float(np.percentile(hw_arr, 90))
+            lo = float(np.percentile(hw_arr, 10))
+            hw_body_amp = 0.5 * (hi - lo)
+            hw_dc_bias = 0.5 * (hi + lo)
         else:
-            # Fallback when no waveform data (initial load / monitor-only)
-            hw_body_amp = data.get('peak', 0.66)
-            hw_mean = 0.0
+            # Fallback: use peak3 from SC (stage3 peak), then legacy peak
+            p3_peak = data.get('peak3')
+            hw_body_amp = p3_peak if p3_peak is not None else data.get('peak', 0.66)
+            hw_dc_bias = 0.0
 
         if ref_val == 0.5:
             # SQUARE: scale to measured body amplitude, not transient peak.
             # body_gain is a fine-tune multiplier around 1.0.
             ideal = shaped * hw_body_amp * self.body_gain
             # Match hardware DC bias first, then add manual offset as trim
-            ideal = ideal + hw_mean + self.v_offset
+            ideal = ideal + hw_dc_bias + self.v_offset
         else:
-            # SINE / SAW: standard peak scaling
-            hw_peak = data.get('peak', 0.66)
+            # SINE / SAW: use peak3 from SC when available, else legacy peak
+            p3_peak = data.get('peak3')
+            hw_peak = p3_peak if p3_peak is not None else data.get('peak', 0.66)
             ideal = shaped * hw_peak * self.body_gain
             # DC null: remove mean to prevent SYM from biasing ERR
             ideal = ideal - np.mean(ideal)
@@ -681,12 +668,21 @@ class TelemetryController(QObject):
     def get_ideal_rms(self, data: dict = None) -> dict:
         """Compute ideal RMS for each stage from current telemetry params.
 
-        In hardware mode, serves as Digital Twin reference RMS targets.
+        In hardware mode, calculates RMS from the Digital Twin waveform.
+        In internal mode, uses the B258 stage model.
         """
         if data is None:
             data = self.get_latest()
         if data is None:
             return None
+
+        if self.is_hw_mode:
+            # HW mode: compute RMS from the Digital Twin ideal waveform
+            ideal = self.get_ideal_waveform(data)
+            if ideal is not None:
+                rms_val = float(np.sqrt(np.mean(ideal ** 2)))
+                return {'rms_stage3': rms_val}
+            return {}
 
         return self.ideal.ideal_b258_rms(
             p0_sine_sq=data.get('p0', 0),
