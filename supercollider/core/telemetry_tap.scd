@@ -111,7 +111,7 @@
             };
 
             if (rate > 0) {
-                if (~intermediateBus[idx].notNil) {
+                if (~intermediateBus[idx].notNil && ~generators[slot].notNil) {
                     // Look up customBus0 (same pattern as endstage.scd)
                     slotKey = slot.asString;
                     useUnified = ~genUnifiedSlots.includes(slot);

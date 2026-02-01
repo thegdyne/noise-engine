@@ -88,8 +88,14 @@ CUSTOM_PARAM_CONFIG = {
 
 
 def get_param_config(param_key):
-    """Get param config by key, including custom params."""
+    """Get param config by key, including custom params.
+
+    Recognizes both 'p0'..'p4' and 'custom0'..'custom4' prefixes
+    for unified bus targets.
+    """
     if param_key.startswith('p') and len(param_key) == 2 and param_key[1].isdigit():
+        return CUSTOM_PARAM_CONFIG
+    if param_key.startswith('custom') and param_key[6:].isdigit():
         return CUSTOM_PARAM_CONFIG
     return GENERATOR_PARAMS_BY_KEY.get(param_key, CUSTOM_PARAM_CONFIG)
 

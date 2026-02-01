@@ -472,10 +472,10 @@ class TelemetryController(QObject):
             self.target_slot = slot
             new_idx = slot + 1
 
-            # Optimistically start Internal Tap.
-            # If the new generator is External, set_generator_context will stop this shortly.
-            # This prevents "dead meters" during the context switch lag.
-            self.osc.send('telem_tap_enable', [new_idx, self.current_rate, self.cal_gain])
+            # Optimistically start Internal Tap — but only if not currently in HW mode.
+            # Prevents briefly spawning an internal tap on an external hardware slot.
+            if self._capture_type == self.CAPTURE_INTERNAL:
+                self.osc.send('telem_tap_enable', [new_idx, self.current_rate, self.cal_gain])
 
             # NOTE: We do NOT auto-start waveform capture here.
             # We let set_generator_context() handle that once it determines the
@@ -570,11 +570,14 @@ class TelemetryController(QObject):
         self.current_waveform = np.asarray(samples, dtype=np.float32)
 
         # Live RMS error against the Digital Twin ideal (10-frame rolling average)
-        # Inject waveform into latest data so get_ideal_waveform can measure body amp
+        # Use a shallow copy to avoid mutating history frames with large numpy arrays
         latest = self.get_latest()
         if latest is not None:
-            latest['waveform'] = self.current_waveform
-        ideal = self.get_ideal_waveform(latest)
+            data_for_ideal = latest.copy()
+            data_for_ideal['waveform'] = self.current_waveform
+        else:
+            data_for_ideal = None
+        ideal = self.get_ideal_waveform(data_for_ideal)
         if ideal is not None and len(ideal) == len(self.current_waveform):
             diff = np.clip(self.current_waveform - ideal, -5.0, 5.0)
             frame_err = float(np.std(diff))
@@ -587,21 +590,49 @@ class TelemetryController(QObject):
     # Ideal overlay generation from current telemetry
     # -----------------------------------------------------------------
 
+    def _get_ideal_internal(self, data: dict) -> np.ndarray:
+        """Generate ideal waveform using the true B258 mathematical model.
+
+        Used in Internal mode to compare SCD code output against its own
+        mathematical target for forensic optimization.
+        """
+        p0 = data.get('p0', 0.0)
+        p1 = data.get('p1', 0.0)
+        p2 = data.get('p2', 0.5)
+        p3 = data.get('p3', 0.5)
+        p4 = data.get('p4', 0.0)
+
+        ideal = self.ideal.ideal_b258_dual_morph(p0, p1, p2, p3, p4)
+
+        # Phase inversion toggle
+        if self.phase_inverted:
+            ideal = -ideal
+
+        # Manual phase offset
+        if self.phase_offset != 0.0:
+            shift = int(self.phase_offset * len(ideal))
+            ideal = np.roll(ideal, shift)
+
+        self.active_ref_name = "B258"
+        return ideal.astype(np.float32)
+
     def get_ideal_waveform(self, data: dict = None) -> np.ndarray:
-        """Generate a universal reference waveform based on the REF (P2) selector.
+        """Generate reference waveform for comparison with live telemetry.
 
-        REF is quantized (snapped) to three discrete shapes:
-            < 0.33: SINE   (snaps to 0.0)
-            0.33-0.66: SQUARE (snaps to 0.5, P3/SYM controls duty cycle)
-            > 0.66: SAW    (snaps to 1.0)
+        Mode-dependent:
+        - HW (external): Snapped Reference (SINE/SQUARE/SAW) — user matches hardware shape.
+        - Internal: True IdealOverlay.ideal_b258_dual_morph() — mathematical SynthDef model.
 
-        User adjusts SYM (P3) and SAT (P4) until ideal matches hardware.
         Returns phase-aligned ideal waveform array, or None if no data.
         """
         if data is None:
             data = self.get_latest()
         if data is None:
             return None
+
+        # INTERNAL MODE: use the true mathematical B258 model
+        if not self.is_hw_mode:
+            return self._get_ideal_internal(data)
 
         raw_ref = data.get('p2', 1.0)
 

@@ -282,12 +282,11 @@ class MidiHSlider(QSlider):
     def wheelEvent(self, event):
         from PyQt5.QtWidgets import QApplication
         if QApplication.keyboardModifiers() & Qt.ShiftModifier:
-            # Accumulate scroll delta; step once per ~3 standard ticks.
-            # Threshold of 360 works for both discrete mice (120/tick)
-            # and high-res trackpads (small deltas that accumulate).
+            # Accumulate scroll delta; step once per 10 standard ticks.
+            # Threshold of 1200 (120/tick * 10) for sub-sample precision.
             delta = event.angleDelta().y()
             self._shift_accum += delta
-            if abs(self._shift_accum) >= 360:
+            if abs(self._shift_accum) >= 1200:
                 step = 1 if self._shift_accum > 0 else -1
                 self.setValue(self.value() + step)
                 self._shift_accum = 0
@@ -550,7 +549,7 @@ class TelemetryWidget(QWidget):
         wave_row.addWidget(wave_label)
 
         self.wave_enable_cb = QCheckBox("Capture")
-        self.wave_enable_cb.setChecked(True)
+        self.wave_enable_cb.setChecked(False)
         self.wave_enable_cb.setStyleSheet(f"color: {COLORS['text']}; font-size: {FONT_SIZES['small']}px;")
         self.wave_enable_cb.toggled.connect(self._on_wave_enable_toggled)
         wave_row.addWidget(self.wave_enable_cb)
