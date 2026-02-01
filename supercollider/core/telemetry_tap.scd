@@ -156,6 +156,11 @@
                 // ~intermediateBus uses 0-based index (from endstage.scd)
                 var inBus = ~intermediateBus[idx];
 
+                // Free existing capture synth to prevent leak on re-enable
+                if (~telemetry.waveSynths[idx].notNil) {
+                    ~telemetry.waveSynths[idx].free;
+                };
+
                 if (inBus.notNil) {
                     ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
                         \inBus, inBus,

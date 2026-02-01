@@ -340,6 +340,10 @@ class TelemetryController(QObject):
     HW_PARAM_LABELS = ['CHN', 'LVL', 'REF', 'SYM', 'SAT']
     DEFAULT_PARAM_LABELS = ['P0', 'P1', 'P2', 'P3', 'P4']
 
+    # Capture types: determines waveform capture path
+    CAPTURE_INTERNAL = 'internal'  # forge_telemetry_wave_capture synth reads ~intermediateBus
+    CAPTURE_EXTERNAL = 'external'  # hw_profile_tap embeds its own capture (no action needed)
+
     def __init__(self, osc_bridge):
         super().__init__()
         self.osc = osc_bridge
@@ -349,6 +353,7 @@ class TelemetryController(QObject):
         self.waveform_active = False
         self.target_slot = 0
         self.current_rate = 0
+        self._capture_type = self.CAPTURE_INTERNAL  # Set by set_generator_context()
 
         # History buffer (rolling)
         self.history = deque(maxlen=300)  # ~10 seconds at 30fps
@@ -401,15 +406,19 @@ class TelemetryController(QObject):
 
         # SC uses 1-based slots
         self.osc.send('telem_enable', [slot + 1, rate])
-        self.enable_waveform(slot)
-        logger.info(f"[Telemetry] Enabled for slot {slot} at {rate}Hz (waveform auto-started)")
+        # Only create forge_telemetry_wave_capture for internal generators.
+        # External (HW profile tap) embeds its own waveform capture in the SynthDef.
+        if self._capture_type == self.CAPTURE_INTERNAL:
+            self.enable_waveform(slot)
+        logger.info(f"[Telemetry] Enabled slot {slot} at {rate}Hz (capture: {self._capture_type})")
 
     def disable(self):
         """Disable telemetry and waveform capture."""
         if self.enabled:
-            if self.waveform_active:
+            # Only tear down internal capture synth — external handles itself
+            if self.waveform_active and self._capture_type == self.CAPTURE_INTERNAL:
                 self.disable_waveform(self.target_slot)
-                self.waveform_active = False
+            self.waveform_active = False
             self.osc.send('telem_enable', [self.target_slot + 1, 0])
             self.enabled = False
             self.current_waveform = None
@@ -429,32 +438,57 @@ class TelemetryController(QObject):
     def set_slot(self, slot: int):
         """Switch to monitoring a different slot.
 
-        If waveform capture is active, transfers it to the new slot
-        to prevent OSC crosstalk between slots.
+        Tears down internal capture on old slot. Does NOT start capture on
+        the new slot — set_generator_context() handles that after the widget
+        determines the new slot's generator type (internal vs external).
         """
         if not 0 <= slot < 8:
             return
         old_slot = self.target_slot
         if self.enabled:
-            # Stop waveform on old slot before switching
+            # Tear down internal capture on old slot (harmless nop for external)
             if self.waveform_active:
                 self.disable_waveform(old_slot)
             # Disable old slot, enable new
             self.osc.send('telem_enable', [old_slot + 1, 0])
             self.target_slot = slot
             self.osc.send('telem_enable', [slot + 1, self.current_rate])
-            # Restart waveform on new slot
-            if self.waveform_active:
-                self.enable_waveform(slot)
+            # Don't start capture here — set_generator_context() will handle it
+            # after the widget calls _update_generator_context() with the new type.
             self.history.clear()
             self.current_waveform = None
         else:
             self.target_slot = slot
 
     def set_generator_context(self, name: str, synthdef: str):
-        """Update the current generator context for this slot."""
+        """Update the current generator context and ensure correct capture type.
+
+        Determines capture type from synthdef:
+          - CAPTURE_EXTERNAL: hw_profile_tap embeds its own waveform SendReply
+          - CAPTURE_INTERNAL: all other generators use forge_telemetry_wave_capture
+
+        When called while telemetry is active, ensures the correct capture
+        synth is running for the new type. This is the authority for waveform
+        capture lifecycle — set_slot() tears down the old, this method sets up
+        the new.
+        """
         self.current_generator_id = name or ""
         self.current_synthdef_name = synthdef or ""
+
+        new_type = self.CAPTURE_EXTERNAL if self.is_hw_mode else self.CAPTURE_INTERNAL
+        old_type = self._capture_type
+        self._capture_type = new_type
+
+        # Ensure correct capture state when telemetry is active.
+        # set_slot() already tore down the old slot's internal capture,
+        # so we just need to start the new one if needed.
+        if self.enabled and self.waveform_active:
+            if new_type == self.CAPTURE_INTERNAL:
+                self.enable_waveform(self.target_slot)
+            # EXTERNAL needs no action — HW tap's embedded capture is automatic.
+
+        if old_type != new_type:
+            logger.info(f"[Telemetry] Capture type: {old_type} → {new_type}")
 
     @property
     def is_hw_mode(self) -> bool:

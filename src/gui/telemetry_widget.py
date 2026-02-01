@@ -691,13 +691,16 @@ class TelemetryWidget(QWidget):
         if checked:
             # Bump to capture rate for waveform data
             self.controller.set_rate(TelemetryController.CAPTURE_RATE)
+            # Only create internal capture synth — external (HW) handles itself
             if not self.controller.waveform_active:
-                self.controller.enable_waveform(slot)
+                if self.controller._capture_type == TelemetryController.CAPTURE_INTERNAL:
+                    self.controller.enable_waveform(slot)
                 self.controller.waveform_active = True
             self._timer.setInterval(66)  # ~15fps for smooth waveform
         else:
             if self.controller.waveform_active:
-                self.controller.disable_waveform(slot)
+                if self.controller._capture_type == TelemetryController.CAPTURE_INTERNAL:
+                    self.controller.disable_waveform(slot)
                 self.controller.waveform_active = False
             self.controller.current_waveform = None  # Clear stale buffer
             self.waveform_display.set_waveform(None)
