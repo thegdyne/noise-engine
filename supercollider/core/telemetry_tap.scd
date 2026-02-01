@@ -18,18 +18,32 @@
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        var sig = In.ar(inBus, 2);
-        var mono = Mix.ar(sig) * 0.5;
-        var freq = ZeroCrossing.ar(mono).max(20).min(20000);
-        var frameSize = (SampleRate.ir / freq).clip(64, BufFrames.kr(bufnum));
-        var captureTrig = (mono >= 0) & (Delay1.ar(mono) < 0);
-        var capturePhase = Phasor.ar(captureTrig, 1, 0, frameSize);
+        // VARS MUST BE DECLARED FIRST
+        var sig, mono, freq, frameSize, captureTrig, capturePhase;
+        var zcCountKr, hasNewFrame;
 
+        // Read from intermediate bus (pre-end-stage, stereo)
+        sig = In.ar(inBus, 2);
+        mono = Mix.ar(sig) * 0.5;
+
+        // Estimate frequency from zero-crossings (adaptive capture)
+        freq = ZeroCrossing.ar(mono).max(20).min(20000);
+
+        // Frame size: exactly one cycle at current frequency, clamped to buffer
+        frameSize = (SampleRate.ir / freq).clip(64, BufFrames.kr(bufnum));
+
+        // Zero-crossing trigger (rising edge)
+        captureTrig = (mono >= 0) & (Delay1.ar(mono) < 0);
+
+        // Phase within capture frame
+        capturePhase = Phasor.ar(captureTrig, 1, 0, frameSize);
+
+        // Write to buffer
         BufWr.ar(mono, bufnum, capturePhase);
 
         // Frame-ready detection
-        var zcCountKr = A2K.kr(PulseCount.ar(captureTrig));
-        var hasNewFrame = zcCountKr > Delay1.kr(zcCountKr);
+        zcCountKr = A2K.kr(PulseCount.ar(captureTrig));
+        hasNewFrame = zcCountKr > Delay1.kr(zcCountKr);
 
         SendReply.kr(Impulse.kr(10) * hasNewFrame, '/noise/telem/wave/ready', [slotIndex, A2K.kr(freq)]);
     }).add;
@@ -91,8 +105,10 @@
 
             if (rate > 0) {
                 if (~intermediateBus[idx].notNil) {
+                    // Must pass .index (raw integer) to Synth, not the Bus object
                     ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
-                        \inBus, ~intermediateBus[idx], \slotIndex, idx, \telemetryRate, rate
+                        \inBus, ~intermediateBus[idx].index,
+                        \slotIndex, idx, \telemetryRate, rate
                     ], ~fxGroup, \addAfter);
                     "[Telemetry] Internal Tap START slot %".format(slot).postln;
                 };
@@ -113,8 +129,10 @@
                 var buf = ~telemetry[\allocWaveBuffer].value(idx);
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
                 if (~intermediateBus[idx].notNil) {
+                    // Must pass .index (raw integer) to Synth
                     ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
-                        \inBus, ~intermediateBus[idx], \slotIndex, idx, \bufnum, buf.bufnum
+                        \inBus, ~intermediateBus[idx].index,
+                        \slotIndex, idx, \bufnum, buf.bufnum
                     ], ~fxGroup, \addAfter);
                 };
             } {
