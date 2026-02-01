@@ -550,7 +550,7 @@ class TelemetryController(QObject):
 
         if ref_val == 0.0:
             # MODE: PURE SINE
-            base_wave = np.sin(self.ideal.t) * 1.0 + sym_offset * 0.3
+            base_wave = np.sin(self.ideal.t) * 1.0 + sym_offset
         elif ref_val == 0.5:
             # MODE: GENERIC SQUARE — SYM controls duty cycle offset
             sine = np.sin(self.ideal.t) * 1.0
