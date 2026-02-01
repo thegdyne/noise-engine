@@ -12,9 +12,9 @@ system for real-time comparison with IdealOverlay. Use this to:
 SAFETY: User must attenuate hardware signal with MOTU M6 front-panel
 GAIN knobs until Stage 1 Peak stays below 0.95.
 
-Phase tracking uses a Schmitt trigger (SetResetFF hysteresis ±0.05) with
-automatic DC offset correction (RunningSum) for jitter-free zero-crossing
-detection on DC-shifted or noisy hardware waveforms.
+Phase tracking uses a Schmitt trigger (SetResetFF hysteresis ±0.02) with
+wide DC offset correction (RunningSum 16384 samples / ~340ms) for stable
+zero-crossing detection even at low frequencies (10Hz+).
 
 Custom params:
   - P0 CHN: MOTU M6 input channel (0-5)
@@ -40,7 +40,7 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	var phase, badValue;
 
 	// Schmitt trigger variables
-	var schmittLo = -0.05, schmittHi = 0.05;
+	var schmittLo = -0.02, schmittHi = 0.02;
 	var belowLo, aboveHi, armed, zc;
 	var sampBetween;
 
@@ -58,16 +58,15 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	stage1 = hw;
 
 	// --- DC OFFSET CORRECTION (for Schmitt trigger only) ---
-	// RunningSum over ~2048 samples gives slow-moving DC estimate.
-	// Subtracted from hw so the Schmitt trigger sees zero-centered
-	// waveform, even if the Buchla has significant DC bias.
+	// RunningSum over 16384 samples (~340ms at 48kHz) averages multiple
+	// cycles even at 10Hz, preventing the bias from tracking the waveform.
 	// This does NOT affect stage1/stage2/stage3 — only phase tracking.
-	dcBias = RunningSum.ar(hw, 2048) / 2048;
+	dcBias = RunningSum.ar(hw, 16384) / 16384;
 	hw_dc = hw - dcBias;
 
 	// --- SCHMITT-TRIGGERED PHASE SYNC ---
-	// SetResetFF hysteresis: arms when signal drops below -0.05,
-	// fires trigger on next rising edge through +0.05
+	// SetResetFF hysteresis: arms when signal drops below -0.02,
+	// fires trigger on next rising edge through +0.02
 	belowLo = hw_dc < schmittLo;
 	aboveHi = hw_dc > schmittHi;
 
