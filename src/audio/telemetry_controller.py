@@ -401,17 +401,13 @@ class TelemetryController(QObject):
 
         # SC uses 1-based slots
         self.osc.send('telem_enable', [slot + 1, rate])
-        # HW profile tap embeds its own waveform capture (SendReply to /noise/telem/hw_wave).
-        # Creating a second forge_telemetry_wave_capture synth causes competing waveform
-        # sources on the same OSC path, producing sync instability. Skip for HW mode.
-        if not self.is_hw_mode:
-            self.enable_waveform(slot)
-        logger.info(f"[Telemetry] Enabled for slot {slot} at {rate}Hz (waveform: {'hw-embedded' if self.is_hw_mode else 'auto-started'})")
+        self.enable_waveform(slot)
+        logger.info(f"[Telemetry] Enabled for slot {slot} at {rate}Hz (waveform auto-started)")
 
     def disable(self):
         """Disable telemetry and waveform capture."""
         if self.enabled:
-            if self.waveform_active and not self.is_hw_mode:
+            if self.waveform_active:
                 self.disable_waveform(self.target_slot)
                 self.waveform_active = False
             self.osc.send('telem_enable', [self.target_slot + 1, 0])
@@ -440,15 +436,15 @@ class TelemetryController(QObject):
             return
         old_slot = self.target_slot
         if self.enabled:
-            # Stop waveform on old slot before switching (skip for HW — embedded capture)
-            if self.waveform_active and not self.is_hw_mode:
+            # Stop waveform on old slot before switching
+            if self.waveform_active:
                 self.disable_waveform(old_slot)
             # Disable old slot, enable new
             self.osc.send('telem_enable', [old_slot + 1, 0])
             self.target_slot = slot
             self.osc.send('telem_enable', [slot + 1, self.current_rate])
-            # Restart waveform on new slot (skip for HW — embedded capture)
-            if self.waveform_active and not self.is_hw_mode:
+            # Restart waveform on new slot
+            if self.waveform_active:
                 self.enable_waveform(slot)
             self.history.clear()
             self.current_waveform = None

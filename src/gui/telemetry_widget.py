@@ -691,13 +691,12 @@ class TelemetryWidget(QWidget):
         if checked:
             # Bump to capture rate for waveform data
             self.controller.set_rate(TelemetryController.CAPTURE_RATE)
-            # HW profile tap has embedded capture — don't create a second one
-            if not self.controller.waveform_active and not self.controller.is_hw_mode:
+            if not self.controller.waveform_active:
                 self.controller.enable_waveform(slot)
                 self.controller.waveform_active = True
             self._timer.setInterval(66)  # ~15fps for smooth waveform
         else:
-            if self.controller.waveform_active and not self.controller.is_hw_mode:
+            if self.controller.waveform_active:
                 self.controller.disable_waveform(slot)
                 self.controller.waveform_active = False
             self.controller.current_waveform = None  # Clear stale buffer
