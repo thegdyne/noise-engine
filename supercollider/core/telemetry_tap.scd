@@ -2,10 +2,13 @@
  * Noise Engine Telemetry Tap Infrastructure
  *
  * Handles OSC commands from Python to enable/disable telemetry on generators.
- * Works with generators that have the telemetryRate argument.
+ * Two capture types:
+ *   INTERNAL: forge_internal_telem_tap observes ~intermediateBus (any generator)
+ *   EXTERNAL: hw_profile_tap embeds its own SendReply (self-contained)
  *
  * OSC Paths (SSOT — must match src/config/__init__.py):
  *   /noise/telem/enable      [slot, rate]  - Enable telemetry (0 = disable)
+ *   /noise/telem/tap/enable  [slot, rate]  - Spawn/free internal telemetry tap
  *   /noise/telem/gen         [slot, ...]   - Outbound: telemetry data
  *   /noise/telem/wave/enable [slot, enable] - Enable waveform capture
  *   /noise/telem/wave        [slot, ...]   - Outbound: waveform samples
@@ -77,11 +80,45 @@
     "  [Telemetry] forge_telemetry_wave_capture SynthDef loaded".postln;
 
     // =========================================================================
+    // INTERNAL TELEMETRY TAP SYNTHDEF
+    // =========================================================================
+    // Infrastructure-level observer: reads from ~intermediateBus, measures the
+    // signal, and broadcasts control-rate telemetry to Python. Works for ANY
+    // generator without requiring embedded SendReply or telemetryRate args.
+    // Payload matches the format expected by osc_bridge._handle_telem_gen.
+
+    SynthDef(\forge_internal_telem_tap, { |inBus, slotIndex=0, telemetryRate=0|
+        var sig, mono, rms, peak, freq;
+
+        sig = In.ar(inBus, 2);
+        mono = Mix(sig) * 0.5;
+
+        // Measurement
+        rms = Amplitude.ar(mono, 0.01, 0.1);
+        peak = Peak.ar(mono, Impulse.kr(telemetryRate.max(0.1))).lag(0.1);
+        freq = ZeroCrossing.ar(mono).max(20).min(20000);
+
+        SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
+            slotIndex,
+            freq,
+            0,                    // Phase placeholder
+            0, 0, 0, 0, 0,       // Param placeholders P0-P4
+            rms, rms, rms,        // Stages 1-3 (identical for internal)
+            peak,
+            0,                    // BadValue
+            peak                  // Peak3
+        ]);
+    }).add;
+
+    "  [Telemetry] forge_internal_telem_tap SynthDef loaded".postln;
+
+    // =========================================================================
     // BUFFER MANAGEMENT
     // =========================================================================
 
     ~telemetry.waveBuffers = Array.fill(8, { nil });
     ~telemetry.waveSynths = Array.fill(8, { nil });
+    ~telemetry.tapSynths = Array.fill(8, { nil });
 
     ~telemetry.allocWaveBuffer = { |slot|
         if (~telemetry.waveBuffers[slot].isNil) {
@@ -138,6 +175,47 @@
     }, '/noise/telem/enable');
 
     "  [Telemetry] OSC handler /noise/telem/enable registered".postln;
+
+    // =========================================================================
+    // OSC HANDLER: /noise/telem/tap/enable
+    // =========================================================================
+    // Spawn or free an internal telemetry tap synth for a slot.
+    // Managed by Python's set_generator_context() — only used for INTERNAL
+    // capture type. EXTERNAL (HW profile tap) manages its own telemetry.
+
+    OSCdef(\telemTapEnable, { |msg, time, addr, recvPort|
+        var slot = msg[1].asInteger;  // 1-based
+        var rate = msg[2].asInteger;
+        var idx = slot - 1;  // 0-based for arrays
+
+        if (slot < 1 || slot > 8) {
+            "[Telemetry] Invalid slot for tap: %".format(slot).warn;
+        } {
+            // Free existing tap synth (prevents leak on re-enable or slot switch)
+            if (~telemetry.tapSynths[idx].notNil) {
+                ~telemetry.tapSynths[idx].free;
+                ~telemetry.tapSynths[idx] = nil;
+            };
+
+            if (rate > 0) {
+                var inBus = ~intermediateBus[idx];
+                if (inBus.notNil) {
+                    ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
+                        \inBus, inBus,
+                        \slotIndex, idx,
+                        \telemetryRate, rate
+                    ], ~fxGroup, \addAfter);
+                    "[Telemetry] Internal tap started for slot % at %Hz".format(slot, rate).postln;
+                } {
+                    "[Telemetry] No intermediate bus for slot %".format(slot).warn;
+                };
+            } {
+                "[Telemetry] Internal tap stopped for slot %".format(slot).postln;
+            };
+        };
+    }, '/noise/telem/tap/enable');
+
+    "  [Telemetry] OSC handler /noise/telem/tap/enable registered".postln;
 
     // =========================================================================
     // OSC HANDLER: /noise/telem/wave/enable
@@ -239,8 +317,13 @@
     ~telemetry.cleanup = {
         8.do { |i|
             ~telemetry[\freeWaveBuffer].value(i);
+            if (~telemetry.tapSynths[i].notNil) {
+                ~telemetry.tapSynths[i].free;
+                ~telemetry.tapSynths[i] = nil;
+            };
         };
         OSCdef(\telemEnable).free;
+        OSCdef(\telemTapEnable).free;
         OSCdef(\telemGen).free;
         OSCdef(\telemWaveEnable).free;
         OSCdef(\telemWaveReady).free;
