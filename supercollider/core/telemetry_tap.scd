@@ -54,7 +54,7 @@
     SynthDef(\forge_internal_telem_tap, { |inBus, customBus, slotIndex=0, telemetryRate=0|
         var sig = In.ar(inBus, 2);
         var p = In.kr(customBus, 5);
-        var mono = Mix(sig) * 0.5;
+        var mono = sig[0];
         var rms = Amplitude.ar(mono, 0.01, 0.1);
         var peak = Peak.ar(mono, Impulse.kr(telemetryRate.max(0.1))).lag(0.1);
         var freq = ZeroCrossing.ar(mono).max(20).min(20000);

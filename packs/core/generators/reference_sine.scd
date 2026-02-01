@@ -39,18 +39,7 @@ SynthDef(\forge_core_reference_sine, { |out, freqBus, customBus0, slotIndex=0, t
     // Bad value detection
     badValue = CheckBadValues.ar(sig, post: 0);
 
-    // === TELEMETRY (only active when telemetryRate > 0) ===
-    SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
-        slotIndex,
-        freq,
-        A2K.kr(phase),
-        0, 0, 0, 0, 0,                             // P0-P4 dummy (no custom params used)
-        Amplitude.ar(stage1, 0.01, 0.1),            // RMS of sine seed
-        Amplitude.ar(stage1, 0.01, 0.1),            // Stage 2 = Stage 1 (no morphing)
-        Amplitude.ar(stage3, 0.01, 0.1),            // RMS final output
-        Peak.ar(sig, Impulse.kr(telemetryRate.max(0.1))).lag(0.1),
-        A2K.kr(badValue)
-    ]);
+    // === TELEMETRY handled by forge_internal_telem_tap (no embedded emission) ===
 
     // --- MANDATORY TAIL ---
     sig = NumChannels.ar(sig, 2);

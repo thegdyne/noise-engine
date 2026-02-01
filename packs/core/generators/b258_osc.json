@@ -3,7 +3,7 @@
   "name": "B258 Dual Osc",
   "synthesis_method": "west_coast/morphing",
   "synthdef": "forge_core_b258_osc",
-  "output_trim_db": -6.0,
+  "output_trim_db": -8.4,
   "midi_retrig": false,
   "custom_params": [
     {

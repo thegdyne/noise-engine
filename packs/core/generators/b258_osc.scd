@@ -14,7 +14,7 @@ Custom params:
   - P4 SYM: Pulse width (square) or ramp tilt (saw), 0.1-0.9
   - P5 SAT: Slew rate (square) or tanh drive (sine/saw), 0.05-0.95
 
-Output: 0.38 scalar matches profiled 258 plateau amplitude.
+Output: Raw signal; 0.38 plateau handled by output_trim_db (-8.4 dB).
 No filter/envelope — handled by channel strip end-stage.
 */
 
@@ -53,8 +53,8 @@ SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
 	branchB = XFade2.ar(sine, saw,    (shpB * 2) - 1);
 	sig = XFade2.ar(branchA, branchB, (mix * 2) - 1);
 
-	// DNA calibration: scalar gain matches profiled 258 plateau (~0.38V)
-	sig = sig * 0.38;
+	// DNA calibration: 0.38 plateau now handled by output_trim_db (-8.4 dB)
+	// Raw signal preserved for telemetry tap analysis
 
 	// --- MANDATORY TAIL ---
 	sig = NumChannels.ar(sig, 2);
