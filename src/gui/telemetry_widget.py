@@ -246,6 +246,7 @@ class MidiHSlider(QSlider):
 
     def __init__(self, main_frame_ref=None, parent=None):
         super().__init__(Qt.Horizontal, parent)
+        self.setFocusPolicy(Qt.StrongFocus)  # Ensure wheel events arrive
         self._main_frame_ref = main_frame_ref
         self._midi_armed = False
         self._midi_mapped = False
@@ -281,10 +282,12 @@ class MidiHSlider(QSlider):
     def wheelEvent(self, event):
         from PyQt5.QtWidgets import QApplication
         if QApplication.keyboardModifiers() & Qt.ShiftModifier:
-            # Accumulate scroll ticks; only step when 10 ticks collected
+            # Accumulate scroll delta; step once per ~3 standard ticks.
+            # Threshold of 360 works for both discrete mice (120/tick)
+            # and high-res trackpads (small deltas that accumulate).
             delta = event.angleDelta().y()
             self._shift_accum += delta
-            if abs(self._shift_accum) >= 1200:  # 10 normal ticks (120 each)
+            if abs(self._shift_accum) >= 360:
                 step = 1 if self._shift_accum > 0 else -1
                 self.setValue(self.value() + step)
                 self._shift_accum = 0
