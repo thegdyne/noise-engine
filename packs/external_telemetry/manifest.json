@@ -7,6 +7,6 @@
   "description": "Telemetry tools for profiling external hardware gear via audio input.",
   "enabled": true,
   "generators": [
-    "hw_assessment_tap"
+    "hw_profile_tap"
   ]
 }

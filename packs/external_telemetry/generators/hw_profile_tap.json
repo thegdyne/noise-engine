@@ -1,8 +1,8 @@
 {
-  "generator_id": "core_hw_assessment_tap",
-  "name": "Hardware DNA Probe",
+  "generator_id": "hw_profile_tap",
+  "name": "Generic Hardware Profiler",
   "synthesis_method": "diagnostic",
-  "synthdef": "forge_core_hw_assessment_tap",
+  "synthdef": "forge_hw_profile_tap",
   "output_trim_db": 0.0,
   "custom_params": [
     {
@@ -18,7 +18,7 @@
     {
       "key": "input_gain",
       "label": "LVL",
-      "tooltip": "Digital gain normalization. 1.0 = unity, 4.0 = max boost. Adjust until Stage 2 RMS = 0.7027.",
+      "tooltip": "Digital gain normalization. 1.0 = unity, 4.0 = max boost. Target: Stage 2 RMS = 0.7027.",
       "default": 1.0,
       "min": 0.0,
       "max": 4.0,
@@ -26,9 +26,9 @@
       "unit": "x"
     },
     {
-      "key": "mix",
-      "label": "MIX",
-      "tooltip": "Reserved for Phase 2 (Hardware/Digital blend).",
+      "key": "reserved",
+      "label": "---",
+      "tooltip": "Reserved for future use.",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,
@@ -38,7 +38,7 @@
     {
       "key": "symmetry",
       "label": "SYM",
-      "tooltip": "Adjusts 'Ideal' overlay DC bias to match hardware asymmetry. 0.5 = centered.",
+      "tooltip": "Adjusts Ideal overlay DC bias to match hardware waveform slope. 0.5 = centered.",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -46,9 +46,9 @@
       "unit": ""
     },
     {
-      "key": "saturation",
-      "label": "SAT",
-      "tooltip": "Adjusts 'Ideal' overlay saturation to match hardware peak rounding.",
+      "key": "unused",
+      "label": "OFF",
+      "tooltip": "Unused (P4).",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,

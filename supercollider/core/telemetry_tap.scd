@@ -204,7 +204,7 @@
     // =========================================================================
     // OSC HANDLER: /noise/telem/hw_wave (relay embedded waveform SendReply)
     // =========================================================================
-    // hw_assessment_tap embeds a phase-wrapped 128-sample capture via SendReply.
+    // hw_profile_tap embeds a phase-wrapped 128-sample capture via SendReply.
     // Relay the data to Python in the same format as the buffer-based path.
     // SendReply format: [cmdName, nodeID, replyID, slotIndex, ...128 samples]
 

@@ -333,10 +333,10 @@ class TelemetryController(QObject):
     MONITOR_RATE = 5    # Hz — info-only: meters, params, peak
     CAPTURE_RATE = 30   # Hz — active waveform capture mode
 
-    # Hardware DNA Probe detection
-    HW_SYNTHDEF = 'forge_core_hw_assessment_tap'
-    HW_GENERATOR_NAME = 'Hardware DNA Probe'
-    HW_PARAM_LABELS = ['CHN', 'LVL', 'MIX', 'SYM', 'SAT']
+    # Hardware profiler detection
+    HW_SYNTHDEF = 'forge_hw_profile_tap'
+    HW_GENERATOR_NAME = 'Generic Hardware Profiler'
+    HW_PARAM_LABELS = ['CHN', 'LVL', '---', 'SYM', 'OFF']
     DEFAULT_PARAM_LABELS = ['P0', 'P1', 'P2', 'P3', 'P4']
 
     def __init__(self, osc_bridge):
@@ -450,7 +450,7 @@ class TelemetryController(QObject):
 
     @property
     def is_hw_mode(self) -> bool:
-        """True when monitoring the Hardware DNA Probe."""
+        """True when monitoring the Generic Hardware Profiler."""
         return self.current_synthdef_name == self.HW_SYNTHDEF
 
     @property
