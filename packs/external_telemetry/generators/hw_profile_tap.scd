@@ -24,7 +24,7 @@ Only emits waveform frames in capture mode (telemetryRate > 10Hz).
 Custom params:
   - P0 CHN: MOTU M6 input channel (0-5)
   - P1 LVL: Level normalization multiplier (0-4x)
-  - P2 ---: Reserved
+  - P2 REF: Reference shape selector (0=Sine, 0.5=Square, 1=Saw)
   - P3 SYM: Waveform symmetry matching for Ideal overlay
   - P4 OFF: Unused
 

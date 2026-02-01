@@ -336,7 +336,7 @@ class TelemetryController(QObject):
     # Hardware profiler detection
     HW_SYNTHDEF = 'forge_hw_profile_tap'
     HW_GENERATOR_NAME = 'Generic Hardware Profiler'
-    HW_PARAM_LABELS = ['CHN', 'LVL', '---', 'SYM', 'OFF']
+    HW_PARAM_LABELS = ['CHN', 'LVL', 'REF', 'SYM', 'OFF']
     DEFAULT_PARAM_LABELS = ['P0', 'P1', 'P2', 'P3', 'P4']
 
     def __init__(self, osc_bridge):
@@ -501,9 +501,14 @@ class TelemetryController(QObject):
     # -----------------------------------------------------------------
 
     def get_ideal_waveform(self, data: dict = None) -> np.ndarray:
-        """Generate ideal B258 waveform from current or provided telemetry data.
+        """Generate a universal reference waveform based on the REF (P2) selector.
 
-        In hardware mode, the B258 model serves as the Digital Twin reference.
+        In hardware mode, REF selects the base shape category:
+            0.0-0.25: Pure Sine
+            0.26-0.75: Generic Square (with P3/SYM as duty cycle offset)
+            0.76-1.0: Pure Sawtooth
+
+        In internal mode (B258 etc.), falls back to the full B258 model.
         User adjusts SYM (P3) and SAT (P4) until ideal matches hardware.
         Returns phase-aligned ideal waveform array, or None if no data.
         """
@@ -512,13 +517,37 @@ class TelemetryController(QObject):
         if data is None:
             return None
 
-        ideal = self.ideal.ideal_b258_dual_morph(
-            p0_sine_sq=data.get('p0', 0),
-            p1_sine_saw=data.get('p1', 0),
-            p2_mix=data.get('p2', 0.5),
-            p3_sym_raw=data.get('p3', 0.5),
-            p4_sat=data.get('p4', 0),
-        )
+        if self.is_hw_mode:
+            # THE HARD SWITCH: Bypass B258 morphing for generic profiling
+            # 0.0-0.25: Sine | 0.26-0.75: Square | 0.76-1.0: Sawtooth
+            ref_val = data.get('p2', 1.0)
+            sym = data.get('p3', 0.5)
+
+            if ref_val < 0.25:
+                # PURE SINE: Standard 0.8 amplitude baseline
+                base_wave = np.sin(self.ideal.t) * 0.8
+            elif ref_val < 0.75:
+                # GENERIC SQUARE: Derived from sine with P3 (SYM) as duty cycle offset
+                sine = np.sin(self.ideal.t) * 0.8
+                duty_offset = (sym - 0.5) * 1.5
+                base_wave = np.clip((sine + duty_offset) * 100, -1.0, 1.0)
+            else:
+                # PURE SAWTOOTH: Standard SC-aligned ramp
+                base_wave = self.ideal.ideal_saw_sc()
+
+            # Apply global Saturation (P4) and normalization (0.66)
+            # Matches the hardware tap's stage3 output contract
+            sat_drive = 1.0 + (data.get('p4', 0.0) * 17.0)
+            ideal = np.tanh(base_wave * sat_drive) * 0.66
+        else:
+            # Internal generators: full B258 Dual Morph model
+            ideal = self.ideal.ideal_b258_dual_morph(
+                p0_sine_sq=data.get('p0', 0),
+                p1_sine_saw=data.get('p1', 0),
+                p2_mix=data.get('p2', 0.5),
+                p3_sym_raw=data.get('p3', 0.5),
+                p4_sat=data.get('p4', 0),
+            )
 
         phase = data.get('phase', 0)
         return self.ideal.align_to_phase(ideal, phase)

@@ -26,10 +26,10 @@
       "unit": "x"
     },
     {
-      "key": "reserved",
-      "label": "---",
-      "tooltip": "Reserved for future use.",
-      "default": 0.0,
+      "key": "ref_shape",
+      "label": "REF",
+      "tooltip": "Reference Selection: 0.0=Sine, 0.5=Square, 1.0=Saw",
+      "default": 1.0,
       "min": 0.0,
       "max": 1.0,
       "curve": "lin",
