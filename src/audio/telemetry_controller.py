@@ -559,6 +559,9 @@ class TelemetryController(QObject):
             # Map 0.0-1.0 slider to -0.8..+0.8 threshold (10%-90% duty range)
             pw_threshold = -0.8 + (sym * 1.6)
             base_wave = np.where(np.sin(self.ideal.t) > pw_threshold, 1.0, -1.0)
+            # Analog sag: linear tilt models capacitor discharge on high/low plateaus
+            sag_amount = (sym - 0.5) * 0.2
+            base_wave = base_wave + (self.ideal.t / self.ideal.t[-1]) * sag_amount
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
             saw = self.ideal.ideal_saw_sc()
@@ -569,10 +572,12 @@ class TelemetryController(QObject):
         sat_raw = data.get('p4', 0.0)
         sat_drive = 1.0 + (sat_raw ** 2 * 6.0)
         saturated = np.tanh(base_wave * sat_drive)
-        # Unity-gain compensation: divide by tanh(drive) so peak stays at ~0.66
+        # Unity-gain compensation: divide by tanh(drive) so peak stays locked
         # regardless of SAT position (prevents volume jump when sweeping SAT)
         comp = np.tanh(sat_drive) if sat_drive > 1.0 else 1.0
-        ideal = (saturated / comp) * 0.66
+        # Dynamic peak: match hardware amplitude instead of hardcoded 0.66
+        hw_peak = data.get('peak', 0.66)
+        ideal = (saturated / comp) * hw_peak
         ideal = ideal - np.mean(ideal)  # Null DC — prevent SYM from biasing ERR
 
         # Phase inversion toggle for 180° correction
