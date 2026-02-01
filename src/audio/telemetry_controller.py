@@ -897,6 +897,7 @@ class TelemetryController(QObject):
             return None
 
         latest = self.history[-1].copy()
+        latest.pop('waveform', None)  # Strip injected ndarray (serialized separately below)
 
         # Include ideal waveform for comparison
         ideal_wave = self.get_ideal_waveform(latest)
@@ -951,8 +952,14 @@ class TelemetryController(QObject):
 
     def export_history(self, path: str):
         """Export full telemetry history to JSON."""
+        # Strip injected ndarray 'waveform' keys before serialization
+        clean_history = []
+        for frame in self.history:
+            f = frame.copy()
+            f.pop('waveform', None)
+            clean_history.append(f)
         data = {
-            'history': list(self.history),
+            'history': clean_history,
             'provenance': {
                 'generator_id': self.current_generator_id,
                 'synthdef': self.current_synthdef_name,
