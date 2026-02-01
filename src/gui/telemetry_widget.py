@@ -765,6 +765,17 @@ class TelemetryWidget(QWidget):
             self.ofs_slider.setValue(max(-200, min(200, ofs_val)))
             self.ofs_slider.blockSignals(False)
 
+        # Sync-back: push optimized SYM/SAT to the generator slot's P3/P4 sliders.
+        # setValue triggers the full signal chain (UI → GeneratorSlot → OSC to SC).
+        if self.main_frame is not None:
+            slot_id = self.controller.target_slot + 1  # generator_grid uses 1-based
+            slot_widget = self.main_frame.generator_grid.get_slot(slot_id)
+            if slot_widget and len(slot_widget.custom_sliders) >= 4:
+                sym_int = int(np.clip(result['sym'], 0.0, 1.0) * 1000)
+                slot_widget.custom_sliders[2].setValue(sym_int)   # P3 = SYM
+                sat_int = int(np.clip(result['sat'], 0.0, 1.0) * 1000)
+                slot_widget.custom_sliders[3].setValue(sat_int)   # P4 = SAT
+
         # Update button text with final ERR
         self.auto_lock_btn.setText(f"LOCKED {result['error']:.3f}")
         # Reset button text after 3 seconds
