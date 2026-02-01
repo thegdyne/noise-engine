@@ -56,6 +56,9 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	// Phase-wrapped waveform capture (128-sample single-cycle table)
 	var waveBuf, waveIdx, waveOut;
 
+	// Phase lock gate — prevents noise from filling the table before lock
+	var locked;
+
 	// Contiguous 5-channel custom bus read
 	p = In.kr(customBus0, 5);
 
@@ -94,6 +97,10 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	);
 	freq = SampleRate.ir / sampBetween;
 
+	// Phase lock gate: signal must be present AND freq in sane audio range
+	// (not at clamp boundaries). Prevents noise-filling the waveform table.
+	locked = (Amplitude.ar(stage1, 0.01, 0.1) > 0.005) * (freq > 11) * (freq < 1900);
+
 	// High-fidelity phase ramp for Python overlay alignment
 	phase = Phasor.ar(trig: zc, rate: (1.0 / sampBetween), start: 0, end: 1.0);
 
@@ -113,9 +120,11 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	// 128-sample LocalBuf written by phase index — creates a stable
 	// single-cycle picture regardless of frequency. Immune to DC bias
 	// because it uses the Schmidt-derived phase ramp.
+	// .floor prevents fractional smearing across adjacent bins.
+	// locked gate zeros the write when phase lock is lost.
 	waveBuf = LocalBuf(128);
-	waveIdx = (phase * 127).clip(0, 127);
-	BufWr.ar(stage3, waveBuf, waveIdx, loop: 1);
+	waveIdx = (phase * 127).floor.clip(0, 127);
+	BufWr.ar(stage3 * locked, waveBuf, waveIdx, loop: 1);
 	// Read back the full table at control rate for the OSC payload
 	waveOut = BufRd.kr(1, waveBuf, Array.series(128, 0, 1));
 
@@ -134,9 +143,10 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	]);
 
 	// Path B: Waveform frame (128 phase-wrapped samples)
-	// Sent via internal SendReply → relayed to Python by telemetry_tap.scd
+	// Only sent when locked AND in capture mode (rate > 10Hz).
+	// Relayed to Python as /noise/telem/wave by telemetry_tap.scd.
 	SendReply.kr(
-		Impulse.kr(telemetryRate.min(15)) * (telemetryRate > 0),
+		Impulse.kr(telemetryRate.min(15)) * (telemetryRate > 10) * A2K.kr(locked),
 		'/noise/telem/hw_wave',
 		[slotIndex] ++ waveOut
 	);
