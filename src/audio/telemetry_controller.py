@@ -561,9 +561,18 @@ class TelemetryController(QObject):
             # Map 0.0-1.0 slider to -0.8..+0.8 threshold (10%-90% duty range)
             pw_threshold = -0.8 + (sym * 1.6)
             base_wave = np.where(np.sin(self.ideal.t) > pw_threshold, 1.0, -1.0)
-            # Analog sag: linear tilt models capacitor discharge on high/low plateaus
-            sag_amount = (sym - 0.5) * 6.0
-            base_wave = base_wave + (self.ideal.t / self.ideal.t[-1]) * sag_amount
+            # RC high-pass filter: models AC-coupling capacitor discharge.
+            # tau maps from SYM deviation: 0.5=flat (long tau), edges=droop (short tau).
+            # Range 0.001-0.1 cycle-periods covers gentle droop to aggressive sag.
+            sym_dev = abs(sym - 0.5) * 2.0  # 0 at center, 1 at edges
+            tau = 0.1 - sym_dev * 0.099  # 0.1 (flat) down to 0.001 (max sag)
+            dt = 1.0 / self.ideal.n_samples  # Sample period relative to one cycle
+            alpha = tau / (tau + dt)
+            filtered = np.empty_like(base_wave)
+            filtered[0] = 0.0
+            for n in range(1, len(base_wave)):
+                filtered[n] = alpha * (filtered[n - 1] + base_wave[n] - base_wave[n - 1])
+            base_wave = filtered
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
             saw = self.ideal.ideal_saw_sc()
