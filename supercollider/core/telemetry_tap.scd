@@ -35,6 +35,7 @@
 
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
         var sig, mono, freq, frameSize, captureTrig, capturePhase;
+        var zcCount, zcCountKr, prevCount, hasNewFrame;
 
         // Read from intermediate bus (pre-end-stage, stereo)
         sig = In.ar(inBus, 2);
@@ -55,10 +56,19 @@
         // Write to buffer
         BufWr.ar(mono, bufnum, capturePhase);
 
-        // Notify when frame completes (10Hz burst cap, at frame start only)
-        // A2K.kr converts audio-rate capturePhase comparison to control rate
+        // Frame-ready detection: count zero-crossings at audio rate, compare
+        // at control rate. If count changed since last block, a new frame
+        // completed. This avoids the A2K.kr(capturePhase < 1) race condition
+        // where a single-sample event at audio rate has < 1% chance of being
+        // caught by the control-rate sample.
+        zcCount = PulseCount.ar(captureTrig);
+        zcCountKr = A2K.kr(zcCount);
+        prevCount = Delay1.kr(zcCountKr);
+        hasNewFrame = zcCountKr > prevCount;
+
+        // Notify when frame completes (10Hz burst cap)
         SendReply.kr(
-            Impulse.kr(10) * A2K.kr(capturePhase < 1),
+            Impulse.kr(10) * hasNewFrame,
             '/noise/telem/wave/ready',
             [slotIndex, A2K.kr(freq)]
         );
