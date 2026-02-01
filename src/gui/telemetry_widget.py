@@ -399,6 +399,7 @@ class TelemetryWidget(QWidget):
         wave_row.addWidget(wave_label)
 
         self.wave_enable_cb = QCheckBox("Capture")
+        self.wave_enable_cb.setChecked(True)
         self.wave_enable_cb.setStyleSheet(f"color: {COLORS['text']}; font-size: {FONT_SIZES['small']}px;")
         self.wave_enable_cb.toggled.connect(self._on_wave_enable_toggled)
         wave_row.addWidget(self.wave_enable_cb)
@@ -511,16 +512,20 @@ class TelemetryWidget(QWidget):
         snap = self.controller.snapshot()
         if snap:
             import json
+            from pathlib import Path
+            home = str(Path.home())
             path, _ = QFileDialog.getSaveFileName(
-                self, "Save Telemetry Snapshot", "", "JSON (*.json)"
+                self, "Save Telemetry Snapshot", home, "JSON (*.json)"
             )
             if path:
                 with open(path, 'w') as f:
                     json.dump(snap, f, indent=2)
 
     def _on_export(self):
+        from pathlib import Path
+        home = str(Path.home())
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export Telemetry History", "", "JSON (*.json)"
+            self, "Export Telemetry History", home, "JSON (*.json)"
         )
         if path:
             self.controller.export_history(path)
