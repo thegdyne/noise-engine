@@ -336,7 +336,7 @@ class TelemetryController(QObject):
     # Hardware profiler detection
     HW_SYNTHDEF = 'forge_hw_profile_tap'
     HW_GENERATOR_NAME = 'Generic Hardware Profiler'
-    HW_PARAM_LABELS = ['CHN', 'LVL', 'REF', 'SYM', 'OFF']
+    HW_PARAM_LABELS = ['CHN', 'LVL', 'REF', 'SYM', 'SAT']
     DEFAULT_PARAM_LABELS = ['P0', 'P1', 'P2', 'P3', 'P4']
 
     def __init__(self, osc_bridge):
@@ -355,6 +355,7 @@ class TelemetryController(QObject):
         # Waveform buffer
         self.current_waveform = None
         self.current_rms_error = 0.0
+        self._err_history = deque(maxlen=10)  # Rolling average for stable ERR
         self.active_ref_name = "SAW"  # Current snapped REF shape name
 
         # Generator info (set externally for snapshot provenance)
@@ -490,10 +491,12 @@ class TelemetryController(QObject):
 
         self.current_waveform = np.asarray(samples, dtype=np.float32)
 
-        # Live RMS error against the Digital Twin ideal
+        # Live RMS error against the Digital Twin ideal (10-frame rolling average)
         ideal = self.get_ideal_waveform()
         if ideal is not None and len(ideal) == len(self.current_waveform):
-            self.current_rms_error = float(np.std(self.current_waveform - ideal))
+            frame_err = float(np.std(self.current_waveform - ideal))
+            self._err_history.append(frame_err)
+            self.current_rms_error = sum(self._err_history) / len(self._err_history)
         else:
             self.current_rms_error = 0.0
 
@@ -533,17 +536,19 @@ class TelemetryController(QObject):
         sym = data.get('p3', 0.5)
 
         # 2. GENERATION (using strictly snapped ref_val)
+        sym_offset = (sym - 0.5) * 2.5  # Amplified SYM range for visible response
+
         if ref_val == 0.0:
-            # MODE: PURE SINE
-            base_wave = np.sin(self.ideal.t) * 0.8
+            # MODE: PURE SINE — SYM adds DC tilt (phase asymmetry)
+            base_wave = np.sin(self.ideal.t) * 0.8 + sym_offset * 0.3
         elif ref_val == 0.5:
-            # MODE: GENERIC SQUARE (P3/SYM controls duty cycle)
+            # MODE: GENERIC SQUARE — SYM controls duty cycle offset
             sine = np.sin(self.ideal.t) * 0.8
-            duty_offset = (sym - 0.5) * 1.5
-            base_wave = np.clip((sine + duty_offset) * 100, -1.0, 1.0)
+            base_wave = np.clip((sine + sym_offset) * 100, -1.0, 1.0)
         else:
-            # MODE: PURE SAWTOOTH
-            base_wave = self.ideal.ideal_saw_sc()
+            # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
+            saw = self.ideal.ideal_saw_sc()
+            base_wave = saw + sym_offset * 0.6
 
         # Apply global Saturation (P4) and Output Normalization (0.66)
         sat_drive = 1.0 + (data.get('p4', 0.0) * 17.0)

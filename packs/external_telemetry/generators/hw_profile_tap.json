@@ -46,9 +46,9 @@
       "unit": ""
     },
     {
-      "key": "unused",
-      "label": "OFF",
-      "tooltip": "Unused (P4).",
+      "key": "saturation",
+      "label": "SAT",
+      "tooltip": "Saturation drive for Digital Twin matching. Rounds peaks to match analog softening.",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,

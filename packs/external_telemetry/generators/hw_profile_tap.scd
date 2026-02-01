@@ -26,7 +26,7 @@ Custom params:
   - P1 LVL: Level normalization multiplier (0-4x)
   - P2 REF: Reference shape selector (0=Sine, 0.5=Square, 1=Saw)
   - P3 SYM: Waveform symmetry matching for Ideal overlay
-  - P4 OFF: Unused
+  - P4 SAT: Saturation drive for Digital Twin matching
 
 Stage contract (mirrors internal generators):
   - Stage 1 (Actual):    Raw hardware input (pre-normalization)

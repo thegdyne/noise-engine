@@ -621,9 +621,12 @@ class TelemetryWidget(QWidget):
         self.param_values["P3"].setText(f"{data.get('p3', 0):.3f}")
         self.param_values["P4"].setText(f"{data.get('p4', 0):.3f}")
 
-        # Dynamic REF shape label — shows which reference the engine is using
+        # Dynamic REF shape label — high-contrast "Master Mode" indicator
         ref_name = getattr(self.controller, 'active_ref_name', '---')
         self._param_header_labels[3].setText(f"REF:{ref_name}")
+        self._param_header_labels[3].setStyleSheet(
+            f"color: {COLORS['text_bright']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;"
+        )
 
         # Live RMS error (Digital Twin match quality)
         err = self.controller.current_rms_error
