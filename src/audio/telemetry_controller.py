@@ -20,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
+from scipy.optimize import minimize
 from PyQt5.QtCore import QObject
 
 from src.utils.logger import logger
@@ -685,6 +686,139 @@ class TelemetryController(QObject):
         return (abs(freq - 2000.0) < 10
                 or abs(freq - 10.0) < 1
                 or abs(freq - 48000.0) < 100)
+
+    # -----------------------------------------------------------------
+    # Auto-Twin optimizer
+    # -----------------------------------------------------------------
+
+    def optimize_twin(self) -> dict:
+        """Run Nelder-Mead minimization to auto-lock the Digital Twin.
+
+        Searches the parameter space to minimize RMS error between the
+        current hardware waveform and the ideal overlay. Shape-aware:
+          - Square: 5D (phase, SYM, SAT, body_gain, v_offset)
+          - Sine/Saw: 3D (phase, SYM, SAT)
+
+        Returns dict with optimized values and final error, or None if
+        no waveform data is available.
+        """
+        if self.current_waveform is None:
+            logger.warning("[Telemetry] optimize_twin: no waveform data")
+            return None
+
+        data = self.get_latest()
+        if data is None:
+            logger.warning("[Telemetry] optimize_twin: no telemetry data")
+            return None
+
+        target = self.current_waveform.copy()
+        is_square = self.active_ref_name == "SQUARE"
+
+        # Snapshot current values as starting point
+        current_phase = self.phase_offset
+        current_sym = data.get('p3', 0.5)
+        current_sat = data.get('p4', 0.0)
+        current_body = self.body_gain
+        current_vofs = self.v_offset
+
+        def cost(params):
+            """RMS error between ideal waveform with trial params and actual."""
+            if is_square:
+                phase, sym, sat, body, vofs = params
+            else:
+                phase, sym, sat = params
+                body = 1.0
+                vofs = 0.0
+
+            # Clamp to valid ranges
+            phase = float(np.clip(phase, -0.5, 0.5))
+            sym = float(np.clip(sym, 0.0, 1.0))
+            sat = float(np.clip(sat, 0.0, 1.0))
+            body = float(np.clip(body, 0.25, 1.0))
+            vofs = float(np.clip(vofs, -0.2, 0.2))
+
+            # Build trial data dict with overridden SYM/SAT
+            trial_data = data.copy()
+            trial_data['p3'] = sym
+            trial_data['p4'] = sat
+
+            # Temporarily set controller state for the trial
+            orig_phase = self.phase_offset
+            orig_body = self.body_gain
+            orig_vofs = self.v_offset
+            self.phase_offset = phase
+            self.body_gain = body
+            self.v_offset = vofs
+
+            ideal = self.get_ideal_waveform(trial_data)
+
+            # Restore
+            self.phase_offset = orig_phase
+            self.body_gain = orig_body
+            self.v_offset = orig_vofs
+
+            if ideal is None or len(ideal) != len(target):
+                return 10.0  # Penalty for invalid
+
+            diff = np.clip(target - ideal, -5.0, 5.0)
+            return float(np.std(diff))
+
+        # Initial guess and bounds
+        if is_square:
+            x0 = [current_phase, current_sym, current_sat, current_body, current_vofs]
+            bounds = [(-0.5, 0.5), (0.0, 1.0), (0.0, 1.0), (0.25, 1.0), (-0.2, 0.2)]
+        else:
+            x0 = [current_phase, current_sym, current_sat]
+            bounds = [(-0.5, 0.5), (0.0, 1.0), (0.0, 1.0)]
+
+        logger.info(f"[Telemetry] optimize_twin: starting Nelder-Mead ({len(x0)}D, {self.active_ref_name})")
+
+        result = minimize(
+            cost, x0,
+            method='Nelder-Mead',
+            options={'maxiter': 500, 'xatol': 1e-4, 'fatol': 1e-5, 'adaptive': True},
+        )
+
+        # Apply optimized values
+        if is_square:
+            opt_phase, opt_sym, opt_sat, opt_body, opt_vofs = result.x
+        else:
+            opt_phase, opt_sym, opt_sat = result.x
+            opt_body = 1.0
+            opt_vofs = 0.0
+
+        opt_phase = float(np.clip(opt_phase, -0.5, 0.5))
+        opt_sym = float(np.clip(opt_sym, 0.0, 1.0))
+        opt_sat = float(np.clip(opt_sat, 0.0, 1.0))
+        opt_body = float(np.clip(opt_body, 0.25, 1.0))
+        opt_vofs = float(np.clip(opt_vofs, -0.2, 0.2))
+
+        # Commit to controller state
+        self.phase_offset = opt_phase
+        self.body_gain = opt_body
+        self.v_offset = opt_vofs
+        self._err_history.clear()
+
+        final_err = result.fun
+        logger.info(
+            f"[Telemetry] optimize_twin: done — ERR={final_err:.4f} "
+            f"phase={opt_phase:.4f} SYM={opt_sym:.3f} SAT={opt_sat:.3f} "
+            f"BODY={opt_body:.3f} OFS={opt_vofs:.4f} "
+            f"(iters={result.nit}, evals={result.nfev})"
+        )
+
+        return {
+            'phase': opt_phase,
+            'sym': opt_sym,
+            'sat': opt_sat,
+            'body_gain': opt_body,
+            'v_offset': opt_vofs,
+            'error': final_err,
+            'iterations': result.nit,
+            'evaluations': result.nfev,
+            'success': result.success,
+            'shape': self.active_ref_name,
+        }
 
     # -----------------------------------------------------------------
     # Preset state

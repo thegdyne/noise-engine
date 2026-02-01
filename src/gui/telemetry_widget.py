@@ -619,6 +619,14 @@ class TelemetryWidget(QWidget):
         # ── Bottom row: Snapshot + Export ──
         bottom_row = QHBoxLayout()
 
+        self.auto_lock_btn = QPushButton("AUTO LOCK")
+        self.auto_lock_btn.setStyleSheet(
+            f"font-size: {FONT_SIZES['small']}px; font-weight: bold; "
+            f"padding: 4px 14px;"
+        )
+        self.auto_lock_btn.clicked.connect(self._on_auto_lock)
+        bottom_row.addWidget(self.auto_lock_btn)
+
         snapshot_btn = QPushButton("Snapshot")
         snapshot_btn.clicked.connect(self._on_snapshot)
         bottom_row.addWidget(snapshot_btn)
@@ -721,6 +729,46 @@ class TelemetryWidget(QWidget):
     def _on_ofs_changed(self, value):
         self.controller.v_offset = value / 1000.0  # -200..200 maps to -0.2..0.2
         self.controller._err_history.clear()
+
+    def _on_auto_lock(self):
+        """Run Nelder-Mead optimizer and sync sliders to result."""
+        if not self.controller.enabled or self.controller.current_waveform is None:
+            return
+
+        self.auto_lock_btn.setText("LOCKING...")
+        self.auto_lock_btn.setEnabled(False)
+        self.auto_lock_btn.repaint()  # Force immediate visual update
+
+        result = self.controller.optimize_twin()
+
+        self.auto_lock_btn.setEnabled(True)
+
+        if result is None:
+            self.auto_lock_btn.setText("AUTO LOCK")
+            return
+
+        # Sync OS slider to optimized phase
+        os_val = int(result['phase'] * 1280.0)
+        self.os_slider.blockSignals(True)
+        self.os_slider.setValue(max(-640, min(640, os_val)))
+        self.os_slider.blockSignals(False)
+
+        # Sync BODY/OFS sliders (Square mode)
+        if result['shape'] == 'SQUARE':
+            body_val = int(result['body_gain'] * 1000)
+            self.body_slider.blockSignals(True)
+            self.body_slider.setValue(max(250, min(1000, body_val)))
+            self.body_slider.blockSignals(False)
+
+            ofs_val = int(result['v_offset'] * 1000)
+            self.ofs_slider.blockSignals(True)
+            self.ofs_slider.setValue(max(-200, min(200, ofs_val)))
+            self.ofs_slider.blockSignals(False)
+
+        # Update button text with final ERR
+        self.auto_lock_btn.setText(f"LOCKED {result['error']:.3f}")
+        # Reset button text after 3 seconds
+        QTimer.singleShot(3000, lambda: self.auto_lock_btn.setText("AUTO LOCK"))
 
     def _on_snapshot(self):
         snap = self.controller.snapshot()
