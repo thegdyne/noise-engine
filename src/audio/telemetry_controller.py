@@ -555,9 +555,10 @@ class TelemetryController(QObject):
             # MODE: PURE SINE
             base_wave = np.sin(self.ideal.t) * 1.0 + sym_offset
         elif ref_val == 0.5:
-            # MODE: GENERIC SQUARE — SYM controls duty cycle offset
-            sine = np.sin(self.ideal.t) * 1.0
-            base_wave = np.clip((sine + sym_offset) * 100, -1.0, 1.0)
+            # MODE: GENERIC SQUARE — SYM (P3) controls Pulse Width (duty cycle)
+            # Map 0.0-1.0 slider to -0.8..+0.8 threshold (10%-90% duty range)
+            pw_threshold = -0.8 + (sym * 1.6)
+            base_wave = np.where(np.sin(self.ideal.t) > pw_threshold, 1.0, -1.0)
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
             saw = self.ideal.ideal_saw_sc()
