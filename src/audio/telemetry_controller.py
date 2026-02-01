@@ -539,11 +539,11 @@ class TelemetryController(QObject):
         sym_offset = (sym - 0.5) * 2.5  # Amplified SYM range for visible response
 
         if ref_val == 0.0:
-            # MODE: PURE SINE — SYM adds DC tilt (phase asymmetry)
-            base_wave = np.sin(self.ideal.t) * 0.8 + sym_offset * 0.3
+            # MODE: PURE SINE — unity peak so stage3 (0.66) aligns with S2 target
+            base_wave = np.sin(self.ideal.t) * 1.0 + sym_offset * 0.3
         elif ref_val == 0.5:
             # MODE: GENERIC SQUARE — SYM controls duty cycle offset
-            sine = np.sin(self.ideal.t) * 0.8
+            sine = np.sin(self.ideal.t) * 1.0
             base_wave = np.clip((sine + sym_offset) * 100, -1.0, 1.0)
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
@@ -553,6 +553,7 @@ class TelemetryController(QObject):
         # Apply global Saturation (P4) and Output Normalization (0.66)
         sat_drive = 1.0 + (data.get('p4', 0.0) * 17.0)
         ideal = np.tanh(base_wave * sat_drive) * 0.66
+        ideal = ideal - np.mean(ideal)  # Null DC — prevent SYM from biasing ERR
 
         phase = data.get('phase', 0)
         return self.ideal.align_to_phase(ideal, phase)
