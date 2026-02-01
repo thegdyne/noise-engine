@@ -495,7 +495,8 @@ class TelemetryController(QObject):
         # Live RMS error against the Digital Twin ideal (10-frame rolling average)
         ideal = self.get_ideal_waveform()
         if ideal is not None and len(ideal) == len(self.current_waveform):
-            frame_err = float(np.std(self.current_waveform - ideal))
+            diff = np.clip(self.current_waveform - ideal, -5.0, 5.0)
+            frame_err = float(np.std(diff))
             self._err_history.append(frame_err)
             self.current_rms_error = sum(self._err_history) / len(self._err_history)
         else:
