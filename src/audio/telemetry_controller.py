@@ -563,9 +563,10 @@ class TelemetryController(QObject):
             base_wave = np.where(np.sin(self.ideal.t) > pw_threshold, 1.0, -1.0)
 
             # Slew limiter: models slow op-amp rise/fall time (SAT/P4 controls rate).
-            # Constrains max voltage change per sample — diagonal transitions, not tanh curves.
+            # Squared curve gives more resolution in the slow-slew region where
+            # vintage op-amp ramps live.
             sat_raw = data.get('p4', 0.0)
-            slew_rate = 0.05 + (sat_raw * 2.0)  # 0.05 (max slew = slow) to 2.05 (near instant)
+            slew_rate = 0.01 + (sat_raw ** 2 * 4.0)  # 0.01 (slow ramp) to 4.01 (instant)
             slewed = np.empty_like(base_wave)
             slewed[0] = base_wave[0]
             for n in range(1, len(base_wave)):
@@ -573,9 +574,10 @@ class TelemetryController(QObject):
                 slewed[n] = slewed[n - 1] + np.clip(diff, -slew_rate, slew_rate)
 
             # RC high-pass filter: models AC-coupling capacitor discharge.
-            # tau maps from SYM deviation: 0.5=flat (long tau), edges=droop (short tau).
+            # tau range 10.0 (nearly flat) to 0.01 (aggressive sag) matches
+            # real 258 capacitor behaviour at typical oscillator frequencies.
             sym_dev = abs(sym - 0.5) * 2.0  # 0 at center, 1 at edges
-            tau = 0.1 - sym_dev * 0.099  # 0.1 (flat) down to 0.001 (max sag)
+            tau = 10.0 - sym_dev * 9.99  # 10.0 (flat) down to 0.01 (max sag)
             dt = 1.0 / self.ideal.n_samples
             alpha = tau / (tau + dt)
             filtered = np.empty_like(slewed)
