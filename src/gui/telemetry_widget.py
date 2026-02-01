@@ -208,14 +208,21 @@ class WaveformDisplay(QWidget):
         n = len(data)
         mid_y = h / 2
         scale = mid_y * 0.9  # Leave margin
+        clamp = h * 2  # Pixel clamp to prevent int32 overflow
 
         painter.setPen(QPen(QColor(color), width))
 
         prev_x = 0
-        prev_y = mid_y - float(data[0]) * scale
+        val = float(data[0])
+        if not np.isfinite(val):
+            val = 0.0
+        prev_y = max(-clamp, min(clamp, mid_y - val * scale))
         for i in range(1, n):
             x = int(i * w / n)
-            y = mid_y - float(data[i]) * scale
+            val = float(data[i])
+            if not np.isfinite(val):
+                val = 0.0
+            y = max(-clamp, min(clamp, mid_y - val * scale))
             painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
             prev_x, prev_y = x, y
 
