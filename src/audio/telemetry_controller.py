@@ -383,44 +383,46 @@ class TelemetryController(QObject):
     def enable(self, slot: int, rate: int = None):
         """Enable telemetry for a specific slot.
 
-        Automatically starts waveform capture at CAPTURE_RATE so the
-        scope displays live data without requiring a separate checkbox.
+        Starts the internal tap immediately for INTERNAL generators so meters
+        show data. Does NOT auto-start waveform capture — the UI Capture
+        checkbox controls that separately.
 
         Args:
             slot: Generator slot index (0-7)
-            rate: Update rate in Hz (default: CAPTURE_RATE for waveform)
+            rate: Update rate in Hz (default: MONITOR_RATE for info-only)
         """
         if not 0 <= slot < 8:
             logger.warning(f"[Telemetry] Invalid slot: {slot}")
             return
 
         if rate is None:
-            rate = self.CAPTURE_RATE
+            rate = self.MONITOR_RATE
         rate = max(1, min(60, rate))
         self.target_slot = slot
         self.current_rate = rate
         self.enabled = True
-        self.waveform_active = True
         self.history.clear()
         self.current_waveform = None
 
         # SC uses 1-based slots
         self.osc.send('telem_enable', [slot + 1, rate])
-        # INTERNAL: spawn tap synth (bus observer) + waveform capture synth.
-        # EXTERNAL: HW profile tap embeds its own telemetry and waveform — no action.
+        # INTERNAL: spawn tap synth (bus observer) for meters/data.
+        # EXTERNAL: HW profile tap embeds its own telemetry — no action.
         if self._capture_type == self.CAPTURE_INTERNAL:
             self.osc.send('telem_tap_enable', [slot + 1, rate])
-            self.enable_waveform(slot)
         logger.info(f"[Telemetry] Enabled slot {slot} at {rate}Hz (capture: {self._capture_type})")
 
     def disable(self):
         """Disable telemetry and waveform capture."""
         if self.enabled:
-            # Tear down internal synths — external handles itself
-            if self.waveform_active and self._capture_type == self.CAPTURE_INTERNAL:
+            # Always free internal tap synth (harmless nop if not running)
+            if self._capture_type == self.CAPTURE_INTERNAL:
                 self.osc.send('telem_tap_enable', [self.target_slot + 1, 0])
-                self.disable_waveform(self.target_slot)
-            self.waveform_active = False
+            # Tear down waveform capture if active
+            if self.waveform_active:
+                if self._capture_type == self.CAPTURE_INTERNAL:
+                    self.disable_waveform(self.target_slot)
+                self.waveform_active = False
             self.osc.send('telem_enable', [self.target_slot + 1, 0])
             self.enabled = False
             self.current_waveform = None
@@ -443,24 +445,30 @@ class TelemetryController(QObject):
     def set_slot(self, slot: int):
         """Switch to monitoring a different slot.
 
-        Tears down internal capture on old slot. Does NOT start capture on
-        the new slot — set_generator_context() handles that after the widget
-        determines the new slot's generator type (internal vs external).
+        Tears down internal capture on old slot, then optimistically starts
+        tap on new slot (assuming INTERNAL). set_generator_context() will
+        correct if the new slot is actually EXTERNAL.
         """
         if not 0 <= slot < 8:
             return
         old_slot = self.target_slot
         if self.enabled:
-            # Tear down old slot: internal tap + waveform capture (harmless nop for external)
-            if self.waveform_active:
+            # Tear down old slot: internal tap + waveform capture
+            if self._capture_type == self.CAPTURE_INTERNAL:
                 self.osc.send('telem_tap_enable', [old_slot + 1, 0])
+            if self.waveform_active and self._capture_type == self.CAPTURE_INTERNAL:
                 self.disable_waveform(old_slot)
             # Disable old slot, enable new
             self.osc.send('telem_enable', [old_slot + 1, 0])
             self.target_slot = slot
             self.osc.send('telem_enable', [slot + 1, self.current_rate])
-            # Don't start tap/capture here — set_generator_context() will handle it
-            # after the widget calls _update_generator_context() with the new type.
+            # Optimistically start tap for new slot (most generators are INTERNAL).
+            # set_generator_context() will stop it if the slot is actually EXTERNAL.
+            if self._capture_type == self.CAPTURE_INTERNAL:
+                self.osc.send('telem_tap_enable', [slot + 1, self.current_rate])
+            # Restart waveform capture on new slot if it was active
+            if self.waveform_active and self._capture_type == self.CAPTURE_INTERNAL:
+                self.enable_waveform(slot)
             self.history.clear()
             self.current_waveform = None
         else:
@@ -473,8 +481,9 @@ class TelemetryController(QObject):
           - CAPTURE_EXTERNAL: hw_profile_tap embeds its own telemetry + waveform
           - CAPTURE_INTERNAL: forge_internal_telem_tap + forge_telemetry_wave_capture
 
-        This is the authority for the internal synth lifecycle. set_slot() tears
-        down the old slot's synths, this method sets up the new slot based on type.
+        This is the AUTHORITY for the internal synth lifecycle:
+          - INTERNAL: ensure tap is running (meters), restart waveform if active
+          - EXTERNAL: explicitly STOP tap and waveform capture (HW handles itself)
         """
         self.current_generator_id = name or ""
         self.current_synthdef_name = synthdef or ""
@@ -483,14 +492,19 @@ class TelemetryController(QObject):
         old_type = self._capture_type
         self._capture_type = new_type
 
-        # Ensure correct synths are running for the new type.
-        # set_slot() already tore down the old slot's internal synths.
-        if self.enabled and self.waveform_active:
+        if self.enabled:
             if new_type == self.CAPTURE_INTERNAL:
-                # Spawn internal tap (bus observer for meters) + waveform capture
+                # Ensure internal tap is running for meters/data
                 self.osc.send('telem_tap_enable', [self.target_slot + 1, self.current_rate])
-                self.enable_waveform(self.target_slot)
-            # EXTERNAL needs no action — HW tap's embedded telemetry is automatic.
+                # Restart waveform capture if the UI checkbox is active
+                if self.waveform_active:
+                    self.enable_waveform(self.target_slot)
+            elif new_type == self.CAPTURE_EXTERNAL:
+                # Explicitly STOP internal tap — HW tap embeds its own telemetry
+                self.osc.send('telem_tap_enable', [self.target_slot + 1, 0])
+                # Stop internal waveform capture — HW tap embeds its own
+                if self.waveform_active:
+                    self.disable_waveform(self.target_slot)
 
         if old_type != new_type:
             logger.info(f"[Telemetry] Capture type: {old_type} → {new_type}")

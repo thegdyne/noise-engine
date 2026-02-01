@@ -664,15 +664,11 @@ class TelemetryWidget(QWidget):
     def _on_enable_toggled(self, checked):
         if checked:
             self._update_generator_context()
-            # controller.enable() auto-starts waveform capture at CAPTURE_RATE
+            # enable() starts the internal tap for meters/data — waveform is separate
             self.controller.enable(self.slot_combo.currentIndex())
             self.enable_btn.setText("Disable")
-            # Sync UI: auto-check Capture, set fast refresh
-            self.wave_enable_cb.blockSignals(True)
-            self.wave_enable_cb.setChecked(True)
-            self.wave_enable_cb.blockSignals(False)
-            self.waveform_display.set_capture_enabled(True)
-            self._timer.setInterval(66)  # ~15fps for smooth waveform
+            # Monitor-only rate: meters update at ~8fps
+            self._timer.setInterval(125)
         else:
             self.controller.disable()
             self.enable_btn.setText("Enable")
