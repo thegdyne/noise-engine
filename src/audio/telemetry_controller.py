@@ -389,6 +389,7 @@ class TelemetryController(QObject):
         self.enabled = True
         self.waveform_active = True
         self.history.clear()
+        self.current_waveform = None
 
         # SC uses 1-based slots
         self.osc.send('telem_enable', [slot + 1, rate])
@@ -403,6 +404,7 @@ class TelemetryController(QObject):
                 self.waveform_active = False
             self.osc.send('telem_enable', [self.target_slot + 1, 0])
             self.enabled = False
+            self.current_waveform = None
             logger.info("[Telemetry] Disabled")
 
     def set_rate(self, rate: int):

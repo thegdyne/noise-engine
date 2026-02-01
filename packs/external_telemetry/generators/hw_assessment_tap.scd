@@ -17,7 +17,8 @@ correction (RunningSum 16384 samples / ~340ms) and a minimum-period lockout
 (24 samples / 2kHz max) for stable zero-crossing detection on noisy,
 low-frequency hardware signals (10Hz+).
 Telemetry reports measured freq for Hz labels, Schmitt phase for overlay.
-Waveform capture uses the existing forge_telemetry_wave_capture infrastructure.
+Waveform capture is embedded (phase-wrapped 128-sample LocalBuf) — bypasses
+the external forge_telemetry_wave_capture synth for DC-bias-immune capture.
 
 Custom params:
   - P0 CHN: MOTU M6 input channel (0-5)
@@ -51,6 +52,9 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 
 	// DC offset tracking
 	var dcBias;
+
+	// Phase-wrapped waveform capture (128-sample single-cycle table)
+	var waveBuf, waveIdx, waveOut;
 
 	// Contiguous 5-channel custom bus read
 	p = In.kr(customBus0, 5);
@@ -105,7 +109,18 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	// Bad value detection
 	badValue = CheckBadValues.ar(sig, post: 0);
 
+	// --- PHASE-WRAPPED WAVEFORM CAPTURE ---
+	// 128-sample LocalBuf written by phase index — creates a stable
+	// single-cycle picture regardless of frequency. Immune to DC bias
+	// because it uses the Schmidt-derived phase ramp.
+	waveBuf = LocalBuf(128);
+	waveIdx = (phase * 127).clip(0, 127);
+	BufWr.ar(stage3, waveBuf, waveIdx, loop: 1);
+	// Read back the full table at control rate for the OSC payload
+	waveOut = BufRd.kr(1, waveBuf, Array.series(128, 0, 1));
+
 	// === TELEMETRY (only active when telemetryRate > 0) ===
+	// Path A: Standard metrics (freq, phase, params, RMS, peak)
 	SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
 		slotIndex,
 		A2K.kr(freq),                                    // Schmidt-measured hardware frequency
@@ -117,6 +132,14 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 		Peak.ar(stage1, Impulse.kr(telemetryRate.max(0.1))).lag(0.1),  // Peak of RAW input
 		A2K.kr(badValue)
 	]);
+
+	// Path B: Waveform frame (128 phase-wrapped samples)
+	// Sent via internal SendReply → relayed to Python by telemetry_tap.scd
+	SendReply.kr(
+		Impulse.kr(telemetryRate.min(15)) * (telemetryRate > 0),
+		'/noise/telem/hw_wave',
+		[slotIndex] ++ waveOut
+	);
 
 	// --- MANDATORY TAIL ---
 	sig = NumChannels.ar(sig, 2);

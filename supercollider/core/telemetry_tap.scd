@@ -202,6 +202,22 @@
     "  [Telemetry] OSC handler /noise/telem/wave/ready registered".postln;
 
     // =========================================================================
+    // OSC HANDLER: /noise/telem/hw_wave (relay embedded waveform SendReply)
+    // =========================================================================
+    // hw_assessment_tap embeds a phase-wrapped 128-sample capture via SendReply.
+    // Relay the data to Python in the same format as the buffer-based path.
+    // SendReply format: [cmdName, nodeID, replyID, slotIndex, ...128 samples]
+
+    OSCdef(\telemHwWave, { |msg, time, addr, recvPort|
+        if (~pythonAddr.notNil) {
+            // msg[3] = slotIndex, msg[4..] = 128 waveform samples
+            ~pythonAddr.sendMsg('/noise/telem/wave', *msg[3..]);
+        };
+    }, '/noise/telem/hw_wave');
+
+    "  [Telemetry] OSC handler /noise/telem/hw_wave relay registered".postln;
+
+    // =========================================================================
     // CLEANUP
     // =========================================================================
 
@@ -213,6 +229,7 @@
         OSCdef(\telemGen).free;
         OSCdef(\telemWaveEnable).free;
         OSCdef(\telemWaveReady).free;
+        OSCdef(\telemHwWave).free;
         "[Telemetry] Cleaned up".postln;
     };
 
