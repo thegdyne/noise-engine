@@ -355,6 +355,7 @@ class TelemetryController(QObject):
         # Waveform buffer
         self.current_waveform = None
         self.current_rms_error = 0.0
+        self.active_ref_name = "SAW"  # Current snapped REF shape name
 
         # Generator info (set externally for snapshot provenance)
         self.current_generator_id = ""
@@ -503,10 +504,10 @@ class TelemetryController(QObject):
     def get_ideal_waveform(self, data: dict = None) -> np.ndarray:
         """Generate a universal reference waveform based on the REF (P2) selector.
 
-        REF selects the base shape category for 1:1 hardware matching:
-            0.0-0.25: Pure Sine
-            0.26-0.75: Generic Square (with P3/SYM as duty cycle offset)
-            0.76-1.0: Pure Sawtooth
+        REF is quantized (snapped) to three discrete shapes:
+            < 0.33: SINE   (snaps to 0.0)
+            0.33-0.66: SQUARE (snaps to 0.5, P3/SYM controls duty cycle)
+            > 0.66: SAW    (snaps to 1.0)
 
         User adjusts SYM (P3) and SAT (P4) until ideal matches hardware.
         Returns phase-aligned ideal waveform array, or None if no data.
@@ -516,15 +517,26 @@ class TelemetryController(QObject):
         if data is None:
             return None
 
-        # THE UNIVERSAL SWITCH:
-        # Moves away from B258 morphing to allow 1:1 hardware matching.
-        ref_val = data.get('p2', 1.0)  # Using P2 as the Shape Selector
+        raw_ref = data.get('p2', 1.0)
+
+        # 1. QUANTIZATION (Snapping) — eliminates dead-zone ambiguity
+        if raw_ref < 0.33:
+            ref_val = 0.0
+            self.active_ref_name = "SINE"
+        elif raw_ref < 0.66:
+            ref_val = 0.5
+            self.active_ref_name = "SQUARE"
+        else:
+            ref_val = 1.0
+            self.active_ref_name = "SAW"
+
         sym = data.get('p3', 0.5)
 
-        if ref_val < 0.25:
+        # 2. GENERATION (using strictly snapped ref_val)
+        if ref_val == 0.0:
             # MODE: PURE SINE
             base_wave = np.sin(self.ideal.t) * 0.8
-        elif ref_val < 0.75:
+        elif ref_val == 0.5:
             # MODE: GENERIC SQUARE (P3/SYM controls duty cycle)
             sine = np.sin(self.ideal.t) * 0.8
             duty_offset = (sym - 0.5) * 1.5
