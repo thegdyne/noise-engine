@@ -422,6 +422,13 @@ class TelemetryWidget(QWidget):
         self.delta_cb.toggled.connect(self._on_delta_toggled)
         wave_row.addWidget(self.delta_cb)
 
+        self.inv_btn = QPushButton("INV")
+        self.inv_btn.setCheckable(True)
+        self.inv_btn.setFixedWidth(40)
+        self.inv_btn.setStyleSheet(f"font-size: {FONT_SIZES['tiny']}px;")
+        self.inv_btn.toggled.connect(self._on_inv_toggled)
+        wave_row.addWidget(self.inv_btn)
+
         wave_row.addStretch()
         layout.addLayout(wave_row)
 
@@ -514,6 +521,10 @@ class TelemetryWidget(QWidget):
 
     def _on_delta_toggled(self, checked):
         self.waveform_display.set_show_delta(checked)
+
+    def _on_inv_toggled(self, checked):
+        self.controller.phase_inverted = checked
+        self.controller._err_history.clear()  # Reset rolling average on flip
 
     def _on_snapshot(self):
         snap = self.controller.snapshot()
@@ -677,11 +688,15 @@ class TelemetryWidget(QWidget):
         # Safety corridor: auto-enable in hw mode for PA calibration
         self.waveform_display.set_show_safety(self.controller.is_hw_mode)
 
-        # Core Lock
+        # Core Lock / Phase Inversion Warning
         bad = data.get('bad_value', 0)
+        rms_err = self.controller.current_rms_error
+        phase_locked = not self.controller.has_phase_lock_warning(data)
         if bad > 0:
-            err = "NaN" if bad == 1 else "∞"
-            self.core_lock_label.setText(f"⚠ CORE LOCK: {err}")
+            err_txt = "NaN" if bad == 1 else "∞"
+            self.core_lock_label.setText(f"⚠ CORE LOCK: {err_txt}")
+        elif rms_err > 0.40 and phase_locked and not self.controller.phase_inverted:
+            self.core_lock_label.setText("⚠ PHASE INVERTED? Try INV")
         else:
             if self.core_lock_label.text():
                 self.core_lock_label.setText("")

@@ -357,6 +357,7 @@ class TelemetryController(QObject):
         self.current_rms_error = 0.0
         self._err_history = deque(maxlen=10)  # Rolling average for stable ERR
         self.active_ref_name = "SAW"  # Current snapped REF shape name
+        self.phase_inverted = False   # Manual phase flip for 180° correction
 
         # Generator info (set externally for snapshot provenance)
         self.current_generator_id = ""
@@ -565,9 +566,10 @@ class TelemetryController(QObject):
         ideal = np.tanh(base_wave * sat_drive) * 0.66
         ideal = ideal - np.mean(ideal)  # Null DC — prevent SYM from biasing ERR
 
-        # No phase alignment needed: the hardware profiler's LocalBuf capture
-        # is phase-indexed (BufWr writes by Phasor phase), so sample 0 always
-        # corresponds to phase 0. The ideal waveform starts at phase 0 too.
+        # Phase inversion toggle for 180° correction
+        if self.phase_inverted:
+            ideal = -ideal
+
         return ideal.astype(np.float32)
 
     def get_delta_waveform(self) -> np.ndarray:
