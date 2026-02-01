@@ -354,6 +354,7 @@ class TelemetryController(QObject):
 
         # Waveform buffer
         self.current_waveform = None
+        self.current_rms_error = 0.0
 
         # Generator info (set externally for snapshot provenance)
         self.current_generator_id = ""
@@ -487,6 +488,13 @@ class TelemetryController(QObject):
             return
 
         self.current_waveform = np.asarray(samples, dtype=np.float32)
+
+        # Live RMS error against the Digital Twin ideal
+        ideal = self.get_ideal_waveform()
+        if ideal is not None and len(ideal) == len(self.current_waveform):
+            self.current_rms_error = float(np.std(self.current_waveform - ideal))
+        else:
+            self.current_rms_error = 0.0
 
     # -----------------------------------------------------------------
     # Ideal overlay generation from current telemetry

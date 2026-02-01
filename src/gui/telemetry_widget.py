@@ -343,7 +343,7 @@ class TelemetryWidget(QWidget):
 
         self._param_header_labels = []  # QLabel refs for dynamic relabeling
         self.param_values = {}
-        self._param_keys = ["FRQ", "P0", "P1", "P2", "P3", "P4"]
+        self._param_keys = ["FRQ", "P0", "P1", "P2", "P3", "P4", "ERR"]
 
         for col, name in enumerate(self._param_keys):
             lbl = QLabel(name)
@@ -553,7 +553,7 @@ class TelemetryWidget(QWidget):
 
     def _update_param_labels(self):
         """Update param header labels based on current generator."""
-        labels = ["FRQ"] + self.controller.param_labels
+        labels = ["FRQ"] + self.controller.param_labels + ["ERR"]
         for i, lbl_widget in enumerate(self._param_header_labels):
             lbl_widget.setText(labels[i])
 
@@ -620,6 +620,19 @@ class TelemetryWidget(QWidget):
         self.param_values["P2"].setText(f"{data.get('p2', 0):.3f}")
         self.param_values["P3"].setText(f"{data.get('p3', 0):.3f}")
         self.param_values["P4"].setText(f"{data.get('p4', 0):.3f}")
+
+        # Live RMS error (Digital Twin match quality)
+        err = self.controller.current_rms_error
+        self.param_values["ERR"].setText(f"{err:.3f}")
+        if err > 0 and err < 0.10:
+            err_color = COLORS['meter_normal']
+        elif err > 0 and err < 0.25:
+            err_color = COLORS['meter_warn']
+        else:
+            err_color = COLORS['text_dim']
+        self.param_values["ERR"].setStyleSheet(
+            f"color: {err_color}; font-size: {FONT_SIZES['label']}px; font-family: {MONO_FONT};"
+        )
 
         # Stage meters
         rms1 = data.get('rms_stage1', 0)
