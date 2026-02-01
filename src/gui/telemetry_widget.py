@@ -16,7 +16,8 @@ import time
 import numpy as np
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QPainter, QPen, QColor
-from PyQt5.QtWidgets import (
+from PyQt5.QtWidgets import (  # noqa: E501
+    QSlider,
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QComboBox, QCheckBox, QFrame,
     QFileDialog,
@@ -429,6 +430,18 @@ class TelemetryWidget(QWidget):
         self.inv_btn.toggled.connect(self._on_inv_toggled)
         wave_row.addWidget(self.inv_btn)
 
+        os_label = QLabel("OS")
+        os_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        wave_row.addWidget(os_label)
+
+        self.os_slider = QSlider(Qt.Horizontal)
+        self.os_slider.setMinimum(-64)
+        self.os_slider.setMaximum(64)
+        self.os_slider.setValue(0)
+        self.os_slider.setFixedWidth(80)
+        self.os_slider.valueChanged.connect(self._on_os_changed)
+        wave_row.addWidget(self.os_slider)
+
         wave_row.addStretch()
         layout.addLayout(wave_row)
 
@@ -525,6 +538,10 @@ class TelemetryWidget(QWidget):
     def _on_inv_toggled(self, checked):
         self.controller.phase_inverted = checked
         self.controller._err_history.clear()  # Reset rolling average on flip
+
+    def _on_os_changed(self, value):
+        self.controller.phase_offset = value / 128.0  # -64..+64 maps to -0.5..+0.5
+        self.controller._err_history.clear()
 
     def _on_snapshot(self):
         snap = self.controller.snapshot()

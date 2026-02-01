@@ -358,6 +358,7 @@ class TelemetryController(QObject):
         self._err_history = deque(maxlen=10)  # Rolling average for stable ERR
         self.active_ref_name = "SAW"  # Current snapped REF shape name
         self.phase_inverted = False   # Manual phase flip for 180° correction
+        self.phase_offset = 0.0      # Manual horizontal shift (0-1 maps to 0-128 samples)
 
         # Generator info (set externally for snapshot provenance)
         self.current_generator_id = ""
@@ -570,6 +571,11 @@ class TelemetryController(QObject):
         # Phase inversion toggle for 180° correction
         if self.phase_inverted:
             ideal = -ideal
+
+        # Manual phase offset — horizontal slide of ideal over actual
+        if self.phase_offset != 0.0:
+            shift = int(self.phase_offset * len(ideal))
+            ideal = np.roll(ideal, shift)
 
         return ideal.astype(np.float32)
 
