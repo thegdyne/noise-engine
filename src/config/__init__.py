@@ -253,6 +253,7 @@ _CORE_GENERATOR_ORDER = [
     "B258 Master",
     "B258 Extreme",
     "B258 Dual Morph",
+    "B258 Dual Osc",
     "Reference Sine",
     "Drone",
     # 808 Drums
