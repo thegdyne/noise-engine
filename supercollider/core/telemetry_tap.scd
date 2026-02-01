@@ -51,10 +51,10 @@
     // --- 2. Internal Data Tap Synth (Audio -> OSC Data) ---
     // Reads audio from ~intermediateBus and control params from customBus0
     // to provide full telemetry (RMS, peak, freq, params) for any generator.
-    SynthDef(\forge_internal_telem_tap, { |inBus, customBus, slotIndex=0, telemetryRate=0|
+    SynthDef(\forge_internal_telem_tap, { |inBus, customBus, slotIndex=0, telemetryRate=0, calGain=1.0|
         var sig = In.ar(inBus, 2);
         var p = In.kr(customBus, 5);
-        var mono = sig[0];
+        var mono = sig[0] * calGain;
         var rms = Amplitude.ar(mono, 0.01, 0.1);
         var peak = Peak.ar(mono, Impulse.kr(telemetryRate.max(0.1))).lag(0.1);
         var freq = ZeroCrossing.ar(mono).max(20).min(20000);
@@ -99,6 +99,7 @@
     OSCdef(\telemTapEnable, { |msg|
         var slot = msg[1].asInteger;
         var rate = msg[2].asInteger;
+        var calGain = if(msg.size > 3, { msg[3].asFloat }, { 1.0 });
         var idx = slot - 1;
         var custom0Idx, slotKey, useUnified;
 
@@ -123,9 +124,10 @@
                     ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
                         \inBus, ~intermediateBus[idx].index,
                         \customBus, custom0Idx,
-                        \slotIndex, idx, \telemetryRate, rate
+                        \slotIndex, idx, \telemetryRate, rate,
+                        \calGain, calGain
                     ], ~fxGroup, \addAfter);
-                    "[Telemetry] Internal Tap START slot % (customBus: %)".format(slot, custom0Idx).postln;
+                    "[Telemetry] Internal Tap START slot % (customBus: %, calGain: %)".format(slot, custom0Idx, calGain).postln;
                 };
             } {
                 "[Telemetry] Internal Tap STOP slot %".format(slot).postln;

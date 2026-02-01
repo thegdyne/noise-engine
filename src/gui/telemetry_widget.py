@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (  # noqa: E501
     QSlider, QMenu,
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QComboBox, QCheckBox, QFrame,
-    QFileDialog,
+    QFileDialog, QDoubleSpinBox,
 )
 
 from src.audio.telemetry_controller import TelemetryController
@@ -510,6 +510,35 @@ class TelemetryWidget(QWidget):
         peak_frame.addStretch()
 
         meters_row.addLayout(peak_frame)
+
+        meters_row.addSpacing(12)
+
+        # Cal gain (internal tap calibration)
+        cal_frame = QVBoxLayout()
+        cal_label = QLabel("CAL")
+        cal_label.setAlignment(Qt.AlignCenter)
+        cal_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        cal_frame.addWidget(cal_label)
+
+        self.cal_spin = QDoubleSpinBox()
+        self.cal_spin.setRange(0.0, 4.0)
+        self.cal_spin.setSingleStep(0.01)
+        self.cal_spin.setDecimals(3)
+        self.cal_spin.setValue(1.0)
+        self.cal_spin.setFixedWidth(70)
+        self.cal_spin.setStyleSheet(
+            f"background-color: {COLORS['background_highlight']}; "
+            f"color: {COLORS['text_bright']}; border: 1px solid {COLORS['border']}; "
+            f"font-size: {FONT_SIZES['small']}px; font-family: {MONO_FONT};"
+        )
+        self.cal_spin.valueChanged.connect(self._on_cal_changed)
+        cal_frame.addWidget(self.cal_spin)
+        cal_frame.addStretch()
+
+        self.cal_frame_widget = QWidget()
+        self.cal_frame_widget.setLayout(cal_frame)
+        meters_row.addWidget(self.cal_frame_widget)
+
         meters_row.addStretch()
 
         layout.addLayout(meters_row)
@@ -721,6 +750,9 @@ class TelemetryWidget(QWidget):
     def _on_fine_toggled(self, checked):
         self.os_slider.set_fine_mode(checked)
 
+    def _on_cal_changed(self, value):
+        self.controller.set_cal_gain(value)
+
     def _on_body_changed(self, value):
         self.controller.body_gain = value / 1000.0  # 250..1000 maps to 0.25..1.0
         self.controller._err_history.clear()
@@ -822,6 +854,10 @@ class TelemetryWidget(QWidget):
         self.controller.set_generator_context(gen_name, synthdef)
         self._update_param_labels()
         self._update_source_label(gen_name)
+
+        # Cal gain only applies to internal capture
+        is_internal = self.controller._capture_type == TelemetryController.CAPTURE_INTERNAL
+        self.cal_frame_widget.setEnabled(is_internal)
 
     def _update_param_labels(self):
         """Update param header labels based on current generator."""

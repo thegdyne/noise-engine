@@ -354,6 +354,7 @@ class TelemetryController(QObject):
         self.target_slot = 0
         self.current_rate = 0
         self._capture_type = self.CAPTURE_INTERNAL  # Set by set_generator_context()
+        self.cal_gain = 1.0  # Calibration gain for internal tap (1.0 = raw)
 
         # History buffer (rolling)
         self.history = deque(maxlen=300)  # ~10 seconds at 30fps
@@ -400,7 +401,7 @@ class TelemetryController(QObject):
         # EXCLUSIVE BRANCHING:
         # INTERNAL: Start infrastructure tap. Waveform started separately if needed.
         if self._capture_type == self.CAPTURE_INTERNAL:
-            self.osc.send('telem_tap_enable', [slot_idx, rate])
+            self.osc.send('telem_tap_enable', [slot_idx, rate, self.cal_gain])
         # EXTERNAL: Configure embedded telemetry.
         else:
             self.osc.send('telem_enable', [slot_idx, rate])
@@ -438,7 +439,7 @@ class TelemetryController(QObject):
         slot_idx = self.target_slot + 1
 
         if self._capture_type == self.CAPTURE_INTERNAL:
-            self.osc.send('telem_tap_enable', [slot_idx, rate])
+            self.osc.send('telem_tap_enable', [slot_idx, rate, self.cal_gain])
         else:
             self.osc.send('telem_enable', [slot_idx, rate])
 
@@ -474,7 +475,7 @@ class TelemetryController(QObject):
             # Optimistically start Internal Tap.
             # If the new generator is External, set_generator_context will stop this shortly.
             # This prevents "dead meters" during the context switch lag.
-            self.osc.send('telem_tap_enable', [new_idx, self.current_rate])
+            self.osc.send('telem_tap_enable', [new_idx, self.current_rate, self.cal_gain])
 
             # NOTE: We do NOT auto-start waveform capture here.
             # We let set_generator_context() handle that once it determines the
@@ -503,7 +504,7 @@ class TelemetryController(QObject):
 
             if new_type == self.CAPTURE_INTERNAL:
                 # INTERNAL: Ensure infrastructure tap is RUNNING
-                self.osc.send('telem_tap_enable', [slot_idx, self.current_rate])
+                self.osc.send('telem_tap_enable', [slot_idx, self.current_rate, self.cal_gain])
 
                 # If UI wants waveform, ensure internal capture is RUNNING
                 if self.waveform_active:
@@ -519,6 +520,14 @@ class TelemetryController(QObject):
 
         if old_type != new_type:
             logger.info(f"[Telemetry] Capture type: {old_type} -> {new_type}")
+
+    def set_cal_gain(self, value: float):
+        """Set calibration gain for internal tap and re-send if active."""
+        self.cal_gain = max(0.0, min(4.0, value))
+        if self.enabled and self._capture_type == self.CAPTURE_INTERNAL:
+            slot_idx = self.target_slot + 1
+            self.osc.send('telem_tap_enable', [slot_idx, self.current_rate, self.cal_gain])
+        logger.info(f"[Telemetry] Cal gain set to {self.cal_gain:.3f}")
 
     @property
     def is_hw_mode(self) -> bool:
@@ -933,6 +942,7 @@ class TelemetryController(QObject):
             'phase_offset': self.phase_offset,
             'body_gain': self.body_gain,
             'v_offset': self.v_offset,
+            'cal_gain': self.cal_gain,
         }
 
     def set_state(self, state: dict):
@@ -941,6 +951,7 @@ class TelemetryController(QObject):
         self.phase_offset = state.get('phase_offset', 0.0)
         self.body_gain = state.get('body_gain', 1.0)
         self.v_offset = state.get('v_offset', 0.0)
+        self.cal_gain = state.get('cal_gain', 1.0)
         self._err_history.clear()
 
     # -----------------------------------------------------------------

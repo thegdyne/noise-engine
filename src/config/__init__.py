@@ -1618,7 +1618,7 @@ OSC_PATHS = {
     'scope_debug_done': '/noise/scope/debug/done', # SC → Python: [path, write_pos] capture complete
     # Telemetry (development tool)
     'telem_enable': '/noise/telem/enable',             # [slot, rate] Python → SC
-    'telem_tap_enable': '/noise/telem/tap/enable',     # [slot, rate] Python → SC: internal tap
+    'telem_tap_enable': '/noise/telem/tap/enable',     # [slot, rate, calGain] Python → SC: internal tap
     'telem_gen': '/noise/telem/gen',                   # SC → Python: control-rate data
     'telem_wave_enable': '/noise/telem/wave/enable',   # [slot, enable] Python → SC
     'telem_wave': '/noise/telem/wave',                 # SC → Python: waveform samples
