@@ -83,8 +83,12 @@ class MidiCCController:
         if not hasattr(control, 'minimum') or not hasattr(control, 'maximum'):
             return
 
-        min_val = control.minimum()
-        max_val = control.maximum()
+        # Use cc_range() for controls with fine mode, else full slider range
+        if hasattr(control, 'cc_range'):
+            min_val, max_val = control.cc_range()
+        else:
+            min_val = control.minimum()
+            max_val = control.maximum()
         param_range = max_val - min_val
         cc_scaled = min_val + (value / 127.0) * param_range
         eps = (param_range / 127.0) * 3

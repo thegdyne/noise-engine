@@ -238,6 +238,10 @@ class MidiHSlider(QSlider):
 
     Hold Shift for 10x finer steps (singleStep=1 becomes effectively 0.1x
     by requiring 10 scroll events per step).
+
+    FINE mode: when enabled, MIDI CC 0-127 maps to a ±64 window around
+    the current value instead of the full ±640 range. Gives ~1 slider unit
+    per CC step for sub-sample precision.
     """
 
     def __init__(self, main_frame_ref=None, parent=None):
@@ -247,6 +251,32 @@ class MidiHSlider(QSlider):
         self._midi_mapped = False
         self._cc_ghost = None
         self._shift_accum = 0  # Accumulator for shift-key fine steps
+        self._fine_mode = False
+        self._fine_center = 0  # Captured when FINE toggled on
+
+    def set_fine_mode(self, enabled):
+        """Toggle fine CC mode. Captures current value as center."""
+        self._fine_mode = enabled
+        if enabled:
+            self._fine_center = self.value()
+        # Reset pickup so CC re-catches at the new range
+        mf = self._get_main_frame()
+        if mf:
+            mapping = mf.cc_mapping_manager.get_mapping_for_control(self)
+            if mapping:
+                mf.cc_mapping_manager.reset_pickup(*mapping)
+
+    def cc_range(self):
+        """Return effective (min, max) for CC mapping.
+
+        Normal: full slider range. FINE: ±64 around captured center,
+        clamped to slider bounds.
+        """
+        if self._fine_mode:
+            lo = max(self.minimum(), self._fine_center - 64)
+            hi = min(self.maximum(), self._fine_center + 64)
+            return (lo, hi)
+        return (self.minimum(), self.maximum())
 
     def wheelEvent(self, event):
         from PyQt5.QtWidgets import QApplication
@@ -528,6 +558,13 @@ class TelemetryWidget(QWidget):
         self.os_slider.valueChanged.connect(self._on_os_changed)
         wave_row.addWidget(self.os_slider)
 
+        self.fine_btn = QPushButton("FINE")
+        self.fine_btn.setCheckable(True)
+        self.fine_btn.setFixedWidth(40)
+        self.fine_btn.setStyleSheet(f"font-size: {FONT_SIZES['tiny']}px;")
+        self.fine_btn.toggled.connect(self._on_fine_toggled)
+        wave_row.addWidget(self.fine_btn)
+
         wave_row.addStretch()
         layout.addLayout(wave_row)
 
@@ -628,6 +665,9 @@ class TelemetryWidget(QWidget):
     def _on_os_changed(self, value):
         self.controller.phase_offset = value / 1280.0  # -640..+640 maps to -0.5..+0.5
         self.controller._err_history.clear()
+
+    def _on_fine_toggled(self, checked):
+        self.os_slider.set_fine_mode(checked)
 
     def _on_snapshot(self):
         snap = self.controller.snapshot()
