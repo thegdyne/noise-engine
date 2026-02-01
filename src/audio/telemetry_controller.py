@@ -359,6 +359,8 @@ class TelemetryController(QObject):
         self.active_ref_name = "SAW"  # Current snapped REF shape name
         self.phase_inverted = False   # Manual phase flip for 180° correction
         self.phase_offset = 0.0      # Manual horizontal shift (0-1 maps to 0-128 samples)
+        self.body_gain = 1.0         # Body scalar: 0.25x-1.0x shrinks ideal inside hw peak
+        self.v_offset = 0.0          # Vertical DC offset: ±0.2 for asymmetric high/low
 
         # Generator info (set externally for snapshot provenance)
         self.current_generator_id = ""
@@ -560,7 +562,7 @@ class TelemetryController(QObject):
             pw_threshold = -0.8 + (sym * 1.6)
             base_wave = np.where(np.sin(self.ideal.t) > pw_threshold, 1.0, -1.0)
             # Analog sag: linear tilt models capacitor discharge on high/low plateaus
-            sag_amount = (sym - 0.5) * 0.2
+            sag_amount = (sym - 0.5) * 6.0
             base_wave = base_wave + (self.ideal.t / self.ideal.t[-1]) * sag_amount
         else:
             # MODE: PURE SAWTOOTH — SYM tilts the ramp slope
@@ -577,18 +579,20 @@ class TelemetryController(QObject):
         comp = np.tanh(sat_drive) if sat_drive > 1.0 else 1.0
         # Dynamic peak: match hardware amplitude instead of hardcoded 0.66
         hw_peak = data.get('peak', 0.66)
-        # P1 (LVL) as body scalar: shrink digital twin inside hw peak to match
-        # the actual plateau amplitude (e.g. peak=0.68 but body=0.44)
-        gain_scalar = data.get('p1', 1.0)
-        ideal = (saturated / comp) * hw_peak * gain_scalar
+        # Body scalar: shrink digital twin inside hw peak to match the actual
+        # plateau amplitude (e.g. peak=0.68 but body=0.44)
+        ideal = (saturated / comp) * hw_peak * self.body_gain
 
-        ideal = ideal - np.mean(ideal)  # Null DC — prevent SYM from biasing ERR
+        # DC null: remove mean to prevent SYM from biasing ERR.
+        # Bypassed in Square mode so manual vertical offset can work against
+        # the actual DC content of the square wave.
+        if ref_val != 0.5:
+            ideal = ideal - np.mean(ideal)
 
-        # P0 (CHN) as vertical offset: slide the wave up/down to match
-        # hardware DC bias (high/low state asymmetry). Applied after DC null
-        # so the offset is preserved.
-        offset = (data.get('p0', 0.5) - 0.5) * 0.2
-        ideal = ideal + offset
+        # Vertical offset: slide the wave up/down to match hardware DC bias
+        # (high/low state asymmetry in analog circuits)
+        if self.v_offset != 0.0:
+            ideal = ideal + self.v_offset
 
         # Phase inversion toggle for 180° correction
         if self.phase_inverted:
@@ -668,12 +672,16 @@ class TelemetryController(QObject):
         return {
             'phase_inverted': self.phase_inverted,
             'phase_offset': self.phase_offset,
+            'body_gain': self.body_gain,
+            'v_offset': self.v_offset,
         }
 
     def set_state(self, state: dict):
         """Restore telemetry tuning state from preset load."""
         self.phase_inverted = state.get('phase_inverted', False)
         self.phase_offset = state.get('phase_offset', 0.0)
+        self.body_gain = state.get('body_gain', 1.0)
+        self.v_offset = state.get('v_offset', 0.0)
         self._err_history.clear()
 
     # -----------------------------------------------------------------

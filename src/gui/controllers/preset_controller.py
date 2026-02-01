@@ -322,7 +322,7 @@ class PresetController:
                 self.main.boid_panel.set_row_slot4(s.row_slot4)
                 self.main.boid_panel.set_preset(s.behavior_preset)
 
-        # Load telemetry tuning state (INV, OS)
+        # Load telemetry tuning state (INV, OS, BODY, OFS)
         if state.telemetry and getattr(self.main, 'telemetry_controller', None) is not None:
             self.main.telemetry_controller.set_state(state.telemetry)
             # Sync widget UI if open
@@ -331,6 +331,10 @@ class PresetController:
                 tw.inv_btn.setChecked(state.telemetry.get('phase_inverted', False))
                 offset_slider = int(state.telemetry.get('phase_offset', 0.0) * 1280.0)
                 tw.os_slider.setValue(max(-640, min(640, offset_slider)))
+                body_slider = int(state.telemetry.get('body_gain', 1.0) * 1000)
+                tw.body_slider.setValue(max(250, min(1000, body_slider)))
+                ofs_slider = int(state.telemetry.get('v_offset', 0.0) * 1000)
+                tw.ofs_slider.setValue(max(-200, min(200, ofs_slider)))
 
         if state.midi_mappings:
             for controls in self.main.cc_mapping_manager.get_all_mappings().values():

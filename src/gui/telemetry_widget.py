@@ -568,6 +568,48 @@ class TelemetryWidget(QWidget):
         wave_row.addStretch()
         layout.addLayout(wave_row)
 
+        # ── Square-mode precision row: BODY + OFS ──
+        self.square_row = QHBoxLayout()
+
+        body_label = QLabel("BODY")
+        body_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        self.square_row.addWidget(body_label)
+        self._body_label = body_label
+
+        self.body_slider = MidiHSlider(main_frame_ref=self.main_frame)
+        self.body_slider.setMinimum(250)   # 0.25x
+        self.body_slider.setMaximum(1000)  # 1.0x
+        self.body_slider.setValue(1000)     # Default: 1.0x (full peak)
+        self.body_slider.setSingleStep(1)
+        self.body_slider.setPageStep(50)
+        self.body_slider.setFixedWidth(100)
+        self.body_slider.setObjectName("telemetry_body")
+        self.body_slider.valueChanged.connect(self._on_body_changed)
+        self.square_row.addWidget(self.body_slider)
+
+        ofs_label = QLabel("OFS")
+        ofs_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        self.square_row.addWidget(ofs_label)
+        self._ofs_label = ofs_label
+
+        self.ofs_slider = MidiHSlider(main_frame_ref=self.main_frame)
+        self.ofs_slider.setMinimum(-200)   # -0.2
+        self.ofs_slider.setMaximum(200)    # +0.2
+        self.ofs_slider.setValue(0)         # Default: no offset
+        self.ofs_slider.setSingleStep(1)
+        self.ofs_slider.setPageStep(20)
+        self.ofs_slider.setFixedWidth(100)
+        self.ofs_slider.setObjectName("telemetry_v_offset")
+        self.ofs_slider.valueChanged.connect(self._on_ofs_changed)
+        self.square_row.addWidget(self.ofs_slider)
+
+        self.square_row.addStretch()
+
+        self.square_row_widget = QWidget()
+        self.square_row_widget.setLayout(self.square_row)
+        self.square_row_widget.setVisible(False)  # Hidden until Square mode
+        layout.addWidget(self.square_row_widget)
+
         self.waveform_display = WaveformDisplay()
         layout.addWidget(self.waveform_display, stretch=1)
 
@@ -668,6 +710,14 @@ class TelemetryWidget(QWidget):
 
     def _on_fine_toggled(self, checked):
         self.os_slider.set_fine_mode(checked)
+
+    def _on_body_changed(self, value):
+        self.controller.body_gain = value / 1000.0  # 250..1000 maps to 0.25..1.0
+        self.controller._err_history.clear()
+
+    def _on_ofs_changed(self, value):
+        self.controller.v_offset = value / 1000.0  # -200..200 maps to -0.2..0.2
+        self.controller._err_history.clear()
 
     def _on_snapshot(self):
         snap = self.controller.snapshot()
@@ -788,6 +838,9 @@ class TelemetryWidget(QWidget):
         self._param_header_labels[3].setStyleSheet(
             f"color: {COLORS['text_bright']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;"
         )
+
+        # Show BODY/OFS row only in Square mode
+        self.square_row_widget.setVisible(ref_name == "SQUARE")
 
         # Live RMS error (Digital Twin match quality)
         err = self.controller.current_rms_error
