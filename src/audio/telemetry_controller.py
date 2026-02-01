@@ -530,18 +530,20 @@ class TelemetryController(QObject):
         )
 
     def has_phase_lock_warning(self, data: dict = None) -> bool:
-        """Check if frequency is stuck at a clipping boundary.
+        """Check if reference frequency is missing or at a known bad boundary.
 
-        Returns True if freq == 5000.0 (max clamp) or 48000.0 (sample rate),
-        indicating the Schmitt trigger is not locking to actual pitch.
+        Now that freq comes from freqBus (engine reference), this catches:
+        - freq near 0 (bus unset / no generator active)
+        - freq at 5000 or 48000 (legacy Schmitt clamp values, shouldn't
+          appear with freqBus but kept as safety net)
         """
         if data is None:
             data = self.get_latest()
         if data is None:
             return False
         freq = data.get('freq', 0)
-        # 5000 Hz = max freq clamp (SampleRate/5000 samples minimum period)
-        # 48000 Hz = sample rate (Timer never triggered)
+        if freq < 1:
+            return True
         return abs(freq - 5000.0) < 10 or abs(freq - 48000.0) < 100
 
     # -----------------------------------------------------------------
