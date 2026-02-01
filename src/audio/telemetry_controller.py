@@ -555,8 +555,10 @@ class TelemetryController(QObject):
         ideal = np.tanh(base_wave * sat_drive) * 0.66
         ideal = ideal - np.mean(ideal)  # Null DC — prevent SYM from biasing ERR
 
-        phase = data.get('phase', 0)
-        return self.ideal.align_to_phase(ideal, phase)
+        # No phase alignment needed: the hardware profiler's LocalBuf capture
+        # is phase-indexed (BufWr writes by Phasor phase), so sample 0 always
+        # corresponds to phase 0. The ideal waveform starts at phase 0 too.
+        return ideal.astype(np.float32)
 
     def get_delta_waveform(self) -> np.ndarray:
         """Compute |actual - ideal| delta trace for Digital Twin comparison.
