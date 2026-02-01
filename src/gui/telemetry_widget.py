@@ -34,12 +34,13 @@ from src.gui.theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES
 class VerticalMeter(QWidget):
     """Vertical LED-style meter for RMS levels."""
 
-    def __init__(self, label_text="", parent=None):
+    def __init__(self, label_text="", target=None, parent=None):
         super().__init__(parent)
         self.setFixedWidth(28)
         self.setMinimumHeight(120)
         self._value = 0.0  # 0-1 linear amplitude
         self._peak = 0.0
+        self._target = target  # Optional target line (0-1)
         self._label_text = label_text
 
     def set_value(self, value):
@@ -81,6 +82,12 @@ class VerticalMeter(QWidget):
             p.setPen(QPen(QColor(COLORS['text_bright']), 1))
             p.drawLine(1, peak_y, w - 2, peak_y)
 
+        # Target line (dashed white)
+        if self._target is not None:
+            target_y = meter_y + meter_h - int(self._target * meter_h)
+            p.setPen(QPen(QColor(COLORS['text_bright']), 1, Qt.DashLine))
+            p.drawLine(1, target_y, w - 2, target_y)
+
         # Border
         p.setPen(QPen(QColor(COLORS['border']), 1))
         p.drawRect(0, meter_y, w - 1, meter_h - 1)
@@ -109,6 +116,8 @@ class WaveformDisplay(QWidget):
         self._show_ideal = True
         self._show_delta = False
         self._capture_enabled = False
+        self._show_safety = False   # ±0.85 corridor lines
+        self._peak_clipping = False  # stage1 peak > 0.90
 
     def set_waveform(self, actual, ideal=None, delta=None):
         self._actual = actual
@@ -126,6 +135,14 @@ class WaveformDisplay(QWidget):
 
     def set_show_delta(self, show):
         self._show_delta = show
+        self.update()
+
+    def set_show_safety(self, show):
+        self._show_safety = show
+        self.update()
+
+    def set_peak_clipping(self, clipping):
+        self._peak_clipping = clipping
         self.update()
 
     def paintEvent(self, event):
@@ -146,6 +163,16 @@ class WaveformDisplay(QWidget):
         p.setPen(QPen(QColor(COLORS['scope_center']), 1))
         p.drawLine(0, mid_y, w, mid_y)
 
+        # Safety corridor: ±0.85 threshold lines (PA calibration guide)
+        if self._show_safety:
+            scale = (h / 2) * 0.9
+            safety_pen = QPen(QColor(COLORS['meter_clip']), 1, Qt.DashLine)
+            p.setPen(safety_pen)
+            hi_y = int(mid_y - 0.85 * scale)
+            lo_y = int(mid_y + 0.85 * scale)
+            p.drawLine(0, hi_y, w, hi_y)
+            p.drawLine(0, lo_y, w, lo_y)
+
         # Draw ideal trace (dimmer, behind actual)
         if self._show_ideal and self._ideal is not None and len(self._ideal) > 1:
             self._draw_trace(p, self._ideal, COLORS['scope_trace_b'], 1.0)
@@ -158,8 +185,11 @@ class WaveformDisplay(QWidget):
         if self._show_delta and self._delta is not None and len(self._delta) > 1:
             self._draw_trace(p, self._delta, COLORS['scope_trace_c'], 1.0)
 
-        # Border
-        p.setPen(QPen(QColor(COLORS['border']), 1))
+        # Border (flashes red when peak > 0.90)
+        if self._peak_clipping:
+            p.setPen(QPen(QColor(COLORS['meter_clip']), 2))
+        else:
+            p.setPen(QPen(QColor(COLORS['border']), 1))
         p.drawRect(0, 0, w - 1, h - 1)
 
         # Label if no data
@@ -336,7 +366,7 @@ class TelemetryWidget(QWidget):
 
         # Three stage meters
         self.meter_stage1 = VerticalMeter("S1")
-        self.meter_stage2 = VerticalMeter("S2")
+        self.meter_stage2 = VerticalMeter("S2", target=0.7027)  # RMS target for calibration
         self.meter_stage3 = VerticalMeter("S3")
         meters_row.addWidget(self.meter_stage1)
         meters_row.addWidget(self.meter_stage2)
@@ -549,7 +579,21 @@ class TelemetryWidget(QWidget):
             return
 
         # Parameters
-        self.param_values["FRQ"].setText(f"{data.get('freq', 0):.1f}")
+        freq = data.get('freq', 0)
+        self.param_values["FRQ"].setText(f"{freq:.1f}")
+
+        # FRQ phase-lock indicator: green when locked, red when stuck at boundary
+        phase_locked = not self.controller.has_phase_lock_warning(data)
+        if phase_locked and freq > 10:
+            frq_color = COLORS['meter_normal']
+        elif freq < 1:
+            frq_color = COLORS['text_dim']
+        else:
+            frq_color = COLORS['meter_clip']
+        self.param_values["FRQ"].setStyleSheet(
+            f"color: {frq_color}; font-size: {FONT_SIZES['label']}px; font-family: {MONO_FONT};"
+        )
+
         self.param_values["P0"].setText(f"{data.get('p0', 0):.3f}")
         self.param_values["P1"].setText(f"{data.get('p1', 0):.3f}")
         self.param_values["P2"].setText(f"{data.get('p2', 0):.3f}")
@@ -578,6 +622,12 @@ class TelemetryWidget(QWidget):
             f"color: {color}; font-size: {FONT_SIZES['title']}px; "
             f"font-family: {MONO_FONT}; font-weight: bold;"
         )
+
+        # Scope clipping flash (border goes red when peak > 0.90)
+        self.waveform_display.set_peak_clipping(peak > 0.90)
+
+        # Safety corridor: auto-enable in hw mode for PA calibration
+        self.waveform_display.set_show_safety(self.controller.is_hw_mode)
 
         # Core Lock
         bad = data.get('bad_value', 0)

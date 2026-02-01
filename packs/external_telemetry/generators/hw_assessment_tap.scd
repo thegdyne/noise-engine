@@ -12,8 +12,9 @@ system for real-time comparison with IdealOverlay. Use this to:
 SAFETY: User must attenuate hardware signal with MOTU M6 front-panel
 GAIN knobs until Stage 1 Peak stays below 0.95.
 
-Phase tracking uses a Schmitt trigger (SetResetFF hysteresis ±0.05) for
-jitter-free zero-crossing detection on noisy/complex hardware waveforms.
+Phase tracking uses a Schmitt trigger (SetResetFF hysteresis ±0.05) with
+automatic DC offset correction (RunningSum) for jitter-free zero-crossing
+detection on DC-shifted or noisy hardware waveforms.
 
 Custom params:
   - P0 CHN: MOTU M6 input channel (0-5)
@@ -35,7 +36,7 @@ Telemetry taps (when telemetryRate > 0):
 
 SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0, telemetryRate=0|
 	var sig, freq, p;
-	var hw, stage1, stage2, stage3;
+	var hw, hw_dc, stage1, stage2, stage3;
 	var phase, badValue;
 
 	// Schmitt trigger variables
@@ -43,23 +44,32 @@ SynthDef(\forge_core_hw_assessment_tap, { |out, freqBus, customBus0, slotIndex=0
 	var belowLo, aboveHi, armed, zc;
 	var sampBetween;
 
+	// DC offset tracking
+	var dcBias;
+
 	// Contiguous 5-channel custom bus read
 	p = In.kr(customBus0, 5);
 
 	// --- HARDWARE INPUT (DC-coupled bypass) ---
 	// Select MOTU M6 input by channel param
 	hw = SoundIn.ar(p[0].round(1).clip(0, 5));
-	// LeakDC with coeff 1.0 = transparent bypass (no DC removal)
-	hw = LeakDC.ar(hw, 1.0);
 
-	// Stage 1: Raw hardware input
+	// Stage 1: Raw hardware input (before any processing)
 	stage1 = hw;
+
+	// --- DC OFFSET CORRECTION (for Schmitt trigger only) ---
+	// RunningSum over ~2048 samples gives slow-moving DC estimate.
+	// Subtracted from hw so the Schmitt trigger sees zero-centered
+	// waveform, even if the Buchla has significant DC bias.
+	// This does NOT affect stage1/stage2/stage3 — only phase tracking.
+	dcBias = RunningSum.ar(hw, 2048) / 2048;
+	hw_dc = hw - dcBias;
 
 	// --- SCHMITT-TRIGGERED PHASE SYNC ---
 	// SetResetFF hysteresis: arms when signal drops below -0.05,
 	// fires trigger on next rising edge through +0.05
-	belowLo = hw < schmittLo;
-	aboveHi = hw > schmittHi;
+	belowLo = hw_dc < schmittLo;
+	aboveHi = hw_dc > schmittHi;
 
 	// SetResetFF: goes HIGH on set (belowLo), LOW on reset (aboveHi)
 	// Armed = true after signal has been below low threshold
