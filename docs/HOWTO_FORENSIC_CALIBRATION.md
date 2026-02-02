@@ -225,6 +225,17 @@ Locked DSP Values:
 */
 ```
 
+## Note: Analog Stage "Moving Physics" (v0.3+)
+
+When the per-slot Analog Stage is enabled (`[A]` button), the telemetry RMS and Crest Factor will fluctuate slightly even on a static note. This is intentional — the analog stage models physical circuit behavior:
+
+- **Thermal Drift:** A slow ±2% meander on the drive multiplier (`LFNoise1` at 0.05 Hz) means the saturation point is never frozen. Crest Factor will wander by ~2% over 20 seconds.
+- **Level-Dependent Slew:** Quiet passages get more HF rolloff (3 kHz cutoff), loud passages open up (12 kHz). This affects RMS readings at different amplitudes.
+- **TAPE Sag:** After loud transients, a 1.2-second DC bias sag will appear in the DC Offset reading before decaying back to zero.
+- **TUBE Dynamic Asymmetry:** The even-harmonic coefficient shifts with level (0.1 quiet → 0.35 loud), changing the harmonic spectrum in real time.
+
+**For calibration:** Disable the Analog Stage (`[A]` off) when performing Gold Lock calibration to get stable readings. The analog stage is a creative effect, not part of the calibration chain.
+
 ## Key Files
 
 | File | Purpose |

@@ -80,7 +80,8 @@ Invariants:
         enableBus, typeBus, driveBus, mixBus|
 
         var sig, clean, shaped, enable, t, drive, mix;
-        var driveMult, drivenSig, tape, tapeEnv, dynamicThresh, tube, xfold, compensation;
+        var drift, driveMult, drivenSig, env, slewHz;
+        var sag, bias, dynamicThresh, tape, asym, tube, xfold, compensation;
 
         // Read input (stereo from intermediate bus)
         sig = In.ar(inBus, 2);
@@ -92,39 +93,40 @@ Invariants:
         drive = In.kr(driveBus).clip(0, 1);
         mix = In.kr(mixBus).clip(0, 1);
 
-        // Drive knob: 0→1x (clean), 0.5→~3.2x (default), 1→10x (destroyed)
-        driveMult = drive.linexp(0, 1, 1, 10);
+        // --- 1. Circuit Infrastructure: Thermal Drift & Slew ---
+        // Micro-Drift: ±2% meander ensures the saturation point is never frozen
+        drift = Lag.kr(LFNoise1.kr(0.05).range(0.98, 1.02), 2.0);
+        driveMult = drive.linexp(0, 1, 1, 10) * drift;
         drivenSig = sig * driveMult;
 
-        // DSP types — drivenSig pushes the signal hard into non-linearities
-        // TAPE: clamped hysteresis — envelope follower with safety guards
-        // Track envelope with 1ms attack and 150ms recovery
-        tapeEnv = Amplitude.ar(drivenSig, 0.001, 0.15);
-        // Guard: prevent linexp from extrapolating toward infinity at zero amplitude
-        tapeEnv = tapeEnv.clip(0.01, 1.0);
-        // Map energy to threshold: Loud = more headroom (1.5), Quiet = more squash (0.5)
-        dynamicThresh = tapeEnv.linexp(0.01, 1.0, 0.5, 1.5).clip(0.3, 2.0);
-        // Apply breathing saturation
-        tape = (drivenSig * (0.8 / dynamicThresh)).tanh * dynamicThresh;
+        // Level-Dependent Slew: waveform edges soften as volume drops
+        env = Amplitude.ar(drivenSig, 0.001, 0.15).clip(0.01, 1.0);
+        slewHz = env.linexp(0.01, 1.0, 3000, 12000);
+        drivenSig = LPF.ar(drivenSig, slewHz);
+
+        // --- 2. Mode Upgrades: Sag & Recovery ---
+        // TAPE: Hysteresis + Sag (1.2s memory of loud events)
+        sag = LagUD.kr(env, 0.05, 1.2);
+        bias = sag.linlin(0.01, 1.0, 0.0, 0.03);
+        dynamicThresh = env.linexp(0.01, 1.0, 0.5, 1.5).clip(0.3, 2.0);
+        tape = ((drivenSig + bias) * (0.8 / dynamicThresh)).tanh * dynamicThresh;
         tape = LPF.ar(tape, 12000) * 0.85;
 
-        // TUBE: asymmetric waveshaping (even harmonics from sig^2 term)
-        tube = ((drivenSig + (drivenSig * drivenSig * 0.2)) * 1.2).tanh * 0.85;
+        // TUBE: Dynamic Asymmetry (bias shift with level)
+        asym = env.linlin(0.01, 1.0, 0.1, 0.35);
+        tube = ((drivenSig + (drivenSig * drivenSig * asym)) * 1.2).tanh * 0.85;
 
-        // XFOLD: hard wavefolding at ±0.5 — forces geometric mangling
-        xfold = Fold.ar(drivenSig, -0.5, 0.5) * 0.8;
+        // XFOLD: tighter fold window for maximum mangling
+        xfold = Fold.ar(drivenSig, -0.2, 0.2) * 0.8;
 
-        // Select type: 0=clean passthrough, 1=tape, 2=tube, 3=xfold
+        // --- 3. Final Mix & Safety ---
         shaped = Select.ar(t, [sig, tape, tube, xfold]);
-
-        // Gain compensation: tame the loudness boost from saturation
-        // tanh/fold bound output, but higher drive fills the waveform (louder RMS).
-        // Reciprocal sqrt gives a gentle rolloff: drive=1→1.0, drive=3.2→0.56, drive=10→0.32
         compensation = (1 / driveMult.sqrt).clip(0.2, 1.0);
         shaped = shaped * compensation;
 
-        // Enable crossfade: enable=0 → all clean, enable=1 → all shaped
-        sig = XFade2.ar(clean, shaped, (enable * 2) - 1);
+        // Wet/dry mix, then enable bypass
+        sig = XFade2.ar(clean, shaped, (mix * 2) - 1);
+        sig = XFade2.ar(clean, sig, (enable * 2) - 1);
 
         // Safety: remove DC and soft-limit
         sig = LeakDC.ar(sig).softclip;
