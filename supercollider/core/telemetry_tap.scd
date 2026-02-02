@@ -117,6 +117,10 @@
         var custom0Idx, slotKey, useUnified, sourceId, tapBus;
 
         if ((slot >= 1) && (slot <= 8)) {
+            // Track state so \telemSource can respawn with correct rate
+            ~telemetry.rates[idx] = rate;
+            ~telemetry.enabled[idx] = (rate > 0);
+
             // Always free existing first to prevent dupes/leaks
             if (~telemetry.tapSynths[idx].notNil) {
                 ~telemetry.tapSynths[idx].free;
@@ -206,12 +210,13 @@
 
         if ((slot >= 1) && (slot <= 8)) {
             if (enable) {
+                var waveBus = ~telemetry[\busForSource].value(idx, ~telemetry.sourceIds[idx]);
                 buf = ~telemetry[\allocWaveBuffer].value(idx);
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
                 if (~intermediateBus[idx].notNil) {
-                    // Must pass .index (raw integer) to Synth
+                    // Use source-selected bus (matches data tap)
                     ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
-                        \inBus, ~intermediateBus[idx].index,
+                        \inBus, waveBus,
                         \slotIndex, idx, \bufnum, buf.bufnum
                     ], ~fxGroup, \addAfter);
                 };
