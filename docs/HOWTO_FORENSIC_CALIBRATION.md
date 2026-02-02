@@ -231,7 +231,7 @@ When the per-slot Analog Stage is enabled (`[A]` button), the telemetry RMS and 
 
 - **Thermal Drift:** A slow ±2% meander on the drive multiplier (`LFNoise1` at 0.05 Hz) means the saturation point is never frozen. Crest Factor will wander by ~2% over 20 seconds.
 - **Level-Dependent Slew:** Quiet passages get more HF rolloff (3 kHz cutoff), loud passages open up (12 kHz). This affects RMS readings at different amplitudes.
-- **TAPE Sag:** After loud transients, a 1.2-second DC bias sag will appear in the DC Offset reading before decaying back to zero.
+- **TAPE Sag:** After loud transients, a 1.2-second bias sag alters the harmonic content of the waveform. Due to the safety `LeakDC` at the output stage, this will manifest as a brief harmonic shift rather than a large sustained DC offset in the telemetry reading.
 - **TUBE Dynamic Asymmetry:** The even-harmonic coefficient shifts with level (0.1 quiet → 0.35 loud), changing the harmonic spectrum in real time.
 
 **For calibration:** Disable the Analog Stage (`[A]` off) when performing Gold Lock calibration to get stable readings. The analog stage is a creative effect, not part of the calibration chain.

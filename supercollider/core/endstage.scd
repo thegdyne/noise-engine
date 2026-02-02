@@ -80,7 +80,7 @@ Invariants:
         enableBus, typeBus, driveBus, mixBus|
 
         var sig, clean, shaped, enable, t, drive, mix;
-        var drift, driveMult, drivenSig, env, envKr, slewHz;
+        var drift, baseDriveMult, driveMult, drivenSig, env, envKr, slewHz;
         var sag, bias, dynamicThresh, tape, asym, tube, xfold, compensation;
 
         // Read input (stereo from intermediate bus)
@@ -96,12 +96,15 @@ Invariants:
         // --- 1. Circuit Infrastructure: Thermal Drift & Slew ---
         // Micro-Drift: ±2% meander ensures the saturation point is never frozen
         drift = Lag.kr(LFNoise1.kr(0.05).range(0.98, 1.02), 2.0);
-        driveMult = drive.linexp(0, 1, 1, 10) * drift;
+        baseDriveMult = drive.linexp(0, 1, 1, 10);
+        driveMult = baseDriveMult * drift;  // Drift only affects the grit
         drivenSig = sig * driveMult;
 
-        // Level-Dependent Slew: waveform edges soften as volume drops
-        env = Amplitude.ar(drivenSig, 0.001, 0.15).clip(0.01, 1.0);
+        // Envelope tracks RAW input (decoupled from drift/drive feedback)
+        env = Amplitude.ar(sig, 0.001, 0.15).clip(0.01, 1.0);
         envKr = A2K.kr(env);  // Control-rate snapshot for LagUD/linlin
+
+        // Level-Dependent Slew: waveform edges soften as volume drops
         slewHz = env.linexp(0.01, 1.0, 3000, 12000);
         drivenSig = LPF.ar(drivenSig, slewHz);
 
@@ -117,12 +120,13 @@ Invariants:
         asym = envKr.linlin(0.01, 1.0, 0.1, 0.35);
         tube = ((drivenSig + (drivenSig * drivenSig * asym)) * 1.2).tanh * 0.85;
 
-        // XFOLD: tighter fold window for maximum mangling
-        xfold = Fold.ar(drivenSig, -0.2, 0.2) * 0.8;
+        // XFOLD: hard wavefolding at ±0.5
+        xfold = Fold.ar(drivenSig, -0.5, 0.5) * 0.8;
 
         // --- 3. Final Mix & Safety ---
         shaped = Select.ar(t, [sig, tape, tube, xfold]);
-        compensation = (1 / driveMult.sqrt).clip(0.2, 1.0);
+        // Compensation based on base drive (stable), not drifting driveMult
+        compensation = (1 / baseDriveMult.sqrt).clip(0.2, 1.0);
         shaped = shaped * compensation;
 
         // Wet/dry mix, then enable bypass
