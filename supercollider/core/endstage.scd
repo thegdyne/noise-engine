@@ -80,7 +80,7 @@ Invariants:
         enableBus, typeBus, driveBus, mixBus|
 
         var sig, clean, shaped, enable, t, drive, mix;
-        var drift, driveMult, drivenSig, env, slewHz;
+        var drift, driveMult, drivenSig, env, envKr, slewHz;
         var sag, bias, dynamicThresh, tape, asym, tube, xfold, compensation;
 
         // Read input (stereo from intermediate bus)
@@ -101,19 +101,20 @@ Invariants:
 
         // Level-Dependent Slew: waveform edges soften as volume drops
         env = Amplitude.ar(drivenSig, 0.001, 0.15).clip(0.01, 1.0);
+        envKr = A2K.kr(env);  // Control-rate snapshot for LagUD/linlin
         slewHz = env.linexp(0.01, 1.0, 3000, 12000);
         drivenSig = LPF.ar(drivenSig, slewHz);
 
         // --- 2. Mode Upgrades: Sag & Recovery ---
         // TAPE: Hysteresis + Sag (1.2s memory of loud events)
-        sag = LagUD.kr(env, 0.05, 1.2);
+        sag = LagUD.kr(envKr, 0.05, 1.2);
         bias = sag.linlin(0.01, 1.0, 0.0, 0.03);
         dynamicThresh = env.linexp(0.01, 1.0, 0.5, 1.5).clip(0.3, 2.0);
         tape = ((drivenSig + bias) * (0.8 / dynamicThresh)).tanh * dynamicThresh;
         tape = LPF.ar(tape, 12000) * 0.85;
 
         // TUBE: Dynamic Asymmetry (bias shift with level)
-        asym = env.linlin(0.01, 1.0, 0.1, 0.35);
+        asym = envKr.linlin(0.01, 1.0, 0.1, 0.35);
         tube = ((drivenSig + (drivenSig * drivenSig * asym)) * 1.2).tanh * 0.85;
 
         // XFOLD: tighter fold window for maximum mangling
