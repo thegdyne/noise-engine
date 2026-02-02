@@ -207,9 +207,9 @@ class IdealOverlay:
         Returns:
             float32 array of one cycle, matching SC output (pre-stereo)
         """
-        # --- 1. SINE BRANCH (b258_osc.scd line 38) ---
-        # Drive: 1.0 (clean) to 2.5 (saturated)
-        sine = np.tanh(np.sin(self.t) * (1 + (p4_sat * 1.5)))
+        # --- 1. SINE BRANCH (b258_osc.scd line 39) ---
+        # Drive: 1.0 (clean) to 1.35 (gentle saturation)
+        sine = np.tanh(np.sin(self.t) * (1 + (p4_sat * 0.35)))
 
         # --- 2. SQUARE BRANCH (b258_osc.scd lines 42-51) ---
         # A. Pulse Width: 10-90% from SYM
@@ -238,13 +238,16 @@ class IdealOverlay:
         saw = self._one_pole(saw, saw_tilt)
 
         # C. Saturation
-        saw = np.tanh(saw * (1 + (p4_sat * 1.5)))
+        saw = np.tanh(saw * (1 + (p4_sat * 0.35)))
 
         # Morph: Sine -> Saw
         branchSaw = self._xfade2(sine, saw, self._linlin(p0_saw, 0, 1, -1, 1))
 
         # --- 4. MIX: Saw (0) <-> Square (1) ---
         sig = self._xfade2(branchSaw, branchSqr, self._linlin(p2_mix, 0, 1, -1, 1))
+
+        # Output scalar: matches SCD 0.68 peak target
+        sig = sig * 0.68
 
         return sig.astype(np.float32)
 

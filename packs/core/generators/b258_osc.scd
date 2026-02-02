@@ -14,7 +14,7 @@ Custom params:
   - P4 SYM: Spectral tilt (saw) or pulse width (square), 0.1-0.9
   - P5 SAT: Tanh drive (sine/saw) or slew rate (square), 0.05-0.95
 
-Output: Raw signal; 0.38 plateau handled by output_trim_db (-8.4 dB).
+Output: 0.68 peak scalar; final level via output_trim_db (-5.0 dB).
 No filter/envelope — handled by channel strip end-stage.
 */
 
@@ -34,8 +34,9 @@ SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
 	freq = In.kr(freqBus).clip(5, 20000);
 
 	// --- 1. SINE BRANCH (DNA: rounded peaks via tanh soft-clip) ---
-	// Drive range: 1.0 (clean) to 2.5 (saturated) matches buchla_sine1.json
-	sine = (SinOsc.ar(freq) * (1 + (sat * 1.5))).tanh;
+	// Drive range: 1.0 (clean) to 1.35 (gentle saturation)
+	// Low drive preserves peak-to-RMS ratio (~1.68) matching hardware DNA
+	sine = (SinOsc.ar(freq) * (1 + (sat * 0.35))).tanh;
 
 	// --- 2. SQUARE BRANCH (Forensic DNA: Gold Lock) ---
 	// A. Pulse Width: Decoupled 10-90% mapping from SYM
@@ -64,7 +65,7 @@ SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
 	saw = OnePole.ar(saw, saw_tilt);
 
 	// C. Saturation (match sine/square peak behavior)
-	saw = (saw * (1 + (sat * 1.5))).tanh;
+	saw = (saw * (1 + (sat * 0.35))).tanh;
 
 	// Morph: Sine -> Saw
 	branchSaw = XFade2.ar(sine, saw, sawMorph.linlin(0, 1, -1, 1));
@@ -72,6 +73,10 @@ SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
 	// --- 4. MIX & OUTPUT ---
 	// MIX 0 = Saw branch, MIX 1 = Square branch
 	sig = XFade2.ar(branchSaw, branchSqr, mix.linlin(0, 1, -1, 1));
+
+	// Output scalar: targets ~0.68 peak at telemetry tap
+	// Preserves dynamic range (peak/RMS ≈ 1.68) from reduced drive
+	sig = sig * 0.68;
 
 	// --- MANDATORY TAIL ---
 	sig = NumChannels.ar(sig, 2);
