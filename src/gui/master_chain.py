@@ -239,23 +239,23 @@ class HeatModule(QWidget):
 # =============================================================================
 
 FILTER_LAYOUT = {
-    'width': 120,
+    'width': 110,
     'height': MODULE_HEIGHT,
 
     # Header
     'title_x': 5, 'title_y': 4, 'title_w': 32, 'title_h': 16,
-    'bypass_x': 88, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
+    'bypass_x': 80, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
 
     # Separator
     'sep_y': 24,
 
     # Sliders (F1, R1, F2, R2, MIX)
     'slider_y': 32, 'slider_h': 70, 'slider_w': 16,
-    'f1_x': 8,
-    'r1_x': 30,
-    'f2_x': 54,
-    'r2_x': 76,
-    'mix_x': 98,
+    'f1_x': 6,
+    'r1_x': 26,
+    'f2_x': 48,
+    'r2_x': 68,
+    'mix_x': 90,
 
     # Labels
     'label_y': 106, 'label_h': 12,
@@ -264,7 +264,7 @@ FILTER_LAYOUT = {
     'mode_y': 118, 'mode_w': 20, 'mode_h': 14,
 
     # Routing button
-    'routing_x': 30, 'routing_y': 132, 'routing_w': 40, 'routing_h': 14,
+    'routing_x': 26, 'routing_y': 132, 'routing_w': 40, 'routing_h': 14,
 }
 
 FL = FILTER_LAYOUT
