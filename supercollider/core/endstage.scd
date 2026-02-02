@@ -80,7 +80,7 @@ Invariants:
         enableBus, typeBus, driveBus, mixBus|
 
         var sig, clean, shaped, enable, t, drive, mix;
-        var driveMult, drivenSig, tape, tube, xfold, compensation;
+        var driveMult, drivenSig, tape, tapeEnv, dynamicThresh, tube, xfold, compensation;
 
         // Read input (stereo from intermediate bus)
         sig = In.ar(inBus, 2);
@@ -97,8 +97,12 @@ Invariants:
         drivenSig = sig * driveMult;
 
         // DSP types — drivenSig pushes the signal hard into non-linearities
-        // TAPE: soft saturation + HF rolloff (warm compression)
-        tape = LPF.ar(drivenSig.tanh * 0.85, 12000);
+        // TAPE: hysteresis saturation — envelope follower creates breathing threshold
+        // Fast attack (0.001s) catches transients, slow release (0.15s) creates sag
+        tapeEnv = Amplitude.ar(drivenSig, 0.001, 0.15);
+        dynamicThresh = tapeEnv.linexp(0.01, 1.0, 0.5, 1.5);
+        tape = (drivenSig * (0.8 / dynamicThresh)).tanh * dynamicThresh;
+        tape = LPF.ar(tape, 12000) * 0.85;
 
         // TUBE: asymmetric waveshaping (even harmonics from sig^2 term)
         tube = ((drivenSig + (drivenSig * drivenSig * 0.2)) * 1.2).tanh * 0.85;
