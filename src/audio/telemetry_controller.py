@@ -675,13 +675,7 @@ class TelemetryController(QObject):
         data['timestamp'] = time.time()
         self.history.append(data)
 
-        # Living Proof: compute crest factor from incoming SC metrics
-        peak = data.get('peak', 0)
-        rms3 = data.get('rms_stage3', 0)
-        if rms3 > 0.001:
-            self.current_crest_factor = peak / rms3
-        else:
-            self.current_crest_factor = 0.0
+        # Living Proof: crest factor is computed from waveform in on_waveform()
 
     def on_waveform(self, slot: int, samples):
         """Handle incoming waveform data from OSCBridge signal."""
@@ -690,15 +684,27 @@ class TelemetryController(QObject):
 
         self.current_waveform = np.asarray(samples, dtype=np.float32)
 
-        # Living Proof: HF energy proxy (first-difference RMS ≈ high-pass)
-        # Measures slew breathing — HF energy drops as signal decays
-        if len(self.current_waveform) > 1:
+        # Living Proof: source-agnostic metrics computed from the captured waveform
+        # (always reflects the current tap point, not fixed SC fields)
+        sig_rms = float(np.sqrt(np.mean(self.current_waveform ** 2)))
+
+        # Crest Factor: peak / RMS of the captured waveform
+        sig_peak = float(np.max(np.abs(self.current_waveform)))
+        if sig_rms > 0.001:
+            self.current_crest_factor = sig_peak / sig_rms
+        else:
+            self.current_crest_factor = 0.0
+
+        # HF Energy proxy: first-difference RMS normalized by signal RMS
+        # Amplitude-independent — measures edge sharpness, not volume
+        if len(self.current_waveform) > 1 and sig_rms > 0.001:
             hf_diff = np.diff(self.current_waveform)
-            self.current_hf_energy = float(np.sqrt(np.mean(hf_diff ** 2)))
+            hf_raw = float(np.sqrt(np.mean(hf_diff ** 2)))
+            self.current_hf_energy = hf_raw / sig_rms
         else:
             self.current_hf_energy = 0.0
 
-        # Living Proof: DC shift (mean of waveform — TAPE sag micro-fluctuation)
+        # DC shift (mean of waveform — TAPE sag micro-fluctuation)
         self.current_dc_shift = float(np.mean(self.current_waveform))
 
         # Live RMS error against the Digital Twin ideal (10-frame rolling average)

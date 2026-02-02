@@ -78,7 +78,9 @@ L = SLOT_LAYOUT
 
 class GeneratorSlot(QWidget):
     """Generator slot with flat absolute positioning and full functionality."""
-    
+
+    _ANALOG_DRAG_THRESHOLD = 10  # Pixels — ignore micro-jitters below this
+
     # Signals (same as v1)
     clicked = pyqtSignal(int)  # Legacy - kept for compatibility
     generator_changed = pyqtSignal(int, str)  # slot_id, generator_type
@@ -126,6 +128,7 @@ class GeneratorSlot(QWidget):
         self._analog_hold_timer.setSingleShot(True)
         self._analog_hold_timer.timeout.connect(self._analog_hold_activate)
         self._analog_hold_active = False  # True while hold-bypass is engaged
+        self._analog_press_pos = None     # Mouse position at press (for drag threshold)
 
         # Storage
         self.sliders = {}
@@ -638,16 +641,29 @@ class GeneratorSlot(QWidget):
     # =========================================================================
     
     def eventFilter(self, obj, event):
-        """Intercept analog button press/release for momentary hold-bypass."""
+        """Intercept analog button press/release for momentary hold-bypass.
+
+        State machine:
+          Press  → record position, start 300ms timer
+          Move   → cancel timer only if drag exceeds 10px threshold
+          Timer  → activate bypass (enable=0, warning style)
+          Release → if bypass active: restore enable=1, consume event
+                    else: let CycleButton handle the click normally
+        """
         if obj is self.analog_btn and self.analog_enabled == 1:
             if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
-                # Start hold timer (300ms threshold before bypass activates)
+                self._analog_press_pos = event.globalPos()
                 self._analog_hold_timer.start(300)
             elif event.type() == QEvent.MouseMove:
-                # Drag detected — cancel hold timer (user is cycling via drag)
-                self._analog_hold_timer.stop()
+                # Only cancel hold if drag exceeds threshold (ignore touchpad jitter)
+                if self._analog_press_pos is not None and not self._analog_hold_active:
+                    delta = event.globalPos() - self._analog_press_pos
+                    if abs(delta.x()) > self._ANALOG_DRAG_THRESHOLD or abs(delta.y()) > self._ANALOG_DRAG_THRESHOLD:
+                        self._analog_hold_timer.stop()
+                        self._analog_press_pos = None
             elif event.type() == QEvent.MouseButtonRelease and event.button() == Qt.LeftButton:
                 self._analog_hold_timer.stop()
+                self._analog_press_pos = None
                 if self._analog_hold_active:
                     # Release: restore enable and consume the event (no cycle)
                     self._analog_hold_active = False

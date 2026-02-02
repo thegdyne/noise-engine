@@ -1056,8 +1056,8 @@ class TelemetryWidget(QWidget):
             self.crest_value.setText("---")
 
         hf = self.controller.current_hf_energy
-        if hf > 0.0001:
-            self.hf_value.setText(f"{hf:.4f}")
+        if hf > 0.001:
+            self.hf_value.setText(f"{hf:.3f}")
         else:
             self.hf_value.setText("---")
 
