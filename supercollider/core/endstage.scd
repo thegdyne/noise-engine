@@ -105,7 +105,8 @@ Invariants:
         envKr = A2K.kr(env);  // Control-rate snapshot for LagUD/linlin
 
         // Level-Dependent Slew: waveform edges soften as volume drops
-        slewHz = env.linexp(0.01, 1.0, 3000, 12000);
+        // 20ms lag on cutoff prevents zipper noise from rapid envelope changes
+        slewHz = Lag.kr(envKr.linexp(0.01, 1.0, 3000, 12000), 0.02);
         drivenSig = LPF.ar(drivenSig, slewHz);
 
         // --- 2. Mode Upgrades: Sag & Recovery ---
