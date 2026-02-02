@@ -97,10 +97,14 @@ Invariants:
         drivenSig = sig * driveMult;
 
         // DSP types — drivenSig pushes the signal hard into non-linearities
-        // TAPE: hysteresis saturation — envelope follower creates breathing threshold
-        // Fast attack (0.001s) catches transients, slow release (0.15s) creates sag
+        // TAPE: clamped hysteresis — envelope follower with safety guards
+        // Track envelope with 1ms attack and 150ms recovery
         tapeEnv = Amplitude.ar(drivenSig, 0.001, 0.15);
-        dynamicThresh = tapeEnv.linexp(0.01, 1.0, 0.5, 1.5);
+        // Guard: prevent linexp from extrapolating toward infinity at zero amplitude
+        tapeEnv = tapeEnv.clip(0.01, 1.0);
+        // Map energy to threshold: Loud = more headroom (1.5), Quiet = more squash (0.5)
+        dynamicThresh = tapeEnv.linexp(0.01, 1.0, 0.5, 1.5).clip(0.3, 2.0);
+        // Apply breathing saturation
         tape = (drivenSig * (0.8 / dynamicThresh)).tanh * dynamicThresh;
         tape = LPF.ar(tape, 12000) * 0.85;
 
@@ -123,8 +127,7 @@ Invariants:
         sig = XFade2.ar(clean, shaped, (enable * 2) - 1);
 
         // Safety: remove DC and soft-limit
-        sig = LeakDC.ar(sig);
-        sig = sig.softclip;
+        sig = LeakDC.ar(sig).softclip;
 
         ReplaceOut.ar(outBus, sig);
     }).add;
