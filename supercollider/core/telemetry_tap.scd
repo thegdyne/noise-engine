@@ -198,6 +198,19 @@
                     };
                 };
             };
+
+            // If wave capture is running, restart it with the new bus
+            if (~telemetry.waveSynths[idx].notNil) {
+                var waveBus = ~telemetry[\busForSource].value(idx, sourceId);
+                ~telemetry.waveSynths[idx].free;
+                if (~telemetry.waveBuffers[idx].notNil) {
+                    ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
+                        \inBus, waveBus,
+                        \slotIndex, idx, \bufnum, ~telemetry.waveBuffers[idx].bufnum
+                    ], ~fxGroup, \addAfter);
+                };
+                "[Telemetry] Wave capture restarted slot % (bus: %)".format(slot, waveBus).postln;
+            };
         };
     }, '/noise/telem/source');
 
