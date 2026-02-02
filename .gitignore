@@ -117,6 +117,7 @@ packs/user/*
 !packs/harga/
 !packs/nexus/
 !packs/external_telemetry/
+!packs/buchla_258/
 PROJECT_CONTEXT.md
 _utf8_backups_*/
 .context-cache/
