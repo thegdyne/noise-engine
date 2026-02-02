@@ -166,6 +166,88 @@ class IdealOverlay:
         pos_scaled = (pan + 1) * 0.25 * np.pi  # maps [-1,+1] to [0, pi/2]
         return a * np.cos(pos_scaled) + b * np.sin(pos_scaled)
 
+    @staticmethod
+    def _one_pole(sig, coef):
+        """
+        SC OnePole: one-pole low-pass filter.
+
+        Difference equation: y[n] = (1 - |coef|) * x[n] + coef * y[n-1]
+        coef near 1.0 = heavy filtering, coef 0.0 = no filtering.
+        """
+        out = np.zeros_like(sig)
+        abs_coef = abs(coef)
+        b0 = 1.0 - abs_coef
+        out[0] = b0 * sig[0]
+        for i in range(1, len(sig)):
+            out[i] = b0 * sig[i] + coef * out[i - 1]
+        return out
+
+    # -----------------------------------------------------------------
+    # B258 Dual Osc (Forensic DNA) — line-by-line match to b258_osc.scd
+    # -----------------------------------------------------------------
+
+    def ideal_b258_osc(
+        self,
+        p0_shpA: float,
+        p1_shpB: float,
+        p2_mix: float,
+        p3_sym: float,
+        p4_sat: float,
+    ) -> np.ndarray:
+        """
+        Generate ideal B258 Dual Osc waveform matching the forensic SynthDef.
+
+        Args match the 5 custom params (0-1 range from GUI):
+            p0_shpA: Sine to Square morph (XFade2)
+            p1_shpB: Sine to Saw morph (XFade2)
+            p2_mix:  Balance between Square and Saw branches
+            p3_sym:  Pulse width (square) / spectral tilt (saw)
+            p4_sat:  Slew rate (square) / tanh drive (sine/saw)
+
+        Returns:
+            float32 array of one cycle, matching SC output (pre-stereo)
+        """
+        # --- 1. SINE BRANCH (b258_osc.scd line 38) ---
+        # Drive: 1.0 (clean) to 2.5 (saturated)
+        sine = np.tanh(np.sin(self.t) * (1 + (p4_sat * 1.5)))
+
+        # --- 2. SQUARE BRANCH (b258_osc.scd lines 42-51) ---
+        # A. Pulse Width: 10-90% from SYM
+        duty = 0.1 + (p3_sym * 0.8)
+        pw_thresh = float(np.sin((0.5 - duty) * np.pi))
+        # Square from sine threshold
+        square = np.where(np.sin(self.t) > pw_thresh, 1.0, -1.0)
+        # B. Linear Slew (emulate Slew.ar in Python)
+        slew_rate = 0.05 + (p4_sat * 1.95)
+        slewed = np.empty_like(square)
+        slewed[0] = square[0]
+        for n in range(1, len(square)):
+            diff = square[n] - slewed[n - 1]
+            slewed[n] = slewed[n - 1] + np.clip(diff, -slew_rate, slew_rate)
+        square = slewed
+
+        # Morph A: Sine -> Square
+        branchA = self._xfade2(sine, square, self._linlin(p0_shpA, 0, 1, -1, 1))
+
+        # --- 3. SAW BRANCH (b258_osc.scd lines 58-67) ---
+        # A. Band-limited base (LFSaw, iphase=0: ramps -1 to +1)
+        saw = (2 * self.t_norm - 1).astype(np.float64)
+
+        # B. Spectral Tilt (OnePole LowPass)
+        saw_tilt = self._linlin(p3_sym, 0, 1, 0.9, 0.0)
+        saw = self._one_pole(saw, saw_tilt)
+
+        # C. Saturation
+        saw = np.tanh(saw * (1 + (p4_sat * 1.5)))
+
+        # Morph B: Sine -> Saw
+        branchB = self._xfade2(sine, saw, self._linlin(p1_shpB, 0, 1, -1, 1))
+
+        # --- 4. MIX ---
+        sig = self._xfade2(branchA, branchB, self._linlin(p2_mix, 0, 1, -1, 1))
+
+        return sig.astype(np.float32)
+
     # -----------------------------------------------------------------
     # B258 Dual Morph — line-by-line match to SynthDef
     # -----------------------------------------------------------------
@@ -591,10 +673,11 @@ class TelemetryController(QObject):
     # -----------------------------------------------------------------
 
     def _get_ideal_internal(self, data: dict) -> np.ndarray:
-        """Generate ideal waveform using the true B258 mathematical model.
+        """Generate ideal waveform using the true mathematical model.
 
-        Used in Internal mode to compare SCD code output against its own
-        mathematical target for forensic optimization.
+        Routes to the correct IdealOverlay method based on active synthdef:
+        - forge_core_b258_osc: Forensic DNA model (b258_osc.scd)
+        - forge_core_b258_dual_morph: Legacy morph model (b258_dual_morph.scd)
         """
         p0 = data.get('p0', 0.0)
         p1 = data.get('p1', 0.0)
@@ -602,7 +685,10 @@ class TelemetryController(QObject):
         p3 = data.get('p3', 0.5)
         p4 = data.get('p4', 0.0)
 
-        ideal = self.ideal.ideal_b258_dual_morph(p0, p1, p2, p3, p4)
+        if self.current_synthdef_name == 'forge_core_b258_osc':
+            ideal = self.ideal.ideal_b258_osc(p0, p1, p2, p3, p4)
+        else:
+            ideal = self.ideal.ideal_b258_dual_morph(p0, p1, p2, p3, p4)
 
         # Phase inversion toggle
         if self.phase_inverted:
