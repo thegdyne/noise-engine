@@ -684,6 +684,10 @@ class TelemetryController(QObject):
 
         self.current_waveform = np.asarray(samples, dtype=np.float32)
 
+        # Guard against non-finite samples from upstream glitches
+        if not np.isfinite(self.current_waveform).all():
+            return
+
         # Living Proof: source-agnostic metrics computed from the captured waveform
         # (always reflects the current tap point, not fixed SC fields)
         sig_rms = float(np.sqrt(np.mean(self.current_waveform ** 2)))

@@ -645,20 +645,24 @@ class GeneratorSlot(QWidget):
 
         State machine:
           Press  → record position, start 300ms timer
-          Move   → cancel timer only if drag exceeds 10px threshold
+          Move   → cancel timer only if manhattan drag exceeds 10px
           Timer  → activate bypass (enable=0, warning style)
           Release → if bypass active: restore enable=1, consume event
                     else: let CycleButton handle the click normally
+          Leave  → if bypass active: restore (prevents stuck bypass)
         """
         if obj is self.analog_btn and self.analog_enabled == 1:
             if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
                 self._analog_press_pos = event.globalPos()
                 self._analog_hold_timer.start(300)
             elif event.type() == QEvent.MouseMove:
+                # Only process drag when left button is held
+                if not (event.buttons() & Qt.LeftButton):
+                    return super().eventFilter(obj, event)
                 # Only cancel hold if drag exceeds threshold (ignore touchpad jitter)
                 if self._analog_press_pos is not None and not self._analog_hold_active:
                     delta = event.globalPos() - self._analog_press_pos
-                    if abs(delta.x()) > self._ANALOG_DRAG_THRESHOLD or abs(delta.y()) > self._ANALOG_DRAG_THRESHOLD:
+                    if (abs(delta.x()) + abs(delta.y())) > self._ANALOG_DRAG_THRESHOLD:
                         self._analog_hold_timer.stop()
                         self._analog_press_pos = None
             elif event.type() == QEvent.MouseButtonRelease and event.button() == Qt.LeftButton:
@@ -671,6 +675,16 @@ class GeneratorSlot(QWidget):
                     self.analog_btn.setStyleSheet(button_style('enabled'))
                     logger.gen(self.slot_id, "analog: hold-bypass released")
                     return True  # Consume — don't let CycleButton cycle
+            elif event.type() == QEvent.Leave:
+                # User left widget during hold — restore to prevent stuck bypass
+                self._analog_hold_timer.stop()
+                self._analog_press_pos = None
+                if self._analog_hold_active:
+                    self._analog_hold_active = False
+                    self.analog_enable_changed.emit(self.slot_id, 1)
+                    self.analog_btn.setStyleSheet(button_style('enabled'))
+                    logger.gen(self.slot_id, "analog: hold-bypass released (leave)")
+                    return True
         return super().eventFilter(obj, event)
 
     def _analog_hold_activate(self):
