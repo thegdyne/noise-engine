@@ -80,7 +80,7 @@ Invariants:
         enableBus, typeBus, driveBus, mixBus|
 
         var sig, clean, shaped, enable, t, drive, mix;
-        var driveMult, tape, tube, xfold;
+        var driveMult, drivenSig, tape, tube, xfold, compensation;
 
         // Read input (stereo from intermediate bus)
         sig = In.ar(inBus, 2);
@@ -92,16 +92,28 @@ Invariants:
         drive = In.kr(driveBus).clip(0, 1);
         mix = In.kr(mixBus).clip(0, 1);
 
-        // Drive knob: 0→1x (clean), 0.5→4x (default), 1→10x (destroyed)
+        // Drive knob: 0→1x (clean), 0.5→~3.2x (default), 1→10x (destroyed)
         driveMult = drive.linexp(0, 1, 1, 10);
+        drivenSig = sig * driveMult;
 
-        // DSP types — driven hard enough to actually saturate at typical levels (~0.67 peak)
-        tape = LPF.ar((sig * driveMult).tanh * 0.8, 12000);
-        tube = ((sig + (sig * sig * 0.2)) * driveMult).tanh * 0.8;
-        xfold = Fold.ar(sig * driveMult, -0.8, 0.8) * 0.7;
+        // DSP types — drivenSig pushes the signal hard into non-linearities
+        // TAPE: soft saturation + HF rolloff (warm compression)
+        tape = LPF.ar(drivenSig.tanh * 0.85, 12000);
+
+        // TUBE: asymmetric waveshaping (even harmonics from sig^2 term)
+        tube = ((drivenSig + (drivenSig * drivenSig * 0.2)) * 1.2).tanh * 0.85;
+
+        // XFOLD: hard wavefolding at ±0.5 — forces geometric mangling
+        xfold = Fold.ar(drivenSig, -0.5, 0.5) * 0.8;
 
         // Select type: 0=clean passthrough, 1=tape, 2=tube, 3=xfold
         shaped = Select.ar(t, [sig, tape, tube, xfold]);
+
+        // Gain compensation: tame the loudness boost from saturation
+        // tanh/fold bound output, but higher drive fills the waveform (louder RMS).
+        // Reciprocal sqrt gives a gentle rolloff: drive=1→1.0, drive=3.2→0.56, drive=10→0.32
+        compensation = (1 / driveMult.sqrt).clip(0.2, 1.0);
+        shaped = shaped * compensation;
 
         // Enable crossfade: enable=0 → all clean, enable=1 → all shaped
         sig = XFade2.ar(clean, shaped, (enable * 2) - 1);
