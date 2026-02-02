@@ -188,8 +188,8 @@ class IdealOverlay:
 
     def ideal_b258_osc(
         self,
-        p0_shpA: float,
-        p1_shpB: float,
+        p0_saw: float,
+        p1_sqr: float,
         p2_mix: float,
         p3_sym: float,
         p4_sat: float,
@@ -198,11 +198,11 @@ class IdealOverlay:
         Generate ideal B258 Dual Osc waveform matching the forensic SynthDef.
 
         Args match the 5 custom params (0-1 range from GUI):
-            p0_shpA: Sine to Square morph (XFade2)
-            p1_shpB: Sine to Saw morph (XFade2)
-            p2_mix:  Balance between Square and Saw branches
-            p3_sym:  Pulse width (square) / spectral tilt (saw)
-            p4_sat:  Slew rate (square) / tanh drive (sine/saw)
+            p0_saw:  Sine to Saw morph (XFade2)
+            p1_sqr:  Sine to Square morph (XFade2)
+            p2_mix:  Balance between Saw (0) and Square (1) branches
+            p3_sym:  Spectral tilt (saw) / pulse width (square)
+            p4_sat:  Tanh drive (sine/saw) / slew rate (square)
 
         Returns:
             float32 array of one cycle, matching SC output (pre-stereo)
@@ -226,8 +226,8 @@ class IdealOverlay:
             slewed[n] = slewed[n - 1] + np.clip(diff, -slew_rate, slew_rate)
         square = slewed
 
-        # Morph A: Sine -> Square
-        branchA = self._xfade2(sine, square, self._linlin(p0_shpA, 0, 1, -1, 1))
+        # Morph: Sine -> Square
+        branchSqr = self._xfade2(sine, square, self._linlin(p1_sqr, 0, 1, -1, 1))
 
         # --- 3. SAW BRANCH (b258_osc.scd lines 58-67) ---
         # A. Band-limited base (LFSaw, iphase=0: ramps -1 to +1)
@@ -240,11 +240,11 @@ class IdealOverlay:
         # C. Saturation
         saw = np.tanh(saw * (1 + (p4_sat * 1.5)))
 
-        # Morph B: Sine -> Saw
-        branchB = self._xfade2(sine, saw, self._linlin(p1_shpB, 0, 1, -1, 1))
+        # Morph: Sine -> Saw
+        branchSaw = self._xfade2(sine, saw, self._linlin(p0_saw, 0, 1, -1, 1))
 
-        # --- 4. MIX ---
-        sig = self._xfade2(branchA, branchB, self._linlin(p2_mix, 0, 1, -1, 1))
+        # --- 4. MIX: Saw (0) <-> Square (1) ---
+        sig = self._xfade2(branchSaw, branchSqr, self._linlin(p2_mix, 0, 1, -1, 1))
 
         return sig.astype(np.float32)
 
