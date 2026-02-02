@@ -1,5 +1,5 @@
 {
-  "name": "B258 Dual Osc",
+  "name": "258 Dual Osc",
   "synthdef": "buchla258_b258_osc",
   "output_trim_db": -5.0,
   "midi_retrig": false,

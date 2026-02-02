@@ -80,7 +80,9 @@ mkdir -p packs/my_pack/generators
 }
 ```
 
-**Important:** The `synthdef` value must be globally unique. Use your pack ID as a prefix to avoid collisions (e.g. `mypack_my_generator`, not just `my_generator`). If a pack synthdef name matches a core generator, the pack generator will be skipped with a warning.
+**Important — two uniqueness rules:**
+1. The `synthdef` value must be globally unique. Use your pack ID as a prefix (e.g. `mypack_my_generator`, not just `my_generator`).
+2. The `name` (display name) must not match any core generator. If a pack generator has the same display name as a core generator, it is silently skipped. Pick a distinct name.
 
 ### SynthDef (.scd)
 
@@ -150,7 +152,9 @@ packs/buchla_258/
 }
 ```
 
-The generator JSON and SCD are copies of the core b258_osc files with a different synthdef name (`buchla258_b258_osc` instead of `forge_core_b258_osc`).
+The generator JSON and SCD are based on the core b258_osc files with two key differences:
+- Different synthdef name: `buchla258_b258_osc` (not `forge_core_b258_osc`)
+- Different display name: `"258 Dual Osc"` (not `"B258 Dual Osc"`) — must differ from core to avoid being skipped
 
 ## Disabling a Pack
 
@@ -176,6 +180,7 @@ Each needs its own `.json` + `.scd` pair in `generators/`.
 - [ ] Each generator has matching `.json` and `.scd` files
 - [ ] `synthdef` field in JSON matches SynthDef symbol in `.scd`
 - [ ] `synthdef` name is globally unique (use pack prefix)
+- [ ] `name` (display name) does not match any core generator
 - [ ] `.scd` uses `ReplaceOut.ar` and `NumChannels.ar(sig, 2)` tail
 - [ ] No filter/envelope/limiter code in the SynthDef
 - [ ] Restart confirms pack appears in dropdown
