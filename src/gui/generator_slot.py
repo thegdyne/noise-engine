@@ -92,6 +92,7 @@ class GeneratorSlot(QWidget):
     midi_channel_changed = pyqtSignal(int, int)  # slot_id, channel (0=OFF, 1-16)
     transpose_changed = pyqtSignal(int, int)  # slot_id, semitones
     portamento_changed = pyqtSignal(int, float)  # slot_id, value (0-1)
+    analog_enable_changed = pyqtSignal(int, int)  # slot_id, enabled (0|1)
     analog_type_changed = pyqtSignal(int, int)  # slot_id, type_index (0-3)
     
     def __init__(self, slot_id, generator_type="Empty", parent=None):
@@ -108,7 +109,8 @@ class GeneratorSlot(QWidget):
         self.midi_channel = 0  # 0 = OFF, 1-16 = channels
         self.transpose = 0  # Semitones (-24 to +24)
         self.portamento = 0  # Portamento time (0-1)
-        self.analog_type = 0  # 0=OFF, 1=TAPE, 2=TUBE, 3=FOLD (sticky)
+        self.analog_enabled = 0  # 0=OFF, 1=ON (sticky across generator changes)
+        self.analog_type = 0  # 0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD (sticky)
 
         self.setFixedWidth(L['slot_width'])
         self.setMinimumHeight(L['slot_height'])
@@ -222,14 +224,16 @@ class GeneratorSlot(QWidget):
         self.filter_btn.setStyleSheet(button_style('submenu'))
         self.filter_btn.setEnabled(False)
 
-        # ----- ANALOG STAGE ROW [A][TYPE] -----
-        self.analog_btn = CycleButton(ANALOG_TYPES, parent=self)
+        # ----- ANALOG STAGE (single cycle button: OFF → TAPE → TUBE → FOLD) -----
+        # UI labels differ from SSOT types: OFF is a macro (enable=0), not type index 0
+        self._analog_ui_labels = ["OFF", "TAPE", "TUBE", "FOLD"]
+        self.analog_btn = CycleButton(self._analog_ui_labels, parent=self)
         self.analog_btn.setGeometry(
             L['btn_analog_x'], L['btn_analog_y'],
             L['btn_analog_w'], L['btn_analog_h'])
         self.analog_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.analog_btn.setStyleSheet(button_style('disabled'))
-        self.analog_btn.value_changed.connect(self.on_analog_type_changed)
+        self.analog_btn.value_changed.connect(self._on_analog_btn_changed)
         self.analog_btn.setToolTip("Analog: OFF/TAPE/TUBE/FOLD")
         self.analog_btn.setEnabled(False)
 
@@ -320,6 +324,7 @@ class GeneratorSlot(QWidget):
             "midi_channel": self.midi_channel,
             "transpose": self.transpose_btn.index,
             "portamento": self.portamento,
+            "analog_enabled": self.analog_enabled,
             "analog_type": self.analog_type,
         }
 
@@ -414,14 +419,20 @@ class GeneratorSlot(QWidget):
         self.portamento_changed.emit(self.slot_id, self.portamento)
 
         # Analog stage restoration (sticky)
+        ae = state.get("analog_enabled", 0)
         at = state.get("analog_type", 0)
+        self.analog_enabled = ae
         self.analog_type = at
+        # Map internal state to UI button index: OFF=0, TAPE=1, TUBE=2, FOLD=3
+        # UI shows OFF when disabled, otherwise maps type 1/2/3 to btn index 1/2/3
+        ui_idx = at if ae else 0
         self.analog_btn.blockSignals(True)
-        self.analog_btn.set_index(at)
+        self.analog_btn.set_index(ui_idx)
         self.analog_btn.blockSignals(False)
         self.analog_btn.setStyleSheet(
-            button_style('enabled') if at > 0 else button_style('disabled'))
+            button_style('enabled') if ae else button_style('disabled'))
         self.analog_type_changed.emit(self.slot_id, self.analog_type)
+        self.analog_enable_changed.emit(self.slot_id, self.analog_enabled)
 
     def set_generator_type(self, gen_type):
         """Change generator type.
@@ -481,6 +492,7 @@ class GeneratorSlot(QWidget):
         # Re-emit analog state (sticky across generator changes)
         if enabled:
             self.analog_type_changed.emit(self.slot_id, self.analog_type)
+            self.analog_enable_changed.emit(self.slot_id, self.analog_enabled)
         self.transpose_btn.setEnabled(enabled)
         self.portamento_knob.setEnabled(enabled)
         self.env_btn.setEnabled(enabled)
@@ -619,13 +631,22 @@ class GeneratorSlot(QWidget):
     # Event Handlers
     # =========================================================================
     
-    def on_analog_type_changed(self, type_str):
-        """Handle analog type cycle: OFF → TAPE → TUBE → FOLD → OFF."""
-        self.analog_type = ANALOG_TYPE_INDEX[type_str]
-        self.analog_btn.setStyleSheet(
-            button_style('enabled') if self.analog_type > 0 else button_style('disabled'))
-        logger.gen(self.slot_id, f"analog: {type_str}")
-        self.analog_type_changed.emit(self.slot_id, self.analog_type)
+    def _on_analog_btn_changed(self, ui_label):
+        """Dual dispatch: single button drives both enable and type buses.
+        OFF = enable=0 (type unchanged). TAPE/TUBE/FOLD = enable=1, type=1/2/3."""
+        _type_map = {"TAPE": 1, "TUBE": 2, "FOLD": 3}
+        if ui_label == "OFF":
+            self.analog_enabled = 0
+            self.analog_btn.setStyleSheet(button_style('disabled'))
+            logger.gen(self.slot_id, "analog: OFF (bypass)")
+            self.analog_enable_changed.emit(self.slot_id, 0)
+        else:
+            self.analog_enabled = 1
+            self.analog_type = _type_map[ui_label]
+            self.analog_btn.setStyleSheet(button_style('enabled'))
+            logger.gen(self.slot_id, f"analog: {ui_label}")
+            self.analog_type_changed.emit(self.slot_id, self.analog_type)
+            self.analog_enable_changed.emit(self.slot_id, 1)
 
     def on_filter_changed(self, filter_type):
         """Handle filter button change."""

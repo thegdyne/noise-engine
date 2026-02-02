@@ -196,13 +196,23 @@ All OSC message routing
     // ~genBoidOffsets kept but always 0 (harmless, used by ~applyGenParam)
 
     // === ANALOG OUTPUT STAGE ===
-    // Per-slot analog stage controls (type cycles OFF/TAPE/TUBE/FOLD, drive, mix)
+    // Per-slot analog stage controls (enable, type, drive, mix)
+    // Enable is a first-class bypass bus, independent of type selection.
+    OSCdef(\analogEnable, { |msg|
+        var slot = msg[1].asInteger;
+        var enable = msg[2].asInteger.clip(0, 1);
+        if((slot >= 1) && (slot <= 8), {
+            ~genParams[slot][\analogEnable].set(enable);
+            ("Gen " ++ slot ++ " analog enable: " ++ enable).postln;
+        });
+    }, '/noise/gen/analogEnable');
+
     OSCdef(\analogType, { |msg|
         var slot = msg[1].asInteger;
         var type = msg[2].asInteger.clip(0, 3);
         if((slot >= 1) && (slot <= 8), {
             ~genParams[slot][\analogType].set(type);
-            ("Gen " ++ slot ++ " analog type: " ++ ["OFF", "TAPE", "TUBE", "FOLD"][type]).postln;
+            ("Gen " ++ slot ++ " analog type: " ++ ["CLEAN", "TAPE", "TUBE", "FOLD"][type]).postln;
         });
     }, '/noise/gen/analogType');
 

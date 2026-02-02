@@ -234,7 +234,7 @@ FILTER_TYPE_INDEX = {
 }
 
 # === ANALOG OUTPUT STAGE ===
-ANALOG_TYPES = ["OFF", "TAPE", "TUBE", "FOLD"]
+ANALOG_TYPES = ["CLEAN", "TAPE", "TUBE", "FOLD"]
 ANALOG_TYPE_INDEX = {name: i for i, name in enumerate(ANALOG_TYPES)}
 
 # === BPM ===
@@ -1426,6 +1426,7 @@ OSC_PATHS = {
     'gen_midi_channel': '/noise/gen/midiChannel',
     'gen_custom': '/noise/gen/custom',  # /noise/gen/custom/{slot}/{param_index}
     # Analog output stage (per-slot)
+    'gen_analog_enable': '/noise/gen/analogEnable',
     'gen_analog_type': '/noise/gen/analogType',
     'gen_analog_drive': '/noise/gen/analogDrive',
     'gen_analog_mix': '/noise/gen/analogMix',

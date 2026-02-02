@@ -144,8 +144,15 @@ class GeneratorController:
         logger.gen(slot_id, f"portamento: {value:.3f}")
         self.main._mark_dirty()
 
+    def on_generator_analog_enable(self, slot_id, enabled):
+        """Handle analog stage enable/disable."""
+        if self.main.osc_connected:
+            self.main.osc.client.send_message(OSC_PATHS['gen_analog_enable'], [slot_id, enabled])
+        logger.gen(slot_id, f"analog enable: {enabled}")
+        self.main._mark_dirty()
+
     def on_generator_analog_type(self, slot_id, type_index):
-        """Handle analog stage type change (0=OFF, 1=TAPE, 2=TUBE, 3=FOLD)."""
+        """Handle analog stage type change (0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD)."""
         if self.main.osc_connected:
             self.main.osc.client.send_message(OSC_PATHS['gen_analog_type'], [slot_id, type_index])
         logger.gen(slot_id, f"analog type: {type_index}")

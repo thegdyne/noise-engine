@@ -304,6 +304,7 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_portamento_changed.connect(self.generator.on_generator_portamento)  # ADD THIS
         self.generator_grid.generator_mute_changed.connect(self.generator.on_generator_mute)
         self.generator_grid.generator_midi_channel_changed.connect(self.generator.on_generator_midi_channel)
+        self.generator_grid.generator_analog_enable_changed.connect(self.generator.on_generator_analog_enable)
         self.generator_grid.generator_analog_type_changed.connect(self.generator.on_generator_analog_type)
         content_layout.addWidget(self.generator_grid, stretch=5)
         
