@@ -554,6 +554,55 @@ class TelemetryWidget(QWidget):
 
         layout.addLayout(meters_row)
 
+        # ── Living Proof metrics (Analog Life v1.2) ──
+        life_row = QHBoxLayout()
+        life_row.setSpacing(16)
+
+        life_header = QLabel("LIFE")
+        life_header.setStyleSheet(
+            f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        life_row.addWidget(life_header)
+
+        # Crest Factor: Peak / RMS
+        cf_label = QLabel("CF")
+        cf_label.setStyleSheet(
+            f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        cf_label.setToolTip("Crest Factor (Peak ÷ RMS)")
+        life_row.addWidget(cf_label)
+        self.crest_value = QLabel("---")
+        self.crest_value.setStyleSheet(
+            f"color: {COLORS['text']}; font-size: {FONT_SIZES['label']}px; font-family: {MONO_FONT};")
+        life_row.addWidget(self.crest_value)
+
+        life_row.addSpacing(8)
+
+        # HF Energy: first-difference RMS proxy
+        hf_label = QLabel("HF")
+        hf_label.setStyleSheet(
+            f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        hf_label.setToolTip("HF Energy (slew breathing proxy)")
+        life_row.addWidget(hf_label)
+        self.hf_value = QLabel("---")
+        self.hf_value.setStyleSheet(
+            f"color: {COLORS['text']}; font-size: {FONT_SIZES['label']}px; font-family: {MONO_FONT};")
+        life_row.addWidget(self.hf_value)
+
+        life_row.addSpacing(8)
+
+        # DC Shift: waveform mean (TAPE sag indicator)
+        dc_label = QLabel("DC")
+        dc_label.setStyleSheet(
+            f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        dc_label.setToolTip("DC Shift (TAPE sag micro-fluctuation)")
+        life_row.addWidget(dc_label)
+        self.dc_value = QLabel("---")
+        self.dc_value.setStyleSheet(
+            f"color: {COLORS['text']}; font-size: {FONT_SIZES['label']}px; font-family: {MONO_FONT};")
+        life_row.addWidget(self.dc_value)
+
+        life_row.addStretch()
+        layout.addLayout(life_row)
+
         # ── Waveform display ──
         wave_row = QHBoxLayout()
         wave_label = QLabel("WAVEFORM")
@@ -989,6 +1038,37 @@ class TelemetryWidget(QWidget):
             f"color: {color}; font-size: {FONT_SIZES['title']}px; "
             f"font-family: {MONO_FONT}; font-weight: bold;"
         )
+
+        # Living Proof metrics
+        cf = self.controller.current_crest_factor
+        if cf > 0.01:
+            self.crest_value.setText(f"{cf:.2f}")
+            # Color: green < 1.4 (compressed), yellow 1.4-1.7, white > 1.7 (peaky)
+            if cf < 1.4:
+                cf_color = COLORS['meter_warn']
+            elif cf > 1.7:
+                cf_color = COLORS['meter_normal']
+            else:
+                cf_color = COLORS['text']
+            self.crest_value.setStyleSheet(
+                f"color: {cf_color}; font-size: {FONT_SIZES['label']}px; font-family: {MONO_FONT};")
+        else:
+            self.crest_value.setText("---")
+
+        hf = self.controller.current_hf_energy
+        if hf > 0.0001:
+            self.hf_value.setText(f"{hf:.4f}")
+        else:
+            self.hf_value.setText("---")
+
+        dc = self.controller.current_dc_shift
+        if abs(dc) > 0.0001:
+            self.dc_value.setText(f"{dc:+.4f}")
+            dc_color = COLORS['meter_warn'] if abs(dc) > 0.01 else COLORS['text']
+            self.dc_value.setStyleSheet(
+                f"color: {dc_color}; font-size: {FONT_SIZES['label']}px; font-family: {MONO_FONT};")
+        else:
+            self.dc_value.setText("---")
 
         # Scope clipping flash (border goes red when peak > 0.90)
         self.waveform_display.set_peak_clipping(peak > 0.90)

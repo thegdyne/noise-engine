@@ -448,6 +448,11 @@ class TelemetryController(QObject):
         self.current_waveform = None
         self.current_rms_error = 0.0
         self._err_history = deque(maxlen=10)  # Rolling average for stable ERR
+
+        # Living Proof metrics (Analog Life v1.2)
+        self.current_crest_factor = 0.0   # Peak / RMS — reveals saturation character
+        self.current_hf_energy = 0.0      # High-frequency RMS proxy (slew breathing)
+        self.current_dc_shift = 0.0       # DC bias micro-fluctuation (TAPE sag)
         self.active_ref_name = "SAW"  # Current snapped REF shape name
         self.phase_inverted = False   # Manual phase flip for 180° correction
         self.phase_offset = 0.0      # Manual horizontal shift (0-1 maps to 0-128 samples)
@@ -670,12 +675,31 @@ class TelemetryController(QObject):
         data['timestamp'] = time.time()
         self.history.append(data)
 
+        # Living Proof: compute crest factor from incoming SC metrics
+        peak = data.get('peak', 0)
+        rms3 = data.get('rms_stage3', 0)
+        if rms3 > 0.001:
+            self.current_crest_factor = peak / rms3
+        else:
+            self.current_crest_factor = 0.0
+
     def on_waveform(self, slot: int, samples):
         """Handle incoming waveform data from OSCBridge signal."""
         if slot != self.target_slot:
             return
 
         self.current_waveform = np.asarray(samples, dtype=np.float32)
+
+        # Living Proof: HF energy proxy (first-difference RMS ≈ high-pass)
+        # Measures slew breathing — HF energy drops as signal decays
+        if len(self.current_waveform) > 1:
+            hf_diff = np.diff(self.current_waveform)
+            self.current_hf_energy = float(np.sqrt(np.mean(hf_diff ** 2)))
+        else:
+            self.current_hf_energy = 0.0
+
+        # Living Proof: DC shift (mean of waveform — TAPE sag micro-fluctuation)
+        self.current_dc_shift = float(np.mean(self.current_waveform))
 
         # Live RMS error against the Digital Twin ideal (10-frame rolling average)
         # Use a shallow copy to avoid mutating history frames with large numpy arrays

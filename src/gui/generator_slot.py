@@ -3,7 +3,7 @@ Generator Slot v3 - Flat absolute positioning with full functionality
 Styled like ModulatorSlot - green accent border when loaded
 """
 from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QSizePolicy
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent
 from PyQt5.QtGui import QFont
 
 from .widgets import DragSlider, CycleButton, MiniKnob
@@ -120,7 +120,13 @@ class GeneratorSlot(QWidget):
         self.gate_timer = QTimer()
         self.gate_timer.timeout.connect(self._gate_off)
         self.gate_timer.setSingleShot(True)
-        
+
+        # Analog hold-bypass: press-and-hold for momentary A/B bypass
+        self._analog_hold_timer = QTimer()
+        self._analog_hold_timer.setSingleShot(True)
+        self._analog_hold_timer.timeout.connect(self._analog_hold_activate)
+        self._analog_hold_active = False  # True while hold-bypass is engaged
+
         # Storage
         self.sliders = {}
         self.slider_labels = {}
@@ -233,8 +239,9 @@ class GeneratorSlot(QWidget):
         self.analog_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
         self.analog_btn.setStyleSheet(button_style('disabled'))
         self.analog_btn.value_changed.connect(self._on_analog_btn_changed)
-        self.analog_btn.setToolTip("Analog: OFF/CLEAN/TAPE/TUBE/FOLD")
+        self.analog_btn.setToolTip("Analog: OFF/CLEAN/TAPE/TUBE/FOLD (hold for bypass)")
         self.analog_btn.setEnabled(False)
+        self.analog_btn.installEventFilter(self)
 
         self.env_btn = CycleButton(ENV_SOURCES, parent=self)
         self.env_btn.setGeometry(btn_x, L['btn_env_y'], btn_w, btn_h)
@@ -630,6 +637,34 @@ class GeneratorSlot(QWidget):
     # Event Handlers
     # =========================================================================
     
+    def eventFilter(self, obj, event):
+        """Intercept analog button press/release for momentary hold-bypass."""
+        if obj is self.analog_btn and self.analog_enabled == 1:
+            if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+                # Start hold timer (300ms threshold before bypass activates)
+                self._analog_hold_timer.start(300)
+            elif event.type() == QEvent.MouseMove:
+                # Drag detected — cancel hold timer (user is cycling via drag)
+                self._analog_hold_timer.stop()
+            elif event.type() == QEvent.MouseButtonRelease and event.button() == Qt.LeftButton:
+                self._analog_hold_timer.stop()
+                if self._analog_hold_active:
+                    # Release: restore enable and consume the event (no cycle)
+                    self._analog_hold_active = False
+                    self.analog_enable_changed.emit(self.slot_id, 1)
+                    self.analog_btn.setStyleSheet(button_style('enabled'))
+                    logger.gen(self.slot_id, "analog: hold-bypass released")
+                    return True  # Consume — don't let CycleButton cycle
+        return super().eventFilter(obj, event)
+
+    def _analog_hold_activate(self):
+        """Activate momentary bypass after hold threshold."""
+        if self.analog_enabled == 1:
+            self._analog_hold_active = True
+            self.analog_enable_changed.emit(self.slot_id, 0)
+            self.analog_btn.setStyleSheet(button_style('warning'))
+            logger.gen(self.slot_id, "analog: hold-bypass engaged")
+
     def _on_analog_btn_changed(self, ui_label):
         """Dual dispatch: single button drives both enable and type buses.
         OFF = enable=0 (type unchanged). CLEAN/TAPE/TUBE/FOLD = enable=1, type=0/1/2/3."""

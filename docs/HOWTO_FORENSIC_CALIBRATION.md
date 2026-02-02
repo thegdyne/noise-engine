@@ -225,6 +225,64 @@ Locked DSP Values:
 */
 ```
 
+## Part 5: Telemetry Operating Modes
+
+The three-point telemetry source selector (`TAP` dropdown) enables targeted analysis at each stage of the signal chain. Use these standard operating procedures:
+
+### Gold Calibration Mode (Clinical Baseline)
+
+| Setting | Value |
+|---------|-------|
+| Analog Stage | OFF (`[A]` = OFF) |
+| Telemetry Source | Pre-Analog |
+
+This is the clinical baseline for Gold Lock calibration. The tap reads the raw generator output before any analog coloring. RMS and Crest Factor readings are stable (no drift, no sag). All four calibration rounds (Drive, Makeup, Phase, Gold Lock) must be performed in this mode.
+
+### Character Test Mode (A/B Testing)
+
+| Setting | Value |
+|---------|-------|
+| Analog Stage | Any type (CLEAN/TAPE/TUBE/FOLD) |
+| Telemetry Source | Post-Analog |
+
+Use this mode to evaluate the Moving Physics engine. Toggle `AnalogEnable` (OFF/ON) while keeping the same `AnalogType` to hear and measure the exact contribution of the analog stage. The momentary bypass (hold the analog button) provides rapid A/B comparison.
+
+**What to look for:**
+- **Crest Factor drift:** Should wander by ~2% over 20 seconds (Thermal Drift)
+- **HF energy drop on decay:** Quiet passages lose high-frequency content (Slew Breathing)
+- **Transient sag recovery:** After loud events, ~1.2s bias shift visible in harmonic content (TAPE mode)
+
+### System Impact Mode (Full Chain)
+
+| Setting | Value |
+|---------|-------|
+| Analog Stage | Any active type |
+| Telemetry Source | Post-Endstage |
+
+Monitors how analog character interacts with the end-stage filter, envelope/VCA, and safety limiter. Use this to verify that the analog stage's contribution survives the full processing chain without being neutralized by downstream limiting.
+
+## Part 6: The Three Stimuli Protocol
+
+Use these three input signals to verify that each analog mode's non-linear math is producing the expected artifacts:
+
+### Stimulus 1: Pure Sine (Mid-Frequency)
+
+**Best for:** Verifying harmonic generation in TAPE/TUBE modes.
+
+A pure sine contains no harmonics. Any harmonics visible in the telemetry waveform or audible in the output are generated entirely by the analog stage's non-linear processing. TAPE should add odd harmonics (tanh symmetry), TUBE should add even harmonics (asymmetric transfer function).
+
+### Stimulus 2: Square / Pulse Wave
+
+**Best for:** Verifying slew-rate softening and bias sag.
+
+Square waves have sharp edges that stress the level-dependent slew filter. At low amplitudes, edges should be visibly rounded (3 kHz slew cutoff). At high amplitudes, edges should be sharper (12 kHz). In TAPE mode, sustained loud squares should show the 1.2s sag recovery in the telemetry.
+
+### Stimulus 3: Two-Sine Sum (e.g., 220 Hz + 330 Hz)
+
+**Best for:** Verifying intermodulation distortion (IMD).
+
+Two pure sines through a non-linear stage produce sum and difference frequencies (intermodulation products). This "organic smearing" is characteristic of real hardware and is the strongest proof that the analog stage is producing musically relevant distortion rather than simple clipping.
+
 ## Note: Analog Stage "Moving Physics" (v0.3+)
 
 When the per-slot Analog Stage is enabled (`[A]` button), the telemetry RMS and Crest Factor will fluctuate slightly even on a static note. This is intentional — the analog stage models physical circuit behavior:
@@ -258,6 +316,10 @@ When the per-slot Analog Stage is enabled (`[A]` button), the telemetry RMS and 
 | **Crest Factor** | Peak ÷ RMS -- reveals waveform "peakedness" vs compression |
 | **Makeup Scalar** | Post-drive gain that restores RMS without reintroducing saturation |
 | **INV** | Phase inversion toggle in telemetry UI for overlay alignment |
+| **Living Proof** | Real-time telemetry metrics that demonstrate analog "life" (CF, HF, DC) |
+| **HF Energy** | First-difference RMS proxy — drops during slew breathing |
+| **DC Shift** | Waveform mean — micro-fluctuations reveal TAPE sag recovery |
+| **Hold Bypass** | Press-and-hold the analog button for momentary A/B comparison |
 
 ---
 
