@@ -80,7 +80,7 @@ Invariants:
         enableBus, typeBus, driveBus, mixBus|
 
         var sig, clean, shaped, enable, t, drive, mix;
-        var tape, tube, xfold;
+        var driveMult, tape, tube, xfold;
 
         // Read input (stereo from intermediate bus)
         sig = In.ar(inBus, 2);
@@ -92,10 +92,13 @@ Invariants:
         drive = In.kr(driveBus).clip(0, 1);
         mix = In.kr(mixBus).clip(0, 1);
 
-        // DSP types (v0.1: drive/mix reserved for v0.2, shapes use fixed gain)
-        tape = LPF.ar((sig * 1.8).tanh * 0.85, 12000);
-        tube = ((sig + (sig * sig * 0.15)) * 1.6).tanh * 0.85;
-        xfold = Fold.ar(sig * 1.8, -0.9, 0.9) * 0.75;
+        // Drive knob: 0→1x (clean), 0.5→4x (default), 1→10x (destroyed)
+        driveMult = drive.linexp(0, 1, 1, 10);
+
+        // DSP types — driven hard enough to actually saturate at typical levels (~0.67 peak)
+        tape = LPF.ar((sig * driveMult).tanh * 0.8, 12000);
+        tube = ((sig + (sig * sig * 0.2)) * driveMult).tanh * 0.8;
+        xfold = Fold.ar(sig * driveMult, -0.8, 0.8) * 0.7;
 
         // Select type: 0=clean passthrough, 1=tape, 2=tube, 3=xfold
         shaped = Select.ar(t, [sig, tape, tube, xfold]);
