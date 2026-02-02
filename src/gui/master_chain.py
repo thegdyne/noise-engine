@@ -239,23 +239,23 @@ class HeatModule(QWidget):
 # =============================================================================
 
 FILTER_LAYOUT = {
-    'width': 110,
+    'width': 120,
     'height': MODULE_HEIGHT,
 
     # Header
     'title_x': 5, 'title_y': 4, 'title_w': 32, 'title_h': 16,
-    'bypass_x': 80, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
+    'bypass_x': 88, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
 
     # Separator
     'sep_y': 24,
 
     # Sliders (F1, R1, F2, R2, MIX)
     'slider_y': 32, 'slider_h': 70, 'slider_w': 16,
-    'f1_x': 6,
-    'r1_x': 26,
-    'f2_x': 48,
-    'r2_x': 68,
-    'mix_x': 90,
+    'f1_x': 8,
+    'r1_x': 30,
+    'f2_x': 54,
+    'r2_x': 76,
+    'mix_x': 98,
 
     # Labels
     'label_y': 106, 'label_h': 12,
@@ -264,7 +264,7 @@ FILTER_LAYOUT = {
     'mode_y': 118, 'mode_w': 20, 'mode_h': 14,
 
     # Routing button
-    'routing_x': 26, 'routing_y': 132, 'routing_w': 40, 'routing_h': 14,
+    'routing_x': 30, 'routing_y': 132, 'routing_w': 40, 'routing_h': 14,
 }
 
 FL = FILTER_LAYOUT
@@ -995,12 +995,12 @@ class EQModule(QWidget):
 # =============================================================================
 
 COMP_LAYOUT = {
-    'width': 112,
+    'width': 130,
     'height': MODULE_HEIGHT,
 
     # Header
     'title_x': 5, 'title_y': 4, 'title_w': 40, 'title_h': 16,
-    'bypass_x': 82, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
+    'bypass_x': 98, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
 
     # Separator
     'sep_y': 24,
@@ -1015,16 +1015,16 @@ COMP_LAYOUT = {
 
     # Buttons row 1 (RATIO, ATK)
     'btn_row1_y': 32, 'btn_w': 28, 'btn_h': 18,
-    'ratio_x': 56,
-    'atk_x': 82,
+    'ratio_x': 64,
+    'atk_x': 98,
 
     # Buttons row 2 (REL, SC)
     'btn_row2_y': 54,
-    'rel_x': 56,
-    'sc_x': 82,
+    'rel_x': 64,
+    'sc_x': 98,
 
     # GR meter
-    'gr_x': 56, 'gr_y': 78, 'gr_w': 52, 'gr_h': 50,
+    'gr_x': 64, 'gr_y': 78, 'gr_w': 62, 'gr_h': 50,
 
     # Button labels
     'btn_label_y': 130, 'btn_label_h': 12,
@@ -1703,7 +1703,7 @@ class MasterChain(QWidget):
     def _build_ui(self):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(6)
+        layout.setSpacing(0)
 
         # Signal flow order: Heat → Filter → Sync → EQ → Comp → Limiter → Output
         self.heat = HeatModule()
