@@ -1695,6 +1695,7 @@ class MasterChain(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("master_chain")
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.osc_bridge = None
 
         self._build_ui()
