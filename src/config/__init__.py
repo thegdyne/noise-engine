@@ -234,8 +234,9 @@ FILTER_TYPE_INDEX = {
 }
 
 # === ANALOG OUTPUT STAGE ===
-ANALOG_TYPES = ["CLEAN", "TAPE", "TUBE", "FOLD"]
+ANALOG_TYPES = ["CLEAN", "TAPE", "TUBE", "FOLD"]  # SC internal (type bus 0-3)
 ANALOG_TYPE_INDEX = {name: i for i, name in enumerate(ANALOG_TYPES)}
+ANALOG_UI_LABELS = ["OFF", "CLEAN", "TAPE", "TUBE", "FOLD"]  # UI macro (OFF=bypass)
 
 # === BPM ===
 BPM_DEFAULT = 120
