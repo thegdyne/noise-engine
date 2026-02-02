@@ -7,9 +7,9 @@
   "midi_retrig": false,
   "custom_params": [
     {
-      "key": "shape_a",
-      "label": "SHP",
-      "tooltip": "Sine to Square morph",
+      "key": "saw_morph",
+      "label": "SAW",
+      "tooltip": "Sine to Saw morph",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,
@@ -17,9 +17,9 @@
       "unit": ""
     },
     {
-      "key": "shape_b",
-      "label": "MOR",
-      "tooltip": "Sine to Saw morph",
+      "key": "sqr_morph",
+      "label": "SQR",
+      "tooltip": "Sine to Square morph",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,
@@ -29,7 +29,7 @@
     {
       "key": "mix",
       "label": "MIX",
-      "tooltip": "Crossfade between Square (left) and Saw (right)",
+      "tooltip": "Crossfade between Saw (left) and Square (right)",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -39,7 +39,7 @@
     {
       "key": "symmetry",
       "label": "SYM",
-      "tooltip": "Pulse width (Square) or Tilt (Saw)",
+      "tooltip": "Spectral tilt (Saw) or Pulse width (Square)",
       "default": 0.51,
       "min": 0.1,
       "max": 0.9,
@@ -49,7 +49,7 @@
     {
       "key": "saturation",
       "label": "SAT",
-      "tooltip": "Slew rate (Square) or Drive (Sine/Saw)",
+      "tooltip": "Drive (Sine/Saw) or Slew rate (Square)",
       "default": 0.9,
       "min": 0.05,
       "max": 0.95,

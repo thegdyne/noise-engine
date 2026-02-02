@@ -8,28 +8,28 @@ Based on profiled hardware DNA from Generic Hardware Profiler captures:
   - Saw Branch: LFSaw + OnePole spectral tilt (matches buchla_saw.json harmonics)
 
 Custom params:
-  - P1 SHP: Sine to Square morph (XFade2 crossfade)
-  - P2 MOR: Sine to Saw morph (XFade2 crossfade)
-  - P3 MIX: Balance between Square branch and Saw branch
-  - P4 SYM: Pulse width (square) or spectral tilt (saw), 0.1-0.9
-  - P5 SAT: Slew rate (square) or tanh drive (sine/saw), 0.05-0.95
+  - P1 SAW: Sine to Saw morph (XFade2 crossfade)
+  - P2 SQR: Sine to Square morph (XFade2 crossfade)
+  - P3 MIX: Balance between Saw branch and Square branch
+  - P4 SYM: Spectral tilt (saw) or pulse width (square), 0.1-0.9
+  - P5 SAT: Tanh drive (sine/saw) or slew rate (square), 0.05-0.95
 
 Output: Raw signal; 0.38 plateau handled by output_trim_db (-8.4 dB).
 No filter/envelope — handled by channel strip end-stage.
 */
 
 SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
-	var sig, freq, sine, square, saw, branchA, branchB;
-	var p, shpA, shpB, mix, sym, sat;
+	var sig, freq, sine, square, saw, branchSaw, branchSqr;
+	var p, sawMorph, sqrMorph, mix, sym, sat;
 	var duty, pw_thresh, slew_rate;
 	var saw_tilt;
 
 	p = In.kr(customBus0, 5);
-	shpA = Lag.kr(p[0], 0.05);
-	shpB = Lag.kr(p[1], 0.05);
-	mix  = Lag.kr(p[2], 0.05);
-	sym  = Lag.kr(p[3], 0.05);
-	sat  = Lag.kr(p[4], 0.05);
+	sawMorph = Lag.kr(p[0], 0.05);  // P1 SAW: Sine -> Saw
+	sqrMorph = Lag.kr(p[1], 0.05);  // P2 SQR: Sine -> Square
+	mix      = Lag.kr(p[2], 0.05);  // P3 MIX: Saw <-> Square
+	sym      = Lag.kr(p[3], 0.05);  // P4 SYM: Tilt / Width
+	sat      = Lag.kr(p[4], 0.05);  // P5 SAT: Drive / Slew
 
 	freq = In.kr(freqBus).clip(5, 20000);
 
@@ -50,8 +50,8 @@ SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
 	slew_rate = (0.05 + (sat * 1.95)) * SampleRate.ir;
 	square = Slew.ar(square, slew_rate, slew_rate);
 
-	// Morph A: Sine -> Square
-	branchA = XFade2.ar(sine, square, shpA.linlin(0, 1, -1, 1));
+	// Morph: Sine -> Square
+	branchSqr = XFade2.ar(sine, square, sqrMorph.linlin(0, 1, -1, 1));
 
 	// --- 3. SAW BRANCH (Forensic DNA: Spectral Tilt Filter) ---
 	// A. Band-limited base (straight ramp, no bending)
@@ -66,11 +66,12 @@ SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
 	// C. Saturation (match sine/square peak behavior)
 	saw = (saw * (1 + (sat * 1.5))).tanh;
 
-	// Morph B: Sine -> Saw
-	branchB = XFade2.ar(sine, saw, shpB.linlin(0, 1, -1, 1));
+	// Morph: Sine -> Saw
+	branchSaw = XFade2.ar(sine, saw, sawMorph.linlin(0, 1, -1, 1));
 
 	// --- 4. MIX & OUTPUT ---
-	sig = XFade2.ar(branchA, branchB, mix.linlin(0, 1, -1, 1));
+	// MIX 0 = Saw branch, MIX 1 = Square branch
+	sig = XFade2.ar(branchSaw, branchSqr, mix.linlin(0, 1, -1, 1));
 
 	// --- MANDATORY TAIL ---
 	sig = NumChannels.ar(sig, 2);
