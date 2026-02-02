@@ -123,19 +123,21 @@ Invariants:
         bias = sag.linlin(0.01, 1.0, 0.0, 0.03);
         dynamicThresh = env.linexp(0.01, 0.5, 0.4, 1.2).clip(0.3, 2.0);
         tape = ((drivenSig + bias) * (0.8 / dynamicThresh)).tanh * dynamicThresh;
-        tape = LPF.ar(tape, 12000) * 0.85;
+        tape = LPF.ar(tape, 12000) * 0.55;
 
         // TUBE: Dynamic Asymmetry (bias shift with level)
         asym = envKr.linlin(0.01, 1.0, 0.1, 0.35);
-        tube = ((drivenSig + (drivenSig * drivenSig * asym)) * 1.2).tanh * 0.85;
+        tube = ((drivenSig + (drivenSig * drivenSig * asym)) * 1.2).tanh;
+        tube = tube * 0.6;
 
-        // XFOLD: wavefolding at ±0.25 — bites at default signal levels
-        xfold = Fold.ar(drivenSig, -0.25, 0.25) * 0.8;
+        // XFOLD: wavefolding at ±0.5 with makeup gain to restore energy
+        xfold = Fold.ar(drivenSig, -0.5, 0.5);
+        xfold = xfold * 2.8;
 
         // --- 3. Final Mix & Safety ---
         shaped = Select.ar(t, [sig, tape, tube, xfold]);
         // Compensation based on base drive (stable), not drifting driveMult
-        compensation = (1 / baseDriveMult.sqrt).clip(0.2, 1.0);
+        compensation = (1 / baseDriveMult.sqrt).clip(0.1, 1.0);
         shaped = shaped * compensation;
 
         // Wet/dry mix, then enable bypass
