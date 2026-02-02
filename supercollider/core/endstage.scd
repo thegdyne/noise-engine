@@ -81,6 +81,7 @@ Invariants:
 
         var sig, clean, shaped, enable, t, drive, mix;
         var drift, baseDriveMult, driveMult, drivenSig, env, envKr, slewHz;
+        var phaseDriftL, phaseDriftR;
         var sag, bias, dynamicThresh, tape, asym, tube, xfold, compensation;
 
         // Read input (stereo from intermediate bus)
@@ -93,27 +94,34 @@ Invariants:
         drive = In.kr(driveBus).clip(0, 1);
         mix = In.kr(mixBus).clip(0, 1);
 
-        // --- 1. Circuit Infrastructure: Thermal Drift & Slew ---
+        // --- 1. Circuit Infrastructure: Thermal Drift, Phase Breathing & Slew ---
         // Micro-Drift: ±2% meander ensures the saturation point is never frozen
         drift = Lag.kr(LFNoise1.kr(0.05).range(0.98, 1.02), 2.0);
-        baseDriveMult = drive.linexp(0, 1, 1, 10);
+        baseDriveMult = drive.linexp(0, 1, 1.5, 15);
         driveMult = baseDriveMult * drift;  // Drift only affects the grit
         drivenSig = sig * driveMult;
+
+        // Phase Breathing: sub-sample L/R delay wander breaks digital alignment
+        phaseDriftL = LFNoise1.kr(0.2).range(0.0, 0.0001);
+        phaseDriftR = LFNoise1.kr(0.23).range(0.0, 0.0001);
+        drivenSig = [
+            DelayC.ar(drivenSig[0], 0.001, phaseDriftL),
+            DelayC.ar(drivenSig[1], 0.001, phaseDriftR)
+        ];
 
         // Envelope tracks RAW input (decoupled from drift/drive feedback)
         env = Amplitude.ar(sig, 0.001, 0.15).clip(0.01, 1.0);
         envKr = A2K.kr(env);  // Control-rate snapshot for LagUD/linlin
 
-        // Level-Dependent Slew: waveform edges soften as volume drops
-        // 20ms lag on cutoff prevents zipper noise from rapid envelope changes
-        slewHz = Lag.kr(envKr.linexp(0.01, 1.0, 3000, 12000), 0.02);
+        // Level-Dependent Slew: edges react fast (5ms), recover slowly (60ms)
+        slewHz = LagUD.kr(envKr.linexp(0.01, 1.0, 3000, 12000), 0.005, 0.06);
         drivenSig = LPF.ar(drivenSig, slewHz);
 
         // --- 2. Mode Upgrades: Sag & Recovery ---
         // TAPE: Hysteresis + Sag (1.2s memory of loud events)
         sag = LagUD.kr(envKr, 0.05, 1.2);
         bias = sag.linlin(0.01, 1.0, 0.0, 0.03);
-        dynamicThresh = env.linexp(0.01, 1.0, 0.5, 1.5).clip(0.3, 2.0);
+        dynamicThresh = env.linexp(0.01, 0.5, 0.4, 1.2).clip(0.3, 2.0);
         tape = ((drivenSig + bias) * (0.8 / dynamicThresh)).tanh * dynamicThresh;
         tape = LPF.ar(tape, 12000) * 0.85;
 
@@ -121,8 +129,8 @@ Invariants:
         asym = envKr.linlin(0.01, 1.0, 0.1, 0.35);
         tube = ((drivenSig + (drivenSig * drivenSig * asym)) * 1.2).tanh * 0.85;
 
-        // XFOLD: hard wavefolding at ±0.5
-        xfold = Fold.ar(drivenSig, -0.5, 0.5) * 0.8;
+        // XFOLD: wavefolding at ±0.25 — bites at default signal levels
+        xfold = Fold.ar(drivenSig, -0.25, 0.25) * 0.8;
 
         // --- 3. Final Mix & Safety ---
         shaped = Select.ar(t, [sig, tape, tube, xfold]);
