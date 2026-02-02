@@ -19,7 +19,7 @@ Final level via output_trim_db (-5.0 dB).
 No filter/envelope — handled by channel strip end-stage.
 */
 
-SynthDef(\buchla258_b258_osc, { |out, freqBus, customBus0|
+SynthDef(\forge_core_b258_osc, { |out, freqBus, customBus0|
 	var sig, freq, sine, square, saw, branchSaw, branchSqr;
 	var p, sawMorph, sqrMorph, mix, sym, sat;
 	var duty, pw_thresh, slew_rate;
@@ -84,4 +84,4 @@ SynthDef(\buchla258_b258_osc, { |out, freqBus, customBus0|
 	ReplaceOut.ar(out, sig);
 }).add;
 
-"  [x] buchla258_b258_osc loaded".postln;
+"  [x] forge_core_b258_osc loaded".postln;
