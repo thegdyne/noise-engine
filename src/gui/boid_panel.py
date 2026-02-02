@@ -37,6 +37,8 @@ class BoidMiniVisualizer(QWidget):
     Mini visualizer showing boid positions on a small grid.
     """
 
+    GRID_COLS = GRID_COLS  # Expose for debug_dump HF6 check
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(80, 50)
