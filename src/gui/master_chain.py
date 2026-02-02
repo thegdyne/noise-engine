@@ -995,12 +995,12 @@ class EQModule(QWidget):
 # =============================================================================
 
 COMP_LAYOUT = {
-    'width': 122,
+    'width': 112,
     'height': MODULE_HEIGHT,
 
     # Header
     'title_x': 5, 'title_y': 4, 'title_w': 40, 'title_h': 16,
-    'bypass_x': 90, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
+    'bypass_x': 82, 'bypass_y': 3, 'bypass_w': 28, 'bypass_h': 18,
 
     # Separator
     'sep_y': 24,
@@ -1015,16 +1015,16 @@ COMP_LAYOUT = {
 
     # Buttons row 1 (RATIO, ATK)
     'btn_row1_y': 32, 'btn_w': 28, 'btn_h': 18,
-    'ratio_x': 60,
-    'atk_x': 92,
+    'ratio_x': 56,
+    'atk_x': 82,
 
     # Buttons row 2 (REL, SC)
     'btn_row2_y': 54,
-    'rel_x': 60,
-    'sc_x': 92,
+    'rel_x': 56,
+    'sc_x': 82,
 
     # GR meter
-    'gr_x': 60, 'gr_y': 78, 'gr_w': 58, 'gr_h': 50,
+    'gr_x': 56, 'gr_y': 78, 'gr_w': 52, 'gr_h': 50,
 
     # Button labels
     'btn_label_y': 130, 'btn_label_h': 12,
