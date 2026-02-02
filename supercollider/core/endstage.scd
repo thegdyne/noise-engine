@@ -72,7 +72,45 @@ Invariants:
         Out.ar(outBus, sig);
     }).add;
 
-    "  [x] End-stage SynthDefs ready (ne_gen_silence, ne_endstage_standard)".postln;
+    // === ANALOG OUTPUT STAGE ===
+    // Per-slot analog coloring: sits between generator and end-stage.
+    // Signal flow: intermediateBus → [Analog Stage] → enhancedBus → [End-Stage]
+    // Types: 0=CLEAN, 1=TAPE, 2=TUBE, 3=XFOLD
+    SynthDef(\ne_analog_stage, { |inBus, outBus,
+        enableBus, typeBus, driveBus, mixBus|
+
+        var sig, clean, shaped, enable, t, drive, mix;
+        var tape, tube, xfold;
+
+        // Read input (stereo from intermediate bus)
+        sig = In.ar(inBus, 2);
+        clean = sig;
+
+        // Control reads with lag for click-free switching
+        enable = In.kr(enableBus).lag(0.02);
+        t = In.kr(typeBus).round.clip(0, 3);
+        drive = In.kr(driveBus).clip(0, 1);
+        mix = In.kr(mixBus).clip(0, 1);
+
+        // DSP types (v0.1: drive/mix reserved for v0.2, shapes use fixed gain)
+        tape = LPF.ar((sig * 1.8).tanh * 0.85, 12000);
+        tube = ((sig + (sig * sig * 0.15)) * 1.6).tanh * 0.85;
+        xfold = Fold.ar(sig * 1.8, -0.9, 0.9) * 0.75;
+
+        // Select type: 0=clean passthrough, 1=tape, 2=tube, 3=xfold
+        shaped = Select.ar(t, [sig, tape, tube, xfold]);
+
+        // Enable crossfade: enable=0 → all clean, enable=1 → all shaped
+        sig = XFade2.ar(clean, shaped, (enable * 2) - 1);
+
+        // Safety: remove DC and soft-limit
+        sig = LeakDC.ar(sig);
+        sig = sig.softclip;
+
+        ReplaceOut.ar(outBus, sig);
+    }).add;
+
+    "  [x] End-stage SynthDefs ready (ne_gen_silence, ne_endstage_standard, ne_analog_stage)".postln;
 };
 
 // === BOOT END-STAGE INFRASTRUCTURE ===
@@ -85,14 +123,20 @@ Invariants:
     // Allocate intermediate buses (stereo audio, one per slot)
     ~intermediateBus = Array.fill(8, { Bus.audio(s, 2) });
 
+    // Allocate enhanced buses (post-analog stage, stereo, one per slot)
+    ~enhancedBus = Array.fill(8, { Bus.audio(s, 2) });
+
     // Per-slot group structure:
     //   slotGroup[n]
-    //     ├── genSubGroup[n]     (generators execute first)
-    //     └── endstageSubGroup[n] (end-stage reads result)
+    //     ├── genSubGroup[n]       (generators execute first)
+    //     ├── analogSubGroup[n]    (analog stage reads intermediate, writes enhanced)
+    //     └── endstageSubGroup[n]  (end-stage reads enhanced)
     ~slotGroup = Array.fill(8, { nil });
     ~genSubGroup = Array.fill(8, { nil });
+    ~analogSubGroup = Array.fill(8, { nil });
     ~endstageSubGroup = Array.fill(8, { nil });
     ~endstageNodes = Array.fill(8, { nil });
+    ~analogNodes = Array.fill(8, { nil });
     ~silenceNodes = Array.fill(8, { nil });
 
     8.do { |idx|
@@ -120,8 +164,10 @@ Invariants:
 
         // Create per-slot group hierarchy within ~genGroup
         // genGroup already exists and runs before stripGroup
+        // Order: genSubGroup → analogSubGroup → endstageSubGroup
         ~slotGroup[idx] = Group(~genGroup, \addToTail);
         ~genSubGroup[idx] = Group(~slotGroup[idx], \addToHead);
+        ~analogSubGroup[idx] = Group(~slotGroup[idx], \addToTail);
         ~endstageSubGroup[idx] = Group(~slotGroup[idx], \addToTail);
 
         // Boot silence generator (always-writer invariant)
@@ -129,9 +175,19 @@ Invariants:
             \outBus, ~intermediateBus[idx].index
         ], ~genSubGroup[idx], \addToTail);
 
-        // Boot end-stage synth (persistent infrastructure)
-        ~endstageNodes[idx] = Synth(\ne_endstage_standard, [
+        // Boot analog stage synth (reads intermediate, writes enhanced)
+        ~analogNodes[idx] = Synth(\ne_analog_stage, [
             \inBus, ~intermediateBus[idx].index,
+            \outBus, ~enhancedBus[idx].index,
+            \enableBus, ~genParams[slotID][\analogEnable].index,
+            \typeBus, ~genParams[slotID][\analogType].index,
+            \driveBus, ~genParams[slotID][\analogDrive].index,
+            \mixBus, ~genParams[slotID][\analogMix].index
+        ], ~analogSubGroup[idx], \addToTail);
+
+        // Boot end-stage synth (reads enhanced bus — post-analog)
+        ~endstageNodes[idx] = Synth(\ne_endstage_standard, [
+            \inBus, ~enhancedBus[idx].index,
             \outBus, ~genBus[idx].index,
             \cutoffBus, cutoffBusIdx,
             \resBus, resBusIdx,
@@ -147,11 +203,14 @@ Invariants:
             \mute, 0
         ], ~endstageSubGroup[idx], \addToTail);
 
-        "  Slot %: intermediate=%, genSub=%, endSub=%, endstage=%, silence=%".format(
+        "  Slot %: intermediate=%, enhanced=%, genSub=%, analogSub=%, endSub=%, analog=%, endstage=%, silence=%".format(
             slotID,
             ~intermediateBus[idx].index,
+            ~enhancedBus[idx].index,
             ~genSubGroup[idx].nodeID,
+            ~analogSubGroup[idx].nodeID,
             ~endstageSubGroup[idx].nodeID,
+            ~analogNodes[idx].nodeID,
             ~endstageNodes[idx].nodeID,
             ~silenceNodes[idx].nodeID
         ).postln;

@@ -10,6 +10,7 @@
     ~telemetry = ~telemetry ? ();
     ~telemetry.enabled = Array.fill(8, { false });
     ~telemetry.rates = Array.fill(8, { 0 });
+    ~telemetry.sourceIds = Array.fill(8, { 0 });  // 0=pre-analog, 1=post-analog, 2=post-endstage
 
     // Track synth nodes
     ~telemetry.waveBuffers = Array.fill(8, { nil });
@@ -49,9 +50,9 @@
     }).add;
 
     // --- 2. Internal Data Tap Synth (Audio -> OSC Data) ---
-    // Reads audio from ~intermediateBus and control params from customBus0
-    // to provide full telemetry (RMS, peak, freq, params) for any generator.
-    SynthDef(\forge_internal_telem_tap, { |inBus, customBus, slotIndex=0, telemetryRate=0, calGain=1.0|
+    // Reads audio from the selected tap point and control params from customBus0.
+    // sourceId: 0=pre-analog, 1=post-analog, 2=post-endstage
+    SynthDef(\forge_internal_telem_tap, { |inBus, customBus, slotIndex=0, telemetryRate=0, calGain=1.0, sourceId=0|
         var sig = In.ar(inBus, 2);
         var p = In.kr(customBus, 5);
         var mono = sig[0] * calGain;
@@ -64,7 +65,8 @@
             0,                            // Phase (no bus available)
             p[0], p[1], p[2], p[3], p[4], // Real params from control bus
             rms, rms, rms,                // Stages 1-3
-            peak, 0, peak                 // BadVal, Peak3
+            peak, 0, peak,               // BadVal, Peak3
+            sourceId                      // Tap source identification
         ]);
     }).add;
 
@@ -80,6 +82,17 @@
         if (~telemetry.waveBuffers[slot].notNil) { ~telemetry.waveBuffers[slot].free; ~telemetry.waveBuffers[slot] = nil; };
         if (~telemetry.waveSynths[slot].notNil) { ~telemetry.waveSynths[slot].free; ~telemetry.waveSynths[slot] = nil; };
     };
+
+    // Resolve audio bus for a given source ID
+    // 0=pre-analog (intermediateBus), 1=post-analog (enhancedBus), 2=post-endstage (genBus)
+    ~telemetry.busForSource = { |idx, sourceId|
+        case
+            { sourceId == 0 } { ~intermediateBus[idx].index }
+            { sourceId == 1 } { ~enhancedBus[idx].index }
+            { sourceId == 2 } { ~genBus[idx].index }
+            { ~intermediateBus[idx].index };  // default
+    };
+
     "[Telemetry] Infrastructure loaded".postln;
 };
 
@@ -101,7 +114,7 @@
         var rate = msg[2].asInteger;
         var calGain = if(msg.size > 3, { msg[3].asFloat }, { 1.0 });
         var idx = slot - 1;
-        var custom0Idx, slotKey, useUnified;
+        var custom0Idx, slotKey, useUnified, sourceId, tapBus;
 
         if ((slot >= 1) && (slot <= 8)) {
             // Always free existing first to prevent dupes/leaks
@@ -121,19 +134,68 @@
                         custom0Idx = ~genParams[slot][\custom][0].index;
                     };
 
+                    // Resolve tap bus from current source selection
+                    sourceId = ~telemetry.sourceIds[idx];
+                    tapBus = ~telemetry[\busForSource].value(idx, sourceId);
+
                     ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
-                        \inBus, ~intermediateBus[idx].index,
+                        \inBus, tapBus,
                         \customBus, custom0Idx,
                         \slotIndex, idx, \telemetryRate, rate,
-                        \calGain, calGain
+                        \calGain, calGain,
+                        \sourceId, sourceId
                     ], ~fxGroup, \addAfter);
-                    "[Telemetry] Internal Tap START slot % (customBus: %, calGain: %)".format(slot, custom0Idx, calGain).postln;
+                    "[Telemetry] Internal Tap START slot % source % (bus: %, calGain: %)".format(slot, sourceId, tapBus, calGain).postln;
                 };
             } {
                 "[Telemetry] Internal Tap STOP slot %".format(slot).postln;
             };
         };
     }, '/noise/telem/tap/enable');
+
+    // Telemetry Source Selection (0=pre-analog, 1=post-analog, 2=post-endstage)
+    // Restarts the tap synth with the new bus if already running.
+    OSCdef(\telemSource, { |msg|
+        var slot = msg[1].asInteger;
+        var sourceId = msg[2].asInteger.clip(0, 2);
+        var idx = slot - 1;
+        var sourceNames = ["Pre-Analog", "Post-Analog", "Post-Endstage"];
+
+        if ((slot >= 1) && (slot <= 8)) {
+            ~telemetry.sourceIds[idx] = sourceId;
+            "[Telemetry] Source select slot %: % (%)".format(slot, sourceId, sourceNames[sourceId]).postln;
+
+            // If tap is running, restart it with the new bus
+            if (~telemetry.tapSynths[idx].notNil) {
+                var rate = ~telemetry.rates[idx];
+                // Re-trigger the tap enable logic (rate > 0 restarts, rate 0 stops)
+                if (rate > 0) {
+                    // Free and re-spawn via the existing OSCdef handler
+                    ~telemetry.tapSynths[idx].free;
+                    ~telemetry.tapSynths[idx] = nil;
+                    // Inline respawn (mirrors the telemTapEnable logic)
+                    if (~intermediateBus[idx].notNil && ~generators[slot].notNil) {
+                        var slotKey = slot.asString;
+                        var useUnified = ~genUnifiedSlots.includes(slot);
+                        var custom0Idx, tapBus;
+                        if (useUnified) {
+                            custom0Idx = ~busRegistry[("gen_" ++ slotKey ++ "_custom0").asSymbol].index;
+                        } {
+                            custom0Idx = ~genParams[slot][\custom][0].index;
+                        };
+                        tapBus = ~telemetry[\busForSource].value(idx, sourceId);
+                        ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
+                            \inBus, tapBus,
+                            \customBus, custom0Idx,
+                            \slotIndex, idx, \telemetryRate, rate,
+                            \calGain, 1.0,
+                            \sourceId, sourceId
+                        ], ~fxGroup, \addAfter);
+                    };
+                };
+            };
+        };
+    }, '/noise/telem/source');
 
     // Waveform Capture
     OSCdef(\telemWaveEnable, { |msg|
@@ -174,7 +236,7 @@
             ~telemetry[\freeWaveBuffer].value(i);
             if (~telemetry.tapSynths[i].notNil) { ~telemetry.tapSynths[i].free; ~telemetry.tapSynths[i] = nil; };
         };
-        [\telemEnable, \telemTapEnable, \telemGen, \telemWaveEnable, \telemWaveReady, \telemHwWave].do { |key| OSCdef(key).free; };
+        [\telemEnable, \telemTapEnable, \telemSource, \telemGen, \telemWaveEnable, \telemWaveReady, \telemHwWave].do { |key| OSCdef(key).free; };
         "[Telemetry] Cleaned up".postln;
     };
     "[Telemetry] Tap booted".postln;

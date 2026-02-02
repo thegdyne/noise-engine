@@ -52,6 +52,11 @@ Default values are real values (not normalized):
         ~genParams[slot][\envSource] = Bus.control(s, 1).set(0);           // 0=OFF, 1=CLK, 2=MIDI
         ~genParams[slot][\clockRate] = Bus.control(s, 1).set(6);  // 6 = CLK (quarter notes)
         ~genParams[slot][\portamento] = Bus.control(s, 1).set(0.0);
+        // Analog output stage (per-slot)
+        ~genParams[slot][\analogEnable] = Bus.control(s, 1).set(0);
+        ~genParams[slot][\analogType] = Bus.control(s, 1).set(0);
+        ~genParams[slot][\analogDrive] = Bus.control(s, 1).set(0.5);   // v0.2 — allocated, ignored by v0.1 types
+        ~genParams[slot][\analogMix] = Bus.control(s, 1).set(1.0);     // v0.2 — allocated, ignored by v0.1 types
         // DEPRECATED - now read from unified buses
         ~genParams[slot][\custom] = Array.fill(5, { Bus.control(s, 1).set(0.5) });
     };
@@ -132,10 +137,13 @@ Default values are real values (not normalized):
     // End-stage infrastructure (allocated by endstage.scd ~bootEndstageInfra)
     // These are nil until boot; declared here for visibility
     ~intermediateBus = nil;     // Array[8] of stereo audio buses
+    ~enhancedBus = nil;         // Array[8] of stereo audio buses (post-analog stage)
     ~slotGroup = nil;           // Array[8] of per-slot parent groups
     ~genSubGroup = nil;         // Array[8] of generator sub-groups
+    ~analogSubGroup = nil;      // Array[8] of analog stage sub-groups
     ~endstageSubGroup = nil;    // Array[8] of end-stage sub-groups
     ~endstageNodes = nil;       // Array[8] of end-stage synth nodes
+    ~analogNodes = nil;         // Array[8] of analog stage synth nodes
     ~silenceNodes = nil;        // Array[8] of silence gen nodes
 
     "  [x] Buses ready (% clock rates, % gen buses, 4 FX send/return pairs)".format(~clockRates.size, ~genBus.size).postln;

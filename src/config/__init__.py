@@ -233,6 +233,10 @@ FILTER_TYPE_INDEX = {
     "OFF": 5
 }
 
+# === ANALOG OUTPUT STAGE ===
+ANALOG_TYPES = ["CLEAN", "TAPE", "TUBE", "XFOLD"]
+ANALOG_TYPE_INDEX = {name: i for i, name in enumerate(ANALOG_TYPES)}
+
 # === BPM ===
 BPM_DEFAULT = 120
 BPM_MIN = 20
@@ -1421,6 +1425,11 @@ OSC_PATHS = {
     'gen_mute': '/noise/gen/mute',
     'gen_midi_channel': '/noise/gen/midiChannel',
     'gen_custom': '/noise/gen/custom',  # /noise/gen/custom/{slot}/{param_index}
+    # Analog output stage (per-slot)
+    'gen_analog_enable': '/noise/gen/analogEnable',
+    'gen_analog_type': '/noise/gen/analogType',
+    'gen_analog_drive': '/noise/gen/analogDrive',
+    'gen_analog_mix': '/noise/gen/analogMix',
     'start_generator': '/noise/start_generator',
     'stop_generator': '/noise/stop_generator',
     'endstage_mute': '/noise/endstage/mute',  # End-stage per-slot mute (click-free)
@@ -1628,7 +1637,12 @@ OSC_PATHS = {
     'telem_gen': '/noise/telem/gen',                   # SC → Python: control-rate data
     'telem_wave_enable': '/noise/telem/wave/enable',   # [slot, enable] Python → SC
     'telem_wave': '/noise/telem/wave',                 # SC → Python: waveform samples
+    'telem_source': '/noise/telem/source',             # [slot, source_id] Python → SC: select tap point
 }
+
+# === TELEMETRY SOURCE POINTS ===
+TELEM_SOURCES = ["Pre-Analog", "Post-Analog", "Post-Endstage"]
+TELEM_SOURCE_INDEX = {name: i for i, name in enumerate(TELEM_SOURCES)}
 
 # === WIDGET SIZES ===
 SIZES = {

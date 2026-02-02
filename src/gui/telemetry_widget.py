@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (  # noqa: E501
 )
 
 from src.audio.telemetry_controller import TelemetryController
-from src.config import get_generator_synthdef
+from src.config import get_generator_synthdef, TELEM_SOURCES
 from src.gui.theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES
 from src.gui.widgets import MidiButton
 
@@ -418,6 +418,18 @@ class TelemetryWidget(QWidget):
         self.enable_btn.clicked.connect(self._on_enable_toggled)
         top_row.addWidget(self.enable_btn)
 
+        top_row.addSpacing(8)
+
+        source_label = QLabel("TAP")
+        source_label.setStyleSheet(f"color: {COLORS['text_dim']}; font-size: {FONT_SIZES['tiny']}px; font-weight: bold;")
+        top_row.addWidget(source_label)
+
+        self.source_combo = QComboBox()
+        for name in TELEM_SOURCES:
+            self.source_combo.addItem(name)
+        self.source_combo.currentIndexChanged.connect(self._on_source_changed)
+        top_row.addWidget(self.source_combo)
+
         top_row.addStretch()
 
         # Core Lock warning
@@ -688,6 +700,10 @@ class TelemetryWidget(QWidget):
         self.controller.set_slot(index)
         self.core_lock_label.setText("")
         self._update_generator_context()
+
+    def _on_source_changed(self, index):
+        """Handle telemetry source tap point change."""
+        self.controller.set_source(index)
 
     def _on_enable_toggled(self, checked):
         if checked:

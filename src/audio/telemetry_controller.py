@@ -454,6 +454,10 @@ class TelemetryController(QObject):
         self.body_gain = 1.0         # Body scalar: 0.25x-1.0x shrinks ideal inside hw peak
         self.v_offset = 0.0          # Vertical DC offset: ±0.2 for asymmetric high/low
 
+        # Telemetry source selection (0=pre-analog, 1=post-analog, 2=post-endstage)
+        self.selected_source_id = 0
+        self._source_names = ["Pre-Analog", "Post-Analog", "Post-Endstage"]
+
         # Generator info (set externally for snapshot provenance)
         self.current_generator_id = ""
         self.current_synthdef_name = ""
@@ -613,6 +617,25 @@ class TelemetryController(QObject):
             slot_idx = self.target_slot + 1
             self.osc.send('telem_tap_enable', [slot_idx, self.current_rate, self.cal_gain])
         logger.info(f"[Telemetry] Cal gain set to {self.cal_gain:.3f}")
+
+    def set_source(self, source_id: int):
+        """Switch telemetry tap point.
+
+        Args:
+            source_id: 0=Pre-Analog, 1=Post-Analog, 2=Post-Endstage
+        """
+        source_id = max(0, min(2, source_id))
+        if source_id == self.selected_source_id:
+            return
+        self.selected_source_id = source_id
+        self.history.clear()
+        self.current_waveform = None
+
+        if self.enabled:
+            slot_idx = self.target_slot + 1
+            self.osc.send('telem_source', [slot_idx, source_id])
+
+        logger.info(f"[Telemetry] Source: {self._source_names[source_id]}")
 
     @property
     def is_hw_mode(self) -> bool:
@@ -1137,6 +1160,8 @@ class TelemetryController(QObject):
                 'noise_engine_version': self.app_version,
                 'slot': self.target_slot,
                 'telemetry_rate': self.current_rate,
+                'source_id': self.selected_source_id,
+                'source_name': self._source_names[self.selected_source_id],
             }
         }
 
@@ -1168,6 +1193,8 @@ class TelemetryController(QObject):
                 'synthdef': self.current_synthdef_name,
                 'git_hash': self._get_git_hash(),
                 'exported_at': datetime.now().isoformat(),
+                'source_id': self.selected_source_id,
+                'source_name': self._source_names[self.selected_source_id],
             }
         }
         with open(path, 'w') as f:

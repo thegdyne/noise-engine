@@ -195,6 +195,42 @@ All OSC message routing
     // via /noise/boid/offsets endpoint in bus_unification_osc.scd
     // ~genBoidOffsets kept but always 0 (harmless, used by ~applyGenParam)
 
+    // === ANALOG OUTPUT STAGE ===
+    // Per-slot analog stage controls (enable, type, drive, mix)
+    OSCdef(\analogEnable, { |msg|
+        var slot = msg[1].asInteger;
+        var enable = msg[2].asInteger.clip(0, 1);
+        if((slot >= 1) && (slot <= 8), {
+            ~genParams[slot][\analogEnable].set(enable);
+            ("Gen " ++ slot ++ " analog enable: " ++ enable).postln;
+        });
+    }, '/noise/gen/analogEnable');
+
+    OSCdef(\analogType, { |msg|
+        var slot = msg[1].asInteger;
+        var type = msg[2].asInteger.clip(0, 3);
+        if((slot >= 1) && (slot <= 8), {
+            ~genParams[slot][\analogType].set(type);
+            ("Gen " ++ slot ++ " analog type: " ++ ["CLEAN", "TAPE", "TUBE", "XFOLD"][type]).postln;
+        });
+    }, '/noise/gen/analogType');
+
+    OSCdef(\analogDrive, { |msg|
+        var slot = msg[1].asInteger;
+        var drive = msg[2].asFloat.clip(0, 1);
+        if((slot >= 1) && (slot <= 8), {
+            ~genParams[slot][\analogDrive].set(drive);
+        });
+    }, '/noise/gen/analogDrive');
+
+    OSCdef(\analogMix, { |msg|
+        var slot = msg[1].asInteger;
+        var mix = msg[2].asFloat.clip(0, 1);
+        if((slot >= 1) && (slot <= 8), {
+            ~genParams[slot][\analogMix].set(mix);
+        });
+    }, '/noise/gen/analogMix');
+
     // Generator control (routes through dispatch for end-stage support)
     OSCdef(\startGenerator, { |msg|
         ~startGeneratorDispatch.(msg[1].asInteger, msg[2].asSymbol);
