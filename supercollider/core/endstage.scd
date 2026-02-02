@@ -75,11 +75,11 @@ Invariants:
     // === ANALOG OUTPUT STAGE ===
     // Per-slot analog coloring: sits between generator and end-stage.
     // Signal flow: intermediateBus → [Analog Stage] → enhancedBus → [End-Stage]
-    // Types: 0=CLEAN, 1=TAPE, 2=TUBE, 3=XFOLD
+    // Types: 0=OFF, 1=TAPE, 2=TUBE, 3=FOLD
     SynthDef(\ne_analog_stage, { |inBus, outBus,
-        enableBus, typeBus, driveBus, mixBus|
+        typeBus, driveBus, mixBus|
 
-        var sig, clean, shaped, enable, t, drive, mix;
+        var sig, clean, shaped, is_on, t, drive, mix;
         var drift, baseDriveMult, driveMult, drivenSig, env, envKr, slewHz;
         var phaseDriftL, phaseDriftR;
         var sag, bias, dynamicThresh, tape, asym, tube, xfold, compensation;
@@ -89,7 +89,6 @@ Invariants:
         clean = sig;
 
         // Control reads with lag for click-free switching
-        enable = In.kr(enableBus).lag(0.02);
         t = In.kr(typeBus).round.clip(0, 3);
         drive = In.kr(driveBus).clip(0, 1);
         mix = In.kr(mixBus).clip(0, 1);
@@ -140,9 +139,10 @@ Invariants:
         compensation = (1 / baseDriveMult.sqrt).clip(0.1, 1.0);
         shaped = shaped * compensation;
 
-        // Wet/dry mix, then enable bypass
+        // Consolidated bypass: t==0 (OFF) → hard bypass, t>0 → wet/dry mix
+        is_on = (t > 0).lag(0.02);
         sig = XFade2.ar(clean, shaped, (mix * 2) - 1);
-        sig = XFade2.ar(clean, sig, (enable * 2) - 1);
+        sig = XFade2.ar(clean, sig, (is_on * 2) - 1);
 
         // Safety: remove DC and soft-limit
         sig = LeakDC.ar(sig).softclip;
@@ -219,7 +219,6 @@ Invariants:
         ~analogNodes[idx] = Synth(\ne_analog_stage, [
             \inBus, ~intermediateBus[idx].index,
             \outBus, ~enhancedBus[idx].index,
-            \enableBus, ~genParams[slotID][\analogEnable].index,
             \typeBus, ~genParams[slotID][\analogType].index,
             \driveBus, ~genParams[slotID][\analogDrive].index,
             \mixBus, ~genParams[slotID][\analogMix].index

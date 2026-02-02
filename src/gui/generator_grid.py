@@ -27,7 +27,6 @@ class GeneratorGrid(QWidget):
     generator_transpose_changed = pyqtSignal(int, int)  # slot_id, semitones
     generator_portamento_changed = pyqtSignal(int, float)  # ADD THIS - slot_id, value
     generator_mute_changed = pyqtSignal(int, bool)  # slot_id, muted
-    generator_analog_enable_changed = pyqtSignal(int, int)  # slot_id, enabled (0|1)
     generator_analog_type_changed = pyqtSignal(int, int)  # slot_id, type_index (0-3)
 
     def __init__(self, rows=2, cols=4, parent=None):
@@ -67,7 +66,6 @@ class GeneratorGrid(QWidget):
                 slot.portamento_changed.connect(self.on_portamento_changed)
                 slot.mute_changed.connect(self.on_mute_changed)
                 slot.midi_channel_changed.connect(self.on_midi_channel_changed)
-                slot.analog_enable_changed.connect(self.on_analog_enable_changed)
                 slot.analog_type_changed.connect(self.on_analog_type_changed)
                 grid.addWidget(slot, row, col)
                 self.slots[slot_id] = slot
@@ -122,10 +120,6 @@ class GeneratorGrid(QWidget):
     def on_midi_channel_changed(self, slot_id, channel):
         """Handle MIDI channel change."""
         self.generator_midi_channel_changed.emit(slot_id, channel)
-
-    def on_analog_enable_changed(self, slot_id, enabled):
-        """Forward analog enable change."""
-        self.generator_analog_enable_changed.emit(slot_id, enabled)
 
     def on_analog_type_changed(self, slot_id, type_index):
         """Forward analog type change."""
