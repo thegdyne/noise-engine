@@ -5,9 +5,9 @@
   "midi_retrig": false,
   "custom_params": [
     {
-      "key": "morph",
-      "label": "MORPH",
-      "tooltip": "Timbre morph (0-10V range captured from hardware)",
+      "key": "saw_morph",
+      "label": "SAW",
+      "tooltip": "Sine to Saw morph (full table interpolation from 0-10V hardware telemetry)",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,
@@ -15,42 +15,22 @@
       "unit": ""
     },
     {
-      "key": "h2_scale",
-      "label": "H2",
-      "tooltip": "Second harmonic (asymmetry) scale - the 258's 'soul'",
-      "default": 1.0,
+      "key": "sqr_morph",
+      "label": "SQR",
+      "tooltip": "Sine to Square morph (odd harmonics only from hardware telemetry)",
+      "default": 0.0,
       "min": 0.0,
-      "max": 2.0,
+      "max": 1.0,
       "curve": "lin",
       "unit": ""
     },
     {
-      "key": "odd_scale",
-      "label": "ODD",
-      "tooltip": "Odd harmonic (h3,h5,h7) scale",
-      "default": 1.0,
+      "key": "mix",
+      "label": "MIX",
+      "tooltip": "Blend SAW (left) and SQR (right) oscillators",
+      "default": 0.5,
       "min": 0.0,
-      "max": 2.0,
-      "curve": "lin",
-      "unit": ""
-    },
-    {
-      "key": "even_scale",
-      "label": "EVEN",
-      "tooltip": "Even harmonic (h4,h6,h8) scale",
-      "default": 1.0,
-      "min": 0.0,
-      "max": 2.0,
-      "curve": "lin",
-      "unit": ""
-    },
-    {
-      "key": "brightness",
-      "label": "BRT",
-      "tooltip": "High harmonic boost (h5-h8)",
-      "default": 1.0,
-      "min": 0.5,
-      "max": 2.0,
+      "max": 1.0,
       "curve": "lin",
       "unit": ""
     }
