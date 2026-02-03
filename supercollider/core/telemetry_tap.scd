@@ -57,7 +57,7 @@
         if (~telemetry.waveBuffers[slot].notNil) {
             ~telemetry.waveBuffers[slot].free;
         };
-        ~telemetry.waveBuffers[slot] = Buffer.alloc(s, 4096, 1);
+        ~telemetry.waveBuffers[slot] = Buffer.alloc(s, 1024, 1);  // Match scope size
         ~telemetry.waveBuffers[slot];
     };
 
@@ -237,12 +237,12 @@
 
                         0.1.wait;  // Let synth start writing to buffer
 
-                        // Start polling routine at 10Hz
+                        // Start polling routine at 10Hz (using loadToFloatArray like scope)
                         ~telemetry.waveRoutines[idx] = Routine({
                             loop {
                                 if (~telemetry.waveBuffers[idx].notNil && ~pythonAddr.notNil) {
-                                    ~telemetry.waveBuffers[idx].getn(0, 4096, { |data|
-                                        ~pythonAddr.sendMsg('/noise/telem/wave', idx, *data);
+                                    ~telemetry.waveBuffers[idx].loadToFloatArray(action: { |data|
+                                        ~pythonAddr.sendMsg('/noise/telem/wave', idx, *data.as(Array));
                                     });
                                 };
                                 0.1.wait;  // 10Hz
