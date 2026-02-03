@@ -36,7 +36,7 @@ import numpy as np
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from hardware.midi_cv import MidiCV, find_motu_port
+from hardware.midi_cv import MidiCV, find_preferred_port
 
 
 def list_devices():
@@ -301,7 +301,7 @@ def main():
         return
 
     if args.manual:
-        port = args.midi_port or find_motu_port()
+        port = args.midi_port or find_preferred_port()
         if not port:
             print("Error: --midi-port required (or connect a MOTU device)")
             print("Run with --list-devices to see available ports")
@@ -310,7 +310,7 @@ def main():
         return
 
     if args.sweep:
-        port = args.midi_port or find_motu_port()
+        port = args.midi_port or find_preferred_port()
         if not port:
             print("Error: --midi-port required")
             sys.exit(1)
