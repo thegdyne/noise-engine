@@ -282,8 +282,15 @@
     OSCdef(\telemGen, { |msg| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/gen', *msg[3..]); }; }, '/noise/telem/gen');
     OSCdef(\telemWaveReady, { |msg|
         var slot=msg[3].asInteger;
+        "[Telemetry] wave/ready RECEIVED: slot=%, pythonAddr=%, waveBuffers[%]=%".format(slot, ~pythonAddr, slot, ~telemetry.waveBuffers[slot]).postln;
         if (~telemetry.waveBuffers[slot].notNil) {
-            ~telemetry.waveBuffers[slot].getn(0, 4096, { |data| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/wave', slot, *data); } });
+            ~telemetry.waveBuffers[slot].getn(0, 4096, { |data|
+                "[Telemetry] getn callback: got % samples, pythonAddr=%".format(data.size, ~pythonAddr).postln;
+                if (~pythonAddr.notNil) {
+                    ~pythonAddr.sendMsg('/noise/telem/wave', slot, *data);
+                    "[Telemetry] SENT wave data to Python".postln;
+                };
+            });
         } {
             "[Telemetry] wave/ready IGNORED - waveBuffers[%] is nil".format(slot).postln;
         };
