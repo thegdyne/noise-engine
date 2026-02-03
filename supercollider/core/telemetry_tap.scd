@@ -72,9 +72,11 @@
 
     // Buffer helpers
     ~telemetry.allocWaveBuffer = { |slot|
-        if (~telemetry.waveBuffers[slot].isNil) {
-            ~telemetry.waveBuffers[slot] = Buffer.alloc(s, 4096, 1);
+        // Always free and reallocate to ensure correct buffer size
+        if (~telemetry.waveBuffers[slot].notNil) {
+            ~telemetry.waveBuffers[slot].free;
         };
+        ~telemetry.waveBuffers[slot] = Buffer.alloc(s, 4096, 1);
         ~telemetry.waveBuffers[slot];
     };
 
