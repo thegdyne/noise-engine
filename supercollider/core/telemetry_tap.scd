@@ -238,27 +238,17 @@
         if ((slot >= 1) && (slot <= 8)) {
             if (enable) {
                 var waveBus = ~telemetry[\busForSource].value(idx, ~telemetry.sourceIds[idx]);
-
-                // Stop existing first
+                buf = ~telemetry[\allocWaveBuffer].value(idx);
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
-
-                if (~intermediateBus[idx].notNil && ~fxGroup.notNil) {
-                    // Fork to allow sync for buffer allocation
-                    fork {
-                        buf = ~telemetry[\allocWaveBuffer].value(idx);
-                        s.sync;  // Wait for buffer allocation
-
-                        ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
-                            \inBus, waveBus,
-                            \slotIndex, idx, \bufnum, buf.bufnum
-                        ], ~fxGroup, \addAfter);
-
-                        "[Telemetry] Wave capture STARTED slot % (bus: %)".format(slot, waveBus).postln;
-                    };
+                if (~intermediateBus[idx].notNil) {
+                    // Use source-selected bus (matches data tap)
+                    ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
+                        \inBus, waveBus,
+                        \slotIndex, idx, \bufnum, buf.bufnum
+                    ], ~fxGroup, \addAfter);
                 };
             } {
                 ~telemetry[\freeWaveBuffer].value(idx);
-                "[Telemetry] Wave capture STOPPED slot %".format(slot).postln;
             };
         };
     }, '/noise/telem/wave/enable');
