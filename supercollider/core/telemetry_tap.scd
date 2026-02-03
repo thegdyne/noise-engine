@@ -234,10 +234,13 @@
         var idx = slot - 1;
         var buf;
 
+        "[Telemetry] wave/enable received: slot=%, enable=%".format(slot, enable).postln;
+
         if ((slot >= 1) && (slot <= 8)) {
             if (enable) {
                 var waveBus = ~telemetry[\busForSource].value(idx, ~telemetry.sourceIds[idx]);
                 buf = ~telemetry[\allocWaveBuffer].value(idx);
+                "[Telemetry] wave alloc: idx=%, waveBus=%, buf=%".format(idx, waveBus, buf).postln;
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
                 if (~intermediateBus[idx].notNil) {
                     // Use source-selected bus (matches data tap)
@@ -245,9 +248,13 @@
                         \inBus, waveBus,
                         \slotIndex, idx, \bufnum, buf.bufnum
                     ], ~fxGroup, \addAfter);
+                    "[Telemetry] wave synth CREATED for slot % (idx %)".format(slot, idx).postln;
+                } {
+                    "[Telemetry] wave synth FAILED - intermediateBus[%] is nil".format(idx).postln;
                 };
             } {
                 ~telemetry[\freeWaveBuffer].value(idx);
+                "[Telemetry] wave synth FREED for slot %".format(slot).postln;
             };
         };
     }, '/noise/telem/wave/enable');
@@ -258,6 +265,8 @@
         var slot=msg[3].asInteger;
         if (~telemetry.waveBuffers[slot].notNil) {
             ~telemetry.waveBuffers[slot].getn(0, 4096, { |data| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/wave', slot, *data); } });
+        } {
+            "[Telemetry] wave/ready IGNORED - waveBuffers[%] is nil".format(slot).postln;
         };
     }, '/noise/telem/wave/ready');
     OSCdef(\telemHwWave, { |msg| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/wave', *msg[3..]); }; }, '/noise/telem/hw_wave');
