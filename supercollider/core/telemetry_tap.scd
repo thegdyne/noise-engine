@@ -198,6 +198,7 @@
                             custom0Idx = ~genParams[slot][\custom][0].index;
                         };
                         tapBus = ~telemetry[\busForSource].value(idx, sourceId);
+                        "[Telemetry] DEBUG tap busForSource: idx=%, sourceId=%, result=%".format(idx, sourceId, tapBus).postln;
                         ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
                             \inBus, tapBus,
                             \customBus, custom0Idx,
@@ -216,6 +217,13 @@
             // If wave capture is running, restart it with the new bus
             if (~telemetry.waveSynths[idx].notNil) {
                 var waveBus = ~telemetry[\busForSource].value(idx, sourceId);
+                "[Telemetry] DEBUG busForSource: idx=%, sourceId=%, intermediateBus=%, enhancedBus=%, genBus=%, result=%".format(
+                    idx, sourceId,
+                    if(~intermediateBus.notNil && ~intermediateBus[idx].notNil, { ~intermediateBus[idx].index }, { "nil" }),
+                    if(~enhancedBus.notNil && ~enhancedBus[idx].notNil, { ~enhancedBus[idx].index }, { "nil" }),
+                    if(~genBus.notNil && ~genBus[idx].notNil, { ~genBus[idx].index }, { "nil" }),
+                    waveBus
+                ).postln;
                 ~telemetry.waveSynths[idx].free;
                 if (~telemetry.waveBuffers[idx].notNil) {
                     ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
