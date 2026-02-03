@@ -339,3 +339,21 @@ class TestMorphMapSchema:
         assert 'total_time_sec' in metadata
         assert 'failed_points' in metadata
         assert 'pack_used' in metadata
+
+
+class TestTimingOrder:
+    """Test R4 timing order compliance."""
+
+    def test_t0_is_after_settle_in_docstring(self):
+        """Verify _wait_for_fresh_snapshot documents t0 as post-settle."""
+        from src.telemetry.morph_mapper import MorphMapper
+        docstring = MorphMapper._wait_for_fresh_snapshot.__doc__
+        assert "AFTER settle" in docstring or "after settle" in docstring, \
+            "Docstring should document that t0 is AFTER settle period"
+
+    def test_docstring_describes_post_settle_frames(self):
+        """Verify docstring clarifies only post-settle frames are accepted."""
+        from src.telemetry.morph_mapper import MorphMapper
+        docstring = MorphMapper._wait_for_fresh_snapshot.__doc__
+        assert "only frames after" in docstring.lower() or "post-settle" in docstring.lower(), \
+            "Docstring should clarify that only post-settle frames are accepted"
