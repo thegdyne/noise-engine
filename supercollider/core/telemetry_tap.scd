@@ -118,6 +118,8 @@
         var idx = slot - 1;
         var custom0Idx, slotKey, useUnified, sourceId, tapBus;
 
+        "[Telemetry] tap/enable received: slot=%, rate=%, calGain=%".format(slot, rate, calGain).postln;
+
         if ((slot >= 1) && (slot <= 8)) {
             // Track state so \telemSource can respawn with correct rate
             ~telemetry.rates[idx] = rate;
