@@ -53,7 +53,7 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	// DC offset tracking
 	var dcBias;
 
-	// Phase-wrapped waveform capture (2048-sample single-cycle table)
+	// Phase-wrapped waveform capture (1024-sample single-cycle table)
 	var waveBuf, waveIdx, waveOut;
 	var idxChanged, bufOld, bufWrite;
 
@@ -101,18 +101,18 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	stage3 = LeakDC.ar(stage2, 0.9999) * 0.66;
 	badValue = CheckBadValues.ar(stage3, post: 0);
 
-	// --- 5. ROBUST PHASE-WRAPPED CAPTURE (2048 samples) ---
+	// --- 5. ROBUST PHASE-WRAPPED CAPTURE (1024 samples) ---
 	// Sample & Hold: only write when index changes AND locked.
 	// When not locked, preserve old buffer value (don't erase with zeros).
-	waveBuf = LocalBuf(2048);
-	waveIdx = (phase * 2047).floor.clip(0, 2047);
+	waveBuf = LocalBuf(1024);
+	waveIdx = (phase * 1023).floor.clip(0, 1023);
 	// Detect index change: abs(current - previous) > 0 stays in UGen graph
 	// (SC's != returns a Boolean, not a UGen — can't multiply with locked)
 	idxChanged = (waveIdx - Delay1.ar(waveIdx)).abs > 0;
 	bufOld = BufRd.ar(1, waveBuf, waveIdx);
 	bufWrite = Select.ar(locked * idxChanged, [bufOld, stage3]);
 	BufWr.ar(bufWrite, waveBuf, waveIdx, loop: 1);
-	waveOut = BufRd.kr(1, waveBuf, Array.series(2048, 0, 1));
+	waveOut = BufRd.kr(1, waveBuf, Array.series(1024, 0, 1));
 
 	// --- 6. TELEMETRY EMISSION ---
 	// Path A: Meters/Params (always when telemetry active)
