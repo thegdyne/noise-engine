@@ -152,6 +152,11 @@
                         \sourceId, sourceId
                     ], ~fxGroup, \addAfter);
                     "[Telemetry] Internal Tap START slot % source % (bus: %, calGain: %)".format(slot, sourceId, tapBus, calGain).postln;
+                } {
+                    // Log why tap couldn't start
+                    "[Telemetry] CANNOT start tap slot % - intermediateBus[%]: %, generators[%]: %".format(
+                        slot, idx, ~intermediateBus[idx].notNil, slot, ~generators[slot].notNil
+                    ).postln;
                 };
             } {
                 "[Telemetry] Internal Tap STOP slot %".format(slot).postln;
@@ -197,6 +202,10 @@
                             \calGain, 1.0,
                             \sourceId, sourceId
                         ], ~fxGroup, \addAfter);
+                    } {
+                        "[Telemetry] CANNOT respawn tap slot % - intermediateBus[%]: %, generators[%]: %".format(
+                            slot, idx, ~intermediateBus[idx].notNil, slot, ~generators[slot].notNil
+                        ).postln;
                     };
                 };
             };
