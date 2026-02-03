@@ -126,3 +126,7 @@ analysis/
 
 # local MIDI mapping experiments
 midi_mappings/
+
+# Generated data (hardware captures, fingerprints)
+fingerprints/
+maps/
