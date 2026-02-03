@@ -222,20 +222,20 @@ class MorphMapper:
 
                 logger.info(f"[{i + 1}/{self.points}] CV = {cv_voltage:.3f}V")
 
-                # R4: CRITICAL TIMING ORDER
+                # R4: CRITICAL TIMING ORDER (CORRECTED)
                 # 1. Clear old data
                 self.telem.history.clear()
                 self.telem.current_waveform = None
 
-                # 2. Mark timestamp
-                t0 = time.time()
-
-                # 3. Send CV (R11: record actual CC sent)
+                # 2. Send CV (R11: record actual CC sent)
                 actual_cc = self.cv_controller.send_cv_volts(cv_voltage)
                 logger.debug(f"  Sent CV {cv_voltage:.3f}V → CC {actual_cc}")
 
-                # 4. Settle
+                # 3. Settle - wait for hardware to stabilize
                 time.sleep(self.settle_ms / 1000.0)
+
+                # 4. Mark timestamp AFTER settle (fresh frames = post-settle only)
+                t0 = time.time()
 
                 # 5. Capture (R16: 10s timeout)
                 snapshot = self._wait_for_fresh_snapshot(t0, timeout=10.0)
@@ -345,12 +345,12 @@ class MorphMapper:
         Wait for fresh snapshot after time t0.
 
         Requirements:
-        - R4: Correct timing (frames arrive AFTER CV change)
+        - R4: Correct timing (frames arrive AFTER settle period)
         - R7: Waveform lock if require_waveform=True
         - R16: Timeout >= 10s
 
         Args:
-            t0: Timestamp BEFORE CV was sent
+            t0: Timestamp AFTER settle period (only frames after this are accepted)
             timeout: Maximum wait time (R16: >= 10s)
 
         Returns:
