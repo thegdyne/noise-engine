@@ -448,3 +448,58 @@ class MorphMapper:
 
         logger.info(f"[Morph Mapper] Saved to {output_path}")
         return str(output_path)
+
+    def run_sweep_with_fingerprints(self, extractor=None, store=None) -> Dict:
+        """
+        Run CV sweep and save fingerprints.
+
+        Args:
+            extractor: FingerprintExtractor instance (created if None)
+            store: FingerprintStore instance (created if None)
+
+        Returns:
+            morph_map with fingerprint IDs
+        """
+        from src.telemetry.fingerprint_extractor import FingerprintExtractor
+        from src.telemetry.fingerprint_store import FingerprintStore
+
+        if extractor is None:
+            extractor = FingerprintExtractor(
+                device_make="Unknown",
+                device_model=self.device_name,
+                device_variant="hardware"
+            )
+        if store is None:
+            store = FingerprintStore()
+
+        extractor.start_session()
+
+        # Run normal sweep
+        morph_map = self.run_sweep()
+
+        # Extract fingerprints from snapshots
+        fingerprints = []
+        for snap in morph_map.get("snapshots", []):
+            if snap.get("snapshot") and snap["snapshot"].get("waveform"):
+                waveform = np.array(snap["snapshot"]["waveform"])
+                cv_volts = snap.get("cv_voltage", 0.0)
+                freq_hz = snap["snapshot"]["frame"].get("freq", None)
+
+                fp = extractor.extract(
+                    waveform=waveform,
+                    cv_volts=cv_volts,
+                    cv_chan="morph",
+                    freq_hz=freq_hz,
+                    notes=[f"morph_map_{self.device_name}"]
+                )
+                fingerprints.append(fp)
+
+        # Save sweep
+        if fingerprints:
+            device_key = self.device_name.lower().replace(" ", "_")
+            sweep_name = store.save_sweep(fingerprints, device_key)
+            morph_map["fingerprint_sweep"] = sweep_name
+            morph_map["fingerprint_ids"] = [fp["id"] for fp in fingerprints]
+
+        return morph_map
+
