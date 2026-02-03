@@ -8,6 +8,7 @@
   "url": "",
   "enabled": true,
   "generators": [
-    "b258_osc"
+    "b258_osc",
+    "b258_twin"
   ]
 }
