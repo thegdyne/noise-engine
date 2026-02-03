@@ -18,49 +18,17 @@
     ~telemetry.tapSynths = Array.fill(8, { nil });
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
-    "[Telemetry] Compiling wave capture SynthDef VERSION 3".postln;
+    // Simple circular buffer writer - polling handled by language Routine
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        // VARS MUST BE DECLARED FIRST
-        var sig, mono, freq, frameSize, captureTrig, capturePhase;
-        var zcCountKr, hasNewFrame, rms, zcCount;
-
-        // Read from intermediate bus (pre-end-stage, stereo)
+        var sig, mono, phase;
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
-
-        // Debug: check if we're getting audio (2Hz poll to SC post window)
-        rms = Amplitude.kr(mono, 0.01, 0.1);
-        rms.poll(2, "WAVE_RMS");
-
-        // Estimate frequency from zero-crossings (adaptive capture)
-        freq = ZeroCrossing.ar(mono).max(20).min(20000);
-
-        // Frame size: exactly one cycle at current frequency, clamped to buffer
-        frameSize = (SampleRate.ir / freq).clip(64, BufFrames.kr(bufnum));
-
-        // Zero-crossing trigger (rising edge)
-        captureTrig = (mono >= 0) & (Delay1.ar(mono) < 0);
-
-        // Debug: count zero crossings
-        zcCount = PulseCount.ar(captureTrig);
-        Poll.kr(Impulse.kr(2), A2K.kr(zcCount), "zc_count");
-
-        // Phase within capture frame
-        capturePhase = Phasor.ar(captureTrig, 1, 0, frameSize);
-
-        // Write to buffer
-        BufWr.ar(mono, bufnum, capturePhase);
-
-        // Frame-ready detection
-        zcCountKr = A2K.kr(zcCount);
-        hasNewFrame = zcCountKr > Delay1.kr(zcCountKr);
-
-        // Debug: is hasNewFrame ever true?
-        hasNewFrame.poll(2, "hasNewFrame");
-
-        // Test: unconditional SendReply at 10Hz to verify OSC path works
-        SendReply.kr(Impulse.kr(10), '/noise/telem/wave/ready', [slotIndex, A2K.kr(freq)]);
+        phase = Phasor.ar(0, 1, 0, BufFrames.kr(bufnum));
+        BufWr.ar(mono, bufnum, phase);
     }).add;
+
+    // Waveform polling routines (one per slot)
+    ~telemetry.waveRoutines = Array.fill(8, { nil });
 
     // --- 2. Internal Data Tap Synth (Audio -> OSC Data) ---
     // Reads audio from the selected tap point and control params from customBus0.
@@ -240,69 +208,66 @@
         };
     }, '/noise/telem/source');
 
-    // Waveform Capture
+    // Waveform Capture - uses Routine polling instead of SendReply
     OSCdef(\telemWaveEnable, { |msg|
         var slot = msg[1].asInteger;
         var enable = msg[2].asInteger > 0;
         var idx = slot - 1;
         var buf;
 
-        "[Telemetry] wave/enable received: slot=%, enable=%".format(slot, enable).postln;
-
         if ((slot >= 1) && (slot <= 8)) {
             if (enable) {
                 var waveBus = ~telemetry[\busForSource].value(idx, ~telemetry.sourceIds[idx]);
                 buf = ~telemetry[\allocWaveBuffer].value(idx);
-                "[Telemetry] wave alloc: idx=%, waveBus=%, buf=%".format(idx, waveBus, buf).postln;
+
+                // Stop existing
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
-                if (~intermediateBus[idx].notNil) {
-                    // Check fxGroup is valid
-                    "[Telemetry] wave synth creating: fxGroup=%, waveBus=%, bufnum=%".format(~fxGroup, waveBus, buf.bufnum).postln;
-                    if (~fxGroup.notNil) {
-                        // Use source-selected bus (matches data tap)
-                        ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
-                            \inBus, waveBus,
-                            \slotIndex, idx, \bufnum, buf.bufnum
-                        ], ~fxGroup, \addAfter);
-                        "[Telemetry] wave synth CREATED for slot % (idx %), synth=%".format(slot, idx, ~telemetry.waveSynths[idx]).postln;
-                    } {
-                        "[Telemetry] wave synth FAILED - fxGroup is nil!".postln;
-                    };
-                } {
-                    "[Telemetry] wave synth FAILED - intermediateBus[%] is nil".format(idx).postln;
+                if (~telemetry.waveRoutines[idx].notNil) { ~telemetry.waveRoutines[idx].stop; };
+
+                if (~intermediateBus[idx].notNil && ~fxGroup.notNil) {
+                    // Start capture synth
+                    ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
+                        \inBus, waveBus,
+                        \slotIndex, idx, \bufnum, buf.bufnum
+                    ], ~fxGroup, \addAfter);
+
+                    // Start polling routine at 10Hz
+                    ~telemetry.waveRoutines[idx] = Routine({
+                        loop {
+                            if (~telemetry.waveBuffers[idx].notNil && ~pythonAddr.notNil) {
+                                ~telemetry.waveBuffers[idx].getn(0, 4096, { |data|
+                                    ~pythonAddr.sendMsg('/noise/telem/wave', idx, *data);
+                                });
+                            };
+                            0.1.wait;  // 10Hz
+                        };
+                    }).play;
+
+                    "[Telemetry] Wave capture STARTED slot % (bus: %)".format(slot, waveBus).postln;
                 };
             } {
+                // Stop routine and synth
+                if (~telemetry.waveRoutines[idx].notNil) {
+                    ~telemetry.waveRoutines[idx].stop;
+                    ~telemetry.waveRoutines[idx] = nil;
+                };
                 ~telemetry[\freeWaveBuffer].value(idx);
-                "[Telemetry] wave synth FREED for slot %".format(slot).postln;
+                "[Telemetry] Wave capture STOPPED slot %".format(slot).postln;
             };
         };
     }, '/noise/telem/wave/enable');
 
     // Relay Handlers
     OSCdef(\telemGen, { |msg| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/gen', *msg[3..]); }; }, '/noise/telem/gen');
-    OSCdef(\telemWaveReady, { |msg|
-        var slot=msg[3].asInteger;
-        "[Telemetry] wave/ready RECEIVED: slot=%, pythonAddr=%, waveBuffers[%]=%".format(slot, ~pythonAddr, slot, ~telemetry.waveBuffers[slot]).postln;
-        if (~telemetry.waveBuffers[slot].notNil) {
-            ~telemetry.waveBuffers[slot].getn(0, 4096, { |data|
-                "[Telemetry] getn callback: got % samples, pythonAddr=%".format(data.size, ~pythonAddr).postln;
-                if (~pythonAddr.notNil) {
-                    ~pythonAddr.sendMsg('/noise/telem/wave', slot, *data);
-                    "[Telemetry] SENT wave data to Python".postln;
-                };
-            });
-        } {
-            "[Telemetry] wave/ready IGNORED - waveBuffers[%] is nil".format(slot).postln;
-        };
-    }, '/noise/telem/wave/ready');
     OSCdef(\telemHwWave, { |msg| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/wave', *msg[3..]); }; }, '/noise/telem/hw_wave');
 
     ~telemetry.cleanup = {
         8.do { |i|
+            if (~telemetry.waveRoutines[i].notNil) { ~telemetry.waveRoutines[i].stop; ~telemetry.waveRoutines[i] = nil; };
             ~telemetry[\freeWaveBuffer].value(i);
             if (~telemetry.tapSynths[i].notNil) { ~telemetry.tapSynths[i].free; ~telemetry.tapSynths[i] = nil; };
         };
-        [\telemEnable, \telemTapEnable, \telemSource, \telemGen, \telemWaveEnable, \telemWaveReady, \telemHwWave].do { |key| OSCdef(key).free; };
+        [\telemEnable, \telemTapEnable, \telemSource, \telemGen, \telemWaveEnable, \telemHwWave].do { |key| OSCdef(key).free; };
         "[Telemetry] Cleaned up".postln;
     };
     "[Telemetry] Tap booted".postln;
