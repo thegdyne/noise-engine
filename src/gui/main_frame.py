@@ -441,6 +441,10 @@ class MainFrame(QMainWindow):
         telem_shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
         telem_shortcut.activated.connect(self._show_telemetry)
 
+        # Shortcut: morph mapper sweep (Ctrl+Shift+M / Cmd+Shift+M)
+        morph_shortcut = QShortcut(QKeySequence("Ctrl+Shift+M"), self)
+        morph_shortcut.activated.connect(self._run_morph_mapper_sweep)
+
         # Shortcut: mod debug window (F10)
         install_mod_debug_hotkey(self, self.mod_routing, self.generator_grid)
 
@@ -1229,4 +1233,66 @@ class MainFrame(QMainWindow):
         self._telemetry_widget.show()
         self._telemetry_widget.raise_()
         self._telemetry_widget.activateWindow()
+
+    def _run_morph_mapper_sweep(self):
+        """Run a MorphMapper CV sweep (Ctrl+Shift+M).
+
+        Requires:
+        - SuperCollider connected
+        - Hardware Profiler (external_telemetry pack) loaded in current slot
+        - CV.OCD connected via MIDI
+        """
+        import threading
+        from src.telemetry.morph_mapper import MorphMapper
+        from src.hardware.midi_cv import find_preferred_port
+
+        # Check prerequisites
+        if self.telemetry_controller is None:
+            self._show_toast("Connect to SC first")
+            return
+
+        if not self.osc or not self.osc.connected:
+            self._show_toast("Not connected to SuperCollider")
+            return
+
+        # Check MIDI port
+        midi_port = find_preferred_port()
+        if not midi_port:
+            self._show_toast("No MIDI port found (CV.OCD/MOTU)")
+            logger.error("[MorphMapper] No MIDI port found", component="MORPH")
+            return
+
+        # Get current slot from generator grid
+        current_slot = getattr(self.generator_grid, 'selected_slot', 0) or 0
+
+        logger.info(f"[MorphMapper] Starting sweep on slot {current_slot}", component="MORPH")
+        logger.info(f"[MorphMapper] MIDI port: {midi_port}", component="MORPH")
+        self._show_toast(f"Starting CV sweep (slot {current_slot})...")
+
+        def run_sweep():
+            try:
+                mapper = MorphMapper(
+                    sc_client=self.osc.client,
+                    telemetry_controller=self.telemetry_controller,
+                    device_name="Buchla 258",
+                    cv_range=(0.0, 5.0),
+                    points=12,
+                    slot=current_slot,
+                    vmax_calibrated=5.07,
+                    midi_port=midi_port,
+                    cv_mode='unipolar'
+                )
+
+                result = mapper.run_sweep()
+                output_path = mapper.save_map("maps/")
+
+                logger.info(f"[MorphMapper] Sweep complete: {len(result['snapshots'])} points", component="MORPH")
+                logger.info(f"[MorphMapper] Saved to: {output_path}", component="MORPH")
+
+            except Exception as e:
+                logger.error(f"[MorphMapper] Sweep failed: {e}", component="MORPH")
+
+        # Run in background thread to not block UI
+        thread = threading.Thread(target=run_sweep, daemon=True)
+        thread.start()
 
