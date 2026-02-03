@@ -302,6 +302,8 @@ class OSCBridge(QObject):
         # Telemetry (development tool)
         dispatcher.map(OSC_PATHS['telem_gen'], self._handle_telem_gen)
         dispatcher.map(OSC_PATHS['telem_wave'], self._handle_telem_wave)
+        # R1: Alias for hw_profile_tap waveform path (MorphMapper v6.2)
+        dispatcher.map('/noise/telem/hw_wave', self._handle_telem_wave)
 
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
