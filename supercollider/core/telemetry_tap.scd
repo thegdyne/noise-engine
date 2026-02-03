@@ -20,19 +20,41 @@
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
         // VARS MUST BE DECLARED FIRST
-        var sig, mono, phase, sendTrig;
+        var sig, mono, freq, frameSize, captureTrig, capturePhase;
+        var zcCountKr, hasNewFrame, rms, zcCount;
 
         // Read from intermediate bus (pre-end-stage, stereo)
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
 
-        // Simple circular buffer write at audio rate
-        phase = Phasor.ar(0, 1, 0, BufFrames.kr(bufnum));
-        BufWr.ar(mono, bufnum, phase);
+        // Debug: check if we're getting audio
+        rms = Amplitude.kr(mono, 0.01, 0.1);
+        Poll.kr(Impulse.kr(2), rms, "wave_rms");
 
-        // Send ready signal at 10Hz unconditionally
-        sendTrig = Impulse.kr(10);
-        SendReply.kr(sendTrig, '/noise/telem/wave/ready', [slotIndex, 440]);
+        // Estimate frequency from zero-crossings (adaptive capture)
+        freq = ZeroCrossing.ar(mono).max(20).min(20000);
+
+        // Frame size: exactly one cycle at current frequency, clamped to buffer
+        frameSize = (SampleRate.ir / freq).clip(64, BufFrames.kr(bufnum));
+
+        // Zero-crossing trigger (rising edge)
+        captureTrig = (mono >= 0) & (Delay1.ar(mono) < 0);
+
+        // Debug: count zero crossings
+        zcCount = PulseCount.ar(captureTrig);
+        Poll.kr(Impulse.kr(2), A2K.kr(zcCount), "zc_count");
+
+        // Phase within capture frame
+        capturePhase = Phasor.ar(captureTrig, 1, 0, frameSize);
+
+        // Write to buffer
+        BufWr.ar(mono, bufnum, capturePhase);
+
+        // Frame-ready detection
+        zcCountKr = A2K.kr(zcCount);
+        hasNewFrame = zcCountKr > Delay1.kr(zcCountKr);
+
+        SendReply.kr(Impulse.kr(10) * hasNewFrame, '/noise/telem/wave/ready', [slotIndex, A2K.kr(freq)]);
     }).add;
 
     // --- 2. Internal Data Tap Synth (Audio -> OSC Data) ---
