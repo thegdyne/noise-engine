@@ -1,0 +1,174 @@
+{
+  "metadata": {
+    "timestamp": "2026-02-03T10:52:34.863156",
+    "midi_port": "M6",
+    "audio_device": 3,
+    "sample_rate": 48000,
+    "cc_number": 1,
+    "channel": 1,
+    "settle_time": 0.1,
+    "capture_duration": 0.2
+  },
+  "measurements": [
+    {
+      "cc_value": 0,
+      "frequency_hz": 43.57,
+      "rms": 0.301473
+    },
+    {
+      "cc_value": 4,
+      "frequency_hz": 43.48,
+      "rms": 0.305862
+    },
+    {
+      "cc_value": 8,
+      "frequency_hz": 43.47,
+      "rms": 0.305796
+    },
+    {
+      "cc_value": 12,
+      "frequency_hz": 43.51,
+      "rms": 0.304624
+    },
+    {
+      "cc_value": 16,
+      "frequency_hz": 43.54,
+      "rms": 0.304697
+    },
+    {
+      "cc_value": 20,
+      "frequency_hz": 43.58,
+      "rms": 0.302636
+    },
+    {
+      "cc_value": 24,
+      "frequency_hz": 43.57,
+      "rms": 0.301082
+    },
+    {
+      "cc_value": 28,
+      "frequency_hz": 43.53,
+      "rms": 0.303664
+    },
+    {
+      "cc_value": 32,
+      "frequency_hz": 43.52,
+      "rms": 0.299245
+    },
+    {
+      "cc_value": 36,
+      "frequency_hz": 43.49,
+      "rms": 0.30165
+    },
+    {
+      "cc_value": 40,
+      "frequency_hz": 43.49,
+      "rms": 0.301262
+    },
+    {
+      "cc_value": 44,
+      "frequency_hz": 43.55,
+      "rms": 0.296966
+    },
+    {
+      "cc_value": 48,
+      "frequency_hz": 43.6,
+      "rms": 0.30115
+    },
+    {
+      "cc_value": 52,
+      "frequency_hz": 43.52,
+      "rms": 0.295102
+    },
+    {
+      "cc_value": 56,
+      "frequency_hz": 43.55,
+      "rms": 0.296965
+    },
+    {
+      "cc_value": 60,
+      "frequency_hz": 43.53,
+      "rms": 0.293521
+    },
+    {
+      "cc_value": 64,
+      "frequency_hz": 43.46,
+      "rms": 0.294679
+    },
+    {
+      "cc_value": 68,
+      "frequency_hz": 43.57,
+      "rms": 0.29223
+    },
+    {
+      "cc_value": 72,
+      "frequency_hz": 43.57,
+      "rms": 0.293236
+    },
+    {
+      "cc_value": 76,
+      "frequency_hz": 43.51,
+      "rms": 0.287778
+    },
+    {
+      "cc_value": 80,
+      "frequency_hz": 43.57,
+      "rms": 0.290814
+    },
+    {
+      "cc_value": 84,
+      "frequency_hz": 43.5,
+      "rms": 0.287095
+    },
+    {
+      "cc_value": 88,
+      "frequency_hz": 43.38,
+      "rms": 0.283298
+    },
+    {
+      "cc_value": 92,
+      "frequency_hz": 43.61,
+      "rms": 0.282667
+    },
+    {
+      "cc_value": 96,
+      "frequency_hz": 43.54,
+      "rms": 0.284824
+    },
+    {
+      "cc_value": 100,
+      "frequency_hz": 43.57,
+      "rms": 0.280994
+    },
+    {
+      "cc_value": 104,
+      "frequency_hz": 43.6,
+      "rms": 0.281215
+    },
+    {
+      "cc_value": 108,
+      "frequency_hz": 43.66,
+      "rms": 0.276858
+    },
+    {
+      "cc_value": 112,
+      "frequency_hz": 43.47,
+      "rms": 0.276409
+    },
+    {
+      "cc_value": 116,
+      "frequency_hz": 43.6,
+      "rms": 0.274525
+    },
+    {
+      "cc_value": 120,
+      "frequency_hz": 43.35,
+      "rms": 0.270784
+    },
+    {
+      "cc_value": 124,
+      "frequency_hz": 43.54,
+      "rms": 0.272912
+    }
+  ]
+}
