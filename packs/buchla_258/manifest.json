@@ -4,7 +4,7 @@
   "name": "Buchla 258",
   "version": "1.1.0",
   "author": "Noise Engine",
-  "description": "Buchla 258 Dual Oscillator - forensic DNA clone with sine/saw/square morphing",
+  "description": "Buchla 258 Dual Oscillator - forensic DNA clone with SAW/SQR from hardware telemetry",
   "url": "",
   "enabled": true,
   "generators": [
