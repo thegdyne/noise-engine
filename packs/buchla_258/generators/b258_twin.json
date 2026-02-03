@@ -1,13 +1,13 @@
 {
   "name": "B258 Twin",
   "synthdef": "b258_twin",
-  "output_trim_db": -3.0,
+  "output_trim_db": -5.0,
   "midi_retrig": false,
   "custom_params": [
     {
-      "key": "timbre",
-      "label": "TIM",
-      "tooltip": "Morph amount (0=sine-like, 1=rich harmonics)",
+      "key": "saw_morph",
+      "label": "SAW",
+      "tooltip": "Saw-like harmonic morph (k^1.96 curve, all harmonics)",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,
@@ -15,9 +15,19 @@
       "unit": ""
     },
     {
-      "key": "brightness",
-      "label": "BRT",
-      "tooltip": "High harmonic emphasis (scales h5-h8)",
+      "key": "sqr_morph",
+      "label": "SQR",
+      "tooltip": "Square-like harmonic morph (k^1.96 curve, odd harmonics emphasized)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mix",
+      "label": "MIX",
+      "tooltip": "Blend SAW (left) and SQR (right) harmonic structures",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -25,12 +35,22 @@
       "unit": ""
     },
     {
-      "key": "asymmetry",
-      "label": "ASY",
-      "tooltip": "Even harmonic (h2) amount - the 258 fingerprint",
+      "key": "symmetry",
+      "label": "SYM",
+      "tooltip": "h2 asymmetry (0.51 = measured 258 value of 0.523)",
+      "default": 0.51,
+      "min": 0.1,
+      "max": 0.9,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "saturation",
+      "label": "SAT",
+      "tooltip": "h3/h4 bump intensity (Gaussian peak at n=3.54)",
       "default": 0.5,
-      "min": 0.0,
-      "max": 1.0,
+      "min": 0.05,
+      "max": 0.95,
       "curve": "lin",
       "unit": ""
     }
