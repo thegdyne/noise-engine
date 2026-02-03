@@ -17,7 +17,7 @@ correction (RunningSum 16384 samples / ~340ms) and a minimum-period lockout
 (24 samples / 2kHz max) for stable zero-crossing detection on noisy,
 low-frequency hardware signals (10Hz+).
 
-Waveform capture is embedded (phase-wrapped 128-sample LocalBuf) with a
+Waveform capture is embedded (phase-wrapped 4096-sample LocalBuf) with a
 phase-lock gate that prevents noise from filling the table before lock.
 Only emits waveform frames in capture mode (telemetryRate > 10Hz).
 
@@ -53,7 +53,7 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	// DC offset tracking
 	var dcBias;
 
-	// Phase-wrapped waveform capture (128-sample single-cycle table)
+	// Phase-wrapped waveform capture (4096-sample single-cycle table)
 	var waveBuf, waveIdx, waveOut;
 	var idxChanged, bufOld, bufWrite;
 
@@ -101,18 +101,18 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	stage3 = LeakDC.ar(stage2, 0.9999) * 0.66;
 	badValue = CheckBadValues.ar(stage3, post: 0);
 
-	// --- 5. ROBUST PHASE-WRAPPED CAPTURE (128 samples) ---
+	// --- 5. ROBUST PHASE-WRAPPED CAPTURE (4096 samples for FFT resolution) ---
 	// Sample & Hold: only write when index changes AND locked.
 	// When not locked, preserve old buffer value (don't erase with zeros).
-	waveBuf = LocalBuf(128);
-	waveIdx = (phase * 127).floor.clip(0, 127);
+	waveBuf = LocalBuf(4096);
+	waveIdx = (phase * 4095).floor.clip(0, 4095);
 	// Detect index change: abs(current - previous) > 0 stays in UGen graph
 	// (SC's != returns a Boolean, not a UGen — can't multiply with locked)
 	idxChanged = (waveIdx - Delay1.ar(waveIdx)).abs > 0;
 	bufOld = BufRd.ar(1, waveBuf, waveIdx);
 	bufWrite = Select.ar(locked * idxChanged, [bufOld, stage3]);
 	BufWr.ar(bufWrite, waveBuf, waveIdx, loop: 1);
-	waveOut = BufRd.kr(1, waveBuf, Array.series(128, 0, 1));
+	waveOut = BufRd.kr(1, waveBuf, Array.series(4096, 0, 1));
 
 	// --- 6. TELEMETRY EMISSION ---
 	// Path A: Meters/Params (always when telemetry active)
