@@ -225,25 +225,32 @@
                 if (~telemetry.waveRoutines[idx].notNil) { ~telemetry.waveRoutines[idx].stop; };
 
                 if (~intermediateBus[idx].notNil && ~fxGroup.notNil) {
-                    // Start capture synth
-                    ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
-                        \inBus, waveBus,
-                        \slotIndex, idx, \bufnum, buf.bufnum
-                    ], ~fxGroup, \addAfter);
+                    // Fork to allow sync and delays
+                    fork {
+                        s.sync;  // Wait for buffer allocation
 
-                    // Start polling routine at 10Hz
-                    ~telemetry.waveRoutines[idx] = Routine({
-                        loop {
-                            if (~telemetry.waveBuffers[idx].notNil && ~pythonAddr.notNil) {
-                                ~telemetry.waveBuffers[idx].getn(0, 4096, { |data|
-                                    ~pythonAddr.sendMsg('/noise/telem/wave', idx, *data);
-                                });
+                        // Start capture synth
+                        ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
+                            \inBus, waveBus,
+                            \slotIndex, idx, \bufnum, buf.bufnum
+                        ], ~fxGroup, \addAfter);
+
+                        0.1.wait;  // Let synth start writing to buffer
+
+                        // Start polling routine at 10Hz
+                        ~telemetry.waveRoutines[idx] = Routine({
+                            loop {
+                                if (~telemetry.waveBuffers[idx].notNil && ~pythonAddr.notNil) {
+                                    ~telemetry.waveBuffers[idx].getn(0, 4096, { |data|
+                                        ~pythonAddr.sendMsg('/noise/telem/wave', idx, *data);
+                                    });
+                                };
+                                0.1.wait;  // 10Hz
                             };
-                            0.1.wait;  // 10Hz
-                        };
-                    }).play;
+                        }).play;
 
-                    "[Telemetry] Wave capture STARTED slot % (bus: %)".format(slot, waveBus).postln;
+                        "[Telemetry] Wave capture STARTED slot % (bus: %)".format(slot, waveBus).postln;
+                    };
                 };
             } {
                 // Stop routine and synth
