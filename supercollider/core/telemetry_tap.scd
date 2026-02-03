@@ -198,7 +198,6 @@
                             custom0Idx = ~genParams[slot][\custom][0].index;
                         };
                         tapBus = ~telemetry[\busForSource].value(idx, sourceId);
-                        "[Telemetry] DEBUG tap busForSource: idx=%, sourceId=%, result=%".format(idx, sourceId, tapBus).postln;
                         ~telemetry.tapSynths[idx] = Synth(\forge_internal_telem_tap, [
                             \inBus, tapBus,
                             \customBus, custom0Idx,
@@ -217,13 +216,6 @@
             // If wave capture is running, restart it with the new bus
             if (~telemetry.waveSynths[idx].notNil) {
                 var waveBus = ~telemetry[\busForSource].value(idx, sourceId);
-                "[Telemetry] DEBUG busForSource: idx=%, sourceId=%, intermediateBus=%, enhancedBus=%, genBus=%, result=%".format(
-                    idx, sourceId,
-                    if(~intermediateBus.notNil && ~intermediateBus[idx].notNil, { ~intermediateBus[idx].index }, { "nil" }),
-                    if(~enhancedBus.notNil && ~enhancedBus[idx].notNil, { ~enhancedBus[idx].index }, { "nil" }),
-                    if(~genBus.notNil && ~genBus[idx].notNil, { ~genBus[idx].index }, { "nil" }),
-                    waveBus
-                ).postln;
                 ~telemetry.waveSynths[idx].free;
                 if (~telemetry.waveBuffers[idx].notNil) {
                     ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
@@ -243,44 +235,20 @@
         var idx = slot - 1;
         var buf;
 
-        "[Telemetry] wave/enable: slot=%, enable=%, sourceId=%".format(slot, enable, ~telemetry.sourceIds[idx]).postln;
-
         if ((slot >= 1) && (slot <= 8)) {
             if (enable) {
-                var sourceId = ~telemetry.sourceIds[idx];
-                var waveBus = ~telemetry[\busForSource].value(idx, sourceId);
-
-                "[Telemetry] wave/enable DEBUG: idx=%, sourceId=%, waveBus=%".format(idx, sourceId, waveBus).postln;
-                "[Telemetry] wave/enable DEBUG: intermediateBus=%, enhancedBus=%, genBus=%".format(
-                    if(~intermediateBus.notNil && ~intermediateBus[idx].notNil, { ~intermediateBus[idx].index }, { "nil" }),
-                    if(~enhancedBus.notNil && ~enhancedBus[idx].notNil, { ~enhancedBus[idx].index }, { "nil" }),
-                    if(~genBus.notNil && ~genBus[idx].notNil, { ~genBus[idx].index }, { "nil" })
-                ).postln;
-
-                // Stop existing first
+                var waveBus = ~telemetry[\busForSource].value(idx, ~telemetry.sourceIds[idx]);
+                buf = ~telemetry[\allocWaveBuffer].value(idx);
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
-
-                if (~intermediateBus[idx].notNil && ~fxGroup.notNil) {
-                    // Fork to allow sync for buffer allocation
-                    fork {
-                        buf = ~telemetry[\allocWaveBuffer].value(idx);
-                        s.sync;  // Wait for buffer allocation
-
-                        ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
-                            \inBus, waveBus,
-                            \slotIndex, idx, \bufnum, buf.bufnum
-                        ], ~fxGroup, \addAfter);
-
-                        "[Telemetry] Wave capture STARTED slot % sourceId=% (bus: %)".format(slot, sourceId, waveBus).postln;
-                    };
-                } {
-                    "[Telemetry] Wave capture FAILED - intermediateBus[%]=%, fxGroup=%".format(
-                        idx, ~intermediateBus[idx].notNil, ~fxGroup.notNil
-                    ).postln;
+                if (~intermediateBus[idx].notNil) {
+                    // Use source-selected bus (matches data tap)
+                    ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
+                        \inBus, waveBus,
+                        \slotIndex, idx, \bufnum, buf.bufnum
+                    ], ~fxGroup, \addAfter);
                 };
             } {
                 ~telemetry[\freeWaveBuffer].value(idx);
-                "[Telemetry] Wave capture STOPPED slot %".format(slot).postln;
             };
         };
     }, '/noise/telem/wave/enable');
