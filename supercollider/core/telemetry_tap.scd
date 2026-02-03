@@ -55,7 +55,11 @@
         zcCountKr = A2K.kr(zcCount);
         hasNewFrame = zcCountKr > Delay1.kr(zcCountKr);
 
-        SendReply.kr(Impulse.kr(10) * hasNewFrame, '/noise/telem/wave/ready', [slotIndex, A2K.kr(freq)]);
+        // Debug: is hasNewFrame ever true?
+        hasNewFrame.poll(2, "hasNewFrame");
+
+        // Test: unconditional SendReply at 10Hz to verify OSC path works
+        SendReply.kr(Impulse.kr(10), '/noise/telem/wave/ready', [slotIndex, A2K.kr(freq)]);
     }).add;
 
     // --- 2. Internal Data Tap Synth (Audio -> OSC Data) ---
