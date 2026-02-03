@@ -729,7 +729,7 @@ class TelemetryController(QObject):
         else:
             data_for_ideal = None
         ideal = self.get_ideal_waveform(data_for_ideal)
-        if ideal is not None and len(ideal) == len(self.current_waveform):
+        if ideal is not None and self.current_waveform is not None and len(ideal) == len(self.current_waveform):
             diff = np.clip(self.current_waveform - ideal, -5.0, 5.0)
             frame_err = float(np.std(diff))
             self._err_history.append(frame_err)
