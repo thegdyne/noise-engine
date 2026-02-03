@@ -62,30 +62,46 @@ class FingerprintExtractor:
         waveform = np.asarray(waveform, dtype=np.float64)
         n_samples = len(waveform)
 
-        # Compute FFT
-        windowed = waveform * np.hanning(n_samples)
-        fft = np.fft.rfft(windowed)
+        # Zero-pad to minimum 4096 samples for adequate frequency resolution
+        # This ensures we can resolve harmonics even from short captures
+        MIN_FFT_SIZE = 4096
+        if n_samples < MIN_FFT_SIZE:
+            # Window the original samples, then zero-pad
+            windowed = waveform * np.hanning(n_samples)
+            padded = np.zeros(MIN_FFT_SIZE)
+            padded[:n_samples] = windowed
+            fft = np.fft.rfft(padded)
+            fft_size = MIN_FFT_SIZE
+        else:
+            # Sufficient samples - just window and transform
+            windowed = waveform * np.hanning(n_samples)
+            fft = np.fft.rfft(windowed)
+            fft_size = n_samples
+
         magnitudes = np.abs(fft)
         phases = np.angle(fft)
 
-        # Find fundamental
+        # Find fundamental frequency
         if freq_hz is None:
+            # Auto-detect: find strongest bin (skip DC)
             fund_bin = np.argmax(magnitudes[1:]) + 1
-            freq_hz = fund_bin * sample_rate / n_samples
+            freq_hz = fund_bin * sample_rate / fft_size
         else:
-            fund_bin = int(freq_hz * n_samples / sample_rate)
+            # Use provided frequency
+            fund_bin = int(round(freq_hz * fft_size / sample_rate))
+            fund_bin = max(1, fund_bin)  # Ensure we don't use DC bin
 
         # Extract harmonic ratios and phases
         harm_ratio = self._extract_harmonics(magnitudes, fund_bin)
         phase_rel = self._extract_phases(phases, fund_bin)
 
-        # Morphology metrics
+        # Morphology metrics (use original waveform, not padded)
         morph = self._compute_morphology(waveform, harm_ratio)
 
-        # Quality metrics
+        # Quality metrics (use original waveform)
         rms = float(np.sqrt(np.mean(waveform ** 2)))
         peak = float(np.max(np.abs(waveform)))
-        snr_db = self._estimate_snr(waveform, magnitudes, fund_bin)
+        snr_db = self._estimate_snr(magnitudes, fund_bin)
         flags = self._check_quality_flags(waveform, rms, peak, snr_db)
 
         # Build fingerprint
@@ -107,7 +123,8 @@ class FingerprintExtractor:
                 "cv": {"chan": cv_chan, "volts": round(cv_volts, 4)},
                 "freq_hz": round(freq_hz, 2),
                 "sr_hz": sample_rate,
-                "n_samples": n_samples,
+                "n_samples": n_samples,  # Original sample count
+                "fft_size": fft_size,    # Actual FFT size used
                 "window": "hann",
                 "notes": notes or []
             },
@@ -216,9 +233,8 @@ class FingerprintExtractor:
             round(brightness, 4)
         ]
 
-    def _estimate_snr(self, waveform: np.ndarray, magnitudes: np.ndarray,
-                      fund_bin: int) -> float:
-        """Estimate signal-to-noise ratio in dB."""
+    def _estimate_snr(self, magnitudes: np.ndarray, fund_bin: int) -> float:
+        """Estimate signal-to-noise ratio in dB from FFT magnitudes."""
         # Signal = sum of harmonic magnitudes
         signal_power = 0.0
         for h in range(1, self.N_HARMONICS + 1):

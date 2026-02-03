@@ -73,7 +73,7 @@
     // Buffer helpers
     ~telemetry.allocWaveBuffer = { |slot|
         if (~telemetry.waveBuffers[slot].isNil) {
-            ~telemetry.waveBuffers[slot] = Buffer.alloc(s, 256, 1);
+            ~telemetry.waveBuffers[slot] = Buffer.alloc(s, 4096, 1);
         };
         ~telemetry.waveBuffers[slot];
     };
@@ -244,7 +244,7 @@
     OSCdef(\telemWaveReady, { |msg|
         var slot=msg[3].asInteger;
         if (~telemetry.waveBuffers[slot].notNil) {
-            ~telemetry.waveBuffers[slot].getn(0, 128, { |data| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/wave', slot, *data); } });
+            ~telemetry.waveBuffers[slot].getn(0, 4096, { |data| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/wave', slot, *data); } });
         };
     }, '/noise/telem/wave/ready');
     OSCdef(\telemHwWave, { |msg| if (~pythonAddr.notNil) { ~pythonAddr.sendMsg('/noise/telem/wave', *msg[3..]); }; }, '/noise/telem/hw_wave');
