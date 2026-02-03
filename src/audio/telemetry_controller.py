@@ -60,7 +60,7 @@ class IdealOverlay:
     Phase alignment uses the normalized 0-1 phase from SC's Phasor.ar.
     """
 
-    def __init__(self, n_samples: int = 128):
+    def __init__(self, n_samples: int = 4096):
         self.n_samples = n_samples
         # One full cycle: 0 to 2*pi (endpoint=False for clean tiling)
         self.t = np.linspace(0, 2 * np.pi, n_samples, endpoint=False)
@@ -469,7 +469,7 @@ class TelemetryController(QObject):
         self.app_version = ""
 
         # Ideal overlay generator
-        self.ideal = IdealOverlay(128)
+        self.ideal = IdealOverlay(4096)
 
     # -----------------------------------------------------------------
     # Enable / disable
@@ -682,10 +682,19 @@ class TelemetryController(QObject):
         if slot != self.target_slot:
             return
 
-        self.current_waveform = np.asarray(samples, dtype=np.float32)
+        self.current_waveform = np.asarray(samples, dtype=np.float64)  # Use float64 to avoid overflow
 
         # Guard against non-finite samples from upstream glitches
         if not np.isfinite(self.current_waveform).all():
+            logger.warning("[Telemetry] Waveform contains non-finite values, discarding")
+            self.current_waveform = None
+            return
+
+        # Check for corrupted data (garbage from uninitialized buffer)
+        max_abs = np.max(np.abs(self.current_waveform))
+        if max_abs > 100:
+            logger.warning(f"[Telemetry] Waveform values out of range (max={max_abs:.2e}), discarding")
+            self.current_waveform = None
             return
 
         # Living Proof: source-agnostic metrics computed from the captured waveform
