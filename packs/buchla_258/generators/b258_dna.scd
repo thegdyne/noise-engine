@@ -3,7 +3,7 @@
 B258 DNA - Buchla 258 Forensic DNA Clone
 
 FULL TABLE INTERPOLATION from 12-point 0-10V hardware telemetry.
-Includes BOTH saw and square outputs with crossfade.
+Two independent oscillators with real SAW and SQR hardware captures.
 
 === HARDWARE ANALYSIS SUMMARY ===
 
@@ -20,24 +20,22 @@ SQUARE OUTPUT (bottom section):
 
 === CONTROL MAPPING ===
 
-P1 MORPH: Main timbre control (maps to 0-10V CV range)
-P2 WAVE: SAW (0) to SQR (1) blend
-P3 H2: Second harmonic scale
-P4 HARM: Overall harmonic content (h3-h8)
-P5 BRT: Brightness (h5-h8 boost)
+P0 SAW: Sine→Saw morph (independent, full hardware telemetry)
+P1 SQR: Sine→Square morph (independent, full hardware telemetry)
+P2 MIX: Blend between SAW and SQR oscillator signals
 
-Data source: fingerprints/devices/buchla_258_saw/ and buchla_258/
+Data source: fingerprints/devices/buchla_258/
 Multi-AI analysis: 2026-02-03 (Claude, ChatGPT, Gemini)
 */
 
 SynthDef(\b258_dna, { |out, freqBus, customBus0|
-    var sig, freq;
-    var params, morph, waveMix, h2Scale, harmScale, brightness;
-    var k, kIdx, kFrac, i0, i1;
-    var h1, h2, h3, h4, h5, h6, h7, h8;
-    var h2Saw, h3Saw, h4Saw, h5Saw, h6Saw, h7Saw, h8Saw;
-    var h2Sqr, h3Sqr, h4Sqr, h5Sqr, h6Sqr, h7Sqr, h8Sqr;
-    var theta, rmsGain;
+    var sigSaw, sigSqr, sig, freq;
+    var params, sawMorph, sqrMorph, mix;
+    var sawK, sawKIdx, sawKFrac, sawI0, sawI1;
+    var sqrK, sqrKIdx, sqrKFrac, sqrI0, sqrI1;
+    var sawH1, sawH2, sawH3, sawH4, sawH5, sawH6, sawH7, sawH8;
+    var sqrH1, sqrH2, sqrH3, sqrH4, sqrH5, sqrH6, sqrH7, sqrH8;
+    var theta, rmsGainSaw, rmsGainSqr;
 
     // =======================================================
     // SAW HARMONIC TABLES (from 0-10V hardware telemetry)
@@ -64,74 +62,89 @@ SynthDef(\b258_dna, { |out, freqBus, customBus0|
     // =======================================================
     // INPUTS
     // =======================================================
-    params = In.kr(customBus0, 5);
-    morph      = Lag.kr(params[0], 0.05);  // P1 MORPH
-    waveMix    = Lag.kr(params[1], 0.05);  // P2 WAVE (saw/sqr)
-    h2Scale    = Lag.kr(params[2], 0.05);  // P3 H2 scale
-    harmScale  = Lag.kr(params[3], 0.05);  // P4 HARM scale
-    brightness = Lag.kr(params[4], 0.05);  // P5 BRT
+    params = In.kr(customBus0, 3);
+    sawMorph = Lag.kr(params[0], 0.05);  // P0 SAW
+    sqrMorph = Lag.kr(params[1], 0.05);  // P1 SQR
+    mix      = Lag.kr(params[2], 0.05);  // P2 MIX
 
     freq = In.kr(freqBus).clip(5, 20000);
 
     // =======================================================
-    // TABLE INTERPOLATION
+    // SAW OSCILLATOR - Full Table Interpolation
     // =======================================================
-    k = morph.clip(0, 1);
-    kIdx = k * 11;
-    i0 = kIdx.floor.clip(0, 10);
-    i1 = (i0 + 1).clip(0, 11);
-    kFrac = kIdx - i0;
+    sawK = sawMorph.clip(0, 1);
+    sawKIdx = sawK * 11;
+    sawI0 = sawKIdx.floor.clip(0, 10);
+    sawI1 = (sawI0 + 1).clip(0, 11);
+    sawKFrac = sawKIdx - sawI0;
 
-    // Interpolate SAW harmonics
-    h2Saw = Select.kr(i0, h2SawT) + (kFrac * (Select.kr(i1, h2SawT) - Select.kr(i0, h2SawT)));
-    h3Saw = Select.kr(i0, h3SawT) + (kFrac * (Select.kr(i1, h3SawT) - Select.kr(i0, h3SawT)));
-    h4Saw = Select.kr(i0, h4SawT) + (kFrac * (Select.kr(i1, h4SawT) - Select.kr(i0, h4SawT)));
-    h5Saw = Select.kr(i0, h5SawT) + (kFrac * (Select.kr(i1, h5SawT) - Select.kr(i0, h5SawT)));
-    h6Saw = Select.kr(i0, h6SawT) + (kFrac * (Select.kr(i1, h6SawT) - Select.kr(i0, h6SawT)));
-    h7Saw = Select.kr(i0, h7SawT) + (kFrac * (Select.kr(i1, h7SawT) - Select.kr(i0, h7SawT)));
-    h8Saw = Select.kr(i0, h8SawT) + (kFrac * (Select.kr(i1, h8SawT) - Select.kr(i0, h8SawT)));
-
-    // Interpolate SQUARE harmonics
-    h2Sqr = Select.kr(i0, h2SqrT) + (kFrac * (Select.kr(i1, h2SqrT) - Select.kr(i0, h2SqrT)));
-    h3Sqr = Select.kr(i0, h3SqrT) + (kFrac * (Select.kr(i1, h3SqrT) - Select.kr(i0, h3SqrT)));
-    h4Sqr = Select.kr(i0, h4SqrT) + (kFrac * (Select.kr(i1, h4SqrT) - Select.kr(i0, h4SqrT)));
-    h5Sqr = Select.kr(i0, h5SqrT) + (kFrac * (Select.kr(i1, h5SqrT) - Select.kr(i0, h5SqrT)));
-    h6Sqr = Select.kr(i0, h6SqrT) + (kFrac * (Select.kr(i1, h6SqrT) - Select.kr(i0, h6SqrT)));
-    h7Sqr = Select.kr(i0, h7SqrT) + (kFrac * (Select.kr(i1, h7SqrT) - Select.kr(i0, h7SqrT)));
-    h8Sqr = Select.kr(i0, h8SqrT) + (kFrac * (Select.kr(i1, h8SqrT) - Select.kr(i0, h8SqrT)));
+    sawH1 = 1.0;
+    sawH2 = Select.kr(sawI0, h2SawT) + (sawKFrac * (Select.kr(sawI1, h2SawT) - Select.kr(sawI0, h2SawT)));
+    sawH3 = Select.kr(sawI0, h3SawT) + (sawKFrac * (Select.kr(sawI1, h3SawT) - Select.kr(sawI0, h3SawT)));
+    sawH4 = Select.kr(sawI0, h4SawT) + (sawKFrac * (Select.kr(sawI1, h4SawT) - Select.kr(sawI0, h4SawT)));
+    sawH5 = Select.kr(sawI0, h5SawT) + (sawKFrac * (Select.kr(sawI1, h5SawT) - Select.kr(sawI0, h5SawT)));
+    sawH6 = Select.kr(sawI0, h6SawT) + (sawKFrac * (Select.kr(sawI1, h6SawT) - Select.kr(sawI0, h6SawT)));
+    sawH7 = Select.kr(sawI0, h7SawT) + (sawKFrac * (Select.kr(sawI1, h7SawT) - Select.kr(sawI0, h7SawT)));
+    sawH8 = Select.kr(sawI0, h8SawT) + (sawKFrac * (Select.kr(sawI1, h8SawT) - Select.kr(sawI0, h8SawT)));
 
     // =======================================================
-    // WAVEFORM BLEND (SAW <-> SQR)
+    // SQR OSCILLATOR - Full Table Interpolation
     // =======================================================
-    h1 = 1.0;
-    h2 = ((h2Saw * (1 - waveMix)) + (h2Sqr * waveMix)) * h2Scale;
-    h3 = ((h3Saw * (1 - waveMix)) + (h3Sqr * waveMix)) * harmScale;
-    h4 = ((h4Saw * (1 - waveMix)) + (h4Sqr * waveMix)) * harmScale;
-    h5 = ((h5Saw * (1 - waveMix)) + (h5Sqr * waveMix)) * harmScale * brightness;
-    h6 = ((h6Saw * (1 - waveMix)) + (h6Sqr * waveMix)) * harmScale * brightness;
-    h7 = ((h7Saw * (1 - waveMix)) + (h7Sqr * waveMix)) * harmScale * brightness;
-    h8 = ((h8Saw * (1 - waveMix)) + (h8Sqr * waveMix)) * harmScale * brightness;
+    sqrK = sqrMorph.clip(0, 1);
+    sqrKIdx = sqrK * 11;
+    sqrI0 = sqrKIdx.floor.clip(0, 10);
+    sqrI1 = (sqrI0 + 1).clip(0, 11);
+    sqrKFrac = sqrKIdx - sqrI0;
+
+    sqrH1 = 1.0;
+    sqrH2 = Select.kr(sqrI0, h2SqrT) + (sqrKFrac * (Select.kr(sqrI1, h2SqrT) - Select.kr(sqrI0, h2SqrT)));
+    sqrH3 = Select.kr(sqrI0, h3SqrT) + (sqrKFrac * (Select.kr(sqrI1, h3SqrT) - Select.kr(sqrI0, h3SqrT)));
+    sqrH4 = Select.kr(sqrI0, h4SqrT) + (sqrKFrac * (Select.kr(sqrI1, h4SqrT) - Select.kr(sqrI0, h4SqrT)));
+    sqrH5 = Select.kr(sqrI0, h5SqrT) + (sqrKFrac * (Select.kr(sqrI1, h5SqrT) - Select.kr(sqrI0, h5SqrT)));
+    sqrH6 = Select.kr(sqrI0, h6SqrT) + (sqrKFrac * (Select.kr(sqrI1, h6SqrT) - Select.kr(sqrI0, h6SqrT)));
+    sqrH7 = Select.kr(sqrI0, h7SqrT) + (sqrKFrac * (Select.kr(sqrI1, h7SqrT) - Select.kr(sqrI0, h7SqrT)));
+    sqrH8 = Select.kr(sqrI0, h8SqrT) + (sqrKFrac * (Select.kr(sqrI1, h8SqrT) - Select.kr(sqrI0, h8SqrT)));
 
     // =======================================================
-    // ADDITIVE SYNTHESIS
+    // ADDITIVE SYNTHESIS - Phase-aligned partials
     // =======================================================
     theta = Phasor.ar(0, freq / SampleRate.ir, 0, 2pi);
 
-    sig = (h1 * SinOsc.ar(0, theta))
-        + (h2 * SinOsc.ar(0, theta * 2))
-        + (h3 * SinOsc.ar(0, theta * 3))
-        + (h4 * SinOsc.ar(0, theta * 4))
-        + (h5 * SinOsc.ar(0, theta * 5))
-        + (h6 * SinOsc.ar(0, theta * 6))
-        + (h7 * SinOsc.ar(0, theta * 7))
-        + (h8 * SinOsc.ar(0, theta * 8));
+    // SAW oscillator
+    sigSaw = (sawH1 * SinOsc.ar(0, theta))
+           + (sawH2 * SinOsc.ar(0, theta * 2))
+           + (sawH3 * SinOsc.ar(0, theta * 3))
+           + (sawH4 * SinOsc.ar(0, theta * 4))
+           + (sawH5 * SinOsc.ar(0, theta * 5))
+           + (sawH6 * SinOsc.ar(0, theta * 6))
+           + (sawH7 * SinOsc.ar(0, theta * 7))
+           + (sawH8 * SinOsc.ar(0, theta * 8));
+
+    // SQR oscillator
+    sigSqr = (sqrH1 * SinOsc.ar(0, theta))
+           + (sqrH2 * SinOsc.ar(0, theta * 2))
+           + (sqrH3 * SinOsc.ar(0, theta * 3))
+           + (sqrH4 * SinOsc.ar(0, theta * 4))
+           + (sqrH5 * SinOsc.ar(0, theta * 5))
+           + (sqrH6 * SinOsc.ar(0, theta * 6))
+           + (sqrH7 * SinOsc.ar(0, theta * 7))
+           + (sqrH8 * SinOsc.ar(0, theta * 8));
 
     // =======================================================
-    // NORMALIZATION
+    // NORMALIZATION - RMS-based gain compensation per oscillator
     // =======================================================
-    rmsGain = (h1.squared + h2.squared + h3.squared + h4.squared +
-               h5.squared + h6.squared + h7.squared + h8.squared).sqrt.max(0.001).reciprocal;
-    sig = sig * rmsGain * 0.7;
+    rmsGainSaw = (sawH1.squared + sawH2.squared + sawH3.squared + sawH4.squared +
+                  sawH5.squared + sawH6.squared + sawH7.squared + sawH8.squared).sqrt.max(0.001).reciprocal;
+    sigSaw = sigSaw * rmsGainSaw * 0.7;
+
+    rmsGainSqr = (sqrH1.squared + sqrH2.squared + sqrH3.squared + sqrH4.squared +
+                  sqrH5.squared + sqrH6.squared + sqrH7.squared + sqrH8.squared).sqrt.max(0.001).reciprocal;
+    sigSqr = sigSqr * rmsGainSqr * 0.7;
+
+    // =======================================================
+    // MIX - Crossfade between SAW and SQR oscillators
+    // =======================================================
+    sig = (sigSaw * (1 - mix)) + (sigSqr * mix);
 
     // --- MANDATORY TAIL ---
     sig = NumChannels.ar(sig, 2);
