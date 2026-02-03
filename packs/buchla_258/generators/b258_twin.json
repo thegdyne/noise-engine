@@ -7,7 +7,7 @@
     {
       "key": "saw_morph",
       "label": "SAW",
-      "tooltip": "Sine to Saw morph (k^1.96 curve from telemetry)",
+      "tooltip": "Saw-like harmonic morph (k^1.96 curve, all harmonics)",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,
@@ -17,7 +17,7 @@
     {
       "key": "sqr_morph",
       "label": "SQR",
-      "tooltip": "Sine to Square morph (k^1.96 curve from telemetry)",
+      "tooltip": "Square-like harmonic morph (k^1.96 curve, odd harmonics emphasized)",
       "default": 0.0,
       "min": 0.0,
       "max": 1.0,
@@ -27,7 +27,7 @@
     {
       "key": "mix",
       "label": "MIX",
-      "tooltip": "Crossfade between Saw (left) and Square (right)",
+      "tooltip": "Blend SAW (left) and SQR (right) harmonic structures",
       "default": 0.5,
       "min": 0.0,
       "max": 1.0,
@@ -37,7 +37,7 @@
     {
       "key": "symmetry",
       "label": "SYM",
-      "tooltip": "Spectral tilt (Saw) or Pulse width (Square)",
+      "tooltip": "h2 asymmetry (0.51 = measured 258 value of 0.523)",
       "default": 0.51,
       "min": 0.1,
       "max": 0.9,
@@ -47,8 +47,8 @@
     {
       "key": "saturation",
       "label": "SAT",
-      "tooltip": "Drive with h2 asymmetry (Sine/Saw) or Slew rate (Square)",
-      "default": 0.9,
+      "tooltip": "h3/h4 bump intensity (Gaussian peak at n=3.54)",
+      "default": 0.5,
       "min": 0.05,
       "max": 0.95,
       "curve": "lin",
