@@ -18,6 +18,7 @@
     ~telemetry.tapSynths = Array.fill(8, { nil });
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
+    "[Telemetry] Compiling wave capture SynthDef VERSION 3".postln;
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
         // VARS MUST BE DECLARED FIRST
         var sig, mono, freq, frameSize, captureTrig, capturePhase;
@@ -27,9 +28,9 @@
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
 
-        // Debug: check if we're getting audio
+        // Debug: check if we're getting audio (2Hz poll to SC post window)
         rms = Amplitude.kr(mono, 0.01, 0.1);
-        Poll.kr(Impulse.kr(2), rms, "wave_rms");
+        rms.poll(2, "WAVE_RMS");
 
         // Estimate frequency from zero-crossings (adaptive capture)
         freq = ZeroCrossing.ar(mono).max(20).min(20000);
@@ -251,12 +252,18 @@
                 "[Telemetry] wave alloc: idx=%, waveBus=%, buf=%".format(idx, waveBus, buf).postln;
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
                 if (~intermediateBus[idx].notNil) {
-                    // Use source-selected bus (matches data tap)
-                    ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
-                        \inBus, waveBus,
-                        \slotIndex, idx, \bufnum, buf.bufnum
-                    ], ~fxGroup, \addAfter);
-                    "[Telemetry] wave synth CREATED for slot % (idx %)".format(slot, idx).postln;
+                    // Check fxGroup is valid
+                    "[Telemetry] wave synth creating: fxGroup=%, waveBus=%, bufnum=%".format(~fxGroup, waveBus, buf.bufnum).postln;
+                    if (~fxGroup.notNil) {
+                        // Use source-selected bus (matches data tap)
+                        ~telemetry.waveSynths[idx] = Synth(\forge_telemetry_wave_capture, [
+                            \inBus, waveBus,
+                            \slotIndex, idx, \bufnum, buf.bufnum
+                        ], ~fxGroup, \addAfter);
+                        "[Telemetry] wave synth CREATED for slot % (idx %), synth=%".format(slot, idx, ~telemetry.waveSynths[idx]).postln;
+                    } {
+                        "[Telemetry] wave synth FAILED - fxGroup is nil!".postln;
+                    };
                 } {
                     "[Telemetry] wave synth FAILED - intermediateBus[%] is nil".format(idx).postln;
                 };
