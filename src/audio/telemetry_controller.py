@@ -468,8 +468,8 @@ class TelemetryController(QObject):
         self.current_synthdef_name = ""
         self.app_version = ""
 
-        # Ideal overlay generator
-        self.ideal = IdealOverlay(4096)
+        # Ideal overlay generator (must match SC buffer size: 1024)
+        self.ideal = IdealOverlay(1024)
 
     # -----------------------------------------------------------------
     # Enable / disable
