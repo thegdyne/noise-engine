@@ -1278,6 +1278,7 @@ class MainFrame(QMainWindow):
                     cv_range=(0.0, 5.0),
                     points=12,
                     slot=current_slot,
+                    settle_ms=1000,  # 1 second settle time for accurate capture
                     vmax_calibrated=5.07,
                     midi_port=midi_port,
                     cv_mode='unipolar'
