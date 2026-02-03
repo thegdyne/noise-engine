@@ -243,9 +243,19 @@
         var idx = slot - 1;
         var buf;
 
+        "[Telemetry] wave/enable: slot=%, enable=%, sourceId=%".format(slot, enable, ~telemetry.sourceIds[idx]).postln;
+
         if ((slot >= 1) && (slot <= 8)) {
             if (enable) {
-                var waveBus = ~telemetry[\busForSource].value(idx, ~telemetry.sourceIds[idx]);
+                var sourceId = ~telemetry.sourceIds[idx];
+                var waveBus = ~telemetry[\busForSource].value(idx, sourceId);
+
+                "[Telemetry] wave/enable DEBUG: idx=%, sourceId=%, waveBus=%".format(idx, sourceId, waveBus).postln;
+                "[Telemetry] wave/enable DEBUG: intermediateBus=%, enhancedBus=%, genBus=%".format(
+                    if(~intermediateBus.notNil && ~intermediateBus[idx].notNil, { ~intermediateBus[idx].index }, { "nil" }),
+                    if(~enhancedBus.notNil && ~enhancedBus[idx].notNil, { ~enhancedBus[idx].index }, { "nil" }),
+                    if(~genBus.notNil && ~genBus[idx].notNil, { ~genBus[idx].index }, { "nil" })
+                ).postln;
 
                 // Stop existing first
                 if (~telemetry.waveSynths[idx].notNil) { ~telemetry.waveSynths[idx].free; };
@@ -261,8 +271,12 @@
                             \slotIndex, idx, \bufnum, buf.bufnum
                         ], ~fxGroup, \addAfter);
 
-                        "[Telemetry] Wave capture STARTED slot % (bus: %)".format(slot, waveBus).postln;
+                        "[Telemetry] Wave capture STARTED slot % sourceId=% (bus: %)".format(slot, sourceId, waveBus).postln;
                     };
+                } {
+                    "[Telemetry] Wave capture FAILED - intermediateBus[%]=%, fxGroup=%".format(
+                        idx, ~intermediateBus[idx].notNil, ~fxGroup.notNil
+                    ).postln;
                 };
             } {
                 ~telemetry[\freeWaveBuffer].value(idx);
