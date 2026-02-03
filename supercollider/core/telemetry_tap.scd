@@ -18,13 +18,36 @@
     ~telemetry.tapSynths = Array.fill(8, { nil });
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
-    // Simple circular buffer writer - polling handled by language Routine
-    SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        var sig, mono, phase;
+    // Triggered capture with zero-crossing sync (matches scope_tap.scd pattern)
+    // Polling handled by language Routine
+    SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum, threshold=0.0|
+        var sig, mono, trigSig, edge, kEdge, kTrig, aTrig, aWriteGate, phase;
+
+        // 1. Tap: raw mono for buffer, conditioned for trigger detection
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
-        phase = Phasor.ar(0, 1, 0, BufFrames.kr(bufnum));
-        BufWr.ar(mono, bufnum, phase);
+        trigSig = HPF.ar(LeakDC.ar(mono), 5);  // Conditioned for trigger only
+
+        // 2. Rising-edge detect with hysteresis
+        edge = (trigSig >= threshold) & (Delay1.ar(trigSig) < (threshold - 0.001));
+
+        // 3. AR->KR trigger capture
+        kEdge = T2K.kr(edge);
+
+        // 4. Holdoff: one buffer duration
+        kTrig = Trig1.kr(kEdge, BufDur.kr(bufnum));
+
+        // 5. Single-sample audio reset impulse
+        aTrig = T2A.ar(kTrig);
+
+        // 6. One-shot write gate (one full sweep)
+        aWriteGate = Trig1.ar(aTrig, BufDur.kr(bufnum));
+
+        // 7. Phase counter - fills buffer from index 0
+        phase = Phasor.ar(aTrig, aWriteGate, 0, BufFrames.kr(bufnum) - 1);
+
+        // 8. Gated write to buffer
+        BufWr.ar(mono * aWriteGate, bufnum, phase);
     }).add;
 
     // Waveform polling routines (one per slot)
