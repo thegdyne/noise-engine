@@ -2,101 +2,95 @@
 /*
 B258 Twin - Buchla 258 Digital Twin
 
-Based on empirical fingerprint analysis of real Buchla 258 hardware.
-Uses additive synthesis with fitted harmonic coefficients.
+Improved version of b258_osc using fitted parameters from hardware telemetry.
+Same control structure, more accurate behavior.
 
-Circuit insight (M.E.M.S. Project):
-- Triangle core oscillator
-- NOT a wavefolder - it's a crossfading mixer between shaped waveforms
-- The "Timbre" CV morphs between sine-like and harmonically rich states
+Key improvements from telemetry analysis:
+- Control curve: k^1.96 applied to morph controls (wait then surge)
+- Fixed h2 asymmetry: 0.54 baked into sine shaper
+- Tuned spectral tilt coefficients from measured harmonics
 
-Fitted model (12-point hardware sweep, r > 0.89):
-- Control curve: k^1.96 (convex - waits then surges)
-- Harmonic growth: exponential decay with Gaussian bump at h3/h4
-- Fixed h2 asymmetry: ~0.54 (baked into hardware shaping stage)
+Custom params (same as b258_osc):
+- P1 SAW: Sine to Saw morph (with k^1.96 curve)
+- P2 SQR: Sine to Square morph (with k^1.96 curve)
+- P3 MIX: Balance between Saw branch and Square branch
+- P4 SYM: Spectral tilt (saw) or pulse width (square), 0.1-0.9
+- P5 SAT: Tanh drive (sine/saw) or slew rate (square), 0.05-0.95
 
-Custom params:
-- P1 TIM: Timbre morph (0=sine-like, 1=rich harmonics)
-- P2 BRT: Brightness (high harmonic emphasis)
-- P3 ASY: Asymmetry (h2 amount - the 258 fingerprint)
-
-Output: RMS-normalized * 0.7 headroom.
+Output: per-branch 1.32 makeup * 0.68 global scalar.
 No filter/envelope — handled by channel strip end-stage.
 */
 
 SynthDef(\b258_twin, { |out, freqBus, customBus0|
-	var sig, freq;
-	var params, timbre, brightness, asymmetry;
-	var k, brightnessScale, h2Scale;
-	var h1, h2, h3, h4, h5, h6, h7, h8;
-	var theta, rmsGain;
+	var sig, freq, sine, square, saw, branchSaw, branchSqr;
+	var p, sawMorph, sqrMorph, mix, sym, sat;
+	var sawMorphCurved, sqrMorphCurved;
+	var duty, pw_thresh, slew_rate;
+	var saw_tilt;
 
-	// === FITTED MODEL CONSTANTS ===
-	var p = 1.96;           // Control curve exponent (convex)
-	var capB = 0.177;       // Harmonic decay rate
-	var mu = 3.54;          // Gaussian bump center
-	var sigma = 0.64;       // Gaussian bump width
-	var c0 = 0.17;          // Base sensitivity
-	var c1 = 0.14;          // Bump sensitivity
+	// Fitted control curve exponent from hardware telemetry
+	var curveExp = 1.96;
 
-	// Baseline harmonics at timbre=0 (measured from hardware)
-	var h2Base = 0.523;
-	var h3Base = 0.049;
-	var h4Base = 0.018;
-	var h5Base = 0.015;
-	var h6Base = 0.006;
-	var h7Base = 0.003;
-	var h8Base = 0.001;
+	// Fitted h2 asymmetry from hardware (~0.54)
+	var h2Asymmetry = 0.54;
 
-	// === INPUTS ===
-	params = In.kr(customBus0, 3);
-	timbre     = Lag.kr(params[0], 0.05);  // P1 TIM
-	brightness = Lag.kr(params[1], 0.05);  // P2 BRT
-	asymmetry  = Lag.kr(params[2], 0.05);  // P3 ASY
+	p = In.kr(customBus0, 5);
+	sawMorph = Lag.kr(p[0], 0.05);  // P1 SAW: Sine -> Saw
+	sqrMorph = Lag.kr(p[1], 0.05);  // P2 SQR: Sine -> Square
+	mix      = Lag.kr(p[2], 0.05);  // P3 MIX: Saw <-> Square
+	sym      = Lag.kr(p[3], 0.05);  // P4 SYM: Tilt / Width
+	sat      = Lag.kr(p[4], 0.05);  // P5 SAT: Drive / Slew
+
+	// Apply k^1.96 control curve to morph controls
+	// This gives the authentic "wait then surge" behavior
+	sawMorphCurved = sawMorph.pow(curveExp);
+	sqrMorphCurved = sqrMorph.pow(curveExp);
 
 	freq = In.kr(freqBus).clip(5, 20000);
 
-	// === CONTROL CURVE ===
-	// k^1.96 (the "wait then surge" behavior)
-	k = timbre.pow(p);
+	// --- 1. SINE BRANCH (with h2 asymmetry from telemetry) ---
+	// The 0.54 h2 asymmetry creates slight even-harmonic content
+	// Implemented via asymmetric soft-clip (positive peaks slightly harder)
+	sine = SinOsc.ar(freq);
+	// Asymmetric saturation: positive side gets slightly more drive
+	sine = ((sine * (1 + (sine.max(0) * h2Asymmetry * 0.1))) * (1 + (sat * 0.01))).tanh * 1.32;
 
-	// Brightness scales the bump strength (user control for h5-h8)
-	brightnessScale = brightness.linlin(0, 1, 0.5, 1.5);
+	// --- 2. SQUARE BRANCH (Forensic DNA: Gold Lock) ---
+	// A. Pulse Width: Decoupled 10-90% mapping from SYM
+	duty = 0.1 + (sym * 0.8);
+	// Threshold for sine comparison: sin((0.5 - duty) * pi)
+	pw_thresh = sin((0.5 - duty) * pi);
+	// Generate square from sine threshold
+	square = (SinOsc.ar(freq) > pw_thresh).madd(2, -1);
 
-	// Asymmetry scales h2 (the 258's "soul")
-	h2Scale = asymmetry.linlin(0, 1, 0.0, 1.0);
+	// B. Linear Slew Rate (units/sec, pitch-invariant)
+	slew_rate = (0.05 + (sat * 1.95)) * SampleRate.ir;
+	square = Slew.ar(square, slew_rate, slew_rate);
 
-	// === HARMONIC COEFFICIENTS ===
-	// h_n(k) = baseline + k * E(n) * F(n)
-	// where E(n) = exp(-B*n), F(n) = c0 + c1*G(n), G(n) = gaussian bump
+	// Morph: Sine -> Square (with k^1.96 curve)
+	branchSqr = XFade2.ar(sine, square, sqrMorphCurved.linlin(0, 1, -1, 1));
 
-	h1 = 1.0;
-	h2 = h2Base * h2Scale;
+	// --- 3. SAW BRANCH (Forensic DNA: Spectral Tilt Filter) ---
+	// A. Band-limited base
+	saw = LFSaw.ar(freq);
 
-	h3 = h3Base + (k * exp(-1 * capB * 3) * (c0 + (c1 * exp(-0.5 * ((3 - mu) / sigma).squared) * brightnessScale)));
-	h4 = h4Base + (k * exp(-1 * capB * 4) * (c0 + (c1 * exp(-0.5 * ((4 - mu) / sigma).squared) * brightnessScale)));
-	h5 = h5Base + (k * exp(-1 * capB * 5) * (c0 + (c1 * exp(-0.5 * ((5 - mu) / sigma).squared) * brightnessScale)));
-	h6 = h6Base + (k * exp(-1 * capB * 6) * (c0 + (c1 * exp(-0.5 * ((6 - mu) / sigma).squared) * brightnessScale)));
-	h7 = h7Base + (k * exp(-1 * capB * 7) * (c0 + (c1 * exp(-0.5 * ((7 - mu) / sigma).squared) * brightnessScale)));
-	h8 = h8Base + (k * exp(-1 * capB * 8) * (c0 + (c1 * exp(-0.5 * ((8 - mu) / sigma).squared) * brightnessScale)));
+	// B. Spectral Tilt (OnePole LowPass) - tuned from telemetry
+	// SYM 0.0 (Dark) -> 0.5 (Natural) -> 1.0 (Bright)
+	saw_tilt = sym.linlin(0, 1, 0.9, 0.0);
+	saw = OnePole.ar(saw, saw_tilt);
 
-	// === ADDITIVE SYNTHESIS ===
-	// Phase-aligned partials for clean harmonic spectrum
-	theta = Phasor.ar(0, freq / SampleRate.ir, 0, 2pi);
+	// C. Saturation with h2 asymmetry
+	saw = ((saw * (1 + (saw.max(0) * h2Asymmetry * 0.1))) * (1 + (sat * 0.01))).tanh * 1.32;
 
-	sig = (h1 * SinOsc.ar(0, theta))
-	    + (h2 * SinOsc.ar(0, theta * 2))
-	    + (h3 * SinOsc.ar(0, theta * 3))
-	    + (h4 * SinOsc.ar(0, theta * 4))
-	    + (h5 * SinOsc.ar(0, theta * 5))
-	    + (h6 * SinOsc.ar(0, theta * 6))
-	    + (h7 * SinOsc.ar(0, theta * 7))
-	    + (h8 * SinOsc.ar(0, theta * 8));
+	// Morph: Sine -> Saw (with k^1.96 curve)
+	branchSaw = XFade2.ar(sine, saw, sawMorphCurved.linlin(0, 1, -1, 1));
 
-	// === NORMALIZATION ===
-	rmsGain = (h1.squared + h2.squared + h3.squared + h4.squared +
-	           h5.squared + h6.squared + h7.squared + h8.squared).sqrt.max(0.001).reciprocal;
-	sig = sig * rmsGain * 0.7;
+	// --- 4. MIX & OUTPUT ---
+	// MIX 0 = Saw branch, MIX 1 = Square branch
+	sig = XFade2.ar(branchSaw, branchSqr, mix.linlin(0, 1, -1, 1));
+
+	// Output scalar: targets ~0.68 peak at telemetry tap
+	sig = sig * 0.68;
 
 	// --- MANDATORY TAIL ---
 	sig = NumChannels.ar(sig, 2);
