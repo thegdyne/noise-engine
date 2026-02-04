@@ -477,6 +477,8 @@ class TelemetryController(QObject):
         self.stabilizer = WaveformStabilizer()
         self.persistence_buffer = deque(maxlen=self.PERSISTENCE_BUFFER_SIZE)
         self.last_stabilizer_result = None
+        self._last_poison_reason = None
+        self._poison_log_skip = 0
 
         # Ideal overlay generator
         self.ideal = IdealOverlay(1024)
@@ -717,6 +719,26 @@ class TelemetryController(QObject):
 
         if self.last_stabilizer_result.admissible_for_visual_history:
             self.persistence_buffer.append(self.current_waveform.copy())
+
+        # Rate-limited poison diagnostics
+        res = self.last_stabilizer_result
+        if res.poisoned:
+            if (res.poison_reason != self._last_poison_reason) or (self._poison_log_skip <= 0):
+                logger.warning(
+                    "Telemetry poison: reason=%s state=%s sim=%.3f stable=%d/%d",
+                    res.poison_reason,
+                    res.stability_state.name,
+                    res.similarity,
+                    res.stable_count,
+                    res.required_count,
+                )
+                self._last_poison_reason = res.poison_reason
+                self._poison_log_skip = 20  # ~2 seconds at 10Hz
+            else:
+                self._poison_log_skip -= 1
+        else:
+            self._last_poison_reason = None
+            self._poison_log_skip = 0
 
         # Living Proof: source-agnostic metrics computed from the captured waveform
         # (always reflects the current tap point, not fixed SC fields)

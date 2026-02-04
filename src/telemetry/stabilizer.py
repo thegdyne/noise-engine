@@ -53,7 +53,7 @@ class StabilizerResult:
 
     # Poison detection
     poisoned: bool
-    poison_reason: str | None  # "zero_run", "nan_inf", "discontinuity", None
+    poison_reason: str | None  # "nan_inf", "zero_speckle", "zero_run", "discontinuity", None
 
     # State machine
     stability_state: StabilityState
@@ -91,6 +91,12 @@ class WaveformStabilizer:
     # Zero-run: 16+ consecutive exact 0.0 samples indicates buffer dropout.
     # At 1024 samples, this is ~1.5% of the frame as a contiguous block.
     ZERO_RUN_THRESHOLD = 16
+
+    # Zero-speckle: scattered exact 0.0 samples indicate clobbered capture buffers.
+    # Legitimate audio rarely exceeds 1% exact zeros at float precision.
+    # Use BOTH a fraction guard and a hard-count backstop.
+    ZERO_SPECKLE_FRACTION = 0.01   # 1% of 1024 ~ 10 samples
+    ZERO_SPECKLE_COUNT = 12        # strict ">" boundary; 13 triggers, 12 does not
 
     # Similarity: cosine similarity floor for "stable" classification.
     # 0.95 is strict but allows minor drift from noise/jitter.
@@ -206,9 +212,14 @@ class WaveformStabilizer:
     # -----------------------------------------------------------------
 
     def _check_poison(self, frame: np.ndarray) -> tuple[bool, str | None]:
-        """Run poison checks in priority order."""
+        """Run poison checks in priority order.
+
+        Priority: nan_inf > zero_speckle > zero_run > discontinuity
+        """
         if self._detect_nan_inf(frame):
             return True, "nan_inf"
+        if self._detect_zero_speckle(frame):
+            return True, "zero_speckle"
         if self._detect_zero_run(frame):
             return True, "zero_run"
         if self._detect_discontinuity(frame):
@@ -219,6 +230,22 @@ class WaveformStabilizer:
     def _detect_nan_inf(frame: np.ndarray) -> bool:
         """Any non-finite value (NaN, Inf, -Inf) = poison."""
         return not np.all(np.isfinite(frame))
+
+    def _detect_zero_speckle(self, frame: np.ndarray) -> bool:
+        """Scattered exact zeros beyond plausible audio likelihood.
+
+        Catches corruption where zeros are sprinkled throughout the frame
+        (no long runs), which defeats ZERO_RUN detection.
+        """
+        n = len(frame)
+        if n == 0:
+            return False
+
+        zero_count = int(n - np.count_nonzero(frame))
+
+        if zero_count > self.ZERO_SPECKLE_COUNT:
+            return True
+        return (zero_count / n) > self.ZERO_SPECKLE_FRACTION
 
     def _detect_zero_run(self, frame: np.ndarray) -> bool:
         """Contiguous exact 0.0 run > threshold samples = poison.

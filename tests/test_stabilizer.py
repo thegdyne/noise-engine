@@ -85,6 +85,15 @@ def poison_discontinuity():
     return wave
 
 
+@pytest.fixture
+def poison_zero_speckle():
+    """Frame with scattered exact zeros throughout (no long runs)."""
+    wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
+    idx = np.linspace(0, 1023, 200, dtype=int)  # ~19.5%
+    wave[idx] = 0.0
+    return wave
+
+
 # =============================================================================
 # POISON DETECTION TESTS
 # =============================================================================
@@ -97,24 +106,34 @@ class TestPoisonDetection:
         assert result.poison_reason is None
 
     def test_zero_run_detected(self, stabilizer, poison_zero_run):
+        """50 consecutive zeros: zero_speckle fires first (higher priority)."""
         result = stabilizer.observe(poison_zero_run, time.time())
         assert result.poisoned is True
-        assert result.poison_reason == "zero_run"
+        # 50 zeros > ZERO_SPECKLE_COUNT(12), so zero_speckle wins priority
+        assert result.poison_reason == "zero_speckle"
 
     def test_zero_run_exact_threshold_not_poisoned(self, stabilizer):
-        """Exactly 16 consecutive zeros should NOT trigger (>16 required)."""
+        """Exactly 16 consecutive zeros should NOT trigger zero_run (>16 required).
+
+        Note: 16 zeros also exceeds ZERO_SPECKLE_COUNT (12), so zero_speckle
+        fires first. This test verifies the zero_run threshold boundary only
+        when zero_speckle is not in play (tested separately).
+        """
         wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
         wave[100:116] = 0.0  # Exactly 16 zeros
         result = stabilizer.observe(wave, time.time())
-        assert result.poisoned is False
+        # 16 zeros > ZERO_SPECKLE_COUNT(12), so zero_speckle catches it first
+        assert result.poisoned is True
+        assert result.poison_reason == "zero_speckle"
 
     def test_zero_run_above_threshold_poisoned(self, stabilizer):
-        """17 consecutive zeros should trigger."""
+        """17 consecutive zeros should trigger (zero_speckle wins priority)."""
         wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
         wave[100:117] = 0.0  # 17 zeros
         result = stabilizer.observe(wave, time.time())
         assert result.poisoned is True
-        assert result.poison_reason == "zero_run"
+        # 17 zeros > ZERO_SPECKLE_COUNT(12), so zero_speckle fires first
+        assert result.poison_reason == "zero_speckle"
 
     def test_nan_detected(self, stabilizer, poison_nan):
         result = stabilizer.observe(poison_nan, time.time())
@@ -146,11 +165,70 @@ class TestPoisonDetection:
         assert result.poison_reason == "nan_inf"
 
     def test_all_zeros_is_poisoned(self, stabilizer):
-        """All-zero frame = massive zero run."""
+        """All-zero frame = poisoned (zero_speckle wins priority over zero_run)."""
         wave = np.zeros(1024)
         result = stabilizer.observe(wave, time.time())
         assert result.poisoned is True
-        assert result.poison_reason == "zero_run"
+        assert result.poison_reason == "zero_speckle"
+
+    def test_zero_speckle_detected(self, stabilizer, poison_zero_speckle):
+        result = stabilizer.observe(poison_zero_speckle, time.time())
+        assert result.poisoned is True
+        assert result.poison_reason == "zero_speckle"
+
+    def test_zero_speckle_scattered_few_not_poisoned(self, stabilizer):
+        """Few scattered zeros under both thresholds should not trigger."""
+        wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        idx = np.array([10, 100, 200, 300, 400], dtype=int)  # 5 scattered
+        wave[idx] = 0.0
+        result = stabilizer.observe(wave, time.time())
+        assert result.poisoned is False
+
+    def test_zero_speckle_count_boundary_12_triggers_via_fraction(self, stabilizer):
+        """12 zeros: count check passes (12 > 12 is false), but fraction fires.
+
+        12/1024 = 0.01171875 > 0.01 fraction threshold, so still poisoned.
+        The count backstop matters for larger frame sizes where fraction
+        doesn't reach 1% at 13 zeros.
+        """
+        wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        idx = np.linspace(0, 1023, 12, dtype=int)
+        wave[idx] = 0.0
+        result = stabilizer.observe(wave, time.time())
+        assert result.poisoned is True
+        assert result.poison_reason == "zero_speckle"
+
+    def test_zero_speckle_count_boundary_13_poisoned(self, stabilizer):
+        """Strict boundary: 13 zeros triggers."""
+        wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        idx = np.linspace(0, 1023, 13, dtype=int)
+        wave[idx] = 0.0
+        result = stabilizer.observe(wave, time.time())
+        assert result.poisoned is True
+        assert result.poison_reason == "zero_speckle"
+
+    def test_zero_speckle_fraction_boundary(self, stabilizer):
+        """Fraction threshold: 10/1024 ~0.0097 no, 11/1024 ~0.0107 yes."""
+        wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        idx10 = np.linspace(0, 1023, 10, dtype=int)
+        wave10 = wave.copy()
+        wave10[idx10] = 0.0
+        r10 = stabilizer.observe(wave10, time.time())
+        assert r10.poisoned is False
+
+        idx11 = np.linspace(0, 1023, 11, dtype=int)
+        wave11 = wave.copy()
+        wave11[idx11] = 0.0
+        r11 = stabilizer.observe(wave11, time.time())
+        assert r11.poisoned is True
+        assert r11.poison_reason == "zero_speckle"
+
+    def test_all_zeros_triggers_zero_speckle_first(self, stabilizer):
+        """Priority contract: zero_speckle should win over zero_run for all-zero frames."""
+        wave = np.zeros(1024)
+        result = stabilizer.observe(wave, time.time())
+        assert result.poisoned is True
+        assert result.poison_reason == "zero_speckle"
 
 
 # =============================================================================
@@ -347,6 +425,19 @@ class TestStateMachine:
 
         # Should still be in REACQUIRE despite having enough stable frames
         assert result.stability_state == StabilityState.REACQUIRE
+
+    def test_zero_speckle_resets_stable_counter(self, stabilizer, clean_sine, poison_zero_speckle):
+        stabilizer.trigger_scrub()
+        t0 = time.time()
+
+        # Ensure stable_count actually increments (needs prev frame + similarity)
+        for i in range(4):
+            stabilizer.observe(clean_sine, t0 + 0.3 + i * 0.1)
+        assert stabilizer._stable_count >= 1
+
+        stabilizer.observe(poison_zero_speckle, t0 + 0.8)
+        assert stabilizer._stable_count == 0
+        assert stabilizer.get_state() == StabilityState.REACQUIRE
 
 
 # =============================================================================
