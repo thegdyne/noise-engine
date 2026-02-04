@@ -102,16 +102,16 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	badValue = CheckBadValues.ar(stage3, post: 0);
 
 	// --- 5. ROBUST PHASE-WRAPPED CAPTURE (1024 samples) ---
-	// Sample & Hold: only write when index changes AND locked.
-	// When not locked, preserve old buffer value (don't erase with zeros).
+	// Write stage3 when locked+indexChanged, else write zero.
+	// Zeros prevent stale waveform data persisting across CV changes.
+	// The emission gate (locked check on SendReply) prevents zero-frames from being sent.
 	waveBuf = LocalBuf(1024);
 	ClearBuf(waveBuf);
 	waveIdx = (phase * 1023).floor.clip(0, 1023);
 	// Detect index change: abs(current - previous) > 0 stays in UGen graph
 	// (SC's != returns a Boolean, not a UGen — can't multiply with locked)
 	idxChanged = (waveIdx - Delay1.ar(waveIdx)).abs > 0;
-	bufOld = BufRd.ar(1, waveBuf, waveIdx);
-	bufWrite = Select.ar(locked * idxChanged, [bufOld, stage3]);
+	bufWrite = Select.ar(locked * idxChanged, [DC.ar(0), stage3]);
 	BufWr.ar(bufWrite, waveBuf, waveIdx, loop: 1);
 	waveOut = BufRd.kr(1, waveBuf, Array.series(1024, 0, 1));
 
