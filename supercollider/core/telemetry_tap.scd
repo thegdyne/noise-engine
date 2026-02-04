@@ -21,7 +21,7 @@
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
         // VARS MUST BE DECLARED FIRST
-        var sig, mono, freq, frameSize, captureTrig, capturePhase;
+        var sig, mono, freq, captureTrig, frames, step, phase;
         var phaseKr, wrapped, freqKr, div, sendTrig;
 
         // Read from intermediate bus (pre-end-stage, stereo)
@@ -31,20 +31,20 @@
         // Estimate frequency from zero-crossings (adaptive capture)
         freq = ZeroCrossing.ar(mono).max(20).min(20000);
 
-        // Frame size: exactly one cycle at current frequency, clamped to buffer
-        frameSize = (SampleRate.ir / freq).clip(64, BufFrames.kr(bufnum));
-
         // Zero-crossing trigger (rising edge)
         captureTrig = (mono >= 0) & (Delay1.ar(mono) < 0);
 
-        // Phase within capture frame
-        capturePhase = Phasor.ar(captureTrig, 1, 0, frameSize);
+        // Full-buffer one-cycle capture: variable-speed phasor stretches
+        // exactly one cycle across all 1024 frames (no stale tail)
+        frames = BufFrames.kr(bufnum);
+        step = (freq * frames) / SampleRate.ir;
+        phase = Phasor.ar(captureTrig, step, 0, frames);
 
         // Write to buffer
-        BufWr.ar(mono, bufnum, capturePhase);
+        BufWr.ar(mono, bufnum, phase);
 
         // Detect wrap at control rate (SendReply requires kr trigger)
-        phaseKr = A2K.kr(capturePhase);
+        phaseKr = A2K.kr(phase);
         wrapped = phaseKr < Delay1.kr(phaseKr);
 
         // Deterministic rate limit to ~10Hz:
