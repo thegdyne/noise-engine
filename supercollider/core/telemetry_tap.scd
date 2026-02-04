@@ -22,8 +22,9 @@
     // Captures 1024 consecutive mono samples starting from a zero-crossing.
     // RecordBuf with run: gating writes sequentially while gate is high,
     // no samples leak when idle. loop:0 stops after one full pass.
-    // run: is Delay1(captureGate) — ensures run is already high when
-    // trigger fires, avoiding same-sample run/trigger race.
+    // run: is (captureGate + Delay1(captureGate)).clip(0,1) — ensures
+    // run=1 on the trigger sample AND all subsequent samples, while
+    // dropping to 0 when idle (no write leak).
     //
     // Trigger chain is audio-rate end-to-end so the capture start is
     // sample-accurate (no block-quantization jitter). Previous kr-domain
@@ -54,15 +55,16 @@
         gateKr = A2K.kr(captureGate);
 
         // --- RecordBuf with run: gating ---
-        // run: Delay1 ensures gate is already high when trigger fires
-        // (avoids same-sample run/trigger race). No write when idle.
+        // run = captureGate OR Delay1(captureGate): guarantees run=1
+        // on the trigger sample (captureGate just rose) AND on all
+        // subsequent samples (Delay1 sustains). Both go 0 when idle.
         RecordBuf.ar(
             mono,
             bufnum,
             offset: 0,                      // explicit start position
             recLevel: 1,
             preLevel: 0,                    // overwrite, don't mix
-            run: Delay1.ar(captureGate),    // 1-sample lead over trigger
+            run: (captureGate + Delay1.ar(captureGate)).clip(0, 1),
             loop: 0,                        // single pass, then stop
             trigger: start,                 // discrete impulse resets write position
             doneAction: 0                   // keep synth alive
