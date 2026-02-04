@@ -105,7 +105,7 @@ SynthDef(\forge_hw_profile_tap, { |out, freqBus, customBus0, slotIndex=0, teleme
 	// Sample & Hold: only write when index changes AND locked.
 	// When not locked, preserve old buffer value (don't erase with zeros).
 	waveBuf = LocalBuf(1024);
-	ClearBuf.ir(waveBuf);
+	ClearBuf(waveBuf);
 	waveIdx = (phase * 1023).floor.clip(0, 1023);
 	// Detect index change: abs(current - previous) > 0 stays in UGen graph
 	// (SC's != returns a Boolean, not a UGen — can't multiply with locked)
