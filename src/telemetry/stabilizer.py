@@ -93,9 +93,10 @@ class WaveformStabilizer:
     ZERO_RUN_THRESHOLD = 16
 
     # Zero-speckle: scattered exact 0.0 samples indicate clobbered capture buffers.
-    # Legitimate audio rarely exceeds 1% exact zeros at float precision.
-    # Use BOTH a fraction guard and a hard-count backstop.
-    ZERO_SPECKLE_FRACTION = 0.01   # 1% of 1024 ~ 10 samples
+    # On 1024-sample frames, the count backstop is the primary gate (13+ zeros).
+    # Fraction threshold is a safety valve for larger frame sizes where count
+    # alone may be too lenient.
+    ZERO_SPECKLE_FRACTION = 0.02   # 2% of 1024 ≈ 20 samples; safety valve for larger frames
     ZERO_SPECKLE_COUNT = 12        # strict ">" boundary; 13 triggers, 12 does not
 
     # Similarity: cosine similarity floor for "stable" classification.

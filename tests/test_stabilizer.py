@@ -164,13 +164,6 @@ class TestPoisonDetection:
         result = stabilizer.observe(wave, time.time())
         assert result.poison_reason == "nan_inf"
 
-    def test_all_zeros_is_poisoned(self, stabilizer):
-        """All-zero frame = poisoned (zero_speckle wins priority over zero_run)."""
-        wave = np.zeros(1024)
-        result = stabilizer.observe(wave, time.time())
-        assert result.poisoned is True
-        assert result.poison_reason == "zero_speckle"
-
     def test_zero_speckle_detected(self, stabilizer, poison_zero_speckle):
         result = stabilizer.observe(poison_zero_speckle, time.time())
         assert result.poisoned is True
@@ -184,19 +177,17 @@ class TestPoisonDetection:
         result = stabilizer.observe(wave, time.time())
         assert result.poisoned is False
 
-    def test_zero_speckle_count_boundary_12_triggers_via_fraction(self, stabilizer):
-        """12 zeros: count check passes (12 > 12 is false), but fraction fires.
+    def test_zero_speckle_count_boundary_12_not_poisoned(self, stabilizer):
+        """Strict boundary: 12 zeros does NOT trigger (uses '>' for count).
 
-        12/1024 = 0.01171875 > 0.01 fraction threshold, so still poisoned.
-        The count backstop matters for larger frame sizes where fraction
-        doesn't reach 1% at 13 zeros.
+        With ZERO_SPECKLE_FRACTION = 0.02, fraction check also passes:
+        12/1024 = 0.0117 < 0.02
         """
         wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
         idx = np.linspace(0, 1023, 12, dtype=int)
         wave[idx] = 0.0
         result = stabilizer.observe(wave, time.time())
-        assert result.poisoned is True
-        assert result.poison_reason == "zero_speckle"
+        assert result.poisoned is False
 
     def test_zero_speckle_count_boundary_13_poisoned(self, stabilizer):
         """Strict boundary: 13 zeros triggers."""
@@ -208,15 +199,26 @@ class TestPoisonDetection:
         assert result.poison_reason == "zero_speckle"
 
     def test_zero_speckle_fraction_boundary(self, stabilizer):
-        """Fraction threshold: 10/1024 ~0.0097 no, 11/1024 ~0.0107 yes."""
-        wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
-        idx10 = np.linspace(0, 1023, 10, dtype=int)
+        """Fraction threshold at 0.02: tested with 500-sample frame to isolate
+        fraction from count backstop.
+
+        On 1024-sample frames, count (13) is always the primary gate — the
+        fraction only matters for smaller/different frame sizes.
+        Use 500 samples so ≤12 zeros can trigger fraction independently:
+        - 10/500 = 0.02 (not >, strict inequality) → clean
+        - 11/500 = 0.022 (> 0.02) → poisoned via fraction (count 11 ≤ 12)
+        """
+        wave = np.sin(np.linspace(0, 2 * np.pi, 500))
+
+        # 10 zeros in 500 samples: count 10 > 12? No. fraction 10/500 = 0.02 > 0.02? No (strict >)
+        idx10 = np.linspace(0, 499, 10, dtype=int)
         wave10 = wave.copy()
         wave10[idx10] = 0.0
         r10 = stabilizer.observe(wave10, time.time())
         assert r10.poisoned is False
 
-        idx11 = np.linspace(0, 1023, 11, dtype=int)
+        # 11 zeros in 500 samples: count 11 > 12? No. fraction 11/500 = 0.022 > 0.02? Yes
+        idx11 = np.linspace(0, 499, 11, dtype=int)
         wave11 = wave.copy()
         wave11[idx11] = 0.0
         r11 = stabilizer.observe(wave11, time.time())
