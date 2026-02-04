@@ -11,7 +11,7 @@
     ~telemetry.enabled = Array.fill(8, { false });
     ~telemetry.rates = Array.fill(8, { 0 });
     ~telemetry.sourceIds = Array.fill(8, { 0 });  // 0=pre-analog, 1=post-analog, 2=post-endstage
-    ~telemetry.calGains = Array.fill(8, { 1.0 });  // Persist across source changes
+    ~telemetry.calGains = Array.fill(8, { 1.0 });
 
     // Track synth nodes
     ~telemetry.waveBuffers = Array.fill(8, { nil });
@@ -19,31 +19,41 @@
     ~telemetry.tapSynths = Array.fill(8, { nil });
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
-    // Variable-speed phasor stretches exactly one cycle across the entire buffer,
-    // eliminating stale tail samples that caused waveform corruption.
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        var sig, mono, freq, trig, frames, step, phase, phaseKr, wrapped;
+        // VARS MUST BE DECLARED FIRST
+        var sig, mono, freq, frameSize, captureTrig, capturePhase;
+        var phaseKr, wrapped, freqKr, div, sendTrig;
 
+        // Read from intermediate bus (pre-end-stage, stereo)
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
 
+        // Estimate frequency from zero-crossings (adaptive capture)
         freq = ZeroCrossing.ar(mono).max(20).min(20000);
 
-        // Rising zero-crossing to re-sync phase (one cycle capture)
-        trig = (mono >= 0) & (Delay1.ar(mono) < 0);
+        // Frame size: exactly one cycle at current frequency, clamped to buffer
+        frameSize = (SampleRate.ir / freq).clip(64, BufFrames.kr(bufnum));
 
-        frames = BufFrames.kr(bufnum);     // 1024
-        step   = (freq * frames) / SampleRate.ir; // advances 0..frames in one cycle
-        phase  = Phasor.ar(trig, step, 0, frames);
+        // Zero-crossing trigger (rising edge)
+        captureTrig = (mono >= 0) & (Delay1.ar(mono) < 0);
 
-        BufWr.ar(mono, bufnum, phase);
+        // Phase within capture frame
+        capturePhase = Phasor.ar(captureTrig, 1, 0, frameSize);
+
+        // Write to buffer
+        BufWr.ar(mono, bufnum, capturePhase);
 
         // Detect wrap at control rate (SendReply requires kr trigger)
-        phaseKr = A2K.kr(phase);
+        phaseKr = A2K.kr(capturePhase);
         wrapped = phaseKr < Delay1.kr(phaseKr);
 
-        // Notify no faster than 10Hz
-        SendReply.kr(Impulse.kr(10) * wrapped, '/noise/telem/wave/ready', [slotIndex, A2K.kr(freq)]);
+        // Deterministic rate limit to ~10Hz:
+        // send every N cycles where N ≈ freq/10
+        freqKr = A2K.kr(freq);
+        div = (freqKr / 10).round(1).max(1);
+        sendTrig = PulseDivider.kr(wrapped, div);
+
+        SendReply.kr(sendTrig, '/noise/telem/wave/ready', [slotIndex, freqKr]);
     }).add;
 
     // --- 2. Internal Data Tap Synth (Audio -> OSC Data) ---
@@ -52,29 +62,36 @@
     SynthDef(\forge_internal_telem_tap, { |inBus, customBus, slotIndex=0, telemetryRate=0, calGain=1.0, sourceId=0|
         var sig = In.ar(inBus, 2);
         var p = In.kr(customBus, 5);
-        var mono = Mix.ar(sig) * 0.5 * calGain;
-        var rms = Amplitude.ar(mono, 0.01, 0.1);
-        var peak = Peak.ar(mono, Impulse.kr(telemetryRate.max(0.1))).lag(0.1);
-        var freq = ZeroCrossing.ar(mono).max(20).min(20000);
-        var trig = (mono >= 0) & (Delay1.ar(mono) < 0);
-        var phase = Phasor.ar(trig, freq / SampleRate.ir, 0, 1); // 0..1
 
-        SendReply.kr(Impulse.kr(telemetryRate) * (telemetryRate > 0), '/noise/telem/gen', [
+        // Stereo average (not left-only)
+        var mono = Mix.ar(sig) * 0.5 * calGain;
+
+        var rms = Amplitude.ar(mono, 0.01, 0.1);
+        var freq = ZeroCrossing.ar(mono).max(20).min(20000);
+
+        // Clamp telemetry rate to prevent OSC spam
+        var rate = telemetryRate.clip(0, 120);
+
+        // Peak meter window: always valid even at low rate
+        var peak = Peak.ar(mono, Impulse.kr(rate.max(0.1))).lag(0.1);
+
+        // Normalized 0-1 phase for overlay alignment
+        var trig = (mono >= 0) & (Delay1.ar(mono) < 0);
+        var phase = Phasor.ar(trig, freq / SampleRate.ir, 0, 1);
+
+        SendReply.kr(Impulse.kr(rate) * (rate > 0), '/noise/telem/gen', [
             slotIndex, freq,
-            A2K.kr(phase),                // Normalized 0-1 phase for overlay alignment
-            p[0], p[1], p[2], p[3], p[4], // Real params from control bus
-            rms, rms, rms,                // Stages 1-3
-            peak, 0, peak,               // BadVal, Peak3
-            sourceId                      // Tap source identification
+            A2K.kr(phase),
+            p[0], p[1], p[2], p[3], p[4],
+            rms, rms, rms,
+            peak, 0, peak,
+            sourceId
         ]);
     }).add;
 
     // Buffer helpers
     ~telemetry.allocWaveBuffer = { |slot|
-        // Always free and reallocate to ensure correct buffer size
-        if (~telemetry.waveBuffers[slot].notNil) {
-            ~telemetry.waveBuffers[slot].free;
-        };
+        if (~telemetry.waveBuffers[slot].notNil) { ~telemetry.waveBuffers[slot].free; };
         ~telemetry.waveBuffers[slot] = Buffer.alloc(s, 1024, 1);
         ~telemetry.waveBuffers[slot];
     };
@@ -118,7 +135,7 @@
         var custom0Idx, slotKey, useUnified, sourceId, tapBus;
 
         if ((slot >= 1) && (slot <= 8)) {
-            // Track state so \telemSource can respawn with correct rate/calGain
+            // Track state so \telemSource can respawn with correct rate/gain
             ~telemetry.rates[idx] = rate;
             ~telemetry.enabled[idx] = (rate > 0);
             ~telemetry.calGains[idx] = calGain;
