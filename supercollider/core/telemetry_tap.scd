@@ -40,7 +40,7 @@
 
         frames = BufFrames.kr(bufnum);
 
-        // --- Trigger chain (scope-style, effective retrigger inhibit) ---
+        // --- Trigger chain (soft holdoff — edges during capture extend the window but don't restart it) ---
         // ar→kr: lossless single-edge per control block
         kEdge = T2K.kr(edge);
         // Holdoff: Trig1.kr stays high for one buffer duration.
