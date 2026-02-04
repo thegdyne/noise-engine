@@ -23,6 +23,7 @@ import numpy as np
 from scipy.optimize import minimize
 from PyQt5.QtCore import QObject
 
+from src.telemetry.stabilizer import WaveformStabilizer
 from src.utils.logger import logger
 
 
@@ -468,6 +469,11 @@ class TelemetryController(QObject):
         self.current_synthdef_name = ""
         self.app_version = ""
 
+        # Waveform stabilizer (Phase 1: visual stability gatekeeper)
+        self.stabilizer = WaveformStabilizer()
+        self.persistence_buffer = deque(maxlen=30)  # Visual persistence frames
+        self.last_stabilizer_result = None
+
         # Ideal overlay generator
         self.ideal = IdealOverlay(1024)
 
@@ -696,6 +702,17 @@ class TelemetryController(QObject):
             logger.warning(f"[Telemetry] Waveform values out of range (max={max_abs:.2e}), discarding")
             self.current_waveform = None
             return
+
+        # --- Stabilizer: tag frame with stability decisions ---
+        self.last_stabilizer_result = self.stabilizer.observe(
+            self.current_waveform, time.time()
+        )
+
+        if self.last_stabilizer_result.clear_history:
+            self.persistence_buffer.clear()
+
+        if self.last_stabilizer_result.admissible_for_visual_history:
+            self.persistence_buffer.append(self.current_waveform.copy())
 
         # Living Proof: source-agnostic metrics computed from the captured waveform
         # (always reflects the current tap point, not fixed SC fields)

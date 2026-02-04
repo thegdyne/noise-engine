@@ -27,6 +27,7 @@ from src.audio.telemetry_controller import TelemetryController
 from src.config import get_generator_synthdef, TELEM_SOURCES
 from src.gui.theme import COLORS, FONT_FAMILY, MONO_FONT, FONT_SIZES
 from src.gui.widgets import MidiButton
+from src.telemetry.stabilizer import StabilityState
 
 
 # =============================================================================
@@ -107,7 +108,7 @@ class VerticalMeter(QWidget):
 # =============================================================================
 
 class WaveformDisplay(QWidget):
-    """Oscilloscope-style waveform display with ideal overlay."""
+    """Oscilloscope-style waveform display with ideal overlay and persistence."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -115,6 +116,8 @@ class WaveformDisplay(QWidget):
         self._actual = None     # np.ndarray
         self._ideal = None      # np.ndarray
         self._delta = None      # np.ndarray — |actual - ideal|
+        self._persistence_frames = []  # List of np.ndarray for persistence overlay
+        self._render_mode = "persistence"  # "single" or "persistence"
         self._show_ideal = True
         self._show_delta = False
         self._capture_enabled = False
@@ -126,6 +129,14 @@ class WaveformDisplay(QWidget):
         self._ideal = ideal
         self._delta = delta
         self.update()
+
+    def set_persistence_frames(self, frames):
+        """Set persistence buffer frames for overlay rendering."""
+        self._persistence_frames = list(frames)
+
+    def set_render_mode(self, mode):
+        """Set render mode: 'single' or 'persistence'."""
+        self._render_mode = mode
 
     def set_capture_enabled(self, enabled):
         self._capture_enabled = enabled
@@ -175,6 +186,18 @@ class WaveformDisplay(QWidget):
             p.drawLine(0, hi_y, w, hi_y)
             p.drawLine(0, lo_y, w, lo_y)
 
+        # Draw persistence traces (very dim, behind everything)
+        if (self._render_mode == "persistence"
+                and self._persistence_frames
+                and self._actual is not None):
+            persist_color = QColor(COLORS['scope_trace_a'])
+            persist_color.setAlpha(35)
+            persist_pen = QPen(persist_color, 1.0)
+            for frame in self._persistence_frames:
+                if frame is not None and len(frame) > 1:
+                    p.setPen(persist_pen)
+                    self._draw_trace_raw(p, frame)
+
         # Draw ideal trace (dimmer, behind actual)
         if self._show_ideal and self._ideal is not None and len(self._ideal) > 1:
             self._draw_trace(p, self._ideal, COLORS['scope_trace_b'], 1.0)
@@ -213,6 +236,28 @@ class WaveformDisplay(QWidget):
         clamp = h * 2  # Pixel clamp to prevent int32 overflow
 
         painter.setPen(QPen(QColor(color), width))
+
+        prev_x = 0
+        val = float(data[0])
+        if not np.isfinite(val):
+            val = 0.0
+        prev_y = max(-clamp, min(clamp, mid_y - val * scale))
+        for i in range(1, n):
+            x = int(i * w / n)
+            val = float(data[i])
+            if not np.isfinite(val):
+                val = 0.0
+            y = max(-clamp, min(clamp, mid_y - val * scale))
+            painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+            prev_x, prev_y = x, y
+
+    def _draw_trace_raw(self, painter, data):
+        """Draw trace using the painter's current pen (for persistence overlays)."""
+        w, h = self.width(), self.height()
+        n = len(data)
+        mid_y = h / 2
+        scale = mid_y * 0.9
+        clamp = h * 2
 
         prev_x = 0
         val = float(data[0])
@@ -708,6 +753,14 @@ class TelemetryWidget(QWidget):
         # ── Bottom row: Snapshot + Export ──
         bottom_row = QHBoxLayout()
 
+        self.stabilize_btn = QPushButton("STABILIZE")
+        self.stabilize_btn.setStyleSheet(
+            f"font-size: {FONT_SIZES['small']}px; font-weight: bold; "
+            f"padding: 4px 14px;"
+        )
+        self.stabilize_btn.clicked.connect(self._on_stabilize)
+        bottom_row.addWidget(self.stabilize_btn)
+
         self.auto_lock_btn = QPushButton("AUTO LOCK")
         self.auto_lock_btn.setStyleSheet(
             f"font-size: {FONT_SIZES['small']}px; font-weight: bold; "
@@ -824,6 +877,16 @@ class TelemetryWidget(QWidget):
     def _on_ofs_changed(self, value):
         self.controller.v_offset = value / 1000.0  # -200..200 maps to -0.2..0.2
         self.controller._err_history.clear()
+
+    def _on_stabilize(self):
+        """Manual stabilize: trigger scrub and clear persistence."""
+        self.controller.stabilizer.trigger_scrub()
+        self.controller.persistence_buffer.clear()
+        self.waveform_display.set_persistence_frames([])
+        self.waveform_display.set_render_mode("single")
+        self.waveform_display.update()
+        self.stabilize_btn.setText("REACQUIRE...")
+        QTimer.singleShot(2500, lambda: self.stabilize_btn.setText("STABILIZE"))
 
     def _on_auto_lock(self):
         """Run Nelder-Mead optimizer and sync sliders to result."""
@@ -1096,6 +1159,21 @@ class TelemetryWidget(QWidget):
         ideal = self.controller.get_ideal_waveform(data) if self.ideal_cb.isChecked() else None
         delta = self.controller.get_delta_waveform() if self.delta_cb.isChecked() else None
         self.waveform_display.set_waveform(actual, ideal, delta)
+
+        # Stabilizer: update persistence display and render mode
+        stab_result = self.controller.last_stabilizer_result
+        if stab_result is not None:
+            self.waveform_display.set_render_mode(stab_result.render_mode)
+            self.waveform_display.set_persistence_frames(
+                list(self.controller.persistence_buffer)
+            )
+            # Update stabilize button to reflect state
+            if stab_result.stability_state == StabilityState.REACQUIRE:
+                count = stab_result.stable_count
+                needed = stab_result.required_count
+                self.stabilize_btn.setText(f"REACQUIRE {count}/{needed}")
+            else:
+                self.stabilize_btn.setText("STABILIZE")
 
         # Frame count
         self.frame_count_label.setText(f"Frames: {len(self.controller.history)}")
