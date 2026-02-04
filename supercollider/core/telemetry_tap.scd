@@ -20,8 +20,11 @@
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
     // Captures 1024 consecutive mono samples starting from a zero-crossing.
-    // Uses RecordBuf with run: gating to guarantee all buffer positions are
-    // written and no samples leak when idle.
+    // Uses RecordBuf with loop:0 so each pass writes exactly one buffer,
+    // then stops. trigger: resets write position to 0 and restarts.
+    // run: is always 1 — capture gating comes from loop:0 + trigger only.
+    // (Previous run: captureGate caused trigger to be ignored when both
+    // transitioned 0→1 on the same sample.)
     //
     // Trigger chain is audio-rate end-to-end so the capture start is
     // sample-accurate (no block-quantization jitter). Previous kr-domain
@@ -50,17 +53,19 @@
         start = edge * (Delay1.ar(captureGate) < 0.5);
         captureGate = Trig1.ar(start, dur);
 
-        // --- RecordBuf with native run: gating ---
-        // Writes sequentially from index 0 while captureGate=1.
-        // When captureGate=0, no samples are written.
+        // --- RecordBuf: loop:0 + trigger-driven capture ---
+        // run: 1 always — loop:0 stops after one full pass.
+        // trigger: start resets write head to 0 and restarts.
+        // Decoupling run: from captureGate avoids the race where
+        // trigger is ignored when run transitions 0→1 simultaneously.
         RecordBuf.ar(
             mono,
             bufnum,
             offset: 0,
             recLevel: 1,
             preLevel: 0,        // overwrite, don't mix
-            run: captureGate,   // state gate: write while high
-            loop: 0,            // single pass, no looping
+            run: 1,             // always enabled; loop:0 handles stopping
+            loop: 0,            // single pass, then stop
             trigger: start,     // discrete impulse resets write position
             doneAction: 0       // keep synth alive
         );
