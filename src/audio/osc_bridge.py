@@ -47,6 +47,7 @@ class OSCBridge(QObject):
     # Telemetry signals (development tool)
     telem_data_received = pyqtSignal(int, object)      # slot, data dict
     telem_waveform_received = pyqtSignal(int, object)   # slot, samples tuple
+    telem_stabilize_received = pyqtSignal()             # stabilize trigger
     # Audio device signals
     audio_devices_received = pyqtSignal(list, str)  # devices list, current device
     audio_device_changing = pyqtSignal(str)  # device name
@@ -304,6 +305,7 @@ class OSCBridge(QObject):
         dispatcher.map(OSC_PATHS['telem_wave'], self._handle_telem_wave)
         # R1: Alias for hw_profile_tap waveform path (MorphMapper v6.2)
         dispatcher.map('/noise/telem/hw_wave', self._handle_telem_wave)
+        dispatcher.map(OSC_PATHS['telem_stabilize'], self._handle_telem_stabilize)
 
         # Catch-all for debugging
         dispatcher.set_default_handler(self._default_handler)
@@ -572,6 +574,12 @@ class OSCBridge(QObject):
             'source_id': int(args[14]) if len(args) > 14 else None,
         }
         self.telem_data_received.emit(slot, data)
+
+    def _handle_telem_stabilize(self, address, *args):
+        """Handle /noise/telem/stabilize - clear persistence buffer."""
+        if self._shutdown or self._deleted:
+            return
+        self.telem_stabilize_received.emit()
 
     def _handle_telem_wave(self, address, *args):
         """Handle /noise/telem/wave from SC.

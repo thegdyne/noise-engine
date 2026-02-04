@@ -1638,6 +1638,7 @@ OSC_PATHS = {
     'telem_wave_enable': '/noise/telem/wave/enable',   # [slot, enable] Python → SC
     'telem_wave': '/noise/telem/wave',                 # SC → Python: waveform samples
     'telem_source': '/noise/telem/source',             # [slot, source_id] Python → SC: select tap point
+    'telem_stabilize': '/noise/telem/stabilize',       # [] Python ← ext: clear persistence buffer
 }
 
 # === TELEMETRY SOURCE POINTS ===

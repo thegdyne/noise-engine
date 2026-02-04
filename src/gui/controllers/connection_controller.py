@@ -101,6 +101,8 @@ class ConnectionController:
                     self.main.telemetry_controller.on_data)
                 self.main.osc.telem_waveform_received.connect(
                     self.main.telemetry_controller.on_waveform)
+                self.main.osc.telem_stabilize_received.connect(
+                    self.main.telemetry_controller.stabilize)
 
                 # Send current MIDI device if one is selected
                 current_midi = self.main.midi_selector.get_current_device()
@@ -151,6 +153,8 @@ class ConnectionController:
                         self.main.telemetry_controller.on_data)
                     self.main.osc.telem_waveform_received.disconnect(
                         self.main.telemetry_controller.on_waveform)
+                    self.main.osc.telem_stabilize_received.disconnect(
+                        self.main.telemetry_controller.stabilize)
                 except TypeError:
                     pass
                 self.main.telemetry_controller = None
@@ -210,6 +214,8 @@ class ConnectionController:
             self.main.telemetry_controller.on_data)
         self.main.osc.telem_waveform_received.connect(
             self.main.telemetry_controller.on_waveform)
+        self.main.osc.telem_stabilize_received.connect(
+            self.main.telemetry_controller.stabilize)
 
         # Clear mod routing (SC has fresh state after restart)
         self.main.mod_routing.clear()

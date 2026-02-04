@@ -672,6 +672,17 @@ class TelemetryController(QObject):
         """Disable waveform capture for a slot."""
         self.osc.send('telem_wave_enable', [slot + 1, 0])
 
+    def stabilize(self):
+        """Clear persistence buffer and trigger scrub (OSC-callable).
+
+        Same effect as clicking STABILIZE in TelemetryWidget.
+        Called via /noise/telem/stabilize OSC message.
+        """
+        self.stabilizer.trigger_scrub()
+        self.persistence_buffer.clear()
+        self.last_stabilizer_result = None
+        logger.info("[Telemetry] Stabilize triggered via OSC")
+
     # -----------------------------------------------------------------
     # Data slots (connected to OSCBridge signals by ConnectionController)
     # -----------------------------------------------------------------
