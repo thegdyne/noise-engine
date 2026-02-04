@@ -22,7 +22,7 @@
     // Variable-speed phasor stretches exactly one cycle across the entire buffer,
     // eliminating stale tail samples that caused waveform corruption.
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        var sig, mono, freq, trig, frames, step, phase, wrapped;
+        var sig, mono, freq, trig, frames, step, phase, phaseKr, wrapped;
 
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
@@ -38,8 +38,9 @@
 
         BufWr.ar(mono, bufnum, phase);
 
-        // Detect wrap (frame complete)
-        wrapped = phase < Delay1.ar(phase);
+        // Detect wrap at control rate (SendReply requires kr trigger)
+        phaseKr = A2K.kr(phase);
+        wrapped = phaseKr < Delay1.kr(phaseKr);
 
         // Notify no faster than 10Hz
         SendReply.kr(Impulse.kr(10) * wrapped, '/noise/telem/wave/ready', [slotIndex, A2K.kr(freq)]);
