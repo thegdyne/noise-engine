@@ -725,12 +725,10 @@ class TelemetryController(QObject):
         if res.poisoned:
             if (res.poison_reason != self._last_poison_reason) or (self._poison_log_skip <= 0):
                 logger.warning(
-                    "Telemetry poison: reason=%s state=%s sim=%.3f stable=%d/%d",
-                    res.poison_reason,
-                    res.stability_state.name,
-                    res.similarity,
-                    res.stable_count,
-                    res.required_count,
+                    "Telemetry poison: reason=%s state=%s sim=%.3f stable=%d/%d"
+                    % (res.poison_reason, res.stability_state.name,
+                       res.similarity, res.stable_count, res.required_count),
+                    component="STAB",
                 )
                 self._last_poison_reason = res.poison_reason
                 self._poison_log_skip = 20  # ~2 seconds at 10Hz
