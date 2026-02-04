@@ -569,13 +569,14 @@ class OSCBridge(QObject):
             'peak': float(args[11]),
             'bad_value': int(args[12]) if len(args) > 12 else 0,
             'peak3': float(args[13]) if len(args) > 13 else None,
+            'source_id': int(args[14]) if len(args) > 14 else None,
         }
         self.telem_data_received.emit(slot, data)
 
     def _handle_telem_wave(self, address, *args):
         """Handle /noise/telem/wave from SC.
 
-        Args: [slot, ...128 samples]
+        Args: [slot, ...1024 samples (one normalized cycle)]
         """
         if self._shutdown or self._deleted:
             return

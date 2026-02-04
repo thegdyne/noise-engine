@@ -455,7 +455,7 @@ class TelemetryController(QObject):
         self.current_dc_shift = 0.0       # DC bias micro-fluctuation (TAPE sag)
         self.active_ref_name = "SAW"  # Current snapped REF shape name
         self.phase_inverted = False   # Manual phase flip for 180° correction
-        self.phase_offset = 0.0      # Manual horizontal shift (0-1 maps to 0-128 samples)
+        self.phase_offset = 0.0      # Manual horizontal shift (0-1 maps to 0-1024 samples)
         self.body_gain = 1.0         # Body scalar: 0.25x-1.0x shrinks ideal inside hw peak
         self.v_offset = 0.0          # Vertical DC offset: ±0.2 for asymmetric high/low
 
@@ -468,7 +468,7 @@ class TelemetryController(QObject):
         self.current_synthdef_name = ""
         self.app_version = ""
 
-        # Ideal overlay generator (must match SC buffer size: 1024)
+        # Ideal overlay generator
         self.ideal = IdealOverlay(1024)
 
     # -----------------------------------------------------------------
