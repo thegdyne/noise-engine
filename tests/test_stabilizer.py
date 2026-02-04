@@ -9,9 +9,11 @@ Covers:
 - State machine: NORMAL ↔ REACQUIRE transitions
 - SCRUB: clears history, enters REACQUIRE
 - Timeout: fail-open after 2000ms
+- Integration: TelemetryController ↔ WaveformStabilizer sync
 """
 
 import time
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -450,3 +452,78 @@ class TestEdgeCases:
         # Next clean frame should still compare against the original clean frame
         result = stabilizer.observe(clean_sine, time.time())
         assert result.similarity > 0.9
+
+
+# =============================================================================
+# INTEGRATION: TelemetryController ↔ WaveformStabilizer
+# =============================================================================
+
+class TestControllerIntegration:
+    """Verify stabilizer state propagates through TelemetryController."""
+
+    @pytest.fixture
+    def controller(self):
+        from src.audio.telemetry_controller import TelemetryController
+        osc_mock = MagicMock()
+        ctrl = TelemetryController(osc_mock)
+        ctrl.enabled = True
+        ctrl.target_slot = 0
+        return ctrl
+
+    def test_on_waveform_populates_stabilizer_result(self, controller):
+        """After on_waveform(), last_stabilizer_result should be set."""
+        assert controller.last_stabilizer_result is None
+        sine = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        controller.on_waveform(0, tuple(sine))
+        assert controller.last_stabilizer_result is not None
+        assert isinstance(controller.last_stabilizer_result, StabilizerResult)
+
+    def test_clean_frames_admitted_to_persistence(self, controller):
+        """Clean frames in NORMAL state should fill persistence buffer."""
+        assert len(controller.persistence_buffer) == 0
+        sine = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        controller.on_waveform(0, tuple(sine))
+        assert len(controller.persistence_buffer) == 1
+
+    def test_scrub_clears_persistence_on_next_frame(self, controller):
+        """trigger_scrub() sets pending clear; next on_waveform() clears buffer."""
+        sine = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        # Fill buffer
+        for _ in range(5):
+            controller.on_waveform(0, tuple(sine))
+        assert len(controller.persistence_buffer) == 5
+
+        # Scrub
+        controller.stabilizer.trigger_scrub()
+        controller.on_waveform(0, tuple(sine))
+
+        # Buffer cleared, and new frame NOT admitted (REACQUIRE rejects)
+        assert len(controller.persistence_buffer) == 0
+        assert controller.last_stabilizer_result.stability_state == StabilityState.REACQUIRE
+
+    def test_poison_frame_not_admitted(self, controller):
+        """Poisoned frame should not enter persistence buffer."""
+        sine = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        controller.on_waveform(0, tuple(sine))
+        assert len(controller.persistence_buffer) == 1
+
+        # Inject NaN frame
+        poison = sine.copy()
+        poison[500] = np.nan
+        controller.on_waveform(0, tuple(poison))
+
+        # NaN frames are caught by the pre-existing guard and set waveform to None,
+        # so stabilizer never sees them — persistence stays at 1
+        assert len(controller.persistence_buffer) == 1
+
+    def test_wrong_slot_ignored(self, controller):
+        """Frames for a different slot should be ignored entirely."""
+        sine = np.sin(np.linspace(0, 2 * np.pi, 1024))
+        controller.on_waveform(3, tuple(sine))  # Wrong slot
+        assert controller.last_stabilizer_result is None
+        assert len(controller.persistence_buffer) == 0
+
+    def test_persistence_buffer_size_constant(self, controller):
+        """Persistence buffer should use the class constant for maxlen."""
+        from src.audio.telemetry_controller import TelemetryController
+        assert controller.persistence_buffer.maxlen == TelemetryController.PERSISTENCE_BUFFER_SIZE

@@ -430,6 +430,10 @@ class TelemetryController(QObject):
     CAPTURE_INTERNAL = 'internal'  # forge_telemetry_wave_capture synth reads ~intermediateBus
     CAPTURE_EXTERNAL = 'external'  # hw_profile_tap embeds its own capture (no action needed)
 
+    # Persistence buffer: holds recent frames for visual overlay.
+    # At ~10 Hz frame rate, 30 frames ~ 3 seconds of waveform history.
+    PERSISTENCE_BUFFER_SIZE = 30
+
     def __init__(self, osc_bridge):
         super().__init__()
         self.osc = osc_bridge
@@ -471,7 +475,7 @@ class TelemetryController(QObject):
 
         # Waveform stabilizer (Phase 1: visual stability gatekeeper)
         self.stabilizer = WaveformStabilizer()
-        self.persistence_buffer = deque(maxlen=30)  # Visual persistence frames
+        self.persistence_buffer = deque(maxlen=self.PERSISTENCE_BUFFER_SIZE)
         self.last_stabilizer_result = None
 
         # Ideal overlay generator

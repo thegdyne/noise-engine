@@ -37,7 +37,19 @@ class StabilityState(Enum):
 
 @dataclass
 class StabilizerResult:
-    """Returned from every observe() call — directives for consumers."""
+    """Returned from every observe() call — directives for consumers.
+
+    Phase 1: Visual gating only. Consumers use ``admissible_for_visual_history``
+    and ``render_mode`` to control persistence display.
+
+    Phase 2 Contract (DO NOT IMPLEMENT YET):
+    - Capture pipelines must check ``admissible_for_visual_history`` (or a
+      dedicated ``admissible_for_capture`` flag) before storing frames
+    - Capture metadata (source, voltage, timestamp) is owned by the sweep
+      runner, NOT the stabilizer — stabilizer only gates frame quality
+    - TelemetryController capture mode (INTERNAL/EXTERNAL) remains unchanged;
+      sweep runner tags snapshots with provenance
+    """
 
     # Poison detection
     poisoned: bool
@@ -74,13 +86,30 @@ class WaveformStabilizer:
             persistence_buffer.append(frame)
     """
 
-    # --- Thresholds (Appendix A) ---
-    ZERO_RUN_THRESHOLD = 16           # >16 consecutive exact 0.0 = poison
-    SIMILARITY_THRESHOLD = 0.95       # Normalized cross-correlation floor
-    STABLE_WINDOW_FRAMES = 6          # ~600ms at 10 Hz
-    REACQUIRE_TIMEOUT_MS = 2000       # Fail-open for visuals
-    REACQUIRE_MIN_MS = 250            # Don't exit REACQUIRE too quickly
-    DISCONTINUITY_THRESHOLD = 1.5     # Max sample-to-sample jump
+    # --- Thresholds (tune empirically, see Appendix A in spec) ---
+
+    # Zero-run: 16+ consecutive exact 0.0 samples indicates buffer dropout.
+    # At 1024 samples, this is ~1.5% of the frame as a contiguous block.
+    ZERO_RUN_THRESHOLD = 16
+
+    # Similarity: cosine similarity floor for "stable" classification.
+    # 0.95 is strict but allows minor drift from noise/jitter.
+    SIMILARITY_THRESHOLD = 0.95
+
+    # Stable window: consecutive stable frames required to exit REACQUIRE.
+    # At ~10 Hz frame rate, 6 frames ~ 600ms settling time.
+    STABLE_WINDOW_FRAMES = 6
+
+    # REACQUIRE timeout: fail-open for visuals after this duration.
+    # Don't trap user in single-frame mode indefinitely.
+    REACQUIRE_TIMEOUT_MS = 2000
+    REACQUIRE_MIN_MS = 250  # Don't exit too quickly (debounce)
+
+    # Discontinuity: max sample-to-sample delta for raw frame.
+    # WARNING: May trigger false positives on saw/square edges.
+    # Consider raising to 1.8-2.0 if saw waveforms show spurious poison flags.
+    # For Phase 1 visual-only, false positives are low-risk (just resets counter).
+    DISCONTINUITY_THRESHOLD = 1.5
 
     def __init__(self, debug: bool = False):
         self._lock = threading.RLock()

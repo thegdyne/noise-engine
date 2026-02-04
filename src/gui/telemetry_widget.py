@@ -879,14 +879,16 @@ class TelemetryWidget(QWidget):
         self.controller._err_history.clear()
 
     def _on_stabilize(self):
-        """Manual stabilize: trigger scrub and clear persistence."""
+        """Manual stabilize: trigger scrub and clear persistence.
+
+        Button text is driven by _refresh() which reads stabilizer state
+        on every paint tick — no timer needed here.
+        """
         self.controller.stabilizer.trigger_scrub()
         self.controller.persistence_buffer.clear()
         self.waveform_display.set_persistence_frames([])
         self.waveform_display.set_render_mode("single")
         self.waveform_display.update()
-        self.stabilize_btn.setText("REACQUIRE...")
-        QTimer.singleShot(2500, lambda: self.stabilize_btn.setText("STABILIZE"))
 
     def _on_auto_lock(self):
         """Run Nelder-Mead optimizer and sync sliders to result."""
