@@ -59,6 +59,7 @@
         RecordBuf.ar(
             mono,
             bufnum,
+            offset: 0,                      // explicit start position
             recLevel: 1,
             preLevel: 0,                    // overwrite, don't mix
             run: Delay1.ar(captureGate),    // 1-sample lead over trigger
