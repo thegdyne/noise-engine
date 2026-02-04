@@ -1153,6 +1153,12 @@ class TelemetryWidget(QWidget):
         actual = self.controller.current_waveform
         if actual is not None:
             data['waveform'] = actual
+            # Auto-enable capture display when receiving waveforms in external mode
+            # This ensures MorphMapper sweeps show waveforms even though the UI
+            # checkbox wasn't manually checked (MorphMapper controls the controller directly)
+            if self.controller._capture_type == TelemetryController.CAPTURE_EXTERNAL:
+                if not self.waveform_display._capture_enabled:
+                    self.waveform_display.set_capture_enabled(True)
         ideal = self.controller.get_ideal_waveform(data) if self.ideal_cb.isChecked() else None
         delta = self.controller.get_delta_waveform() if self.delta_cb.isChecked() else None
         self.waveform_display.set_waveform(actual, ideal, delta)
