@@ -112,28 +112,26 @@ class TestPoisonDetection:
         # 50 zeros > ZERO_SPECKLE_COUNT(12), so zero_speckle wins priority
         assert result.poison_reason == "zero_speckle"
 
-    def test_zero_run_exact_threshold_not_poisoned(self, stabilizer):
-        """Exactly 16 consecutive zeros should NOT trigger zero_run (>16 required).
+    def test_zero_run_boundary_16_not_detected(self, stabilizer):
+        """Unit test: _detect_zero_run returns False for exactly 16 consecutive zeros.
 
-        Note: 16 zeros also exceeds ZERO_SPECKLE_COUNT (12), so zero_speckle
-        fires first. This test verifies the zero_run threshold boundary only
-        when zero_speckle is not in play (tested separately).
+        Note: At current thresholds, zero_speckle shadows zero_run in _check_poison()
+        because 16 zeros > ZERO_SPECKLE_COUNT (12). This test validates the zero_run
+        detector logic directly.
         """
-        wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
-        wave[100:116] = 0.0  # Exactly 16 zeros
-        result = stabilizer.observe(wave, time.time())
-        # 16 zeros > ZERO_SPECKLE_COUNT(12), so zero_speckle catches it first
-        assert result.poisoned is True
-        assert result.poison_reason == "zero_speckle"
+        wave = np.ones(1024)  # Nonzero baseline avoids speckle confusion
+        wave[100:116] = 0.0   # Exactly 16 consecutive zeros
+        assert stabilizer._detect_zero_run(wave) is False
 
-    def test_zero_run_above_threshold_poisoned(self, stabilizer):
-        """17 consecutive zeros should trigger (zero_speckle wins priority)."""
-        wave = np.sin(np.linspace(0, 2 * np.pi, 1024))
-        wave[100:117] = 0.0  # 17 zeros
-        result = stabilizer.observe(wave, time.time())
-        assert result.poisoned is True
-        # 17 zeros > ZERO_SPECKLE_COUNT(12), so zero_speckle fires first
-        assert result.poison_reason == "zero_speckle"
+    def test_zero_run_boundary_17_detected(self, stabilizer):
+        """Unit test: _detect_zero_run returns True for 17 consecutive zeros.
+
+        Note: At current thresholds, zero_speckle would fire first in _check_poison(),
+        but this validates the zero_run detector works correctly at its boundary.
+        """
+        wave = np.ones(1024)  # Nonzero baseline
+        wave[100:117] = 0.0   # 17 consecutive zeros
+        assert stabilizer._detect_zero_run(wave) is True
 
     def test_nan_detected(self, stabilizer, poison_nan):
         result = stabilizer.observe(poison_nan, time.time())
