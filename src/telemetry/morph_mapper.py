@@ -234,6 +234,9 @@ class MorphMapper:
                 # 3. Settle - wait for hardware to stabilize
                 time.sleep(self.settle_ms / 1000.0)
 
+                # 3b. Clear persistence buffer (prevents ghost frames from previous point)
+                self.telem.stabilize()
+
                 # 4. Mark timestamp AFTER settle (fresh frames = post-settle only)
                 t0 = time.time()
 
