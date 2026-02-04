@@ -25,7 +25,7 @@
     // (step≈6.5 at 279Hz) skipped ~65% of positions, leaving them at 0.0.
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
         var sig, mono, freq, edge;
-        var kEdge, kTrig, aTrig, captureGate;
+        var kEdge, kTrig, aTrig, captureGate, gateKr;
         var gateFall, frames, freqKr, div, sendTrig;
 
         // Read from intermediate bus (stereo), mix to mono
@@ -54,6 +54,11 @@
         // Capture gate: high for exactly one buffer duration
         captureGate = Trig1.ar(aTrig, BufDur.kr(bufnum));
 
+        // Hard inhibit: mask edge detector while capturing so zero-crossing
+        // chatter cannot produce pathological re-trigger attempts.
+        gateKr = A2K.kr(captureGate);
+        edge = edge & (gateKr < 0.5);
+
         // --- RecordBuf with native run: gating ---
         // Writes sequentially from index 0 while captureGate=1.
         // When captureGate=0, no samples are written — unlike BufWr
@@ -66,14 +71,14 @@
             preLevel: 0,        // overwrite, don't mix
             run: captureGate,   // only write while gate is high
             loop: 0,            // single pass, no looping
-            trigger: captureGate, // reset write position on gate rise
+            trigger: aTrig,     // single-sample event resets write position
             doneAction: 0       // keep synth alive
         );
 
         // --- SendReply on capture completion (gate fall) ---
         // Deterministic: fires exactly when captureGate transitions 1→0,
         // not dependent on Phasor wrap alignment.
-        gateFall = (Delay1.kr(A2K.kr(captureGate)) > 0.5) & (A2K.kr(captureGate) < 0.5);
+        gateFall = (Delay1.kr(gateKr) > 0.5) & (gateKr < 0.5);
 
         // Rate limit to ~10Hz
         freqKr = A2K.kr(freq);
