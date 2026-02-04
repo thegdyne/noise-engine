@@ -229,7 +229,7 @@ class MorphMapper:
 
                 # 2. Send CV (R11: record actual CC sent)
                 actual_cc = self.cv_controller.send_cv_volts(cv_voltage)
-                logger.debug(f"  Sent CV {cv_voltage:.3f}V → CC {actual_cc}")
+                logger.info(f"  Sent CV {cv_voltage:.3f}V → CC {actual_cc}")
 
                 # 3. Settle - wait for hardware to stabilize
                 time.sleep(self.settle_ms / 1000.0)
