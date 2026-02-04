@@ -312,6 +312,7 @@ class MorphMapper:
             self.telem.disable()
 
         total_time = time.time() - start_time
+        self._total_time = total_time
         logger.info(f"[Morph Mapper] Complete in {total_time:.1f}s")
 
         return self._build_morph_map(total_time)
@@ -444,7 +445,7 @@ class MorphMapper:
         filename = f"morph_map_{safe_name}_{timestamp}.json"
         output_path = Path(output_dir) / filename
 
-        morph_map = self._build_morph_map(0)
+        morph_map = self._build_morph_map(getattr(self, '_total_time', 0))
 
         with open(output_path, 'w') as f:
             json.dump(morph_map, f, indent=2)
