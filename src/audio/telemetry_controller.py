@@ -678,6 +678,8 @@ class TelemetryController(QObject):
         Same effect as clicking STABILIZE in TelemetryWidget.
         Called via /noise/telem/stabilize OSC message.
         """
+        if not self.enabled:
+            return
         self.stabilizer.trigger_scrub()
         self.persistence_buffer.clear()
         self.last_stabilizer_result = None
