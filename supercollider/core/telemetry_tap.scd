@@ -21,63 +21,58 @@
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
     // Captures 1024 consecutive mono samples starting from a zero-crossing.
     // Uses RecordBuf with run: gating to guarantee all buffer positions are
-    // written and no samples leak when idle. Previous variable-speed Phasor
-    // (step≈6.5 at 279Hz) skipped ~65% of positions, leaving them at 0.0.
+    // written and no samples leak when idle.
+    //
+    // Trigger chain is audio-rate end-to-end so the capture start is
+    // sample-accurate (no block-quantization jitter). Previous kr-domain
+    // chain (T2K→Trig1.kr→T2A) introduced up to blockSize-1 samples of
+    // start-time jitter, causing progressive persistence thickening.
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        var sig, mono, freq, edge;
-        var kEdge, kTrig, aTrig, captureGate, gateKr;
-        var gateFall, frames, freqKr, div, sendTrig;
+        var sig, mono, edge, edgeMasked;
+        var captureGate, gateKr;
+        var gateFall, frames, dur, freqKr, div, sendTrig;
 
         // Read from intermediate bus (stereo), mix to mono
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
 
-        // Frequency estimate (metadata for SendReply payload)
-        freq = ZeroCrossing.ar(mono).max(20).min(20000);
+        frames = BufFrames.kr(bufnum);
+        dur = BufDur.kr(bufnum);
 
-        // Zero-crossing detect (rising edge, audio rate)
+        // Rising zero-cross edge at audio rate
         edge = (mono >= 0) & (Delay1.ar(mono) < 0);
 
-        frames = BufFrames.kr(bufnum);
+        // One-shot capture gate: opens on the exact edge sample,
+        // stays high for exactly one buffer duration
+        captureGate = Trig1.ar(edge, dur);
 
-        // --- Trigger chain (soft holdoff — edges during capture extend the window but don't restart it) ---
-        // ar→kr: lossless single-edge per control block
-        kEdge = T2K.kr(edge);
-        // Holdoff: Trig1.kr stays high for one buffer duration.
-        // While high, new kEdge arrivals restart the timer but kTrig
-        // remains 1 — T2A below only fires on 0→1 transitions, so no
-        // mid-capture reset occurs. This is the same proven pattern
-        // used by forge_core_scope_tap.
-        kTrig = Trig1.kr(kEdge, BufDur.kr(bufnum));
-        // Single-sample audio impulse (genuine 0→1 transition only)
-        aTrig = T2A.ar(kTrig);
-        // Capture gate: high for exactly one buffer duration
-        captureGate = Trig1.ar(aTrig, BufDur.kr(bufnum));
-        gateKr = A2K.kr(captureGate);
+        // Hard inhibit: suppress edges while capturing.
+        // Delay1 avoids instantaneous self-interaction so the opening
+        // edge passes through but all subsequent edges are masked.
+        edgeMasked = edge & (Delay1.ar(captureGate) < 0.5);
 
         // --- RecordBuf with native run: gating ---
         // Writes sequentially from index 0 while captureGate=1.
-        // When captureGate=0, no samples are written — unlike BufWr
-        // which would continue writing to a frozen index.
+        // When captureGate=0, no samples are written.
         RecordBuf.ar(
             mono,
             bufnum,
             offset: 0,
             recLevel: 1,
             preLevel: 0,        // overwrite, don't mix
-            run: captureGate,   // only write while gate is high
+            run: captureGate,   // state gate: write while high
             loop: 0,            // single pass, no looping
-            trigger: aTrig,     // single-sample event resets write position
+            trigger: edgeMasked, // impulse event resets write position
             doneAction: 0       // keep synth alive
         );
 
         // --- SendReply on capture completion (gate fall) ---
-        // Deterministic: fires exactly when captureGate transitions 1→0,
-        // not dependent on Phasor wrap alignment.
+        // kr is fine here — only affects notification latency, not capture accuracy.
+        gateKr = A2K.kr(captureGate);
         gateFall = (Delay1.kr(gateKr) > 0.5) & (gateKr < 0.5);
 
-        // Rate limit to ~10Hz
-        freqKr = A2K.kr(freq);
+        // Rate limit to ~10Hz independent of freq and SR
+        freqKr = A2K.kr(ZeroCrossing.ar(mono).max(20).min(20000));
         div = (SampleRate.ir / (frames * 10)).round(1).max(1);
         sendTrig = PulseDivider.kr(gateFall, div);
 
