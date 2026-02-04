@@ -53,11 +53,7 @@
         aTrig = T2A.ar(kTrig);
         // Capture gate: high for exactly one buffer duration
         captureGate = Trig1.ar(aTrig, BufDur.kr(bufnum));
-
-        // Hard inhibit: mask edge detector while capturing so zero-crossing
-        // chatter cannot produce pathological re-trigger attempts.
         gateKr = A2K.kr(captureGate);
-        edge = edge & (gateKr < 0.5);
 
         // --- RecordBuf with native run: gating ---
         // Writes sequentially from index 0 while captureGate=1.
