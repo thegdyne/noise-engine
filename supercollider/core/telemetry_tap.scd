@@ -28,7 +28,7 @@
     // chain (T2K→Trig1.kr→T2A) introduced up to blockSize-1 samples of
     // start-time jitter, causing progressive persistence thickening.
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        var sig, mono, edge, edgeMasked;
+        var sig, mono, edge, start;
         var captureGate, gateKr;
         var gateFall, frames, dur, freqKr, div, sendTrig;
 
@@ -42,14 +42,13 @@
         // Rising zero-cross edge at audio rate
         edge = (mono >= 0) & (Delay1.ar(mono) < 0);
 
-        // One-shot capture gate: opens on the exact edge sample,
-        // stays high for exactly one buffer duration
+        // Canonical one-shot start pulse:
+        // 1. Provisional gate masks subsequent edges while capturing
+        // 2. start = first edge only (Delay1 still reads 0 on the opening sample)
+        // 3. Recompute canonical gate from start so trigger is hard one-shot
         captureGate = Trig1.ar(edge, dur);
-
-        // Hard inhibit: suppress edges while capturing.
-        // Delay1 avoids instantaneous self-interaction so the opening
-        // edge passes through but all subsequent edges are masked.
-        edgeMasked = edge & (Delay1.ar(captureGate) < 0.5);
+        start = edge * (Delay1.ar(captureGate) < 0.5);
+        captureGate = Trig1.ar(start, dur);
 
         // --- RecordBuf with native run: gating ---
         // Writes sequentially from index 0 while captureGate=1.
@@ -62,7 +61,7 @@
             preLevel: 0,        // overwrite, don't mix
             run: captureGate,   // state gate: write while high
             loop: 0,            // single pass, no looping
-            trigger: edgeMasked, // impulse event resets write position
+            trigger: start,     // discrete impulse resets write position
             doneAction: 0       // keep synth alive
         );
 
