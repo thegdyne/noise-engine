@@ -19,38 +19,50 @@
     ~telemetry.tapSynths = Array.fill(8, { nil });
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
+    // Captures 1024 consecutive mono samples starting from a zero-crossing.
+    // Uses scope-style sequential fill (step=1) to guarantee all buffer
+    // positions are written. Previous variable-speed Phasor (step≈6.5 at
+    // 279Hz) skipped ~65% of positions, leaving them at 0.0 from alloc.
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        // VARS MUST BE DECLARED FIRST
-        var sig, mono, freq, captureTrig, frames, step, phase;
+        var sig, mono, freq, edge, kEdge, kTrig, aTrig;
+        var writeGate, phase, frames;
         var phaseKr, wrapped, freqKr, div, sendTrig;
 
-        // Read from intermediate bus (pre-end-stage, stereo)
+        // Read from intermediate bus (stereo), mix to mono
         sig = In.ar(inBus, 2);
         mono = Mix.ar(sig) * 0.5;
 
-        // Estimate frequency from zero-crossings (adaptive capture)
+        // Frequency estimate (metadata for SendReply payload)
         freq = ZeroCrossing.ar(mono).max(20).min(20000);
 
-        // Zero-crossing trigger (rising edge)
-        captureTrig = (mono >= 0) & (Delay1.ar(mono) < 0);
+        // Zero-crossing detect (rising edge, audio rate)
+        edge = (mono >= 0) & (Delay1.ar(mono) < 0);
 
-        // Full-buffer one-cycle capture: variable-speed phasor stretches
-        // exactly one cycle across all 1024 frames (no stale tail)
         frames = BufFrames.kr(bufnum);
-        step = (freq * frames) / SampleRate.ir;
-        phase = Phasor.ar(captureTrig, step, 0, frames);
 
-        // Write to buffer
+        // --- Scope-style trigger chain (lossless, block-aligned) ---
+        // ar->kr capture (lossless single-edge)
+        kEdge = T2K.kr(edge);
+        // Retrigger inhibit: ignore new edges until current capture finishes
+        kTrig = Trig1.kr(kEdge, BufDur.kr(bufnum));
+        // Single-sample audio impulse for Phasor reset
+        aTrig = T2A.ar(kTrig);
+
+        // --- Sequential buffer fill (step=1, all positions written) ---
+        // One-shot gate: open for exactly one buffer duration
+        writeGate = Trig1.ar(aTrig, BufDur.kr(bufnum));
+        // Sequential phase: advance by 1 while gate open, freeze when closed
+        phase = Phasor.ar(aTrig, writeGate, 0, frames);
+        // Gated write to buffer
         BufWr.ar(mono, bufnum, phase);
 
-        // Detect wrap at control rate (SendReply requires kr trigger)
+        // --- Rate-limited send (~10Hz) ---
+        // Detect buffer-full: phase wraps from ~1024 back to 0
         phaseKr = A2K.kr(phase);
         wrapped = phaseKr < Delay1.kr(phaseKr);
-
-        // Deterministic rate limit to ~10Hz:
-        // send every N cycles where N ≈ freq/10
+        // Buffer fills at ~SampleRate/1024 Hz; divide to get ~10Hz
         freqKr = A2K.kr(freq);
-        div = (freqKr / 10).round(1).max(1);
+        div = (SampleRate.ir / (frames * 10)).round(1).max(1);
         sendTrig = PulseDivider.kr(wrapped, div);
 
         SendReply.kr(sendTrig, '/noise/telem/wave/ready', [slotIndex, freqKr]);
