@@ -20,11 +20,10 @@
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
     // Captures 1024 consecutive mono samples starting from a zero-crossing.
-    // Uses RecordBuf with loop:0 so each pass writes exactly one buffer,
-    // then stops. trigger: resets write position to 0 and restarts.
-    // run: is always 1 — capture gating comes from loop:0 + trigger only.
-    // (Previous run: captureGate caused trigger to be ignored when both
-    // transitioned 0→1 on the same sample.)
+    // RecordBuf with run: gating writes sequentially while gate is high,
+    // no samples leak when idle. loop:0 stops after one full pass.
+    // run: is Delay1(captureGate) — ensures run is already high when
+    // trigger fires, avoiding same-sample run/trigger race.
     //
     // Trigger chain is audio-rate end-to-end so the capture start is
     // sample-accurate (no block-quantization jitter). Previous kr-domain
@@ -52,27 +51,24 @@
         captureGate = Trig1.ar(edge, dur);
         start = edge * (Delay1.ar(captureGate) < 0.5);
         captureGate = Trig1.ar(start, dur);
+        gateKr = A2K.kr(captureGate);
 
-        // --- RecordBuf: loop:0 + trigger-driven capture ---
-        // run: 1 always — loop:0 stops after one full pass.
-        // trigger: start resets write head to 0 and restarts.
-        // Decoupling run: from captureGate avoids the race where
-        // trigger is ignored when run transitions 0→1 simultaneously.
+        // --- RecordBuf with run: gating ---
+        // run: Delay1 ensures gate is already high when trigger fires
+        // (avoids same-sample run/trigger race). No write when idle.
         RecordBuf.ar(
             mono,
             bufnum,
-            offset: 0,
             recLevel: 1,
-            preLevel: 0,        // overwrite, don't mix
-            run: 1,             // always enabled; loop:0 handles stopping
-            loop: 0,            // single pass, then stop
-            trigger: start,     // discrete impulse resets write position
-            doneAction: 0       // keep synth alive
+            preLevel: 0,                    // overwrite, don't mix
+            run: Delay1.ar(captureGate),    // 1-sample lead over trigger
+            loop: 0,                        // single pass, then stop
+            trigger: start,                 // discrete impulse resets write position
+            doneAction: 0                   // keep synth alive
         );
 
         // --- SendReply on capture completion (gate fall) ---
         // kr is fine here — only affects notification latency, not capture accuracy.
-        gateKr = A2K.kr(captureGate);
         gateFall = (Delay1.kr(gateKr) > 0.5) & (gateKr < 0.5);
 
         // Rate limit to ~10Hz independent of freq and SR
