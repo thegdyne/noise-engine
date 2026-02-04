@@ -20,13 +20,13 @@
 
     // --- 1. Waveform Capture Synth (Audio -> Buffer) ---
     // Captures 1024 consecutive mono samples starting from a zero-crossing.
-    // Uses scope-style sequential fill (step=1) to guarantee all buffer
-    // positions are written. Previous variable-speed Phasor (step≈6.5 at
-    // 279Hz) skipped ~65% of positions, leaving them at 0.0 from alloc.
+    // Uses RecordBuf with run: gating to guarantee all buffer positions are
+    // written and no samples leak when idle. Previous variable-speed Phasor
+    // (step≈6.5 at 279Hz) skipped ~65% of positions, leaving them at 0.0.
     SynthDef(\forge_telemetry_wave_capture, { |inBus, slotIndex=0, bufnum|
-        var sig, mono, freq, edge, kEdge, kTrig, aTrig;
-        var writeGate, phase, frames;
-        var phaseKr, wrapped, freqKr, div, sendTrig;
+        var sig, mono, freq, edge;
+        var kEdge, kTrig, aTrig, captureGate;
+        var gateFall, frames, freqKr, div, sendTrig;
 
         // Read from intermediate bus (stereo), mix to mono
         sig = In.ar(inBus, 2);
@@ -40,30 +40,45 @@
 
         frames = BufFrames.kr(bufnum);
 
-        // --- Scope-style trigger chain (lossless, block-aligned) ---
-        // ar->kr capture (lossless single-edge)
+        // --- Trigger chain (scope-style, effective retrigger inhibit) ---
+        // ar→kr: lossless single-edge per control block
         kEdge = T2K.kr(edge);
-        // Retrigger inhibit: ignore new edges until current capture finishes
+        // Holdoff: Trig1.kr stays high for one buffer duration.
+        // While high, new kEdge arrivals restart the timer but kTrig
+        // remains 1 — T2A below only fires on 0→1 transitions, so no
+        // mid-capture reset occurs. This is the same proven pattern
+        // used by forge_core_scope_tap.
         kTrig = Trig1.kr(kEdge, BufDur.kr(bufnum));
-        // Single-sample audio impulse for Phasor reset
+        // Single-sample audio impulse (genuine 0→1 transition only)
         aTrig = T2A.ar(kTrig);
+        // Capture gate: high for exactly one buffer duration
+        captureGate = Trig1.ar(aTrig, BufDur.kr(bufnum));
 
-        // --- Sequential buffer fill (step=1, all positions written) ---
-        // One-shot gate: open for exactly one buffer duration
-        writeGate = Trig1.ar(aTrig, BufDur.kr(bufnum));
-        // Sequential phase: advance by 1 while gate open, freeze when closed
-        phase = Phasor.ar(aTrig, writeGate, 0, frames);
-        // Gated write to buffer
-        BufWr.ar(mono, bufnum, phase);
+        // --- RecordBuf with native run: gating ---
+        // Writes sequentially from index 0 while captureGate=1.
+        // When captureGate=0, no samples are written — unlike BufWr
+        // which would continue writing to a frozen index.
+        RecordBuf.ar(
+            mono,
+            bufnum,
+            offset: 0,
+            recLevel: 1,
+            preLevel: 0,        // overwrite, don't mix
+            run: captureGate,   // only write while gate is high
+            loop: 0,            // single pass, no looping
+            trigger: captureGate, // reset write position on gate rise
+            doneAction: 0       // keep synth alive
+        );
 
-        // --- Rate-limited send (~10Hz) ---
-        // Detect buffer-full: phase wraps from ~1024 back to 0
-        phaseKr = A2K.kr(phase);
-        wrapped = phaseKr < Delay1.kr(phaseKr);
-        // Buffer fills at ~SampleRate/1024 Hz; divide to get ~10Hz
+        // --- SendReply on capture completion (gate fall) ---
+        // Deterministic: fires exactly when captureGate transitions 1→0,
+        // not dependent on Phasor wrap alignment.
+        gateFall = (Delay1.kr(A2K.kr(captureGate)) > 0.5) & (A2K.kr(captureGate) < 0.5);
+
+        // Rate limit to ~10Hz
         freqKr = A2K.kr(freq);
         div = (SampleRate.ir / (frames * 10)).round(1).max(1);
-        sendTrig = PulseDivider.kr(wrapped, div);
+        sendTrig = PulseDivider.kr(gateFall, div);
 
         SendReply.kr(sendTrig, '/noise/telem/wave/ready', [slotIndex, freqKr]);
     }).add;
