@@ -372,6 +372,7 @@ def detect_regions(points: List[dict], device_type: str) -> dict:
         'enabled': True,
         'sine_end_cc': None,
         'knee_cc': None,
+        'knee_cc_to': None,
         'knee_crest_from': None,
         'knee_crest_to': None,
         'compression_cc': None,
@@ -409,9 +410,10 @@ def detect_regions(points: List[dict], device_type: str) -> dict:
             # Validate ordering (compare CC values)
             if regions['sine_end_cc'] is None or knee_cc > regions['sine_end_cc']:
                 regions['knee_cc'] = knee_cc
-                # Store crest jump endpoints
+                # Store crest jump endpoints (both CC and crest values)
                 regions['knee_crest_from'] = float(crests[knee_pos])
                 if knee_pos + 1 < len(crests):
+                    regions['knee_cc_to'] = int(ccs[knee_pos + 1])
                     regions['knee_crest_to'] = float(crests[knee_pos + 1])
             else:
                 regions['warnings'].append('knee_cc <= sine_end_cc')
@@ -696,13 +698,14 @@ def print_region_analysis(regions: dict, points: List[dict]):
     # Transition knee (use pre-computed crest jump values)
     if regions.get('knee_cc') is not None:
         knee_cc = regions['knee_cc']
+        knee_cc_to = regions.get('knee_cc_to', knee_cc)
         crest_from = regions.get('knee_crest_from')
         crest_to = regions.get('knee_crest_to')
         if crest_from is not None and crest_to is not None:
-            print(f"Transition knee:    CC {knee_cc}    "
-                  f"(largest crest jump: {crest_from:.2f}→{crest_to:.2f})")
+            print(f"Transition knee:    CC {knee_cc}→{knee_cc_to}  "
+                  f"(crest {crest_from:.2f}→{crest_to:.2f})")
         else:
-            print(f"Transition knee:    CC {knee_cc}")
+            print(f"Transition knee:    CC {knee_cc}→{knee_cc_to}")
     else:
         print("Transition knee:    not detected")
 
@@ -889,23 +892,29 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
     skipped_warnings = []
 
     for sweep_idx, (points, label) in enumerate(zip(points_list, labels)):
-        # Filter valid points with waveforms
-        valid_points = [(i, p) for i, p in enumerate(points)
-                        if p.get('valid') and p.get('has_waveform')]
-
-        if not valid_points:
-            skipped_warnings.append(f"{label}: No valid waveform points")
+        # Build arrays across ALL valid points — nan for missing waveforms.
+        # This makes _ratio_ok() reflect true waveform coverage.
+        base = [p for p in points if p.get('valid')]
+        if not base:
+            skipped_warnings.append(f"{label}: No valid points")
             continue
 
-        ccs = np.array([p['midi_cc'] for _, p in valid_points])
-        shape_rmss = np.array([p.get('shape_rms', float('nan')) for _, p in valid_points])
-        peaks = np.array([p.get('peak', float('nan')) for _, p in valid_points])
-        dcs = np.array([p.get('dc', float('nan')) for _, p in valid_points])
-        range_asyms = np.array([p.get('range_asym', float('nan')) for _, p in valid_points])
-        crests = np.array([p.get('crest', float('nan')) for _, p in valid_points])
-        pos_peaks = np.array([p.get('pos_peak', float('nan')) for _, p in valid_points])
-        neg_peaks = np.array([p.get('neg_peak', float('nan')) for _, p in valid_points])
-        hfs = np.array([p.get('hf', float('nan')) for _, p in valid_points])
+        ccs = np.array([p.get('midi_cc', float('nan')) for p in base], dtype=float)
+
+        def _wf_val(p, key):
+            """Return waveform metric if present, else nan."""
+            if p.get('has_waveform'):
+                return p.get(key, float('nan'))
+            return float('nan')
+
+        shape_rmss  = np.array([_wf_val(p, 'shape_rms')  for p in base], dtype=float)
+        peaks       = np.array([_wf_val(p, 'peak')       for p in base], dtype=float)
+        dcs         = np.array([_wf_val(p, 'dc')         for p in base], dtype=float)
+        range_asyms = np.array([_wf_val(p, 'range_asym') for p in base], dtype=float)
+        crests      = np.array([_wf_val(p, 'crest')      for p in base], dtype=float)
+        pos_peaks   = np.array([_wf_val(p, 'pos_peak')   for p in base], dtype=float)
+        neg_peaks   = np.array([_wf_val(p, 'neg_peak')   for p in base], dtype=float)
+        hfs         = np.array([_wf_val(p, 'hf')         for p in base], dtype=float)
 
         # Row 1: Gain Track - ShapeRMS + Peak (gate on both)
         ax1 = fig.add_subplot(gs[0, sweep_idx])
@@ -1070,6 +1079,15 @@ def align_sweeps(points_a: List[dict], points_b: List[dict]) -> Tuple[List[dict]
             used_b_indices.add(match_b_idx)
         else:
             warnings.append(f"No match for CC {cc_a} / {cv_a:.3f}V")
+            # Produce gap in B trace (placeholder with no waveform data)
+            aligned_a.append(p_a)
+            aligned_b.append({
+                'valid': True,
+                'has_waveform': False,
+                'cv_voltage': cv_a,
+                'midi_cc': cc_a,
+                'freq': float('nan'),
+            })
 
     if warnings:
         print(f"Alignment warnings: {len(warnings)} points unmatched")
