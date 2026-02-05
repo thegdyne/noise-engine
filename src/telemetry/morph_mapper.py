@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.audio.telemetry_controller import TelemetryController
+from src.config import OSC_PATHS
 from src.hardware.midi_cv import MidiCV, find_preferred_port
 from src.utils.logger import logger
 
@@ -320,7 +321,7 @@ class MorphMapper:
     def _load_hw_profile_tap(self):
         """Load hw_profile_tap generator into slot (R3: use sc_client)."""
         self.sc.send_message(
-            "/noise/start_generator",
+            OSC_PATHS['start_generator'],
             [self.slot1, "forge_hw_profile_tap"]
         )
         time.sleep(0.5)
