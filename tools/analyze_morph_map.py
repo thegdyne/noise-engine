@@ -149,14 +149,37 @@ def compute_waveform_metrics(w: np.ndarray) -> dict:
 
     Every division uses eps = 1e-12 denominator clamp.
     Non-finite results mark the point as invalid.
+    If rms < eps (silence/dropout), all derived metrics become nan.
 
-    Returns dict with all metrics, or None values if computation fails.
+    Returns dict with all metrics, or nan values if computation fails.
     """
     n = len(w)
 
     # Basic metrics
     dc = np.mean(w)
     rms = np.sqrt(np.mean(w ** 2))
+
+    # Near-zero RMS guard: silence/dropout invalidates all derived metrics
+    if rms < EPS:
+        return {
+            'dc': dc,
+            'rms': rms,
+            'peak': float('nan'),
+            'pos_peak': float('nan'),
+            'neg_peak': float('nan'),
+            'span': float('nan'),
+            'range_asym': float('nan'),
+            'crest': float('nan'),
+            'hf': float('nan'),
+            'shape_rms': float('nan'),
+            'shape_crest': float('nan'),
+            'norm_crest': float('nan'),
+            'norm_range_asym': float('nan'),
+            'norm_hf': float('nan'),
+            'skew': float('nan'),
+            'waveform_n': n,
+        }
+
     peak = np.max(np.abs(w))
     pos_peak = np.max(w)
     neg_peak = np.min(w)
@@ -283,10 +306,9 @@ def process_snapshot(snap: dict) -> dict:
         point['rms'] = fallback['rms']
         point['peak'] = fallback['peak']
         point['dc'] = fallback['dc']
-        point['harmonics'] = fallback['harmonics']
-        point['waveform_n'] = 0
+        point['waveform_n'] = float('nan')
 
-    # Extract harmonics from hw_dna regardless
+    # Extract harmonics from hw_dna (one extraction point for both paths)
     hw_dna = get_field(snap, 'snapshot.hw_dna', {})
     point['harmonics'] = hw_dna.get('harmonic_signature', [])
 
@@ -326,7 +348,7 @@ def detect_regions(points: List[dict], device_type: str) -> dict:
     Automatically identify sweep regions for oscillator sweeps.
 
     Only runs for device_type == "oscillator".
-    Returns dict with detected region indices and metadata.
+    Returns dict with detected region CC values (not indices) and metadata.
     """
     if device_type != 'oscillator':
         return {'enabled': False, 'reason': 'non-oscillator device type'}
@@ -339,7 +361,8 @@ def detect_regions(points: List[dict], device_type: str) -> dict:
     if len(valid_points) < 4:
         return {'enabled': False, 'reason': 'insufficient valid points'}
 
-    indices = [i for i, _ in valid_points]
+    # Build arrays - use CC values, not indices
+    ccs = np.array([p['midi_cc'] for _, p in valid_points])
     crests = np.array([p['crest'] for _, p in valid_points])
     range_asyms = np.array([p['range_asym'] for _, p in valid_points])
     shape_rmss = np.array([p.get('shape_rms', float('nan')) for _, p in valid_points])
@@ -347,68 +370,77 @@ def detect_regions(points: List[dict], device_type: str) -> dict:
 
     regions = {
         'enabled': True,
-        'sine_end': None,
-        'knee_idx': None,
-        'compression_idx': None,
-        'endpoint_start': None,
+        'sine_end_cc': None,
+        'knee_cc': None,
+        'knee_crest_from': None,
+        'knee_crest_to': None,
+        'compression_cc': None,
+        'compression_shape_rms': None,
+        'endpoint_start_cc': None,
         'warnings': [],
     }
 
-    # Find sine zone end: last index where crest < 1.8 AND range_asym ~= 0.5
+    # Find sine zone end: last array position where crest < 1.8 AND range_asym ~= 0.5
     # for 2+ consecutive points
-    sine_end = None
+    sine_end_pos = None
     consecutive = 0
     for i in range(len(crests)):
         if crests[i] < 1.8 and abs(range_asyms[i] - 0.5) < 0.03:
             consecutive += 1
             if consecutive >= 2:
-                sine_end = indices[i]
+                sine_end_pos = i
         else:
             consecutive = 0
-    regions['sine_end'] = sine_end
+
+    if sine_end_pos is not None:
+        regions['sine_end_cc'] = int(ccs[sine_end_pos])
 
     # Find transition knee: argmax of |diff(crest)| after sine zone
-    start_idx = 0
-    if sine_end is not None:
-        try:
-            start_idx = indices.index(sine_end) + 1
-        except ValueError:
-            start_idx = 0
+    start_pos = 0
+    if sine_end_pos is not None:
+        start_pos = sine_end_pos + 1
 
-    if start_idx < len(crests) - 1:
-        crest_diff = np.abs(np.diff(crests[start_idx:]))
+    if start_pos < len(crests) - 1:
+        crest_diff = np.abs(np.diff(crests[start_pos:]))
         if len(crest_diff) > 0:
             knee_rel = np.argmax(crest_diff)
-            knee_idx = indices[start_idx + knee_rel]
-            if sine_end is None or knee_idx > sine_end:
-                regions['knee_idx'] = knee_idx
+            knee_pos = start_pos + knee_rel
+            knee_cc = int(ccs[knee_pos])
+            # Validate ordering (compare CC values)
+            if regions['sine_end_cc'] is None or knee_cc > regions['sine_end_cc']:
+                regions['knee_cc'] = knee_cc
+                # Store crest jump endpoints
+                regions['knee_crest_from'] = float(crests[knee_pos])
+                if knee_pos + 1 < len(crests):
+                    regions['knee_crest_to'] = float(crests[knee_pos + 1])
             else:
-                regions['warnings'].append('knee_idx <= sine_end')
+                regions['warnings'].append('knee_cc <= sine_end_cc')
 
     # Find energy compression: local minimum of shape_rms after knee
-    if regions['knee_idx'] is not None:
-        try:
-            knee_pos = indices.index(regions['knee_idx'])
-        except ValueError:
-            knee_pos = start_idx
-
-        shape_after_knee = shape_rmss[knee_pos:]
-        if len(shape_after_knee) > 0 and np.any(np.isfinite(shape_after_knee)):
-            finite_mask = np.isfinite(shape_after_knee)
-            if np.any(finite_mask):
-                min_rel = np.argmin(np.where(finite_mask, shape_after_knee, np.inf))
-                comp_idx = indices[knee_pos + min_rel]
-                if comp_idx > regions['knee_idx']:
-                    regions['compression_idx'] = comp_idx
-                else:
-                    regions['warnings'].append('compression_idx <= knee_idx')
+    if regions['knee_cc'] is not None:
+        # Find position of knee in array
+        knee_pos = np.where(ccs == regions['knee_cc'])[0]
+        if len(knee_pos) > 0:
+            knee_pos = knee_pos[0]
+            shape_after_knee = shape_rmss[knee_pos:]
+            if len(shape_after_knee) > 0 and np.any(np.isfinite(shape_after_knee)):
+                finite_mask = np.isfinite(shape_after_knee)
+                if np.any(finite_mask):
+                    min_rel = np.argmin(np.where(finite_mask, shape_after_knee, np.inf))
+                    comp_pos = knee_pos + min_rel
+                    comp_cc = int(ccs[comp_pos])
+                    if comp_cc > regions['knee_cc']:
+                        regions['compression_cc'] = comp_cc
+                        regions['compression_shape_rms'] = float(shape_rmss[comp_pos])
+                    else:
+                        regions['warnings'].append('compression_cc <= knee_cc')
 
     # Find endpoint start: first of last 3 points where all diffs are below tolerance
-    if len(indices) >= 3:
+    if len(ccs) >= 3:
         tol_crest = 0.1
         tol_shape = 0.01
         tol_dc = 0.01
-        for i in range(len(indices) - 3, len(indices) - 1):
+        for i in range(len(ccs) - 3, len(ccs) - 1):
             if i < 0:
                 continue
             c_diff = abs(crests[i + 1] - crests[i]) if i + 1 < len(crests) else 999
@@ -416,10 +448,10 @@ def detect_regions(points: List[dict], device_type: str) -> dict:
             d_diff = abs(dcs[i + 1] - dcs[i]) if i + 1 < len(dcs) else 999
 
             if c_diff < tol_crest and s_diff < tol_shape and d_diff < tol_dc:
-                ep_idx = indices[i]
-                # Check ordering
-                if regions['compression_idx'] is None or ep_idx > regions['compression_idx']:
-                    regions['endpoint_start'] = ep_idx
+                ep_cc = int(ccs[i])
+                # Check ordering (compare CC values)
+                if regions['compression_cc'] is None or ep_cc > regions['compression_cc']:
+                    regions['endpoint_start_cc'] = ep_cc
                     break
 
     return regions
@@ -520,7 +552,8 @@ def print_header(filepath: str, metadata: dict, points: List[dict]):
     print(f"CV Range: [{cv_range[0]}, {cv_range[1]}]")
     print(f"Points: {metadata['captured_points']} captured, {metadata['points']} requested")
     print(f"Waveforms: {waveform_count}/{len(points)} present ({missing_count} missing)")
-    print(f"Format: v{metadata['format_version']}")
+    fv = metadata['format_version']
+    print(f"Format: {fv}" if fv == 'unknown' else f"Format: v{fv}")
     print()
 
 
@@ -645,58 +678,56 @@ def print_region_analysis(regions: dict, points: List[dict]):
     print("=== REGION ANALYSIS ===")
 
     # Sine zone
-    if regions.get('sine_end') is not None:
-        sine_end = regions['sine_end']
-        # Find range
-        sine_points = [p for p in points if p.get('valid') and p.get('midi_cc', 999) <= sine_end]
+    if regions.get('sine_end_cc') is not None:
+        sine_end_cc = regions['sine_end_cc']
+        # Find range of points in sine zone
+        sine_points = [p for p in points if p.get('valid') and p.get('midi_cc', 999) <= sine_end_cc]
         if sine_points:
             cc_start = sine_points[0].get('midi_cc', 0)
             crest_range = [p.get('crest', 0) for p in sine_points if p.get('has_waveform')]
             asym_range = [p.get('range_asym', 0) for p in sine_points if p.get('has_waveform')]
             if crest_range:
-                print(f"Sine zone:          CC {cc_start}-{sine_end}  "
+                print(f"Sine zone:          CC {cc_start}-{sine_end_cc}  "
                       f"(crest {min(crest_range):.2f}-{max(crest_range):.2f}, "
                       f"range_asym {min(asym_range):.2f}-{max(asym_range):.2f})")
     else:
         print("Sine zone:          not detected")
 
-    # Transition knee
-    if regions.get('knee_idx') is not None:
-        knee = regions['knee_idx']
-        # Find largest crest jump
-        prev_p = next((p for p in points if p.get('midi_cc') == knee - 1 or
-                       (p.get('midi_cc', 999) < knee and p.get('has_waveform'))), None)
-        curr_p = next((p for p in points if p.get('midi_cc') == knee), None)
-        if prev_p and curr_p and prev_p.get('has_waveform') and curr_p.get('has_waveform'):
-            print(f"Transition knee:    CC {knee}    "
-                  f"(largest crest jump: {prev_p.get('crest', 0):.2f}→{curr_p.get('crest', 0):.2f})")
+    # Transition knee (use pre-computed crest jump values)
+    if regions.get('knee_cc') is not None:
+        knee_cc = regions['knee_cc']
+        crest_from = regions.get('knee_crest_from')
+        crest_to = regions.get('knee_crest_to')
+        if crest_from is not None and crest_to is not None:
+            print(f"Transition knee:    CC {knee_cc}    "
+                  f"(largest crest jump: {crest_from:.2f}→{crest_to:.2f})")
         else:
-            print(f"Transition knee:    CC {knee}")
+            print(f"Transition knee:    CC {knee_cc}")
     else:
         print("Transition knee:    not detected")
 
-    # Energy compression
-    if regions.get('compression_idx') is not None:
-        comp = regions['compression_idx']
-        comp_p = next((p for p in points if p.get('midi_cc') == comp), None)
-        if comp_p and comp_p.get('has_waveform'):
-            print(f"Energy compression: CC {comp}    "
-                  f"(shape_rms minimum: {comp_p.get('shape_rms', 0):.3f})")
+    # Energy compression (use pre-computed shape_rms)
+    if regions.get('compression_cc') is not None:
+        comp_cc = regions['compression_cc']
+        comp_shape_rms = regions.get('compression_shape_rms')
+        if comp_shape_rms is not None:
+            print(f"Energy compression: CC {comp_cc}    "
+                  f"(shape_rms minimum: {comp_shape_rms:.3f})")
         else:
-            print(f"Energy compression: CC {comp}")
+            print(f"Energy compression: CC {comp_cc}")
     else:
         print("Energy compression: not detected")
 
     # Endpoint character
-    if regions.get('endpoint_start') is not None:
-        ep = regions['endpoint_start']
-        ep_points = [p for p in points if p.get('valid') and p.get('midi_cc', 0) >= ep]
+    if regions.get('endpoint_start_cc') is not None:
+        ep_cc = regions['endpoint_start_cc']
+        ep_points = [p for p in points if p.get('valid') and p.get('midi_cc', 0) >= ep_cc]
         if ep_points:
-            cc_end = ep_points[-1].get('midi_cc', ep)
+            cc_end = ep_points[-1].get('midi_cc', ep_cc)
             crest_range = [p.get('crest', 0) for p in ep_points if p.get('has_waveform')]
             span_range = [p.get('span', 0) for p in ep_points if p.get('has_waveform')]
             if crest_range:
-                print(f"Endpoint character: CC {ep}-{cc_end} "
+                print(f"Endpoint character: CC {ep_cc}-{cc_end} "
                       f"(crest {min(crest_range):.2f}-{max(crest_range):.2f}, "
                       f"span {min(span_range):.2f}-{max(span_range):.2f})")
     else:
@@ -704,7 +735,7 @@ def print_region_analysis(regions: dict, points: List[dict]):
 
     # Warnings
     for warning in regions.get('warnings', []):
-        print(f"  ⚠ {warning}")
+        print(f"  Warning: {warning}")
 
     print()
 
@@ -752,9 +783,9 @@ def print_metadata_section(metadata: dict, points: List[dict]):
     else:
         print("Settle time: unknown")
 
-    # Count invalid metrics
+    # Count invalid metrics (points that are invalid or have nan waveform metrics)
     invalid_count = sum(1 for p in points if not p.get('valid') or
-                        (p.get('has_waveform') and math.isnan(p.get('crest', 0))))
+                        (p.get('has_waveform') and math.isnan(p.get('crest', float('nan')))))
     print(f"Invalid metrics: {invalid_count} points")
     print()
 
@@ -784,7 +815,8 @@ def export_csv(points: List[dict], output_path: Path):
     Export analysis data to CSV.
 
     One row per sweep point, all metrics as columns.
-    Waveform-derived numeric columns are nan when waveform is missing.
+    Waveform-derived numeric columns are nan when waveform is missing or invalid.
+    Invalid points are kept (spec: "Kept in output tables... nan in CSV").
     """
     columns = [
         'cv_voltage', 'midi_cc', 'freq',
@@ -798,16 +830,17 @@ def export_csv(points: List[dict], output_path: Path):
         f.write(','.join(columns) + '\n')
 
         for p in points:
-            if not p.get('valid'):
-                continue
-
             values = []
             for col in columns:
                 val = p.get(col, float('nan'))
-                if isinstance(val, float) and math.isnan(val):
+                if val is None:
                     values.append('nan')
-                elif isinstance(val, float):
-                    values.append(f"{val:.6f}")
+                elif isinstance(val, float) and math.isnan(val):
+                    values.append('nan')
+                elif isinstance(val, (float, np.floating)):
+                    values.append(f"{float(val):.6f}")
+                elif isinstance(val, (int, np.integer)):
+                    values.append(str(int(val)))
                 else:
                     values.append(str(val))
 
@@ -820,10 +853,18 @@ def export_csv(points: List[dict], output_path: Path):
 # PNG Plot Generation
 # =============================================================================
 
+def _ratio_ok(arr: np.ndarray, threshold: float = 0.5) -> bool:
+    """Check if >= threshold fraction of values are finite (not nan/inf)."""
+    return np.isfinite(arr).mean() >= threshold
+
+
 def generate_plot(points_list: List[List[dict]], labels: List[str],
                  output_path: Path, device_type: str, show_guides: bool):
     """
     Generate five-row analysis plot.
+
+    Each plotted metric requires >= 50% valid points; otherwise that trace
+    is omitted and a warning is printed.
 
     Args:
         points_list: List of point lists (1 for single, 2 for dual-sweep)
@@ -845,6 +886,7 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
     gs = gridspec.GridSpec(5, n_sweeps, hspace=0.3, wspace=0.2)
 
     colors = ['#2196F3', '#FF5722']  # Blue, Orange
+    skipped_warnings = []
 
     for sweep_idx, (points, label) in enumerate(zip(points_list, labels)):
         # Filter valid points with waveforms
@@ -852,6 +894,7 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
                         if p.get('valid') and p.get('has_waveform')]
 
         if not valid_points:
+            skipped_warnings.append(f"{label}: No valid waveform points")
             continue
 
         ccs = np.array([p['midi_cc'] for _, p in valid_points])
@@ -864,68 +907,98 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
         neg_peaks = np.array([p.get('neg_peak', float('nan')) for _, p in valid_points])
         hfs = np.array([p.get('hf', float('nan')) for _, p in valid_points])
 
-        # Row 1: Gain Track - ShapeRMS + Peak
+        # Row 1: Gain Track - ShapeRMS + Peak (gate on both)
         ax1 = fig.add_subplot(gs[0, sweep_idx])
-        ax1.plot(ccs, shape_rmss, 'o-', color=colors[0], label='ShapeRMS', linewidth=2)
-        ax1.plot(ccs, peaks, 's-', color=colors[1], label='Peak', linewidth=2)
+        if _ratio_ok(shape_rmss) and _ratio_ok(peaks):
+            ax1.plot(ccs, shape_rmss, 'o-', color=colors[0], label='ShapeRMS', linewidth=2)
+            ax1.plot(ccs, peaks, 's-', color=colors[1], label='Peak', linewidth=2)
+            ax1.legend(loc='best')
+        else:
+            skipped_warnings.append(f"{label} Row 1: <50% valid for Gain Track")
+            ax1.text(0.5, 0.5, 'Insufficient data', ha='center', va='center',
+                    transform=ax1.transAxes, fontsize=12, color='gray')
         ax1.set_xlabel('MIDI CC')
         ax1.set_ylabel('Amplitude')
         ax1.set_title(f'{label} - Gain Track')
-        ax1.legend(loc='best')
         ax1.grid(True, alpha=0.3)
 
-        # Row 2: DC Offset + Range Asymmetry
+        # Row 2: DC Offset + Range Asymmetry (gate on both)
         ax2 = fig.add_subplot(gs[1, sweep_idx])
-        ax2_r = ax2.twinx()
-        l1, = ax2.plot(ccs, dcs, 'o-', color=colors[0], label='DC Offset', linewidth=2)
-        l2, = ax2_r.plot(ccs, range_asyms, 's-', color=colors[1], label='Range Asym', linewidth=2)
+        if _ratio_ok(dcs) and _ratio_ok(range_asyms):
+            ax2_r = ax2.twinx()
+            l1, = ax2.plot(ccs, dcs, 'o-', color=colors[0], label='DC Offset', linewidth=2)
+            l2, = ax2_r.plot(ccs, range_asyms, 's-', color=colors[1], label='Range Asym', linewidth=2)
+            ax2.set_ylabel('DC Offset', color=colors[0])
+            ax2_r.set_ylabel('Range Asymmetry', color=colors[1])
+            ax2.legend([l1, l2], ['DC Offset', 'Range Asym'], loc='best')
+        else:
+            skipped_warnings.append(f"{label} Row 2: <50% valid for DC & Asymmetry")
+            ax2.text(0.5, 0.5, 'Insufficient data', ha='center', va='center',
+                    transform=ax2.transAxes, fontsize=12, color='gray')
         ax2.set_xlabel('MIDI CC')
-        ax2.set_ylabel('DC Offset', color=colors[0])
-        ax2_r.set_ylabel('Range Asymmetry', color=colors[1])
         ax2.set_title(f'{label} - DC & Asymmetry')
-        ax2.legend([l1, l2], ['DC Offset', 'Range Asym'], loc='best')
         ax2.grid(True, alpha=0.3)
 
-        # Row 3: Crest Factor
+        # Row 3: Crest Factor (gate)
         ax3 = fig.add_subplot(gs[2, sweep_idx])
-        ax3.plot(ccs, crests, 'o-', color=colors[0], label='Crest Factor', linewidth=2)
+        if _ratio_ok(crests):
+            ax3.plot(ccs, crests, 'o-', color=colors[0], label='Crest Factor', linewidth=2)
 
-        # Theoretical guides for oscillators
-        if show_guides and device_type == 'oscillator':
-            guides = {
-                'sine': np.sqrt(2),      # ~1.414
-                'saw': np.sqrt(3),       # ~1.732
-                'square': 1.0,
-            }
-            cc_range = [ccs.min(), ccs.max()]
-            for name, val in guides.items():
-                ax3.axhline(y=val, color='gray', linestyle='--', alpha=0.5)
-                ax3.text(cc_range[1] + 1, val, name, va='center', fontsize=8, color='gray')
-
+            # Theoretical guides for oscillators (with right margin for text)
+            if show_guides and device_type == 'oscillator':
+                guides = {
+                    'sine': np.sqrt(2),      # ~1.414
+                    'saw': np.sqrt(3),       # ~1.732
+                    'square': 1.0,
+                }
+                for name, val in guides.items():
+                    ax3.axhline(y=val, color='gray', linestyle='--', alpha=0.5)
+                    ax3.text(ccs.max() + 2, val, name, va='center', fontsize=8, color='gray',
+                            clip_on=False)
+                # Add right margin so text isn't clipped
+                ax3.set_xlim(ccs.min() - 2, ccs.max() + 15)
+        else:
+            skipped_warnings.append(f"{label} Row 3: <50% valid for Crest Factor")
+            ax3.text(0.5, 0.5, 'Insufficient data', ha='center', va='center',
+                    transform=ax3.transAxes, fontsize=12, color='gray')
         ax3.set_xlabel('MIDI CC')
         ax3.set_ylabel('Crest Factor')
         ax3.set_title(f'{label} - Crest Factor')
         ax3.grid(True, alpha=0.3)
 
-        # Row 4: Waveform Envelope
+        # Row 4: Waveform Envelope (gate on pos_peak, neg_peak, dc)
         ax4 = fig.add_subplot(gs[3, sweep_idx])
-        ax4.fill_between(ccs, neg_peaks, pos_peaks, alpha=0.3, color=colors[0])
-        ax4.plot(ccs, pos_peaks, '-', color=colors[0], label='Pos Peak', linewidth=1)
-        ax4.plot(ccs, neg_peaks, '-', color=colors[0], label='Neg Peak', linewidth=1)
-        ax4.plot(ccs, dcs, '--', color=colors[1], label='DC', linewidth=2)
+        if _ratio_ok(pos_peaks) and _ratio_ok(neg_peaks) and _ratio_ok(dcs):
+            ax4.fill_between(ccs, neg_peaks, pos_peaks, alpha=0.3, color=colors[0])
+            ax4.plot(ccs, pos_peaks, '-', color=colors[0], label='Pos Peak', linewidth=1)
+            ax4.plot(ccs, neg_peaks, '-', color=colors[0], label='Neg Peak', linewidth=1)
+            ax4.plot(ccs, dcs, '--', color=colors[1], label='DC', linewidth=2)
+            ax4.legend(loc='best')
+        else:
+            skipped_warnings.append(f"{label} Row 4: <50% valid for Waveform Envelope")
+            ax4.text(0.5, 0.5, 'Insufficient data', ha='center', va='center',
+                    transform=ax4.transAxes, fontsize=12, color='gray')
         ax4.set_xlabel('MIDI CC')
         ax4.set_ylabel('Amplitude')
         ax4.set_title(f'{label} - Waveform Envelope')
-        ax4.legend(loc='best')
         ax4.grid(True, alpha=0.3)
 
-        # Row 5: HF Energy
+        # Row 5: HF Energy (gate)
         ax5 = fig.add_subplot(gs[4, sweep_idx])
-        ax5.plot(ccs, hfs, 'o-', color=colors[0], label='HF', linewidth=2)
+        if _ratio_ok(hfs):
+            ax5.plot(ccs, hfs, 'o-', color=colors[0], label='HF', linewidth=2)
+        else:
+            skipped_warnings.append(f"{label} Row 5: <50% valid for HF Energy")
+            ax5.text(0.5, 0.5, 'Insufficient data', ha='center', va='center',
+                    transform=ax5.transAxes, fontsize=12, color='gray')
         ax5.set_xlabel('MIDI CC')
         ax5.set_ylabel('HF (Edge Sharpness)')
         ax5.set_title(f'{label} - HF Energy')
         ax5.grid(True, alpha=0.3)
+
+    # Print warnings for skipped traces
+    for warning in skipped_warnings:
+        print(f"Plot warning: {warning}")
 
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
@@ -938,17 +1011,20 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
 
 def align_sweeps(points_a: List[dict], points_b: List[dict]) -> Tuple[List[dict], List[dict]]:
     """
-    Align two sweeps for comparison.
+    Align two sweeps for comparison (one-to-one matching).
 
     Primary: align by midi_cc (exact match)
     Fallback: align by cv_voltage (nearest within 0.1V)
-    Last resort: align by index with warning
+    Tie-break: smallest |deltaV|, then nearest CC, then index
+
+    Each B point can only be matched once (one-to-one).
+    Unmatched A points become gaps.
 
     Returns aligned copies of both point lists.
     """
-    # Build lookup by CC for sweep B
-    b_by_cc = {p['midi_cc']: p for p in points_b if p.get('valid')}
-    b_by_cv = {p['cv_voltage']: p for p in points_b if p.get('valid')}
+    # Build indexed list of valid B points for one-to-one tracking
+    b_valid = [(i, p) for i, p in enumerate(points_b) if p.get('valid')]
+    used_b_indices = set()
 
     aligned_a = []
     aligned_b = []
@@ -958,24 +1034,42 @@ def align_sweeps(points_a: List[dict], points_b: List[dict]) -> Tuple[List[dict]
         if not p_a.get('valid'):
             continue
 
-        cc = p_a['midi_cc']
-        cv = p_a['cv_voltage']
+        cc_a = p_a['midi_cc']
+        cv_a = p_a['cv_voltage']
+        match_b = None
+        match_b_idx = None
 
-        # Try exact CC match
-        if cc in b_by_cc:
+        # Try exact CC match (first unused)
+        for b_idx, p_b in b_valid:
+            if b_idx in used_b_indices:
+                continue
+            if p_b['midi_cc'] == cc_a:
+                match_b = p_b
+                match_b_idx = b_idx
+                break
+
+        # Fallback: nearest CV within 0.1V (unused, sorted by |deltaV| then CC then index)
+        if match_b is None:
+            candidates = []
+            for b_idx, p_b in b_valid:
+                if b_idx in used_b_indices:
+                    continue
+                delta_v = abs(p_b['cv_voltage'] - cv_a)
+                if delta_v <= 0.1:
+                    delta_cc = abs(p_b['midi_cc'] - cc_a)
+                    candidates.append((delta_v, delta_cc, b_idx, p_b))
+
+            if candidates:
+                # Sort by |deltaV|, then |deltaCC|, then index
+                candidates.sort(key=lambda x: (x[0], x[1], x[2]))
+                _, _, match_b_idx, match_b = candidates[0]
+
+        if match_b is not None:
             aligned_a.append(p_a)
-            aligned_b.append(b_by_cc[cc])
-            continue
-
-        # Try nearest CV within 0.1V
-        nearest_cv = min(b_by_cv.keys(), key=lambda x: abs(x - cv), default=None)
-        if nearest_cv is not None and abs(nearest_cv - cv) <= 0.1:
-            aligned_a.append(p_a)
-            aligned_b.append(b_by_cv[nearest_cv])
-            continue
-
-        # No match - skip with warning
-        warnings.append(f"No match for CC {cc} / {cv}V")
+            aligned_b.append(match_b)
+            used_b_indices.add(match_b_idx)
+        else:
+            warnings.append(f"No match for CC {cc_a} / {cv_a:.3f}V")
 
     if warnings:
         print(f"Alignment warnings: {len(warnings)} points unmatched")
@@ -1058,16 +1152,24 @@ Examples:
 
     # CSV export
     if args.csv:
-        if args.csv is True:
-            csv_path = filepath.parent / f"{filepath.stem}_analysis.csv"
+        if len(all_points) == 1:
+            # Single sweep
+            if args.csv is True:
+                csv_path = filepath.parent / f"{filepath.stem}_analysis.csv"
+            else:
+                csv_path = Path(args.csv)
+            export_csv(points, csv_path)
         else:
-            csv_path = Path(args.csv)
-
-        export_csv(points, csv_path)
-
-        # Dual-sweep: separate CSV files
-        if len(all_points) == 2:
-            csv_path_b = filepath.parent / f"{filepaths[1].stem}_analysis.csv"
+            # Dual-sweep: separate CSV files with _A/_B suffixes in their own directories
+            if args.csv is True:
+                csv_path_a = filepaths[0].parent / f"{filepaths[0].stem}_analysis_A.csv"
+                csv_path_b = filepaths[1].parent / f"{filepaths[1].stem}_analysis_B.csv"
+            else:
+                # Custom path provided - add _A/_B suffixes
+                base_path = Path(args.csv)
+                csv_path_a = base_path.parent / f"{base_path.stem}_A{base_path.suffix}"
+                csv_path_b = base_path.parent / f"{base_path.stem}_B{base_path.suffix}"
+            export_csv(all_points[0], csv_path_a)
             export_csv(all_points[1], csv_path_b)
 
     # Plot generation
@@ -1080,7 +1182,13 @@ Examples:
         labels = [fp.stem for fp in filepaths]
         show_guides = not args.no_guides
 
-        generate_plot(all_points, labels, plot_path, device_type, show_guides)
+        # Align sweeps for dual-sweep comparison
+        plot_points = all_points
+        if len(all_points) == 2:
+            a_aligned, b_aligned = align_sweeps(all_points[0], all_points[1])
+            plot_points = [a_aligned, b_aligned]
+
+        generate_plot(plot_points, labels, plot_path, device_type, show_guides)
 
 
 if __name__ == "__main__":
