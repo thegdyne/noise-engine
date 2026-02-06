@@ -5,16 +5,19 @@ Shared output chain for all generators (filter, envelope, routing)
 See docs/END_STAGE_ARCHITECTURE_SPEC.md for full architecture details.
 
 Signal flow per slot:
-  [Generator] → intermediateBus[slot] → [End-Stage] → genBus[slot] → [Channel Strip]
+  [Generator] → intermediateBus[slot] → [Analog Stage] → enhancedBus[slot] → [End-Stage] → genBus[slot] → [Channel Strip]
 
 The end-stage is persistent infrastructure — booted once at startup, never freed.
-Generators are swapped in/out of the intermediate bus; the end-stage reads from it.
+Generators are swapped in/out of the intermediate bus; the analog stage and
+end-stage read from their respective input buses.
 
 Invariants:
   - Intermediate bus is always 2ch stereo
   - Generator writes via ReplaceOut (never Out — prevents volume doubling)
+  - Analog stage reads intermediateBus, writes enhancedBus via ReplaceOut
+  - End-stage reads enhancedBus, writes genBus via Out
   - Silence generator keeps bus zeroed when no generator loaded
-  - Group ordering: generatorGroup (head) → endstageGroup (tail)
+  - Group ordering: genSubGroup (head) → analogSubGroup → endstageSubGroup (tail)
 */
 
 ~setupEndstage = {
