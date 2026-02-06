@@ -142,17 +142,11 @@
     // Parallel consumer of the same tap point as telemetry.
     SynthDef(\forge_hardware_send, { |inBus, outPair=1, gainDB=0|
         var sig, baseChan;
-
-        // Belt-and-braces: block invalid outPair (Python already validates)
-        if (outPair < 1, {
-            "*** forge_hardware_send: outPair < 1 (%), ignoring".format(outPair).postln;
-        }, {
-            sig = In.ar(inBus, 2);
-            baseChan = 2 + ((outPair - 1) * 2);
-            sig = sig * gainDB.dbamp.lag(0.05);
-            sig = Limiter.ar(sig, 0.95, 0.01);
-            Out.ar(baseChan, sig);
-        });
+        sig = In.ar(inBus, 2);
+        baseChan = 2 + ((outPair - 1) * 2);
+        sig = sig * gainDB.dbamp.lag(0.05);
+        sig = Limiter.ar(sig, 0.95, 0.01);
+        Out.ar(baseChan, sig);
     }).add;
 
     "[Telemetry] Infrastructure loaded".postln;
@@ -338,7 +332,7 @@
         var gainDB = msg[3].asFloat;
         var idx = slot;  // 0-based from Python
 
-        if ((idx >= 0) && (idx < 8)) {
+        if ((idx >= 0) && (idx < 8) && (outPair >= 1)) {
             // Free existing synth for this slot to prevent dupes
             if (~hardwareSendSynths[idx].notNil) {
                 ~hardwareSendSynths[idx].free;
