@@ -53,7 +53,7 @@ class TestFingerprintExtractor:
         """Test fingerprint has correct schema version."""
         extractor.start_session()
         fp = extractor.extract(sine_wave, cv_volts=2.5)
-        assert fp["schema_version"] == "fingerprint.v1"
+        assert fp["schema_version"] == "fingerprint.v2"
 
     def test_fingerprint_id_format(self, extractor, sine_wave):
         """Test fingerprint ID follows expected format."""
@@ -97,7 +97,7 @@ class TestFingerprintExtractor:
         extractor.start_session()
         fp = extractor.extract(sine_wave, cv_volts=2.5)
 
-        assert len(fp["features"]["harm_ratio"]) == 8
+        assert len(fp["features"]["harm_ratio"]) == 32
 
     def test_sine_wave_harmonics(self, extractor, sine_wave):
         """Test pure sine has minimal upper harmonics."""
@@ -126,7 +126,7 @@ class TestFingerprintExtractor:
         extractor.start_session()
         fp = extractor.extract(sine_wave, cv_volts=2.5)
 
-        assert len(fp["features"]["phase_rel"]) == 8
+        assert len(fp["features"]["phase_rel"]) == 32
 
     def test_phase_values_normalized(self, extractor, sawtooth_wave):
         """Test phase values are in 0..1 range."""
@@ -287,7 +287,7 @@ class TestFingerprintExtractor:
         extractor.start_session()
         fp = extractor.extract(sine_wave, cv_volts=2.5, freq_hz=440.0)
 
-        assert fp["capture"]["freq_hz"] == 440.0
+        assert abs(fp["capture"]["freq_hz"] - 440.0) < 0.5  # FFT bin rounding
 
     def test_window_type_recorded(self, extractor, sine_wave):
         """Test window type is recorded."""
@@ -316,8 +316,8 @@ class TestFingerprintExtractor:
         fp = extractor.extract(short_sine, cv_volts=2.5, freq_hz=freq, sample_rate=sr)
 
         # Should have extracted meaningful harmonics despite short window
-        assert fp["capture"]["n_samples"] == 512
-        assert fp["capture"]["fft_size"] == 4096  # Zero-padded
+        assert fp["capture"]["n_samples"] == 480  # Trimmed to 10 whole cycles
+        assert fp["capture"]["fft_size"] == 480  # No zero-padding in SSOT
 
         # Pure sine should have h1 dominant, h2/h3 low
         assert fp["features"]["harm_ratio"][0] == 1.0
