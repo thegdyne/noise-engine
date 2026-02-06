@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-06 by agent
+**Last updated:** 2026-02-06 by agent (session 2)
 
 ---
 
@@ -50,4 +50,5 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2026-02-06: Fix FFT spectral leakage in fingerprint extractor (whole-cycle trim)
 - 2026-02-06: Added STATE.md automated project state tracking

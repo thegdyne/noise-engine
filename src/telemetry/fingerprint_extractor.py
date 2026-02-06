@@ -60,6 +60,16 @@ class FingerprintExtractor:
             self.start_session()
 
         waveform = np.asarray(waveform, dtype=np.float64)
+
+        # Trim to whole cycles to reduce spectral leakage
+        if (freq_hz is not None and 10 <= freq_hz <= 20000):
+            samples_per_cycle = sample_rate / freq_hz
+            num_cycles = int(len(waveform) / samples_per_cycle)
+            if num_cycles >= 1:
+                trim_length = round(num_cycles * samples_per_cycle)
+                if trim_length >= 64:
+                    waveform = waveform[:trim_length]
+
         n_samples = len(waveform)
 
         # Zero-pad to minimum 4096 samples for adequate frequency resolution
