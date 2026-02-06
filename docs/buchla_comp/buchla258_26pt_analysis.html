@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buchla 258 — 26-Point Morph Analysis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --bg-card: #12121a;
+    --bg-scope: #0d1117;
+    --border: #1e2030;
+    --border-active: #3b82f6;
+    --text: #c9d1d9;
+    --text-dim: #6e7681;
+    --text-bright: #f0f6fc;
+    --sine-zone: #22c55e;
+    --knee-zone: #f59e0b;
+    --target-zone: #3b82f6;
+    --trace-left: #f97316;
+    --trace-right: #8b5cf6;
+    --trace-left-glow: rgba(249,115,22,0.3);
+    --trace-right-glow: rgba(139,92,246,0.3);
+    --grid: rgba(48, 54, 61, 0.4);
+    --accent: #f97316;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    padding: 28px 40px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0f1018 0%, var(--bg) 100%);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-left h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: -0.5px;
+  }
+
+  .header-left .subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  .header-right {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .sweep-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .sweep-badge.left {
+    border-color: rgba(249,115,22,0.3);
+    background: rgba(249,115,22,0.08);
+    color: var(--trace-left);
+  }
+
+  .sweep-badge.right {
+    border-color: rgba(139,92,246,0.3);
+    background: rgba(139,92,246,0.08);
+    color: var(--trace-right);
+  }
+
+  .sweep-badge .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .sweep-badge.left .dot { background: var(--trace-left); }
+  .sweep-badge.right .dot { background: var(--trace-right); }
+
+  /* Region bar */
+  .region-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 40px;
+    background: rgba(255,255,255,0.015);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    flex-wrap: wrap;
+  }
+
+  .region-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin: 2px 0;
+  }
+
+  .region-label {
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 70px;
+    flex-shrink: 0;
+  }
+
+  .region-label.left { color: var(--trace-left); }
+  .region-label.right { color: var(--trace-right); }
+
+  .region-segment {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .region-segment .dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  .region-segment.sine { background: rgba(34,197,94,0.1); }
+  .region-segment.sine .dot { background: var(--sine-zone); }
+  .region-segment.knee { background: rgba(245,158,11,0.1); }
+  .region-segment.knee .dot { background: var(--knee-zone); }
+  .region-segment.target { background: rgba(59,130,246,0.1); }
+  .region-segment.target .dot { background: var(--target-zone); }
+  .region-arrow { color: var(--text-dim); font-size: 13px; }
+
+  /* Summary stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat-card {
+    background: var(--bg);
+    padding: 12px 16px;
+    text-align: center;
+  }
+
+  .stat-card .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .stat-card .stat-values {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+  }
+
+  .stat-row {
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .stat-row .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .stat-row .dot.left { background: var(--trace-left); }
+  .stat-row .dot.right { background: var(--trace-right); }
+  .stat-row .val { color: var(--text-bright); font-weight: 500; }
+
+  /* Sweep summary cards */
+  .summary-section {
+    padding: 16px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-section h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+
+  .summary-card .card-title {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .summary-card .card-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+
+  .summary-card .card-row .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .summary-card .card-row .lbl { color: var(--text-dim); }
+  .summary-card .card-row .val { color: var(--text-bright); font-weight: 500; }
+  .summary-card .card-row .delta { font-size: 10px; font-weight: 500; }
+  .summary-card .card-row .delta.up { color: var(--sine-zone); }
+  .summary-card .card-row .delta.down { color: #ef4444; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 40px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.01);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { border-color: var(--border-active); background: rgba(59,130,246,0.1); }
+  .btn.active { border-color: var(--accent); background: rgba(249,115,22,0.15); color: var(--accent); }
+
+  .speed-label { font-size: 11px; color: var(--text-dim); }
+
+  .slider-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 12px;
+  }
+
+  .slider-container label {
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .cc-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .cc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: grab;
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 8px rgba(249,115,22,0.4);
+  }
+
+  .cc-slider::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: grab;
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 8px rgba(249,115,22,0.4);
+  }
+
+  .cc-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 55px;
+    text-align: right;
+  }
+
+  /* Current values readout */
+  .current-readout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .readout-panel {
+    background: var(--bg);
+    padding: 10px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    align-items: center;
+  }
+
+  .readout-panel .readout-title {
+    font-size: 10px;
+    font-weight: 600;
+    margin-right: 6px;
+    min-width: 100px;
+  }
+
+  .readout-panel.left .readout-title { color: var(--trace-left); }
+  .readout-panel.right .readout-title { color: var(--trace-right); }
+
+  .readout-item {
+    font-size: 9px;
+    display: flex;
+    gap: 3px;
+    align-items: baseline;
+  }
+
+  .readout-item .rlbl { color: var(--text-dim); }
+  .readout-item .rval { color: var(--text-bright); font-weight: 500; }
+
+  /* Metric charts */
+  .metrics-section {
+    padding: 20px 40px 24px;
+  }
+
+  .metrics-section h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 14px;
+  }
+
+  .metric-charts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .metric-chart {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  .metric-chart .chart-title {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .metric-chart canvas { display: block; width: 100%; height: 130px; }
+
+  .chart-legend {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    font-size: 9px;
+  }
+
+  .chart-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-dim);
+  }
+
+  .chart-legend .swatch {
+    width: 10px;
+    height: 3px;
+    border-radius: 1px;
+  }
+
+  /* Harmonics section */
+  .harmonics-section {
+    padding: 20px 40px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .harmonics-section h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 14px;
+  }
+
+  .harmonics-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+
+  .harmonics-wrap canvas { display: block; width: 100%; height: 200px; }
+
+  /* Brightness section */
+  .brightness-section {
+    padding: 20px 40px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .brightness-section h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 14px;
+  }
+
+  .brightness-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    max-width: 700px;
+  }
+
+  .brightness-wrap canvas { display: block; width: 100%; height: 130px; }
+
+  /* Data tables */
+  .tables-section {
+    padding: 20px 40px 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  .tables-section h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 14px;
+  }
+
+  .table-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .table-toggle:hover { border-color: var(--border-active); }
+
+  .table-toggle .arrow {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+
+  .table-toggle .arrow.open { transform: rotate(90deg); }
+
+  .table-toggle .tbl-label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .table-toggle .tbl-label.left { color: var(--trace-left); }
+  .table-toggle .tbl-label.right { color: var(--trace-right); }
+
+  .table-container {
+    overflow-x: auto;
+    margin-bottom: 16px;
+  }
+
+  .table-container.collapsed { display: none; }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .data-table th {
+    padding: 6px 8px;
+    text-align: right;
+    color: var(--text-dim);
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+  }
+
+  .data-table th:first-child { text-align: center; }
+
+  .data-table td {
+    padding: 4px 8px;
+    text-align: right;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .data-table td:first-child {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-bright);
+  }
+
+  .data-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .data-table tr:hover { background: rgba(255,255,255,0.04); }
+
+  .data-table.left-table td:first-child { color: var(--trace-left); }
+  .data-table.right-table td:first-child { color: var(--trace-right); }
+
+  @media (max-width: 1000px) {
+    .metric-charts { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    .current-readout { grid-template-columns: 1fr; }
+    .header { padding: 20px 16px 14px; }
+    .controls { padding: 12px 16px; }
+    .metrics-section, .harmonics-section, .brightness-section, .tables-section { padding-left: 16px; padding-right: 16px; }
+    .region-bar { padding: 8px 16px; }
+    .summary-section { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>Buchla 258 — 26-Point Morph Analysis</h1>
+    <div class="subtitle">Extended telemetry · Three-track decomposition · Harmonic signatures · 6 Feb 2026</div>
+  </div>
+  <div class="header-right">
+    <div class="sweep-badge left"><span class="dot"></span> Sine → Saw · 39.3 Hz</div>
+    <div class="sweep-badge right"><span class="dot"></span> Sine → Square · 49.8 Hz</div>
+  </div>
+</div>
+
+<!-- Region Bar -->
+<div class="region-bar">
+  <div class="region-row">
+    <span class="region-label left">Sine→Saw</span>
+    <div class="region-segment sine"><span class="dot"></span> Sine zone CC 0–55</div>
+    <span class="region-arrow">→</span>
+    <div class="region-segment knee"><span class="dot"></span> Transition knee CC 75→80</div>
+    <span class="region-arrow">→</span>
+    <div class="region-segment target"><span class="dot"></span> Target CC 115–125</div>
+  </div>
+  <div class="region-row">
+    <span class="region-label right">Sine→Squ</span>
+    <div class="region-segment sine"><span class="dot"></span> Sine zone CC 0–50</div>
+    <span class="region-arrow">→</span>
+    <div class="region-segment knee"><span class="dot"></span> Transition knee CC 55→60</div>
+    <span class="region-arrow">→</span>
+    <div class="region-segment target"><span class="dot"></span> Target CC 120–125</div>
+  </div>
+</div>
+
+<!-- Summary Stats Bar -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-label">RMS Range</div>
+    <div class="stat-values">
+      <div class="stat-row"><span class="dot left"></span> <span class="val">0.125 – 0.162</span></div>
+      <div class="stat-row"><span class="dot right"></span> <span class="val">0.154 – 0.214</span></div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Peak Range</div>
+    <div class="stat-values">
+      <div class="stat-row"><span class="dot left"></span> <span class="val">0.200 – 0.388</span></div>
+      <div class="stat-row"><span class="dot right"></span> <span class="val">0.224 – 0.446</span></div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Crest Range</div>
+    <div class="stat-values">
+      <div class="stat-row"><span class="dot left"></span> <span class="val">1.44 – 2.60</span></div>
+      <div class="stat-row"><span class="dot right"></span> <span class="val">1.42 – 2.82</span></div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">THD Range</div>
+    <div class="stat-values">
+      <div class="stat-row"><span class="dot left"></span> <span class="val">0.53 – 1.25</span></div>
+      <div class="stat-row"><span class="dot right"></span> <span class="val">0.39 – 0.83</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sweep Summary Cards -->
+<div class="summary-section">
+  <h2>Sweep Summary — Three-Track Decomposition</h2>
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="card-title">Gain Track (RMS)</div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-left)"></span> <span class="lbl">Saw</span> <span class="val">0.145→0.162</span> <span class="delta up">(+11.9%)</span></div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-right)"></span> <span class="lbl">Squ</span> <span class="val">0.163→0.214</span> <span class="delta up">(+31.5%)</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="card-title">Peak Track</div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-left)"></span> <span class="lbl">Saw</span> <span class="val">0.210→0.388</span> <span class="delta up">(+85.1%)</span></div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-right)"></span> <span class="lbl">Squ</span> <span class="val">0.356→0.422</span> <span class="delta up">(+18.7%)</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="card-title">Shape Track (Crest)</div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-left)"></span> <span class="lbl">Saw</span> <span class="val">1.44→2.39</span></div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-right)"></span> <span class="lbl">Squ</span> <span class="val">2.18→1.97</span></div>
+    </div>
+    <div class="summary-card">
+      <div class="card-title">Skew Track</div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-left)"></span> <span class="lbl">Saw</span> <span class="val">+0.01→-0.85</span></div>
+      <div class="card-row"><span class="dot" style="background:var(--trace-right)"></span> <span class="lbl">Squ</span> <span class="val">+0.01→+0.20</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="controls" id="controls">
+  <button class="btn" id="playBtn" onclick="togglePlay()">Play</button>
+  <span class="speed-label">Speed:</span>
+  <button class="btn" id="speed05" onclick="setSpeed(0.5)">0.5x</button>
+  <button class="btn active" id="speed1" onclick="setSpeed(1)">1x</button>
+  <button class="btn" id="speed2" onclick="setSpeed(2)">2x</button>
+  <div class="slider-container">
+    <label>CC Position:</label>
+    <input type="range" class="cc-slider" id="ccSlider" min="0" max="25" step="0.1" value="0">
+    <span class="cc-value" id="ccDisplay">CC 0</span>
+  </div>
+</div>
+
+<!-- Current Values Readout -->
+<div class="current-readout" id="readoutPanel">
+  <div class="readout-panel left" id="readoutLeft">
+    <span class="readout-title">Sine → Saw (39.3 Hz)</span>
+  </div>
+  <div class="readout-panel right" id="readoutRight">
+    <span class="readout-title">Sine → Square (49.8 Hz)</span>
+  </div>
+</div>
+
+<!-- Metric Charts -->
+<div class="metrics-section">
+  <h2>Metric Analysis — 26-Point Dual Trace</h2>
+  <div class="metric-charts">
+    <div class="metric-chart">
+      <div class="chart-title">Crest Factor</div>
+      <canvas id="chart_crest"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">Shape RMS</div>
+      <canvas id="chart_rms"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">Peak</div>
+      <canvas id="chart_peak"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">Range Asymmetry</div>
+      <canvas id="chart_range_asym"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">Skew</div>
+      <canvas id="chart_skew"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">HF Content</div>
+      <canvas id="chart_hf"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">THD</div>
+      <canvas id="chart_thd"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">Spectral Centroid</div>
+      <canvas id="chart_centroid"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+    <div class="metric-chart">
+      <div class="chart-title">Spectral Tilt</div>
+      <canvas id="chart_tilt"></canvas>
+      <div class="chart-legend">
+        <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+        <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Harmonic Signatures -->
+<div class="harmonics-section">
+  <h2>Harmonic Signature — h1–h8 at Current Position</h2>
+  <div class="harmonics-wrap">
+    <canvas id="harmonicsCanvas"></canvas>
+  </div>
+</div>
+
+<!-- Brightness -->
+<div class="brightness-section">
+  <h2>Brightness — Dual Trace</h2>
+  <div class="brightness-wrap">
+    <canvas id="chart_bright"></canvas>
+    <div class="chart-legend">
+      <span><span class="swatch" style="background:var(--trace-left)"></span> Saw</span>
+      <span><span class="swatch" style="background:var(--trace-right)"></span> Square</span>
+    </div>
+  </div>
+</div>
+
+<!-- Data Tables -->
+<div class="tables-section">
+  <h2>Full Telemetry Data</h2>
+
+  <div class="table-toggle" id="toggleSaw" onclick="toggleTable('saw')">
+    <span class="arrow" id="arrowSaw">&#9654;</span>
+    <span class="tbl-label left">Sine → Saw Data (26 points)</span>
+  </div>
+  <div class="table-container collapsed" id="tableSaw"></div>
+
+  <div class="table-toggle" id="toggleSqu" onclick="toggleTable('squ')">
+    <span class="arrow" id="arrowSqu">&#9654;</span>
+    <span class="tbl-label right">Sine → Square Data (26 points)</span>
+  </div>
+  <div class="table-container collapsed" id="tableSqu"></div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const CC_VALUES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125];
+
+const SAW_MET = [
+  {cc:0, crest:1.444, rms:0.145, peak:0.210, range_asym:0.502, skew:0.0089, hf:0.006, dc:0.0003, shape_rms:0.145, span:0.418, thd:0.5294, centroid:264.5, tilt:0.646, bright:0.183,
+   h:[1.86,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:5, crest:1.444, rms:0.145, peak:0.209, range_asym:0.501, skew:0.0135, hf:0.006, dc:0.0000, shape_rms:0.145, span:0.417, thd:0.5301, centroid:323.3, tilt:0.654, bright:0.182,
+   h:[1.88,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:10, crest:1.443, rms:0.145, peak:0.209, range_asym:0.500, skew:0.0118, hf:0.007, dc:0.0001, shape_rms:0.145, span:0.417, thd:0.5331, centroid:502.5, tilt:0.665, bright:0.178,
+   h:[1.93,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:15, crest:1.448, rms:0.144, peak:0.209, range_asym:0.500, skew:0.0228, hf:0.007, dc:-0.0000, shape_rms:0.144, span:0.417, thd:0.5362, centroid:504.2, tilt:0.673, bright:0.170,
+   h:[2.02,0.11,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:20, crest:1.452, rms:0.143, peak:0.208, range_asym:0.500, skew:0.0310, hf:0.007, dc:0.0001, shape_rms:0.143, span:0.415, thd:0.5406, centroid:879.4, tilt:0.680, bright:0.164,
+   h:[2.13,0.12,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:25, crest:1.456, rms:0.142, peak:0.206, range_asym:0.500, skew:0.0407, hf:0.007, dc:-0.0000, shape_rms:0.142, span:0.413, thd:0.5474, centroid:785.1, tilt:0.686, bright:0.153,
+   h:[2.27,0.13,0.11,0.10,0.10,0.10,0.10,0.10]},
+  {cc:30, crest:1.461, rms:0.140, peak:0.205, range_asym:0.501, skew:0.0476, hf:0.008, dc:0.0003, shape_rms:0.140, span:0.409, thd:0.5555, centroid:998.2, tilt:0.689, bright:0.142,
+   h:[2.42,0.15,0.11,0.10,0.10,0.10,0.10,0.10]},
+  {cc:35, crest:1.469, rms:0.139, peak:0.204, range_asym:0.505, skew:0.0685, hf:0.008, dc:-0.0001, shape_rms:0.139, span:0.404, thd:0.5636, centroid:1092.3, tilt:0.692, bright:0.135,
+   h:[2.58,0.17,0.12,0.11,0.10,0.10,0.10,0.10]},
+  {cc:40, crest:1.476, rms:0.137, peak:0.202, range_asym:0.509, skew:0.0828, hf:0.008, dc:-0.0002, shape_rms:0.137, span:0.397, thd:0.5739, centroid:1790.1, tilt:0.693, bright:0.131,
+   h:[2.75,0.21,0.13,0.11,0.11,0.11,0.11,0.11]},
+  {cc:45, crest:1.486, rms:0.135, peak:0.200, range_asym:0.509, skew:0.0933, hf:0.009, dc:0.0001, shape_rms:0.135, span:0.394, thd:0.5844, centroid:1425.4, tilt:0.696, bright:0.121,
+   h:[2.91,0.23,0.14,0.12,0.11,0.10,0.10,0.10]},
+  {cc:50, crest:1.542, rms:0.133, peak:0.205, range_asym:0.492, skew:0.0959, hf:0.009, dc:0.0001, shape_rms:0.133, span:0.403, thd:0.5965, centroid:2337.0, tilt:0.698, bright:0.127,
+   h:[3.09,0.28,0.18,0.14,0.12,0.13,0.11,0.11]},
+  {cc:55, crest:1.681, rms:0.131, peak:0.220, range_asym:0.471, skew:0.0950, hf:0.009, dc:-0.0002, shape_rms:0.131, span:0.416, thd:0.6111, centroid:1698.7, tilt:0.701, bright:0.108,
+   h:[3.26,0.30,0.18,0.13,0.11,0.10,0.10,0.10]},
+  {cc:60, crest:1.755, rms:0.129, peak:0.227, range_asym:0.461, skew:0.0763, hf:0.010, dc:0.0001, shape_rms:0.129, span:0.420, thd:0.6279, centroid:2798.5, tilt:0.704, bright:0.126,
+   h:[3.45,0.36,0.22,0.17,0.15,0.15,0.13,0.11]},
+  {cc:65, crest:1.981, rms:0.127, peak:0.252, range_asym:0.429, skew:0.0372, hf:0.011, dc:0.0004, shape_rms:0.127, span:0.442, thd:0.6493, centroid:2913.2, tilt:0.708, bright:0.122,
+   h:[3.64,0.41,0.26,0.19,0.17,0.15,0.12,0.11]},
+  {cc:70, crest:1.974, rms:0.126, peak:0.248, range_asym:0.428, skew:-0.0195, hf:0.010, dc:0.0003, shape_rms:0.126, span:0.434, thd:0.6813, centroid:2176.2, tilt:0.712, bright:0.093,
+   h:[3.83,0.42,0.22,0.15,0.11,0.11,0.11,0.10]},
+  {cc:75, crest:2.222, rms:0.125, peak:0.278, range_asym:0.392, skew:-0.1438, hf:0.011, dc:0.0002, shape_rms:0.125, span:0.457, thd:0.7241, centroid:2551.2, tilt:0.716, bright:0.091,
+   h:[4.10,0.49,0.26,0.17,0.13,0.11,0.11,0.11]},
+  {cc:80, crest:2.506, rms:0.125, peak:0.313, range_asym:0.350, skew:-0.3393, hf:0.011, dc:-0.0003, shape_rms:0.125, span:0.481, thd:0.7915, centroid:2440.3, tilt:0.722, bright:0.085,
+   h:[4.38,0.54,0.31,0.20,0.15,0.11,0.10,0.10]},
+  {cc:85, crest:2.476, rms:0.126, peak:0.313, range_asym:0.346, skew:-0.5962, hf:0.011, dc:-0.0007, shape_rms:0.126, span:0.478, thd:0.8923, centroid:2527.6, tilt:0.731, bright:0.077,
+   h:[4.70,0.59,0.30,0.18,0.13,0.10,0.11,0.10]},
+  {cc:90, crest:2.594, rms:0.129, peak:0.334, range_asym:0.342, skew:-0.8260, hf:0.012, dc:-0.0002, shape_rms:0.129, span:0.507, thd:1.0092, centroid:3128.4, tilt:0.732, bright:0.093,
+   h:[4.99,0.68,0.38,0.27,0.21,0.15,0.11,0.11]},
+  {cc:95, crest:2.603, rms:0.132, peak:0.343, range_asym:0.352, skew:-0.9259, hf:0.012, dc:0.0001, shape_rms:0.132, span:0.529, thd:1.2367, centroid:4217.5, tilt:0.725, bright:0.147,
+   h:[5.22,0.74,0.43,0.33,0.26,0.24,0.23,0.26]},
+  {cc:100, crest:2.570, rms:0.136, peak:0.348, range_asym:0.350, skew:-0.9656, hf:0.011, dc:0.0003, shape_rms:0.136, span:0.537, thd:1.2446, centroid:3502.0, tilt:0.725, bright:0.109,
+   h:[5.45,0.74,0.41,0.28,0.20,0.20,0.16,0.19]},
+  {cc:105, crest:2.517, rms:0.141, peak:0.354, range_asym:0.338, skew:-0.9714, hf:0.011, dc:-0.0000, shape_rms:0.141, span:0.535, thd:1.2499, centroid:3563.5, tilt:0.724, bright:0.119,
+   h:[5.73,0.80,0.46,0.33,0.27,0.25,0.20,0.14]},
+  {cc:110, crest:2.433, rms:0.146, peak:0.355, range_asym:0.322, skew:-0.9551, hf:0.010, dc:-0.0000, shape_rms:0.146, span:0.524, thd:1.2487, centroid:2422.0, tilt:0.723, bright:0.068,
+   h:[5.97,0.77,0.41,0.28,0.18,0.12,0.10,0.10]},
+  {cc:115, crest:2.445, rms:0.153, peak:0.373, range_asym:0.304, skew:-0.9145, hf:0.010, dc:0.0000, shape_rms:0.153, span:0.536, thd:1.2490, centroid:3257.1, tilt:0.723, bright:0.099,
+   h:[6.29,0.85,0.46,0.30,0.22,0.18,0.18,0.20]},
+  {cc:120, crest:2.418, rms:0.160, peak:0.386, range_asym:0.299, skew:-0.8594, hf:0.009, dc:-0.0001, shape_rms:0.160, span:0.551, thd:1.2409, centroid:2578.5, tilt:0.723, bright:0.072,
+   h:[6.56,0.88,0.48,0.30,0.22,0.16,0.11,0.10]},
+  {cc:125, crest:2.389, rms:0.162, peak:0.388, range_asym:0.303, skew:-0.8472, hf:0.009, dc:0.0000, shape_rms:0.162, span:0.556, thd:1.2416, centroid:2500.3, tilt:0.723, bright:0.067,
+   h:[6.67,0.88,0.45,0.29,0.20,0.14,0.10,0.11]},
+];
+
+const SQU_MET = [
+  {cc:0, crest:2.184, rms:0.163, peak:0.356, range_asym:0.394, skew:0.0088, hf:0.018, dc:-0.0008, shape_rms:0.163, span:0.587, thd:0.5073, centroid:365.5, tilt:0.642, bright:0.561,
+   h:[2.46,0.57,0.55,0.60,0.60,0.55,0.57,0.62]},
+  {cc:5, crest:1.429, rms:0.162, peak:0.231, range_asym:0.503, skew:0.0208, hf:0.006, dc:-0.0002, shape_rms:0.162, span:0.460, thd:0.5070, centroid:244.8, tilt:0.645, bright:0.173,
+   h:[2.00,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:10, crest:1.426, rms:0.162, peak:0.231, range_asym:0.503, skew:0.0140, hf:0.006, dc:0.0001, shape_rms:0.162, span:0.460, thd:0.5076, centroid:251.5, tilt:0.643, bright:0.177,
+   h:[1.99,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:15, crest:1.428, rms:0.162, peak:0.232, range_asym:0.503, skew:0.0196, hf:0.006, dc:-0.0002, shape_rms:0.162, span:0.460, thd:0.5054, centroid:294.0, tilt:0.643, bright:0.176,
+   h:[1.99,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:20, crest:1.426, rms:0.162, peak:0.231, range_asym:0.502, skew:0.0119, hf:0.006, dc:0.0001, shape_rms:0.162, span:0.460, thd:0.5074, centroid:262.2, tilt:0.644, bright:0.172,
+   h:[1.99,0.11,0.11,0.10,0.10,0.10,0.10,0.10]},
+  {cc:25, crest:1.428, rms:0.162, peak:0.231, range_asym:0.503, skew:0.0179, hf:0.006, dc:-0.0001, shape_rms:0.162, span:0.460, thd:0.5062, centroid:237.6, tilt:0.644, bright:0.175,
+   h:[1.99,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:30, crest:1.426, rms:0.162, peak:0.231, range_asym:0.503, skew:0.0133, hf:0.006, dc:0.0001, shape_rms:0.162, span:0.460, thd:0.5073, centroid:272.9, tilt:0.645, bright:0.176,
+   h:[1.99,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:35, crest:1.426, rms:0.162, peak:0.231, range_asym:0.503, skew:0.0148, hf:0.007, dc:0.0002, shape_rms:0.162, span:0.459, thd:0.5094, centroid:435.2, tilt:0.650, bright:0.174,
+   h:[2.00,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:40, crest:1.425, rms:0.161, peak:0.229, range_asym:0.503, skew:0.0208, hf:0.006, dc:0.0000, shape_rms:0.161, span:0.456, thd:0.5107, centroid:342.2, tilt:0.656, bright:0.173,
+   h:[2.01,0.10,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:45, crest:1.417, rms:0.159, peak:0.225, range_asym:0.503, skew:0.0281, hf:0.007, dc:0.0004, shape_rms:0.159, span:0.447, thd:0.5194, centroid:558.2, tilt:0.661, bright:0.170,
+   h:[2.07,0.11,0.10,0.10,0.10,0.10,0.10,0.10]},
+  {cc:50, crest:1.459, rms:0.154, peak:0.224, range_asym:0.515, skew:0.0526, hf:0.007, dc:-0.0001, shape_rms:0.154, span:0.435, thd:0.5350, centroid:702.0, tilt:0.657, bright:0.148,
+   h:[2.21,0.12,0.11,0.11,0.10,0.10,0.09,0.09]},
+  {cc:55, crest:1.745, rms:0.145, peak:0.254, range_asym:0.570, skew:0.1204, hf:0.009, dc:0.0001, shape_rms:0.145, span:0.445, thd:0.5616, centroid:1165.8, tilt:0.663, bright:0.138,
+   h:[2.58,0.18,0.12,0.11,0.11,0.10,0.10,0.10]},
+  {cc:60, crest:2.231, rms:0.137, peak:0.306, range_asym:0.636, skew:0.4258, hf:0.011, dc:0.0002, shape_rms:0.137, span:0.481, thd:0.5391, centroid:1654.9, tilt:0.676, bright:0.068,
+   h:[3.32,0.29,0.16,0.11,0.09,0.08,0.05,0.05]},
+  {cc:65, crest:2.648, rms:0.138, peak:0.365, range_asym:0.690, skew:0.9891, hf:0.010, dc:-0.0002, shape_rms:0.138, span:0.529, thd:0.3911, centroid:1959.0, tilt:0.705, bright:0.055,
+   h:[4.34,0.43,0.21,0.15,0.12,0.08,0.05,0.03]},
+  {cc:70, crest:2.809, rms:0.146, peak:0.411, range_asym:0.721, skew:1.3433, hf:0.011, dc:-0.0001, shape_rms:0.146, span:0.570, thd:0.4068, centroid:2158.8, tilt:0.712, bright:0.072,
+   h:[5.34,0.52,0.30,0.29,0.24,0.13,0.04,0.06]},
+  {cc:75, crest:2.823, rms:0.153, peak:0.433, range_asym:0.724, skew:1.3660, hf:0.011, dc:-0.0002, shape_rms:0.153, span:0.598, thd:0.4567, centroid:2241.9, tilt:0.716, bright:0.109,
+   h:[5.91,0.64,0.30,0.24,0.25,0.24,0.14,0.14]},
+  {cc:80, crest:2.781, rms:0.159, peak:0.441, range_asym:0.717, skew:1.2759, hf:0.010, dc:-0.0001, shape_rms:0.159, span:0.616, thd:0.5239, centroid:2263.3, tilt:0.718, bright:0.080,
+   h:[6.17,0.58,0.25,0.24,0.22,0.19,0.12,0.06]},
+  {cc:85, crest:2.735, rms:0.163, peak:0.446, range_asym:0.703, skew:1.1523, hf:0.010, dc:-0.0000, shape_rms:0.163, span:0.634, thd:0.5955, centroid:2332.5, tilt:0.718, bright:0.082,
+   h:[6.42,0.72,0.26,0.13,0.14,0.20,0.19,0.09]},
+  {cc:90, crest:2.646, rms:0.167, peak:0.443, range_asym:0.686, skew:1.0044, hf:0.011, dc:-0.0002, shape_rms:0.167, span:0.645, thd:0.6602, centroid:2407.5, tilt:0.719, bright:0.167,
+   h:[6.46,0.65,0.33,0.40,0.44,0.40,0.30,0.16]},
+  {cc:95, crest:2.570, rms:0.173, peak:0.444, range_asym:0.671, skew:0.8413, hf:0.010, dc:-0.0001, shape_rms:0.173, span:0.662, thd:0.7115, centroid:2416.7, tilt:0.719, bright:0.137,
+   h:[6.53,0.72,0.36,0.36,0.37,0.34,0.24,0.15]},
+  {cc:100, crest:2.435, rms:0.179, peak:0.435, range_asym:0.650, skew:0.6823, hf:0.009, dc:0.0001, shape_rms:0.179, span:0.670, thd:0.7515, centroid:2434.7, tilt:0.719, bright:0.089,
+   h:[6.69,0.72,0.25,0.23,0.27,0.23,0.14,0.06]},
+  {cc:105, crest:2.359, rms:0.186, peak:0.438, range_asym:0.634, skew:0.5402, hf:0.010, dc:-0.0000, shape_rms:0.186, span:0.690, thd:0.7791, centroid:2421.0, tilt:0.719, bright:0.094,
+   h:[6.79,0.73,0.28,0.24,0.29,0.25,0.16,0.06]},
+  {cc:110, crest:2.208, rms:0.193, peak:0.427, range_asym:0.613, skew:0.4112, hf:0.011, dc:0.0003, shape_rms:0.193, span:0.696, thd:0.8044, centroid:2431.2, tilt:0.719, bright:0.154,
+   h:[6.86,0.87,0.35,0.27,0.42,0.34,0.25,0.28]},
+  {cc:115, crest:2.119, rms:0.202, peak:0.429, range_asym:0.598, skew:0.3042, hf:0.009, dc:-0.0001, shape_rms:0.202, span:0.718, thd:0.8169, centroid:2474.3, tilt:0.719, bright:0.089,
+   h:[7.11,0.85,0.34,0.20,0.16,0.21,0.23,0.15]},
+  {cc:120, crest:2.005, rms:0.211, peak:0.424, range_asym:0.579, skew:0.2317, hf:0.010, dc:-0.0007, shape_rms:0.211, span:0.732, thd:0.8249, centroid:2352.2, tilt:0.719, bright:0.168,
+   h:[6.97,0.83,0.40,0.41,0.47,0.44,0.34,0.19]},
+  {cc:125, crest:1.972, rms:0.214, peak:0.422, range_asym:0.573, skew:0.2020, hf:0.009, dc:-0.0001, shape_rms:0.214, span:0.737, thd:0.8314, centroid:2349.9, tilt:0.719, bright:0.108,
+   h:[7.18,0.85,0.39,0.34,0.37,0.29,0.16,0.13]},
+];
+
+const SWEEPS = [
+  { met: SAW_MET, color: '#f97316', glow: 'rgba(249,115,22,0.3)', label: 'Saw', freq: '39.3 Hz' },
+  { met: SQU_MET, color: '#8b5cf6', glow: 'rgba(139,92,246,0.3)', label: 'Square', freq: '49.8 Hz' },
+];
+
+// ==================== STATE ====================
+let pos = 0;
+let playing = false;
+let speed = 1;
+let animId = null;
+let lastTime = 0;
+
+// ==================== CONTROLS ====================
+const slider = document.getElementById('ccSlider');
+const ccDisplay = document.getElementById('ccDisplay');
+
+slider.addEventListener('input', function() {
+  pos = parseFloat(this.value);
+  updateAll();
+});
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? 'Pause' : 'Play';
+  document.getElementById('playBtn').classList.toggle('active', playing);
+  if (playing) {
+    lastTime = performance.now();
+    animate();
+  } else {
+    if (animId) cancelAnimationFrame(animId);
+  }
+}
+
+function setSpeed(s) {
+  speed = s;
+  document.getElementById('speed05').classList.toggle('active', s === 0.5);
+  document.getElementById('speed1').classList.toggle('active', s === 1);
+  document.getElementById('speed2').classList.toggle('active', s === 2);
+}
+
+function animate() {
+  if (!playing) return;
+  const now = performance.now();
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+  pos += dt * speed * 1.5; // traverse in ~17 seconds at 1x
+  if (pos > 25) pos = 0;
+  slider.value = pos;
+  updateAll();
+  animId = requestAnimationFrame(animate);
+}
+
+// ==================== INTERPOLATION ====================
+function interp(met, pos, key) {
+  const idx = Math.min(Math.floor(pos), 24);
+  const frac = pos - idx;
+  const v0 = met[idx][key];
+  const v1 = met[Math.min(idx + 1, 25)][key];
+  return v0 + (v1 - v0) * frac;
+}
+
+function interpArr(met, pos, key) {
+  const idx = Math.min(Math.floor(pos), 24);
+  const frac = pos - idx;
+  const a0 = met[idx][key];
+  const a1 = met[Math.min(idx + 1, 25)][key];
+  return a0.map((v, i) => v + (a1[i] - v) * frac);
+}
+
+function interpCC(pos) {
+  const idx = Math.min(Math.floor(pos), 24);
+  const frac = pos - idx;
+  return CC_VALUES[idx] + (CC_VALUES[Math.min(idx + 1, 25)] - CC_VALUES[idx]) * frac;
+}
+
+// ==================== CHART DRAWING ====================
+function drawDualChart(canvasId, key, pos, yMin, yMax, guides, formatFn) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 130 * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = 130;
+  const mg = { left: 42, right: 12, top: 8, bottom: 22 };
+  const pw = w - mg.left - mg.right, ph = h - mg.top - mg.bottom;
+  const maxIdx = 25;
+
+  // Clear
+  ctx.clearRect(0, 0, w, h);
+
+  // Region shading
+  // Saw: sine 0-55 (indices 0-11), knee 75-80 (indices 15-16), target 115-125 (indices 23-25)
+  // Show subtle background shading for regions
+  const sineEndIdx = 11; // CC 55
+  const kneeStartIdx = 15; // CC 75
+  const kneeEndIdx = 16; // CC 80
+  const targetStartIdx = 23; // CC 115
+
+  ctx.globalAlpha = 0.04;
+  // Sine zone
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(mg.left, mg.top, (sineEndIdx / maxIdx) * pw, ph);
+  // Knee zone
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillRect(mg.left + (kneeStartIdx / maxIdx) * pw, mg.top, ((kneeEndIdx - kneeStartIdx) / maxIdx) * pw, ph);
+  // Target zone
+  ctx.fillStyle = '#3b82f6';
+  ctx.fillRect(mg.left + (targetStartIdx / maxIdx) * pw, mg.top, ((maxIdx - targetStartIdx) / maxIdx) * pw, ph);
+  ctx.globalAlpha = 1;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(48,54,61,0.4)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = mg.top + ph / 4 * i;
+    ctx.beginPath(); ctx.moveTo(mg.left, y); ctx.lineTo(w - mg.right, y); ctx.stroke();
+  }
+
+  // Guides
+  if (guides) {
+    guides.forEach(function(g) {
+      const y = mg.top + ph * (1 - (g.val - yMin) / (yMax - yMin));
+      if (y >= mg.top && y <= mg.top + ph) {
+        ctx.strokeStyle = g.color;
+        ctx.globalAlpha = 0.35;
+        ctx.setLineDash([3,3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(mg.left, y); ctx.lineTo(w - mg.right, y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = g.color;
+        ctx.font = '8px JetBrains Mono';
+        ctx.textAlign = 'left';
+        ctx.fillText(g.label, mg.left + 2, y - 3);
+        ctx.globalAlpha = 1;
+      }
+    });
+  }
+
+  // Y labels
+  ctx.fillStyle = '#6e7681';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'right';
+  const fmt = formatFn || function(v) { return v.toFixed(2); };
+  for (let i = 0; i <= 4; i++) {
+    const v = yMin + (yMax - yMin) * (1 - i / 4);
+    ctx.fillText(fmt(v), mg.left - 4, mg.top + ph / 4 * i + 3);
+  }
+
+  // Draw both sweep traces
+  SWEEPS.forEach(function(S) {
+    const vals = S.met.map(function(m) { return m[key]; });
+    // Fill under curve
+    ctx.beginPath();
+    vals.forEach(function(v, i) {
+      var x = mg.left + (i / maxIdx) * pw;
+      var y = mg.top + ph * (1 - (v - yMin) / (yMax - yMin));
+      y = Math.max(mg.top, Math.min(mg.top + ph, y));
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(mg.left + pw, mg.top + ph);
+    ctx.lineTo(mg.left, mg.top + ph);
+    ctx.closePath();
+    ctx.fillStyle = S.glow.replace('0.3', '0.06');
+    ctx.fill();
+
+    // Line
+    ctx.strokeStyle = S.color;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    vals.forEach(function(v, i) {
+      var x = mg.left + (i / maxIdx) * pw;
+      var y = mg.top + ph * (1 - (v - yMin) / (yMax - yMin));
+      y = Math.max(mg.top, Math.min(mg.top + ph, y));
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Dots at data points
+    vals.forEach(function(v, i) {
+      var x = mg.left + (i / maxIdx) * pw;
+      var y = mg.top + ph * (1 - (v - yMin) / (yMax - yMin));
+      y = Math.max(mg.top, Math.min(mg.top + ph, y));
+      ctx.fillStyle = S.color;
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+
+  // Position marker
+  var curX = mg.left + (pos / maxIdx) * pw;
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2,2]);
+  ctx.beginPath(); ctx.moveTo(curX, mg.top); ctx.lineTo(curX, mg.top + ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Current value dots (larger, with border)
+  SWEEPS.forEach(function(S) {
+    var v = interp(S.met, pos, key);
+    var y = mg.top + ph * (1 - (v - yMin) / (yMax - yMin));
+    y = Math.max(mg.top, Math.min(mg.top + ph, y));
+    ctx.fillStyle = S.color;
+    ctx.beginPath();
+    ctx.arc(curX, y, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#0a0a0f';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // X labels
+  ctx.fillStyle = '#6e7681';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'center';
+  [0, 5, 10, 15, 20, 25].forEach(function(i) {
+    ctx.fillText(CC_VALUES[i], mg.left + (i / maxIdx) * pw, h - 3);
+  });
+}
+
+// ==================== HARMONICS CHART ====================
+function drawHarmonics(pos) {
+  var canvas = document.getElementById('harmonicsCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 200 * dpr;
+  ctx.scale(dpr, dpr);
+  var w = rect.width, h = 200;
+  var mg = { left: 42, right: 12, top: 12, bottom: 28 };
+  var pw = w - mg.left - mg.right, ph = h - mg.top - mg.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Get current harmonic values
+  var sawH = interpArr(SAW_MET, pos, 'h');
+  var squH = interpArr(SQU_MET, pos, 'h');
+
+  // Find max for scale
+  var allVals = sawH.concat(squH);
+  var yMax = Math.max.apply(null, allVals) * 1.15;
+  if (yMax < 1) yMax = 1;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(48,54,61,0.4)';
+  ctx.lineWidth = 0.5;
+  for (var i = 0; i <= 4; i++) {
+    var y = mg.top + ph / 4 * i;
+    ctx.beginPath(); ctx.moveTo(mg.left, y); ctx.lineTo(w - mg.right, y); ctx.stroke();
+  }
+
+  // Y labels
+  ctx.fillStyle = '#6e7681';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'right';
+  for (var i = 0; i <= 4; i++) {
+    var v = yMax * (1 - i / 4);
+    ctx.fillText(v.toFixed(1), mg.left - 4, mg.top + ph / 4 * i + 3);
+  }
+
+  // Draw grouped bars
+  var nHarmonics = 8;
+  var groupWidth = pw / nHarmonics;
+  var barWidth = groupWidth * 0.3;
+  var gap = groupWidth * 0.05;
+
+  for (var hi = 0; hi < nHarmonics; hi++) {
+    var groupX = mg.left + hi * groupWidth + groupWidth * 0.15;
+
+    // Saw bar (left in group)
+    var sawVal = sawH[hi];
+    var sawBarH = (sawVal / yMax) * ph;
+    var sawY = mg.top + ph - sawBarH;
+    ctx.fillStyle = 'rgba(249,115,22,0.7)';
+    ctx.fillRect(groupX, sawY, barWidth, sawBarH);
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(groupX, sawY, barWidth, sawBarH);
+
+    // Value label for saw
+    ctx.fillStyle = '#f97316';
+    ctx.font = '8px JetBrains Mono';
+    ctx.textAlign = 'center';
+    if (sawVal > 0.05) {
+      ctx.fillText(sawVal.toFixed(2), groupX + barWidth / 2, sawY - 3);
+    }
+
+    // Square bar (right in group)
+    var squVal = squH[hi];
+    var squBarH = (squVal / yMax) * ph;
+    var squY = mg.top + ph - squBarH;
+    ctx.fillStyle = 'rgba(139,92,246,0.7)';
+    ctx.fillRect(groupX + barWidth + gap, squY, barWidth, squBarH);
+    ctx.strokeStyle = '#8b5cf6';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(groupX + barWidth + gap, squY, barWidth, squBarH);
+
+    // Value label for square
+    ctx.fillStyle = '#8b5cf6';
+    ctx.font = '8px JetBrains Mono';
+    ctx.textAlign = 'center';
+    if (squVal > 0.05) {
+      ctx.fillText(squVal.toFixed(2), groupX + barWidth + gap + barWidth / 2, squY - 3);
+    }
+
+    // X label
+    ctx.fillStyle = '#6e7681';
+    ctx.font = '10px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('h' + (hi + 1), mg.left + hi * groupWidth + groupWidth / 2, h - 6);
+  }
+
+  // Legend
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(w - 160, mg.top + 2, 10, 3);
+  ctx.fillStyle = '#6e7681';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText('Saw', w - 146, mg.top + 7);
+
+  ctx.fillStyle = '#8b5cf6';
+  ctx.fillRect(w - 100, mg.top + 2, 10, 3);
+  ctx.fillStyle = '#6e7681';
+  ctx.fillText('Square', w - 86, mg.top + 7);
+}
+
+// ==================== READOUT PANEL ====================
+function updateReadout(pos) {
+  var keys = [
+    { k: 'crest', l: 'Crest' },
+    { k: 'rms', l: 'RMS' },
+    { k: 'peak', l: 'Peak' },
+    { k: 'range_asym', l: 'Asym' },
+    { k: 'skew', l: 'Skew' },
+    { k: 'hf', l: 'HF' },
+    { k: 'thd', l: 'THD' },
+    { k: 'centroid', l: 'Centroid' },
+    { k: 'tilt', l: 'Tilt' },
+    { k: 'bright', l: 'Bright' },
+  ];
+
+  var panels = [
+    { el: document.getElementById('readoutLeft'), met: SAW_MET, title: 'Sine \u2192 Saw (39.3 Hz)' },
+    { el: document.getElementById('readoutRight'), met: SQU_MET, title: 'Sine \u2192 Square (49.8 Hz)' },
+  ];
+
+  panels.forEach(function(p) {
+    var html = '<span class="readout-title">' + p.title + '</span>';
+    keys.forEach(function(kd) {
+      var v = interp(p.met, pos, kd.k);
+      var fmtV;
+      if (kd.k === 'centroid') fmtV = v.toFixed(0) + ' Hz';
+      else if (kd.k === 'skew') fmtV = (v >= 0 ? '+' : '') + v.toFixed(3);
+      else fmtV = v.toFixed(3);
+      html += '<span class="readout-item"><span class="rlbl">' + kd.l + '</span> <span class="rval">' + fmtV + '</span></span>';
+    });
+    p.el.innerHTML = html;
+  });
+}
+
+// ==================== DATA TABLES ====================
+function buildTable(met, cssClass) {
+  var cols = ['CC', 'Crest', 'RMS', 'Peak', 'Asym', 'Skew', 'HF', 'THD', 'Centroid', 'Tilt', 'Bright'];
+  var html = '<table class="data-table ' + cssClass + '"><thead><tr>';
+  cols.forEach(function(c) { html += '<th>' + c + '</th>'; });
+  html += '</tr></thead><tbody>';
+
+  met.forEach(function(m) {
+    html += '<tr>';
+    html += '<td>' + m.cc + '</td>';
+    html += '<td>' + m.crest.toFixed(3) + '</td>';
+    html += '<td>' + m.rms.toFixed(3) + '</td>';
+    html += '<td>' + m.peak.toFixed(3) + '</td>';
+    html += '<td>' + m.range_asym.toFixed(3) + '</td>';
+    html += '<td>' + (m.skew >= 0 ? '+' : '') + m.skew.toFixed(4) + '</td>';
+    html += '<td>' + m.hf.toFixed(3) + '</td>';
+    html += '<td>' + m.thd.toFixed(4) + '</td>';
+    html += '<td>' + m.centroid.toFixed(1) + '</td>';
+    html += '<td>' + m.tilt.toFixed(3) + '</td>';
+    html += '<td>' + m.bright.toFixed(3) + '</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  return html;
+}
+
+function toggleTable(which) {
+  var container, arrow;
+  if (which === 'saw') {
+    container = document.getElementById('tableSaw');
+    arrow = document.getElementById('arrowSaw');
+  } else {
+    container = document.getElementById('tableSqu');
+    arrow = document.getElementById('arrowSqu');
+  }
+  container.classList.toggle('collapsed');
+  arrow.classList.toggle('open');
+}
+
+// Initialize tables
+document.getElementById('tableSaw').innerHTML = buildTable(SAW_MET, 'left-table');
+document.getElementById('tableSqu').innerHTML = buildTable(SQU_MET, 'right-table');
+
+// ==================== UPDATE ALL ====================
+function updateAll() {
+  var cc = interpCC(pos);
+  ccDisplay.textContent = 'CC ' + Math.round(cc);
+
+  // Metric charts
+  drawDualChart('chart_crest', 'crest', pos, 1.0, 3.0,
+    [{ val: 1.414, color: '#22c55e', label: '\u221A2 sine = 1.414' }]);
+  drawDualChart('chart_rms', 'shape_rms', pos, 0.10, 0.25, null);
+  drawDualChart('chart_peak', 'peak', pos, 0.15, 0.50, null);
+  drawDualChart('chart_range_asym', 'range_asym', pos, 0.25, 0.80,
+    [{ val: 0.5, color: '#3b82f6', label: '0.5 symmetric' }]);
+  drawDualChart('chart_skew', 'skew', pos, -1.5, 1.5,
+    [{ val: 0, color: '#3b82f6', label: '0 symmetric' }]);
+  drawDualChart('chart_hf', 'hf', pos, 0.005, 0.020, null);
+  drawDualChart('chart_thd', 'thd', pos, 0.3, 1.3, null);
+  drawDualChart('chart_centroid', 'centroid', pos, 0, 4500, null,
+    function(v) { return v.toFixed(0); });
+  drawDualChart('chart_tilt', 'tilt', pos, 0.6, 0.75, null);
+
+  // Brightness
+  drawDualChart('chart_bright', 'bright', pos, 0, 0.6, null);
+
+  // Harmonics
+  drawHarmonics(pos);
+
+  // Readout
+  updateReadout(pos);
+}
+
+// ==================== RESIZE HANDLER ====================
+var resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() { updateAll(); }, 100);
+});
+
+// ==================== INIT ====================
+updateAll();
+</script>
+</body>
+</html>
