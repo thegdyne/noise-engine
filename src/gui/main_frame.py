@@ -1276,7 +1276,7 @@ class MainFrame(QMainWindow):
                     telemetry_controller=self.telemetry_controller,
                     device_name="Buchla 258",
                     cv_range=(0.0, 5.0),
-                    points=12,
+                    points=26,
                     slot=current_slot,
                     settle_ms=1000,  # 1 second settle time for accurate capture
                     vmax_calibrated=5.07,
