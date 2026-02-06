@@ -86,11 +86,12 @@ class FingerprintExtractor:
         )
 
         harm_ratio = fft_result['harm_ratio']
+        harm_ratio_raw = fft_result['harm_ratio_raw']
         phase_rel = fft_result['phase_rel']
         detected_freq = fft_result['freq_hz']
 
-        # Morphology metrics (time-domain + harmonic-derived)
-        morph = self._compute_morphology(waveform, harm_ratio)
+        # Morphology metrics use raw (requested-length) harmonics
+        morph = self._compute_morphology(waveform, harm_ratio_raw)
 
         # Quality metrics (time-domain from original waveform)
         rms = float(np.sqrt(np.mean(waveform ** 2)))
@@ -134,6 +135,7 @@ class FingerprintExtractor:
                 "spectral_peak_hz": fft_result['spectral_peak_hz'],
                 "spectral_centroid_hz": fft_result['spectral_centroid_hz'],
                 "spectral_tilt": fft_result['spectral_tilt'],
+                "spectral_tilt_slope": fft_result['spectral_tilt_slope'],
                 "num_harmonics_actual": fft_result['num_harmonics_actual'],
             },
             "quality": {
@@ -148,7 +150,7 @@ class FingerprintExtractor:
                 "delta_prev": {"l2_harm": 0.0, "l2_phase": 0.0, "l2_morph": 0.0}
             },
             "hash": {
-                "features_sha1": self._hash_features(harm_ratio, phase_rel, morph)
+                "features_sha1": self._hash_features(harm_ratio_raw, phase_rel, morph)
             }
         }
 

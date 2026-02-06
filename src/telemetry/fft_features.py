@@ -228,14 +228,13 @@ def compute_spectral_centroid(magnitudes: np.ndarray, sample_rate: int,
 
 
 def compute_spectral_tilt(magnitudes: np.ndarray, fund_bin: int,
-                          num_harmonics: int = 8) -> float:
+                          num_harmonics: int = 8) -> Tuple[float, float]:
     """Compute spectral tilt: linear regression of log magnitudes.
 
     Fits log10(magnitude) vs harmonic index (1..N).
-    Returns normalized 0..1:
-        0.0 = steeply falling (-1 slope)
-        0.5 = flat (0 slope)
-        1.0 = rising (+1 slope)
+    Returns (normalized, raw_slope):
+        normalized 0..1: -3 slope → 0.0, 0 slope → 0.75, +1 slope → 1.0
+        raw_slope: unclipped polyfit slope for diagnostics
     """
     mags = []
     indices = []
@@ -246,13 +245,15 @@ def compute_spectral_tilt(magnitudes: np.ndarray, fund_bin: int,
             indices.append(h)
 
     if len(mags) < 2:
-        return 0.5
+        return 0.5, 0.0
 
     log_mags = np.log10(np.array(mags) + EPS)
     indices_arr = np.array(indices, dtype=float)
 
     slope, _ = np.polyfit(indices_arr, log_mags, 1)
-    return round(float(np.clip((slope + 1) / 2, 0.0, 1.0)), 4)
+    raw_slope = round(float(slope), 4)
+    normalized = round(float(np.clip((slope + 3.0) / 4.0, 0.0, 1.0)), 4)
+    return normalized, raw_slope
 
 
 # =============================================================================
@@ -326,15 +327,19 @@ def compute_all(waveform: np.ndarray, freq_hz: Optional[float] = None,
     peak_info = find_spectral_peak(magnitudes, sample_rate, n_fft)
 
     # 5. Harmonics + phases
-    harm_ratio = extract_harmonics(magnitudes, fund_bin, num_harmonics)
-    phase_rel = extract_phases(phases, fund_bin, num_harmonics)
+    harm_ratio_raw = extract_harmonics(magnitudes, fund_bin, num_harmonics)
+    phase_rel_raw = extract_phases(phases, fund_bin, num_harmonics)
+
+    # Normalize to fixed length for batch compatibility (P0.1)
+    harm_ratio = normalize_harmonics(harm_ratio_raw, MAX_HARMONICS)
+    phase_rel = normalize_harmonics(phase_rel_raw, MAX_HARMONICS)
 
     # 6. THD
     thd, thd_valid = compute_thd(magnitudes, fund_bin, num_harmonics)
 
     # 7. Centroid + tilt + SNR
     centroid_hz = compute_spectral_centroid(magnitudes, sample_rate, n_fft)
-    tilt = compute_spectral_tilt(magnitudes, fund_bin, num_harmonics)
+    tilt, tilt_slope = compute_spectral_tilt(magnitudes, fund_bin, num_harmonics)
     snr_db = estimate_snr(magnitudes, fund_bin, num_harmonics)
 
     result = {
@@ -344,10 +349,12 @@ def compute_all(waveform: np.ndarray, freq_hz: Optional[float] = None,
         'fund_bin': fund_bin,
         'freq_hz': round(detected_freq, 2),
 
-        # Harmonics
+        # Harmonics (padded to MAX_HARMONICS for batch compatibility)
         'harm_ratio': harm_ratio,
+        'harm_ratio_raw': harm_ratio_raw,
         'phase_rel': phase_rel,
-        'num_harmonics_actual': len([r for r in harm_ratio if r > 0]) or len(harm_ratio),
+        'num_harmonics_requested': num_harmonics,
+        'num_harmonics_actual': len([r for r in harm_ratio_raw if r > 0]) or len(harm_ratio_raw),
 
         # THD (P0.2)
         'thd': thd,
@@ -361,6 +368,7 @@ def compute_all(waveform: np.ndarray, freq_hz: Optional[float] = None,
         # Spectral shape
         'spectral_centroid_hz': round(centroid_hz, 2),
         'spectral_tilt': tilt,
+        'spectral_tilt_slope': tilt_slope,
         'snr_db': round(snr_db, 1),
     }
 

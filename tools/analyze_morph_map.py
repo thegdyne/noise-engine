@@ -320,6 +320,7 @@ def compute_spectral_features(waveform: np.ndarray, freq_hz: Optional[float],
         return {
             'spectral_centroid_hz': result['spectral_centroid_hz'],
             'spectral_tilt': result['spectral_tilt'],
+            'spectral_tilt_slope': result['spectral_tilt_slope'],
             'spectral_peak_hz': result['spectral_peak_hz'],
             'spectral_peak_bin': result['spectral_peak_bin'],
             'spectral_peak_bin_frac': result['spectral_peak_bin_frac'],
@@ -332,6 +333,7 @@ def compute_spectral_features(waveform: np.ndarray, freq_hz: Optional[float],
         return {
             'spectral_centroid_hz': float('nan'),
             'spectral_tilt': float('nan'),
+            'spectral_tilt_slope': float('nan'),
             'spectral_peak_hz': float('nan'),
             'spectral_peak_bin': 0,
             'spectral_peak_bin_frac': 0.0,
@@ -971,7 +973,7 @@ def export_csv(points: List[dict], output_path: Path):
         'dc', 'rms', 'peak', 'crest', 'pos_peak', 'neg_peak', 'span', 'range_asym', 'hf',
         'shape_rms', 'shape_crest',
         'norm_crest', 'norm_range_asym', 'norm_hf', 'skew',
-        'spectral_centroid_hz', 'spectral_tilt', 'spectral_peak_hz', 'thd',
+        'spectral_centroid_hz', 'spectral_tilt', 'spectral_tilt_slope', 'spectral_peak_hz', 'thd',
         'waveform_n'
     ]
 
@@ -1294,6 +1296,7 @@ def patch_morph_map(filepath: Path, morph_map: dict,
         snap['snapshot']['spectral'] = {
             'spectral_centroid_hz': _json_num(p.get('spectral_centroid_hz')),
             'spectral_tilt': _json_num(p.get('spectral_tilt')),
+            'spectral_tilt_slope': _json_num(p.get('spectral_tilt_slope')),
             'spectral_peak_hz': _json_num(p.get('spectral_peak_hz')),
             'spectral_peak_bin': p.get('spectral_peak_bin', 0),
             'spectral_peak_bin_frac': p.get('spectral_peak_bin_frac', 0.0),
