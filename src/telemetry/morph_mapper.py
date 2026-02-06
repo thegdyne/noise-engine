@@ -35,6 +35,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import numpy as np
+
 from src.audio.telemetry_controller import TelemetryController
 from src.config import OSC_PATHS
 from src.hardware.midi_cv import MidiCV, find_preferred_port
@@ -67,7 +69,8 @@ class MorphMapper:
         midi_cc: int = 1,
         midi_channel: int = 0,
         vmax_calibrated: float = 5.0,  # R6
-        cv_mode: str = 'unipolar'  # R8-R10
+        cv_mode: str = 'unipolar',  # R8-R10
+        input_reference: Optional[Dict] = None  # P0.6
     ):
         """
         Initialize morph mapper with MIDI CV output.
@@ -89,6 +92,9 @@ class MorphMapper:
             midi_channel: MIDI channel 0-15 (0 = channel 1)
             vmax_calibrated: Measured max voltage at CC=127 (R6)
             cv_mode: 'unipolar' or 'bipolar' (R8-R10)
+            input_reference: Input signal description for non-oscillator
+                devices (P0.6). Required when device_type != 'oscillator'.
+                Example: {'type': 'sine', 'freq_hz': 440, 'level_dbfs': -6}
         """
         # Extract cv_range
         cv_min, cv_max = cv_range
@@ -137,6 +143,9 @@ class MorphMapper:
         self.input_gain = min(input_gain, 4.0)
         self.require_waveform = require_waveform
 
+        # P0.6: Input reference (required for non-oscillator types)
+        self.input_reference = input_reference
+
         # R5: Enhanced port detection
         self.midi_port = midi_port or find_preferred_port()
         self.midi_cc = midi_cc
@@ -173,11 +182,23 @@ class MorphMapper:
         - R15: Safety reset in finally
         - R16: 10s timeout
         """
+        # P0.6: Confirmation gate — non-oscillator types require input_reference
+        if self.device_type != 'oscillator' and self.input_reference is None:
+            raise ValueError(
+                f"input_reference is required for device_type='{self.device_type}'. "
+                f"Non-oscillator devices need a known input signal to interpret "
+                f"the captured output. Example: "
+                f"input_reference={{'type': 'sine', 'freq_hz': 440, 'level_dbfs': -6}}"
+            )
+
         logger.info(f"[Morph Mapper] Starting {self.points}-point MIDI CV sweep")
         logger.info(f"  Device: {self.device_name}")
+        logger.info(f"  Type: {self.device_type}")
         logger.info(f"  CV Range: {self.cv_min}V to {self.cv_max}V ({self.cv_mode})")
         logger.info(f"  MIDI: {self.midi_port}, CC{self.midi_cc}, Ch{self.midi_channel + 1}")
         logger.info(f"  Calibrated Vmax: {self.vmax}V")
+        if self.input_reference:
+            logger.info(f"  Input Reference: {self.input_reference}")
 
         start_time = time.time()
         self.snapshots = []
@@ -419,13 +440,14 @@ class MorphMapper:
                 'cv_mode': self.cv_mode
             },
             'snapshots': self.snapshots,
+            'input_reference': self.input_reference,
             'metadata': {
                 'interrupted': interrupted,
                 'total_time_sec': total_time,
                 'failed_points': failed_points,
                 'pack_used': 'external_telemetry/hw_profile_tap',
                 'telemetry_snapshot_version': 'TelemetryController.snapshot()',
-                'harmonic_analysis': 'FFT-based (_compute_hw_dna, 8 bands)'
+                'harmonic_analysis': 'FFT-based (fft_features SSOT, 8 bands)'
             }
         }
 

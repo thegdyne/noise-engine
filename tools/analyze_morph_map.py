@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-CV Sweep Waveform Analyzer v2 — Three-Track Decomposition
+CV Sweep Waveform Analyzer v3 — Three-Track Decomposition + Spectral Features
 
 General-purpose waveform-level analyzer for any hardware CV sweep capture.
 Decomposes sweep data into three independent tracks: Gain, DC, and Shape.
+Spectral features (centroid, tilt, peak, THD) computed via SSOT module.
 
 Works with any device type (oscillator morph, filter cutoff, waveshaper drive,
 VCA response) — the metrics and decomposition are waveform-universal.
@@ -24,7 +25,10 @@ Usage:
     # Suppress theoretical guides on plot
     python tools/analyze_morph_map.py maps/sweep.json --plot --no-guides
 
-No Noise Engine dependencies - uses only stdlib + numpy (matplotlib for --plot).
+    # Patch missing spectral fields back into morph map JSON
+    python tools/analyze_morph_map.py maps/sweep.json --patch-json
+
+Depends on: numpy, src.telemetry.fft_features (SSOT), matplotlib (--plot only)
 """
 
 import argparse
@@ -36,8 +40,28 @@ from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
 
+# Add project root to path for SSOT module import
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from src.telemetry.fft_features import (
+    compute_all as fft_compute_all,
+    normalize_harmonics,
+    MAX_HARMONICS,
+)
+
 # Numerical safety constant
 EPS = 1e-12
+
+# Device-type defaults (P0.7)
+DEVICE_DEFAULTS = {
+    'oscillator': {'num_harmonics': 8,  'region_detection': True,  'plot_guides': True},
+    'filter':     {'num_harmonics': 16, 'region_detection': False, 'plot_guides': False},
+    'wavefolder': {'num_harmonics': 16, 'region_detection': False, 'plot_guides': False},
+    'vca':        {'num_harmonics': 8,  'region_detection': False, 'plot_guides': False},
+    'effect':     {'num_harmonics': 16, 'region_detection': False, 'plot_guides': False},
+}
+
+# Analysis version tag for --patch-json
+ANALYSIS_VERSION = "fft_features.v1"
 
 
 # =============================================================================
@@ -80,9 +104,13 @@ def extract_metadata(morph_map: dict) -> dict:
     """
     snapshots = morph_map.get('snapshots', [])
 
+    # Device type: default to 'oscillator' if missing (P0.7)
+    raw_type = morph_map.get('device_type', 'oscillator')
+    device_type = raw_type if raw_type in DEVICE_DEFAULTS else 'oscillator'
+
     return {
         'device_name': morph_map.get('device_name', 'Unknown'),
-        'device_type': morph_map.get('device_type', 'unknown'),
+        'device_type': device_type,
         'cv_range': morph_map.get('cv_range', [0.0, 5.0]),
         'format_version': morph_map.get('format_version', 'unknown'),
         'points': morph_map.get('points', len(snapshots)),
@@ -264,18 +292,76 @@ def compute_hw_dna_fallback(snapshot: dict) -> dict:
 
 
 # =============================================================================
+# Spectral Feature Computation (SSOT)
+# =============================================================================
+
+def compute_spectral_features(waveform: np.ndarray, freq_hz: Optional[float],
+                              num_harmonics: int = 8,
+                              sample_rate: int = 48000) -> dict:
+    """
+    Compute spectral features from waveform via SSOT module.
+
+    Returns dict with centroid, tilt, spectral_peak, thd, etc.
+    Returns nan values if computation fails.
+    """
+    try:
+        result = fft_compute_all(
+            waveform, freq_hz=freq_hz,
+            sample_rate=sample_rate,
+            num_harmonics=num_harmonics
+        )
+        return {
+            'spectral_centroid_hz': result['spectral_centroid_hz'],
+            'spectral_tilt': result['spectral_tilt'],
+            'spectral_peak_hz': result['spectral_peak_hz'],
+            'spectral_peak_bin': result['spectral_peak_bin'],
+            'spectral_peak_bin_frac': result['spectral_peak_bin_frac'],
+            'thd': result['thd'],
+            'thd_valid': result['thd_valid'],
+            'harm_ratio_ssot': result['harm_ratio'],
+            'num_harmonics_actual': result['num_harmonics_actual'],
+        }
+    except Exception:
+        return {
+            'spectral_centroid_hz': float('nan'),
+            'spectral_tilt': float('nan'),
+            'spectral_peak_hz': float('nan'),
+            'spectral_peak_bin': 0,
+            'spectral_peak_bin_frac': 0.0,
+            'thd': float('nan'),
+            'thd_valid': False,
+            'harm_ratio_ssot': [],
+            'num_harmonics_actual': 0,
+        }
+
+
+def check_existing_spectral(snapshot: dict) -> Optional[dict]:
+    """
+    Check if spectral features already exist in snapshot (from --patch-json).
+
+    Returns dict if found, None if missing.
+    """
+    spectral = get_field(snapshot, 'snapshot.spectral')
+    if spectral and 'spectral_centroid_hz' in spectral:
+        return spectral
+    return None
+
+
+# =============================================================================
 # Data Point Processing
 # =============================================================================
 
-def process_snapshot(snap: dict) -> dict:
+def process_snapshot(snap: dict, num_harmonics: int = 8) -> dict:
     """
     Process a single snapshot into analysis data point.
 
     Returns dict with:
         - cv_voltage, midi_cc, freq (required)
         - All waveform metrics (if waveform available)
+        - Spectral features (from SSOT or existing data)
         - has_waveform flag
         - valid flag
+        - spectral_computed flag
     """
     # Required fields
     cv_voltage = snap.get('cv_voltage')
@@ -292,6 +378,7 @@ def process_snapshot(snap: dict) -> dict:
         'freq': freq if freq is not None else float('nan'),
         'valid': True,
         'has_waveform': False,
+        'spectral_computed': False,
     }
 
     # Try to extract and process waveform
@@ -300,6 +387,19 @@ def process_snapshot(snap: dict) -> dict:
         metrics = compute_waveform_metrics(waveform)
         point.update(metrics)
         point['has_waveform'] = True
+
+        # Check if spectral features already exist (from --patch-json)
+        existing = check_existing_spectral(snap)
+        if existing:
+            point.update(existing)
+        else:
+            # Compute via SSOT (P0.4)
+            spectral = compute_spectral_features(
+                waveform, freq_hz=freq,
+                num_harmonics=num_harmonics
+            )
+            point.update(spectral)
+            point['spectral_computed'] = True
     else:
         # Fallback to hw_dna
         fallback = compute_hw_dna_fallback(snap)
@@ -315,10 +415,10 @@ def process_snapshot(snap: dict) -> dict:
     return point
 
 
-def process_all_snapshots(morph_map: dict) -> List[dict]:
+def process_all_snapshots(morph_map: dict, num_harmonics: int = 8) -> List[dict]:
     """Process all snapshots into data points."""
     snapshots = morph_map.get('snapshots', [])
-    return [process_snapshot(snap) for snap in snapshots]
+    return [process_snapshot(snap, num_harmonics) for snap in snapshots]
 
 
 # =============================================================================
@@ -340,18 +440,19 @@ def compute_harm_brightness(harmonics: List[float]) -> float:
 
 
 # =============================================================================
-# Region Detection (Oscillator Sweeps Only)
+# Region Detection (Oscillator Sweeps Only — P0.7)
 # =============================================================================
 
 def detect_regions(points: List[dict], device_type: str) -> dict:
     """
     Automatically identify sweep regions for oscillator sweeps.
 
-    Only runs for device_type == "oscillator".
+    Only runs for device_type == "oscillator" (P0.7).
     Returns dict with detected region CC values (not indices) and metadata.
     """
-    if device_type != 'oscillator':
-        return {'enabled': False, 'reason': 'non-oscillator device type'}
+    defaults = DEVICE_DEFAULTS.get(device_type, DEVICE_DEFAULTS['oscillator'])
+    if not defaults['region_detection']:
+        return {'enabled': False, 'reason': f'disabled for device_type={device_type}'}
 
     # Filter valid points with waveform data
     valid_points = [(i, p) for i, p in enumerate(points)
@@ -465,7 +566,7 @@ def detect_regions(points: List[dict], device_type: str) -> dict:
 
 def compute_sweep_behavior(points: List[dict]) -> dict:
     """
-    Compute sweep behavior summary: start→end deltas and largest jumps.
+    Compute sweep behavior summary: start->end deltas and largest jumps.
 
     Returns dict with gain, dc, and shape track summaries.
     """
@@ -672,6 +773,42 @@ def print_harmonic_table(points: List[dict]):
     print()
 
 
+def print_spectral_table(points: List[dict]):
+    """Print spectral features table (centroid, tilt, peak, THD)."""
+    has_spectral = any(
+        not math.isnan(p.get('spectral_centroid_hz', float('nan')))
+        for p in points if p.get('valid') and p.get('has_waveform')
+    )
+    if not has_spectral:
+        return
+
+    print("=== SPECTRAL FEATURES (SSOT) ===")
+    print(f"{'Point':>5}  {'CC':>4}  {'Centroid':>9}  {'Tilt':>6}  "
+          f"{'PeakHz':>9}  {'THD':>7}  {'Valid':>5}")
+    print("-" * 58)
+
+    for i, p in enumerate(points):
+        if not p.get('valid') or not p.get('has_waveform'):
+            continue
+
+        centroid = p.get('spectral_centroid_hz', float('nan'))
+        tilt = p.get('spectral_tilt', float('nan'))
+        peak_hz = p.get('spectral_peak_hz', float('nan'))
+        thd = p.get('thd', float('nan'))
+        thd_valid = p.get('thd_valid', False)
+
+        def fmt(val, width=7, precision=1):
+            if isinstance(val, float) and math.isnan(val):
+                return " " * (width - 3) + "---"
+            return f"{val:>{width}.{precision}f}"
+
+        valid_str = "  yes" if thd_valid else "   no"
+        print(f"{i+1:>5}  {p['midi_cc']:>4}  {fmt(centroid, 9)}  {fmt(tilt, 6, 3)}  "
+              f"{fmt(peak_hz, 9)}  {fmt(thd, 7, 4)}  {valid_str}")
+
+    print()
+
+
 def print_region_analysis(regions: dict, points: List[dict]):
     """Print region analysis section."""
     if not regions.get('enabled'):
@@ -702,10 +839,10 @@ def print_region_analysis(regions: dict, points: List[dict]):
         crest_from = regions.get('knee_crest_from')
         crest_to = regions.get('knee_crest_to')
         if crest_from is not None and crest_to is not None:
-            print(f"Transition knee:    CC {knee_cc}→{knee_cc_to}  "
-                  f"(crest {crest_from:.2f}→{crest_to:.2f})")
+            print(f"Transition knee:    CC {knee_cc}->{knee_cc_to}  "
+                  f"(crest {crest_from:.2f}->{crest_to:.2f})")
         else:
-            print(f"Transition knee:    CC {knee_cc}→{knee_cc_to}")
+            print(f"Transition knee:    CC {knee_cc}->{knee_cc_to}")
     else:
         print("Transition knee:    not detected")
 
@@ -752,20 +889,20 @@ def print_sweep_behavior(behavior: dict):
 
     # Gain track
     g = behavior['gain']
-    print(f"Gain track:  ShapeRMS {g['shape_rms_start']:.3f}→{g['shape_rms_end']:.3f} "
+    print(f"Gain track:  ShapeRMS {g['shape_rms_start']:.3f}->{g['shape_rms_end']:.3f} "
           f"({g['shape_rms_change_pct']:+.1f}%), "
-          f"Peak {g['peak_start']:.3f}→{g['peak_end']:.3f} ({g['peak_change_pct']:+.1f}%)")
+          f"Peak {g['peak_start']:.3f}->{g['peak_end']:.3f} ({g['peak_change_pct']:+.1f}%)")
 
     # DC track
     d = behavior['dc']
-    print(f"DC track:    {d['start']:+.3f}→{d['end']:+.3f} "
+    print(f"DC track:    {d['start']:+.3f}->{d['end']:+.3f} "
           f"({d['drift']} drift, peak at CC{d['peak_cc']}: {d['peak_val']:+.3f})")
 
     # Shape track
     s = behavior['shape']
     hf_desc = "rising monotonically" if s['hf_rising'] else "non-monotonic"
-    print(f"Shape track: Crest {s['crest_start']:.2f}→{s['crest_end']:.2f}, "
-          f"HF {hf_desc}, Skew {s['skew_start']:+.2f}→{s['skew_end']:+.2f}")
+    print(f"Shape track: Crest {s['crest_start']:.2f}->{s['crest_end']:.2f}, "
+          f"HF {hf_desc}, Skew {s['skew_start']:+.2f}->{s['skew_end']:+.2f}")
 
     print()
 
@@ -801,6 +938,7 @@ def print_console_output(filepath: str, morph_map: dict, points: List[dict],
     print_three_track_table(points)
     print_shape_invariant_table(points)
     print_harmonic_table(points)
+    print_spectral_table(points)
 
     if regions.get('enabled'):
         print_region_analysis(regions, points)
@@ -826,6 +964,7 @@ def export_csv(points: List[dict], output_path: Path):
         'dc', 'rms', 'peak', 'crest', 'pos_peak', 'neg_peak', 'span', 'range_asym', 'hf',
         'shape_rms', 'shape_crest',
         'norm_crest', 'norm_range_asym', 'norm_hf', 'skew',
+        'spectral_centroid_hz', 'spectral_tilt', 'spectral_peak_hz', 'thd',
         'waveform_n'
     ]
 
@@ -864,7 +1003,7 @@ def _ratio_ok(arr: np.ndarray, threshold: float = 0.5) -> bool:
 def generate_plot(points_list: List[List[dict]], labels: List[str],
                  output_path: Path, device_type: str, show_guides: bool):
     """
-    Generate five-row analysis plot.
+    Generate six-row analysis plot.
 
     Each plotted metric requires >= 50% valid points; otherwise that trace
     is omitted and a warning is printed.
@@ -884,9 +1023,13 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
         print("Install with: pip install matplotlib")
         return
 
+    # Determine guide visibility from device type (P0.7)
+    defaults = DEVICE_DEFAULTS.get(device_type, DEVICE_DEFAULTS['oscillator'])
+    show_guides = show_guides and defaults['plot_guides']
+
     n_sweeps = len(points_list)
-    fig = plt.figure(figsize=(8 * n_sweeps, 15))
-    gs = gridspec.GridSpec(5, n_sweeps, hspace=0.3, wspace=0.2)
+    fig = plt.figure(figsize=(8 * n_sweeps, 18))
+    gs = gridspec.GridSpec(6, n_sweeps, hspace=0.3, wspace=0.2)
 
     colors = ['#2196F3', '#FF5722']  # Blue, Orange
     skipped_warnings = []
@@ -915,6 +1058,7 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
         pos_peaks   = np.array([_wf_val(p, 'pos_peak')   for p in base], dtype=float)
         neg_peaks   = np.array([_wf_val(p, 'neg_peak')   for p in base], dtype=float)
         hfs         = np.array([_wf_val(p, 'hf')         for p in base], dtype=float)
+        spec_peaks  = np.array([_wf_val(p, 'spectral_peak_hz') for p in base], dtype=float)
 
         # Row 1: Gain Track - ShapeRMS + Peak (gate on both)
         ax1 = fig.add_subplot(gs[0, sweep_idx])
@@ -953,8 +1097,8 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
         if _ratio_ok(crests):
             ax3.plot(ccs, crests, 'o-', color=colors[0], label='Crest Factor', linewidth=2)
 
-            # Theoretical guides for oscillators (with right margin for text)
-            if show_guides and device_type == 'oscillator':
+            # Theoretical guides for oscillators (P0.7)
+            if show_guides:
                 guides = {
                     'sine': np.sqrt(2),      # ~1.414
                     'saw': np.sqrt(3),       # ~1.732
@@ -1004,6 +1148,19 @@ def generate_plot(points_list: List[List[dict]], labels: List[str],
         ax5.set_ylabel('HF (Edge Sharpness)')
         ax5.set_title(f'{label} - HF Energy')
         ax5.grid(True, alpha=0.3)
+
+        # Row 6: Spectral Peak Frequency (gate)
+        ax6 = fig.add_subplot(gs[5, sweep_idx])
+        if _ratio_ok(spec_peaks):
+            ax6.plot(ccs, spec_peaks, 'o-', color=colors[0], label='Spectral Peak', linewidth=2)
+        else:
+            skipped_warnings.append(f"{label} Row 6: <50% valid for Spectral Peak")
+            ax6.text(0.5, 0.5, 'Insufficient data', ha='center', va='center',
+                    transform=ax6.transAxes, fontsize=12, color='gray')
+        ax6.set_xlabel('MIDI CC')
+        ax6.set_ylabel('Frequency (Hz)')
+        ax6.set_title(f'{label} - Spectral Peak')
+        ax6.grid(True, alpha=0.3)
 
     # Print warnings for skipped traces
     for warning in skipped_warnings:
@@ -1100,12 +1257,75 @@ def align_sweeps(points_a: List[dict], points_b: List[dict]) -> Tuple[List[dict]
 
 
 # =============================================================================
+# Patch JSON (P0.5)
+# =============================================================================
+
+def patch_morph_map(filepath: Path, morph_map: dict,
+                    points: List[dict], num_harmonics: int) -> bool:
+    """
+    Write computed spectral fields back into morph map JSON (opt-in only).
+
+    Tags patched files with analysis_version and fft_params.
+    Returns True if file was modified.
+    """
+    snapshots = morph_map.get('snapshots', [])
+    patched_count = 0
+
+    for i, snap in enumerate(snapshots):
+        if i >= len(points):
+            break
+
+        p = points[i]
+        if not p.get('has_waveform') or not p.get('spectral_computed'):
+            continue
+
+        # Ensure snapshot dict exists
+        if 'snapshot' not in snap or snap['snapshot'] is None:
+            continue
+
+        # Write spectral features
+        snap['snapshot']['spectral'] = {
+            'spectral_centroid_hz': p.get('spectral_centroid_hz', float('nan')),
+            'spectral_tilt': p.get('spectral_tilt', float('nan')),
+            'spectral_peak_hz': p.get('spectral_peak_hz', float('nan')),
+            'spectral_peak_bin': p.get('spectral_peak_bin', 0),
+            'spectral_peak_bin_frac': p.get('spectral_peak_bin_frac', 0.0),
+            'thd': p.get('thd', float('nan')),
+            'thd_valid': p.get('thd_valid', False),
+            'num_harmonics_actual': p.get('num_harmonics_actual', 0),
+        }
+        patched_count += 1
+
+    if patched_count == 0:
+        print("No snapshots needed patching.")
+        return False
+
+    # Tag metadata
+    if 'metadata' not in morph_map:
+        morph_map['metadata'] = {}
+    morph_map['metadata']['analysis_version'] = ANALYSIS_VERSION
+    morph_map['metadata']['fft_params'] = {
+        'window': 'hann',
+        'zero_pad': False,
+        'num_harmonics': num_harmonics,
+    }
+
+    # Write back
+    with open(filepath, 'w') as f:
+        json.dump(morph_map, f, indent=2)
+
+    print(f"Patched {patched_count} snapshots in {filepath}")
+    print(f"  Tagged with analysis_version={ANALYSIS_VERSION}")
+    return True
+
+
+# =============================================================================
 # Main Entry Point
 # =============================================================================
 
 def main():
     parser = argparse.ArgumentParser(
-        description='CV Sweep Waveform Analyzer v2 — Three-Track Decomposition',
+        description='CV Sweep Waveform Analyzer v3 — Three-Track + Spectral',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1114,6 +1334,7 @@ Examples:
   python tools/analyze_morph_map.py maps/sweep.json --plot
   python tools/analyze_morph_map.py maps/A.json maps/B.json --plot
   python tools/analyze_morph_map.py maps/sweep.json --plot --no-guides
+  python tools/analyze_morph_map.py maps/sweep.json --patch-json
 """
     )
 
@@ -1124,6 +1345,8 @@ Examples:
                        help='Generate PNG plot (optional: specify path)')
     parser.add_argument('--no-guides', action='store_true',
                        help='Suppress theoretical crest guides on plot')
+    parser.add_argument('--patch-json', action='store_true',
+                       help='Write computed spectral fields back into morph map JSON (P0.5)')
 
     args = parser.parse_args()
 
@@ -1147,8 +1370,14 @@ Examples:
 
     for fp in filepaths:
         morph_map = load_morph_map(str(fp))
-        points = process_all_snapshots(morph_map)
         metadata = extract_metadata(morph_map)
+
+        # Device-aware harmonic count (P0.7)
+        device_type = metadata['device_type']
+        defaults = DEVICE_DEFAULTS.get(device_type, DEVICE_DEFAULTS['oscillator'])
+        num_harmonics = defaults['num_harmonics']
+
+        points = process_all_snapshots(morph_map, num_harmonics)
 
         all_morph_maps.append(morph_map)
         all_points.append(points)
@@ -1161,12 +1390,25 @@ Examples:
     filepath = filepaths[0]
     device_type = metadata['device_type']
 
+    # P0.5: Warn about missing fields that were computed in-memory
+    computed_count = sum(1 for p in points if p.get('spectral_computed'))
+    if computed_count > 0 and not args.patch_json:
+        print(f"Note: {computed_count} snapshots had spectral features computed in-memory.")
+        print(f"  Use --patch-json to write these fields back to the JSON file.\n")
+
     # Compute analysis
     regions = detect_regions(points, device_type)
     behavior = compute_sweep_behavior(points)
 
     # Console output
     print_console_output(str(filepath), morph_map, points, metadata, regions, behavior)
+
+    # --patch-json (P0.5)
+    if args.patch_json:
+        defaults = DEVICE_DEFAULTS.get(device_type, DEVICE_DEFAULTS['oscillator'])
+        for i, fp in enumerate(filepaths):
+            patch_morph_map(fp, all_morph_maps[i], all_points[i],
+                          defaults['num_harmonics'])
 
     # CSV export
     if args.csv:
