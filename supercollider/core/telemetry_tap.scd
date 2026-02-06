@@ -137,6 +137,24 @@
             { ~intermediateBus[idx].index };  // default
     };
 
+    // --- 3. Hardware Send SynthDef (Audio -> Physical Outputs) ---
+    // Routes intermediate bus audio to configurable MOTU physical outputs.
+    // Parallel consumer of the same tap point as telemetry.
+    SynthDef(\forge_hardware_send, { |inBus, outPair=1, gainDB=0|
+        var sig, baseChan;
+
+        // Belt-and-braces: block invalid outPair (Python already validates)
+        if (outPair < 1, {
+            "*** forge_hardware_send: outPair < 1 (%), ignoring".format(outPair).postln;
+        }, {
+            sig = In.ar(inBus, 2);
+            baseChan = 2 + ((outPair - 1) * 2);
+            sig = sig * gainDB.dbamp.lag(0.05);
+            sig = Limiter.ar(sig, 0.95, 0.01);
+            Out.ar(baseChan, sig);
+        });
+    }).add;
+
     "[Telemetry] Infrastructure loaded".postln;
 };
 
@@ -298,9 +316,61 @@
         8.do { |i|
             ~telemetry[\freeWaveBuffer].value(i);
             if (~telemetry.tapSynths[i].notNil) { ~telemetry.tapSynths[i].free; ~telemetry.tapSynths[i] = nil; };
+            // Clean up hardware send synths
+            if (~hardwareSendSynths.notNil && ~hardwareSendSynths[i].notNil) {
+                ~hardwareSendSynths[i].free; ~hardwareSendSynths[i] = nil;
+            };
         };
-        [\telemEnable, \telemTapEnable, \telemSource, \telemGen, \telemWaveEnable, \telemWaveReady, \telemHwWave].do { |key| OSCdef(key).free; };
+        [\telemEnable, \telemTapEnable, \telemSource, \telemGen, \telemWaveEnable, \telemWaveReady, \telemHwWave, \hwSendEnable, \hwSendDisable].do { |key| OSCdef(key).free; };
         "[Telemetry] Cleaned up".postln;
     };
     "[Telemetry] Tap booted".postln;
+};
+
+~bootHardwareSend = {
+    // Initialize synth tracking array (8 slots, nil = no active send)
+    ~hardwareSendSynths = Array.fill(8, { nil });
+
+    // Enable hardware send: spawn forge_hardware_send synth for slot
+    OSCdef(\hwSendEnable, { |msg|
+        var slot = msg[1].asInteger;
+        var outPair = msg[2].asInteger;
+        var gainDB = msg[3].asFloat;
+        var idx = slot;  // 0-based from Python
+
+        if ((idx >= 0) && (idx < 8)) {
+            // Free existing synth for this slot to prevent dupes
+            if (~hardwareSendSynths[idx].notNil) {
+                ~hardwareSendSynths[idx].free;
+                ~hardwareSendSynths[idx] = nil;
+            };
+
+            if (~intermediateBus[idx].notNil) {
+                ~hardwareSendSynths[idx] = Synth(\forge_hardware_send, [
+                    \inBus, ~intermediateBus[idx].index,
+                    \outPair, outPair,
+                    \gainDB, gainDB
+                ], ~fxGroup, \addAfter);
+                "[HW Send] Enabled slot % -> outPair % (gain: % dB)".format(idx, outPair, gainDB).postln;
+            } {
+                "[HW Send] No intermediate bus for slot %".format(idx).postln;
+            };
+        };
+    }, '/noise/telem/hw_send/enable');
+
+    // Disable hardware send: free synth for slot
+    OSCdef(\hwSendDisable, { |msg|
+        var slot = msg[1].asInteger;
+        var idx = slot;  // 0-based from Python
+
+        if ((idx >= 0) && (idx < 8)) {
+            if (~hardwareSendSynths[idx].notNil) {
+                ~hardwareSendSynths[idx].free;
+                ~hardwareSendSynths[idx] = nil;
+                "[HW Send] Disabled slot %".format(idx).postln;
+            };
+        };
+    }, '/noise/telem/hw_send/disable');
+
+    "[HW Send] Hardware send booted".postln;
 };
