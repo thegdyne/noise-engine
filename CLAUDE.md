@@ -233,6 +233,26 @@ When making code changes:
 ### Key Docs
 
 - `PROCESS.md` — Lean workflow rules
-- `BACKLOG.md` — Active work tracking  
+- `BACKLOG.md` — Active work tracking
 - `docs/IDEAS.md` — All captured feature ideas
 - `docs/rollout/` — Phased rollout plans for large features
+
+## STATE.md Maintenance
+
+After any commit that touches these paths: `src/`, `supercollider/`, `packs/`, `tools/`:
+1. Update `STATE.md` with the current truth
+2. Include it in the commit
+
+Escape hatch (rare): if you intentionally skip STATE.md, add `STATE_SKIP: <reason>` as its own line in the commit message (starts at column 1).
+
+Rules:
+- Always update **Last updated** date when touching STATE.md
+- STATE.md describes what IS, not what WAS — no history narrative
+- Subsystem status comes from the CODE, not from chat conversations
+- Status values are an enum: Stable, Active, Built-unused, Planned, Blocked — no variants
+- Only track actively-changing subsystems — remove rows when systems stabilise
+- Active Concepts is where "latest approach" information lives — one line per concept
+- Recent Changes: one line per session, keep last 10, prune oldest
+- Known Issues: update `last_seen` date when re-confirmed; remove when fixed; move to BACKLOG.md if stale 30+ days
+- If unsure whether something changed, check the code and update accordingly
+- Do NOT update docs/index.html — that's managed separately via ssot.sh

@@ -95,6 +95,51 @@ fi
 echo ""
 echo "═══════════════════════════════════════════════════"
 
+# ─────────────────────────────────────────────────────
+# 5. STATE.md Freshness Check
+# ─────────────────────────────────────────────────────
+echo "┌─────────────────────────────────────────────────┐"
+echo "│  📋 STATE.md FRESHNESS CHECK                    │"
+echo "└─────────────────────────────────────────────────┘"
+
+if [ -f STATE.md ]; then
+  state_age_days=""
+
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    # last commit touching STATE.md (more meaningful than filesystem mtime)
+    last_ts="$(git log -1 --format=%ct -- STATE.md 2>/dev/null || true)"
+    if [ -n "$last_ts" ]; then
+      now_ts="$(date +%s)"
+      delta=$(( now_ts - last_ts ))
+      [ "$delta" -lt 0 ] && delta=0
+      state_age_days=$(( delta / 86400 ))
+    fi
+  fi
+
+  if [ -z "$state_age_days" ]; then
+    # fallback to filesystem mtime (BSD vs GNU stat)
+    if stat -c %Y STATE.md >/dev/null 2>&1; then
+      last_ts="$(stat -c %Y STATE.md)"
+    else
+      last_ts="$(stat -f %m STATE.md)"
+    fi
+    now_ts="$(date +%s)"
+    delta=$(( now_ts - last_ts ))
+    [ "$delta" -lt 0 ] && delta=0
+    state_age_days=$(( delta / 86400 ))
+  fi
+
+  if [ "$state_age_days" -gt 7 ]; then
+    echo "⚠️  STATE.md is ${state_age_days} days old — may be stale"
+  else
+    echo "✅ STATE.md updated ${state_age_days} days ago"
+  fi
+else
+  echo "❌ STATE.md not found"
+fi
+
+echo ""
+
 # Check if index.html changed
 if git diff --quiet docs/index.html 2>/dev/null; then
     echo "📋 No badge changes needed"
