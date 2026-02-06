@@ -14,11 +14,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from src.telemetry.fft_features import (
-    compute_all as fft_compute_all,
-    normalize_harmonics,
-    MAX_HARMONICS,
-)
+from src.telemetry.fft_features import compute_all as fft_compute_all
 
 
 class FingerprintExtractor:

@@ -61,7 +61,9 @@ def find_fundamental_bin(magnitudes: np.ndarray, freq_hz: Optional[float],
         freq_hz = float(fund_bin * sample_rate / n_fft)
     else:
         fund_bin = int(round(freq_hz * n_fft / sample_rate))
-        fund_bin = max(1, fund_bin)
+        max_bin = len(magnitudes) - 1
+        fund_bin = int(np.clip(fund_bin, 1, max_bin))
+        freq_hz = float(fund_bin * sample_rate / n_fft)
 
     return fund_bin, freq_hz
 
@@ -175,7 +177,7 @@ def compute_thd(magnitudes: np.ndarray, fund_bin: int,
                 num_harmonics: int = 8) -> Tuple[float, bool]:
     """Compute THD referenced to spectral peak (V1 — single reference).
 
-    THD = sqrt(sum(harmonic_bins² excluding peak)) / peak_mag
+    THD = sqrt(sum(harmonic_bins² excluding peak and fundamental)) / peak_mag
 
     Returns:
         (thd, thd_valid) — ratio 0..inf, validity flag.
@@ -191,11 +193,11 @@ def compute_thd(magnitudes: np.ndarray, fund_bin: int,
     if peak_mag < EPS:
         return float('nan'), False
 
-    # Sum harmonic power excluding peak bin
+    # Sum harmonic power excluding peak bin and fundamental bin
     harmonic_power = 0.0
     for h in range(1, num_harmonics + 1):
         bin_idx = fund_bin * h
-        if bin_idx < len(magnitudes) and bin_idx != peak_bin:
+        if bin_idx < len(magnitudes) and bin_idx not in (peak_bin, fund_bin):
             harmonic_power += magnitudes[bin_idx] ** 2
 
     thd = float(np.sqrt(harmonic_power) / peak_mag)
@@ -284,7 +286,8 @@ def estimate_snr(magnitudes: np.ndarray, fund_bin: int,
 
 def compute_all(waveform: np.ndarray, freq_hz: Optional[float] = None,
                 sample_rate: int = 48000,
-                num_harmonics: int = 8) -> Dict:
+                num_harmonics: int = 8,
+                include_raw: bool = False) -> Dict:
     """Compute all FFT features from a waveform.
 
     This is the primary entry point. Both FingerprintExtractor and
@@ -304,11 +307,9 @@ def compute_all(waveform: np.ndarray, freq_hz: Optional[float] = None,
         freq_hz: Known fundamental (None = auto-detect)
         sample_rate: Sample rate in Hz
         num_harmonics: Number of harmonics to extract
-
-    Returns:
-        Dict with all spectral features. Includes 'magnitudes' and
-        'phases' arrays for callers that need raw data (strip before
-        serializing to JSON).
+        include_raw: If True, include 'magnitudes' and 'phases' numpy
+            arrays in the result. Default False to prevent accidental
+            JSON serialization failures.
     """
     w = np.asarray(waveform, dtype=np.float64)
     n_fft = len(w)
@@ -336,7 +337,7 @@ def compute_all(waveform: np.ndarray, freq_hz: Optional[float] = None,
     tilt = compute_spectral_tilt(magnitudes, fund_bin, num_harmonics)
     snr_db = estimate_snr(magnitudes, fund_bin, num_harmonics)
 
-    return {
+    result = {
         # FFT parameters
         'n_fft': n_fft,
         'window': 'hann',
@@ -361,8 +362,10 @@ def compute_all(waveform: np.ndarray, freq_hz: Optional[float] = None,
         'spectral_centroid_hz': round(centroid_hz, 2),
         'spectral_tilt': tilt,
         'snr_db': round(snr_db, 1),
-
-        # Raw arrays (strip before JSON serialization)
-        'magnitudes': magnitudes,
-        'phases': phases,
     }
+
+    if include_raw:
+        result['magnitudes'] = magnitudes
+        result['phases'] = phases
+
+    return result

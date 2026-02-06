@@ -440,14 +440,14 @@ class MorphMapper:
                 'cv_mode': self.cv_mode
             },
             'snapshots': self.snapshots,
-            'input_reference': self.input_reference,
             'metadata': {
                 'interrupted': interrupted,
                 'total_time_sec': total_time,
                 'failed_points': failed_points,
                 'pack_used': 'external_telemetry/hw_profile_tap',
                 'telemetry_snapshot_version': 'TelemetryController.snapshot()',
-                'harmonic_analysis': 'FFT-based (fft_features SSOT, 8 bands)'
+                'harmonic_analysis': 'FFT-based (fft_features SSOT, 8 bands)',
+                'input_reference': self.input_reference,
             }
         }
 

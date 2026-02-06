@@ -51,6 +51,13 @@ from src.telemetry.fft_features import (
 # Numerical safety constant
 EPS = 1e-12
 
+
+def _json_num(x):
+    """Sanitize float for JSON: NaN → None."""
+    if isinstance(x, float) and math.isnan(x):
+        return None
+    return x
+
 # Device-type defaults (P0.7)
 DEVICE_DEFAULTS = {
     'oscillator': {'num_harmonics': 8,  'region_detection': True,  'plot_guides': True},
@@ -1283,14 +1290,14 @@ def patch_morph_map(filepath: Path, morph_map: dict,
         if 'snapshot' not in snap or snap['snapshot'] is None:
             continue
 
-        # Write spectral features
+        # Write spectral features (NaN → None for valid JSON)
         snap['snapshot']['spectral'] = {
-            'spectral_centroid_hz': p.get('spectral_centroid_hz', float('nan')),
-            'spectral_tilt': p.get('spectral_tilt', float('nan')),
-            'spectral_peak_hz': p.get('spectral_peak_hz', float('nan')),
+            'spectral_centroid_hz': _json_num(p.get('spectral_centroid_hz')),
+            'spectral_tilt': _json_num(p.get('spectral_tilt')),
+            'spectral_peak_hz': _json_num(p.get('spectral_peak_hz')),
             'spectral_peak_bin': p.get('spectral_peak_bin', 0),
             'spectral_peak_bin_frac': p.get('spectral_peak_bin_frac', 0.0),
-            'thd': p.get('thd', float('nan')),
+            'thd': _json_num(p.get('thd')),
             'thd_valid': p.get('thd_valid', False),
             'num_harmonics_actual': p.get('num_harmonics_actual', 0),
         }
