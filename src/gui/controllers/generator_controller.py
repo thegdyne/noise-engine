@@ -164,8 +164,13 @@ class GeneratorController:
     
     def on_generator_changed(self, slot_id, new_type):
         """Handle generator type change from CycleButton."""
+        # P0 safety: disable hardware send before swapping generator
+        # Prevents lingering synths routing stale audio to hardware outputs
+        if self.main.telemetry_controller is not None:
+            self.main.telemetry_controller.disable_hardware_send(slot_id - 1)
+
         synth_name = GENERATORS.get(new_type)
-        
+
         self.main.generator_grid.set_generator_type(slot_id, new_type)
         
         if synth_name:

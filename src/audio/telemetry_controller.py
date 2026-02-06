@@ -480,6 +480,9 @@ class TelemetryController(QObject):
         self._last_poison_reason = None
         self._poison_log_skip = 0
 
+        # Hardware send tracking (slot -> {output_pair, level_db})
+        self.hardware_sends = {}
+
         # Ideal overlay generator
         self.ideal = IdealOverlay(1024)
 
@@ -653,6 +656,33 @@ class TelemetryController(QObject):
             self.osc.send('telem_source', [slot_idx, source_id])
 
         logger.info(f"[Telemetry] Source: {self._source_names[source_id]}")
+
+    # -----------------------------------------------------------------
+    # Hardware send (route intermediate bus to physical outputs)
+    # -----------------------------------------------------------------
+
+    def enable_hardware_send(self, slot: int, output_pair: int = 1, level_db: float = 0.0):
+        """Route slot intermediate bus to physical outputs.
+
+        Default 0.0 dB is transparent; -6.0 dB recommended for sensitive hardware profiling.
+        """
+        if not (0 <= slot < 8):
+            raise ValueError(f"slot must be 0-7, got {slot}")
+        if not isinstance(output_pair, int) or output_pair < 1:
+            raise ValueError(f"output_pair must be int >= 1, got {output_pair}")
+        if not (-40.0 <= level_db <= 6.0):
+            raise ValueError(f"level_db must be -40 to +6, got {level_db}")
+
+        self.osc.send('hw_send_enable', [slot, output_pair, level_db])
+        self.hardware_sends[slot] = {'output_pair': output_pair, 'level_db': level_db}
+        logger.info(f"[HW Send] Enabled slot {slot} -> output_pair {output_pair} ({level_db} dB)")
+
+    def disable_hardware_send(self, slot: int):
+        """Disable hardware send for slot."""
+        if slot in self.hardware_sends:
+            self.osc.send('hw_send_disable', [slot])
+            del self.hardware_sends[slot]
+            logger.info(f"[HW Send] Disabled slot {slot}")
 
     @property
     def is_hw_mode(self) -> bool:

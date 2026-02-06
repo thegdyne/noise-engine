@@ -221,6 +221,9 @@ s.waitForBoot({
     // Boot telemetry tap (after endstage infra provides ~intermediateBus + ~generators)
     ~bootTelemetryTap.();
 
+    // Boot hardware send (after telemetry tap, uses same ~intermediateBus)
+    ~bootHardwareSend.();
+
     ~startFxMixer.();
     ~setupFxMixerOSC.();
     ~startFxSlots.();        // Initialize FX slots with default types
@@ -255,6 +258,7 @@ s.waitForBoot({
     "[x] 8 cross-mod buses ready".postln;
     "[x] Scope tap ready (ping-pong v0.8.15, 1024 samples)".postln;
     "[x] Telemetry tap ready (dev tool)".postln;
+    "[x] Hardware send ready (outputs 3-6)".postln;
     "[x] Boid modulation ready (via bus unification)".postln;
     ("[x] OSC listening on port " ++ ~scListenPort).postln;
     "========================================".postln;
