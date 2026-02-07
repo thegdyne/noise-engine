@@ -179,7 +179,7 @@ SynthDef(\modLFO, {
 
     // Calculate LFO frequency from BPM and clock rate
     // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
-    clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+    clockMults = [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
     clockMult = Select.kr(clkIdxClamped, clockMults);
     clkFreq = In.kr(bpmBus).max(1) / 60 * clockMult;
 
