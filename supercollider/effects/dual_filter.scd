@@ -88,6 +88,8 @@ Features:
         var harmonicRatios, syncedFreq2;
         var lfo1, lfo2, tempoHz;
         var driveEff, freq1Eff, freq2Eff, reso1Eff, reso2Eff, syncAmtEff, harmonicsEff, mixEff;
+        var allTrigs, sync1On, sync1IdxClamped, sync1Trig, sync1TrigK, phase1;
+        var sync2On, sync2IdxClamped, sync2Trig, sync2TrigK, phase2;
 
         // Bus unification: read from bus if valid index, otherwise use direct arg
         driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
@@ -107,25 +109,25 @@ Features:
 
         // Phase-locked triangle LFOs using clock trigger reset
         // sync1Idx/sync2Idx: -1 = off, 0-12 = clock rate index
-        var allTrigs = In.ar(clockTrigBus, 13);
+        allTrigs = In.ar(clockTrigBus, 13);
 
         // LFO 1: phase-locked to clock
-        var sync1On = (sync1Idx >= 0);
-        var sync1IdxClamped = sync1Idx.clip(0, 12);
-        var sync1Trig = Select.ar(sync1IdxClamped, allTrigs) * sync1On;  // Gate when off
-        var sync1TrigK = A2K.kr(Trig1.ar(sync1Trig, ControlDur.ir * 2));
-        var phase1 = Phasor.kr(sync1TrigK, sync1Rate * tempoHz * ControlDur.ir, 0, 1, 0);
+        sync1On = (sync1Idx >= 0);
+        sync1IdxClamped = sync1Idx.clip(0, 12);
+        sync1Trig = Select.ar(sync1IdxClamped, allTrigs) * sync1On;  // Gate when off
+        sync1TrigK = A2K.kr(Trig1.ar(sync1Trig, ControlDur.ir * 2));
+        phase1 = Phasor.kr(sync1TrigK, sync1Rate * tempoHz * ControlDur.ir, 0, 1, 0);
         lfo1 = Select.kr(sync1On, [
             DC.kr(1),
             (1 - (phase1 * 2 - 1).abs).linlin(0, 1, 0.01, 1)  // Triangle: 0.01-1 (never 0)
         ]);
 
         // LFO 2: phase-locked to clock
-        var sync2On = (sync2Idx >= 0);
-        var sync2IdxClamped = sync2Idx.clip(0, 12);
-        var sync2Trig = Select.ar(sync2IdxClamped, allTrigs) * sync2On;  // Gate when off
-        var sync2TrigK = A2K.kr(Trig1.ar(sync2Trig, ControlDur.ir * 2));
-        var phase2 = Phasor.kr(sync2TrigK, sync2Rate * tempoHz * ControlDur.ir, 0, 1, 0);
+        sync2On = (sync2Idx >= 0);
+        sync2IdxClamped = sync2Idx.clip(0, 12);
+        sync2Trig = Select.ar(sync2IdxClamped, allTrigs) * sync2On;  // Gate when off
+        sync2TrigK = A2K.kr(Trig1.ar(sync2Trig, ControlDur.ir * 2));
+        phase2 = Phasor.kr(sync2TrigK, sync2Rate * tempoHz * ControlDur.ir, 0, 1, 0);
         lfo2 = Select.kr(sync2On, [
             DC.kr(1),
             (1 - (phase2 * 2 - 1).abs).linlin(0, 1, 0.01, 1)  // Triangle: 0.01-1 (never 0)

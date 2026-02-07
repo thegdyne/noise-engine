@@ -79,6 +79,7 @@ SynthDef(\modLFO, {
     var phaseA, phaseB, phaseC, phaseD;
     var effWaveA, effWaveB, effWaveC, effWaveD;
 	var effPolA, effPolB, effPolC, effPolD, gw, gp, makeWave;
+	var allTrigs, legacyIdx, effIdx, clkIdxClamped, clockMults, clockMult;
 
     gw = globalWave.clip(0, 7).round(1);
     gp = globalPolarity.clip(0, 1).round(1);
@@ -162,11 +163,11 @@ SynthDef(\modLFO, {
     // ---- CLOCK-SYNCED MODE (mode = 0) ----
     // Read all 13 pre-divided clock channels and select by index
     // Pattern matches generators (helpers.scd:35-36)
-    var allTrigs = In.ar(clockTrigBus, 13);
+    allTrigs = In.ar(clockTrigBus, 13);
     // Legacy: if clkIdx < 0, derive from rate slider (0-1 -> 0-12)
-    var legacyIdx = (rate * 12).round.clip(0, 12);
-    var effIdx = Select.kr(clkIdx >= 0, [legacyIdx, clkIdx.round]);
-    var clkIdxClamped = effIdx.clip(0, 12);
+    legacyIdx = (rate * 12).round.clip(0, 12);
+    effIdx = Select.kr(clkIdx >= 0, [legacyIdx, clkIdx.round]);
+    clkIdxClamped = effIdx.clip(0, 12);
     clk = Select.ar(clkIdxClamped, allTrigs);
 
     // Ensure trigger spans >= 1-2 control blocks so A2K can't miss it
@@ -178,8 +179,8 @@ SynthDef(\modLFO, {
 
     // Calculate LFO frequency from BPM and clock rate
     // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
-    var clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
-    var clockMult = Select.kr(clkIdxClamped, clockMults);
+    clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+    clockMult = Select.kr(clkIdxClamped, clockMults);
     clkFreq = In.kr(bpmBus).max(1) / 60 * clockMult;
 
     // ---- FREE MODE (mode = 1) ----

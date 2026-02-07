@@ -82,6 +82,7 @@ SynthDef(\modARSeqPlus, {
 	var mapSyncTime, mapLoopTime, mapCurve, makeEnv;
     var parStep, atkTrigPar, relTrigPar, gatePar;
 	var resetIn, areset, resetTrig;
+	var allTrigs, legacyIdx, effIdx, clkIdxClamped, clockMults, clockMult;
 
 
 	resetIn   = In.ar(resetBus + resetIndex);
@@ -137,19 +138,19 @@ SynthDef(\modARSeqPlus, {
 
     // ---- CLOCK INPUT ----
     // Read all 13 pre-divided clock channels and select by index
-    var allTrigs = In.ar(clockTrigBus, 13);
+    allTrigs = In.ar(clockTrigBus, 13);
     // Legacy: if clkIdx < 0, derive from rate slider (0-1 -> 0-12)
-    var legacyIdx = (rate * 12).round.clip(0, 12);
-    var effIdx = Select.kr(clkIdx >= 0, [legacyIdx, clkIdx.round]);
-    var clkIdxClamped = effIdx.clip(0, 12);
+    legacyIdx = (rate * 12).round.clip(0, 12);
+    effIdx = Select.kr(clkIdx >= 0, [legacyIdx, clkIdx.round]);
+    clkIdxClamped = effIdx.clip(0, 12);
     clk = Select.ar(clkIdxClamped, allTrigs);
     atrig = Trig1.ar(clk > 0.5, ControlDur.ir * 2);
     trig = Trig1.kr(A2K.kr(atrig), ControlDur.ir * 2);
 
     // ---- MASTER RATE ----
     // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
-    var clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
-    var clockMult = Select.kr(clkIdxClamped, clockMults);
+    clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+    clockMult = Select.kr(clkIdxClamped, clockMults);
     bpm = In.kr(bpmBus).max(1);
     clkFreq = bpm / 60 * clockMult;
 
