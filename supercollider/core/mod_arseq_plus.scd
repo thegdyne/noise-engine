@@ -59,7 +59,7 @@ SynthDef(\modARSeqPlus, {
         globalPolarity = -1,               // P4: when >= 0, overrides all polarity params
         // Clock infrastructure
         clockTrigBus = 0,
-        clockIndex = 12,                   // x32 clock
+        clkIdx = 6,                   // Clock rate index 0-12 (default 6 = CLK)
 	bpmBus = 0,
 	resetBus = 0, resetIndex = 0;
 
@@ -72,7 +72,7 @@ SynthDef(\modARSeqPlus, {
     var loopTrigA, loopTrigB, loopTrigC, loopTrigD;
     var masterTrig, seqStep;
     var clk, atrig, trig;
-    var rateIndex, ticksPerCycle, masterFreq;
+    var masterFreq;
     var freeFreq, clkFreq;
     var bpm, clkModeSel, modeSel;
     var effAtkA, effAtkB, effAtkC, effAtkD;
@@ -136,17 +136,19 @@ SynthDef(\modARSeqPlus, {
     };
 
     // ---- CLOCK INPUT ----
-    clk = In.ar(clockTrigBus + clockIndex);
+    // Read all 13 pre-divided clock channels and select by index
+    var allTrigs = In.ar(clockTrigBus, 13);
+    var clkIdxClamped = clkIdx.round.clip(0, 12);
+    clk = Select.ar(clkIdxClamped, allTrigs);
     atrig = Trig1.ar(clk > 0.5, ControlDur.ir * 2);
     trig = Trig1.kr(A2K.kr(atrig), ControlDur.ir * 2);
 
     // ---- MASTER RATE ----
-    // CLK mode: rate 0-1 maps to 12 divisions
-    rateIndex = (rate * 11).round.clip(0, 11);
-    ticksPerCycle = Select.kr(rateIndex, [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]).round(1).max(1);
-
+    // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
+    var clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+    var clockMult = Select.kr(clkIdxClamped, clockMults);
     bpm = In.kr(bpmBus).max(1);
-    clkFreq = bpm / 60 * 32 / ticksPerCycle;
+    clkFreq = bpm / 60 * clockMult;
 
     // FREE mode: 0.01-100Hz
     freeFreq = rate.linexp(0, 1, 0.01, 100);
@@ -154,9 +156,9 @@ SynthDef(\modARSeqPlus, {
     clkModeSel = clockMode.round.clip(0, 1);
     masterFreq = Select.kr(clkModeSel, [clkFreq, freeFreq]);
 
-    // Master trigger from clock or free-running impulse
+    // Master trigger from selected clock or free-running impulse
     masterTrig = Select.kr(clkModeSel, [
-        PulseDivider.kr(trig, ticksPerCycle),
+        trig,  // CLK: direct from selected clock channel
         Impulse.kr(masterFreq)
     ]);
 

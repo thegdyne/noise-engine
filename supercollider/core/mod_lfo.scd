@@ -27,28 +27,30 @@ Phase patterns (degrees for A/B/C/D):
   SYNC:   0, 0, 0, 0       (all in phase)
 
 Clock sync mode (mode=0):
-- Uses x32 clock (index 12) = 32 triggers per quarter note
+- Uses pre-divided clock buses (13 rates from master clock)
+- clkIdx parameter selects rate (0-12, default 6 = CLK)
 - Phasor generates smooth ramp between ticks
-- PulseDivider resets phase on cycle boundary
+- Direct reset from selected clock (no PulseDivider)
 
 Free mode (mode=1):
 - Manual frequency 0.01-100Hz
 - No clock reset, drifts freely
 - Good for organic modulation
 
-Rate table (ticks per cycle at x32):
-  /64 = 2048 (16 bars)
-  /32 = 1024 (8 bars)
-  /16 = 512  (4 bars)
-  /8  = 256  (2 bars)
-  /4  = 128  (1 bar)
-  /2  = 64   (2 beats)
-  1   = 32   (1 beat)
-  x2  = 16   (1/2 beat)
-  x4  = 8    (1/4 beat)
-  x8  = 4    (1/8 beat)
-  x16 = 2    (1/16 beat)
-  x32 = 1    (1/32 beat)
+Rate table (CLOCK_RATES, 13 entries):
+  /32  = index 0  (8 bars at 120bpm)
+  /16  = index 1  (4 bars)
+  /12  = index 2  (3 bars)
+  /8   = index 3  (2 bars)
+  /4   = index 4  (1 bar)
+  /2   = index 5  (2 beats)
+  CLK  = index 6  (1 beat)
+  x2   = index 7  (1/2 beat)
+  x4   = index 8  (1/4 beat)
+  x8   = index 9  (1/8 beat)
+  x12  = index 10 (1/12 beat)
+  x16  = index 11 (1/16 beat)
+  x32  = index 12 (1/32 beat)
 
 Reference: Ginkosynthese TTLFO v2
 */
@@ -65,12 +67,11 @@ SynthDef(\modLFO, {
         globalWave = -1,              // P2: when >= 0, overrides all wave params
         globalPolarity = -1,          // P4: when >= 0, overrides all polarity params
         clockTrigBus = 0,             // Clock trigger bus base
-        clockIndex = 12,              // Set from ~modClockSourceIndex in mod_slots.scd
+        clkIdx = 6,                   // Clock rate index 0-12 (default 6 = CLK)
         bpmBus = 0;                   // BPM control bus
 
     var basePhase, pA, pB, pC, pD;
     var sigA, sigB, sigC, sigD;
-    var rateIndex, ticksPerCycle;
     var clk, trig, atrig, resetTrig, freq, modeSel;
     var wrapTrig, sah;
     var freeFreq, clkFreq;
@@ -159,28 +160,24 @@ SynthDef(\modLFO, {
     // mode: 0 = CLK (clock synced), 1 = FREE (manual frequency)
 
     // ---- CLOCK-SYNCED MODE (mode = 0) ----
-    // Read high-res clock (x32 = index 12 = 32 ticks per quarter)
-    clk = In.ar(clockTrigBus + clockIndex);
+    // Read all 13 pre-divided clock channels and select by index
+    // Pattern matches generators (helpers.scd:35-36)
+    var allTrigs = In.ar(clockTrigBus, 13);
+    var clkIdxClamped = clkIdx.round.clip(0, 12);
+    clk = Select.ar(clkIdxClamped, allTrigs);
 
-	// ensure atrig spans >= 1-2 control blocks so A2K can't miss it
-	atrig = Trig1.ar(clk > 0.5, ControlDur.ir * 2);
-	trig  = Trig1.kr(A2K.kr(atrig) > 0, ControlDur.ir);
+    // Ensure trigger spans >= 1-2 control blocks so A2K can't miss it
+    atrig = Trig1.ar(clk > 0.5, ControlDur.ir * 2);
+    trig  = Trig1.kr(A2K.kr(atrig) > 0, ControlDur.ir);
 
-    // RATE (CLK mode): 0-1 maps to 12 divisions: /64, /32, /16, /8, /4, /2, 1, x2, x4, x8, x16, x32
-    // Ticks per cycle at x32 resolution
-    // Must match MOD_CLOCK_RATES order in Python config
-    rateIndex = (rate * 11).round.clip(0, 11);
+    // Direct reset from selected clock — no PulseDivider needed
+    resetTrig = trig;
 
-    // integer-safe divider (and never < 1)
-	ticksPerCycle = Select.kr(rateIndex, [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]).round(1).max(1);
-
-    // Reset trigger: fires once per LFO cycle (CLK mode only)
-    resetTrig = PulseDivider.kr(trig, ticksPerCycle);
-
-    // Calculate LFO frequency from BPM (CLK mode)
-    // At 120 BPM: quarter = 2Hz, x32 tick = 64Hz
-    // LFO freq = (bpm/60 * 32) / ticksPerCycle
-    clkFreq = In.kr(bpmBus).max(1) / 60 * 32 / ticksPerCycle;
+    // Calculate LFO frequency from BPM and clock rate
+    // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
+    var clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+    var clockMult = Select.kr(clkIdxClamped, clockMults);
+    clkFreq = In.kr(bpmBus).max(1) / 60 * clockMult;
 
     // ---- FREE MODE (mode = 1) ----
     // Rate 0-1 maps exponentially to 0.01-100Hz

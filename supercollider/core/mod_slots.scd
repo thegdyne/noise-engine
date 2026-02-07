@@ -37,7 +37,11 @@ P1-P4 standardized params for mod matrix cross-modulation:
             Dictionary.newFrom([\wave, 0, \polarity, 0])   // D/R
         ]
     });
-    
+
+    // Per-slot clock index buses (live-updatable via .asMap)
+    // Default to index 6 (CLK = 1 beat)
+    ~modClkIdxBus = 4.collect { Bus.control(s, 1).set(6) };
+
     // P1-P4 mapping per generator type
     // Returns [actualParamSymbol, isDiscrete, min, max] or nil if not supported
     ~mapP1P4Param = { |genName, pKey|
@@ -130,7 +134,7 @@ P1-P4 standardized params for mod matrix cross-modulation:
                 \globalWave, params[\globalWave] ? -1,
                 \globalPolarity, params[\globalPolarity] ? -1,
                 \clockTrigBus, ~clockTrigBus.index,
-                \clockIndex, ~modClockSourceIndex,  // From config.scd
+                \clkIdx, ~modClkIdxBus[slot - 1].asMap,  // Per-slot, bus-mapped
                 \bpmBus, ~clockBus.index
             ], ~modGroup);
             ("  Mod slot " ++ slot ++ " -> LFO").postln;
@@ -187,7 +191,7 @@ P1-P4 standardized params for mod matrix cross-modulation:
                 \globalRel, params[\globalRel] ? -1,
                 \globalPolarity, params[\globalPolarity] ? -1,
                 \clockTrigBus, ~clockTrigBus.index,
-                \clockIndex, ~modClockSourceIndex,
+                \clkIdx, ~modClkIdxBus[slot - 1].asMap,  // Per-slot, bus-mapped
                 \bpmBus, ~clockBus.index
             ], ~modGroup);
 ("  Mod slot " ++ slot ++ " -> ARSEq+").postln;

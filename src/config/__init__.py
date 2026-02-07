@@ -1009,20 +1009,10 @@ HUB_FEED_MAX = 0.35
 MOD_SLOTH_MODES = ["Torpor", "Apathy", "Inertia"]
 MOD_SLOTH_MODE_INDEX = {m: i for i, m in enumerate(MOD_SLOTH_MODES)}
 
-# Clock rates for mod sources - full range
-# Slowest to fastest: /64 (16 bars) to x32 (1/128th note)
-MOD_CLOCK_RATES = ["/64", "/32", "/16", "/8", "/4", "/2", "1", "x2", "x4", "x8", "x16", "x32"]
-MOD_CLOCK_RATE_INDEX = {r: i for i, r in enumerate(MOD_CLOCK_RATES)}
-
-# Clock source index (which channel of ~clockTrigBus to use)
-# Index 12 = x32 clock (32 ticks per quarter note)
-MOD_CLOCK_SOURCE_INDEX = 12
-MOD_CLOCK_TICKS_PER_QUARTER = 32  # Derived from x32 clock
-
-# Ticks per LFO cycle for each rate (at x32 resolution)
-# Must match MOD_CLOCK_RATES order
-# /64=2048, /32=1024, /16=512, /8=256, /4=128, /2=64, 1=32, x2=16, x4=8, x8=4, x16=2, x32=1
-MOD_CLOCK_TICKS_PER_CYCLE = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+# Modulator clock rates unified with generator rates (SSOT)
+# Per-slot clock index selection now matches generators
+MOD_CLOCK_RATES = CLOCK_RATES
+MOD_CLOCK_RATE_INDEX = CLOCK_RATE_INDEX
 
 # Polarity options
 MOD_POLARITY = ["NORM", "INV"]

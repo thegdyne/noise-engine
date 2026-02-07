@@ -53,11 +53,31 @@ Features:
         { rateStr == "x32" }  { 32 }
         { 0 };  // Default: no sync
     };
-    
-    SynthDef(\dualFilter, { |inBus, outBus, bpmBus,
+
+    // Convert rate string to clock bus index (-1 = off, 0-12 = clock rate)
+    ~fbRateToIndex = { |rateStr|
+        case
+        { rateStr == "" }     { -1 }  // Off
+        { rateStr == "/32" }  { 0 }
+        { rateStr == "/16" }  { 1 }
+        { rateStr == "/12" }  { 2 }
+        { rateStr == "/8" }   { 3 }
+        { rateStr == "/4" }   { 4 }
+        { rateStr == "/2" }   { 5 }
+        { rateStr == "CLK" }  { 6 }
+        { rateStr == "x2" }   { 7 }
+        { rateStr == "x4" }   { 8 }
+        { rateStr == "x8" }   { 9 }
+        { rateStr == "x12" }  { 10 }
+        { rateStr == "x16" }  { 11 }
+        { rateStr == "x32" }  { 12 }
+        { -1 };  // Default: off
+    };
+
+    SynthDef(\dualFilter, { |inBus, outBus, bpmBus, clockTrigBus,
                              drive=0, freq1=0.6, reso1=0.3, mode1=0,
                              freq2=0.6, reso2=0.3, mode2=0,
-                             sync1Rate=0, sync2Rate=0, syncAmt=0,
+                             sync1Rate=0, sync2Rate=0, sync1Idx=(-1), sync2Idx=(-1), syncAmt=0,
                              harmonics=0, routing=0, mix=0.5, bypass=1,
                              driveBus=(-1), freq1Bus=(-1), freq2Bus=(-1),
                              reso1Bus=(-1), reso2Bus=(-1), syncAmtBus=(-1),
@@ -84,16 +104,29 @@ Features:
         
         // Get tempo in Hz from BPM bus (BPM / 60 = beats per second)
         tempoHz = In.kr(bpmBus) / 60;
-        
-        // Tempo-synced triangle LFOs (0 to 1 range)
-        // When rate is 0, LFO outputs 1 (no modulation)
-        lfo1 = Select.kr(sync1Rate > 0, [
+
+        // Phase-locked triangle LFOs using clock trigger reset
+        // sync1Idx/sync2Idx: -1 = off, 0-12 = clock rate index
+        var allTrigs = In.ar(clockTrigBus, 13);
+
+        // LFO 1: phase-locked to clock
+        var sync1IdxClamped = sync1Idx.clip(0, 12);
+        var sync1Trig = Select.ar(sync1IdxClamped, allTrigs);
+        var sync1TrigK = A2K.kr(Trig1.ar(sync1Trig, ControlDur.ir * 2));
+        var phase1 = Phasor.kr(sync1TrigK, sync1Rate * tempoHz * ControlDur.ir, 0, 1, 0);
+        lfo1 = Select.kr(sync1Idx >= 0, [
             DC.kr(1),
-            LFTri.kr(sync1Rate * tempoHz).range(0, 1)
+            (phase1 * 2 - 1).abs  // Triangle from sawtooth phase
         ]);
-        lfo2 = Select.kr(sync2Rate > 0, [
+
+        // LFO 2: phase-locked to clock
+        var sync2IdxClamped = sync2Idx.clip(0, 12);
+        var sync2Trig = Select.ar(sync2IdxClamped, allTrigs);
+        var sync2TrigK = A2K.kr(Trig1.ar(sync2Trig, ControlDur.ir * 2));
+        var phase2 = Phasor.kr(sync2TrigK, sync2Rate * tempoHz * ControlDur.ir, 0, 1, 0);
+        lfo2 = Select.kr(sync2Idx >= 0, [
             DC.kr(1),
-            LFTri.kr(sync2Rate * tempoHz).range(0, 1)
+            (phase2 * 2 - 1).abs  // Triangle from sawtooth phase
         ]);
         
         // Smooth params
@@ -198,6 +231,7 @@ Features:
         \inBus, ~masterBus,
         \outBus, ~masterBus,
         \bpmBus, ~clockBus.index,
+        \clockTrigBus, ~clockTrigBus.index,
         \drive, ~fbDrive,
         \freq1, ~fbFreq1,
         \reso1, ~fbReso1,
@@ -257,8 +291,12 @@ Features:
     OSCdef(\fbSync1, { |msg|
         var rateStr = msg[1].asString;
         var mult = ~fbRateToMult.(rateStr);
+        var idx = ~fbRateToIndex.(rateStr);
         ~fbSync1Rate = mult;
-        if(~fbSynth.notNil) { ~fbSynth.set(\sync1Rate, mult) };
+        if(~fbSynth.notNil) {
+            ~fbSynth.set(\sync1Rate, mult);
+            ~fbSynth.set(\sync1Idx, idx);
+        };
         ("  Filter 1 sync: " ++ if(mult == 0, "FREE", rateStr)).postln;
     }, '/noise/master/fb/sync1');
     
@@ -286,8 +324,12 @@ Features:
     OSCdef(\fbSync2, { |msg|
         var rateStr = msg[1].asString;
         var mult = ~fbRateToMult.(rateStr);
+        var idx = ~fbRateToIndex.(rateStr);
         ~fbSync2Rate = mult;
-        if(~fbSynth.notNil) { ~fbSynth.set(\sync2Rate, mult) };
+        if(~fbSynth.notNil) {
+            ~fbSynth.set(\sync2Rate, mult);
+            ~fbSynth.set(\sync2Idx, idx);
+        };
         ("  Filter 2 sync: " ++ if(mult == 0, "FREE", rateStr)).postln;
     }, '/noise/master/fb/sync2');
     

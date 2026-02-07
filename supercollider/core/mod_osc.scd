@@ -5,6 +5,7 @@ OSC message handling for modulation sources
 Paths:
   /noise/mod/generator/{slot}           - set generator type
   /noise/mod/param/{slot}/{key}         - set parameter value
+  /noise/mod/clockRate/{slot}           - set clock rate index (0-12)
   /noise/mod/out/wave/{slot}/{output}   - set output waveform (LFO)
   /noise/mod/out/pol/{slot}/{output}    - set output polarity
   /noise/mod/scope/enable/{slot}        - enable scope streaming
@@ -33,12 +34,24 @@ Paths:
         var slot = msg[1].asInteger;
         var key = msg[2].asString;
         var value = msg[3].asFloat;
-        
+
         if(slot >= 1 && slot <= 4) {
             ~setModParam.(slot, key, value);
         };
     }, '/noise/mod/param');
-    
+
+    // Clock rate selection: /noise/mod/clockRate/{slot} index
+    // index: 0-12 mapping to CLOCK_RATES [/32, /16, /12, /8, /4, /2, CLK, x2, x4, x8, x12, x16, x32]
+    OSCdef(\modClockRate, { |msg|
+        var slot = msg[1].asInteger;
+        var idx = msg[2].asInteger.clip(0, 12);
+
+        if(slot >= 1 && slot <= 4) {
+            ~modClkIdxBus[slot - 1].set(idx);
+            // Debug: ("Mod slot " ++ slot ++ " clock rate -> " ++ idx).postln;
+        };
+    }, '/noise/mod/clockRate');
+
     // Output waveform: /noise/mod/out/wave/{slot}/{output} waveIndex
     OSCdef(\modOutputWave, { |msg|
         var slot = msg[1].asInteger;
