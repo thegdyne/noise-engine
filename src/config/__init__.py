@@ -1549,6 +1549,7 @@ OSC_PATHS = {
     # Mod sources
     'mod_generator': '/noise/mod/generator',        # /noise/mod/generator/{slot}
     'mod_param': '/noise/mod/param',                # /noise/mod/param/{slot}/{key}
+    'mod_clockRate': '/noise/mod/clockRate',        # /noise/mod/clockRate/{slot} (clock rate index 0-12)
     'mod_output_wave': '/noise/mod/out/wave',       # /noise/mod/out/wave/{slot}/{output}
     'mod_output_phase': '/noise/mod/out/phase',     # /noise/mod/out/phase/{slot}/{output}
     'mod_output_polarity': '/noise/mod/out/pol',    # /noise/mod/out/pol/{slot}/{output}

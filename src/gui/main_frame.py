@@ -268,6 +268,7 @@ class MainFrame(QMainWindow):
         self.modulator_grid.output_wave_changed.connect(self.modulation.on_mod_output_wave)
         self.modulator_grid.output_phase_changed.connect(self.modulation.on_mod_output_phase)
         self.modulator_grid.output_polarity_changed.connect(self.modulation.on_mod_output_polarity)
+        self.modulator_grid.clock_rate_changed.connect(self.modulation.on_mod_clock_rate)
 
         # ARSEq+ envelope signals
         self.modulator_grid.env_attack_changed.connect(self.modulation.on_mod_env_attack)

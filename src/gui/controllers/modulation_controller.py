@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from PyQt5.QtGui import QColor
 
-from src.config import OSC_PATHS, get_param_config, unmap_value
+from src.config import OSC_PATHS, get_param_config, unmap_value, MOD_CLOCK_RATE_INDEX
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
 from src.gui.mod_routing_state import Polarity
 from src.utils.logger import logger
@@ -139,6 +139,14 @@ class ModulationController:
         if self.main.osc_connected:
             self.main.osc.client.send_message(OSC_PATHS['mod_output_polarity'], [slot_id, output_idx, polarity])
         logger.debug(f"Mod {slot_id} out {output_idx} polarity: {polarity}", component="OSC")
+
+    def on_mod_clock_rate(self, slot_id, rate_label):
+        """Handle modulator clock rate change - send index."""
+        rate_index = MOD_CLOCK_RATE_INDEX.get(rate_label, 6)  # Default to CLK
+        if self.main.osc_connected:
+            self.main.osc.client.send_message(OSC_PATHS['mod_clockRate'], [slot_id, rate_index])
+        logger.debug(f"Mod {slot_id} clock rate: {rate_label} (index {rate_index})", component="OSC")
+        self.main._mark_dirty()
 
     def on_mod_env_attack(self, slot_id, env_idx, value):
         """Handle ARSEq+ envelope attack change."""
