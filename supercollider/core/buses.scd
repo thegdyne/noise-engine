@@ -13,7 +13,7 @@ Default values are real values (not normalized):
 // === CLOCK RATES ===
 // SSOT now lives in clock_registry.scd (loaded before this file)
 // Multipliers relative to quarter note (slowest to fastest)
-~clockRates = ~CLOCK_RATE_MULTS;
+~clockRates = ~clockRateMults;
 
 ~setupBuses = {
     "Setting up buses...".postln;

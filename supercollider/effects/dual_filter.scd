@@ -255,7 +255,7 @@ Features:
     OSCdef(\fbSync1, { |msg|
         var rateStr = msg[1].asString;
         var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
-        var mult = if (idx >= 0) { ~CLOCK_RATE_MULTS[idx] } { 0 };
+        var mult = if (idx >= 0) { ~clockRateMults[idx] } { 0 };
         ~fbSync1Rate = mult;
         if(~fbSynth.notNil) {
             ~fbSynth.set(\sync1Rate, mult);
@@ -288,7 +288,7 @@ Features:
     OSCdef(\fbSync2, { |msg|
         var rateStr = msg[1].asString;
         var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
-        var mult = if (idx >= 0) { ~CLOCK_RATE_MULTS[idx] } { 0 };
+        var mult = if (idx >= 0) { ~clockRateMults[idx] } { 0 };
         ~fbSync2Rate = mult;
         if(~fbSynth.notNil) {
             ~fbSynth.set(\sync2Rate, mult);
