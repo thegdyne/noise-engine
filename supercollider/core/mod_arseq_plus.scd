@@ -149,7 +149,8 @@ SynthDef(\modARSeqPlus, {
 
     // ---- MASTER RATE ----
     // Use clock registry (clock_registry.scd) for multipliers
-    clockMult = ~clockMultAt.(clkIdxClamped);
+    // NOTE: Must use Select.kr in SynthDef context (idx is a UGen, not an integer)
+    clockMult = Select.kr(clkIdxClamped, ~clockRateMults);
     bpm = In.kr(bpmBus).max(1);
     clkFreq = bpm / 60 * clockMult;
 
