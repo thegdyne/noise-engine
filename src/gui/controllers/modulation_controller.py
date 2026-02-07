@@ -144,7 +144,7 @@ class ModulationController:
         """Handle modulator clock rate change - send index."""
         rate_index = MOD_CLOCK_RATE_INDEX.get(rate_label, 6)  # Default to CLK
         if self.main.osc_connected:
-            self.main.osc.client.send_message(OSC_PATHS['mod_clockRate'], [slot_id, rate_index])
+            self.main.osc.client.send_message(OSC_PATHS['mod_clock_rate'], [slot_id, rate_index])
         logger.debug(f"Mod {slot_id} clock rate: {rate_label} (index {rate_index})", component="OSC")
         self.main._mark_dirty()
 
