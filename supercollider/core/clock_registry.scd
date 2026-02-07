@@ -7,6 +7,7 @@ DO NOT define local clockMults arrays elsewhere.
 Order is stable — changing breaks presets.
 */
 
+(
 // === THE REGISTRY ===
 ~CLOCK_RATE_LABELS = [
     "/32", "/16", "/12", "/8", "/4", "/2",
@@ -50,3 +51,4 @@ Order is stable — changing breaks presets.
 };
 
 "[clock_registry] Loaded: 13 clock rates".postln;
+)
