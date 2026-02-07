@@ -224,6 +224,7 @@ class HeatModule(QWidget):
             self.bypassed = state['bypass']
             self.bypass_btn.set_index(0 if self.bypassed else 1)
             self._update_bypass_style()
+            self._send_osc(OSC_PATHS['heat_bypass'], 1 if self.bypassed else 0)
         if 'circuit' in state:
             self.circuit_index = state['circuit']
             self.circuit_btn.set_index(self.circuit_index)
@@ -496,6 +497,7 @@ class FilterModule(QWidget):
             self.bypassed = state['bypass']
             self.bypass_btn.set_index(0 if self.bypassed else 1)
             self._update_bypass_style()
+            self._send_osc(OSC_PATHS['fb_bypass'], 1 if self.bypassed else 0)
         if 'f1_mode' in state:
             self.f1_mode = state['f1_mode']
             self.f1_mode_btn.set_index(self.f1_mode)
@@ -973,7 +975,10 @@ class EQModule(QWidget):
 
     def set_state(self, state: dict):
         if 'bypass' in state:
-            self.bypass_btn.set_index(1 if state['bypass'] else 0)
+            self.bypassed = state['bypass']
+            self.bypass_btn.set_index(1 if self.bypassed else 0)
+            self._update_bypass_style()
+            self.eq_bypass_changed.emit(1 if self.bypassed else 0)
         if 'lo' in state:
             self.lo_slider.setValue(state['lo'])
         if 'mid' in state:
@@ -1225,7 +1230,10 @@ class CompModule(QWidget):
 
     def set_state(self, state: dict):
         if 'bypass' in state:
-            self.bypass_btn.set_index(1 if state['bypass'] else 0)
+            self.bypassed = state['bypass']
+            self.bypass_btn.set_index(1 if self.bypassed else 0)
+            self._update_bypass_style()
+            self.comp_bypass_changed.emit(1 if self.bypassed else 0)
         if 'threshold' in state:
             self.thr_slider.setValue(state['threshold'])
         if 'makeup' in state:
@@ -1398,7 +1406,10 @@ class LimiterModule(QWidget):
 
     def set_state(self, state: dict):
         if 'bypass' in state:
-            self.bypass_btn.set_index(1 if state['bypass'] else 0)
+            self.bypassed = state['bypass']
+            self.bypass_btn.set_index(1 if self.bypassed else 0)
+            self._update_bypass_style()
+            self.limiter_bypass_changed.emit(1 if self.bypassed else 0)
         if 'ceiling' in state:
             self.ceil_slider.setValue(state['ceiling'])
 
