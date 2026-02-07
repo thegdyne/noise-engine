@@ -51,6 +51,10 @@ LFO_LAYOUT = {
     'rate_x': 38, 'rate_w': 18, 'rate_h': 50,
     'rotate_x': 60, 'rotate_w': 28,
 
+    # Clock rate selector
+    'clk_rate_x': 92, 'clk_rate_y': 28,
+    'clk_rate_w': 56, 'clk_rate_h': 20,
+
     # Outputs
     'outputs_y': 98,
     'output_row_h': 24,
@@ -108,6 +112,10 @@ ARSEQ_LAYOUT = {
     'mode_x': 6, 'mode_w': 28, 'mode_h': 22,
     'clk_x': 38, 'clk_w': 28,
     'rate_x': 70, 'rate_w': 18, 'rate_h': 60,
+
+    # Clock rate selector
+    'clk_rate_x': 92, 'clk_rate_y': 30,
+    'clk_rate_w': 56, 'clk_rate_h': 20,
 
     # Outputs
     'outputs_y': 106,
@@ -183,6 +191,7 @@ class ModulatorSlot(QWidget):
     output_wave_changed = pyqtSignal(int, int, int)
     output_phase_changed = pyqtSignal(int, int, int)
     output_polarity_changed = pyqtSignal(int, int, int)
+    clock_rate_changed = pyqtSignal(int, str)  # slot_id, rate_label
 
     # ARSEq+ envelope signals
     env_attack_changed = pyqtSignal(int, int, float)
@@ -330,6 +339,22 @@ class ModulatorSlot(QWidget):
         rot_btn.index_changed.connect(lambda idx: self._on_mode_changed('rotate', idx))
         self.param_widgets.append(rot_btn)
         self.param_sliders['rotate'] = rot_btn
+
+        # CLOCK RATE selector (for CLK mode)
+        lbl = QLabel("CLK", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['clk_rate_x'], L['clk_rate_y'], L['clk_rate_w'], L['label_h'])
+        self.param_widgets.append(lbl)
+
+        self.clock_rate_btn = CycleButton(MOD_CLOCK_RATES, initial_index=6, parent=self)  # Default CLK
+        self.clock_rate_btn.setGeometry(L['clk_rate_x'], L['clk_rate_y'] + L['label_h'] + 2, L['clk_rate_w'], L['mode_h'])
+        self.clock_rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        self.clock_rate_btn.setStyleSheet(button_style('submenu'))
+        self.clock_rate_btn.setToolTip("Clock rate\nUse in CLK mode for tempo-synced modulation")
+        self.clock_rate_btn.index_changed.connect(lambda idx: self._on_clock_rate_changed(idx))
+        self.param_widgets.append(self.clock_rate_btn)
 
         # Show all param widgets
         for w in self.param_widgets:
@@ -508,6 +533,22 @@ class ModulatorSlot(QWidget):
         self.param_widgets.append(rate_slider)
         self.param_sliders['rate'] = rate_slider
         self._update_arseq_rate_tooltip(364)
+
+        # CLOCK RATE selector (for CLK mode)
+        lbl = QLabel("CLK", self)
+        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"color: {COLORS['text']};")
+        lbl.setGeometry(L['clk_rate_x'], L['clk_rate_y'], L['clk_rate_w'], L['label_h'])
+        self.param_widgets.append(lbl)
+
+        self.clock_rate_btn = CycleButton(MOD_CLOCK_RATES, initial_index=6, parent=self)  # Default CLK
+        self.clock_rate_btn.setGeometry(L['clk_rate_x'], L['clk_rate_y'] + L['label_h'] + 2, L['clk_rate_w'], L['mode_h'])
+        self.clock_rate_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        self.clock_rate_btn.setStyleSheet(button_style('submenu'))
+        self.clock_rate_btn.setToolTip("Clock rate\nUse in CLK mode for tempo-synced envelopes")
+        self.clock_rate_btn.index_changed.connect(lambda idx: self._on_clock_rate_changed(idx))
+        self.param_widgets.append(self.clock_rate_btn)
 
         for w in self.param_widgets:
             w.show()
@@ -840,6 +881,12 @@ class ModulatorSlot(QWidget):
                 real_value = map_value(normalized, param)
                 self.parameter_changed.emit(self.slot_id, 'rate', real_value)
                 break
+
+    def _on_clock_rate_changed(self, index):
+        """Handle clock rate selector change."""
+        if hasattr(self, 'clock_rate_btn'):
+            rate_label = self.clock_rate_btn.get_value()
+            self.clock_rate_changed.emit(self.slot_id, rate_label)
 
     def _update_lfo_rate_tooltip(self, value):
         """Update LFO rate slider tooltip with current value."""

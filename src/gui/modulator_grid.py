@@ -23,6 +23,7 @@ class ModulatorGrid(QWidget):
     output_wave_changed = pyqtSignal(int, int, int)
     output_phase_changed = pyqtSignal(int, int, int)
     output_polarity_changed = pyqtSignal(int, int, int)
+    clock_rate_changed = pyqtSignal(int, str)  # slot_id, rate_label
 
     # ARSEq+ envelope signals
     env_attack_changed = pyqtSignal(int, int, float)  # slot_id, env_idx, normalized
@@ -80,6 +81,7 @@ class ModulatorGrid(QWidget):
         slot.output_wave_changed.connect(self.output_wave_changed.emit)
         slot.output_phase_changed.connect(self.output_phase_changed.emit)
         slot.output_polarity_changed.connect(self.output_polarity_changed.emit)
+        slot.clock_rate_changed.connect(self.clock_rate_changed.emit)
 
         # ARSEq+ envelope signals
         slot.env_attack_changed.connect(self.env_attack_changed.emit)
