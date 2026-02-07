@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-06 by agent (session 2)
+**Last updated:** 2026-02-07 by agent (session clock unification)
 
 ---
 
@@ -24,6 +24,7 @@ Only actively-changing subsystems are tracked here. Stable systems belong in ARC
 Current technical approaches and design decisions that are **in effect**.
 Not history — just what's true right now. One line per concept.
 
+- **Clock Fabric:** 13 pre-divided trigger buses from master clock (BPM → Impulse.ar); all timing features derive from it, no parallel dividers — `docs/CLOCK_FABRIC.md`
 - **Generator contract:** Lightweight end-stage — `|out, freqBus, customBus0..4|`, must use `~multiFilter`, `~envVCA`, `~ensure2ch` helpers
 - **Morph analysis:** Three-track decomposition (Gain/DC/Shape) — `tools/analyze_morph_map.py`
 - **Unified bus system:** 176 control-rate targets (gen core 0-39, gen custom 40-79, mod 80-107, channels 108-147, FX 148-167, master inserts 168-175) — `src/config/__init__.py`

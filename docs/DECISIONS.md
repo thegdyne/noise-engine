@@ -15,6 +15,51 @@
 
 ---
 
+### [2025-02-07] Clock Fabric - Pre-Divided Timing SSOT
+
+**Decision:** All timing in Noise Engine derives from a single master clock generating 13 pre-divided trigger channels. Clock consumers **must** select from these channels, not create independent divider chains (e.g., x32 + PulseDivider).
+
+**Rationale:**
+- **Phase alignment:** All timing consumers stay synchronized to the same BPM source
+- **No drift:** Tempo changes propagate instantly without accumulation errors
+- **Single source of truth:** Rate mappings defined once in `docs/CLOCK_FABRIC.md`
+- **Maintainability:** Clock division logic exists in one place (master clock), not scattered across modules
+- **Performance:** Pre-divided channels reduce CPU vs parallel PulseDivider chains
+
+**Pattern to follow:**
+```supercollider
+var allTrigs = In.ar(clockTrigBus, 13);
+var selectedTrig = Select.ar(rateIdx.clip(0, 12), allTrigs);
+var trigK = A2K.kr(Trig1.ar(selectedTrig, ControlDur.ir * 2));
+// Use trigK to reset phase, advance sequencers, etc.
+```
+
+**DO NOT:**
+- Use `x32 + PulseDivider` to create divisions (master clock already provides all 13 rates)
+- Create free-running LFOs when mode is set to "sync" (must phase-lock to triggers)
+- Duplicate BPM-to-frequency math inside modules (derive from `clockMults` array)
+- Hardcode rate assumptions (e.g., `clockTrigBus + 12` without explanation)
+
+**Exception class:**
+- Modules like SauceOfGrav that use clock as **gate/presence signal** rather than division source are exempt
+- Free-running modes where user explicitly disables clock sync
+
+**Files affected:**
+- `docs/CLOCK_FABRIC.md` — SSOT documentation
+- `supercollider/core/clock.scd` — Master clock generation
+- `supercollider/core/buses.scd` — Clock rate array (`~clockRates`)
+- `src/config/__init__.py` — Python rate array (`CLOCK_RATES`)
+- `supercollider/core/mod_lfo.scd` — Modulator using pre-divided channels
+- `supercollider/core/mod_arseq_plus.scd` — Same pattern
+- `supercollider/effects/dual_filter.scd` — Phase-locked filter LFOs
+- `supercollider/core/helpers.scd` — Generator envelope VCA (`~envVCA`)
+
+**Migration:**
+- Old presets preserved via legacy rate mapping (rate slider → index when `clkIdx = -1`)
+- New feature: explicit per-slot clock rate via `/noise/mod/clockRate/{slot}` OSC
+
+---
+
 ### [2025-12-10] Component-Based Modular Architecture
 **Decision:** Each UI section is a self-contained, independent component  
 **Rationale:** Like Eurorack - modules can be rearranged without breaking functionality  
