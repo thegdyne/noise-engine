@@ -117,7 +117,7 @@ Features:
         var phase1 = Phasor.kr(sync1TrigK, sync1Rate * tempoHz * ControlDur.ir, 0, 1, 0);
         lfo1 = Select.kr(sync1On, [
             DC.kr(1),
-            1 - (phase1 * 2 - 1).abs  // Triangle: peak at 0.5, zero at 0 and 1
+            (1 - (phase1 * 2 - 1).abs).linlin(0, 1, 0.01, 1)  // Triangle: 0.01-1 (never 0)
         ]);
 
         // LFO 2: phase-locked to clock
@@ -128,7 +128,7 @@ Features:
         var phase2 = Phasor.kr(sync2TrigK, sync2Rate * tempoHz * ControlDur.ir, 0, 1, 0);
         lfo2 = Select.kr(sync2On, [
             DC.kr(1),
-            1 - (phase2 * 2 - 1).abs  // Triangle: peak at 0.5, zero at 0 and 1
+            (1 - (phase2 * 2 - 1).abs).linlin(0, 1, 0.01, 1)  // Triangle: 0.01-1 (never 0)
         ]);
         
         // Smooth params
