@@ -52,7 +52,8 @@ var clockMults = [1/32, 1/16, ...];
 var mult = Select.kr(idx, clockMults);
 
 // NEW (registry):
-var mult = ~clockMultAt.(idx);
+// NOTE: Use Select.kr in SynthDef context (idx is a UGen, not an integer)
+var mult = Select.kr(idx.clip(0, 12), ~clockRateMults);
 ```
 
 **Usage in OSC handlers:**
@@ -82,12 +83,12 @@ CLOCK_DEFAULT_INDEX = 6  # CLK
 
 ## Files Using Registry
 
-| File | Usage |
-|------|-------|
-| `supercollider/core/buses.scd` | `~clockRates = ~CLOCK_RATE_MULTS` |
-| `supercollider/core/mod_lfo.scd` | `clockMult = ~clockMultAt.(clkIdxClamped)` |
-| `supercollider/core/mod_arseq_plus.scd` | `clockMult = ~clockMultAt.(clkIdxClamped)` |
-| `supercollider/effects/dual_filter.scd` | `idx = ~clockRateIndexOfLabel.(rateStr)` |
+| File | Usage | Context |
+|------|-------|---------|
+| `supercollider/core/buses.scd` | `~clockRates = ~clockRateMults` | Boot time |
+| `supercollider/core/mod_lfo.scd` | `clockMult = Select.kr(clkIdxClamped, ~clockRateMults)` | SynthDef (UGen) |
+| `supercollider/core/mod_arseq_plus.scd` | `clockMult = Select.kr(clkIdxClamped, ~clockRateMults)` | SynthDef (UGen) |
+| `supercollider/effects/dual_filter.scd` | `idx = ~clockRateIndexOfLabel.(rateStr)` | OSC handler (integer) |
 
 ## Audit Commands
 

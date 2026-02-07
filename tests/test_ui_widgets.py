@@ -218,22 +218,22 @@ class TestModSourceConstants:
     """Verify mod source constants have correct lengths."""
     
     def test_mod_clock_rates_count(self):
-        """MOD_CLOCK_RATES must have 12 entries."""
+        """MOD_CLOCK_RATES must have 13 entries (clock unification)."""
         from src.config import MOD_CLOCK_RATES
-        assert len(MOD_CLOCK_RATES) == 12, \
-            f"MOD_CLOCK_RATES should have 12 entries, got {len(MOD_CLOCK_RATES)}"
-    
-    def test_mod_clock_ticks_per_cycle_count(self):
-        """MOD_CLOCK_TICKS_PER_CYCLE must have 12 entries."""
-        from src.config import MOD_CLOCK_TICKS_PER_CYCLE
-        assert len(MOD_CLOCK_TICKS_PER_CYCLE) == 12, \
-            f"MOD_CLOCK_TICKS_PER_CYCLE should have 12 entries, got {len(MOD_CLOCK_TICKS_PER_CYCLE)}"
-    
-    def test_mod_clock_rates_and_ticks_match(self):
-        """MOD_CLOCK_RATES and MOD_CLOCK_TICKS_PER_CYCLE must have same length."""
-        from src.config import MOD_CLOCK_RATES, MOD_CLOCK_TICKS_PER_CYCLE
-        assert len(MOD_CLOCK_RATES) == len(MOD_CLOCK_TICKS_PER_CYCLE), \
-            "MOD_CLOCK_RATES and MOD_CLOCK_TICKS_PER_CYCLE must have same length (SSOT)"
+        assert len(MOD_CLOCK_RATES) == 13, \
+            f"MOD_CLOCK_RATES should have 13 entries, got {len(MOD_CLOCK_RATES)}"
+
+    def test_mod_clock_rates_unified(self):
+        """MOD_CLOCK_RATES should match CLOCK_RATES (unified after clock fabric)."""
+        from src.config import MOD_CLOCK_RATES, CLOCK_RATES
+        assert MOD_CLOCK_RATES == CLOCK_RATES, \
+            "MOD_CLOCK_RATES should be unified with CLOCK_RATES (SSOT)"
+
+    def test_mod_clock_ticks_removed(self):
+        """MOD_CLOCK_TICKS_PER_CYCLE removed in clock unification (uses pre-divided buses)."""
+        from src.config import __dict__ as config_dict
+        assert 'MOD_CLOCK_TICKS_PER_CYCLE' not in config_dict, \
+            "MOD_CLOCK_TICKS_PER_CYCLE should be removed (obsolete after PulseDivider removal)"
     
     def test_mod_lfo_modes_exist(self):
         """MOD_LFO_MODES must be defined with CLK and FREE."""

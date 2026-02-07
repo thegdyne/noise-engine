@@ -62,8 +62,9 @@ class TestModConstants:
     def test_clock_rates(self):
         """Clock rates should include divisions and multipliers."""
         assert "/4" in MOD_CLOCK_RATES
-        assert "1" in MOD_CLOCK_RATES
+        assert "CLK" in MOD_CLOCK_RATES  # Base tempo (was "1")
         assert "x4" in MOD_CLOCK_RATES
+        assert len(MOD_CLOCK_RATES) == 13  # 13 rates after clock unification
         
     def test_polarity(self):
         """Polarity should be NORM and INV (invert)."""
