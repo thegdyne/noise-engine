@@ -163,7 +163,10 @@ SynthDef(\modLFO, {
     // Read all 13 pre-divided clock channels and select by index
     // Pattern matches generators (helpers.scd:35-36)
     var allTrigs = In.ar(clockTrigBus, 13);
-    var clkIdxClamped = clkIdx.round.clip(0, 12);
+    // Legacy: if clkIdx < 0, derive from rate slider (0-1 -> 0-12)
+    var legacyIdx = (rate * 12).round.clip(0, 12);
+    var effIdx = Select.kr(clkIdx >= 0, [legacyIdx, clkIdx.round]);
+    var clkIdxClamped = effIdx.clip(0, 12);
     clk = Select.ar(clkIdxClamped, allTrigs);
 
     // Ensure trigger spans >= 1-2 control blocks so A2K can't miss it

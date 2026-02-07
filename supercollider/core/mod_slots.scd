@@ -39,8 +39,9 @@ P1-P4 standardized params for mod matrix cross-modulation:
     });
 
     // Per-slot clock index buses (live-updatable via .asMap)
-    // Default to index 6 (CLK = 1 beat)
-    ~modClkIdxBus = 4.collect { Bus.control(s, 1).set(6) };
+    // Default to -1 (derive from rate knob - legacy behaviour)
+    // Set to 0-12 to override with explicit clock rate
+    ~modClkIdxBus = 4.collect { Bus.control(s, 1).set(-1) };
 
     // P1-P4 mapping per generator type
     // Returns [actualParamSymbol, isDiscrete, min, max] or nil if not supported

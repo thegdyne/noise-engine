@@ -110,23 +110,25 @@ Features:
         var allTrigs = In.ar(clockTrigBus, 13);
 
         // LFO 1: phase-locked to clock
+        var sync1On = (sync1Idx >= 0);
         var sync1IdxClamped = sync1Idx.clip(0, 12);
-        var sync1Trig = Select.ar(sync1IdxClamped, allTrigs);
+        var sync1Trig = Select.ar(sync1IdxClamped, allTrigs) * sync1On;  // Gate when off
         var sync1TrigK = A2K.kr(Trig1.ar(sync1Trig, ControlDur.ir * 2));
         var phase1 = Phasor.kr(sync1TrigK, sync1Rate * tempoHz * ControlDur.ir, 0, 1, 0);
-        lfo1 = Select.kr(sync1Idx >= 0, [
+        lfo1 = Select.kr(sync1On, [
             DC.kr(1),
-            (phase1 * 2 - 1).abs  // Triangle from sawtooth phase
+            1 - (phase1 * 2 - 1).abs  // Triangle: peak at 0.5, zero at 0 and 1
         ]);
 
         // LFO 2: phase-locked to clock
+        var sync2On = (sync2Idx >= 0);
         var sync2IdxClamped = sync2Idx.clip(0, 12);
-        var sync2Trig = Select.ar(sync2IdxClamped, allTrigs);
+        var sync2Trig = Select.ar(sync2IdxClamped, allTrigs) * sync2On;  // Gate when off
         var sync2TrigK = A2K.kr(Trig1.ar(sync2Trig, ControlDur.ir * 2));
         var phase2 = Phasor.kr(sync2TrigK, sync2Rate * tempoHz * ControlDur.ir, 0, 1, 0);
-        lfo2 = Select.kr(sync2Idx >= 0, [
+        lfo2 = Select.kr(sync2On, [
             DC.kr(1),
-            (phase2 * 2 - 1).abs  // Triangle from sawtooth phase
+            1 - (phase2 * 2 - 1).abs  // Triangle: peak at 0.5, zero at 0 and 1
         ]);
         
         // Smooth params
