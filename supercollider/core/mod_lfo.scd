@@ -179,7 +179,8 @@ SynthDef(\modLFO, {
 
     // Calculate LFO frequency from BPM and clock rate
     // Use clock registry (clock_registry.scd) for multipliers
-    clockMult = ~clockMultAt.(clkIdxClamped);
+    // NOTE: Must use Select.kr in SynthDef context (idx is a UGen, not an integer)
+    clockMult = Select.kr(clkIdxClamped, ~clockRateMults);
     clkFreq = In.kr(bpmBus).max(1) / 60 * clockMult;
 
     // ---- FREE MODE (mode = 1) ----
