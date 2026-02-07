@@ -149,7 +149,7 @@ SynthDef(\modARSeqPlus, {
 
     // ---- MASTER RATE ----
     // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
-    clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+    clockMults = [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
     clockMult = Select.kr(clkIdxClamped, clockMults);
     bpm = In.kr(bpmBus).max(1);
     clkFreq = bpm / 60 * clockMult;
