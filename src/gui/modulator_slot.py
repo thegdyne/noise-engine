@@ -48,11 +48,10 @@ LFO_LAYOUT = {
     'params_y': 28,
     'label_h': 10,
     'mode_x': 6, 'mode_w': 28, 'mode_h': 22,
-    'rate_x': 38, 'rate_w': 18, 'rate_h': 50,
-    'rotate_x': 60, 'rotate_w': 28,
+    'rotate_x': 38, 'rotate_w': 28,
 
     # Clock rate selector
-    'clk_rate_x': 92, 'clk_rate_y': 28,
+    'clk_rate_x': 70, 'clk_rate_y': 28,
     'clk_rate_w': 56, 'clk_rate_h': 20,
 
     # Outputs
@@ -111,10 +110,9 @@ ARSEQ_LAYOUT = {
     'label_h': 10,
     'mode_x': 6, 'mode_w': 28, 'mode_h': 22,
     'clk_x': 38, 'clk_w': 28,
-    'rate_x': 70, 'rate_w': 18, 'rate_h': 60,
 
     # Clock rate selector
-    'clk_rate_x': 92, 'clk_rate_y': 30,
+    'clk_rate_x': 70, 'clk_rate_y': 30,
     'clk_rate_w': 56, 'clk_rate_h': 20,
 
     # Outputs
@@ -304,24 +302,6 @@ class ModulatorSlot(QWidget):
         mode_btn.index_changed.connect(lambda idx: self._on_mode_changed('mode', idx))
         self.param_widgets.append(mode_btn)
         self.param_sliders['mode'] = mode_btn
-
-        # RATE slider
-        lbl = QLabel("RATE", self)
-        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setStyleSheet(f"color: {COLORS['text']};")
-        lbl.setGeometry(L['rate_x'], y, L['rate_w'], L['label_h'])
-        self.param_widgets.append(lbl)
-
-        rate_slider = DragSlider(parent=self)
-        rate_slider.setRange(0, 1000)
-        rate_slider.setValue(182)  # /16 clock division
-        rate_slider.setGeometry(L['rate_x'], y + L['label_h'], L['rate_w'], L['rate_h'])
-        rate_slider.valueChanged.connect(lambda v: self._on_rate_changed(v))
-        rate_slider.valueChanged.connect(lambda v: self._update_lfo_rate_tooltip(v))
-        self.param_widgets.append(rate_slider)
-        self.param_sliders['rate'] = rate_slider
-        self._update_lfo_rate_tooltip(182)  # Sets initial tooltip
 
         # ROTATE button
         lbl = QLabel("ROT", self)
@@ -515,24 +495,6 @@ class ModulatorSlot(QWidget):
         clk_btn.index_changed.connect(lambda idx: self._on_mode_changed('clock_mode', idx))
         self.param_widgets.append(clk_btn)
         self.param_sliders['clock_mode'] = clk_btn
-
-        # RATE slider
-        lbl = QLabel("RATE", self)
-        lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setStyleSheet(f"color: {COLORS['text']};")
-        lbl.setGeometry(L['rate_x'], y, L['rate_w'], L['label_h'])
-        self.param_widgets.append(lbl)
-
-        rate_slider = DragSlider(parent=self)
-        rate_slider.setRange(0, 1000)
-        rate_slider.setValue(364)  # /4 clock division
-        rate_slider.setGeometry(L['rate_x'], y + L['label_h'], L['rate_w'], L['rate_h'])
-        rate_slider.valueChanged.connect(lambda v: self._on_rate_changed(v))
-        rate_slider.valueChanged.connect(lambda v: self._update_arseq_rate_tooltip(v))
-        self.param_widgets.append(rate_slider)
-        self.param_sliders['rate'] = rate_slider
-        self._update_arseq_rate_tooltip(364)
 
         # CLOCK RATE selector (for CLK mode)
         lbl = QLabel("CLK", self)
