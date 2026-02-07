@@ -82,7 +82,7 @@ SynthDef(\modARSeqPlus, {
 	var mapSyncTime, mapLoopTime, mapCurve, makeEnv;
     var parStep, atkTrigPar, relTrigPar, gatePar;
 	var resetIn, areset, resetTrig;
-	var allTrigs, legacyIdx, effIdx, clkIdxClamped, clockMults, clockMult;
+	var allTrigs, legacyIdx, effIdx, clkIdxClamped, clockMult;
 
 
 	resetIn   = In.ar(resetBus + resetIndex);
@@ -148,9 +148,8 @@ SynthDef(\modARSeqPlus, {
     trig = Trig1.kr(A2K.kr(atrig), ControlDur.ir * 2);
 
     // ---- MASTER RATE ----
-    // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
-    clockMults = [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
-    clockMult = Select.kr(clkIdxClamped, clockMults);
+    // Use clock registry (clock_registry.scd) for multipliers
+    clockMult = ~clockMultAt.(clkIdxClamped);
     bpm = In.kr(bpmBus).max(1);
     clkFreq = bpm / 60 * clockMult;
 

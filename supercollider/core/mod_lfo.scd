@@ -79,7 +79,7 @@ SynthDef(\modLFO, {
     var phaseA, phaseB, phaseC, phaseD;
     var effWaveA, effWaveB, effWaveC, effWaveD;
 	var effPolA, effPolB, effPolC, effPolD, gw, gp, makeWave;
-	var allTrigs, legacyIdx, effIdx, clkIdxClamped, clockMults, clockMult;
+	var allTrigs, legacyIdx, effIdx, clkIdxClamped, clockMult;
 
     gw = globalWave.clip(0, 7).round(1);
     gp = globalPolarity.clip(0, 1).round(1);
@@ -178,9 +178,8 @@ SynthDef(\modLFO, {
     resetTrig = trig;
 
     // Calculate LFO frequency from BPM and clock rate
-    // Clock rates: [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]
-    clockMults = [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
-    clockMult = Select.kr(clkIdxClamped, clockMults);
+    // Use clock registry (clock_registry.scd) for multipliers
+    clockMult = ~clockMultAt.(clkIdxClamped);
     clkFreq = In.kr(bpmBus).max(1) / 60 * clockMult;
 
     // ---- FREE MODE (mode = 1) ----

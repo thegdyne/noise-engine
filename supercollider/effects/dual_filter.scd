@@ -33,46 +33,6 @@ Features:
     ~fbRouting = 0;       // 0=Serial, 1=Parallel
     ~fbMix = 0.5;         // 50%
     ~fbBypass = 1;        // 1=bypassed
-    
-    // Rate string to multiplier lookup
-    ~fbRateToMult = { |rateStr|
-        case
-        { rateStr == "" }     { 0 }
-        { rateStr == "/32" }  { 1/32 }
-        { rateStr == "/16" }  { 1/16 }
-        { rateStr == "/12" }  { 1/12 }
-        { rateStr == "/8" }   { 1/8 }
-        { rateStr == "/4" }   { 1/4 }
-        { rateStr == "/2" }   { 1/2 }
-        { rateStr == "CLK" }  { 1 }
-        { rateStr == "x2" }   { 2 }
-        { rateStr == "x4" }   { 4 }
-        { rateStr == "x8" }   { 8 }
-        { rateStr == "x12" }  { 12 }
-        { rateStr == "x16" }  { 16 }
-        { rateStr == "x32" }  { 32 }
-        { 0 };  // Default: no sync
-    };
-
-    // Convert rate string to clock bus index (-1 = off, 0-12 = clock rate)
-    ~fbRateToIndex = { |rateStr|
-        case
-        { rateStr == "" }     { -1 }  // Off
-        { rateStr == "/32" }  { 0 }
-        { rateStr == "/16" }  { 1 }
-        { rateStr == "/12" }  { 2 }
-        { rateStr == "/8" }   { 3 }
-        { rateStr == "/4" }   { 4 }
-        { rateStr == "/2" }   { 5 }
-        { rateStr == "CLK" }  { 6 }
-        { rateStr == "x2" }   { 7 }
-        { rateStr == "x4" }   { 8 }
-        { rateStr == "x8" }   { 9 }
-        { rateStr == "x12" }  { 10 }
-        { rateStr == "x16" }  { 11 }
-        { rateStr == "x32" }  { 12 }
-        { -1 };  // Default: off
-    };
 
     SynthDef(\dualFilter, { |inBus, outBus, bpmBus, clockTrigBus,
                              drive=0, freq1=0.6, reso1=0.3, mode1=0,
@@ -294,8 +254,8 @@ Features:
     
     OSCdef(\fbSync1, { |msg|
         var rateStr = msg[1].asString;
-        var mult = ~fbRateToMult.(rateStr);
-        var idx = ~fbRateToIndex.(rateStr);
+        var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
+        var mult = if (idx >= 0) { ~CLOCK_RATE_MULTS[idx] } { 0 };
         ~fbSync1Rate = mult;
         if(~fbSynth.notNil) {
             ~fbSynth.set(\sync1Rate, mult);
@@ -327,8 +287,8 @@ Features:
     
     OSCdef(\fbSync2, { |msg|
         var rateStr = msg[1].asString;
-        var mult = ~fbRateToMult.(rateStr);
-        var idx = ~fbRateToIndex.(rateStr);
+        var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
+        var mult = if (idx >= 0) { ~CLOCK_RATE_MULTS[idx] } { 0 };
         ~fbSync2Rate = mult;
         if(~fbSynth.notNil) {
             ~fbSynth.set(\sync2Rate, mult);

@@ -38,6 +38,9 @@ s.waitForBoot({
     "".postln;
 
     // Load core systems (order matters!)
+    // Clock registry MUST load first (SSOT for 13 clock rates)
+    (~basePath +/+ "core/clock_registry.scd").load;
+
     (~basePath +/+ "core/buses.scd").load;
     ~setupBuses.();
 
