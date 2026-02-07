@@ -553,8 +553,15 @@ SYNC_LAYOUT = {
 SL = SYNC_LAYOUT
 
 # Sync modes: FREE + clock rates
-FILTER_SYNC_MODES = ["FREE", "/32", "/16", "/12", "/8", "/4", "/2", "CLK", "x2", "x4", "x8", "x12", "x16", "x32"]
-FILTER_SYNC_CLK_INDEX = 7  # CLK position in the list
+from src.config import CLOCK_RATES, CLOCK_DEFAULT_INDEX
+
+# Sync modes: FREE + SSOT clock rates
+FILTER_SYNC_MODES = ["FREE"] + CLOCK_RATES
+FILTER_SYNC_CLK_INDEX = 1 + CLOCK_DEFAULT_INDEX  # FREE shifts SSOT indices by +1
+
+# Sanity checks: catch future list drift
+assert FILTER_SYNC_MODES[0] == "FREE"
+assert FILTER_SYNC_MODES[FILTER_SYNC_CLK_INDEX] == "CLK"
 
 
 class SyncModule(QWidget):
@@ -665,8 +672,8 @@ class SyncModule(QWidget):
 
     def _on_f1_changed(self, index):
         """Handle F1 sync rate change."""
-        # Click from FREE jumps to CLK
-        if self.f1_prev_index == 0 and index == 1:
+        # Leaving FREE: always land on CLK (consistent "enable sync" gesture)
+        if self.f1_prev_index == 0 and index != 0:
             index = FILTER_SYNC_CLK_INDEX
             self.f1_btn.set_index(index)
 
@@ -677,8 +684,8 @@ class SyncModule(QWidget):
 
     def _on_f2_changed(self, index):
         """Handle F2 sync rate change."""
-        # Click from FREE jumps to CLK
-        if self.f2_prev_index == 0 and index == 1:
+        # Leaving FREE: always land on CLK (consistent "enable sync" gesture)
+        if self.f2_prev_index == 0 and index != 0:
             index = FILTER_SYNC_CLK_INDEX
             self.f2_btn.set_index(index)
 
@@ -706,20 +713,40 @@ class SyncModule(QWidget):
 
     def get_state(self) -> dict:
         return {
-            'f1_sync': self.f1_btn.index,
-            'f2_sync': self.f2_btn.index,
+            'f1_sync': FILTER_SYNC_MODES[self.f1_btn.index],  # Store label, not index
+            'f2_sync': FILTER_SYNC_MODES[self.f2_btn.index],  # Store label, not index
             'amt': self.amt_slider.value(),
         }
 
     def set_state(self, state: dict):
         if 'f1_sync' in state:
-            self.f1_btn.set_index(state['f1_sync'])
-            self.f1_prev_index = state['f1_sync']
-            self._update_btn_style(self.f1_btn, state['f1_sync'])
+            label = state['f1_sync']
+            # Support both old format (int) and new format (str)
+            if isinstance(label, int):
+                # Legacy: index-based state
+                idx = label if 0 <= label < len(FILTER_SYNC_MODES) else 0
+            else:
+                # New: label-based state
+                idx = FILTER_SYNC_MODES.index(label) if label in FILTER_SYNC_MODES else 0
+
+            self.f1_btn.set_index(idx)
+            self.f1_prev_index = idx
+            self._update_btn_style(self.f1_btn, idx)
+
         if 'f2_sync' in state:
-            self.f2_btn.set_index(state['f2_sync'])
-            self.f2_prev_index = state['f2_sync']
-            self._update_btn_style(self.f2_btn, state['f2_sync'])
+            label = state['f2_sync']
+            # Support both old format (int) and new format (str)
+            if isinstance(label, int):
+                # Legacy: index-based state
+                idx = label if 0 <= label < len(FILTER_SYNC_MODES) else 0
+            else:
+                # New: label-based state
+                idx = FILTER_SYNC_MODES.index(label) if label in FILTER_SYNC_MODES else 0
+
+            self.f2_btn.set_index(idx)
+            self.f2_prev_index = idx
+            self._update_btn_style(self.f2_btn, idx)
+
         if 'amt' in state:
             self.amt_slider.setValue(state['amt'])
 
