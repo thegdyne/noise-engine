@@ -195,21 +195,17 @@ class MotionManager:
 
     def on_fabric_tick(self, fabric_idx: int):
         """Handle clock fabric tick from SC. Route to matching ARP slots."""
+        arp_rate = FABRIC_IDX_TO_ARP_RATE.get(fabric_idx)
+        if arp_rate is None:
+            return
+
         now_ms = time.monotonic() * 1000.0
 
         for slot in self._slots:
             if slot['lock'].acquire(blocking=False):
                 try:
                     if slot['mode'] == MotionMode.ARP:
-                        # Start ref tick (before master_tick — downbeat can both start and step)
-                        ref_idx = slot['arp'].settings.start_ref_idx
-                        if fabric_idx == ref_idx:
-                            slot['arp'].start_ref_tick(now_ms)
-
-                        # Normal ARP rate tick
-                        arp_rate = FABRIC_IDX_TO_ARP_RATE.get(fabric_idx)
-                        if arp_rate is not None:
-                            slot['arp'].master_tick(arp_rate, now_ms)
+                        slot['arp'].master_tick(arp_rate, now_ms)
                 finally:
                     slot['lock'].release()
 
