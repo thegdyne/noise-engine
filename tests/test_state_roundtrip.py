@@ -474,3 +474,30 @@ class TestARSeqPlusStateRoundTrip:
         assert len(state.envelopes) == 4
         assert state.envelopes[0].attack == 0.9
         assert state.envelopes[1].attack == 0.5  # default
+
+
+class TestControllerHasNoFeatureKnowledge:
+    """Phase 2: _do_save_preset must not assemble per-feature state."""
+
+    def test_save_path_contains_no_feature_keywords(self):
+        """Controller save path delegates to slot.get_state(), no feature injection."""
+        import re
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "src", "gui", "controllers", "preset_controller.py",
+        )
+        with open(src_path) as f:
+            full_source = f.read()
+        # Extract _do_save_preset method body (from def to next def or end)
+        match = re.search(
+            r"(def _do_save_preset\(.*?\n(?:(?!    def ).+\n)*)",
+            full_source,
+        )
+        assert match, "_do_save_preset not found in preset_controller.py"
+        method_source = match.group(1)
+        forbidden = ["arp_", "euclid_", "seq_", "rst_", "motion_manager"]
+        found = [kw for kw in forbidden if kw in method_source]
+        assert not found, (
+            f"_do_save_preset still contains feature keywords: {found}. "
+            f"Feature state export belongs in GeneratorSlot.get_state()."
+        )

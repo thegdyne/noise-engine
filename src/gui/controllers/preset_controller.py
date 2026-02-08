@@ -95,44 +95,6 @@ class PresetController:
         for slot_id in range(1, 9):
             slot_widget = self.main.generator_grid.slots[slot_id]
             slot_dict = slot_widget.get_state()
-            # Inject ARP settings from arp_manager
-            if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'arp_manager'):
-                engine = self.main.keyboard.arp_manager.get_engine(slot_id - 1)
-                arp = engine.get_settings()
-                slot_dict["arp_enabled"] = arp.enabled
-                slot_dict["arp_rate"] = arp.rate_index
-                slot_dict["arp_pattern"] = list(type(arp.pattern)).index(arp.pattern)
-                slot_dict["arp_octaves"] = arp.octaves
-                slot_dict["arp_hold"] = arp.hold
-                # Euclidean gate settings
-                slot_dict["euclid_enabled"] = arp.euclid_enabled
-                slot_dict["euclid_n"] = arp.euclid_n
-                slot_dict["euclid_k"] = arp.euclid_k
-                slot_dict["euclid_rot"] = arp.euclid_rot
-                # RST rate (fabric index or 0=OFF)
-                rst_idx = engine.runtime.rst_fabric_idx
-                slot_dict["rst_rate"] = rst_idx if rst_idx is not None else 0
-            # Inject SEQ settings from motion_manager
-            if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'motion_manager'):
-                from src.model.sequencer import StepType, PlayMode, MotionMode
-                mm = self.main.keyboard.motion_manager
-                seq_engine = mm.get_seq_engine(slot_id - 1)
-                if seq_engine is not None:
-                    seq = seq_engine.get_settings()
-                    step_types = list(StepType)
-                    play_modes = list(PlayMode)
-                    slot_dict["seq_enabled"] = mm.get_mode(slot_id - 1) == MotionMode.SEQ
-                    slot_dict["seq_rate"] = seq_engine.rate_index
-                    slot_dict["seq_length"] = seq.length
-                    slot_dict["seq_play_mode"] = play_modes.index(seq.play_mode) if seq.play_mode in play_modes else 0
-                    slot_dict["seq_steps"] = [
-                        {
-                            "step_type": step_types.index(s.step_type) if s.step_type in step_types else 1,
-                            "note": s.note,
-                            "velocity": s.velocity,
-                        }
-                        for s in seq.steps
-                    ]
             # Save-time schema coverage assertion (STATE_INTEGRITY_SPEC Option C)
             # Fail-loud: prevents writing corrupt presets with silently missing fields.
             # Set NOISE_STRICT_STATE=0 to downgrade to warning (not recommended).

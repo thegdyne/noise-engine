@@ -114,6 +114,10 @@ class GeneratorSlot(QWidget):
         self.analog_enabled = 0  # 0=OFF, 1=ON (sticky across generator changes)
         self.analog_type = 0  # 0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD (sticky)
 
+        # State sources (injected via set_state_sources after construction)
+        self._arp_manager = None
+        self._motion_manager = None
+
         self.setFixedWidth(L['slot_width'])
         self.setMinimumHeight(L['slot_height'])
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
@@ -315,16 +319,25 @@ class GeneratorSlot(QWidget):
     # State Management
     # =========================================================================
     
+    def set_state_sources(self, arp_manager=None, motion_manager=None):
+        """Inject state sources for canonical export (Phase 2 ownership shift)."""
+        self._arp_manager = arp_manager
+        self._motion_manager = motion_manager
+
     def get_state(self) -> dict:
-        """Get current slot state for preset save."""
+        """Get current slot state for preset save — canonical export.
+
+        Returns a dict matching SlotState.to_dict() schema exactly.
+        The controller must not patch or fix up this output.
+        """
         params = {}
         for key, slider in self.sliders.items():
             params[key] = slider.value() / 1000.0
-        
+
         for i in range(MAX_CUSTOM_PARAMS):
             params[f"custom_{i}"] = self.custom_sliders[i].value() / 1000.0
-        
-        return {
+
+        d = {
             "generator": self.generator_type if self.generator_type != "Empty" else None,
             "params": params,
             "filter_type": self.filter_btn.index,
@@ -336,6 +349,47 @@ class GeneratorSlot(QWidget):
             "analog_enabled": self.analog_enabled,
             "analog_type": self.analog_type,
         }
+
+        # ARP + Euclidean + RST state
+        slot_idx = self.slot_id - 1
+        if self._arp_manager is not None:
+            engine = self._arp_manager.get_engine(slot_idx)
+            arp = engine.get_settings()
+            d["arp_enabled"] = arp.enabled
+            d["arp_rate"] = arp.rate_index
+            d["arp_pattern"] = list(type(arp.pattern)).index(arp.pattern)
+            d["arp_octaves"] = arp.octaves
+            d["arp_hold"] = arp.hold
+            d["euclid_enabled"] = arp.euclid_enabled
+            d["euclid_n"] = arp.euclid_n
+            d["euclid_k"] = arp.euclid_k
+            d["euclid_rot"] = arp.euclid_rot
+            rst_idx = engine.runtime.rst_fabric_idx
+            d["rst_rate"] = rst_idx if rst_idx is not None else 0
+
+        # SEQ state
+        if self._motion_manager is not None:
+            from src.model.sequencer import StepType, PlayMode, MotionMode
+            mm = self._motion_manager
+            seq_engine = mm.get_seq_engine(slot_idx)
+            if seq_engine is not None:
+                seq = seq_engine.get_settings()
+                step_types = list(StepType)
+                play_modes = list(PlayMode)
+                d["seq_enabled"] = mm.get_mode(slot_idx) == MotionMode.SEQ
+                d["seq_rate"] = seq_engine.rate_index
+                d["seq_length"] = seq.length
+                d["seq_play_mode"] = play_modes.index(seq.play_mode) if seq.play_mode in play_modes else 0
+                d["seq_steps"] = [
+                    {
+                        "step_type": step_types.index(s.step_type) if s.step_type in step_types else 1,
+                        "note": s.note,
+                        "velocity": s.velocity,
+                    }
+                    for s in seq.steps
+                ]
+
+        return d
 
     def set_state(self, state: dict):
         """Apply state from preset load."""
