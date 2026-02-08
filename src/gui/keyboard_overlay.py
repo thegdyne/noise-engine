@@ -294,9 +294,11 @@ class KeyboardOverlay(QWidget):
         self._euc_rot_btn.set_index(settings.euclid_rot)
 
         # Start sync controls
-        self._arp_start_arm_btn.setChecked(engine.runtime.start_sync_armed)
-        ref_ui_idx = max(0, min(5, settings.start_ref_idx - 4))
-        self._arp_start_ref_btn.set_index(ref_ui_idx)
+        if self._arp_start_arm_btn is not None:
+            self._arp_start_arm_btn.setChecked(engine.runtime.start_sync_armed)
+        if self._arp_start_ref_btn is not None:
+            ref_ui_idx = max(0, min(5, settings.start_ref_idx - 4))
+            self._arp_start_ref_btn.set_index(ref_ui_idx)
 
         # Target slot button — highlight the engine's slot
         target_ui_slot = engine.slot_id + 1  # 0-indexed -> 1-indexed
