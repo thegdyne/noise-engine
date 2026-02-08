@@ -1,5 +1,5 @@
 ---
-status: phase-1-complete
+status: phase-2-complete
 ---
 # State Integrity Hardening
 
@@ -9,7 +9,7 @@ Eliminate the "whack-a-mole" pattern where every new feature silently breaks pre
 
 ## Invariants (Non-Negotiable)
 
-**I1 — Schema identity:** `D == D.from_dict(D.to_dict())` field-by-field, for all hardened dataclasses (`SlotState`, `ChannelState`, `MasterState`).
+**I1 — Schema identity:** `D == D.from_dict(D.to_dict())` field-by-field, for all hardened dataclasses (SlotState, ChannelState, MasterState, plus 10 leaf FX/Mod/Seq states).
 
 **I2 — Save completeness:** The dict actually written into the preset file contains **all `SlotState` fields** (top-level + `params`) for every slot. No field is silently omitted.
 
