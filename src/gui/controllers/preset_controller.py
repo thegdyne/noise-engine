@@ -187,77 +187,12 @@ class PresetController:
         if state.pack is not None:
             if not self.main.pack_selector.set_pack(state.pack):
                 logger.warning(f"Pack '{state.pack}' not found, using Core", component="PRESET")
-        
+
         for i, slot_state in enumerate(state.slots):
             slot_id = i + 1
             if slot_id <= 8:
                 slot_widget = self.main.generator_grid.slots[slot_id]
-                slot_widget.set_state(slot_state.to_dict())
-
-        # Restore ARP settings to each slot's engine
-        if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'arp_manager'):
-            from src.gui.arp_engine import ArpPattern
-            from src.model.sequencer import MotionMode
-            patterns = list(ArpPattern)
-            mm = getattr(self.main.keyboard, 'motion_manager', None)
-            for i, slot_state in enumerate(state.slots):
-                if i < 8:
-                    engine = self.main.keyboard.arp_manager.get_engine(i)
-                    pattern_idx = slot_state.arp_pattern
-                    pattern = patterns[pattern_idx] if 0 <= pattern_idx < len(patterns) else ArpPattern.UP
-                    engine.set_rate(slot_state.arp_rate)
-                    engine.set_pattern(pattern)
-                    engine.set_octaves(slot_state.arp_octaves)
-                    engine.toggle_hold(slot_state.arp_hold)
-                    engine.toggle_arp(slot_state.arp_enabled)
-                    # Restore Euclidean gate settings
-                    engine.set_euclid(
-                        slot_state.euclid_enabled,
-                        slot_state.euclid_n,
-                        slot_state.euclid_k,
-                        slot_state.euclid_rot,
-                    )
-                    # Restore RST rate (0=OFF, 4-9=fabric index)
-                    if slot_state.rst_rate >= 4:
-                        engine.runtime.rst_fabric_idx = slot_state.rst_rate
-                    else:
-                        engine.runtime.rst_fabric_idx = None
-                    # Set MotionMode.ARP so fabric ticks reach the engine
-                    if mm is not None and slot_state.arp_enabled:
-                        mm.set_mode(i, MotionMode.ARP)
-
-        # Restore SEQ settings to each slot's engine
-        if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'motion_manager'):
-            from src.model.sequencer import StepType, PlayMode, MotionMode, SeqStep
-            step_types = list(StepType)
-            play_modes = list(PlayMode)
-            mm = self.main.keyboard.motion_manager
-            for i, slot_state in enumerate(state.slots):
-                if i < 8:
-                    seq_engine = mm.get_seq_engine(i)
-                    if seq_engine is not None:
-                        # Restore rate
-                        seq_engine._rate_index = max(0, min(slot_state.seq_rate, 6))
-                        # Restore length
-                        seq_engine.settings.length = max(1, min(slot_state.seq_length, 16))
-                        # Restore play mode
-                        pm_idx = slot_state.seq_play_mode
-                        seq_engine.settings.play_mode = play_modes[pm_idx] if 0 <= pm_idx < len(play_modes) else PlayMode.FORWARD
-                        # Restore steps
-                        if slot_state.seq_steps:
-                            for j, step_dict in enumerate(slot_state.seq_steps[:16]):
-                                if isinstance(step_dict, dict):
-                                    st_idx = step_dict.get("step_type", 1)
-                                    st = step_types[st_idx] if 0 <= st_idx < len(step_types) else StepType.REST
-                                    seq_engine.settings.steps[j] = SeqStep(
-                                        step_type=st,
-                                        note=step_dict.get("note", 60),
-                                        velocity=step_dict.get("velocity", 100),
-                                    )
-                            seq_engine.steps_version += 1
-                        # Restore SEQ enabled state (start playback if was active)
-                        if slot_state.seq_enabled:
-                            mm.set_mode(i, MotionMode.SEQ)
+                slot_widget.apply_state(slot_state.to_dict())
 
         for i, channel_state in enumerate(state.mixer.channels):
             ch_id = i + 1

@@ -1,5 +1,5 @@
 ---
-status: phase-2-complete
+status: phase-3-complete
 ---
 # State Integrity Hardening
 

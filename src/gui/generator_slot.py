@@ -497,6 +497,68 @@ class GeneratorSlot(QWidget):
         self.analog_type_changed.emit(self.slot_id, self.analog_type)
         self.analog_enable_changed.emit(self.slot_id, self.analog_enabled)
 
+    def apply_state(self, state: dict):
+        """Apply full slot state from preset load — canonical import.
+
+        Sets UI controls AND pushes feature state (ARP/Euclid/RST/SEQ)
+        into injected managers. The controller must not do this separately.
+        """
+        # UI controls (generator, params, filter, env, clock, midi, etc.)
+        self.set_state(state)
+
+        slot_idx = self.slot_id - 1
+
+        # ARP + Euclidean + RST state
+        if self._arp_manager is not None:
+            from src.gui.arp_engine import ArpPattern
+            from src.model.sequencer import MotionMode
+            engine = self._arp_manager.get_engine(slot_idx)
+            patterns = list(ArpPattern)
+            pattern_idx = state.get("arp_pattern", 0)
+            pattern = patterns[pattern_idx] if 0 <= pattern_idx < len(patterns) else ArpPattern.UP
+            engine.set_rate(state.get("arp_rate", 4))
+            engine.set_pattern(pattern)
+            engine.set_octaves(state.get("arp_octaves", 1))
+            engine.toggle_hold(state.get("arp_hold", False))
+            engine.toggle_arp(state.get("arp_enabled", False))
+            engine.set_euclid(
+                state.get("euclid_enabled", False),
+                state.get("euclid_n", 16),
+                state.get("euclid_k", 16),
+                state.get("euclid_rot", 0),
+            )
+            rst_rate = state.get("rst_rate", 0)
+            engine.runtime.rst_fabric_idx = rst_rate if rst_rate >= 4 else None
+            if self._motion_manager is not None and state.get("arp_enabled", False):
+                self._motion_manager.set_mode(slot_idx, MotionMode.ARP)
+
+        # SEQ state
+        if self._motion_manager is not None:
+            from src.model.sequencer import StepType, PlayMode, MotionMode, SeqStep
+            mm = self._motion_manager
+            seq_engine = mm.get_seq_engine(slot_idx)
+            if seq_engine is not None:
+                step_types = list(StepType)
+                play_modes = list(PlayMode)
+                seq_engine._rate_index = max(0, min(state.get("seq_rate", 0), 6))
+                seq_engine.settings.length = max(1, min(state.get("seq_length", 16), 16))
+                pm_idx = state.get("seq_play_mode", 0)
+                seq_engine.settings.play_mode = play_modes[pm_idx] if 0 <= pm_idx < len(play_modes) else PlayMode.FORWARD
+                seq_steps = state.get("seq_steps", [])
+                if seq_steps:
+                    for j, step_dict in enumerate(seq_steps[:16]):
+                        if isinstance(step_dict, dict):
+                            st_idx = step_dict.get("step_type", 1)
+                            st = step_types[st_idx] if 0 <= st_idx < len(step_types) else StepType.REST
+                            seq_engine.settings.steps[j] = SeqStep(
+                                step_type=st,
+                                note=step_dict.get("note", 60),
+                                velocity=step_dict.get("velocity", 100),
+                            )
+                    seq_engine.steps_version += 1
+                if state.get("seq_enabled", False):
+                    mm.set_mode(slot_idx, MotionMode.SEQ)
+
     def set_generator_type(self, gen_type):
         """Change generator type.
         

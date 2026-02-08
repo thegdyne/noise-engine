@@ -479,8 +479,9 @@ class TestARSeqPlusStateRoundTrip:
 class TestControllerHasNoFeatureKnowledge:
     """Phase 2: _do_save_preset must not assemble per-feature state."""
 
-    def test_save_path_contains_no_feature_keywords(self):
-        """Controller save path delegates to slot.get_state(), no feature injection."""
+    @staticmethod
+    def _extract_method(method_name):
+        """Read preset_controller.py and extract a method body by name."""
         import re
         src_path = os.path.join(
             os.path.dirname(__file__), "..",
@@ -488,16 +489,27 @@ class TestControllerHasNoFeatureKnowledge:
         )
         with open(src_path) as f:
             full_source = f.read()
-        # Extract _do_save_preset method body (from def to next def or end)
-        match = re.search(
-            r"(def _do_save_preset\(.*?\n(?:(?!    def ).+\n)*)",
-            full_source,
-        )
-        assert match, "_do_save_preset not found in preset_controller.py"
-        method_source = match.group(1)
+        pattern = rf"(def {method_name}\(.*?\n(?:(?!    def ).+\n)*)"
+        match = re.search(pattern, full_source)
+        assert match, f"{method_name} not found in preset_controller.py"
+        return match.group(1)
+
+    def test_save_path_contains_no_feature_keywords(self):
+        """Controller save path delegates to slot.get_state(), no feature injection."""
+        method_source = self._extract_method("_do_save_preset")
         forbidden = ["arp_", "euclid_", "seq_", "rst_", "motion_manager"]
         found = [kw for kw in forbidden if kw in method_source]
         assert not found, (
             f"_do_save_preset still contains feature keywords: {found}. "
             f"Feature state export belongs in GeneratorSlot.get_state()."
+        )
+
+    def test_load_path_contains_no_feature_keywords(self):
+        """Controller load path delegates to slot.apply_state(), no feature injection."""
+        method_source = self._extract_method("_apply_preset")
+        forbidden = ["arp_", "euclid_", "seq_", "rst_", "motion_manager"]
+        found = [kw for kw in forbidden if kw in method_source]
+        assert not found, (
+            f"_apply_preset still contains feature keywords: {found}. "
+            f"Feature state import belongs in GeneratorSlot.apply_state()."
         )
