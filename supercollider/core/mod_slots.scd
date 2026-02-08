@@ -225,7 +225,7 @@ P1-P4 standardized params for mod matrix cross-modulation:
                 \globalTension, params[\globalTension] ? -1,
                 \globalPolarity, params[\globalPolarity] ? -1,
                 \clockTrigBus, ~clockTrigBus.index,
-                \clockIndex, ~modClockSourceIndex,
+                \clkIdx, ~modClkIdxBus[slot - 1].asMap,  // Per-slot, bus-mapped
                 \bpmBus, ~clockBus.index
             ], ~modGroup);
             ("  Mod slot " ++ slot ++ " -> SauceOfGrav").postln;

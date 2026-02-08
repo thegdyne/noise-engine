@@ -29,7 +29,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	    globalTension = -1,            // P2: when >= 0, overrides all tension params
 	    globalPolarity = -1,           // P4: when >= 0, overrides all polarity params
 	    clockTrigBus = 0,
-	    clockIndex = 12,
+	    clkIdx = 6,                    // Clock rate index 0-12 (default 6 = CLK)
 	    bpmBus = 0;
 
 	// === CONSTANTS (v1.4.3) ===
@@ -140,6 +140,7 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	var sig1, sig2, sig3, sig4;
 
 	var didInit;
+	var allTrigs, legacyIdx, effIdx, clkIdxClamped;
 	var clk, atrig, trig, clockRunning, clkGate;
 	var bpm, rateClamped, rateActive, baseHz, clkMult, refreshHz, fadeFactor;
 	var railAbsorbEff, railZoneEff;
@@ -176,8 +177,12 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	effPol3 = Select.kr(globalPolarity >= 0, [polarity3.clip(0, 1).round(1), gPol]);
 	effPol4 = Select.kr(globalPolarity >= 0, [polarity4.clip(0, 1).round(1), gPol]);
 
-	// === CLOCK INPUT ===
-	clk = In.ar(clockTrigBus + clockIndex);
+	// === CLOCK INPUT (unified: per-slot bus-mapped rate selection) ===
+	allTrigs = In.ar(clockTrigBus, 13);
+	legacyIdx = (rate * 12).round.clip(0, 12);
+	effIdx = Select.kr(clkIdx >= 0, [legacyIdx, clkIdx.round]);
+	clkIdxClamped = effIdx.clip(0, 12);
+	clk = Select.ar(clkIdxClamped, allTrigs);
 	atrig = Trig1.ar(clk > 0.5, ControlDur.ir * 2);
 	trig = Trig1.kr(A2K.kr(atrig), ControlDur.ir * 2);
 	bpm = In.kr(bpmBus).max(1);
@@ -557,4 +562,4 @@ SynthDef(\ne_mod_sauce_of_grav, {
 	Out.kr(out4, sig4);
 }).add;
 
-"  [x] ne_mod_sauce_of_grav SynthDef loaded (Phase B v1 - overshoot + tanh, globalTension, globalPolarity)".postln;
+"  [x] ne_mod_sauce_of_grav SynthDef loaded (Phase B v1 - overshoot + tanh, unified clock)".postln;
