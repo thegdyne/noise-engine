@@ -1022,9 +1022,6 @@ class ArpEngine:
             self.runtime.current_step_index = 0
             self.runtime.euclid_step = 0
             self._stop_fallback()
-        else:
-            # Disarming — restart fallback if we're in AUTO mode
-            self._ensure_fallback_if_auto()
 
     def _handle_start_ref_set(self, event: ArpEvent):
         """Handle start reference fabric index change."""
@@ -1053,23 +1050,6 @@ class ArpEngine:
         # Fire exactly one step on this tick (still respects euclid)
         if self._euclid_gate():
             self._execute_step(tick_time_ms)
-
-        # Restart fallback if we're in AUTO mode (e.g. rate=1/12)
-        self._ensure_fallback_if_auto()
-
-    def _ensure_fallback_if_auto(self):
-        """Restart fallback timer if clock_mode is AUTO and BPM is valid.
-
-        Called on any armed->disarmed transition to prevent stranding
-        AUTO mode without a running fallback timer.
-        """
-        if not self.settings.enabled:
-            return
-        if self.runtime.clock_mode != ClockMode.AUTO:
-            return
-        bpm = self._get_bpm()
-        if bpm > 0:
-            self._start_or_restart_fallback("disarm")
 
     def _has_playable_notes(self) -> bool:
         """Check if there are notes available to play."""
