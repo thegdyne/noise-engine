@@ -91,7 +91,8 @@ class KeyboardOverlay(QWidget):
     def __init__(self, parent, send_note_on_fn, send_note_off_fn,
                  send_all_notes_off_fn, get_focused_slot_fn, is_slot_midi_mode_fn,
                  on_slot_focus_changed_fn: Optional[Callable[[int], None]] = None,
-                 on_seq_mode_changed_fn: Optional[Callable[[bool, int], None]] = None):
+                 on_seq_mode_changed_fn: Optional[Callable[[bool, int], None]] = None,
+                 on_arp_mode_changed_fn: Optional[Callable[[bool, int], None]] = None):
         super().__init__(parent)
 
         # Callbacks - these expect 0-indexed slot IDs
@@ -105,6 +106,8 @@ class KeyboardOverlay(QWidget):
         self._on_slot_focus_changed = on_slot_focus_changed_fn
         # Callback when SEQ mode toggled (enabled: bool, slot_0idx: int)
         self._on_seq_mode_changed = on_seq_mode_changed_fn
+        # Callback when ARP mode toggled (enabled: bool, slot_0idx: int)
+        self._on_arp_mode_changed = on_arp_mode_changed_fn
 
         # State - internally uses 1-indexed slot IDs (like UI)
         self._octave = 4
@@ -1104,8 +1107,15 @@ class KeyboardOverlay(QWidget):
                 # Notify controller to switch MotionMode OFF for SEQ
                 if self._on_seq_mode_changed is not None and self._seq_engine is not None:
                     self._on_seq_mode_changed(False, self._seq_engine.slot_id)
+
+            # Notify controller to switch MotionMode.ARP
+            if self._on_arp_mode_changed is not None:
+                self._on_arp_mode_changed(True, self._arp_engine.slot_id)
         else:
             self._arp_controls_frame.hide()
+            # Notify controller to switch MotionMode.OFF
+            if self._on_arp_mode_changed is not None:
+                self._on_arp_mode_changed(False, self._arp_engine.slot_id)
 
         self._update_overlay_size()
 

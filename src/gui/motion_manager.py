@@ -260,7 +260,10 @@ class MotionManager:
             slot['seq'].reset_phase()
             slot['pending_seq_start'] = False
         elif old_mode == MotionMode.ARP:
-            slot['arp'].teardown()
+            # Only teardown ARP when switching TO another active mode (SEQ).
+            # ARP→OFF is handled by toggle_arp(False) which preserves settings.
+            if new_mode == MotionMode.SEQ:
+                slot['arp'].teardown()
 
         # Swap
         slot['mode'] = new_mode

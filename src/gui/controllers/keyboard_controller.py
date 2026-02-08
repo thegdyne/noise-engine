@@ -200,6 +200,7 @@ class KeyboardController:
                 is_slot_midi_mode_fn=self._is_slot_midi_mode,
                 on_slot_focus_changed_fn=self._on_overlay_slot_focus_changed,
                 on_seq_mode_changed_fn=self._on_seq_mode_changed,
+                on_arp_mode_changed_fn=self._on_arp_mode_changed,
             )
 
         # Auto-switch focused slot to MIDI mode so keyboard works immediately
@@ -366,6 +367,21 @@ class KeyboardController:
             logger.debug(
                 f"KeyboardController: SEQ disabled on slot {slot_0idx}",
                 component="SEQ"
+            )
+
+    def _on_arp_mode_changed(self, enabled: bool, slot_0idx: int):
+        """Handle ARP mode change from overlay — sets MotionMode.ARP for fabric tick delivery."""
+        if enabled:
+            self._motion_manager.set_mode(slot_0idx, MotionMode.ARP)
+            logger.debug(
+                f"KeyboardController: ARP mode set on slot {slot_0idx}",
+                component="ARP"
+            )
+        else:
+            self._motion_manager.set_mode(slot_0idx, MotionMode.OFF)
+            logger.debug(
+                f"KeyboardController: ARP mode off on slot {slot_0idx}",
+                component="ARP"
             )
 
     # =========================================================================

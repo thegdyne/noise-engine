@@ -213,7 +213,9 @@ class PresetController:
         # Restore ARP settings to each slot's engine
         if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'arp_manager'):
             from src.gui.arp_engine import ArpPattern
+            from src.model.sequencer import MotionMode
             patterns = list(ArpPattern)
+            mm = getattr(self.main.keyboard, 'motion_manager', None)
             for i, slot_state in enumerate(state.slots):
                 if i < 8:
                     engine = self.main.keyboard.arp_manager.get_engine(i)
@@ -226,6 +228,9 @@ class PresetController:
                     engine.toggle_arp(slot_state.arp_enabled)
                     # R13: Disarm RST on preset load (transient, not saved)
                     engine.runtime.rst_fabric_idx = None
+                    # Set MotionMode.ARP so fabric ticks reach the engine
+                    if mm is not None and slot_state.arp_enabled:
+                        mm.set_mode(i, MotionMode.ARP)
 
         # Restore SEQ settings to each slot's engine
         if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'motion_manager'):
