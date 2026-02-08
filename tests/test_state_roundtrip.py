@@ -12,9 +12,9 @@ from dataclasses import fields
 
 from src.presets.preset_schema import (
     SlotState, ChannelState, MasterState, PresetState,
-    MixerState, _SLOT_PARAM_KEYS, validate_preset,
+    MixerState, validate_preset,
 )
-from tests.helpers.state_helpers import autofill_nondefaults, schema_keys
+from tests.helpers.state_helpers import autofill_nondefaults, schema_field_names
 
 
 class TestSlotStateRoundTrip:
@@ -37,17 +37,16 @@ class TestSlotStateRoundTrip:
         """I2: to_dict() emits every schema field."""
         d = autofill_nondefaults(SlotState).to_dict()
         emitted = set(d.keys()) | set(d.get("params", {}).keys())
-        expected = schema_keys(SlotState)
+        expected = schema_field_names(SlotState)
         missing = expected - emitted
         assert not missing, f"to_dict() missing keys: {missing}"
 
     def test_from_dict_ignores_unknown_keys(self):
-        """from_dict ignores keys not in the dataclass."""
+        """from_dict ignores keys not in the dataclass (no error, no attr)."""
         data = SlotState().to_dict()
         data["totally_unknown_field"] = 999
-        slot = SlotState.from_dict(data)
-        assert not hasattr(slot, "totally_unknown_field") or \
-            getattr(slot, "totally_unknown_field", None) is None
+        slot = SlotState.from_dict(data)  # should not raise
+        assert not hasattr(slot, "totally_unknown_field")
 
 
 class TestChannelStateRoundTrip:
@@ -64,7 +63,7 @@ class TestChannelStateRoundTrip:
     def test_to_dict_covers_all_schema_keys(self):
         """I2: to_dict() emits every schema field."""
         d = autofill_nondefaults(ChannelState).to_dict()
-        expected = schema_keys(ChannelState)
+        expected = schema_field_names(ChannelState)
         missing = expected - set(d.keys())
         assert not missing, f"to_dict() missing keys: {missing}"
 
@@ -96,7 +95,7 @@ class TestMasterStateRoundTrip:
     def test_to_dict_covers_all_schema_keys(self):
         """I2: to_dict() emits every schema field."""
         d = autofill_nondefaults(MasterState).to_dict()
-        expected = schema_keys(MasterState)
+        expected = schema_field_names(MasterState)
         missing = expected - set(d.keys())
         assert not missing, f"to_dict() missing keys: {missing}"
 

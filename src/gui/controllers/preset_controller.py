@@ -16,7 +16,6 @@ from src.config import OSC_PATHS
 from src.presets import (
     PresetManager, PresetState, SlotState, MixerState,
     ChannelState, MasterState, ModSourcesState, FXState, FXSlotsState,
-    _SLOT_PARAM_KEYS,
 )
 from src.utils.logger import logger
 from src.gui.controllers.modulation_controller import _build_source_key, _build_target_key
@@ -135,14 +134,17 @@ class PresetController:
                         for s in seq.steps
                     ]
             # Save-time schema coverage assertion (STATE_INTEGRITY_SPEC Option C)
+            # Fail-loud: prevents writing corrupt presets with silently missing fields.
+            # Set NOISE_STRICT_STATE=0 to downgrade to warning (not recommended).
             _expected = {f.name for f in dc_fields(SlotState)}
             _emitted = set(slot_dict.keys()) | set(slot_dict.get("params", {}).keys())
             _missing = _expected - _emitted
             if _missing:
-                logger.warning(
-                    f"Save-path missing SlotState fields for slot {slot_id}: {_missing}",
-                    component="PRESET",
-                )
+                import os
+                _msg = f"Save-path missing SlotState fields for slot {slot_id}: {sorted(_missing)}"
+                if os.environ.get("NOISE_STRICT_STATE", "1") == "1":
+                    raise RuntimeError(_msg)
+                logger.warning(_msg, component="PRESET")
             slots.append(SlotState.from_dict(slot_dict))
 
         channels = []

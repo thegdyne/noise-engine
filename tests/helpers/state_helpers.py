@@ -11,6 +11,12 @@ Used in both tests and save-time assertions (single definition, no divergence).
 from dataclasses import fields, MISSING
 
 
+# Fields that need structure-aware non-defaults (list-of-dict, etc.)
+_LIST_FIELD_OVERRIDES = {
+    "seq_steps": [{"step_type": 0, "note": 60, "velocity": 100}],
+}
+
+
 def autofill_nondefaults(cls):
     """
     Construct an instance of dataclass `cls` with every field set to
@@ -22,6 +28,11 @@ def autofill_nondefaults(cls):
     """
     kwargs = {}
     for f in fields(cls):
+        # Check for structure-aware overrides first
+        if f.name in _LIST_FIELD_OVERRIDES:
+            kwargs[f.name] = list(_LIST_FIELD_OVERRIDES[f.name])
+            continue
+
         default = _get_default(f)
         ftype = _resolve_type(f.type)
 
@@ -34,19 +45,21 @@ def autofill_nondefaults(cls):
         elif ftype == str or f.name == "generator":
             kwargs[f.name] = f"test_{f.name}"
         elif ftype == list or "list" in str(f.type).lower():
-            kwargs[f.name] = [{"test_key": f.name}]
+            # Generic list fallback: emit a simple primitive list
+            kwargs[f.name] = [1]
         else:
             # Optional[str] and similar
             kwargs[f.name] = f"test_{f.name}"
     return cls(**kwargs)
 
 
-def schema_keys(cls, param_keys=None):
+def schema_field_names(cls):
     """
     Return the set of all field names for dataclass `cls`.
 
-    Used in round-trip tests AND save-time assertions — same definition,
-    no divergence possible.
+    Used in round-trip tests AND save-time assertions — single definition,
+    no divergence possible. Returns raw field names, not JSON keys
+    (SlotState nests some fields under "params" in JSON).
     """
     return {f.name for f in fields(cls)}
 
