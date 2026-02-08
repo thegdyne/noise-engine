@@ -1056,6 +1056,17 @@ class ArpEngine:
 
     def _execute_step(self, step_time_ms: float):
         """Execute one ARP step."""
+        # RST: if armed, reset phase so this step emits from position 0.
+        # This is the fallback-timer path — fires on next ARP step regardless
+        # of RST rate. The fabric-tick path in MotionManager.on_fabric_tick()
+        # handles rate-matched reset when master clock ticks are available.
+        if self.runtime.rst_fabric_idx is not None:
+            self._note_off_currently_sounding()
+            self.runtime.current_step_index = 0
+            self.runtime.euclid_step = 0
+            self.runtime.rst_fabric_idx = None
+            self.runtime.rst_fired_count += 1
+
         vel_snapshot = self._get_velocity()
 
         expanded_list = self._get_expanded_list()

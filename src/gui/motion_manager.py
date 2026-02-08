@@ -198,24 +198,12 @@ class MotionManager:
         arp_rate = FABRIC_IDX_TO_ARP_RATE.get(fabric_idx)
         now_ms = time.monotonic() * 1000.0
 
-        for i, slot in enumerate(self._slots):
+        for slot in self._slots:
             if slot['lock'].acquire(blocking=False):
                 try:
-                    if i == 0 and fabric_idx == 6:  # Only log slot 0 + CLK to avoid spam
-                        print(f"[RST-DEBUG] fabric_tick slot=0 mode={slot['mode'].name} fabric_idx={fabric_idx}")
                     if slot['mode'] == MotionMode.ARP:
                         # R14: RST check FIRST — reset-before-step so this tick emits step 0
-                        rst_target = slot['arp'].runtime.rst_fabric_idx
-                        if rst_target is not None:
-                            logger.debug(
-                                f"RST armed slot={i} rst_target={rst_target} fabric_idx={fabric_idx}",
-                                component="ARP"
-                            )
-                        if rst_target == fabric_idx:
-                            logger.info(
-                                f"RST FIRING slot={i} fabric_idx={fabric_idx}",
-                                component="ARP"
-                            )
+                        if slot['arp'].runtime.rst_fabric_idx == fabric_idx:
                             slot['arp'].reset_on_tick(now_ms)
 
                         # Deliver master tick for matching ARP rate
@@ -238,14 +226,15 @@ class MotionManager:
 
         slot = self._slots[slot_idx]
         with slot['lock']:
-            old = slot['mode']
-            print(f"[RST-DEBUG] set_mode slot={slot_idx} old={old.name} new={new_mode.name}")
-            if old == new_mode:
-                print(f"[RST-DEBUG] set_mode SKIPPED (same mode)")
+            if slot['mode'] == new_mode:
                 return
             self._execute_handover(slot, new_mode)
             slot['pending_mode'] = None
-            print(f"[RST-DEBUG] set_mode DONE slot={slot_idx} mode is now {slot['mode'].name}")
+            logger.debug(
+                f"MotionManager: slot {slot_idx} mode set: "
+                f"{new_mode.name}",
+                component="MOTION"
+            )
         self._update_clock_state()
 
     def get_mode(self, slot_idx: int) -> MotionMode:
