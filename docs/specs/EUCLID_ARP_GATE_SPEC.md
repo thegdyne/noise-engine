@@ -2,7 +2,7 @@
 
 ---
 status: spec
-version: 2.0
+version: 3.0
 date: 2025-02-08
 builds-on: PER_SLOT_ARP_SPEC v2.0, CLOCK_FABRIC.md, arp_engine.py
 size: Medium (2-3 days)
@@ -10,36 +10,24 @@ size: Medium (2-3 days)
 
 ## What
 
-Two tightly-coupled changes:
+Two changes, done in order:
 
-1. **Clock Unification** — Replace MotionManager's parallel Python clock (10ms QTimer + rate phase accumulators) with SC fabric tick broadcast via SendReply→OSC. ARP stepping becomes truly phase-locked to the master clock.
+1. **Clock Unification** — Replace MotionManager's parallel Python clock with SC fabric tick broadcast. ARP stepping becomes phase-locked to the master clock.
 
-2. **Euclidean ARP Gate** — Add N/K/ROT gate to the ARP, applied in Python after receiving fabric ticks. Ships only the simple gate (no probability/ratchets/swing).
-
-Phase 1 is the priority. Phase 2 builds on top.
+2. **Euclidean ARP Gate** — Add N/K/ROT gate to the ARP. User picks a fast base rate (1/16, 1/8), Euclid thins it. Ship only the simple gate.
 
 ---
 
 ## Problem: Parallel Clock
 
-MotionManager currently maintains its own timing system that duplicates the SC clock fabric:
+MotionManager runs its own 10ms QTimer with rate phase accumulators — a parallel clock that duplicates the SC fabric. This violates the Clock Fabric decision.
 
 ```
-SC (authoritative):          Python (parallel duplicate):
-masterClock SynthDef         MotionManager._on_clock_tick() [10ms QTimer]
-  → Impulse.ar(bpm/60*mult)   → dt = now - last_tick_time
-  → 13 audio-rate triggers     → tick_duration_beats = (bpm/60) * dt
-  → clockTrigBus               → _rate_phases[i] += tick_duration_beats
-                                → if phase >= beats_per_step → master_tick()
+SC (authoritative):              Python (parallel duplicate):
+masterClock → 13 trigger buses   QTimer → phase accumulators → master_tick()
 ```
 
-This violates the Clock Fabric decision (DECISIONS.md `[2025-02-07]`):
-> *"Clock consumers must select from these channels, not create independent divider chains."*
-
-**Consequences of the parallel clock:**
-- Phase drift between ARP and SC envelope triggers on BPM changes
-- Two independent BPM→division math paths that can diverge
-- 10ms QTimer polling adds up to 10ms latency on ARP step delivery
+**Fix:** SC broadcasts fabric ticks to Python via SendReply→OSC. MotionManager consumes them instead of maintaining its own phase math.
 
 ---
 
@@ -48,71 +36,59 @@ This violates the Clock Fabric decision (DECISIONS.md `[2025-02-07]`):
 ### Architecture (After)
 
 ```
-SC masterClock → Impulse.ar (13 rates) → clockTrigBus
-                                              ↓
-                                    clockTickBroadcast synth
-                                    (SendReply on each rate trigger)
-                                              ↓
-                                    OSCdef relay → /noise/clock/tick [rateIdx]
-                                              ↓
-                                    Python OSC bridge → clock_tick_received signal
-                                              ↓
-                                    MotionManager._on_fabric_tick(fabric_idx)
-                                              ↓
-                                    ARP rate lookup → engine.master_tick()
+SC masterClock → clockTrigBus → clockTickBroadcast (SendReply)
+                                       ↓
+                              OSCdef relay → /noise/clock/tick [fabricIdx]
+                                       ↓
+                              Python OSC bridge → clock_tick_received signal
+                                       ↓
+                              MotionManager.on_fabric_tick(fabric_idx)
+                                       ↓
+                              ARP rate lookup → engine.master_tick()
 ```
 
-SEQ engine stays on QTimer (needs continuous delta-beat accumulator, different timing model).
+SEQ stays on QTimer (needs continuous delta-beat accumulator — different timing model).
 
-### Rate Mapping: ARP ↔ Fabric
+### Rate Mapping
 
-| ARP idx | ARP label | Beats/step | Musical         | Fabric mult | Fabric idx | Notes           |
-|---------|-----------|------------|-----------------|-------------|------------|-----------------|
-| 0       | 1/32      | 0.125      | 32nd note       | x8          | 9          | Direct match    |
-| 1       | 1/16      | 0.25       | 16th note       | x4          | 8          | Direct match    |
-| 2       | 1/12      | 0.333      | Triplet 8th     | x12         | 10         | Fire every 4th  |
-| 3       | 1/8       | 0.5        | 8th note        | x2          | 7          | Direct match    |
-| 4       | 1/4       | 1.0        | Quarter note    | CLK         | 6          | Direct match    |
-| 5       | 1/2       | 2.0        | Half note       | /2          | 5          | Direct match    |
-| 6       | 1 bar     | 4.0        | Whole note      | /4          | 4          | Direct match    |
+6 direct matches. 1/12 (triplet) stays on the existing fallback timer — no special handling.
 
-**The 1/12 case:** Fabric has no x3 rate. Use x12 (12/beat) and fire the ARP every 4th tick → 3/beat = triplet 8ths. This is a legitimate consumption pattern per CLOCK_FABRIC.md ("Clock Divider Chains: skip N triggers, emit 1").
+| ARP idx | ARP label | Fabric idx | Fabric label | Direct match? |
+|---------|-----------|------------|--------------|---------------|
+| 0       | 1/32      | 9          | x8           | Yes           |
+| 1       | 1/16      | 8          | x4           | Yes           |
+| 2       | 1/12      | —          | —            | No (fallback) |
+| 3       | 1/8       | 7          | x2           | Yes           |
+| 4       | 1/4       | 6          | CLK          | Yes           |
+| 5       | 1/2       | 5          | /2           | Yes           |
+| 6       | 1 bar     | 4          | /4           | Yes           |
 
-### Step 1.1: SC — Add clock tick broadcast synth
+**Why this works for 1/12:** The ARP engine already has ClockMode.AUTO with a BPM-synced fallback timer. When no matching fabric tick arrives, the engine stays in AUTO. Already works today, zero extra code.
+
+### Step 1.1: SC — Clock tick broadcast synth
 
 **File:** `supercollider/core/clock.scd`
-**Location:** After `~setupClock`, add `~setupClockBroadcast`
+**After `~setupClock`, add:**
 
 ```supercollider
-// Clock tick broadcast — notifies Python when fabric triggers fire
-// Only broadcasts the 7 rates that ARP/SEQ consumers need (fabric indices 4-10)
 ~setupClockBroadcast = {
     SynthDef(\clockTickBroadcast, { |clockTrigBus|
         var allTrigs = In.ar(clockTrigBus, 13);
-
-        // Broadcast fabric indices 4-10 (covers /4 through x12)
-        // Each SendReply fires once per trigger edge
-        [4, 5, 6, 7, 8, 9, 10].do { |idx|
+        // Broadcast fabric indices 4-9 (covers /4 through x8)
+        [4, 5, 6, 7, 8, 9].do { |idx|
             var trigK = A2K.kr(Trig1.ar(allTrigs[idx], ControlDur.ir * 2));
             SendReply.kr(trigK, '/clock/tick', [idx]);
         };
     }).add;
-
     "  [x] ClockTickBroadcast SynthDef ready".postln;
 };
 ```
 
-**Why indices 4-10 only:** Covers all 7 ARP rates. Indices 0-3 (/32 through /8) are very slow (2-16 seconds at 120 BPM) and aren't needed for ARP. Indices 11-12 (x16, x32) are very fast and not used. Can expand later if needed.
-
-**Why a separate synth:** Keeps masterClock pure (just generates triggers), follows the existing separation pattern (masterClock vs masterPassthrough).
-
-### Step 1.2: SC — Add OSCdef relay to Python
+### Step 1.2: SC — OSCdef relay
 
 **File:** `supercollider/core/osc_handlers.scd`
-**Location:** Near existing meter/telemetry forwarding OSCdefs
 
 ```supercollider
-// Clock tick relay to Python (from clockTickBroadcast SendReply)
 OSCdef(\clockTickForward, { |msg|
     if(~pythonAddr.notNil) {
         ~pythonAddr.sendMsg('/noise/clock/tick', msg[3].asInteger);
@@ -120,79 +96,67 @@ OSCdef(\clockTickForward, { |msg|
 }, '/clock/tick');
 ```
 
-### Step 1.3: SC — Start the broadcast synth
+### Step 1.3: SC — Start broadcast in `~startClock`
 
 **File:** `supercollider/core/clock.scd`
-**Location:** Inside `~startClock`, after `~clockSynth` creation
+**Inside `~startClock`, after `~clockSynth`:**
 
 ```supercollider
 ~clockBroadcastSynth = Synth(\clockTickBroadcast, [
     \clockTrigBus, ~clockTrigBus.index
 ], ~clockGroup);
-
 "  [x] Clock tick broadcast running".postln;
 ```
 
-### Step 1.4: Python — Add OSC path constant
+### Step 1.4: Python — OSC path
 
-**File:** `src/config/__init__.py`
-**Location:** In `OSC_PATHS` dict
+**File:** `src/config/__init__.py` — add to `OSC_PATHS`:
 
 ```python
 'clock_tick': '/noise/clock/tick',
 ```
 
-### Step 1.5: Python — Add OSC bridge handler + signal
+### Step 1.5: Python — OSC bridge signal + handler
 
 **File:** `src/audio/osc_bridge.py`
 
-Add signal:
+Signal:
 ```python
-clock_tick_received = pyqtSignal(int)  # fabric_idx (4-10)
+clock_tick_received = pyqtSignal(int)  # fabric_idx
 ```
 
-Add handler:
+Handler:
 ```python
 def _handle_clock_tick(self, address, *args):
-    """Handle clock fabric tick from SC."""
     if self._shutdown or self._deleted:
         return
     if len(args) >= 1:
-        fabric_idx = int(args[0])
-        self.clock_tick_received.emit(fabric_idx)
+        self.clock_tick_received.emit(int(args[0]))
 ```
 
-Register in dispatcher (inside `_start_server()`):
+Register in `_start_server()`:
 ```python
 dispatcher.map(OSC_PATHS['clock_tick'], self._handle_clock_tick)
 ```
 
-### Step 1.6: Python — Add rate mapping constant
+### Step 1.6: Python — Rate mapping
 
 **File:** `src/config/__init__.py`
-**Location:** Near existing ARP constants or clock constants
 
 ```python
-# ARP rate index → clock fabric index
-# Maps each ARP rate to the fabric trigger channel it should consume
+# ARP rate → fabric index (direct matches only, 1/12 excluded)
 ARP_RATE_TO_FABRIC_IDX = {
-    0: 9,   # 1/32 (32nd note)    → fabric x8
-    1: 8,   # 1/16 (16th note)    → fabric x4
-    2: 10,  # 1/12 (triplet 8th)  → fabric x12 (fire every 4th)
-    3: 7,   # 1/8  (8th note)     → fabric x2
-    4: 6,   # 1/4  (quarter note) → fabric CLK
-    5: 5,   # 1/2  (half note)    → fabric /2
-    6: 4,   # 1 bar (whole note)  → fabric /4
+    0: 9,   # 1/32 → x8
+    1: 8,   # 1/16 → x4
+    3: 7,   # 1/8  → x2
+    4: 6,   # 1/4  → CLK
+    5: 5,   # 1/2  → /2
+    6: 4,   # 1 bar → /4
 }
+# Note: ARP rate 2 (1/12 triplet) has no fabric match — uses fallback timer
 
-# Inverse: fabric index → list of ARP rate indices that consume it
-FABRIC_IDX_TO_ARP_RATES = {}
-for arp_idx, fab_idx in ARP_RATE_TO_FABRIC_IDX.items():
-    FABRIC_IDX_TO_ARP_RATES.setdefault(fab_idx, []).append(arp_idx)
-
-# Triplet 8th (ARP rate 2) uses x12 fabric, firing every 4th tick
-ARP_TRIPLET_RATE_IDX = 2
-ARP_TRIPLET_FABRIC_DIVISOR = 4  # x12 / 4 = 3 per beat = triplet 8th
+# Inverse: fabric index → ARP rate index
+FABRIC_IDX_TO_ARP_RATE = {v: k for k, v in ARP_RATE_TO_FABRIC_IDX.items()}
 ```
 
 ### Step 1.7: Python — Rewire MotionManager
@@ -200,93 +164,60 @@ ARP_TRIPLET_FABRIC_DIVISOR = 4  # x12 / 4 = 3 per beat = triplet 8th
 **File:** `src/gui/motion_manager.py`
 
 **Remove:**
-- `_rate_phases` list (line 104)
-- Rate phase accumulation logic in `on_tick()` (lines 164-170)
-- The `rates_crossed` variable and its usage in the ARP tick delivery (lines 165-170, 187-189)
+- `_rate_phases` list (line ~104)
+- Rate phase accumulation + `rates_crossed` logic in `on_tick()` (lines ~164-170, ~187-189)
 
-**Add:**
-- Triplet sub-counter: `_triplet_tick_count: int = 0`
-- New method `on_fabric_tick(fabric_idx, tick_time_ms)` that replaces the rate-crossing detection
+**Add new method:**
 
 ```python
 def on_fabric_tick(self, fabric_idx: int):
-    """Handle a clock fabric tick from SC (via OSC bridge).
-
-    Maps fabric index to ARP rate index and fires master_tick()
-    on all ARP-mode slots whose rate matches.
-    """
-    now_ms = time.monotonic() * 1000.0
-
-    # Triplet handling: x12 fires 12/beat, ARP wants 3/beat → every 4th
-    if fabric_idx == 10:  # x12
-        self._triplet_tick_count += 1
-        if self._triplet_tick_count % ARP_TRIPLET_FABRIC_DIVISOR != 0:
-            return  # Skip — not a triplet 8th boundary yet
-        # Fall through to deliver as ARP rate 2
-
-    # Look up which ARP rates this fabric tick satisfies
-    arp_rates = FABRIC_IDX_TO_ARP_RATES.get(fabric_idx, [])
-    if not arp_rates:
+    """Handle clock fabric tick from SC. Route to matching ARP slots."""
+    arp_rate = FABRIC_IDX_TO_ARP_RATE.get(fabric_idx)
+    if arp_rate is None:
         return
+
+    now_ms = time.monotonic() * 1000.0
 
     for slot in self._slots:
         if slot['lock'].acquire(blocking=False):
             try:
                 if slot['mode'] == MotionMode.ARP:
-                    for arp_rate_idx in arp_rates:
-                        slot['arp'].master_tick(arp_rate_idx, now_ms)
+                    slot['arp'].master_tick(arp_rate, now_ms)
             finally:
                 slot['lock'].release()
 ```
 
-**Modify `on_tick()`:**
-Remove the rate phase accumulator block. Keep only:
-- Sync phase tracking (for SEQ bar alignment)
+**Keep in `on_tick()`:**
+- Sync phase tracking (SEQ bar alignment)
 - SEQ tick delivery
 - Mode handover logic
 
-The QTimer stays running for SEQ, but no longer drives ARP timing.
+QTimer stays running for SEQ. No longer drives ARP.
 
-### Step 1.8: Python — Wire OSC bridge to MotionManager
+### Step 1.8: Python — Wire it up
 
-**File:** `src/gui/controllers/keyboard_controller.py` (or wherever MotionManager is wired)
-
-Connect the OSC bridge signal to MotionManager:
+**File:** `src/gui/controllers/keyboard_controller.py`
 
 ```python
 self.main.osc.clock_tick_received.connect(self._motion_manager.on_fabric_tick)
 ```
 
-**Thread safety note:** `clock_tick_received` is a Qt signal emitted from `_handle_clock_tick` (OSC receiver thread). Qt signal/slot connections default to `Qt.AutoConnection`, which queues the call to the receiver's thread if different. Since MotionManager lives in the main thread, the slot will execute on the main thread. This matches the existing pattern (all OSC signals work this way).
-
-### Step 1.9: Verify latency improvement
-
-**Before (QTimer polling):**
-- SC trigger fires → up to 10ms wait for QTimer poll → rate phase check → master_tick()
-- Worst case: 10ms latency from trigger to ARP step
-
-**After (SendReply→OSC):**
-- SC trigger fires → A2K + Trig1 (~1.5ms at 64-sample block) → SendReply → OSC (~0.1ms) → Qt signal queue → on_fabric_tick()
-- Worst case: ~3-5ms, plus inherent phase alignment with SC triggers
-
 ---
 
 ## Phase 2: Euclidean Gate
 
-Builds directly on top of the fabric-driven ARP. All changes are Python-side only.
+Pure Python. No SC changes. Works on top of whatever clock drives the ARP (fabric ticks or fallback timer — doesn't matter).
 
-### Step 2.1: Add Euclidean hit function (pure math)
+**Musical model:** User picks a fast ARP rate (e.g., 1/16 = 16 ticks/bar). Euclid N/K/ROT decides which ticks fire. ARP only advances on hits.
 
-**File:** `src/gui/arp_engine.py`
-**Location:** After rate configuration constants (after line ~78)
+### Step 2.1: Euclidean hit function
+
+**File:** `src/gui/arp_engine.py` — after rate constants (~line 78)
 
 ```python
 def euclidean_hit(step: int, n: int, k: int, rotation: int = 0) -> bool:
-    """Return True if this step is a 'hit' in a Euclidean rhythm.
-
-    Uses the Bresenham/floor method (equivalent to Bjorklund but O(1) per step).
-    n: total steps (1..64), k: fills (0..n), rotation: offset (0..n-1)
-    """
+    """True if step is a hit in Euclidean rhythm E(k,n).
+    O(1) per step. Bresenham/floor method."""
     if k <= 0:
         return False
     if k >= n:
@@ -295,46 +226,38 @@ def euclidean_hit(step: int, n: int, k: int, rotation: int = 0) -> bool:
     return (i * k) // n != (((i - 1) * k) // n) if i > 0 else (0 != (((n - 1) * k) // n))
 ```
 
-### Step 2.2: Add Euclidean fields to ArpSettings + ArpRuntime
+### Step 2.2: Settings + runtime fields
 
 **File:** `src/gui/arp_engine.py`
 
-ArpSettings (line ~163):
+ArpSettings — add:
 ```python
-    # Euclidean gate
     euclid_enabled: bool = False
-    euclid_n: int = 16       # Total steps (1..64)
-    euclid_k: int = 5        # Fills/hits (0..euclid_n)
-    euclid_rot: int = 0      # Rotation (0..euclid_n-1)
+    euclid_n: int = 16
+    euclid_k: int = 16   # Default = all hits (same as off)
+    euclid_rot: int = 0
 ```
 
-ArpRuntime (line ~177):
+ArpRuntime — add:
 ```python
-    euclid_step: int = 0     # Advances on every eligible tick
+    euclid_step: int = 0
 ```
 
-### Step 2.3: Gate `_execute_step()` via `_euclid_gate()`
+### Step 2.3: Gate in `_handle_master_tick()`
 
 **File:** `src/gui/arp_engine.py`
 
-In `_handle_master_tick()` — wrap both MASTER and AUTO→MASTER `_execute_step()` calls:
+Wrap both `_execute_step()` calls (MASTER path ~line 852, AUTO→MASTER promotion ~line 867):
 
 ```python
-# MASTER path (line ~852):
-if self._euclid_gate():
-    self._execute_step(tick_time_ms)
-
-# AUTO→MASTER promotion path (line ~867):
 if self._euclid_gate():
     self._execute_step(tick_time_ms)
 ```
 
-Add the gate method:
+New method:
 ```python
 def _euclid_gate(self) -> bool:
-    """Check Euclidean gate. Returns True = fire, False = skip.
-    Always advances euclid_step. ARP step only advances inside _execute_step.
-    """
+    """Returns True = fire note, False = skip. Always advances euclid_step."""
     if not self.settings.euclid_enabled:
         return True
     n = max(1, min(64, self.settings.euclid_n))
@@ -345,27 +268,28 @@ def _euclid_gate(self) -> bool:
     return hit
 ```
 
-### Step 2.4: Add ArpEventType values + handlers + public setters
+### Step 2.4: Event types + setters
 
 **File:** `src/gui/arp_engine.py`
 
-New event types: `EUCLID_ENABLE`, `EUCLID_N`, `EUCLID_K`, `EUCLID_ROT`
+Add `EUCLID_ENABLE`, `EUCLID_N`, `EUCLID_K`, `EUCLID_ROT` to ArpEventType.
 
-Public setters: `set_euclid_enabled()`, `set_euclid_n()`, `set_euclid_k()`, `set_euclid_rot()`
+Add `set_euclid_enabled()`, `set_euclid_n()`, `set_euclid_k()`, `set_euclid_rot()` — same event queue pattern as `set_rate()`.
 
-Each posts to event queue (same pattern as `set_rate()`). Handlers update `self.settings.euclid_*`. Reset `euclid_step = 0` when N changes.
+Reset `euclid_step = 0` when N changes.
 
-### Step 2.5: Add CMD+K UI controls
-
-**File:** `src/gui/keyboard_overlay.py`
-**Location:** `_create_arp_controls()` — after HOLD button (line ~476), before `addStretch()`
-
-Add: `[EUC]` toggle, `N:` CycleButton (1-64), `K:` CycleButton (0-64), `R:` CycleButton (0-63)
-
-### Step 2.6: Sync Euclid state in `sync_ui_from_engine()`
+### Step 2.5: CMD+K UI
 
 **File:** `src/gui/keyboard_overlay.py`
-**Location:** After existing ARP control sync (line ~277)
+**In `_create_arp_controls()`, after HOLD button, before `addStretch()`:**
+
+Add: `[EUC]` toggle + `N:` CycleButton (1-64) + `K:` CycleButton (0-64) + `R:` CycleButton (0-63)
+
+Wire: `_on_euc_toggle()`, `_on_euc_n_changed()`, `_on_euc_k_changed()`, `_on_euc_rot_changed()`
+
+### Step 2.6: Sync in `sync_ui_from_engine()`
+
+**File:** `src/gui/keyboard_overlay.py` — after existing ARP sync (~line 277):
 
 ```python
 self._euc_toggle_btn.setChecked(settings.euclid_enabled)
@@ -376,74 +300,53 @@ self._euc_rot_btn.set_index(settings.euclid_rot)
 
 ---
 
-## What NOT to do
+## Do NOT
 
-- **Do not keep `_rate_phases` in MotionManager** — that's the parallel clock being eliminated
-- **Do not broadcast all 13 fabric rates** — only broadcast indices 4-10 (the 7 that ARP needs)
-- **Do not change the SEQ tick model** — SEQ needs continuous delta-beat, stays on QTimer
-- **Do not add new SC buses or parameters for Euclid** — it's pure Python gating
-- **Do not advance ARP step counter on Euclid misses** — _execute_step() is skipped, so current_step_index stays put
-- **Do not grey out clock rate buttons when Euclid is on** — rate and Euclid are independent
-- **Do not add probability/ratchets/swing/gate-length** — ship only N/K/ROT + enable
+- Keep `_rate_phases` in MotionManager (that's the parallel clock)
+- Add special handling for 1/12 triplet (fallback timer handles it)
+- Change the SEQ tick model (stays on QTimer)
+- Add SC buses or params for Euclid (pure Python gating)
+- Add probability, ratchets, swing, or gate length
+- Advance ARP step counter on Euclid misses
 
 ---
 
 ## Files Changed
 
-### Phase 1 (Clock Unification)
+### Phase 1
 
 | File | Change |
 |------|--------|
-| `supercollider/core/clock.scd` | Add `\clockTickBroadcast` SynthDef + start in `~startClock` |
-| `supercollider/core/osc_handlers.scd` | Add `\clockTickForward` OSCdef relay |
-| `src/config/__init__.py` | Add `clock_tick` OSC path, `ARP_RATE_TO_FABRIC_IDX`, `FABRIC_IDX_TO_ARP_RATES` |
-| `src/audio/osc_bridge.py` | Add `clock_tick_received` signal + handler |
-| `src/gui/motion_manager.py` | Remove `_rate_phases`, add `on_fabric_tick()`, keep QTimer only for SEQ |
-| `src/gui/controllers/keyboard_controller.py` | Wire `osc.clock_tick_received` → `motion_manager.on_fabric_tick` |
+| `supercollider/core/clock.scd` | `\clockTickBroadcast` SynthDef + start |
+| `supercollider/core/osc_handlers.scd` | `\clockTickForward` OSCdef |
+| `src/config/__init__.py` | `clock_tick` path, `ARP_RATE_TO_FABRIC_IDX`, `FABRIC_IDX_TO_ARP_RATE` |
+| `src/audio/osc_bridge.py` | `clock_tick_received` signal + handler |
+| `src/gui/motion_manager.py` | Remove `_rate_phases`, add `on_fabric_tick()` |
+| `src/gui/controllers/keyboard_controller.py` | Wire signal |
 
-### Phase 2 (Euclidean Gate)
+### Phase 2
 
 | File | Change |
 |------|--------|
-| `src/gui/arp_engine.py` | `euclidean_hit()`, ArpSettings fields, ArpRuntime.euclid_step, `_euclid_gate()`, event types, handlers, setters |
-| `src/gui/keyboard_overlay.py` | EUC/N/K/R widgets in ARP controls, event handlers, sync_ui_from_engine |
+| `src/gui/arp_engine.py` | `euclidean_hit()`, settings, runtime, `_euclid_gate()`, event types, setters |
+| `src/gui/keyboard_overlay.py` | EUC/N/K/R controls, handlers, sync |
 
 ---
 
 ## Testing
 
 ### Phase 1
-1. Start app, connect to SC, set ARP on a slot → verify ARP ticks arrive from fabric (no QTimer rate phases)
-2. Change BPM mid-arp → verify immediate rate change with no drift
-3. Run two ARP slots at same rate → verify they step simultaneously (phase-locked)
-4. Test all 7 ARP rates including 1/12 triplet → verify correct timing
-5. SEQ continues to work normally (still on QTimer)
-6. Disconnect SC → ARP stops (no fabric ticks); reconnect → ARP resumes
-7. ARP fallback timer still works when no fabric ticks received (AUTO mode)
+1. ARP on a slot → ticks come from fabric, not QTimer
+2. Change BPM mid-arp → immediate, no drift
+3. Two ARP slots at same rate → step simultaneously
+4. 1/12 rate → still works via fallback timer (no regression)
+5. SEQ still works (QTimer unchanged)
+6. Disconnect SC → ARP falls back to AUTO timer
 
 ### Phase 2
-1. Enable EUC → ARP becomes sparser
-2. Change N/K/ROT → pattern changes immediately
-3. K=0 → silence; K=N → all hits (same as EUC off)
-4. Switch slots → Euclid settings preserved per-slot
-5. Close/reopen keyboard with HOLD → Euclid state restored
-6. UP pattern with Euclid: verify steps are SKIPPED (gaps in sequence), not condensed
-
----
-
-## Edge Cases
-
-### ARP fallback timer (AUTO mode)
-The ARP engine has a fallback QTimer for when master ticks aren't arriving (ClockMode.AUTO). After unification, fallback still works: if SC disconnects or fabric ticks stop, ARP demotes from MASTER to AUTO and uses its own timer. This is the existing safety mechanism and should NOT be removed.
-
-### BPM change during triplet sub-counting
-The triplet counter (`_triplet_tick_count`) counts x12 ticks and fires every 4th. On BPM change, x12 tick rate changes instantly. The counter doesn't need to reset — it will naturally sync to the new rate within 4 ticks.
-
-### Multiple ARP rates across slots
-Different slots can use different ARP rates. Each fabric tick (index 4-10) triggers all slots whose ARP rate maps to that fabric index. This is already how MotionManager works (iterates all slots per tick), just with a fabric tick instead of a phase crossing.
-
----
-
-## Future: SEQ Unification
-
-The SEQ engine also has parallel timing (accumulator in `tick(tick_duration_beats)`). Unifying it would require changing from continuous delta-beat to trigger-driven stepping. This is a separate, larger task — noted here for awareness but not in scope.
+1. Set ARP to 1/16, enable EUC, N=16, K=11 → 11 hits per bar
+2. Change K → density changes immediately
+3. Change ROT → pattern shifts
+4. K=0 → silence, K=N → all hits
+5. Switch slots → Euclid preserved per-slot
+6. HOLD + close/reopen keyboard → state restored
