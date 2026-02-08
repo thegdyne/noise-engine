@@ -225,6 +225,7 @@ class ArpRuntime:
 
     # Start sync
     start_sync_armed: bool = False
+    armed_latch_active: bool = False  # temporary latch while armed (HOLD off)
 
     # Clock/timing
     clock_mode: ClockMode = ClockMode.STOPPED
@@ -477,14 +478,14 @@ class ArpEngine:
     # =========================================================================
 
     def _get_active_set(self) -> Set[int]:
-        """Get active note set based on hold mode."""
-        if self.settings.hold:
+        """Get active note set based on hold mode (or armed latch)."""
+        if self.settings.hold or self.runtime.armed_latch_active:
             return self.runtime.latched.copy()
         return self.runtime.physical_held.copy()
 
     def _get_active_order(self) -> List[int]:
-        """Get active order list based on hold mode."""
-        if self.settings.hold:
+        """Get active order list based on hold mode (or armed latch)."""
+        if self.settings.hold or self.runtime.armed_latch_active:
             return self.runtime.latched_order.copy()
         return self.runtime.physical_order.copy()
 
@@ -730,6 +731,11 @@ class ArpEngine:
                     self.runtime.latched.add(note)
                     if note not in self.runtime.latched_order:
                         self.runtime.latched_order.append(note)
+            elif self.runtime.armed_latch_active:
+                # Temporary latch while armed: add-only (no toggle)
+                self.runtime.latched.add(note)
+                if note not in self.runtime.latched_order:
+                    self.runtime.latched_order.append(note)
 
             if self._get_active_set():
                 self._state = ArpState.ENABLED_PLAYING
@@ -1022,8 +1028,15 @@ class ArpEngine:
             self.runtime.current_step_index = 0
             self.runtime.euclid_step = 0
             self._stop_fallback()
+            # Activate temporary latch when HOLD is off
+            if not self.settings.hold:
+                self.runtime.armed_latch_active = True
+                self.runtime.latched.clear()
+                self.runtime.latched_order.clear()
         else:
-            # Disarming — restart fallback if we're in AUTO mode
+            # Disarming — clean up temporary latch
+            self._clear_armed_latch()
+            # Restart fallback if we're in AUTO mode
             self._ensure_fallback_if_auto()
 
     def _handle_start_ref_set(self, event: ArpEvent):
@@ -1054,8 +1067,23 @@ class ArpEngine:
         if self._euclid_gate():
             self._execute_step(tick_time_ms)
 
+        # Clean up temporary latch so normal key behavior resumes
+        self._clear_armed_latch()
+
         # Restart fallback if we're in AUTO mode (e.g. rate=1/12)
         self._ensure_fallback_if_auto()
+
+    def _clear_armed_latch(self):
+        """Clear temporary latch state if it was active.
+
+        Reverts to normal physical_held behavior when HOLD is off.
+        Called on disarm (manual or ref tick) so the note pool
+        doesn't persist after start sync completes.
+        """
+        if self.runtime.armed_latch_active:
+            self.runtime.armed_latch_active = False
+            self.runtime.latched.clear()
+            self.runtime.latched_order.clear()
 
     def _ensure_fallback_if_auto(self):
         """Restart fallback timer if clock_mode is AUTO and BPM is valid.
