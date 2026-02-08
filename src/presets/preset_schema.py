@@ -88,6 +88,13 @@ class SlotState:
     arp_pattern: int = 0  # 0=UP, 1=DOWN, 2=UPDOWN, 3=RANDOM, 4=ORDER
     arp_octaves: int = 1  # 1-4
     arp_hold: bool = False
+    # Euclidean gate settings (per slot)
+    euclid_enabled: bool = False
+    euclid_n: int = 16
+    euclid_k: int = 16
+    euclid_rot: int = 0
+    # RST rate (0=OFF, 4-9=fabric index for /4../x8)
+    rst_rate: int = 0
     # SEQ settings
     seq_enabled: bool = False
     seq_rate: int = 1  # Index into SEQ_RATE_LABELS (0-6), default 1 = 1/16
@@ -121,6 +128,11 @@ class SlotState:
             "arp_pattern": self.arp_pattern,
             "arp_octaves": self.arp_octaves,
             "arp_hold": self.arp_hold,
+            "euclid_enabled": self.euclid_enabled,
+            "euclid_n": self.euclid_n,
+            "euclid_k": self.euclid_k,
+            "euclid_rot": self.euclid_rot,
+            "rst_rate": self.rst_rate,
             "seq_enabled": self.seq_enabled,
             "seq_rate": self.seq_rate,
             "seq_length": self.seq_length,
@@ -154,6 +166,11 @@ class SlotState:
             arp_pattern=data.get("arp_pattern", 0),
             arp_octaves=data.get("arp_octaves", 1),
             arp_hold=data.get("arp_hold", False),
+            euclid_enabled=data.get("euclid_enabled", False),
+            euclid_n=data.get("euclid_n", 16),
+            euclid_k=data.get("euclid_k", 16),
+            euclid_rot=data.get("euclid_rot", 0),
+            rst_rate=data.get("rst_rate", 0),
             seq_enabled=data.get("seq_enabled", False),
             seq_rate=data.get("seq_rate", 1),
             seq_length=data.get("seq_length", 16),
@@ -1118,6 +1135,44 @@ def _validate_slot(slot: dict, prefix: str, strict: bool = False) -> tuple:
     arp_hold = slot.get("arp_hold")
     if arp_hold is not None and not isinstance(arp_hold, bool):
         errors.append(f"{prefix}.arp_hold must be bool, got {type(arp_hold).__name__}")
+
+    # Euclidean gate settings (optional — old presets won't have them)
+    euc_enabled = slot.get("euclid_enabled")
+    if euc_enabled is not None and not isinstance(euc_enabled, bool):
+        errors.append(f"{prefix}.euclid_enabled must be bool, got {type(euc_enabled).__name__}")
+
+    euc_n = slot.get("euclid_n")
+    if euc_n is not None:
+        euc_n, warning = _coerce_int(euc_n, f"{prefix}.euclid_n")
+        if warning:
+            warnings.append(warning)
+        if euc_n is not None and not (1 <= euc_n <= 64):
+            errors.append(f"{prefix}.euclid_n must be 1-64, got {euc_n}")
+
+    euc_k = slot.get("euclid_k")
+    if euc_k is not None:
+        euc_k, warning = _coerce_int(euc_k, f"{prefix}.euclid_k")
+        if warning:
+            warnings.append(warning)
+        if euc_k is not None and not (0 <= euc_k <= 64):
+            errors.append(f"{prefix}.euclid_k must be 0-64, got {euc_k}")
+
+    euc_rot = slot.get("euclid_rot")
+    if euc_rot is not None:
+        euc_rot, warning = _coerce_int(euc_rot, f"{prefix}.euclid_rot")
+        if warning:
+            warnings.append(warning)
+        if euc_rot is not None and not (0 <= euc_rot <= 63):
+            errors.append(f"{prefix}.euclid_rot must be 0-63, got {euc_rot}")
+
+    # RST rate (0=OFF, 4-9=fabric index)
+    rst_rate = slot.get("rst_rate")
+    if rst_rate is not None:
+        rst_rate, warning = _coerce_int(rst_rate, f"{prefix}.rst_rate")
+        if warning:
+            warnings.append(warning)
+        if rst_rate is not None and rst_rate != 0 and not (4 <= rst_rate <= 9):
+            errors.append(f"{prefix}.rst_rate must be 0 or 4-9, got {rst_rate}")
 
     # SEQ settings (optional — old presets won't have them)
     seq_enabled = slot.get("seq_enabled")

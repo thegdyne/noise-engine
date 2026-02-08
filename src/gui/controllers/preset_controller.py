@@ -102,6 +102,14 @@ class PresetController:
                 slot_dict["arp_pattern"] = list(type(arp.pattern)).index(arp.pattern)
                 slot_dict["arp_octaves"] = arp.octaves
                 slot_dict["arp_hold"] = arp.hold
+                # Euclidean gate settings
+                slot_dict["euclid_enabled"] = arp.euclid_enabled
+                slot_dict["euclid_n"] = arp.euclid_n
+                slot_dict["euclid_k"] = arp.euclid_k
+                slot_dict["euclid_rot"] = arp.euclid_rot
+                # RST rate (fabric index or 0=OFF)
+                rst_idx = engine.runtime.rst_fabric_idx
+                slot_dict["rst_rate"] = rst_idx if rst_idx is not None else 0
             # Inject SEQ settings from motion_manager
             if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'motion_manager'):
                 from src.model.sequencer import StepType, PlayMode, MotionMode
@@ -226,8 +234,18 @@ class PresetController:
                     engine.set_octaves(slot_state.arp_octaves)
                     engine.toggle_hold(slot_state.arp_hold)
                     engine.toggle_arp(slot_state.arp_enabled)
-                    # R13: Disarm RST on preset load (transient, not saved)
-                    engine.runtime.rst_fabric_idx = None
+                    # Restore Euclidean gate settings
+                    engine.set_euclid(
+                        slot_state.euclid_enabled,
+                        slot_state.euclid_n,
+                        slot_state.euclid_k,
+                        slot_state.euclid_rot,
+                    )
+                    # Restore RST rate (0=OFF, 4-9=fabric index)
+                    if slot_state.rst_rate >= 4:
+                        engine.runtime.rst_fabric_idx = slot_state.rst_rate
+                    else:
+                        engine.runtime.rst_fabric_idx = None
                     # Set MotionMode.ARP so fabric ticks reach the engine
                     if mm is not None and slot_state.arp_enabled:
                         mm.set_mode(i, MotionMode.ARP)
