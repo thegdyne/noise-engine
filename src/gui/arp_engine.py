@@ -219,6 +219,9 @@ class ArpRuntime:
     # Euclidean gate
     euclid_step: int = 0
 
+    # One-shot reset: fabric index to trigger on, or None
+    rst_fabric_idx: Optional[int] = None
+
     # Clock/timing
     clock_mode: ClockMode = ClockMode.STOPPED
     last_master_tick_time_by_rate: Dict[int, float] = field(default_factory=dict)
@@ -449,6 +452,22 @@ class ArpEngine:
     def get_settings(self) -> ArpSettings:
         """Get current ARP settings."""
         return self.settings
+
+    # =========================================================================
+    # ONE-SHOT RESET (called from MotionManager under slot lock)
+    # =========================================================================
+
+    def reset_on_tick(self, tick_time_ms: float):
+        """Execute one-shot ARP reset (R7). Called from MotionManager when fabric tick matches."""
+        self._note_off_currently_sounding()
+        self.runtime.current_step_index = 0
+        self.runtime.euclid_step = 0
+        # R15: Clear tick-dedupe state so master_tick() can emit step 0 on this same tick.
+        self.runtime.last_arp_step_time = None
+        self.runtime.last_eligible_master_tick_time = None
+        rate = self.settings.rate_index
+        self.runtime.last_master_tick_time_by_rate.pop(rate, None)
+        self.runtime.rst_fabric_idx = None  # R8: auto-disarm
 
     # =========================================================================
     # ACTIVE SET DERIVATION

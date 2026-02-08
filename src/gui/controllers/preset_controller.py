@@ -224,6 +224,8 @@ class PresetController:
                     engine.set_octaves(slot_state.arp_octaves)
                     engine.toggle_hold(slot_state.arp_hold)
                     engine.toggle_arp(slot_state.arp_enabled)
+                    # R13: Disarm RST on preset load (transient, not saved)
+                    engine.runtime.rst_fabric_idx = None
 
         # Restore SEQ settings to each slot's engine
         if hasattr(self.main, 'keyboard') and hasattr(self.main.keyboard, 'motion_manager'):

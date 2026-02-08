@@ -27,6 +27,7 @@ from .arp_engine import (
 )
 from .seq_engine import SeqEngine, SEQ_RATE_LABELS, SEQ_DEFAULT_RATE_INDEX
 from src.model.sequencer import StepType, SeqStep, MotionMode
+from src.config import CLOCK_RATES
 
 # Key -> semitone offset from C (within current octave span)
 KEY_TO_SEMITONE = {
@@ -288,6 +289,14 @@ class KeyboardOverlay(QWidget):
         self._euc_k_btn.set_index(settings.euclid_k)
         self._euc_rot_btn.set_index(settings.euclid_rot)
 
+        # RST one-shot reset (R9: blockSignals to avoid re-triggering handler)
+        rst_idx = 0  # OFF
+        if engine.runtime.rst_fabric_idx is not None:
+            rst_idx = engine.runtime.rst_fabric_idx - 3  # Reverse R5 mapping
+        self._arp_rst_btn.blockSignals(True)
+        self._arp_rst_btn.set_index(rst_idx)
+        self._arp_rst_btn.blockSignals(False)
+
         # Target slot button — highlight the engine's slot
         target_ui_slot = engine.slot_id + 1  # 0-indexed -> 1-indexed
         self._target_slot = target_ui_slot
@@ -542,6 +551,21 @@ class KeyboardOverlay(QWidget):
         self._euc_rot_btn.setToolTip("Euclidean rotation (R)")
         self._euc_rot_btn.index_changed.connect(self._on_euc_changed)
         layout.addWidget(self._euc_rot_btn)
+
+        layout.addSpacing(12)
+
+        # RST one-shot reset selector
+        rst_label = QLabel("RST:")
+        rst_label.setFont(QFont(FONT_FAMILY, 10))
+        layout.addWidget(rst_label)
+
+        RST_LABELS = ["OFF"] + CLOCK_RATES[4:10]  # /4, /2, CLK, x2, x4, x8
+        self._arp_rst_btn = CycleButton(RST_LABELS, 0)
+        self._arp_rst_btn.setFixedSize(44, 24)
+        self._arp_rst_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._arp_rst_btn.setToolTip("One-shot reset: fires on next matching tick, then OFF")
+        self._arp_rst_btn.index_changed.connect(self._on_rst_changed)
+        layout.addWidget(self._arp_rst_btn)
 
         layout.addStretch()
 
@@ -1094,6 +1118,16 @@ class KeyboardOverlay(QWidget):
             self._euc_rot_btn.set_index(rot)
 
         self._arp_engine.set_euclid(enabled, n, k, rot)
+
+    def _on_rst_changed(self, index):
+        """Arm or disarm ARP reset for current slot."""
+        engine = self._arp_engine
+        if engine is None:
+            return
+        if index == 0:
+            engine.runtime.rst_fabric_idx = None
+        else:
+            engine.runtime.rst_fabric_idx = index + 3  # R5: UI index -> fabric index
 
     # -------------------------------------------------------------------------
     # SEQ Control Handlers
