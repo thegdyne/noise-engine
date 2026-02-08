@@ -2,7 +2,7 @@
 
 ---
 status: spec
-version: 1.2
+version: 1.3
 date: 2026-02-08
 builds-on: EUCLID_ARP_GATE_SPEC v3.1, CLOCK_FABRIC.md, MotionManager.on_fabric_tick(), ArpEngine master_tick()
 size: Small-Medium (1-2 days)
@@ -154,6 +154,7 @@ Uses `_stop_fallback()` (not direct field access) — this bumps fallback_genera
 ```python
 def _handle_start_ref_set(self, event: ArpEvent):
     idx = int(event.data.get("fabric_idx", 4))
+    # Start refs limited to 4..9 to match broadcast set (keep OSC traffic low)
     self.settings.start_ref_idx = max(4, min(9, idx))
 ```
 
@@ -274,6 +275,11 @@ self._arp_start_arm_btn: QPushButton = None
 self._arp_start_ref_btn = None  # CycleButton
 ```
 
+**Import:** Add `CLOCK_RATES` to `keyboard_overlay.py` imports:
+```python
+from src.config import CLOCK_RATES
+```
+
 Add widgets in `_create_arp_controls()`, after Euclidean controls, before `addStretch()`:
 
 ```python
@@ -318,8 +324,7 @@ def _on_ref_changed(self, index: int):
     """Handle REF rate change."""
     if self._arp_engine is None:
         return
-    # CycleButton index 0-5 maps to fabric index 4-9
-    fabric_idx = index + 4
+    fabric_idx = 4 + int(index)  # UI 0..5 -> fabric 4..9
     self._arp_engine.set_start_ref(fabric_idx)
 ```
 
