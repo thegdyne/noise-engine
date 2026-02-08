@@ -1067,8 +1067,8 @@ class ArpEngine:
         if self._euclid_gate():
             self._execute_step(tick_time_ms)
 
-        # Clean up temporary latch so normal key behavior resumes
-        self._clear_armed_latch()
+        # Keep armed_latch_active — captured notes persist as the ARP's
+        # playing pool. Cleared naturally by teardown, re-arm, or HOLD on.
 
         # Restart fallback if we're in AUTO mode (e.g. rate=1/12)
         self._ensure_fallback_if_auto()
@@ -1077,8 +1077,8 @@ class ArpEngine:
         """Clear temporary latch state if it was active.
 
         Reverts to normal physical_held behavior when HOLD is off.
-        Called on disarm (manual or ref tick) so the note pool
-        doesn't persist after start sync completes.
+        Called on manual disarm only — NOT on ref tick start, where
+        the captured pool must persist as the ARP's playing notes.
         """
         if self.runtime.armed_latch_active:
             self.runtime.armed_latch_active = False
