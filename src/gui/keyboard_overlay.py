@@ -436,33 +436,20 @@ class KeyboardOverlay(QWidget):
         return header
 
     def _create_arp_controls(self) -> QFrame:
-        """Create ARP controls rows (visible only when ARP enabled)."""
+        """Create ARP controls row (visible only when ARP enabled)."""
         frame = QFrame()
         frame.setObjectName("keyboard_arp_controls")
-        frame.setFixedHeight(64)
+        frame.setFixedHeight(36)
         frame.hide()  # Hidden by default
 
-        outer = QVBoxLayout(frame)
-        outer.setContentsMargins(6, 0, 6, 0)
-        outer.setSpacing(2)
-
-        row1 = QHBoxLayout()
-        row1.setContentsMargins(0, 0, 0, 0)
-        row1.setSpacing(4)
-
-        row2 = QHBoxLayout()
-        row2.setContentsMargins(0, 0, 0, 0)
-        row2.setSpacing(4)
-
-        outer.addLayout(row1)
-        outer.addLayout(row2)
-
-        # === Row 1: Rate / Pattern / Oct / Hold / EUC toggle ===
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(12, 4, 12, 4)
+        layout.setSpacing(8)
 
         # Rate button (CycleButton with drag support)
         rate_label = QLabel("Rate:")
         rate_label.setFont(QFont(FONT_FAMILY, 10))
-        row1.addWidget(rate_label)
+        layout.addWidget(rate_label)
 
         self._arp_rate_btn = CycleButton(list(ARP_RATE_LABELS), ARP_DEFAULT_RATE_INDEX)
         self._arp_rate_btn.setFixedSize(50, 24)
@@ -470,14 +457,14 @@ class KeyboardOverlay(QWidget):
         self._arp_rate_btn.setToolTip("ARP rate (click or drag)")
         self._arp_rate_btn.invert_drag = True  # Drag up = faster (higher index)
         self._arp_rate_btn.index_changed.connect(self._on_rate_changed)
-        row1.addWidget(self._arp_rate_btn)
+        layout.addWidget(self._arp_rate_btn)
 
-        row1.addSpacing(8)
+        layout.addSpacing(8)
 
         # Pattern button (CycleButton with drag support)
         pattern_label = QLabel("Pattern:")
         pattern_label.setFont(QFont(FONT_FAMILY, 10))
-        row1.addWidget(pattern_label)
+        layout.addWidget(pattern_label)
 
         pattern_labels = [ARP_PATTERN_LABELS[p] for p in ARP_PATTERN_ORDER]
         self._arp_pattern_btn = CycleButton(pattern_labels, 0)
@@ -485,23 +472,23 @@ class KeyboardOverlay(QWidget):
         self._arp_pattern_btn.setFont(QFont(FONT_FAMILY, 9))
         self._arp_pattern_btn.setToolTip("Pattern (click or drag)")
         self._arp_pattern_btn.index_changed.connect(self._on_pattern_changed)
-        row1.addWidget(self._arp_pattern_btn)
+        layout.addWidget(self._arp_pattern_btn)
 
-        row1.addSpacing(8)
+        layout.addSpacing(8)
 
         # Octaves button (CycleButton with drag support)
         oct_label = QLabel("Oct:")
         oct_label.setFont(QFont(FONT_FAMILY, 10))
-        row1.addWidget(oct_label)
+        layout.addWidget(oct_label)
 
         self._arp_octaves_btn = CycleButton(["1", "2", "3", "4"], 0)
         self._arp_octaves_btn.setFixedSize(32, 24)
         self._arp_octaves_btn.setFont(QFont(FONT_FAMILY, 9))
         self._arp_octaves_btn.setToolTip("Octave range (click or drag)")
         self._arp_octaves_btn.index_changed.connect(self._on_octaves_changed)
-        row1.addWidget(self._arp_octaves_btn)
+        layout.addWidget(self._arp_octaves_btn)
 
-        row1.addSpacing(8)
+        layout.addSpacing(8)
 
         # Hold button
         self._arp_hold_btn = QPushButton("HOLD")
@@ -510,9 +497,9 @@ class KeyboardOverlay(QWidget):
         self._arp_hold_btn.setFont(QFont(FONT_FAMILY, 9))
         self._arp_hold_btn.setToolTip("Latch notes (toggle on key press)")
         self._arp_hold_btn.clicked.connect(self._on_hold_toggle)
-        row1.addWidget(self._arp_hold_btn)
+        layout.addWidget(self._arp_hold_btn)
 
-        row1.addSpacing(12)
+        layout.addSpacing(12)
 
         # Euclidean toggle
         self._euc_toggle_btn = QPushButton("EUC")
@@ -521,16 +508,14 @@ class KeyboardOverlay(QWidget):
         self._euc_toggle_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
         self._euc_toggle_btn.setToolTip("Euclidean gate (thins ARP pattern)")
         self._euc_toggle_btn.clicked.connect(self._on_euc_changed)
-        row1.addWidget(self._euc_toggle_btn)
+        layout.addWidget(self._euc_toggle_btn)
 
-        row1.addStretch()
-
-        # === Row 2: N / K / R / ARM / REF ===
+        layout.addSpacing(4)
 
         # N (steps)
         n_label = QLabel("N:")
         n_label.setFont(QFont(FONT_FAMILY, 9))
-        row2.addWidget(n_label)
+        layout.addWidget(n_label)
 
         n_labels = [str(i) for i in range(1, 65)]
         self._euc_n_btn = CycleButton(n_labels, 15)  # Default 16 (index 15)
@@ -538,14 +523,14 @@ class KeyboardOverlay(QWidget):
         self._euc_n_btn.setFont(QFont(FONT_FAMILY, 9))
         self._euc_n_btn.setToolTip("Euclidean steps (N)")
         self._euc_n_btn.index_changed.connect(self._on_euc_changed)
-        row2.addWidget(self._euc_n_btn)
+        layout.addWidget(self._euc_n_btn)
 
-        row2.addSpacing(4)
+        layout.addSpacing(4)
 
         # K (hits)
         k_label = QLabel("K:")
         k_label.setFont(QFont(FONT_FAMILY, 9))
-        row2.addWidget(k_label)
+        layout.addWidget(k_label)
 
         k_labels = [str(i) for i in range(0, 65)]
         self._euc_k_btn = CycleButton(k_labels, 16)  # Default 16 (index 16)
@@ -553,14 +538,14 @@ class KeyboardOverlay(QWidget):
         self._euc_k_btn.setFont(QFont(FONT_FAMILY, 9))
         self._euc_k_btn.setToolTip("Euclidean hits (K)")
         self._euc_k_btn.index_changed.connect(self._on_euc_changed)
-        row2.addWidget(self._euc_k_btn)
+        layout.addWidget(self._euc_k_btn)
 
-        row2.addSpacing(4)
+        layout.addSpacing(4)
 
         # R (rotation)
         r_label = QLabel("R:")
         r_label.setFont(QFont(FONT_FAMILY, 9))
-        row2.addWidget(r_label)
+        layout.addWidget(r_label)
 
         r_labels = [str(i) for i in range(0, 64)]
         self._euc_rot_btn = CycleButton(r_labels, 0)  # Default 0
@@ -568,9 +553,9 @@ class KeyboardOverlay(QWidget):
         self._euc_rot_btn.setFont(QFont(FONT_FAMILY, 9))
         self._euc_rot_btn.setToolTip("Euclidean rotation (R)")
         self._euc_rot_btn.index_changed.connect(self._on_euc_changed)
-        row2.addWidget(self._euc_rot_btn)
+        layout.addWidget(self._euc_rot_btn)
 
-        row2.addSpacing(12)
+        layout.addSpacing(12)
 
         # ARM toggle
         self._arp_start_arm_btn = QPushButton("ARM")
@@ -579,14 +564,14 @@ class KeyboardOverlay(QWidget):
         self._arp_start_arm_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
         self._arp_start_arm_btn.setToolTip("Arm start sync (waits for REF tick)")
         self._arp_start_arm_btn.clicked.connect(self._on_arm_changed)
-        row2.addWidget(self._arp_start_arm_btn)
+        layout.addWidget(self._arp_start_arm_btn)
 
-        row2.addSpacing(4)
+        layout.addSpacing(4)
 
         # REF selector (fabric rate labels for indices 4-9)
         ref_label = QLabel("REF:")
         ref_label.setFont(QFont(FONT_FAMILY, 9))
-        row2.addWidget(ref_label)
+        layout.addWidget(ref_label)
 
         ref_labels = CLOCK_RATES[4:10]  # SSOT: ["/4", "/2", "CLK", "x2", "x4", "x8"]
         self._arp_start_ref_btn = CycleButton(ref_labels, 0)  # Default /4 (index 0 = fabric 4)
@@ -594,9 +579,9 @@ class KeyboardOverlay(QWidget):
         self._arp_start_ref_btn.setFont(QFont(FONT_FAMILY, 9))
         self._arp_start_ref_btn.setToolTip("Start sync reference rate")
         self._arp_start_ref_btn.index_changed.connect(self._on_ref_changed)
-        row2.addWidget(self._arp_start_ref_btn)
+        layout.addWidget(self._arp_start_ref_btn)
 
-        row2.addStretch()
+        layout.addStretch()
 
         return frame
 
@@ -1283,7 +1268,7 @@ class KeyboardOverlay(QWidget):
         """Update overlay height based on which control rows are visible."""
         base = 320
         if self._arp_controls_frame.isVisible():
-            base += 64
+            base += 36
         if self._seq_controls_frame.isVisible():
             base += 36
         if self._seq_grid_frame.isVisible():
