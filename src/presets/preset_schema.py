@@ -101,6 +101,9 @@ class SlotState:
     seq_length: int = 16  # 1-16
     seq_play_mode: int = 0  # 0=FORWARD, 1=REVERSE, 2=PINGPONG, 3=RANDOM
     seq_steps: list = field(default_factory=list)  # List of {step_type, note, velocity}
+    # Analog output stage (per-slot)
+    analog_enabled: int = 0  # 0=OFF (bypass), 1=ON
+    analog_type: int = 0     # 0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD
 
     def to_dict(self) -> dict:
         return {
@@ -138,6 +141,8 @@ class SlotState:
             "seq_length": self.seq_length,
             "seq_play_mode": self.seq_play_mode,
             "seq_steps": list(self.seq_steps),
+            "analog_enabled": self.analog_enabled,
+            "analog_type": self.analog_type,
         }
     
     @classmethod
@@ -176,6 +181,8 @@ class SlotState:
             seq_length=data.get("seq_length", 16),
             seq_play_mode=data.get("seq_play_mode", 0),
             seq_steps=list(data.get("seq_steps", [])),
+            analog_enabled=data.get("analog_enabled", 0),
+            analog_type=data.get("analog_type", 0),
         )
 
 
@@ -1235,6 +1242,23 @@ def _validate_slot(slot: dict, prefix: str, strict: bool = False) -> tuple:
                         warnings.append(warning)
                     if vel is not None and not (1 <= vel <= 127):
                         errors.append(f"{prefix}.seq_steps[{j}].velocity must be 1-127, got {vel}")
+
+    # Analog stage settings (optional — old presets won't have them)
+    analog_enabled = slot.get("analog_enabled")
+    if analog_enabled is not None:
+        analog_enabled, warning = _coerce_int(analog_enabled, f"{prefix}.analog_enabled")
+        if warning:
+            warnings.append(warning)
+        if analog_enabled is not None and analog_enabled not in (0, 1):
+            errors.append(f"{prefix}.analog_enabled must be 0 or 1, got {analog_enabled}")
+
+    analog_type = slot.get("analog_type")
+    if analog_type is not None:
+        analog_type, warning = _coerce_int(analog_type, f"{prefix}.analog_type")
+        if warning:
+            warnings.append(warning)
+        if analog_type is not None and not (0 <= analog_type <= 3):
+            errors.append(f"{prefix}.analog_type must be 0-3, got {analog_type}")
 
     return errors, warnings
 
