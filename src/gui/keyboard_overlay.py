@@ -297,7 +297,7 @@ class KeyboardOverlay(QWidget):
         self._arp_rst_btn.set_index(rst_idx)
         self._arp_rst_btn.blockSignals(False)
         self._rst_last_fired_count = engine.runtime.rst_fired_count
-        self._rst_flash_dot.hide()
+        self._rst_led.setStyleSheet(self._rst_led_style(False))
 
         # Target slot button — highlight the engine's slot
         target_ui_slot = engine.slot_id + 1  # 0-indexed -> 1-indexed
@@ -584,13 +584,11 @@ class KeyboardOverlay(QWidget):
         self._arp_rst_btn.index_changed.connect(self._on_rst_changed)
         row2.addWidget(self._arp_rst_btn)
 
-        # RST flash indicator (hidden, briefly shown when reset fires)
-        self._rst_flash_dot = QLabel("\u25CF")
-        self._rst_flash_dot.setFont(QFont(FONT_FAMILY, 14))
-        self._rst_flash_dot.setStyleSheet("color: #ff00ff;")
-        self._rst_flash_dot.setFixedWidth(16)
-        self._rst_flash_dot.hide()
-        row2.addWidget(self._rst_flash_dot)
+        # RST flash LED (lights up on fire, same pattern as generator gate_led)
+        self._rst_led = QLabel()
+        self._rst_led.setFixedSize(8, 8)
+        self._rst_led.setStyleSheet(self._rst_led_style(False))
+        row2.addWidget(self._rst_led)
 
         # Poll timer to detect RST fire from engine thread
         self._rst_last_fired_count = 0
@@ -601,8 +599,8 @@ class KeyboardOverlay(QWidget):
 
         self._rst_flash_off_timer = QTimer()
         self._rst_flash_off_timer.setSingleShot(True)
-        self._rst_flash_off_timer.setInterval(200)
-        self._rst_flash_off_timer.timeout.connect(self._rst_flash_dot.hide)
+        self._rst_flash_off_timer.setInterval(120)
+        self._rst_flash_off_timer.timeout.connect(lambda: self._rst_led.setStyleSheet(self._rst_led_style(False)))
 
         row2.addStretch()
         container.addLayout(row2)
@@ -1167,8 +1165,21 @@ class KeyboardOverlay(QWidget):
         else:
             engine.runtime.rst_fabric_idx = index + 3  # R5: UI index -> fabric index
 
+    @staticmethod
+    def _rst_led_style(active: bool) -> str:
+        """RST LED stylesheet — same pattern as gate_indicator_style."""
+        if active:
+            return """
+                QLabel { background-color: #ff00ff; border-radius: 4px;
+                         border: 1px solid #ff66ff; }
+            """
+        return """
+            QLabel { background-color: #331133; border-radius: 4px;
+                     border: 1px solid #440044; }
+        """
+
     def _poll_rst_state(self):
-        """Poll ARP engine for RST fire events — updates button and flashes indicator."""
+        """Poll ARP engine for RST fire events — updates button and flashes LED."""
         engine = self._arp_engine
         if engine is None:
             return
@@ -1179,8 +1190,8 @@ class KeyboardOverlay(QWidget):
             self._arp_rst_btn.blockSignals(True)
             self._arp_rst_btn.set_index(0)
             self._arp_rst_btn.blockSignals(False)
-            # Flash indicator
-            self._rst_flash_dot.show()
+            # Flash LED on
+            self._rst_led.setStyleSheet(self._rst_led_style(True))
             self._rst_flash_off_timer.start()
 
     # -------------------------------------------------------------------------
