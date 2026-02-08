@@ -591,3 +591,117 @@ class TestStaleSeqStepsPrevention:
         assert "for j in range(16):" in source, (
             "_apply_seq_state must reset all 16 steps"
         )
+
+
+class TestApplyExportSymmetry:
+    """Export (get_state) and import (apply_state) must handle the same fields."""
+
+    # Fields handled by set_state (UI controls)
+    UI_FIELDS = {
+        "generator", "frequency", "cutoff", "resonance", "attack", "decay",
+        "custom_0", "custom_1", "custom_2", "custom_3", "custom_4",
+        "filter_type", "env_source", "clock_rate", "midi_channel",
+        "transpose", "portamento", "analog_enabled", "analog_type",
+    }
+    # Feature fields that must be symmetric in get_state/apply_state
+    FEATURE_FIELDS = {
+        "arp_enabled", "arp_rate", "arp_pattern", "arp_octaves", "arp_hold",
+        "euclid_enabled", "euclid_n", "euclid_k", "euclid_rot", "rst_rate",
+        "seq_enabled", "seq_rate", "seq_length", "seq_play_mode", "seq_steps",
+    }
+
+    def test_ui_plus_feature_fields_cover_all_slot_state(self):
+        """Every SlotState field is accounted for in either UI or feature set."""
+        all_fields = {f.name for f in fields(SlotState)}
+        covered = self.UI_FIELDS | self.FEATURE_FIELDS
+        uncovered = all_fields - covered
+        assert not uncovered, (
+            f"SlotState fields not covered by UI or feature sets: {uncovered}. "
+            f"Add them to TestApplyExportSymmetry.UI_FIELDS or FEATURE_FIELDS."
+        )
+
+    def test_get_state_exports_all_feature_fields(self):
+        """get_state() must reference every feature field name."""
+        import re
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "src", "gui", "generator_slot.py",
+        )
+        with open(src_path) as f:
+            source = f.read()
+        match = re.search(r"(def get_state\(self\).*?\n(?:(?!    def ).*\n)*)", source)
+        assert match, "get_state not found"
+        body = match.group(1)
+        missing = [f for f in self.FEATURE_FIELDS if f'"{f}"' not in body]
+        assert not missing, f"get_state() doesn't export: {missing}"
+
+    def test_apply_helpers_read_all_feature_fields(self):
+        """apply helper methods must reference every feature field name."""
+        import re
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "src", "gui", "generator_slot.py",
+        )
+        with open(src_path) as f:
+            source = f.read()
+        arp_match = re.search(r"(def _apply_arp_state\(.*?\n(?:(?!    def ).*\n)*)", source)
+        seq_match = re.search(r"(def _apply_seq_state\(.*?\n(?:(?!    def ).*\n)*)", source)
+        assert arp_match, "_apply_arp_state not found"
+        assert seq_match, "_apply_seq_state not found"
+        combined = arp_match.group(1) + seq_match.group(1)
+        missing = [f for f in self.FEATURE_FIELDS if f".{f}" not in combined]
+        assert not missing, f"apply helpers don't read: {missing}"
+
+
+class TestModeSymmetric:
+    """apply_state must clear motion mode to OFF before applying features."""
+
+    def test_apply_state_clears_mode_before_features(self):
+        """apply_state body contains MotionMode.OFF before _apply_arp_state."""
+        import re
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "src", "gui", "generator_slot.py",
+        )
+        with open(src_path) as f:
+            source = f.read()
+        match = re.search(r"(def apply_state\(self.*?\n(?:(?!    def ).*\n)*)", source)
+        assert match, "apply_state not found"
+        body = match.group(1)
+        assert "MotionMode.OFF" in body, (
+            "apply_state must explicitly clear mode to OFF before feature application"
+        )
+        # OFF must appear before _apply_arp_state call
+        off_pos = body.index("MotionMode.OFF")
+        arp_pos = body.index("_apply_arp_state")
+        assert off_pos < arp_pos, (
+            "MotionMode.OFF must appear before _apply_arp_state call"
+        )
+
+
+class TestSeqStepsNormalization:
+    """from_dict normalizes seq_steps: fresh dicts with guaranteed keys."""
+
+    def test_missing_keys_get_defaults(self):
+        """Step dicts missing keys get REST/60/100 defaults."""
+        data = SlotState().to_dict()
+        data["seq_steps"] = [{"note": 72}]  # missing step_type, velocity
+        slot = SlotState.from_dict(data)
+        step = slot.seq_steps[0]
+        assert step["step_type"] == 1  # REST
+        assert step["note"] == 72
+        assert step["velocity"] == 100
+
+    def test_deep_copy_isolation(self):
+        """Mutating to_dict() output doesn't affect the original object."""
+        slot = SlotState(seq_steps=[{"step_type": 0, "note": 60, "velocity": 100}])
+        d = slot.to_dict()
+        d["seq_steps"][0]["note"] = 999
+        assert slot.seq_steps[0]["note"] == 60
+
+    def test_from_dict_deep_copy_isolation(self):
+        """Mutating input data after from_dict doesn't affect the SlotState."""
+        data = {"seq_steps": [{"step_type": 0, "note": 60, "velocity": 100}]}
+        slot = SlotState.from_dict(data)
+        data["seq_steps"][0]["note"] = 999
+        assert slot.seq_steps[0]["note"] == 60

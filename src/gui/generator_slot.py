@@ -513,6 +513,11 @@ class GeneratorSlot(QWidget):
 
         slot_idx = self.slot_id - 1
 
+        # Mode-symmetric: explicitly clear mode before applying features.
+        # Prevents leftover ARP/SEQ mode from previous preset.
+        if self._motion_manager is not None:
+            self._motion_manager.set_mode(slot_idx, MotionMode.OFF)
+
         # ARP + Euclidean + RST state
         if self._arp_manager is not None:
             self._apply_arp_state(slot_idx, slot_state)

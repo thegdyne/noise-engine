@@ -125,7 +125,7 @@ class SlotState:
             if name in self.PARAM_KEYS:
                 d["params"][name] = val
             elif name == "seq_steps":
-                d[name] = list(val)  # defensive copy (nested list-of-dict)
+                d[name] = [dict(s) for s in val]  # deep defensive copy
             else:
                 d[name] = val
         return d
@@ -146,7 +146,15 @@ class SlotState:
                 continue
             if name in data:
                 if name == "seq_steps":
-                    setattr(obj, name, list(data[name]))
+                    # Normalize: fresh dicts with guaranteed keys
+                    setattr(obj, name, [
+                        {
+                            "step_type": s.get("step_type", 1) if isinstance(s, dict) else 1,
+                            "note": s.get("note", 60) if isinstance(s, dict) else 60,
+                            "velocity": s.get("velocity", 100) if isinstance(s, dict) else 100,
+                        }
+                        for s in data[name]
+                    ])
                 else:
                     setattr(obj, name, data[name])
         return obj
