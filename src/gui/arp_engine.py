@@ -161,6 +161,9 @@ class ArpEventType(Enum):
     FALLBACK_FIRE = auto()
     LIVENESS_CHECK = auto()
     EUCLID_SET = auto()
+    START_SYNC_SET = auto()
+    START_REF_SET = auto()
+    START_REF_TICK = auto()
     TEARDOWN = auto()
 
 
@@ -188,6 +191,7 @@ class ArpSettings:
     euclid_n: int = 16
     euclid_k: int = 16   # Default = all hits (same as off)
     euclid_rot: int = 0
+    start_ref_idx: int = 4  # fabric index for start sync (default /4 = bar)
 
 
 # =============================================================================
@@ -218,6 +222,9 @@ class ArpRuntime:
 
     # Euclidean gate
     euclid_step: int = 0
+
+    # Start sync
+    start_sync_armed: bool = False
 
     # Clock/timing
     clock_mode: ClockMode = ClockMode.STOPPED
@@ -383,6 +390,9 @@ class ArpEngine:
             ArpEventType.FALLBACK_FIRE: self._handle_fallback_fire,
             ArpEventType.LIVENESS_CHECK: self._handle_liveness_check,
             ArpEventType.EUCLID_SET: self._handle_euclid_set,
+            ArpEventType.START_SYNC_SET: self._handle_start_sync_set,
+            ArpEventType.START_REF_SET: self._handle_start_ref_set,
+            ArpEventType.START_REF_TICK: self._handle_start_ref_tick,
         }
         handler = handlers.get(event.event_type)
         if handler:
@@ -437,6 +447,18 @@ class ArpEngine:
             "enabled": bool(enabled),
             "n": int(n), "k": int(k), "rot": int(rot)
         }))
+
+    def set_start_sync(self, enabled: bool):
+        """Arm or disarm start sync."""
+        self.post_event(ArpEvent(ArpEventType.START_SYNC_SET, {"enabled": bool(enabled)}))
+
+    def set_start_ref(self, fabric_idx: int):
+        """Set the fabric index used as start reference."""
+        self.post_event(ArpEvent(ArpEventType.START_REF_SET, {"fabric_idx": int(fabric_idx)}))
+
+    def start_ref_tick(self, tick_time_ms: float):
+        """Called by MotionManager when the slot's start_ref_idx fabric tick fires."""
+        self.post_event(ArpEvent(ArpEventType.START_REF_TICK, {"tick_time_ms": float(tick_time_ms)}))
 
     def teardown(self):
         """Tear down ARP engine: stop timers, note-off, reset state."""
@@ -879,6 +901,9 @@ class ArpEngine:
         if not self.settings.enabled or self.runtime.clock_mode == ClockMode.STOPPED:
             return
 
+        if self.runtime.start_sync_armed:
+            return
+
         if self.runtime.clock_mode == ClockMode.MASTER:
             if rate_index == self.settings.rate_index:
                 if self._euclid_gate():
@@ -908,6 +933,8 @@ class ArpEngine:
         if not self.settings.enabled:
             return
         if self.runtime.clock_mode != ClockMode.AUTO:
+            return
+        if self.runtime.start_sync_armed:
             return
         if self._get_bpm() <= 0:
             return
@@ -986,6 +1013,47 @@ class ArpEngine:
         # Reset phase when enabling or changing N (keeps it predictable)
         if en or changed_n:
             self.runtime.euclid_step = 0
+
+    def _handle_start_sync_set(self, event: ArpEvent):
+        """Handle start sync arm/disarm."""
+        en = bool(event.data.get("enabled", False))
+        self.runtime.start_sync_armed = en
+        if en:
+            self.runtime.current_step_index = 0
+            self.runtime.euclid_step = 0
+            self._stop_fallback()
+
+    def _handle_start_ref_set(self, event: ArpEvent):
+        """Handle start reference fabric index change."""
+        idx = int(event.data.get("fabric_idx", 4))
+        # Start refs limited to 4..9 to match broadcast set (keep OSC traffic low)
+        self.settings.start_ref_idx = max(4, min(9, idx))
+
+    def _handle_start_ref_tick(self, event: ArpEvent):
+        """Handle arrival of the slot's start reference tick."""
+        if not self.runtime.start_sync_armed:
+            return
+
+        tick_time_ms = float(event.data.get("tick_time_ms", 0.0))
+        if tick_time_ms <= 0:
+            return
+
+        # If no notes available, stay armed and do nothing
+        if not self._has_playable_notes():
+            return
+
+        # Disarm and reset phase
+        self.runtime.start_sync_armed = False
+        self.runtime.current_step_index = 0
+        self.runtime.euclid_step = 0
+
+        # Fire exactly one step on this tick (still respects euclid)
+        if self._euclid_gate():
+            self._execute_step(tick_time_ms)
+
+    def _has_playable_notes(self) -> bool:
+        """Check if there are notes available to play."""
+        return len(self._get_active_set()) > 0
 
     def _handle_teardown(self, event: ArpEvent):
         """Handle teardown: stop timers first, then note-off, then reset."""

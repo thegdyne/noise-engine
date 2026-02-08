@@ -27,6 +27,7 @@ from .arp_engine import (
 )
 from .seq_engine import SeqEngine, SEQ_RATE_LABELS, SEQ_DEFAULT_RATE_INDEX
 from src.model.sequencer import StepType, SeqStep, MotionMode
+from src.config import CLOCK_RATES
 
 # Key -> semitone offset from C (within current octave span)
 KEY_TO_SEMITONE = {
@@ -143,6 +144,10 @@ class KeyboardOverlay(QWidget):
         self._euc_n_btn = None
         self._euc_k_btn = None
         self._euc_rot_btn = None
+
+        # Start sync UI elements
+        self._arp_start_arm_btn: QPushButton = None
+        self._arp_start_ref_btn = None  # CycleButton
 
         # SEQ UI elements
         self._seq_toggle_btn: QPushButton = None
@@ -287,6 +292,11 @@ class KeyboardOverlay(QWidget):
         self._euc_n_btn.set_index(settings.euclid_n - 1)
         self._euc_k_btn.set_index(settings.euclid_k)
         self._euc_rot_btn.set_index(settings.euclid_rot)
+
+        # Start sync controls
+        self._arp_start_arm_btn.setChecked(engine.runtime.start_sync_armed)
+        ref_ui_idx = max(0, min(5, settings.start_ref_idx - 4))
+        self._arp_start_ref_btn.set_index(ref_ui_idx)
 
         # Target slot button — highlight the engine's slot
         target_ui_slot = engine.slot_id + 1  # 0-indexed -> 1-indexed
@@ -542,6 +552,32 @@ class KeyboardOverlay(QWidget):
         self._euc_rot_btn.setToolTip("Euclidean rotation (R)")
         self._euc_rot_btn.index_changed.connect(self._on_euc_changed)
         layout.addWidget(self._euc_rot_btn)
+
+        layout.addSpacing(12)
+
+        # ARM toggle
+        self._arp_start_arm_btn = QPushButton("ARM")
+        self._arp_start_arm_btn.setCheckable(True)
+        self._arp_start_arm_btn.setFixedSize(44, 24)
+        self._arp_start_arm_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
+        self._arp_start_arm_btn.setToolTip("Arm start sync (waits for REF tick)")
+        self._arp_start_arm_btn.clicked.connect(self._on_arm_changed)
+        layout.addWidget(self._arp_start_arm_btn)
+
+        layout.addSpacing(4)
+
+        # REF selector (fabric rate labels for indices 4-9)
+        ref_label = QLabel("REF:")
+        ref_label.setFont(QFont(FONT_FAMILY, 9))
+        layout.addWidget(ref_label)
+
+        ref_labels = CLOCK_RATES[4:10]  # SSOT: ["/4", "/2", "CLK", "x2", "x4", "x8"]
+        self._arp_start_ref_btn = CycleButton(ref_labels, 0)  # Default /4 (index 0 = fabric 4)
+        self._arp_start_ref_btn.setFixedSize(44, 24)
+        self._arp_start_ref_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._arp_start_ref_btn.setToolTip("Start sync reference rate")
+        self._arp_start_ref_btn.index_changed.connect(self._on_ref_changed)
+        layout.addWidget(self._arp_start_ref_btn)
 
         layout.addStretch()
 
@@ -1095,6 +1131,20 @@ class KeyboardOverlay(QWidget):
 
         self._arp_engine.set_euclid(enabled, n, k, rot)
 
+    def _on_arm_changed(self):
+        """Handle ARM toggle."""
+        if self._arp_engine is None:
+            self._arp_start_arm_btn.setChecked(False)
+            return
+        self._arp_engine.set_start_sync(self._arp_start_arm_btn.isChecked())
+
+    def _on_ref_changed(self, index: int):
+        """Handle REF rate change."""
+        if self._arp_engine is None:
+            return
+        fabric_idx = 4 + int(index)  # UI 0..5 -> fabric 4..9
+        self._arp_engine.set_start_ref(fabric_idx)
+
     # -------------------------------------------------------------------------
     # SEQ Control Handlers
     # -------------------------------------------------------------------------
@@ -1570,6 +1620,14 @@ class KeyboardOverlay(QWidget):
 
     def _refresh_step_grid(self):
         """Update step grid cells from engine state."""
+        # ARM auto-disarm polling (piggyback on existing timer)
+        if self._arp_engine is not None and self._arp_start_arm_btn is not None:
+            armed = self._arp_engine.runtime.start_sync_armed
+            if self._arp_start_arm_btn.isChecked() != armed:
+                self._arp_start_arm_btn.blockSignals(True)
+                self._arp_start_arm_btn.setChecked(armed)
+                self._arp_start_arm_btn.blockSignals(False)
+
         if self._seq_engine is None:
             return
 
