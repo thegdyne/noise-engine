@@ -221,6 +221,7 @@ class ArpRuntime:
 
     # One-shot reset: fabric index to trigger on, or None
     rst_fabric_idx: Optional[int] = None
+    rst_fired_count: int = 0
 
     # Clock/timing
     clock_mode: ClockMode = ClockMode.STOPPED
@@ -468,6 +469,7 @@ class ArpEngine:
         rate = self.settings.rate_index
         self.runtime.last_master_tick_time_by_rate.pop(rate, None)
         self.runtime.rst_fabric_idx = None  # R8: auto-disarm
+        self.runtime.rst_fired_count += 1
 
     # =========================================================================
     # ACTIVE SET DERIVATION
