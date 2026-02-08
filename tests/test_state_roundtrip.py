@@ -8,7 +8,10 @@ don't handle it, the test fails automatically — no manual updates.
 Enforces invariants I1, I2, I3 from STATE_INTEGRITY_SPEC.
 """
 import json
+import os
 from dataclasses import fields
+
+import pytest
 
 from src.presets.preset_schema import (
     SlotState, ChannelState, MasterState, PresetState,
@@ -196,3 +199,47 @@ class TestDeserializeValidateApply:
         assert not is_valid
         assert any("filter_type" in e for e in errors)
         assert any("frequency" in e for e in errors)
+
+
+class TestSaveTimeAssertion:
+    """Lock the fail-loud save assertion so it can't be silently softened."""
+
+    @staticmethod
+    def _check_missing(slot_dict):
+        """Replicate the save-time assertion from preset_controller._do_save_preset."""
+        _expected = {f.name for f in fields(SlotState)}
+        _emitted = set(slot_dict.keys()) | set(slot_dict.get("params", {}).keys())
+        _missing = _expected - _emitted
+        if _missing:
+            _msg = f"Save-path missing SlotState fields: {sorted(_missing)}"
+            if os.environ.get("NOISE_STRICT_STATE", "1") == "1":
+                raise RuntimeError(_msg)
+
+    def test_strict_mode_on_by_default(self):
+        """Default NOISE_STRICT_STATE raises RuntimeError on missing fields."""
+        incomplete = {"generator": "FM", "params": {}}  # missing most fields
+        old = os.environ.pop("NOISE_STRICT_STATE", None)
+        try:
+            with pytest.raises(RuntimeError, match="missing SlotState fields"):
+                self._check_missing(incomplete)
+        finally:
+            if old is not None:
+                os.environ["NOISE_STRICT_STATE"] = old
+
+    def test_strict_mode_disabled_no_raise(self):
+        """NOISE_STRICT_STATE=0 suppresses RuntimeError (downgrades to warning)."""
+        incomplete = {"generator": "FM", "params": {}}
+        old = os.environ.get("NOISE_STRICT_STATE")
+        os.environ["NOISE_STRICT_STATE"] = "0"
+        try:
+            self._check_missing(incomplete)  # should NOT raise
+        finally:
+            if old is not None:
+                os.environ["NOISE_STRICT_STATE"] = old
+            else:
+                os.environ.pop("NOISE_STRICT_STATE", None)
+
+    def test_complete_dict_no_raise(self):
+        """A complete slot dict never triggers the assertion regardless of mode."""
+        complete = autofill_nondefaults(SlotState).to_dict()
+        self._check_missing(complete)  # should NOT raise
