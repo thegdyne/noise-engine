@@ -1218,6 +1218,9 @@ class KeyboardOverlay(QWidget):
                 return
 
             # Disable ARP when enabling SEQ (mutually exclusive)
+            # Note: don't call _on_arp_mode_changed here — the SEQ toggle
+            # calls set_mode(SEQ) which handles the ARP→SEQ handover
+            # (including teardown) in motion_manager._execute_handover.
             if self._arp_engine is not None and self._arp_engine.is_enabled():
                 self._arp_engine.toggle_arp(False)
             self._arp_toggle_btn.setChecked(False)
