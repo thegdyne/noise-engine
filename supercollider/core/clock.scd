@@ -55,7 +55,7 @@ Rate indices match CLOCK_RATES in Python config:
     
     ~clockBroadcastSynth = Synth(\clockTickBroadcast, [
         \clockTrigBus, ~clockTrigBus.index
-    ], ~clockGroup);
+    ], ~clockSynth, \addAfter);
     "  [x] Clock tick broadcast running".postln;
 
     "  [x] Clock running".postln;
