@@ -1174,7 +1174,6 @@ class KeyboardOverlay(QWidget):
             engine.runtime.rst_fabric_idx = None
         else:
             engine.runtime.rst_fabric_idx = index + 3  # R5: UI index -> fabric index
-            engine.runtime.rst_step_counter = 0  # Reset counter on rate change
 
     @staticmethod
     def _rst_led_style(active: bool) -> str:
