@@ -5,15 +5,21 @@ autofill_nondefaults() — constructs a dataclass instance with guaranteed
 non-default values for every field. Used by round-trip tests so new fields
 are automatically covered without manual test updates.
 
-schema_keys() — returns the set of JSON keys that to_dict() must emit.
+schema_field_names() — returns the set of field names for a dataclass.
 Used in both tests and save-time assertions (single definition, no divergence).
 """
 from dataclasses import fields, MISSING
 
 
 # Fields that need structure-aware non-defaults (list-of-dict, etc.)
+# Key format: "ClassName.field_name" for class-specific, or bare "field_name" for global
 _LIST_FIELD_OVERRIDES = {
     "seq_steps": [{"step_type": 0, "note": 60, "velocity": 100}],
+}
+
+# Dict fields that need non-empty non-default values
+_DICT_FIELD_OVERRIDES = {
+    "params": {"test_param": 0.77},
 }
 
 
@@ -32,6 +38,9 @@ def autofill_nondefaults(cls):
         if f.name in _LIST_FIELD_OVERRIDES:
             kwargs[f.name] = list(_LIST_FIELD_OVERRIDES[f.name])
             continue
+        if f.name in _DICT_FIELD_OVERRIDES:
+            kwargs[f.name] = dict(_DICT_FIELD_OVERRIDES[f.name])
+            continue
 
         default = _get_default(f)
         ftype = _resolve_type(f.type)
@@ -44,13 +53,31 @@ def autofill_nondefaults(cls):
             kwargs[f.name] = default + 3 if isinstance(default, int) else 7
         elif ftype == str or f.name == "generator":
             kwargs[f.name] = f"test_{f.name}"
+        elif ftype == dict:
+            kwargs[f.name] = {"test_key": 42}
         elif ftype == list or "list" in str(f.type).lower():
-            # Generic list fallback: emit a simple primitive list
-            kwargs[f.name] = [1]
+            # Produce non-default list: shift each element in the default
+            if isinstance(default, list) and len(default) > 0:
+                kwargs[f.name] = _shift_list(default)
+            else:
+                kwargs[f.name] = [1]
         else:
             # Optional[str] and similar
             kwargs[f.name] = f"test_{f.name}"
     return cls(**kwargs)
+
+
+def _shift_list(default_list):
+    """Produce a list with every element shifted from its default value."""
+    shifted = []
+    for v in default_list:
+        if isinstance(v, float):
+            shifted.append(v + 0.111)
+        elif isinstance(v, int):
+            shifted.append(v + 1)
+        else:
+            shifted.append(v)
+    return shifted
 
 
 def schema_field_names(cls):

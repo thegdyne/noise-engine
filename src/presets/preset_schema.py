@@ -302,38 +302,37 @@ class ModSlotState:
     env_sync_mode: list = field(default_factory=lambda: [0, 0, 0, 0])  # 0=SYN, 1=LOP
     env_loop_rate: list = field(default_factory=lambda: [6, 6, 6, 6])  # Index into MOD_CLOCK_RATES
     
+    # Fields requiring defensive copy (mutable containers)
+    _COPY_FIELDS: ClassVar[frozenset] = frozenset({
+        "params", "output_wave", "output_phase", "output_polarity",
+        "output_tension", "output_mass", "env_attack", "env_release",
+        "env_curve", "env_sync_mode", "env_loop_rate",
+    })
+
     def to_dict(self) -> dict:
-        return {
-            "generator_name": self.generator_name,
-            "params": dict(self.params),
-            "output_wave": list(self.output_wave),
-            "output_phase": list(self.output_phase),
-            "output_polarity": list(self.output_polarity),
-            "output_tension": list(self.output_tension),
-            "output_mass": list(self.output_mass),
-            "env_attack": list(self.env_attack),
-            "env_release": list(self.env_release),
-            "env_curve": list(self.env_curve),
-            "env_sync_mode": list(self.env_sync_mode),
-            "env_loop_rate": list(self.env_loop_rate),
-        }
-    
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        d = {}
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if isinstance(val, dict):
+                d[f.name] = dict(val)
+            elif isinstance(val, list):
+                d[f.name] = list(val)
+            else:
+                d[f.name] = val
+        return d
+
     @classmethod
     def from_dict(cls, data: dict) -> "ModSlotState":
-        return cls(
-            generator_name=data.get("generator_name", "Empty"),
-            params=dict(data.get("params", {})),
-            output_wave=list(data.get("output_wave", [0, 0, 0, 0])),
-            output_phase=list(data.get("output_phase", [0, 3, 5, 6])),
-            output_polarity=list(data.get("output_polarity", [0, 0, 0, 0])),
-            output_tension=list(data.get("output_tension", [0.5, 0.5, 0.5, 0.5])),
-            output_mass=list(data.get("output_mass", [0.5, 0.5, 0.5, 0.5])),
-            env_attack=list(data.get("env_attack", [0.5, 0.5, 0.5, 0.5])),
-            env_release=list(data.get("env_release", [0.5, 0.5, 0.5, 0.5])),
-            env_curve=list(data.get("env_curve", [0.5, 0.5, 0.5, 0.5])),
-            env_sync_mode=list(data.get("env_sync_mode", [0, 0, 0, 0])),
-            env_loop_rate=list(data.get("env_loop_rate", [6, 6, 6, 6])),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                val = data[f.name]
+                if f.name in cls._COPY_FIELDS:
+                    val = dict(val) if isinstance(val, dict) else list(val)
+                setattr(obj, f.name, val)
+        return obj
 
 
 @dataclass
@@ -375,6 +374,19 @@ class ARSeqEnvelopeState:
     loop_rate: int = 6  # Index into MOD_CLOCK_RATES
     polarity: int = 0  # 0=NORM, 1=INV
 
+    def to_dict(self) -> dict:
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ARSeqEnvelopeState":
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
+
 
 @dataclass
 class ARSeqPlusState:
@@ -387,35 +399,30 @@ class ARSeqPlusState:
     ])
 
     def to_dict(self) -> dict:
-        return {
-            "mode": self.mode,
-            "clock_mode": self.clock_mode,
-            "rate": self.rate,
-            "envelopes": [
-                {
-                    "attack": e.attack,
-                    "release": e.release,
-                    "curve": e.curve,
-                    "sync_mode": e.sync_mode,
-                    "loop_rate": e.loop_rate,
-                    "polarity": e.polarity,
-                }
-                for e in self.envelopes
-            ]
-        }
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        d = {}
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if f.name == "envelopes":
+                d[f.name] = [e.to_dict() for e in val]
+            else:
+                d[f.name] = val
+        return d
 
     @classmethod
     def from_dict(cls, data: dict) -> "ARSeqPlusState":
-        envelopes = [
-            ARSeqEnvelopeState(**e)
-            for e in data.get("envelopes", [{} for _ in range(4)])
-        ]
-        return cls(
-            mode=data.get("mode", 0),
-            clock_mode=data.get("clock_mode", 0),
-            rate=data.get("rate", 0.5),
-            envelopes=envelopes,
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name == "envelopes":
+                raw = data.get("envelopes", [])
+                envelopes = [ARSeqEnvelopeState.from_dict(e) for e in raw]
+                while len(envelopes) < 4:
+                    envelopes.append(ARSeqEnvelopeState())
+                obj.envelopes = envelopes
+            elif f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 @dataclass
 class SauceOfGravOutputState:
     """State for a single SauceOfGrav output."""
@@ -424,19 +431,17 @@ class SauceOfGravOutputState:
     polarity: int = 0          # 0=NORM, 1=INV
 
     def to_dict(self) -> dict:
-        return {
-            "tension": self.tension,
-            "mass": self.mass,
-            "polarity": self.polarity,
-        }
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
 
     @classmethod
     def from_dict(cls, data: dict) -> "SauceOfGravOutputState":
-        return cls(
-            tension=data.get("tension", 0.5),
-            mass=data.get("mass", 0.5),
-            polarity=data.get("polarity", 0),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 
 
 @dataclass
@@ -454,36 +459,30 @@ class SauceOfGravState:
     ])
 
     def to_dict(self) -> dict:
-        return {
-            "clock_mode": self.clock_mode,
-            "rate": self.rate,
-            "depth": self.depth,
-            "gravity": self.gravity,
-            "resonance": self.resonance,
-            "excursion": self.excursion,
-            "calm": self.calm,
-            "outputs": [o.to_dict() for o in self.outputs],
-        }
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        d = {}
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if f.name == "outputs":
+                d[f.name] = [o.to_dict() for o in val]
+            else:
+                d[f.name] = val
+        return d
 
     @classmethod
     def from_dict(cls, data: dict) -> "SauceOfGravState":
-        raw_outputs = data.get("outputs", [])
-        outputs = []
-        for i in range(4):
-            if i < len(raw_outputs):
-                outputs.append(SauceOfGravOutputState.from_dict(raw_outputs[i]))
-            else:
-                outputs.append(SauceOfGravOutputState())
-        return cls(
-            clock_mode=data.get("clock_mode", 0),
-            rate=data.get("rate", 0.5),
-            depth=data.get("depth", 0.5),
-            gravity=data.get("gravity", 0.5),
-            resonance=data.get("resonance", 0.5),
-            excursion=data.get("excursion", 0.5),
-            calm=data.get("calm", 0.5),
-            outputs=outputs,
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name == "outputs":
+                raw = data.get("outputs", [])
+                outputs = [SauceOfGravOutputState.from_dict(o) for o in raw]
+                while len(outputs) < 4:
+                    outputs.append(SauceOfGravOutputState())
+                obj.outputs = outputs
+            elif f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 
 # Phase 5: FX State dataclasses
 
@@ -496,21 +495,17 @@ class HeatState:
     mix: int = 100       # 0-100
     
     def to_dict(self) -> dict:
-        return {
-            "bypass": self.bypass,
-            "circuit": self.circuit,
-            "drive": self.drive,
-            "mix": self.mix,
-        }
-    
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
+
     @classmethod
     def from_dict(cls, data: dict) -> "HeatState":
-        return cls(
-            bypass=data.get("bypass", True),
-            circuit=data.get("circuit", 0),
-            drive=data.get("drive", 0),
-            mix=data.get("mix", 100),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 
 
 @dataclass
@@ -525,27 +520,17 @@ class EchoState:
     return_level: int = 50  # 0-100
     
     def to_dict(self) -> dict:
-        return {
-            "time": self.time,
-            "feedback": self.feedback,
-            "tone": self.tone,
-            "wow": self.wow,
-            "spring": self.spring,
-            "verb_send": self.verb_send,
-            "return_level": self.return_level,
-        }
-    
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
+
     @classmethod
     def from_dict(cls, data: dict) -> "EchoState":
-        return cls(
-            time=data.get("time", 40),
-            feedback=data.get("feedback", 30),
-            tone=data.get("tone", 70),
-            wow=data.get("wow", 10),
-            spring=data.get("spring", 0),
-            verb_send=data.get("verb_send", 0),
-            return_level=data.get("return_level", 50),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 
 
 @dataclass
@@ -557,21 +542,17 @@ class ReverbState:
     return_level: int = 30  # 0-100
     
     def to_dict(self) -> dict:
-        return {
-            "size": self.size,
-            "decay": self.decay,
-            "tone": self.tone,
-            "return_level": self.return_level,
-        }
-    
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
+
     @classmethod
     def from_dict(cls, data: dict) -> "ReverbState":
-        return cls(
-            size=data.get("size", 50),
-            decay=data.get("decay", 50),
-            tone=data.get("tone", 70),
-            return_level=data.get("return_level", 30),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 
 
 @dataclass
@@ -590,35 +571,17 @@ class DualFilterState:
     mix: int = 100       # 0-100
     
     def to_dict(self) -> dict:
-        return {
-            "bypass": self.bypass,
-            "drive": self.drive,
-            "freq1": self.freq1,
-            "reso1": self.reso1,
-            "mode1": self.mode1,
-            "freq2": self.freq2,
-            "reso2": self.reso2,
-            "mode2": self.mode2,
-            "harmonics": self.harmonics,
-            "routing": self.routing,
-            "mix": self.mix,
-        }
-    
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
+
     @classmethod
     def from_dict(cls, data: dict) -> "DualFilterState":
-        return cls(
-            bypass=data.get("bypass", True),
-            drive=data.get("drive", 0),
-            freq1=data.get("freq1", 50),
-            reso1=data.get("reso1", 0),
-            mode1=data.get("mode1", 1),
-            freq2=data.get("freq2", 35),
-            reso2=data.get("reso2", 0),
-            mode2=data.get("mode2", 1),
-            harmonics=data.get("harmonics", 0),
-            routing=data.get("routing", 0),
-            mix=data.get("mix", 100),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 
 
 @dataclass
@@ -633,30 +596,22 @@ class FXSlotState:
     return_level: float = 0.5  # Return/wet level
 
     def to_dict(self) -> dict:
-        return {
-            "fx_type": self.fx_type,
-            "bypassed": self.bypassed,
-            "p1": self.p1,
-            "p2": self.p2,
-            "p3": self.p3,
-            "p4": self.p4,
-            "return_level": self.return_level,
-        }
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
 
     @classmethod
     def from_dict(cls, data: dict) -> "FXSlotState":
-        # Accept both 'fx_type'/'type' and 'return_level'/'return' for compatibility
-        fx_type = data.get("fx_type") or data.get("type", "Empty")
-        return_level = data.get("return_level") if "return_level" in data else data.get("return", 0.5)
-        return cls(
-            fx_type=fx_type,
-            bypassed=data.get("bypassed", False),
-            p1=data.get("p1", 0.5),
-            p2=data.get("p2", 0.5),
-            p3=data.get("p3", 0.5),
-            p4=data.get("p4", 0.5),
-            return_level=return_level,
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        # Legacy migration: 'type' -> fx_type, 'return' -> return_level
+        if "fx_type" not in data and "type" in data:
+            obj.fx_type = data["type"]
+        if "return_level" not in data and "return" in data:
+            obj.return_level = data["return"]
+        return obj
 
 
 # Default FX types for slots 1-4 (matches FX_SLOT_DEFAULT_TYPES in config)

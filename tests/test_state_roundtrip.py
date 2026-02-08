@@ -16,6 +16,10 @@ import pytest
 from src.presets.preset_schema import (
     SlotState, ChannelState, MasterState, PresetState,
     MixerState, validate_preset,
+    HeatState, EchoState, ReverbState, DualFilterState,
+    FXSlotState, ModSlotState,
+    SauceOfGravOutputState, SauceOfGravState,
+    ARSeqEnvelopeState, ARSeqPlusState,
 )
 from tests.helpers.state_helpers import autofill_nondefaults, schema_field_names
 
@@ -243,3 +247,230 @@ class TestSaveTimeAssertion:
         """A complete slot dict never triggers the assertion regardless of mode."""
         complete = autofill_nondefaults(SlotState).to_dict()
         self._check_missing(complete)  # should NOT raise
+
+
+# === Phase 1 extension: leaf FX classes ===
+
+class TestHeatStateRoundTrip:
+    """I1: HeatState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(HeatState)
+        restored = HeatState.from_dict(original.to_dict())
+        for f in fields(HeatState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"HeatState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(HeatState).to_dict()
+        missing = schema_field_names(HeatState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+
+class TestEchoStateRoundTrip:
+    """I1: EchoState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(EchoState)
+        restored = EchoState.from_dict(original.to_dict())
+        for f in fields(EchoState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"EchoState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(EchoState).to_dict()
+        missing = schema_field_names(EchoState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+
+class TestReverbStateRoundTrip:
+    """I1: ReverbState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(ReverbState)
+        restored = ReverbState.from_dict(original.to_dict())
+        for f in fields(ReverbState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"ReverbState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(ReverbState).to_dict()
+        missing = schema_field_names(ReverbState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+
+class TestDualFilterStateRoundTrip:
+    """I1: DualFilterState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(DualFilterState)
+        restored = DualFilterState.from_dict(original.to_dict())
+        for f in fields(DualFilterState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"DualFilterState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(DualFilterState).to_dict()
+        missing = schema_field_names(DualFilterState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+
+class TestFXSlotStateRoundTrip:
+    """I1: FXSlotState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(FXSlotState)
+        restored = FXSlotState.from_dict(original.to_dict())
+        for f in fields(FXSlotState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"FXSlotState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(FXSlotState).to_dict()
+        missing = schema_field_names(FXSlotState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+    def test_legacy_type_migration(self):
+        """Backward compat: 'type' migrates to fx_type."""
+        data = {"type": "Echo", "return": 0.8}
+        slot = FXSlotState.from_dict(data)
+        assert slot.fx_type == "Echo"
+        assert slot.return_level == 0.8
+
+    def test_new_keys_take_precedence_over_legacy(self):
+        """fx_type takes precedence over type if both present."""
+        data = {"fx_type": "Reverb", "type": "Echo"}
+        slot = FXSlotState.from_dict(data)
+        assert slot.fx_type == "Reverb"
+
+
+class TestModSlotStateRoundTrip:
+    """I1: ModSlotState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(ModSlotState)
+        restored = ModSlotState.from_dict(original.to_dict())
+        for f in fields(ModSlotState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"ModSlotState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(ModSlotState).to_dict()
+        missing = schema_field_names(ModSlotState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+    def test_defensive_copy(self):
+        """Lists and dicts in to_dict output are copies, not references."""
+        original = ModSlotState()
+        d = original.to_dict()
+        d["output_wave"][0] = 999
+        d["params"]["injected"] = 1
+        assert original.output_wave[0] != 999
+        assert "injected" not in original.params
+
+
+class TestSauceOfGravOutputStateRoundTrip:
+    """I1: SauceOfGravOutputState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(SauceOfGravOutputState)
+        restored = SauceOfGravOutputState.from_dict(original.to_dict())
+        for f in fields(SauceOfGravOutputState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"SauceOfGravOutputState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(SauceOfGravOutputState).to_dict()
+        missing = schema_field_names(SauceOfGravOutputState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+
+class TestSauceOfGravStateRoundTrip:
+    """I1: SauceOfGravState field-by-field round-trip."""
+
+    def test_scalar_fields_survive(self):
+        """Scalar fields round-trip through to_dict/from_dict."""
+        original = SauceOfGravState(clock_mode=1, rate=0.7, depth=0.3,
+                                     gravity=0.8, resonance=0.2,
+                                     excursion=0.9, calm=0.1)
+        restored = SauceOfGravState.from_dict(original.to_dict())
+        for f in fields(SauceOfGravState):
+            if f.name == "outputs":
+                continue
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"SauceOfGravState.{f.name} didn't round-trip"
+
+    def test_nested_outputs_survive(self):
+        """Nested SauceOfGravOutputState objects round-trip."""
+        original = SauceOfGravState()
+        original.outputs[0] = SauceOfGravOutputState(tension=0.9, mass=0.1, polarity=1)
+        restored = SauceOfGravState.from_dict(original.to_dict())
+        assert restored.outputs[0].tension == 0.9
+        assert restored.outputs[0].mass == 0.1
+        assert restored.outputs[0].polarity == 1
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = SauceOfGravState().to_dict()
+        missing = schema_field_names(SauceOfGravState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+    def test_pads_missing_outputs(self):
+        """from_dict pads to 4 outputs if fewer provided."""
+        data = {"outputs": [{"tension": 0.9}]}
+        state = SauceOfGravState.from_dict(data)
+        assert len(state.outputs) == 4
+        assert state.outputs[0].tension == 0.9
+        assert state.outputs[1].tension == 0.5  # default
+
+
+class TestARSeqEnvelopeStateRoundTrip:
+    """I1: ARSeqEnvelopeState field-by-field round-trip."""
+
+    def test_all_fields_survive(self):
+        original = autofill_nondefaults(ARSeqEnvelopeState)
+        restored = ARSeqEnvelopeState.from_dict(original.to_dict())
+        for f in fields(ARSeqEnvelopeState):
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"ARSeqEnvelopeState.{f.name} didn't round-trip"
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = autofill_nondefaults(ARSeqEnvelopeState).to_dict()
+        missing = schema_field_names(ARSeqEnvelopeState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+
+class TestARSeqPlusStateRoundTrip:
+    """I1: ARSeqPlusState field-by-field round-trip."""
+
+    def test_scalar_fields_survive(self):
+        """Scalar fields round-trip through to_dict/from_dict."""
+        original = ARSeqPlusState(mode=1, clock_mode=1, rate=0.7)
+        restored = ARSeqPlusState.from_dict(original.to_dict())
+        for f in fields(ARSeqPlusState):
+            if f.name == "envelopes":
+                continue
+            assert getattr(restored, f.name) == getattr(original, f.name), \
+                f"ARSeqPlusState.{f.name} didn't round-trip"
+
+    def test_nested_envelopes_survive(self):
+        """Nested ARSeqEnvelopeState objects round-trip."""
+        original = ARSeqPlusState()
+        original.envelopes[0] = ARSeqEnvelopeState(
+            attack=0.9, release=0.1, curve=0.8, sync_mode=1, loop_rate=3, polarity=1
+        )
+        restored = ARSeqPlusState.from_dict(original.to_dict())
+        assert restored.envelopes[0].attack == 0.9
+        assert restored.envelopes[0].polarity == 1
+
+    def test_to_dict_covers_all_schema_keys(self):
+        d = ARSeqPlusState().to_dict()
+        missing = schema_field_names(ARSeqPlusState) - set(d.keys())
+        assert not missing, f"to_dict() missing keys: {missing}"
+
+    def test_pads_missing_envelopes(self):
+        """from_dict pads to 4 envelopes if fewer provided."""
+        data = {"envelopes": [{"attack": 0.9}]}
+        state = ARSeqPlusState.from_dict(data)
+        assert len(state.envelopes) == 4
+        assert state.envelopes[0].attack == 0.9
+        assert state.envelopes[1].attack == 0.5  # default
