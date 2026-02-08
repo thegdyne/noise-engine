@@ -604,7 +604,10 @@ class OSCBridge(QObject):
         if self._shutdown or self._deleted:
             return
         if len(args) >= 1:
-            self.clock_tick_received.emit(int(args[0]))
+            idx = int(args[0])
+            if idx == 6:  # Only log CLK to avoid spam
+                print(f"[RST-DEBUG] OSC clock_tick received fabric_idx={idx}")
+            self.clock_tick_received.emit(idx)
 
     def send(self, path_key, args):
         """Send OSC message using SSOT path key.
