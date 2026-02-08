@@ -284,7 +284,11 @@ class WaveformStabilizer:
         """
         if len(frame) == 0:
             return frame.astype(np.float64)
-        result = frame.astype(np.float64) - np.mean(frame)
+        x = frame.astype(np.float64)
+        m = np.mean(x)
+        if not np.isfinite(m):
+            return x
+        result = x - m
         peak = np.max(np.abs(result))
         if peak > 1e-10:
             result = result / peak
