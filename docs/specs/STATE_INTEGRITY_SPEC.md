@@ -7,6 +7,14 @@ status: draft
 
 Eliminate the "whack-a-mole" pattern where every new feature silently breaks preset save/load. Replace the manual N-way field synchronization with auto-derived serialization and automated round-trip tests that catch drift at CI time.
 
+## Invariants (Non-Negotiable)
+
+**I1 — Schema identity:** `D == D.from_dict(D.to_dict())` field-by-field, for all hardened dataclasses (`SlotState`, `ChannelState`, `MasterState`).
+
+**I2 — Save completeness:** The dict actually written into the preset file contains **all `SlotState` fields** (top-level + `params`) for every slot. No field is silently omitted.
+
+**I3 — Full preset identity:** `PresetState.from_json(state.to_json())` preserves nested Slot + Channel + Master state for at least one slot exercising every high-churn feature (ARP, Euclidean, SEQ, analog stage).
+
 ## Why
 
 ~40% of all commits are fixes/reverts. The dominant regression pattern:
@@ -144,40 +152,112 @@ class SlotState:
 
 ### Phase 2: Round-trip tests (catch drift automatically)
 
-**Goal:** Any field that doesn't survive `to_dict() → from_dict()` fails CI immediately.
+**Goal:** Any field that doesn't survive `to_dict() → from_dict()` fails CI immediately. Enforces **I1** and **I3**.
 
-**Tests to add (in `tests/test_state_roundtrip.py`):**
+**Policy:** Round-trip tests MUST auto-fill non-defaults for every dataclass field via introspection. Field-count guards are optional.
+
+#### The autofill helper (mandatory)
+
+The helper constructs a dataclass instance with **guaranteed non-default** values for every field, using `dataclasses.fields()` introspection. No manual updates needed when fields are added.
+
+```python
+from dataclasses import fields, MISSING
+import dataclasses
+
+def autofill_nondefaults(cls):
+    """
+    Construct an instance of dataclass `cls` with every field set to
+    a deterministic non-default value. Used by round-trip tests to
+    guarantee that new fields are automatically covered.
+    """
+    _NON_DEFAULTS = {
+        float: 0.42,
+        int: 7,
+        bool: True,
+        str: "test_value",
+    }
+
+    kwargs = {}
+    for f in fields(cls):
+        default = _get_default(f)
+        ftype = f.type if isinstance(f.type, type) else _resolve_type(f.type)
+
+        if ftype == bool:
+            # Flip the default
+            kwargs[f.name] = not default if isinstance(default, bool) else True
+        elif ftype == float:
+            kwargs[f.name] = default + 0.123 if isinstance(default, (int, float)) else 0.42
+        elif ftype == int:
+            kwargs[f.name] = default + 3 if isinstance(default, int) else 7
+        elif ftype == str or f.name == "generator":
+            kwargs[f.name] = f"test_{f.name}"
+        elif ftype == list or "list" in str(f.type).lower():
+            kwargs[f.name] = [{"test_key": f.name}]
+        else:
+            # Optional[str] and similar
+            kwargs[f.name] = f"test_{f.name}"
+    return cls(**kwargs)
+
+
+def _get_default(f):
+    """Extract the effective default from a dataclass field."""
+    if f.default is not MISSING:
+        return f.default
+    if f.default_factory is not MISSING:
+        return f.default_factory()
+    return None
+
+
+def _resolve_type(annotation) -> type:
+    """Best-effort type resolution for simple annotations."""
+    if annotation is None:
+        return type(None)
+    origin = getattr(annotation, '__origin__', None)
+    if origin is not None:
+        return origin  # e.g. list, dict
+    if isinstance(annotation, str):
+        _TYPE_MAP = {"float": float, "int": int, "bool": bool, "str": str}
+        return _TYPE_MAP.get(annotation, str)
+    return annotation
+```
+
+#### The schema key set helper (single definition, reused everywhere)
+
+```python
+def schema_keys(cls, param_keys=None):
+    """
+    Return the set of JSON keys that to_dict() must emit for dataclass `cls`.
+    Used in round-trip tests AND save-time assertions — same definition,
+    no divergence possible.
+    """
+    all_fields = {f.name for f in fields(cls)}
+    if param_keys:
+        return (all_fields - param_keys) | {"params"}
+    return all_fields
+```
+
+#### Tests (in `tests/test_state_roundtrip.py`)
 
 ```python
 """
-State round-trip tests.
+State round-trip tests — auto-fill based.
 
-These tests use NON-DEFAULT values for every field. If a field is added
-to the dataclass but missing from to_dict/from_dict, the test fails
-because the default will appear instead of the non-default test value.
+The autofill helper guarantees every dataclass field is set to a
+non-default value. If a new field is added and to_dict/from_dict
+don't handle it, the test fails automatically — no manual updates.
 """
+import pytest
 from dataclasses import fields
-from src.presets.preset_schema import SlotState, ChannelState, MasterState, PresetState
+from src.presets.preset_schema import (
+    SlotState, ChannelState, MasterState, PresetState, _PARAM_KEYS,
+)
+from tests.helpers.state_helpers import autofill_nondefaults, schema_keys
+
 
 class TestSlotStateRoundTrip:
     def test_all_fields_survive(self):
-        """Every SlotState field round-trips through to_dict/from_dict."""
-        original = SlotState(
-            generator="TestGen",
-            frequency=0.123, cutoff=0.456, resonance=0.789,
-            attack=0.111, decay=0.222,
-            custom_0=0.333, custom_1=0.444, custom_2=0.555,
-            custom_3=0.666, custom_4=0.777,
-            filter_type=3, env_source=2, clock_rate=7,
-            midi_channel=5, transpose=3, portamento=0.42,
-            arp_enabled=True, arp_rate=5, arp_pattern=2,
-            arp_octaves=3, arp_hold=True,
-            euclid_enabled=True, euclid_n=12, euclid_k=7, euclid_rot=3,
-            rst_rate=6,
-            seq_enabled=True, seq_rate=4, seq_length=8, seq_play_mode=2,
-            seq_steps=[{"step_type": 0, "note": 60, "velocity": 100}],
-            analog_enabled=1, analog_type=2,
-        )
+        """I1: Every SlotState field round-trips through to_dict/from_dict."""
+        original = autofill_nondefaults(SlotState)
         restored = SlotState.from_dict(original.to_dict())
 
         for f in fields(SlotState):
@@ -188,78 +268,73 @@ class TestSlotStateRoundTrip:
                 f"expected {orig_val!r}, got {rest_val!r}"
             )
 
-    def test_field_count_matches_expectation(self):
-        """Guard: adding a field without updating this test is caught."""
-        EXPECTED_FIELDS = 30  # Update when adding fields
-        actual = len(fields(SlotState))
-        assert actual == EXPECTED_FIELDS, (
-            f"SlotState has {actual} fields but test expects {EXPECTED_FIELDS}. "
-            f"Update the test values AND this count."
-        )
+    def test_to_dict_covers_all_schema_keys(self):
+        """I2: to_dict() emits every schema key."""
+        d = autofill_nondefaults(SlotState).to_dict()
+        emitted = set(d.keys()) | set(d.get("params", {}).keys())
+        expected = schema_keys(SlotState, _PARAM_KEYS)
+        # Flatten: expected has "params" instead of individual param keys
+        expected_flat = {f.name for f in fields(SlotState)}
+        missing = expected_flat - emitted
+        assert not missing, f"to_dict() missing keys: {missing}"
+
 
 class TestChannelStateRoundTrip:
     def test_all_fields_survive(self):
-        """Every ChannelState field round-trips."""
-        original = ChannelState(
-            volume=0.3, pan=0.7, mute=True, solo=True,
-            eq_hi=150, eq_mid=80, eq_lo=120,
-            gain=2,
-            fx1_send=42, fx2_send=84, fx3_send=126, fx4_send=168,
-            lo_cut=True, hi_cut=True,
-        )
+        """I1: Every ChannelState field round-trips."""
+        original = autofill_nondefaults(ChannelState)
         restored = ChannelState.from_dict(original.to_dict())
         for f in fields(ChannelState):
             assert getattr(restored, f.name) == getattr(original, f.name), \
                 f"ChannelState.{f.name} didn't round-trip"
 
+
 class TestMasterStateRoundTrip:
     def test_all_fields_survive(self):
-        """Every MasterState field round-trips."""
-        original = MasterState(
-            volume=0.6, meter_mode=1,
-            heat_bypass=0, heat_circuit=2, heat_drive=150, heat_mix=100,
-            filter_bypass=0, filter_f1=80, filter_r1=50,
-            filter_f1_mode=1, filter_f2=120, filter_r2=30,
-            filter_f2_mode=2, filter_routing=1, filter_mix=150,
-            sync_f1=3, sync_f2=5, sync_amt=80,
-            eq_hi=100, eq_mid=140, eq_lo=80,
-            eq_hi_kill=1, eq_mid_kill=0, eq_lo_kill=1,
-            eq_locut=1, eq_bypass=1,
-            comp_threshold=200, comp_makeup=100, comp_ratio=2,
-            comp_attack=3, comp_release=2, comp_sc=4, comp_bypass=1,
-            limiter_ceiling=400, limiter_bypass=1,
-        )
+        """I1: Every MasterState field round-trips."""
+        original = autofill_nondefaults(MasterState)
         restored = MasterState.from_dict(original.to_dict())
         for f in fields(MasterState):
             assert getattr(restored, f.name) == getattr(original, f.name), \
                 f"MasterState.{f.name} didn't round-trip"
 
+
 class TestPresetStateRoundTrip:
     def test_full_preset_round_trips(self):
-        """Full PresetState with non-default values survives to_json/from_json."""
+        """I3: Full PresetState with autofilled slot survives to_json/from_json."""
         state = PresetState(name="RoundTripTest", bpm=140)
-        state.slots[0] = SlotState(
-            generator="TestGen", frequency=0.9, arp_enabled=True,
-            euclid_enabled=True, euclid_k=5, analog_type=3,
-        )
-        state.mixer.channels[0] = ChannelState(volume=0.3, mute=True)
+        state.slots[0] = autofill_nondefaults(SlotState)
+        state.mixer.channels[0] = autofill_nondefaults(ChannelState)
 
         restored = PresetState.from_json(state.to_json())
 
-        # Verify nested slot fields
         for f in fields(SlotState):
             orig = getattr(state.slots[0], f.name)
             rest = getattr(restored.slots[0], f.name)
             assert rest == orig, f"PresetState.slots[0].{f.name} lost in round-trip"
+
+        for f in fields(ChannelState):
+            orig = getattr(state.mixer.channels[0], f.name)
+            rest = getattr(restored.mixer.channels[0], f.name)
+            assert rest == orig, f"PresetState.mixer.channels[0].{f.name} lost in round-trip"
+
+
+class TestBackwardCompatibility:
+    def test_old_preset_missing_new_keys(self):
+        """Old preset JSON without new fields loads without error, gets defaults."""
+        old_json = '{"version": 1, "name": "OldPreset", "slots": [{"generator": "FM", "params": {"frequency": 0.5}, "filter_type": 0, "env_source": 0, "clock_rate": 4, "midi_channel": 1}], "mixer": {"channels": [], "master_volume": 0.8}}'
+        preset = PresetState.from_json(old_json)
+        slot = preset.slots[0]
+        # New fields should have dataclass defaults, not crash
+        assert slot.arp_enabled == False
+        assert slot.euclid_enabled == False
+        assert slot.analog_enabled == 0
+        assert slot.seq_steps == []
 ```
 
-**Why non-default values matter:** If a field is missing from `to_dict()`, the default value still appears in `from_dict()` — so a test using defaults would pass even with a broken serializer. Non-default values make the test sensitive to actual round-trip fidelity.
+**Why autofill is mandatory, not optional:** If a new field is added and the test doesn't set a non-default for it, the test passes silently (default → missing → default = equality). The autofill helper introspects `fields()` at runtime and guarantees every field gets a non-default value. New fields are covered automatically — no human update required.
 
-**Optional guard (recommended):** The round-trip test only detects missing serialization for fields that are set to **non-default** values in the test instance. If a new field is added and the test doesn't set it, the test may still pass (default → missing → default). Use either:
-- a field-count guard, OR
-- a helper that auto-fills non-default values for every field (preferred long-term).
-
-**Best practice (future):** Add a helper that constructs a dataclass instance with guaranteed non-default values for every field (based on type and name heuristics). This ensures the round-trip test automatically covers new fields without manual updates.
+**Field-count guards** are optional on top of autofill. They add an explicit "stop and think" moment but are not required for correctness.
 
 ---
 
@@ -319,22 +394,46 @@ def test_save_path_covers_all_slot_fields():
 
 This is harder to write (needs extensive mocking) but doesn't require architectural changes.
 
-#### Option C: Save-time schema coverage assertion (dev tripwire)
+#### Option C: Save-time schema coverage assertion (permanent tripwire)
 
-Add a dev-only assertion in `_do_save_preset()` that compares:
-- `fields(SlotState)` vs keys emitted by the save-path dict (`top-level + params`)
-If any schema fields are missing, fail loudly during development instead of producing a broken preset file.
+Add an assertion in `_do_save_preset()` that compares:
+- `schema_keys(SlotState, _PARAM_KEYS)` vs keys emitted by the save-path dict (`top-level + params`)
 
-This doesn't replace tests, but it turns silent data loss into an immediate, local failure.
+Uses the **same `schema_keys()` helper** as the round-trip tests — single definition, no divergence possible.
 
-**Recommendation:** Option A for new development. It follows the principle that each component owns its own state. The preset controller becomes a thin orchestrator that just calls `get_state()` on each component and assembles the result. Option C can be added as a quick safety net in the interim.
+If any schema fields are missing, fail loudly instead of writing a broken preset file. Saving is a *data integrity boundary* — silent data loss is worse than a crash.
+
+```python
+# In _do_save_preset(), after building slot_dict:
+from tests.helpers.state_helpers import schema_keys
+expected = {f.name for f in fields(SlotState)}
+emitted = set(slot_dict.keys()) | set(slot_dict.get("params", {}).keys())
+missing = expected - emitted
+assert not missing, f"Save-path missing SlotState fields: {missing}"
+```
+
+**Required safety:** Until Option A is implemented, `_do_save_preset()` MUST assert schema coverage before writing. This is not optional — it is the tripwire that catches "works live, doesn't persist" at the moment it would create a corrupt file.
+
+**Recommendation:** Option A for new development. It follows the principle that each component owns its own state. The preset controller becomes a thin orchestrator that just calls `get_state()` on each component and assembles the result. Option C is **required** as the safety net until Option A is complete.
 
 ---
 
+## Acceptance Tests (must exist and pass)
+
+| Test | Invariant | Enforces |
+|------|-----------|----------|
+| `test_slotstate_roundtrip_autofill()` | I1 | Every SlotState field survives to_dict→from_dict |
+| `test_channelstate_roundtrip_autofill()` | I1 | Every ChannelState field survives to_dict→from_dict |
+| `test_masterstate_roundtrip_autofill()` | I1 | Every MasterState field survives to_dict→from_dict |
+| `test_to_dict_covers_all_schema_keys()` | I2 | to_dict() emits every schema field |
+| `test_presetstate_json_roundtrip_feature_slot()` | I3 | Full preset with all high-churn features round-trips |
+| `test_save_path_schema_coverage()` or save-time assertion | I2 | Save path emits all SlotState fields |
+| `test_old_preset_missing_new_keys()` | compat | Old presets load without error, get defaults |
+
 ## Done When
 
-- CI has round-trip tests that fail if any dataclass field is not serialized/deserialized.
-- Preset save path exports all slot schema fields (either by consolidating into `GeneratorSlot.get_state()` or by an audited controller path).
+- All acceptance tests above pass in CI.
+- Preset save path exports all slot schema fields (either by consolidating into `GeneratorSlot.get_state()` or by Option C assertion).
 - A regression like "ARP/Euclid/RST works live but is missing from presets" is caught before merge.
 
 ## Scope
@@ -353,14 +452,15 @@ This doesn't replace tests, but it turns silent data loss into an immediate, loc
 ## Phases
 
 ### Phase 1 — Auto-serialization + round-trip tests
-**Delivers:** `SlotState`, `ChannelState`, `MasterState` auto-serialize. Full round-trip test suite.
+**Delivers:** `SlotState`, `ChannelState`, `MasterState` all auto-serialize. Full round-trip test suite with autofill helper. Option C save-time assertion active.
 **Risk:** Low. Output format unchanged. Old presets still load.
-**Done when:** `pytest tests/test_state_roundtrip.py` passes, existing preset tests still pass.
+**Partial migration rule:** Phase 1 is complete only when **all three** dataclasses (Slot/Channel/Master) are migrated and tested. If only SlotState is auto-serialized but Channel/Master remain manual, you still have drift risk in mixer/master.
+**Done when:** All I1/I2/I3 acceptance tests pass. Existing preset tests still pass. Save-time assertion is active in `_do_save_preset()`.
 
 ### Phase 2 — Save-path consolidation (Option A)
-**Delivers:** `GeneratorSlot.get_state()` returns ALL slot fields including ARP/Euclidean/RST/SEQ. `preset_controller._do_save_preset()` simplified to just call `get_state()`.
+**Delivers:** `GeneratorSlot.get_state()` returns ALL slot fields including ARP/Euclidean/RST/SEQ. `preset_controller._do_save_preset()` contains **zero** per-feature field logic — only orchestration.
 **Risk:** Medium. Requires wiring ARP/SEQ engine references into GeneratorSlot.
-**Done when:** `_do_save_preset()` has no manual field injection. Round-trip test still passes.
+**Done when:** `_do_save_preset()` has no manual field injection. Controller calls `get_state()` and trusts the result. Round-trip tests still pass.
 
 ## The "Add a New Field" Checklist (after this work)
 
@@ -371,17 +471,16 @@ This doesn't replace tests, but it turns silent data loss into an immediate, loc
 4. Add to `_validate_slot()` with range check
 5. Add to widget `get_state()` AND preset_controller injection AND `set_state()`
 
-### After (2 steps, test-enforced) — once Phase 2 (save-path consolidation) is complete
+### After (2 steps, test-enforced) — two-step workflow is NOT valid until Phase 2 save-path consolidation is green
 1. Add field to dataclass (auto-serialized)
 2. Add to `_validate_slot()` with range check (manual, domain-specific)
 
-If Phase 2 is NOT complete, you still must ensure the save-path exports the field (widget `get_state()` or controller injection), or Phase 3/Option C must catch it.
+**Before Phase 2 is complete:** you still must ensure the save-path exports the field (widget `get_state()` or controller injection). The Option C save-time assertion will catch it if you forget — it will fail loudly on first preset save with the missing field named in the error.
 
-Step 1 failure mode: if you add a field to the dataclass but don't serialize it, the round-trip test fails because the non-default test value won't survive. You cannot ship a broken field.
+**After Phase 2:** the two-step workflow is fully valid. The autofill round-trip test catches serialization drift, and the widget owns its own state so the save-path is automatically complete.
 
 ## Open Questions
 
 - Do we want the `"params"` nesting long-term, or keep it permanently for backward compatibility and clarity?
 - For Phase 2 save-path consolidation: should `GeneratorSlot` own references to ARP/SEQ/Euclid/RST state sources (preferred), or should the controller remain the assembler?
-- Do we add the save-time schema coverage assertion in dev builds only, or always-on (fails fast in production too)?
-- Should the same SSOT + round-trip approach be applied to *all* schema dataclasses (recommended), or only the high-churn ones first (`SlotState`, `ChannelState`, `MasterState`)?
+- After the high-churn three are hardened, should we extend auto-serialization + autofill to `ModSlotState`, `FXSlotsState`, and other stable dataclasses? (Recommended for consistency, but lower priority.)
