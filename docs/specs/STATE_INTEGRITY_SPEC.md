@@ -9,25 +9,45 @@ Eliminate the "whack-a-mole" pattern where every new feature silently breaks pre
 
 ## Why
 
-40% of all commits (86 of 215) are fixes or reverts. The dominant pattern:
+~40% of all commits are fixes/reverts. The dominant regression pattern:
 
-1. New feature adds a field (e.g. `analog_enabled`, `euclid_k`, `rst_rate`)
-2. Field works live because the widget/engine handles it
-3. Field is missing from one or more of: `to_dict()`, `from_dict()`, `_validate_slot()`, `get_state()`, `set_state()`
-4. User saves a preset → loads it later → new setting silently reverts to default
-5. Separate debugging session to find and fix the gap
+1. A new feature adds a state field (e.g. `analog_enabled`, `euclid_k`, `rst_rate`)
+2. The feature works live (widget/engine path is correct)
+3. The field is missing from one or more state sync points
+4. Preset save/load silently drops the field → it reverts to default later
+5. A separate debugging session is needed to find and patch the gap
 
-This happens because every field must be manually added to **5 separate locations** that have no automated consistency check:
+This happens for **structural** reasons:
+
+### Root Cause 1 — State is defined in N places that must be kept in sync
+
+Every slot-level field effectively exists in 4–5 locations that must all agree:
 
 | Location | Purpose | File |
 |----------|---------|------|
-| Dataclass field | Definition + default | `preset_schema.py` |
-| `to_dict()` | Serialize to JSON | `preset_schema.py` |
-| `from_dict()` | Deserialize from JSON | `preset_schema.py` |
-| `_validate_slot()` | Validation | `preset_schema.py` |
-| `_do_save_preset()` | Collect from UI | `preset_controller.py` |
+| Dataclass field | Definition + default | `src/presets/preset_schema.py` |
+| `to_dict()` | Serialize to JSON | `src/presets/preset_schema.py` |
+| `from_dict()` | Deserialize from JSON | `src/presets/preset_schema.py` |
+| `_validate_slot()` | Domain validation | `src/presets/preset_schema.py` |
+| Save-path collection | Collect UI state | `src/gui/controllers/preset_controller.py` and/or `GeneratorSlot.get_state()` |
 
-Adding a field to one but not all five is the single most repeated bug.
+When a feature lands, missing *any one* of these produces a "works live, doesn't persist" bug.
+
+### Root Cause 2 — Silent failures mask regressions
+
+* `from_dict()` commonly fills missing values with defaults (so missing fields don't error)
+* GUI widgets can update visuals without guaranteeing "state export" is updated
+* SuperCollider coercion (e.g. `nil → 0`) can hide missing/incorrect values
+* There is currently no test asserting "save then load is identical" for all fields
+
+### Root Cause 3 — No automated sync check
+
+There is no CI test that enforces:
+
+* Every dataclass field is actually serialized/deserialized (round-trip)
+* The save-path export covers every schema field (widget/controller completeness)
+
+So regressions are only found manually during later use.
 
 ## How
 
@@ -39,53 +59,76 @@ Three changes, ordered by impact. Each is independently useful.
 
 **Goal:** Adding a new field = adding ONE line (the dataclass field). No more manual `to_dict`/`from_dict` sync.
 
+**Key contract:** Dataclass defaults are the **single source of truth**.
+`from_dict()` MUST start from `cls()` (defaults) and overlay provided keys. It MUST NOT maintain a separate "shadow default table", because that recreates drift.
+
 **Approach:** Use `dataclasses.fields()` introspection to auto-generate `to_dict()` and `from_dict()`, with a small metadata annotation for fields that nest under `"params"`.
 
 ```python
 from dataclasses import dataclass, field, fields
+from typing import Optional, ClassVar, Set
 
-# Marker for fields that serialize under the "params" sub-dict
-_PARAM_KEYS = frozenset([
+# Keys that live under the nested "params" dict in JSON (backward compatible)
+_PARAM_KEYS: Set[str] = {
     "frequency", "cutoff", "resonance", "attack", "decay",
     "custom_0", "custom_1", "custom_2", "custom_3", "custom_4",
-])
+}
 
 @dataclass
 class SlotState:
+    # SSOT: defaults live here and only here
     generator: Optional[str] = None
     frequency: float = 0.5
     cutoff: float = 1.0
-    # ... all fields defined ONCE ...
+    # ...
     analog_enabled: int = 0
     analog_type: int = 0
+    seq_steps: list = field(default_factory=list)
+
+    # Optional: keep it as a class-level contract if you prefer
+    PARAM_KEYS: ClassVar[Set[str]] = _PARAM_KEYS
 
     def to_dict(self) -> dict:
-        result = {}
-        params = {}
+        """Serialize to preset JSON schema (backward compatible)."""
+        d: dict = {"generator": self.generator, "params": {}}
         for f in fields(self):
-            val = getattr(self, f.name)
-            if f.name in _PARAM_KEYS:
-                params[f.name] = val
+            name = f.name
+            if name == "generator":
+                continue
+            val = getattr(self, name)
+            if name in self.PARAM_KEYS:
+                d["params"][name] = val
+            elif name == "seq_steps":
+                d[name] = list(val)  # defensive copy
             elif isinstance(val, list):
-                result[f.name] = list(val)  # defensive copy
+                d[name] = list(val)  # defensive copy for any list field
             else:
-                result[f.name] = val
-        result["params"] = params
-        return result
+                d[name] = val
+        return d
 
     @classmethod
     def from_dict(cls, data: dict) -> "SlotState":
-        params = data.get("params", {})
-        kwargs = {}
-        for f in fields(cls):
-            if f.name in _PARAM_KEYS:
-                kwargs[f.name] = params.get(f.name, f.default)
-            elif f.name == "seq_steps":
-                kwargs[f.name] = list(data.get(f.name, []))
-            else:
-                default = f.default if f.default is not dataclasses.MISSING else f.default_factory()
-                kwargs[f.name] = data.get(f.name, default)
-        return cls(**kwargs)
+        """Deserialize using dataclass defaults as SSOT."""
+        obj = cls()  # ← single source of defaults
+
+        if "generator" in data:
+            obj.generator = data.get("generator")
+
+        params = data.get("params", {}) or {}
+        for k in cls.PARAM_KEYS:
+            if k in params:
+                setattr(obj, k, params[k])
+
+        for f in fields(obj):
+            name = f.name
+            if name == "generator" or name in cls.PARAM_KEYS:
+                continue
+            if name in data:
+                if name == "seq_steps":
+                    setattr(obj, name, list(data.get(name, [])))
+                else:
+                    setattr(obj, name, data.get(name))
+        return obj
 ```
 
 **Apply to:** `SlotState`, `ChannelState`, `MasterState` — the three classes where fields are added most frequently.
@@ -94,7 +137,7 @@ class SlotState:
 
 **Backward compatibility:** Output JSON format is identical. Old presets load fine (missing fields get dataclass defaults). No version bump needed.
 
-**Validation:** `_validate_slot()` stays hand-written. Validation rules (ranges, types) can't be auto-derived from the dataclass — they require explicit domain knowledge. But with auto-serialization, the validator is the ONLY place that needs manual updates beyond the field definition itself: 5 sync points → 2.
+**Validation:** `_validate_slot()` stays hand-written. Validation rules (ranges, types) can't be auto-derived from the dataclass — they require explicit domain knowledge. But with auto-serialization, the validator is the ONLY place that needs manual updates beyond the field definition itself: 5 sync points → 2 **(dataclass + validator)**, with the save-path completeness enforced by tests in Phase 3 / Phase 2.
 
 ---
 
@@ -209,15 +252,24 @@ class TestPresetStateRoundTrip:
 
 **Why non-default values matter:** If a field is missing from `to_dict()`, the default value still appears in `from_dict()` — so a test using defaults would pass even with a broken serializer. Non-default values make the test sensitive to actual round-trip fidelity.
 
-**The field count guard:** Forces the developer to update the test when adding fields. The test failure message tells them exactly what to do.
+**Optional guard (nice-to-have):** A field-count assertion can force deliberate test updates, but it's not strictly required if the test already sets non-default values for all fields and iterates via `fields(SlotState)`. The introspection loop is the real safety net — if a new field is added to the dataclass but not to the test constructor, the round-trip test will still catch it as long as the default differs from what `from_dict` would produce for a missing key (which it always does when the test uses non-defaults).
 
 ---
 
-### Phase 3: Save-path audit test (catch the preset_controller gap)
+### Phase 3: Save-path completeness (catch the preset_controller / widget gap)
 
-**Problem found:** `GeneratorSlot.get_state()` does NOT include ARP, Euclidean, RST, or SEQ fields. Instead, `preset_controller._do_save_preset()` manually injects them by reaching into `arp_manager` and `motion_manager` (lines 96-133). This is a second synchronization point that's easy to forget.
+**Concrete finding:** Slot schema fields can exist and round-trip correctly at the dataclass layer while still being silently dropped at save time if the UI export path doesn't include them.
 
-**Two options (choose one):**
+Example failure mode:
+- Feature fields exist in `SlotState` and are valid
+- Preset save path collects state from UI using `GeneratorSlot.get_state()` and/or controller-side injection
+- Some fields are not exported → `SlotState.from_dict()` receives missing keys → defaults apply → field reverts on load
+
+This is the **second** major cause of "works live, doesn't persist" regressions.
+
+Currently `GeneratorSlot.get_state()` does NOT include ARP, Euclidean, RST, or SEQ fields. Instead, `preset_controller._do_save_preset()` manually injects them by reaching into `arp_manager` and `motion_manager` (lines 96-133). This is a second synchronization point that's easy to forget.
+
+**Three options (choose one):**
 
 #### Option A: Move state collection INTO the widgets (preferred)
 
@@ -260,16 +312,29 @@ def test_save_path_covers_all_slot_fields():
 
 This is harder to write (needs extensive mocking) but doesn't require architectural changes.
 
-**Recommendation:** Option A for new development. It follows the principle that each component owns its own state. The preset controller becomes a thin orchestrator that just calls `get_state()` on each component and assembles the result.
+#### Option C: Save-time schema coverage assertion (dev tripwire)
+
+Add a dev-only assertion in `_do_save_preset()` that compares:
+- `fields(SlotState)` vs keys emitted by the save-path dict (`top-level + params`)
+If any schema fields are missing, fail loudly during development instead of producing a broken preset file.
+
+This doesn't replace tests, but it turns silent data loss into an immediate, local failure.
+
+**Recommendation:** Option A for new development. It follows the principle that each component owns its own state. The preset controller becomes a thin orchestrator that just calls `get_state()` on each component and assembles the result. Option C can be added as a quick safety net in the interim.
 
 ---
+
+## Done When
+
+- CI has round-trip tests that fail if any dataclass field is not serialized/deserialized.
+- Preset save path exports all slot schema fields (either by consolidating into `GeneratorSlot.get_state()` or by an audited controller path).
+- A regression like "ARP/Euclid/RST works live but is missing from presets" is caught before merge.
 
 ## Scope
 
 **In scope:**
 - Auto-derive `to_dict`/`from_dict` for `SlotState`, `ChannelState`, `MasterState`
-- Round-trip tests for all state dataclasses
-- Field-count guard tests
+- Round-trip tests for all state dataclasses (with non-default values)
 - Document the "add a new field" checklist (2 steps instead of 5)
 
 **Out of scope:**
@@ -303,10 +368,11 @@ This is harder to write (needs extensive mocking) but doesn't require architectu
 1. Add field to dataclass (auto-serialized, round-trip test catches it)
 2. Add to `_validate_slot()` with range check (manual, domain-specific)
 
-Step 1 failure mode: if you forget, the field count guard test fails immediately with a message telling you to update the test. If you update the count but not the test values, the round-trip test fails. You cannot ship a broken field.
+Step 1 failure mode: if you add a field to the dataclass but don't serialize it, the round-trip test fails because the non-default test value won't survive. You cannot ship a broken field.
 
 ## Open Questions
 
-- Should auto-serialization extend to `ModSlotState` and FX dataclasses, or keep those hand-written given their stability?
-- For Phase 2 (Option A), should GeneratorSlot receive its ARP engine at construction time, or via a late-binding setter?
-- Should we add a CI step that runs `test_state_roundtrip.py` specifically on any PR that touches `preset_schema.py`?
+- Do we want the `"params"` nesting long-term, or keep it permanently for backward compatibility and clarity?
+- For Phase 2 save-path consolidation: should `GeneratorSlot` own references to ARP/SEQ/Euclid/RST state sources (preferred), or should the controller remain the assembler?
+- Do we add the save-time schema coverage assertion in dev builds only, or always-on (fails fast in production too)?
+- Should the same SSOT + round-trip approach be applied to *all* schema dataclasses (recommended), or only the high-churn ones first (`SlotState`, `ChannelState`, `MasterState`)?
