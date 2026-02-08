@@ -61,8 +61,9 @@ Three changes, ordered by impact. Each is independently useful.
 
 **Key contract:** Dataclass defaults are the **single source of truth**.
 `from_dict()` MUST start from `cls()` (defaults) and overlay provided keys. It MUST NOT maintain a separate "shadow default table", because that recreates drift.
+`from_dict()` MUST ignore unknown keys to preserve backward/forward compatibility.
 
-**Approach:** Use `dataclasses.fields()` introspection to auto-generate `to_dict()` and `from_dict()`, with a small metadata annotation for fields that nest under `"params"`.
+**Approach:** Use `dataclasses.fields()` introspection to auto-generate `to_dict()` and `from_dict()`, plus a small allow-list (`_PARAM_KEYS`) for fields that live under the nested `"params"` dict.
 
 ```python
 from dataclasses import dataclass, field, fields
@@ -83,7 +84,7 @@ class SlotState:
     # ...
     analog_enabled: int = 0
     analog_type: int = 0
-    seq_steps: list = field(default_factory=list)
+    seq_steps: list[dict] = field(default_factory=list)
 
     # Optional: keep it as a class-level contract if you prefer
     PARAM_KEYS: ClassVar[Set[str]] = _PARAM_KEYS
@@ -155,6 +156,8 @@ These tests use NON-DEFAULT values for every field. If a field is added
 to the dataclass but missing from to_dict/from_dict, the test fails
 because the default will appear instead of the non-default test value.
 """
+from dataclasses import fields
+from src.presets.preset_schema import SlotState, ChannelState, MasterState, PresetState
 
 class TestSlotStateRoundTrip:
     def test_all_fields_survive(self):
@@ -252,7 +255,11 @@ class TestPresetStateRoundTrip:
 
 **Why non-default values matter:** If a field is missing from `to_dict()`, the default value still appears in `from_dict()` — so a test using defaults would pass even with a broken serializer. Non-default values make the test sensitive to actual round-trip fidelity.
 
-**Optional guard (nice-to-have):** A field-count assertion can force deliberate test updates, but it's not strictly required if the test already sets non-default values for all fields and iterates via `fields(SlotState)`. The introspection loop is the real safety net — if a new field is added to the dataclass but not to the test constructor, the round-trip test will still catch it as long as the default differs from what `from_dict` would produce for a missing key (which it always does when the test uses non-defaults).
+**Optional guard (recommended):** The round-trip test only detects missing serialization for fields that are set to **non-default** values in the test instance. If a new field is added and the test doesn't set it, the test may still pass (default → missing → default). Use either:
+- a field-count guard, OR
+- a helper that auto-fills non-default values for every field (preferred long-term).
+
+**Best practice (future):** Add a helper that constructs a dataclass instance with guaranteed non-default values for every field (based on type and name heuristics). This ensures the round-trip test automatically covers new fields without manual updates.
 
 ---
 
@@ -267,7 +274,7 @@ Example failure mode:
 
 This is the **second** major cause of "works live, doesn't persist" regressions.
 
-Currently `GeneratorSlot.get_state()` does NOT include ARP, Euclidean, RST, or SEQ fields. Instead, `preset_controller._do_save_preset()` manually injects them by reaching into `arp_manager` and `motion_manager` (lines 96-133). This is a second synchronization point that's easy to forget.
+Currently `GeneratorSlot.get_state()` does NOT include ARP, Euclidean, RST, or SEQ fields. Instead, `preset_controller._do_save_preset()` manually injects them by reaching into `arp_manager` and `motion_manager` (controller-side manual injection in `_do_save_preset()`). This is a second synchronization point that's easy to forget.
 
 **Three options (choose one):**
 
@@ -364,9 +371,11 @@ This doesn't replace tests, but it turns silent data loss into an immediate, loc
 4. Add to `_validate_slot()` with range check
 5. Add to widget `get_state()` AND preset_controller injection AND `set_state()`
 
-### After (2 steps, test-enforced)
-1. Add field to dataclass (auto-serialized, round-trip test catches it)
+### After (2 steps, test-enforced) — once Phase 2 (save-path consolidation) is complete
+1. Add field to dataclass (auto-serialized)
 2. Add to `_validate_slot()` with range check (manual, domain-specific)
+
+If Phase 2 is NOT complete, you still must ensure the save-path exports the field (widget `get_state()` or controller injection), or Phase 3/Option C must catch it.
 
 Step 1 failure mode: if you add a field to the dataclass but don't serialize it, the round-trip test fails because the non-default test value won't survive. You cannot ship a broken field.
 
