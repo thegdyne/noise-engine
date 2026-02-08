@@ -1110,7 +1110,10 @@ class KeyboardOverlay(QWidget):
 
             # Notify controller to switch MotionMode.ARP
             if self._on_arp_mode_changed is not None:
+                print(f"[RST-DEBUG] calling _on_arp_mode_changed(True, {self._arp_engine.slot_id})")
                 self._on_arp_mode_changed(True, self._arp_engine.slot_id)
+            else:
+                print("[RST-DEBUG] WARNING: _on_arp_mode_changed is None!")
         else:
             self._arp_controls_frame.hide()
             # Notify controller to switch MotionMode.OFF
@@ -1172,8 +1175,11 @@ class KeyboardOverlay(QWidget):
             return
         if index == 0:
             engine.runtime.rst_fabric_idx = None
+            print(f"[RST] disarmed slot={engine.slot_id}")
         else:
-            engine.runtime.rst_fabric_idx = index + 3  # R5: UI index -> fabric index
+            fabric_idx = index + 3  # R5: UI index -> fabric index
+            engine.runtime.rst_fabric_idx = fabric_idx
+            print(f"[RST] ARMED slot={engine.slot_id} fabric_idx={fabric_idx} ui_index={index}")
 
     @staticmethod
     def _rst_led_style(active: bool) -> str:
@@ -1195,6 +1201,7 @@ class KeyboardOverlay(QWidget):
             return
         count = engine.runtime.rst_fired_count
         if count != self._rst_last_fired_count:
+            print(f"[RST] POLL DETECTED FIRE slot={engine.slot_id} count={count}")
             self._rst_last_fired_count = count
             # Button back to OFF
             self._arp_rst_btn.blockSignals(True)

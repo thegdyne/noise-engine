@@ -198,12 +198,22 @@ class MotionManager:
         arp_rate = FABRIC_IDX_TO_ARP_RATE.get(fabric_idx)
         now_ms = time.monotonic() * 1000.0
 
-        for slot in self._slots:
+        for i, slot in enumerate(self._slots):
             if slot['lock'].acquire(blocking=False):
                 try:
                     if slot['mode'] == MotionMode.ARP:
                         # R14: RST check FIRST — reset-before-step so this tick emits step 0
-                        if slot['arp'].runtime.rst_fabric_idx == fabric_idx:
+                        rst_target = slot['arp'].runtime.rst_fabric_idx
+                        if rst_target is not None:
+                            logger.debug(
+                                f"RST armed slot={i} rst_target={rst_target} fabric_idx={fabric_idx}",
+                                component="ARP"
+                            )
+                        if rst_target == fabric_idx:
+                            logger.info(
+                                f"RST FIRING slot={i} fabric_idx={fabric_idx}",
+                                component="ARP"
+                            )
                             slot['arp'].reset_on_tick(now_ms)
 
                         # Deliver master tick for matching ARP rate
