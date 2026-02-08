@@ -28,6 +28,18 @@ Rate indices match CLOCK_RATES in Python config:
     "  [x] Clock SynthDef ready (% rates)".format(~clockRates.size).postln;
 };
 
+~setupClockBroadcast = {
+    SynthDef(\clockTickBroadcast, { |clockTrigBus|
+        var allTrigs = In.ar(clockTrigBus, 13);
+        // Broadcast fabric indices 4-9 (covers /4..x8)
+        [4, 5, 6, 7, 8, 9].do { |idx|
+            var trigK = A2K.kr(Trig1.ar(allTrigs[idx], ControlDur.ir * 2));
+            SendReply.kr(trigK, '/clock/tick', [idx]);
+        };
+    }).add;
+    "  [x] ClockTickBroadcast SynthDef ready".postln;
+};
+
 ~startClock = {
     ~clockGroup = Group.head(s);
     ~genGroup = Group.after(~clockGroup);
@@ -41,6 +53,11 @@ Rate indices match CLOCK_RATES in Python config:
         \outBus, ~clockTrigBus.index
     ], ~clockGroup);
     
+    ~clockBroadcastSynth = Synth(\clockTickBroadcast, [
+        \clockTrigBus, ~clockTrigBus.index
+    ], ~clockGroup);
+    "  [x] Clock tick broadcast running".postln;
+
     "  [x] Clock running".postln;
     "  [x] Groups: clock -> gen -> strips -> fx".postln;
 };

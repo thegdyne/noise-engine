@@ -77,6 +77,21 @@ ARP_DEFAULT_PATTERN = ArpPattern.UP
 ARP_DEFAULT_OCTAVES = 1
 ARP_DEFAULT_VELOCITY = 64
 
+# =============================================================================
+# EUCLIDEAN HIT FUNCTION
+# =============================================================================
+
+def euclidean_hit(step: int, n: int, k: int, rotation: int = 0) -> bool:
+    """True if step is a hit in Euclidean rhythm E(k,n).
+    O(1) per step. Bresenham/floor method."""
+    if k <= 0:
+        return False
+    if k >= n:
+        return True
+    i = (step + rotation) % n
+    return (i * k) // n != (((i - 1) * k) // n) if i > 0 else (0 != (((n - 1) * k) // n))
+
+
 # Timing constants
 PROMOTION_SUPPRESS_WINDOW_MS = 5.0
 LIVENESS_TIMEOUT_MULTIPLIER = 2.5
@@ -145,6 +160,7 @@ class ArpEventType(Enum):
     MASTER_TICK = auto()
     FALLBACK_FIRE = auto()
     LIVENESS_CHECK = auto()
+    EUCLID_SET = auto()
     TEARDOWN = auto()
 
 
@@ -168,6 +184,10 @@ class ArpSettings:
     pattern: ArpPattern = ARP_DEFAULT_PATTERN
     octaves: int = ARP_DEFAULT_OCTAVES
     hold: bool = False
+    euclid_enabled: bool = False
+    euclid_n: int = 16
+    euclid_k: int = 16   # Default = all hits (same as off)
+    euclid_rot: int = 0
 
 
 # =============================================================================
@@ -195,6 +215,9 @@ class ArpRuntime:
     # Playback state
     current_step_index: int = 0
     last_played_note: Optional[int] = None
+
+    # Euclidean gate
+    euclid_step: int = 0
 
     # Clock/timing
     clock_mode: ClockMode = ClockMode.STOPPED
@@ -359,6 +382,7 @@ class ArpEngine:
             ArpEventType.MASTER_TICK: self._handle_master_tick,
             ArpEventType.FALLBACK_FIRE: self._handle_fallback_fire,
             ArpEventType.LIVENESS_CHECK: self._handle_liveness_check,
+            ArpEventType.EUCLID_SET: self._handle_euclid_set,
         }
         handler = handlers.get(event.event_type)
         if handler:
@@ -406,6 +430,13 @@ class ArpEngine:
             ArpEventType.MASTER_TICK,
             {"rate_index": rate_index, "tick_time_ms": tick_time_ms}
         ))
+
+    def set_euclid(self, enabled: bool, n: int, k: int, rot: int):
+        """Set Euclidean gate parameters (single event for all params)."""
+        self.post_event(ArpEvent(ArpEventType.EUCLID_SET, {
+            "enabled": bool(enabled),
+            "n": int(n), "k": int(k), "rot": int(rot)
+        }))
 
     def teardown(self):
         """Tear down ARP engine: stop timers, note-off, reset state."""
@@ -850,7 +881,8 @@ class ArpEngine:
 
         if self.runtime.clock_mode == ClockMode.MASTER:
             if rate_index == self.settings.rate_index:
-                self._execute_step(tick_time_ms)
+                if self._euclid_gate():
+                    self._execute_step(tick_time_ms)
 
         elif self.runtime.clock_mode == ClockMode.AUTO:
             if rate_index == self.settings.rate_index:
@@ -864,7 +896,8 @@ class ArpEngine:
                         self.runtime.last_arp_step_time = tick_time_ms
                         return
 
-                self._execute_step(tick_time_ms)
+                if self._euclid_gate():
+                    self._execute_step(tick_time_ms)
 
     def _handle_fallback_fire(self, event: ArpEvent):
         """Handle fallback timer fire."""
@@ -883,7 +916,8 @@ class ArpEngine:
         if generation != self.runtime.fallback_generation:
             return
 
-        self._execute_step(t_fired_ms)
+        if self._euclid_gate():
+            self._execute_step(t_fired_ms)
 
         bpm = self._get_bpm()
         if bpm <= 0:
@@ -932,6 +966,27 @@ class ArpEngine:
         else:
             self.runtime.fallback_timer_running = False
 
+    def _handle_euclid_set(self, event: ArpEvent):
+        """Handle Euclidean gate parameter change."""
+        en = bool(event.data.get("enabled", False))
+        n = int(event.data.get("n", 16))
+        n = max(1, min(64, n))
+        k = int(event.data.get("k", n))
+        k = max(0, min(n, k))
+        rot = int(event.data.get("rot", 0))
+        rot = max(0, min(n - 1, rot)) if n > 1 else 0
+
+        changed_n = (n != self.settings.euclid_n)
+
+        self.settings.euclid_enabled = en
+        self.settings.euclid_n = n
+        self.settings.euclid_k = k
+        self.settings.euclid_rot = rot
+
+        # Reset phase when enabling or changing N (keeps it predictable)
+        if en or changed_n:
+            self.runtime.euclid_step = 0
+
     def _handle_teardown(self, event: ArpEvent):
         """Handle teardown: stop timers first, then note-off, then reset."""
         # 1. Cancel timers (prevents new note-on after teardown)
@@ -953,6 +1008,26 @@ class ArpEngine:
 
         # 5. Reinitialize PRNG
         self._init_prng()
+
+    # =========================================================================
+    # EUCLIDEAN GATE
+    # =========================================================================
+
+    def _euclid_gate(self) -> bool:
+        """Returns True = fire note, False = skip. Always advances euclid_step."""
+        if not self.settings.euclid_enabled:
+            return True
+
+        n = max(1, min(64, int(self.settings.euclid_n)))
+        k = max(0, min(n, int(self.settings.euclid_k)))
+
+        # rot must be valid even when n==1
+        rot_max = max(0, n - 1)
+        rot = max(0, min(rot_max, int(self.settings.euclid_rot)))
+
+        hit = euclidean_hit(self.runtime.euclid_step % n, n, k, rot)
+        self.runtime.euclid_step += 1
+        return hit
 
     # =========================================================================
     # STEP EXECUTION

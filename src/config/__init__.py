@@ -245,6 +245,16 @@ BPM_DEFAULT = 120
 BPM_MIN = 20
 BPM_MAX = 300
 
+# === ARP RATE <-> FABRIC INDEX MAPPING ===
+# ARP rate index -> fabric index (direct matches only, 1/12 excluded)
+# ARP rates: 0=1/32, 1=1/16, 2=1/12, 3=1/8, 4=1/4, 5=1/2, 6=1bar
+# Fabric:    4=/4,   5=/2,   6=CLK,  7=x2,  8=x4,  9=x8
+ARP_RATE_TO_FABRIC_IDX = {0: 9, 1: 8, 3: 7, 4: 6, 5: 5, 6: 4}
+# Note: ARP rate 2 (1/12 triplet) has no fabric match — uses fallback timer
+
+# Inverse: fabric index -> ARP rate index
+FABRIC_IDX_TO_ARP_RATE = {v: k for k, v in ARP_RATE_TO_FABRIC_IDX.items()}
+
 # === FX SYSTEM DEFAULTS ===
 FX_ECHO_RETURN_DEFAULT = 0.5
 FX_VERB_RETURN_DEFAULT = 0.85
@@ -1397,6 +1407,7 @@ OSC_RECEIVE_PORT = 57121
 
 OSC_PATHS = {
     'clock_bpm': '/noise/clock/bpm',
+    'clock_tick': '/noise/clock/tick',
     # Global params
     'gravity': '/noise/gravity',
     'density': '/noise/density',

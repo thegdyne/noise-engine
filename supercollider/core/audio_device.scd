@@ -53,6 +53,7 @@ Handles device listing, selection, and switching
                     // Reload core systems
                     ~setupBuses.();
                     ~setupClock.();
+                    ~setupClockBroadcast.();
                     ~setupHelpers.();
                     ~setupChannelStrips.();
                     ~setupMasterPassthrough.();

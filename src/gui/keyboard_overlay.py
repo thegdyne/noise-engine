@@ -138,6 +138,12 @@ class KeyboardOverlay(QWidget):
         self._arp_octaves_btn: QPushButton = None
         self._arp_hold_btn: QPushButton = None
 
+        # Euclidean UI elements
+        self._euc_toggle_btn: QPushButton = None
+        self._euc_n_btn = None
+        self._euc_k_btn = None
+        self._euc_rot_btn = None
+
         # SEQ UI elements
         self._seq_toggle_btn: QPushButton = None
         self._seq_controls_frame: QFrame = None
@@ -275,6 +281,12 @@ class KeyboardOverlay(QWidget):
         self._arp_pattern_btn.set_index(pattern_idx)
         self._arp_octaves_btn.set_index(settings.octaves - 1)
         self._arp_hold_btn.setChecked(settings.hold)
+
+        # Euclidean controls
+        self._euc_toggle_btn.setChecked(settings.euclid_enabled)
+        self._euc_n_btn.set_index(settings.euclid_n - 1)
+        self._euc_k_btn.set_index(settings.euclid_k)
+        self._euc_rot_btn.set_index(settings.euclid_rot)
 
         # Target slot button — highlight the engine's slot
         target_ui_slot = engine.slot_id + 1  # 0-indexed -> 1-indexed
@@ -474,6 +486,62 @@ class KeyboardOverlay(QWidget):
         self._arp_hold_btn.setToolTip("Latch notes (toggle on key press)")
         self._arp_hold_btn.clicked.connect(self._on_hold_toggle)
         layout.addWidget(self._arp_hold_btn)
+
+        layout.addSpacing(12)
+
+        # Euclidean toggle
+        self._euc_toggle_btn = QPushButton("EUC")
+        self._euc_toggle_btn.setCheckable(True)
+        self._euc_toggle_btn.setFixedSize(40, 24)
+        self._euc_toggle_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
+        self._euc_toggle_btn.setToolTip("Euclidean gate (thins ARP pattern)")
+        self._euc_toggle_btn.clicked.connect(self._on_euc_changed)
+        layout.addWidget(self._euc_toggle_btn)
+
+        layout.addSpacing(4)
+
+        # N (steps)
+        n_label = QLabel("N:")
+        n_label.setFont(QFont(FONT_FAMILY, 9))
+        layout.addWidget(n_label)
+
+        n_labels = [str(i) for i in range(1, 65)]
+        self._euc_n_btn = CycleButton(n_labels, 15)  # Default 16 (index 15)
+        self._euc_n_btn.setFixedSize(36, 24)
+        self._euc_n_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._euc_n_btn.setToolTip("Euclidean steps (N)")
+        self._euc_n_btn.index_changed.connect(self._on_euc_changed)
+        layout.addWidget(self._euc_n_btn)
+
+        layout.addSpacing(4)
+
+        # K (hits)
+        k_label = QLabel("K:")
+        k_label.setFont(QFont(FONT_FAMILY, 9))
+        layout.addWidget(k_label)
+
+        k_labels = [str(i) for i in range(0, 65)]
+        self._euc_k_btn = CycleButton(k_labels, 16)  # Default 16 (index 16)
+        self._euc_k_btn.setFixedSize(36, 24)
+        self._euc_k_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._euc_k_btn.setToolTip("Euclidean hits (K)")
+        self._euc_k_btn.index_changed.connect(self._on_euc_changed)
+        layout.addWidget(self._euc_k_btn)
+
+        layout.addSpacing(4)
+
+        # R (rotation)
+        r_label = QLabel("R:")
+        r_label.setFont(QFont(FONT_FAMILY, 9))
+        layout.addWidget(r_label)
+
+        r_labels = [str(i) for i in range(0, 64)]
+        self._euc_rot_btn = CycleButton(r_labels, 0)  # Default 0
+        self._euc_rot_btn.setFixedSize(36, 24)
+        self._euc_rot_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._euc_rot_btn.setToolTip("Euclidean rotation (R)")
+        self._euc_rot_btn.index_changed.connect(self._on_euc_changed)
+        layout.addWidget(self._euc_rot_btn)
 
         layout.addStretch()
 
@@ -1006,6 +1074,18 @@ class KeyboardOverlay(QWidget):
 
         enabled = self._arp_hold_btn.isChecked()
         self._arp_engine.toggle_hold(enabled)
+
+    def _on_euc_changed(self, *args):
+        """Handle any Euclidean control change — send all params as single event."""
+        if self._arp_engine is None:
+            return
+
+        enabled = self._euc_toggle_btn.isChecked()
+        n = self._euc_n_btn.index + 1   # Index 0 = N=1
+        k = self._euc_k_btn.index        # Index 0 = K=0
+        rot = self._euc_rot_btn.index     # Index 0 = R=0
+
+        self._arp_engine.set_euclid(enabled, n, k, rot)
 
     # -------------------------------------------------------------------------
     # SEQ Control Handlers

@@ -48,6 +48,9 @@ class OSCBridge(QObject):
     telem_data_received = pyqtSignal(int, object)      # slot, data dict
     telem_waveform_received = pyqtSignal(int, object)   # slot, samples tuple
     telem_stabilize_received = pyqtSignal()             # stabilize trigger
+    # Clock tick from SC fabric
+    clock_tick_received = pyqtSignal(int)  # fabric_idx
+
     # Audio device signals
     audio_devices_received = pyqtSignal(list, str)  # devices list, current device
     audio_device_changing = pyqtSignal(str)  # device name
@@ -299,6 +302,9 @@ class OSCBridge(QObject):
 
         # Handle scope debug capture completion from SC
         dispatcher.map(OSC_PATHS['scope_debug_done'], self._handle_scope_debug_done)
+
+        # Clock fabric tick (ARP clock unification)
+        dispatcher.map(OSC_PATHS['clock_tick'], self._handle_clock_tick)
 
         # Telemetry (development tool)
         dispatcher.map(OSC_PATHS['telem_gen'], self._handle_telem_gen)
@@ -592,6 +598,13 @@ class OSCBridge(QObject):
             return
         slot = int(args[0])
         self.telem_waveform_received.emit(slot, args[1:])
+
+    def _handle_clock_tick(self, address, *args):
+        """Handle clock fabric tick from SC (for ARP clock unification)."""
+        if self._shutdown or self._deleted:
+            return
+        if len(args) >= 1:
+            self.clock_tick_received.emit(int(args[0]))
 
     def send(self, path_key, args):
         """Send OSC message using SSOT path key.

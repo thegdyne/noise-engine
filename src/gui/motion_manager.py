@@ -7,10 +7,10 @@ Each slot has:
 - A per-slot RLock for thread-safe mode transitions
 
 Clock model:
-- QTimer fires every TICK_INTERVAL_MS (~10ms) calling on_tick()
-- Timer auto-starts when any slot enters SEQ or ARP mode
+- QTimer fires every TICK_INTERVAL_MS (~10ms) for SEQ tick delivery
+- SC fabric ticks arrive via OSC for ARP master_tick() delivery
+- Timer auto-starts when any slot enters SEQ mode
 - Timer auto-stops when no slots need ticks
-- BPM is tracked to convert timer intervals to beat durations
 
 Sync model:
 - Global sync phase accumulates beats and wraps at SYNC_QUANTUM_BEATS (1 bar = 4 beats)
@@ -18,11 +18,11 @@ Sync model:
 - Subsequent slots entering SEQ wait for the next bar downbeat before starting
 - This keeps all slot sequencers aligned to the same bar grid
 
-ARP clock integration:
-- Per-rate phase accumulators (7 rates) track beat boundaries
-- When a rate boundary is crossed, master_tick() is fired to all ARP-mode slots
+ARP clock integration (unified with SC fabric):
+- SC masterClock broadcasts fabric ticks via SendReply → OSCdef → Python OSC
+- on_fabric_tick() maps fabric indices to ARP rate indices
 - ARP promotes from fallback timer to master clock for grid-locked stepping
-- ARP starts immediately (no bar-wait) but locks to the shared grid
+- 1/12 (triplet) has no fabric match — stays on AUTO fallback timer
 """
 
 from __future__ import annotations
@@ -34,8 +34,9 @@ from typing import Callable, List, Optional
 from PyQt5.QtCore import QTimer
 
 from src.model.sequencer import MotionMode
-from src.gui.arp_engine import ArpEngine, ARP_BEATS_PER_STEP
+from src.gui.arp_engine import ArpEngine
 from src.gui.seq_engine import SeqEngine
+from src.config import FABRIC_IDX_TO_ARP_RATE
 from src.utils.logger import logger
 
 # Clock tick interval in milliseconds (~10ms for smooth sequencing)
@@ -99,9 +100,8 @@ class MotionManager:
         # Global sync phase — accumulates beats, fires sync pulse every SYNC_QUANTUM_BEATS
         self._sync_phase: float = 0.0
 
-        # Per-rate phase accumulators for ARP master tick delivery
-        # 7 rates (indices 0-6) each with independent phase tracking
-        self._rate_phases: List[float] = [0.0] * len(ARP_BEATS_PER_STEP)
+        # Timestamp of last fabric tick (for fallback detection)
+        self._last_fabric_tick_ms: float = 0.0
 
         logger.info("MotionManager: 8 slots initialized", component="MOTION")
 
@@ -139,9 +139,13 @@ class MotionManager:
             logger.debug("MotionManager: clock stopped", component="MOTION")
 
     def _update_clock_state(self):
-        """Start or stop clock based on whether any slot needs ticks."""
+        """Start or stop clock based on whether any slot needs ticks.
+
+        QTimer only needed for SEQ (continuous delta-beat accumulator).
+        ARP is driven by SC fabric ticks via on_fabric_tick().
+        """
         any_active = any(
-            s['mode'] in (MotionMode.SEQ, MotionMode.ARP) or s['pending_seq_start']
+            s['mode'] == MotionMode.SEQ or s['pending_seq_start']
             for s in self._slots
         )
         if any_active:
@@ -150,9 +154,11 @@ class MotionManager:
             self._stop_clock()
 
     def on_tick(self, tick_duration_beats: float):
-        """Tick all slots with the given beat duration."""
-        now_ms = time.monotonic() * 1000.0
+        """Tick all SEQ slots with the given beat duration.
 
+        ARP is no longer driven by QTimer — it uses SC fabric ticks
+        via on_fabric_tick() instead.
+        """
         # Check if a sync boundary is crossed this tick
         self._sync_phase += tick_duration_beats
         sync_crossed = False
@@ -160,14 +166,6 @@ class MotionManager:
             sync_crossed = True
             # Keep remainder so we don't drift
             self._sync_phase %= SYNC_QUANTUM_BEATS
-
-        # Check which rate boundaries are crossed (for ARP master ticks)
-        rates_crossed = []
-        for rate_idx, beats_per_step in ARP_BEATS_PER_STEP.items():
-            self._rate_phases[rate_idx] += tick_duration_beats
-            if self._rate_phases[rate_idx] >= beats_per_step:
-                self._rate_phases[rate_idx] %= beats_per_step
-                rates_crossed.append(rate_idx)
 
         for slot in self._slots:
             slot['tick_accumulator'] += tick_duration_beats
@@ -183,11 +181,6 @@ class MotionManager:
                         slot['pending_seq_start'] = False
                         slot['seq'].start()
 
-                    # Fire ARP master ticks for crossed rate boundaries
-                    if slot['mode'] == MotionMode.ARP and rates_crossed:
-                        for rate_idx in rates_crossed:
-                            slot['arp'].master_tick(rate_idx, now_ms)
-
                     accumulated = slot['tick_accumulator']
                     slot['tick_accumulator'] = 0.0
                     self._process_slot(slot, accumulated)
@@ -198,6 +191,27 @@ class MotionManager:
         """Process tick for active mode with accumulated time."""
         if slot['mode'] == MotionMode.SEQ:
             slot['seq'].tick(tick_duration_beats)
+
+    # =========================================================================
+    # FABRIC TICK (from SC clock via OSC)
+    # =========================================================================
+
+    def on_fabric_tick(self, fabric_idx: int):
+        """Handle clock fabric tick from SC. Route to matching ARP slots."""
+        arp_rate = FABRIC_IDX_TO_ARP_RATE.get(fabric_idx)
+        if arp_rate is None:
+            return
+
+        now_ms = time.monotonic() * 1000.0
+        self._last_fabric_tick_ms = now_ms
+
+        for slot in self._slots:
+            if slot['lock'].acquire(blocking=False):
+                try:
+                    if slot['mode'] == MotionMode.ARP:
+                        slot['arp'].master_tick(arp_rate, now_ms)
+                finally:
+                    slot['lock'].release()
 
     # =========================================================================
     # MODE SWITCHING (called from UI thread)

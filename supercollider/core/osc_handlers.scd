@@ -91,6 +91,15 @@ All OSC message routing
         ~pythonAddr = nil;  // Clear address to stop outbound messages
     }, '/noise/quit');
 
+    // Clock tick broadcast relay (SC fabric -> Python)
+    // SendReply format: [cmdName, nodeID, replyID, values...]
+    // msg[3] is the fabric index
+    OSCdef(\clockTickForward, { |msg|
+        if(~pythonAddr.notNil) {
+            ~pythonAddr.sendMsg('/noise/clock/tick', msg[3].asInteger);
+        };
+    }, '/clock/tick');
+
     // Master clock BPM
     OSCdef(\clockBPM, { |msg|
         ~clockBus.set(msg[1]);

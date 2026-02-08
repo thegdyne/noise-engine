@@ -109,6 +109,10 @@ class KeyboardController:
         if hasattr(self.main, 'bpm_display') and self.main.bpm_display is not None:
             self.main.bpm_display.bpm_changed.connect(self._on_bpm_changed)
 
+        # Connect SC fabric clock ticks to MotionManager for ARP
+        if hasattr(self.main, 'osc') and self.main.osc is not None:
+            self.main.osc.clock_tick_received.connect(self._motion_manager.on_fabric_tick)
+
     # =========================================================================
     # PROPERTIES
     # =========================================================================

@@ -50,6 +50,7 @@ s.waitForBoot({
 
     (~basePath +/+ "core/clock.scd").load;
     ~setupClock.();
+    ~setupClockBroadcast.();
 
     (~basePath +/+ "core/helpers.scd").load;
     ~setupHelpers.();
