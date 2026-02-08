@@ -201,6 +201,8 @@ class MotionManager:
         for i, slot in enumerate(self._slots):
             if slot['lock'].acquire(blocking=False):
                 try:
+                    if i == 0 and fabric_idx == 6:  # Only log slot 0 + CLK to avoid spam
+                        print(f"[RST-DEBUG] fabric_tick slot=0 mode={slot['mode'].name} fabric_idx={fabric_idx}")
                     if slot['mode'] == MotionMode.ARP:
                         # R14: RST check FIRST — reset-before-step so this tick emits step 0
                         rst_target = slot['arp'].runtime.rst_fabric_idx
@@ -236,15 +238,14 @@ class MotionManager:
 
         slot = self._slots[slot_idx]
         with slot['lock']:
-            if slot['mode'] == new_mode:
+            old = slot['mode']
+            print(f"[RST-DEBUG] set_mode slot={slot_idx} old={old.name} new={new_mode.name}")
+            if old == new_mode:
+                print(f"[RST-DEBUG] set_mode SKIPPED (same mode)")
                 return
             self._execute_handover(slot, new_mode)
             slot['pending_mode'] = None
-            logger.debug(
-                f"MotionManager: slot {slot_idx} mode set: "
-                f"{new_mode.name}",
-                component="MOTION"
-            )
+            print(f"[RST-DEBUG] set_mode DONE slot={slot_idx} mode is now {slot['mode'].name}")
         self._update_clock_state()
 
     def get_mode(self, slot_idx: int) -> MotionMode:
