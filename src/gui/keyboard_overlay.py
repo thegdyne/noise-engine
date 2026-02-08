@@ -586,8 +586,8 @@ class KeyboardOverlay(QWidget):
 
         # RST flash indicator (hidden, briefly shown when reset fires)
         self._rst_flash_dot = QLabel("\u25CF")
-        self._rst_flash_dot.setFont(QFont(FONT_FAMILY, 12))
-        self._rst_flash_dot.setStyleSheet(f"color: {COLORS['active']};")
+        self._rst_flash_dot.setFont(QFont(FONT_FAMILY, 14))
+        self._rst_flash_dot.setStyleSheet("color: #ff00ff;")
         self._rst_flash_dot.setFixedWidth(16)
         self._rst_flash_dot.hide()
         row2.addWidget(self._rst_flash_dot)
