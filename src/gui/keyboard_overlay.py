@@ -512,7 +512,9 @@ class KeyboardOverlay(QWidget):
         self._arp_hold_btn.clicked.connect(self._on_hold_toggle)
         row1.addWidget(self._arp_hold_btn)
 
-        row1.addSpacing(12)
+        row1.addStretch()
+
+        # === Row 2: EUC toggle / N / K / R / ARM / REF ===
 
         # Euclidean toggle
         self._euc_toggle_btn = QPushButton("EUC")
@@ -521,11 +523,9 @@ class KeyboardOverlay(QWidget):
         self._euc_toggle_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
         self._euc_toggle_btn.setToolTip("Euclidean gate (thins ARP pattern)")
         self._euc_toggle_btn.clicked.connect(self._on_euc_changed)
-        row1.addWidget(self._euc_toggle_btn)
+        row2.addWidget(self._euc_toggle_btn)
 
-        row1.addStretch()
-
-        # === Row 2: N / K / R / ARM / REF ===
+        row2.addSpacing(4)
 
         # N (steps)
         n_label = QLabel("N:")
