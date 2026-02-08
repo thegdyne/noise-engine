@@ -1,8 +1,10 @@
 # ============================================================
-# Noise Engine .claudeignore
-# Purpose: Reduce context noise for Claude AI sessions
-# Philosophy: Include what's needed for active development,
-#             exclude what's reference-only or generated
+# Noise Engine .claudeignore (Optimised for Claude Code / Opus 4.6)
+# 
+# Philosophy: Only include what you're actively editing.
+# Everything else is noise that slows down indexing and reasoning.
+#
+# Toggle sections at the bottom based on session type.
 # ============================================================
 
 # ----------------------------------------------------------
@@ -24,136 +26,27 @@ dist/
 build/
 
 # ----------------------------------------------------------
-# IDE & EDITOR
+# IDE & EDITOR & OS
 # ----------------------------------------------------------
 .vscode/
 .idea/
 *.swp
 *.swo
 *.iml
-
-# ----------------------------------------------------------
-# OS FILES
-# ----------------------------------------------------------
 .DS_Store
 ._*
 Thumbs.db
 
 # ----------------------------------------------------------
-# GENERATED / CACHE
+# GENERATED / CACHE / TEMP
 # ----------------------------------------------------------
 .context-cache/
 _utf8_backups_*/
 artifacts/
 PROJECT_CONTEXT.md
-
-# ----------------------------------------------------------
-# PACKS (massive context cost, rarely need full content)
-# Include: core, _example for reference patterns
-# ----------------------------------------------------------
-packs/*/
-!packs/core/
-!packs/_example/
-
-# ----------------------------------------------------------
-# DOCS - ARCHIVED (historical, not active development)
-# ----------------------------------------------------------
-docs/archive/
-
-# ----------------------------------------------------------
-# DOCS - DEMOS (HTML visualizations, not needed for code)
-# ----------------------------------------------------------
-docs/demos/
-
-# ----------------------------------------------------------
-# DOCS - TERTIARY IDEAS (speculative, not active)
-# ----------------------------------------------------------
-docs/TERTIARY IDEA/
-
-# ----------------------------------------------------------
-# DOCS - SESSION SUMMARIES (historical context, read on-demand)
-# ----------------------------------------------------------
-docs/SESSION_SUMMARY_*.md
-docs/rollout/SESSION_SUMMARY_*.md
-docs/rollout/DISCORD_*.md
-
-# ----------------------------------------------------------
-# DOCS - GENERATED HTML (rendered output, not source)
-# ----------------------------------------------------------
-docs/index.html
-docs/noise-engine-manual.html
-docs/process.html
-docs/imaginarium_mindmap.html
-index.html
-
-# ----------------------------------------------------------
-# ANALYSIS (pattern extraction artifacts, not active code)
-# ----------------------------------------------------------
-analysis/
-
-# ----------------------------------------------------------
-# TOOLS - TEST RUNNERS (verbose SC test scaffolding)
-# ----------------------------------------------------------
-tools/sogbuild/
-tools/sauce_of_grav_test_*.scd
-tools/running_source_tests.scd
-
-# ----------------------------------------------------------
-# IMAGINARIUM - TEST IMAGES (binary data, no context value)
-# ----------------------------------------------------------
-imaginarium/test_images/
-
-# ----------------------------------------------------------
-# REFERENCE (static lookups, rarely changes)
-# ----------------------------------------------------------
-reference/
-
-# ----------------------------------------------------------
-# TEST INPUTS (fixture data)
-# ----------------------------------------------------------
-test_inputs/
-
-# ----------------------------------------------------------
-# BRANDING (assets, not code)
-# ----------------------------------------------------------
-branding/
-
-# ----------------------------------------------------------
-# ASSETS (images, static files)
-# ----------------------------------------------------------
-assets/
-
-# ----------------------------------------------------------
-# SCRIPTS - VERIFICATION (one-off validation scripts)
-# ----------------------------------------------------------
-scripts/imaginarium_*.scd
-scripts/imaginarium_*.py
-
-# ----------------------------------------------------------
-# MIDI MAPPINGS (JSON config, rarely changes)
-# ----------------------------------------------------------
-midi_mappings/
-
-# ----------------------------------------------------------
-# PRESETS (user data, not code)
-# ----------------------------------------------------------
-presets/
-
-# ----------------------------------------------------------
-# PATCHES (user data)
-# ----------------------------------------------------------
-patches/
-
-# ----------------------------------------------------------
-# RECORDINGS
-# ----------------------------------------------------------
-supercollider/recordings/
-
-# ----------------------------------------------------------
-# DEBUG / TEMP FILES
-# ----------------------------------------------------------
 spatial_debug.json
 *.log
+characterization_results.json
 
 # ----------------------------------------------------------
 # LOCK FILES
@@ -163,7 +56,7 @@ yarn.lock
 poetry.lock
 
 # ----------------------------------------------------------
-# AUDIO FILES (never useful as context)
+# BINARY / MEDIA (never useful as context)
 # ----------------------------------------------------------
 *.wav
 *.aif
@@ -171,22 +64,271 @@ poetry.lock
 *.mp3
 *.ogg
 *.flac
-
-# ----------------------------------------------------------
-# LARGE DATA
-# ----------------------------------------------------------
 *.csv
 *.json.gz
 *.sql
+*.png
+*.jpg
+*.jpeg
+*.gif
 
 # ----------------------------------------------------------
-# GITHUB WORKFLOWS (rarely edited)
+# GITHUB WORKFLOWS
 # ----------------------------------------------------------
 .github/
 
 # ----------------------------------------------------------
-# OPTIONAL: Uncomment if NOT working on these systems
+# PACKS — Only core + _example for reference
 # ----------------------------------------------------------
-# contracts/              # CDD contracts (enable when doing CDD)
-# imaginarium/tests/      # Imaginarium tests (enable when testing)
-# tests/                  # Main tests (enable when testing)
+packs/*/
+!packs/core/
+!packs/_example/
+
+# ----------------------------------------------------------
+# SUPERCOLLIDER — THE BIG ONE (~9,000 lines)
+#
+# Keep: init.scd (entry point), endstage.scd (generator contract),
+#       helpers.scd (available functions), osc_handlers.scd (OSC paths)
+# Exclude: Everything else (stable, rarely edited)
+# ----------------------------------------------------------
+supercollider/core/audio_device.scd
+supercollider/core/bus_unification.scd
+supercollider/core/bus_unification_osc.scd
+supercollider/core/buses.scd
+supercollider/core/channel_strips.scd
+supercollider/core/clock.scd
+supercollider/core/clock_registry.scd
+supercollider/core/crossmod_buses.scd
+supercollider/core/crossmod_followers.scd
+supercollider/core/crossmod_osc.scd
+supercollider/core/ext_mod.scd
+supercollider/core/ext_mod_osc.scd
+supercollider/core/fx_mixer.scd
+supercollider/core/fx_slots.scd
+supercollider/core/keyboard_osc.scd
+supercollider/core/master.scd
+supercollider/core/midi_handler.scd
+supercollider/core/mod_arseq_plus.scd
+supercollider/core/mod_buses.scd
+supercollider/core/mod_lfo.scd
+supercollider/core/mod_osc.scd
+supercollider/core/mod_sauce_of_grav.scd
+supercollider/core/mod_sloth.scd
+supercollider/core/mod_slots.scd
+supercollider/core/mod_snapshot.scd
+supercollider/core/scope_tap.scd
+supercollider/core/telemetry_tap.scd
+supercollider/core/unified_boids.scd
+supercollider/effects/
+supercollider/bootstrap/
+supercollider/scratch.scd
+supercollider/config.scd
+supercollider/recordings/
+supercollider/mod_generators/
+
+# ----------------------------------------------------------
+# DOCS — Aggressively exclude historical/frozen specs
+# Keep: CLAUDE.md, STATE.md, BACKLOG, DECISIONS, HOWTOs, ARCHITECTURE
+# ----------------------------------------------------------
+docs/archive/
+docs/demos/
+docs/ideas/
+docs/debug/
+docs/buchla_comp/
+docs/rollout/
+docs/specs/
+docs/TERTIARY IDEA/
+docs/.nojekyll
+docs/cleanup-docs.sh
+
+# Frozen/historical specs (never need editing)
+docs/ADDING_BUS_PARAMS.md
+docs/ARSEQ_PLUS_LESSONS_LEARNED.md
+docs/ARSEQ_PLUS_SPEC_v1.2.md
+docs/BOID_TUNING.md
+docs/BOID_UNIFIED_BUS_MIGRATION*.md
+docs/CLOCK_FABRIC.md
+docs/CLOCK_REGISTRY.md
+docs/CLOCK_UNIFICATION_PLAN.md
+docs/CQD_FORGE_DELIVERY.md
+docs/CQD_FORGE_SPEC.md
+docs/CROSSMOD_DESIGN.md
+docs/CROSSMOD_GUI_DESIGN.md
+docs/CROSSMOD_V2_IDEAS.md
+docs/DEBUGGING.md
+docs/DEBUG_UI.md
+docs/END_STAGE_ARCHITECTURE_SPEC.md
+docs/FORGE_AUDIO_VALIDATE_PATCH_TEST.md
+docs/FX_SYSTEM_SPEC.md
+docs/GENERATOR_PACK_SESSION.md
+docs/GENERATOR_SPEC.md
+docs/IMAGINARIUM_CUSTOM_PARAMS_SPEC.md
+docs/IMAGINARIUM_PHASE2_ROADMAP.md
+docs/IMAGINARIUM_SPEC.md
+docs/INIT_SCD_CHANGES.md
+docs/KNOWN_AUDIO_ISSUES.md
+docs/MIDI_CC_PHASE1_IMPLEMENTATION.md
+docs/MOD_MATRIX_EXPANSION_SPEC_v1.6.1.md
+docs/MOD_STANDARDIZATION_BRIEF.md
+docs/MOLTI_SAMP_SPEC_v0_0_1.md
+docs/NAMING_CONVENTION.md
+docs/NEW_MODULATOR_CHECKLIST.md
+docs/NOISE_ENGINE_SIGNAL_LAYERS.md
+docs/PACK_TROUBLESHOOTING.md
+docs/PER_SLOT_ARP_SPEC.md
+docs/PRESET_EXPANSION_SPEC.md
+docs/PRESET_INTEGRATION.md
+docs/PRESET_SPEC.md
+docs/SAUCE_OF_GRAV_SPEC_v1_4_3.md
+docs/SAUCE_OF_GRAV_V2_SYNTHDEF.scd
+docs/SPIKE_CV_CONTROL.md
+docs/SYNTHESIS_TECHNIQUES.md
+docs/R1_RELEASE.md
+docs/SESSION_SUMMARY_*.md
+
+# Generated HTML (never edit directly)
+docs/index.html
+docs/noise-engine-manual.html
+docs/process.html
+docs/imaginarium_mindmap.html
+index.html
+
+# Install guides (reference only)
+docs/LINUX_INSTALL.md
+docs/MACOS_GUIDE.md
+docs/MACOS_GUIDE.txt
+docs/MACOS_INSTALL.md
+docs/WINDOWS_INSTALL.md
+
+# ----------------------------------------------------------
+# ANALYSIS (pattern extraction artifacts — never active code)
+# ----------------------------------------------------------
+analysis/
+
+# ----------------------------------------------------------
+# CONTRACTS (CDD YAML — stable, rarely needed)
+# ----------------------------------------------------------
+contracts/
+
+# ----------------------------------------------------------
+# TOOLS — Exclude most, keep essentials
+# ----------------------------------------------------------
+tools/sogbuild/
+tools/sauce_of_grav_test_*.scd
+tools/running_source_tests.scd
+tools/modulator_wireframe.html
+tools/forge_template.scd
+tools/sc_eval_one.scd
+tools/scope_debug.py
+tools/tune_layout.py
+tools/layout_sandbox.py
+tools/sauce_of_grav_v1_4_3_sim.py
+tools/hw_characterize.py
+tools/debug_add.sh
+tools/debug_remove.sh
+tools/rollback.sh
+tools/forge_release.sh
+tools/zip_for_claude.sh
+tools/update_from_claude.sh
+tools/test-launcher.sh
+tools/Run_NoiseEngine.command
+tools/ne-py
+tools/ne-run
+tools/_check_ssot.sh
+tools/_update_ssot_badge.sh
+tools/_update_techdebt_badge.sh
+tools/add_milestone.sh
+tools/extract_method_vocab.py
+tools/eval_all_scd_live.py
+
+# ----------------------------------------------------------
+# FOR_CLAUDE (session scratch files, not code)
+# ----------------------------------------------------------
+for_claude/
+
+# ----------------------------------------------------------
+# TELEMETRY_FILES (redundant with src/telemetry/)
+# ----------------------------------------------------------
+telemetry_files/
+
+# ----------------------------------------------------------
+# SCALER (one-off HTML tool)
+# ----------------------------------------------------------
+scaler/
+
+# ----------------------------------------------------------
+# SCRIPTS (one-off verification)
+# ----------------------------------------------------------
+scripts/
+
+# ----------------------------------------------------------
+# STATIC DATA (rarely changes)
+# ----------------------------------------------------------
+reference/
+branding/
+assets/
+midi_mappings/
+presets/
+patches/
+config/boid_target_scales.json
+imaginarium/test_images/
+
+# ----------------------------------------------------------
+# USER DATA
+# ----------------------------------------------------------
+maps/
+midi_config.json
+
+# ----------------------------------------------------------
+# .cdd-version (1 line, harmless but unnecessary)
+# ----------------------------------------------------------
+.cdd-version
+.contextignore
+
+# ==========================================================
+# SESSION-TYPE TOGGLES
+#
+# Uncomment the INCLUDE lines for your current session.
+# Default: GUI + core audio + presets visible
+# ==========================================================
+
+# --- IMAGINARIUM SESSION ---
+# Remove these to include imaginarium code:
+# (uncomment the exclude to HIDE imaginarium)
+# imaginarium/
+# src/imaginarium/  # (not present in tree currently)
+# docs/HOWTO_ADD_METHODS.md
+# docs/HOWTO_GENERATE_PACKS.md
+
+# --- TELEMETRY / MORPH MAPPER SESSION ---
+# Remove these to include telemetry tools:
+# (uncomment to HIDE telemetry)
+# src/telemetry/
+# src/hardware/
+# tools/analyze_morph_map.py
+# tools/calibrate_cv.py
+# tools/fingerprint_sweep.py
+# docs/HOWTO_ANALYZE_MORPH_MAP.md
+# docs/HOWTO_FORENSIC_CALIBRATION.md
+# docs/HOWTO_MORPH_MAPPER_HOTKEY.md
+# docs/TELEMETRY_USER_GUIDE.md
+
+# --- BOID SESSION ---
+# Remove these to include boid code:
+# (uncomment to HIDE boids)
+# src/boids/
+# src/utils/boid_bus.py
+# src/utils/boid_gen_router.py
+# src/utils/boid_scales.py
+# supercollider/core/unified_boids.scd
+
+# --- SUPERCOLLIDER DEEP SESSION ---
+# When you need the full SC codebase, comment out the
+# supercollider/core/*.scd block above
+
+# --- TESTING SESSION ---
+# tests/
+# imaginarium/tests/
+
+# --- CDD / CONTRACTS SESSION ---
+# contracts/
