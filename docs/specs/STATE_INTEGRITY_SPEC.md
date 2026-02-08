@@ -1,5 +1,5 @@
 ---
-status: draft
+status: phase-1-complete
 ---
 # State Integrity Hardening
 

@@ -15,6 +15,7 @@ from .preset_schema import (
     MixerState,
     validate_preset,
     PRESET_VERSION,
+    _SLOT_PARAM_KEYS,
 )
 
 from .preset_manager import (

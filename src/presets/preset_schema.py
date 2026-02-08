@@ -8,8 +8,8 @@ v2 - Phase 1: Channel strip expansion (EQ, gain, sends, cuts)
 v3 - UI Refresh: 4-slot swappable FX, 176 unified bus targets
 """
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass, field, fields
+from typing import Optional, ClassVar, FrozenSet
 import json
 
 PRESET_VERSION = 3
@@ -63,6 +63,13 @@ HARMONICS_OPTIONS = 8 # Free, 1, 2, 3, 4, 5, 8, 16
 ROUTING_OPTIONS = 2   # 0=SER, 1=PAR
 
 
+# Fields that nest under the "params" sub-dict in preset JSON (backward compatible)
+_SLOT_PARAM_KEYS: FrozenSet[str] = frozenset({
+    "frequency", "cutoff", "resonance", "attack", "decay",
+    "custom_0", "custom_1", "custom_2", "custom_3", "custom_4",
+})
+
+
 @dataclass
 class SlotState:
     generator: Optional[str] = None
@@ -105,85 +112,44 @@ class SlotState:
     analog_enabled: int = 0  # 0=OFF (bypass), 1=ON
     analog_type: int = 0     # 0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD
 
+    PARAM_KEYS: ClassVar[FrozenSet[str]] = _SLOT_PARAM_KEYS
+
     def to_dict(self) -> dict:
-        return {
-            "generator": self.generator,
-            "params": {
-                "frequency": self.frequency,
-                "cutoff": self.cutoff,
-                "resonance": self.resonance,
-                "attack": self.attack,
-                "decay": self.decay,
-                "custom_0": self.custom_0,
-                "custom_1": self.custom_1,
-                "custom_2": self.custom_2,
-                "custom_3": self.custom_3,
-                "custom_4": self.custom_4,
-            },
-            "filter_type": self.filter_type,
-            "env_source": self.env_source,
-            "clock_rate": self.clock_rate,
-            "midi_channel": self.midi_channel,
-            "transpose": self.transpose,
-            "portamento": self.portamento,
-            "arp_enabled": self.arp_enabled,
-            "arp_rate": self.arp_rate,
-            "arp_pattern": self.arp_pattern,
-            "arp_octaves": self.arp_octaves,
-            "arp_hold": self.arp_hold,
-            "euclid_enabled": self.euclid_enabled,
-            "euclid_n": self.euclid_n,
-            "euclid_k": self.euclid_k,
-            "euclid_rot": self.euclid_rot,
-            "rst_rate": self.rst_rate,
-            "seq_enabled": self.seq_enabled,
-            "seq_rate": self.seq_rate,
-            "seq_length": self.seq_length,
-            "seq_play_mode": self.seq_play_mode,
-            "seq_steps": list(self.seq_steps),
-            "analog_enabled": self.analog_enabled,
-            "analog_type": self.analog_type,
-        }
-    
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        d: dict = {"generator": self.generator, "params": {}}
+        for f in fields(self):
+            name = f.name
+            if name == "generator":
+                continue
+            val = getattr(self, name)
+            if name in self.PARAM_KEYS:
+                d["params"][name] = val
+            elif name == "seq_steps":
+                d[name] = list(val)  # defensive copy (nested list-of-dict)
+            else:
+                d[name] = val
+        return d
+
     @classmethod
     def from_dict(cls, data: dict) -> "SlotState":
-        params = data.get("params", {})
-        return cls(
-            generator=data.get("generator"),
-            frequency=params.get("frequency", 0.5),
-            cutoff=params.get("cutoff", 0.5),
-            resonance=params.get("resonance", 0.0),
-            attack=params.get("attack", 0.1),
-            decay=params.get("decay", 0.3),
-            custom_0=params.get("custom_0", 0.5),
-            custom_1=params.get("custom_1", 0.5),
-            custom_2=params.get("custom_2", 0.5),
-            custom_3=params.get("custom_3", 0.5),
-            custom_4=params.get("custom_4", 0.5),
-            filter_type=data.get("filter_type", 0),
-            env_source=data.get("env_source", 0),
-            clock_rate=data.get("clock_rate", 4),
-            midi_channel=data.get("midi_channel", 1),
-            transpose=data.get("transpose", 2),
-            portamento=data.get("portamento", 0.0),
-            arp_enabled=data.get("arp_enabled", False),
-            arp_rate=data.get("arp_rate", 3),
-            arp_pattern=data.get("arp_pattern", 0),
-            arp_octaves=data.get("arp_octaves", 1),
-            arp_hold=data.get("arp_hold", False),
-            euclid_enabled=data.get("euclid_enabled", False),
-            euclid_n=data.get("euclid_n", 16),
-            euclid_k=data.get("euclid_k", 16),
-            euclid_rot=data.get("euclid_rot", 0),
-            rst_rate=data.get("rst_rate", 0),
-            seq_enabled=data.get("seq_enabled", False),
-            seq_rate=data.get("seq_rate", 1),
-            seq_length=data.get("seq_length", 16),
-            seq_play_mode=data.get("seq_play_mode", 0),
-            seq_steps=list(data.get("seq_steps", [])),
-            analog_enabled=data.get("analog_enabled", 0),
-            analog_type=data.get("analog_type", 0),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()  # single source of defaults
+        if "generator" in data:
+            obj.generator = data["generator"]
+        params = data.get("params", {}) or {}
+        for k in cls.PARAM_KEYS:
+            if k in params:
+                setattr(obj, k, params[k])
+        for f in fields(cls):
+            name = f.name
+            if name == "generator" or name in cls.PARAM_KEYS:
+                continue
+            if name in data:
+                if name == "seq_steps":
+                    setattr(obj, name, list(data[name]))
+                else:
+                    setattr(obj, name, data[name])
+        return obj
 
 
 @dataclass
@@ -208,44 +174,22 @@ class ChannelState:
     hi_cut: bool = False
 
     def to_dict(self) -> dict:
-        return {
-            "volume": self.volume,
-            "pan": self.pan,
-            "mute": self.mute,
-            "solo": self.solo,
-            "eq_hi": self.eq_hi,
-            "eq_mid": self.eq_mid,
-            "eq_lo": self.eq_lo,
-            "gain": self.gain,
-            "fx1_send": self.fx1_send,
-            "fx2_send": self.fx2_send,
-            "fx3_send": self.fx3_send,
-            "fx4_send": self.fx4_send,
-            "lo_cut": self.lo_cut,
-            "hi_cut": self.hi_cut,
-        }
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
 
     @classmethod
     def from_dict(cls, data: dict) -> "ChannelState":
-        # Backward compatibility: migrate echo_send/verb_send to fx1_send/fx2_send
-        fx1 = data.get("fx1_send", data.get("echo_send", 0))
-        fx2 = data.get("fx2_send", data.get("verb_send", 0))
-        return cls(
-            volume=data.get("volume", 0.8),
-            pan=data.get("pan", 0.5),
-            mute=data.get("mute", False),
-            solo=data.get("solo", False),
-            eq_hi=data.get("eq_hi", 100),
-            eq_mid=data.get("eq_mid", 100),
-            eq_lo=data.get("eq_lo", 100),
-            gain=data.get("gain", 0),
-            fx1_send=fx1,
-            fx2_send=fx2,
-            fx3_send=data.get("fx3_send", 0),
-            fx4_send=data.get("fx4_send", 0),
-            lo_cut=data.get("lo_cut", False),
-            hi_cut=data.get("hi_cut", False),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()  # single source of defaults
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        # Legacy migration: echo_send/verb_send -> fx1_send/fx2_send
+        if "fx1_send" not in data and "echo_send" in data:
+            obj.fx1_send = data["echo_send"]
+        if "fx2_send" not in data and "verb_send" in data:
+            obj.fx2_send = data["verb_send"]
+        return obj
 
 
 @dataclass
@@ -301,83 +245,17 @@ class MasterState:
     limiter_bypass: int = 0     # 0=on, 1=bypassed
 
     def to_dict(self) -> dict:
-        return {
-            "volume": self.volume,
-            "meter_mode": self.meter_mode,
-            "heat_bypass": self.heat_bypass,
-            "heat_circuit": self.heat_circuit,
-            "heat_drive": self.heat_drive,
-            "heat_mix": self.heat_mix,
-            "filter_bypass": self.filter_bypass,
-            "filter_f1": self.filter_f1,
-            "filter_r1": self.filter_r1,
-            "filter_f1_mode": self.filter_f1_mode,
-            "filter_f2": self.filter_f2,
-            "filter_r2": self.filter_r2,
-            "filter_f2_mode": self.filter_f2_mode,
-            "filter_routing": self.filter_routing,
-            "filter_mix": self.filter_mix,
-            "sync_f1": self.sync_f1,
-            "sync_f2": self.sync_f2,
-            "sync_amt": self.sync_amt,
-            "eq_hi": self.eq_hi,
-            "eq_mid": self.eq_mid,
-            "eq_lo": self.eq_lo,
-            "eq_hi_kill": self.eq_hi_kill,
-            "eq_mid_kill": self.eq_mid_kill,
-            "eq_lo_kill": self.eq_lo_kill,
-            "eq_locut": self.eq_locut,
-            "eq_bypass": self.eq_bypass,
-            "comp_threshold": self.comp_threshold,
-            "comp_makeup": self.comp_makeup,
-            "comp_ratio": self.comp_ratio,
-            "comp_attack": self.comp_attack,
-            "comp_release": self.comp_release,
-            "comp_sc": self.comp_sc,
-            "comp_bypass": self.comp_bypass,
-            "limiter_ceiling": self.limiter_ceiling,
-            "limiter_bypass": self.limiter_bypass,
-        }
+        """Serialize to preset JSON schema. Auto-derived from dataclass fields."""
+        return {f.name: getattr(self, f.name) for f in fields(self)}
 
     @classmethod
     def from_dict(cls, data: dict) -> "MasterState":
-        return cls(
-            volume=data.get("volume", 0.8),
-            meter_mode=data.get("meter_mode", 0),
-            heat_bypass=data.get("heat_bypass", 1),
-            heat_circuit=data.get("heat_circuit", 0),
-            heat_drive=data.get("heat_drive", 0),
-            heat_mix=data.get("heat_mix", 200),
-            filter_bypass=data.get("filter_bypass", 1),
-            filter_f1=data.get("filter_f1", 100),
-            filter_r1=data.get("filter_r1", 0),
-            filter_f1_mode=data.get("filter_f1_mode", 0),
-            filter_f2=data.get("filter_f2", 100),
-            filter_r2=data.get("filter_r2", 0),
-            filter_f2_mode=data.get("filter_f2_mode", 2),
-            filter_routing=data.get("filter_routing", 0),
-            filter_mix=data.get("filter_mix", 200),
-            sync_f1=data.get("sync_f1", 0),
-            sync_f2=data.get("sync_f2", 0),
-            sync_amt=data.get("sync_amt", 100),
-            eq_hi=data.get("eq_hi", 120),
-            eq_mid=data.get("eq_mid", 120),
-            eq_lo=data.get("eq_lo", 120),
-            eq_hi_kill=data.get("eq_hi_kill", 0),
-            eq_mid_kill=data.get("eq_mid_kill", 0),
-            eq_lo_kill=data.get("eq_lo_kill", 0),
-            eq_locut=data.get("eq_locut", 0),
-            eq_bypass=data.get("eq_bypass", 0),
-            comp_threshold=data.get("comp_threshold", 100),
-            comp_makeup=data.get("comp_makeup", 0),
-            comp_ratio=data.get("comp_ratio", 1),
-            comp_attack=data.get("comp_attack", 4),
-            comp_release=data.get("comp_release", 4),
-            comp_sc=data.get("comp_sc", 0),
-            comp_bypass=data.get("comp_bypass", 0),
-            limiter_ceiling=data.get("limiter_ceiling", 590),
-            limiter_bypass=data.get("limiter_bypass", 0),
-        )
+        """Deserialize using dataclass defaults as SSOT. Ignores unknown keys."""
+        obj = cls()  # single source of defaults
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
 
 
 @dataclass
