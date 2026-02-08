@@ -100,9 +100,6 @@ class MotionManager:
         # Global sync phase — accumulates beats, fires sync pulse every SYNC_QUANTUM_BEATS
         self._sync_phase: float = 0.0
 
-        # Timestamp of last fabric tick (for fallback detection)
-        self._last_fabric_tick_ms: float = 0.0
-
         logger.info("MotionManager: 8 slots initialized", component="MOTION")
 
     # =========================================================================
@@ -203,7 +200,6 @@ class MotionManager:
             return
 
         now_ms = time.monotonic() * 1000.0
-        self._last_fabric_tick_ms = now_ms
 
         for slot in self._slots:
             if slot['lock'].acquire(blocking=False):

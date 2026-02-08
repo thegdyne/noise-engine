@@ -1085,6 +1085,14 @@ class KeyboardOverlay(QWidget):
         k = self._euc_k_btn.index        # Index 0 = K=0
         rot = self._euc_rot_btn.index     # Index 0 = R=0
 
+        # Clamp K and R so UI matches engine immediately when N shrinks
+        if k > n:
+            k = n
+            self._euc_k_btn.set_index(k)
+        if rot >= n:
+            rot = max(0, n - 1)
+            self._euc_rot_btn.set_index(rot)
+
         self._arp_engine.set_euclid(enabled, n, k, rot)
 
     # -------------------------------------------------------------------------
