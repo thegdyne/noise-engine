@@ -907,7 +907,7 @@ class ArpEngine:
         if not self.settings.enabled or self.runtime.clock_mode == ClockMode.STOPPED:
             return
 
-        if self.runtime.start_sync_armed:
+        if self.runtime.start_sync_armed and not self._has_playable_notes():
             return
 
         if self.runtime.clock_mode == ClockMode.MASTER:
@@ -940,7 +940,7 @@ class ArpEngine:
             return
         if self.runtime.clock_mode != ClockMode.AUTO:
             return
-        if self.runtime.start_sync_armed:
+        if self.runtime.start_sync_armed and not self._has_playable_notes():
             return
         if self._get_bpm() <= 0:
             return
@@ -1025,14 +1025,17 @@ class ArpEngine:
         en = bool(event.data.get("enabled", False))
         self.runtime.start_sync_armed = en
         if en:
-            self.runtime.current_step_index = 0
-            self.runtime.euclid_step = 0
-            self._stop_fallback()
-            # Activate temporary latch when HOLD is off
-            if not self.settings.hold:
-                self.runtime.armed_latch_active = True
-                self.runtime.latched.clear()
-                self.runtime.latched_order.clear()
+            if self._has_playable_notes():
+                # Use case A: already playing, just mark for phase reset on REF
+                # Don't stop fallback, don't reset indices, don't touch latch
+                pass
+            else:
+                # Use case B: not playing yet, capture notes and wait
+                self._stop_fallback()
+                if not self.settings.hold:
+                    self.runtime.armed_latch_active = True
+                    self.runtime.latched.clear()
+                    self.runtime.latched_order.clear()
         else:
             # Disarming — clean up temporary latch
             self._clear_armed_latch()
@@ -1057,6 +1060,9 @@ class ArpEngine:
         # If no notes available, stay armed and do nothing
         if not self._has_playable_notes():
             return
+
+        # Note-off safety: ensure no stale note from pre-reset sequence
+        self._note_off_currently_sounding()
 
         # Disarm and reset phase
         self.runtime.start_sync_armed = False
