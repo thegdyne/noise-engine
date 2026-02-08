@@ -2,8 +2,8 @@
 
 ---
 status: spec
-version: 1.1
-date: 2025-02-08
+version: 1.2
+date: 2026-02-08
 builds-on: EUCLID_ARP_GATE_SPEC v3.1, CLOCK_FABRIC.md, MotionManager.on_fabric_tick(), ArpEngine master_tick()
 size: Small-Medium (1-2 days)
 ---
@@ -49,7 +49,7 @@ These are sufficient for "start on bar/beat/subdivision".
 If we later need `/8` (idx 3) or other indices as start references, expand the broadcast set minimally (add only what's needed). Avoid high-rate indices (e.g. `x32`) because they significantly increase SC->Python OSC message rate.
 
 Therefore:
-- Keep broadcast set **[4,5,6,7,8,9]** for v1.0
+- Keep broadcast set **[4,5,6,7,8,9]** for v1.2
 - Only extend by explicit request / measured need
 
 No SC changes required for this phase.
@@ -154,7 +154,7 @@ Uses `_stop_fallback()` (not direct field access) — this bumps fallback_genera
 ```python
 def _handle_start_ref_set(self, event: ArpEvent):
     idx = int(event.data.get("fabric_idx", 4))
-    self.settings.start_ref_idx = max(0, min(12, idx))
+    self.settings.start_ref_idx = max(4, min(9, idx))
 ```
 
 #### C) `_handle_start_ref_tick`
@@ -256,7 +256,7 @@ def on_fabric_tick(self, fabric_idx: int):
 **Key changes from current code:**
 - Removed the early return when `arp_rate is None` — must still check `start_ref_idx` for every fabric tick
 - `start_ref_tick` fires before `master_tick` so the downbeat tick can both disarm and allow immediate continuation
-- `settings.start_ref_idx` is a plain int read — safe without additional locking (written only by engine event loop on same Qt thread)
+- `settings.start_ref_idx` is a plain int read — low risk in practice (written only by engine event loop, typically same Qt thread, but not formally guaranteed across all call sites)
 
 ---
 
@@ -270,8 +270,8 @@ Add UI widget declarations in `__init__`:
 
 ```python
 # Start sync UI elements
-self._arp_arm_btn: QPushButton = None
-self._arp_ref_btn = None  # CycleButton
+self._arp_start_arm_btn: QPushButton = None
+self._arp_start_ref_btn = None  # CycleButton
 ```
 
 Add widgets in `_create_arp_controls()`, after Euclidean controls, before `addStretch()`:
@@ -280,13 +280,13 @@ Add widgets in `_create_arp_controls()`, after Euclidean controls, before `addSt
 layout.addSpacing(12)
 
 # ARM toggle
-self._arp_arm_btn = QPushButton("ARM")
-self._arp_arm_btn.setCheckable(True)
-self._arp_arm_btn.setFixedSize(44, 24)
-self._arp_arm_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
-self._arp_arm_btn.setToolTip("Arm start sync (waits for REF tick)")
-self._arp_arm_btn.clicked.connect(self._on_arm_changed)
-layout.addWidget(self._arp_arm_btn)
+self._arp_start_arm_btn = QPushButton("ARM")
+self._arp_start_arm_btn.setCheckable(True)
+self._arp_start_arm_btn.setFixedSize(44, 24)
+self._arp_start_arm_btn.setFont(QFont(FONT_FAMILY, 9, QFont.Bold))
+self._arp_start_arm_btn.setToolTip("Arm start sync (waits for REF tick)")
+self._arp_start_arm_btn.clicked.connect(self._on_arm_changed)
+layout.addWidget(self._arp_start_arm_btn)
 
 layout.addSpacing(4)
 
@@ -295,13 +295,13 @@ ref_label = QLabel("REF:")
 ref_label.setFont(QFont(FONT_FAMILY, 9))
 layout.addWidget(ref_label)
 
-ref_labels = ["/4", "/2", "CLK", "x2", "x4", "x8"]  # indices 4-9
-self._arp_ref_btn = CycleButton(ref_labels, 0)  # Default /4 (index 0 = fabric 4)
-self._arp_ref_btn.setFixedSize(44, 24)
-self._arp_ref_btn.setFont(QFont(FONT_FAMILY, 9))
-self._arp_ref_btn.setToolTip("Start sync reference rate")
-self._arp_ref_btn.index_changed.connect(self._on_ref_changed)
-layout.addWidget(self._arp_ref_btn)
+ref_labels = CLOCK_RATES[4:10]  # SSOT: ["/4", "/2", "CLK", "x2", "x4", "x8"]
+self._arp_start_ref_btn = CycleButton(ref_labels, 0)  # Default /4 (index 0 = fabric 4)
+self._arp_start_ref_btn.setFixedSize(44, 24)
+self._arp_start_ref_btn.setFont(QFont(FONT_FAMILY, 9))
+self._arp_start_ref_btn.setToolTip("Start sync reference rate")
+self._arp_start_ref_btn.index_changed.connect(self._on_ref_changed)
+layout.addWidget(self._arp_start_ref_btn)
 ```
 
 ### Step 3.2: Handlers
@@ -310,9 +310,9 @@ layout.addWidget(self._arp_ref_btn)
 def _on_arm_changed(self):
     """Handle ARM toggle."""
     if self._arp_engine is None:
-        self._arp_arm_btn.setChecked(False)
+        self._arp_start_arm_btn.setChecked(False)
         return
-    self._arp_engine.set_start_sync(self._arp_arm_btn.isChecked())
+    self._arp_engine.set_start_sync(self._arp_start_arm_btn.isChecked())
 
 def _on_ref_changed(self, index: int):
     """Handle REF rate change."""
@@ -329,9 +329,9 @@ In `sync_ui_from_engine()`, add after Euclidean controls sync:
 
 ```python
 # Start sync controls
-self._arp_arm_btn.setChecked(engine.runtime.start_sync_armed)
+self._arp_start_arm_btn.setChecked(engine.runtime.start_sync_armed)
 ref_ui_idx = max(0, min(5, settings.start_ref_idx - 4))
-self._arp_ref_btn.set_index(ref_ui_idx)
+self._arp_start_ref_btn.set_index(ref_ui_idx)
 ```
 
 ### ARM auto-disarm UI sync
@@ -342,10 +342,12 @@ The overlay already has `_grid_refresh_timer` (50ms) for SEQ playhead updates. W
 
 ```python
 # In _refresh_step_grid() or a similar periodic callback:
-if self._arp_engine is not None and self._arp_arm_btn is not None:
+if self._arp_engine is not None and self._arp_start_arm_btn is not None:
     armed = self._arp_engine.runtime.start_sync_armed
-    if self._arp_arm_btn.isChecked() != armed:
-        self._arp_arm_btn.setChecked(armed)
+    if self._arp_start_arm_btn.isChecked() != armed:
+        self._arp_start_arm_btn.blockSignals(True)
+        self._arp_start_arm_btn.setChecked(armed)
+        self._arp_start_arm_btn.blockSignals(False)
 ```
 
 Do not add new timers solely for this feature.
