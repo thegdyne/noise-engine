@@ -222,6 +222,7 @@ class ArpRuntime:
     # One-shot reset: fabric index to trigger on, or None
     rst_fabric_idx: Optional[int] = None
     rst_fired_count: int = 0
+    rst_step_counter: int = 0
 
     # Clock/timing
     clock_mode: ClockMode = ClockMode.STOPPED
@@ -459,17 +460,39 @@ class ArpEngine:
     # =========================================================================
 
     def reset_on_tick(self, tick_time_ms: float):
-        """Execute one-shot ARP reset (R7). Called from MotionManager when fabric tick matches."""
+        """Execute ARP reset. Called from MotionManager when fabric tick matches."""
         self._note_off_currently_sounding()
         self.runtime.current_step_index = 0
         self.runtime.euclid_step = 0
-        # R15: Clear tick-dedupe state so master_tick() can emit step 0 on this same tick.
+        self.runtime.rst_step_counter = 0
+        # Clear tick-dedupe state so master_tick() can emit step 0 on this same tick.
         self.runtime.last_arp_step_time = None
         self.runtime.last_eligible_master_tick_time = None
         rate = self.settings.rate_index
         self.runtime.last_master_tick_time_by_rate.pop(rate, None)
-        self.runtime.rst_fabric_idx = None  # R8: auto-disarm
         self.runtime.rst_fired_count += 1
+
+    def _rst_steps_per_period(self) -> Optional[int]:
+        """Compute how many ARP steps fit in one RST rate period.
+
+        Returns None if RST rate is faster than or equal to ARP rate
+        (would reset every step — not useful).
+        """
+        from src.config import FABRIC_IDX_TO_ARP_RATE
+        rst_fidx = self.runtime.rst_fabric_idx
+        if rst_fidx is None:
+            return None
+        rst_arp_rate = FABRIC_IDX_TO_ARP_RATE.get(rst_fidx)
+        if rst_arp_rate is None:
+            return None
+        rst_beats = ARP_BEATS_PER_STEP.get(rst_arp_rate)
+        arp_beats = ARP_BEATS_PER_STEP.get(self.settings.rate_index)
+        if rst_beats is None or arp_beats is None or arp_beats <= 0:
+            return None
+        steps = rst_beats / arp_beats
+        if steps <= 1.0:
+            return 1  # Fire every step if RST is faster than ARP
+        return max(1, round(steps))
 
     # =========================================================================
     # ACTIVE SET DERIVATION
@@ -1056,16 +1079,18 @@ class ArpEngine:
 
     def _execute_step(self, step_time_ms: float):
         """Execute one ARP step."""
-        # RST: if armed, reset phase so this step emits from position 0.
-        # This is the fallback-timer path — fires on next ARP step regardless
-        # of RST rate. The fabric-tick path in MotionManager.on_fabric_tick()
-        # handles rate-matched reset when master clock ticks are available.
+        # RST: repeating phase reset at selected rate.
+        # Counts ARP steps and fires when enough have accumulated to equal
+        # one RST-rate period. Stays armed until user sets RST to OFF.
         if self.runtime.rst_fabric_idx is not None:
-            self._note_off_currently_sounding()
-            self.runtime.current_step_index = 0
-            self.runtime.euclid_step = 0
-            self.runtime.rst_fabric_idx = None
-            self.runtime.rst_fired_count += 1
+            self.runtime.rst_step_counter += 1
+            rst_period = self._rst_steps_per_period()
+            if rst_period is not None and self.runtime.rst_step_counter >= rst_period:
+                self._note_off_currently_sounding()
+                self.runtime.current_step_index = 0
+                self.runtime.euclid_step = 0
+                self.runtime.rst_step_counter = 0
+                self.runtime.rst_fired_count += 1
 
         vel_snapshot = self._get_velocity()
 

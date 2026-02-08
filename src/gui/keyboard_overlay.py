@@ -1174,6 +1174,7 @@ class KeyboardOverlay(QWidget):
             engine.runtime.rst_fabric_idx = None
         else:
             engine.runtime.rst_fabric_idx = index + 3  # R5: UI index -> fabric index
+            engine.runtime.rst_step_counter = 0  # Reset counter on rate change
 
     @staticmethod
     def _rst_led_style(active: bool) -> str:
@@ -1189,17 +1190,13 @@ class KeyboardOverlay(QWidget):
         """
 
     def _poll_rst_state(self):
-        """Poll ARP engine for RST fire events — updates button and flashes LED."""
+        """Poll ARP engine for RST fire events — flashes LED on each reset."""
         engine = self._arp_engine
         if engine is None:
             return
         count = engine.runtime.rst_fired_count
         if count != self._rst_last_fired_count:
             self._rst_last_fired_count = count
-            # Button back to OFF
-            self._arp_rst_btn.blockSignals(True)
-            self._arp_rst_btn.set_index(0)
-            self._arp_rst_btn.blockSignals(False)
             # Flash LED on
             self._rst_led.setStyleSheet(self._rst_led_style(True))
             self._rst_flash_off_timer.start()
