@@ -192,7 +192,7 @@ class PresetController:
             slot_id = i + 1
             if slot_id <= 8:
                 slot_widget = self.main.generator_grid.slots[slot_id]
-                slot_widget.apply_state(slot_state.to_dict())
+                slot_widget.apply_state(slot_state)
 
         for i, channel_state in enumerate(state.mixer.channels):
             ch_id = i + 1

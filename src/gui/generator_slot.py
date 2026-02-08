@@ -21,6 +21,10 @@ from src.config import (
 )
 from src.utils.logger import logger
 
+# P0.2: Module-scope imports (was inline in get_state/apply_state)
+from src.gui.arp_engine import ArpPattern
+from src.model.sequencer import StepType, PlayMode, MotionMode, SeqStep
+from src.presets.preset_schema import SlotState
 
 
 
@@ -369,7 +373,6 @@ class GeneratorSlot(QWidget):
 
         # SEQ state
         if self._motion_manager is not None:
-            from src.model.sequencer import StepType, PlayMode, MotionMode
             mm = self._motion_manager
             seq_engine = mm.get_seq_engine(slot_idx)
             if seq_engine is not None:
@@ -497,67 +500,82 @@ class GeneratorSlot(QWidget):
         self.analog_type_changed.emit(self.slot_id, self.analog_type)
         self.analog_enable_changed.emit(self.slot_id, self.analog_enabled)
 
-    def apply_state(self, state: dict):
+    def apply_state(self, slot_state: SlotState):
         """Apply full slot state from preset load — canonical import.
 
+        Accepts a typed SlotState (not raw dict) to enforce the
+        deserialize -> validate -> apply chain.
         Sets UI controls AND pushes feature state (ARP/Euclid/RST/SEQ)
         into injected managers. The controller must not do this separately.
         """
         # UI controls (generator, params, filter, env, clock, midi, etc.)
-        self.set_state(state)
+        self.set_state(slot_state.to_dict())
 
         slot_idx = self.slot_id - 1
 
         # ARP + Euclidean + RST state
         if self._arp_manager is not None:
-            from src.gui.arp_engine import ArpPattern
-            from src.model.sequencer import MotionMode
-            engine = self._arp_manager.get_engine(slot_idx)
-            patterns = list(ArpPattern)
-            pattern_idx = state.get("arp_pattern", 0)
-            pattern = patterns[pattern_idx] if 0 <= pattern_idx < len(patterns) else ArpPattern.UP
-            engine.set_rate(state.get("arp_rate", 4))
-            engine.set_pattern(pattern)
-            engine.set_octaves(state.get("arp_octaves", 1))
-            engine.toggle_hold(state.get("arp_hold", False))
-            engine.toggle_arp(state.get("arp_enabled", False))
-            engine.set_euclid(
-                state.get("euclid_enabled", False),
-                state.get("euclid_n", 16),
-                state.get("euclid_k", 16),
-                state.get("euclid_rot", 0),
-            )
-            rst_rate = state.get("rst_rate", 0)
-            engine.runtime.rst_fabric_idx = rst_rate if rst_rate >= 4 else None
-            if self._motion_manager is not None and state.get("arp_enabled", False):
-                self._motion_manager.set_mode(slot_idx, MotionMode.ARP)
+            self._apply_arp_state(slot_idx, slot_state)
 
         # SEQ state
         if self._motion_manager is not None:
-            from src.model.sequencer import StepType, PlayMode, MotionMode, SeqStep
-            mm = self._motion_manager
-            seq_engine = mm.get_seq_engine(slot_idx)
-            if seq_engine is not None:
-                step_types = list(StepType)
-                play_modes = list(PlayMode)
-                seq_engine._rate_index = max(0, min(state.get("seq_rate", 0), 6))
-                seq_engine.settings.length = max(1, min(state.get("seq_length", 16), 16))
-                pm_idx = state.get("seq_play_mode", 0)
-                seq_engine.settings.play_mode = play_modes[pm_idx] if 0 <= pm_idx < len(play_modes) else PlayMode.FORWARD
-                seq_steps = state.get("seq_steps", [])
-                if seq_steps:
-                    for j, step_dict in enumerate(seq_steps[:16]):
-                        if isinstance(step_dict, dict):
-                            st_idx = step_dict.get("step_type", 1)
-                            st = step_types[st_idx] if 0 <= st_idx < len(step_types) else StepType.REST
-                            seq_engine.settings.steps[j] = SeqStep(
-                                step_type=st,
-                                note=step_dict.get("note", 60),
-                                velocity=step_dict.get("velocity", 100),
-                            )
-                    seq_engine.steps_version += 1
-                if state.get("seq_enabled", False):
-                    mm.set_mode(slot_idx, MotionMode.SEQ)
+            self._apply_seq_state(slot_idx, slot_state)
+
+    def _apply_arp_state(self, slot_idx: int, slot_state: SlotState):
+        """Push ARP + Euclidean + RST state into the arp engine."""
+        engine = self._arp_manager.get_engine(slot_idx)
+        patterns = list(ArpPattern)
+        pattern_idx = slot_state.arp_pattern
+        pattern = patterns[pattern_idx] if 0 <= pattern_idx < len(patterns) else ArpPattern.UP
+        engine.set_rate(slot_state.arp_rate)
+        engine.set_pattern(pattern)
+        engine.set_octaves(slot_state.arp_octaves)
+        engine.toggle_hold(slot_state.arp_hold)
+        engine.toggle_arp(slot_state.arp_enabled)
+        engine.set_euclid(
+            slot_state.euclid_enabled,
+            slot_state.euclid_n,
+            slot_state.euclid_k,
+            slot_state.euclid_rot,
+        )
+        rst_rate = slot_state.rst_rate
+        engine.runtime.rst_fabric_idx = rst_rate if rst_rate >= 4 else None
+        if self._motion_manager is not None and slot_state.arp_enabled:
+            self._motion_manager.set_mode(slot_idx, MotionMode.ARP)
+
+    def _apply_seq_state(self, slot_idx: int, slot_state: SlotState):
+        """Push SEQ state into the seq engine, resetting stale steps first."""
+        mm = self._motion_manager
+        seq_engine = mm.get_seq_engine(slot_idx)
+        if seq_engine is None:
+            return
+
+        step_types = list(StepType)
+        play_modes = list(PlayMode)
+        seq_engine._rate_index = max(0, min(slot_state.seq_rate, 6))
+        seq_engine.settings.length = max(1, min(slot_state.seq_length, 16))
+        pm_idx = slot_state.seq_play_mode
+        seq_engine.settings.play_mode = play_modes[pm_idx] if 0 <= pm_idx < len(play_modes) else PlayMode.FORWARD
+
+        # P0.3: Reset ALL 16 steps to REST defaults before applying.
+        # Prevents stale tail when loading a preset with fewer steps.
+        for j in range(16):
+            seq_engine.settings.steps[j] = SeqStep()
+
+        # Apply provided steps over the clean slate
+        for j, step_dict in enumerate(slot_state.seq_steps[:16]):
+            if isinstance(step_dict, dict):
+                st_idx = step_dict.get("step_type", 1)
+                st = step_types[st_idx] if 0 <= st_idx < len(step_types) else StepType.REST
+                seq_engine.settings.steps[j] = SeqStep(
+                    step_type=st,
+                    note=step_dict.get("note", 60),
+                    velocity=step_dict.get("velocity", 100),
+                )
+        seq_engine.steps_version += 1
+
+        if slot_state.seq_enabled:
+            mm.set_mode(slot_idx, MotionMode.SEQ)
 
     def set_generator_type(self, gen_type):
         """Change generator type.

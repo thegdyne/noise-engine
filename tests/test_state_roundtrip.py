@@ -513,3 +513,81 @@ class TestControllerHasNoFeatureKnowledge:
             f"_apply_preset still contains feature keywords: {found}. "
             f"Feature state import belongs in GeneratorSlot.apply_state()."
         )
+
+
+class TestApplyStateTypeSafety:
+    """Phase 3 P0.1: apply_state accepts SlotState, not raw dict."""
+
+    def test_apply_state_signature_accepts_slot_state(self):
+        """apply_state type hint is SlotState, not dict."""
+        import re
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "src", "gui", "generator_slot.py",
+        )
+        with open(src_path) as f:
+            source = f.read()
+        match = re.search(r"def apply_state\(self,\s*(\w+):\s*(\w+)\)", source)
+        assert match, "apply_state method not found in generator_slot.py"
+        param_type = match.group(2)
+        assert param_type == "SlotState", (
+            f"apply_state parameter type is {param_type!r}, expected 'SlotState'"
+        )
+
+    def test_controller_passes_slot_state_not_dict(self):
+        """Controller passes SlotState directly, not slot_state.to_dict()."""
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "src", "gui", "controllers", "preset_controller.py",
+        )
+        with open(src_path) as f:
+            source = f.read()
+        # Must NOT contain apply_state(slot_state.to_dict())
+        assert "apply_state(slot_state.to_dict())" not in source, (
+            "Controller still converts to dict before calling apply_state"
+        )
+        # Must contain apply_state(slot_state) without .to_dict()
+        assert "apply_state(slot_state)" in source, (
+            "Controller doesn't pass SlotState directly to apply_state"
+        )
+
+
+class TestStaleSeqStepsPrevention:
+    """Phase 3 P0.3: Loading a shorter preset must not leave stale tail steps."""
+
+    def test_short_preset_clears_tail_steps(self):
+        """Steps beyond the new preset's length are reset to REST defaults."""
+        # Build a SlotState with only 4 steps (shorter than 16)
+        short_steps = [
+            {"step_type": 0, "note": 72, "velocity": 110},
+            {"step_type": 0, "note": 74, "velocity": 100},
+            {"step_type": 0, "note": 76, "velocity": 90},
+            {"step_type": 0, "note": 77, "velocity": 80},
+        ]
+        slot = SlotState(seq_steps=short_steps, seq_length=4, seq_enabled=True)
+
+        # Verify round-trip preserves exactly 4 steps
+        d = slot.to_dict()
+        assert len(d["seq_steps"]) == 4
+
+        # Verify from_dict faithfully restores
+        restored = SlotState.from_dict(d)
+        assert len(restored.seq_steps) == 4
+        assert restored.seq_steps[0]["note"] == 72
+
+    def test_apply_state_contains_step_reset(self):
+        """_apply_seq_state resets all 16 steps before applying new ones."""
+        import re
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "src", "gui", "generator_slot.py",
+        )
+        with open(src_path) as f:
+            source = f.read()
+        # Must contain the reset loop
+        assert "SeqStep()" in source, (
+            "_apply_seq_state must reset steps to SeqStep() defaults"
+        )
+        assert "for j in range(16):" in source, (
+            "_apply_seq_state must reset all 16 steps"
+        )
