@@ -48,6 +48,7 @@ Features:
         var harmonicRatios, syncedFreq2;
         var lfo1, lfo2, tempoHz, sync1On, sync2On, sync1Freq, sync2Freq;
         var driveEff, freq1Eff, freq2Eff, reso1Eff, reso2Eff, syncAmtEff, harmonicsEff, mixEff;
+        var mults = (~clockRateMults ? [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32]);
 
         // Bus unification: read from bus if valid index, otherwise use direct arg
         driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
@@ -68,16 +69,20 @@ Features:
         // Sine LFOs for filter cutoff modulation
         // sync1Idx/sync2Idx: -1 = off, 0-12 = clock rate index
         sync1On = (sync1Idx >= 0);
-        sync1Freq = Select.kr(sync1Idx.clip(0, 12), ~clockRateMults) * tempoHz;
+        sync1Freq = Select.kr(sync1Idx.clip(0, 12), mults) * tempoHz;
         lfo1 = SinOsc.kr(sync1Freq).range(0.01, 1);
         // When sync is off, force LFO to 1 (no modulation)
         lfo1 = Select.kr(sync1On, [DC.kr(1), lfo1]);
+        // Debug: verify LFO freq is sane (remove after confirming)
+        Poll.kr(Impulse.kr(1), sync1Freq, "sync1Freq");
+        Poll.kr(Impulse.kr(1), syncAmtEff, "syncAmtEff");
 
         sync2On = (sync2Idx >= 0);
-        sync2Freq = Select.kr(sync2Idx.clip(0, 12), ~clockRateMults) * tempoHz;
+        sync2Freq = Select.kr(sync2Idx.clip(0, 12), mults) * tempoHz;
         lfo2 = SinOsc.kr(sync2Freq).range(0.01, 1);
         // When sync is off, force LFO to 1 (no modulation)
         lfo2 = Select.kr(sync2On, [DC.kr(1), lfo2]);
+        Poll.kr(Impulse.kr(1), sync2Freq, "sync2Freq");
 
         // Smooth params
         freq1Eff = VarLag.kr(freq1Eff, 0.02, warp: \exp);
@@ -289,6 +294,7 @@ Features:
         ~fbSyncAmt = val;
         if(~fbSynth.notNil) { ~fbSynth.set(\syncAmt, val) };
         if(~queueBaseUpdate.notNil) { ~queueBaseUpdate.(\fx_fb_syncAmt, val) };
+        ("  fbSyncAmt raw=" ++ msg[1] ++ " val=" ++ val).postln;
     }, '/noise/master/fb/syncAmt');
 
     OSCdef(\fbHarmonics, { |msg|

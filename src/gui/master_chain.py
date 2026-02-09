@@ -281,10 +281,10 @@ FILTER_LAYOUT = {
 
 FL = FILTER_LAYOUT
 
-# Sync modes: FREE + SSOT clock rates
-FILTER_SYNC_MODES = ["FREE"] + CLOCK_RATES
-FILTER_SYNC_CLK_INDEX = 1 + CLOCK_DEFAULT_INDEX  # FREE shifts SSOT indices by +1
-assert FILTER_SYNC_MODES[0] == "FREE"
+# Sync modes: OFF + SSOT clock rates
+FILTER_SYNC_MODES = ["OFF"] + CLOCK_RATES
+FILTER_SYNC_CLK_INDEX = 1 + CLOCK_DEFAULT_INDEX  # OFF shifts SSOT indices by +1
+assert FILTER_SYNC_MODES[0] == "OFF"
 assert FILTER_SYNC_MODES[FILTER_SYNC_CLK_INDEX] == "CLK"
 
 
@@ -654,6 +654,8 @@ class FilterModule(QWidget):
             label = state['f1_sync']
             if isinstance(label, int):
                 idx = label if 0 <= label < len(FILTER_SYNC_MODES) else 0
+            elif label == "FREE":
+                idx = 0  # Legacy: FREE → OFF (index 0)
             else:
                 idx = FILTER_SYNC_MODES.index(label) if label in FILTER_SYNC_MODES else 0
             self.f1_sync_btn.set_index(idx)
@@ -663,6 +665,8 @@ class FilterModule(QWidget):
             label = state['f2_sync']
             if isinstance(label, int):
                 idx = label if 0 <= label < len(FILTER_SYNC_MODES) else 0
+            elif label == "FREE":
+                idx = 0  # Legacy: FREE → OFF (index 0)
             else:
                 idx = FILTER_SYNC_MODES.index(label) if label in FILTER_SYNC_MODES else 0
             self.f2_sync_btn.set_index(idx)
