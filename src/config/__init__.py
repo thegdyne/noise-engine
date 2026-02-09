@@ -246,11 +246,10 @@ BPM_MIN = 20
 BPM_MAX = 300
 
 # === ARP RATE <-> FABRIC INDEX MAPPING ===
-# ARP rate index -> fabric index (direct matches only, 1/12 excluded)
+# ARP rate index -> fabric index (all rates now have fabric matches)
 # ARP rates: 0=1/32, 1=1/16, 2=1/12, 3=1/8, 4=1/4, 5=1/2, 6=1bar
-# Fabric:    4=/4,   5=/2,   6=CLK,  7=x2,  8=x4,  9=x8
-ARP_RATE_TO_FABRIC_IDX = {0: 9, 1: 8, 3: 7, 4: 6, 5: 5, 6: 4}
-# Note: ARP rate 2 (1/12 triplet) has no fabric match — uses fallback timer
+# Fabric:    2=/12,  4=/4,   5=/2,   6=CLK,  7=x2,  8=x4,  9=x8
+ARP_RATE_TO_FABRIC_IDX = {0: 9, 1: 8, 2: 2, 3: 7, 4: 6, 5: 5, 6: 4}
 
 # Inverse: fabric index -> ARP rate index
 FABRIC_IDX_TO_ARP_RATE = {v: k for k, v in ARP_RATE_TO_FABRIC_IDX.items()}

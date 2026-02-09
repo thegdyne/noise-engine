@@ -41,8 +41,7 @@ OSC messages to Python:
     ~genMidiRetrig = Array.fill(8, { false });  // true = continuous retrig while key held
     ~genRetrigSynths = Array.fill(8, { nil });  // Active retrig synths per slot
 
-    // Per-generator transpose (semitones, -24 to +24)
-    ~genTranspose = Array.fill(8, { 0 });
+    // ~genTranspose is declared in buses.scd (SSOT)
 
     // MIDI connection state
     ~midiConnected = false;
