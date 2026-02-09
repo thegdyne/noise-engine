@@ -10,6 +10,7 @@
   "generators": [
     "b258_osc",
     "b258_twin",
-    "b258_dna"
+    "b258_dna",
+    "b258_dna26"
   ]
 }
