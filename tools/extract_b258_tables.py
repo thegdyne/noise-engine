@@ -2,16 +2,20 @@
 """
 Extract 26-point harmonic tables from Buchla 258 morph map captures.
 
-Reads morph map JSON files (sine→saw and sine→square sweeps),
-runs SSOT FFT (fft_features.compute_all) on each waveform snapshot,
-and outputs SuperCollider-ready #[...] table arrays for b258_dna.
+Reads morph map JSON files (sine->saw and sine->square sweeps),
+runs rectangular-window FFT on each single-cycle waveform snapshot,
+and outputs SuperCollider-ready #[...] table arrays for b258_dna26.
+
+IMPORTANT: Morph map waveforms are single-cycle captures (1024 samples = 1 cycle).
+Must use rectangular window (no windowing) — Hann creates spurious h2 = 0.5
+on single-cycle data due to the window's spectral convolution.
 
 Usage:
     python tools/extract_b258_tables.py \
         for_claude/morph_map_buchla_258_20260206_140115.json \
         for_claude/morph_map_buchla_258_20260206_140441.json
 
-First file = sine→saw, second file = sine→square.
+First file = sine->saw, second file = sine->square.
 """
 
 import json
@@ -20,28 +24,45 @@ from pathlib import Path
 
 import numpy as np
 
-# Add project root for SSOT import
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from src.telemetry.fft_features import compute_all
-
 
 def load_morph_map(filepath: str) -> dict:
     with open(filepath, 'r') as f:
         return json.load(f)
 
 
+def extract_harmonics_rect(waveform: np.ndarray, num_harmonics: int = 8) -> list:
+    """Extract harmonic ratios using rectangular-window FFT.
+
+    For single-cycle waveforms, the fundamental is at bin 1 exactly.
+    No windowing needed — the signal is periodic within the DFT frame.
+
+    Returns list of ratios [h1=1.0, h2/h1, h3/h1, ..., h8/h1].
+    """
+    fft_mag = np.abs(np.fft.rfft(waveform))
+
+    fund_mag = fft_mag[1]
+    if fund_mag < 1e-12:
+        return [1.0] + [0.0] * (num_harmonics - 1)
+
+    ratios = []
+    for h in range(1, num_harmonics + 1):
+        if h < len(fft_mag):
+            ratios.append(float(fft_mag[h] / fund_mag))
+        else:
+            ratios.append(0.0)
+
+    return ratios
+
+
 def extract_tables(morph_map: dict, label: str) -> dict:
     """Extract h2-h8 harmonic ratios and RMS from all snapshots."""
     snapshots = morph_map.get('snapshots', [])
-    n = len(snapshots)
 
-    # Storage: h2..h8 tables + RMS
-    h_tables = {h: [] for h in range(2, 9)}  # h2 through h8
+    h_tables = {h: [] for h in range(2, 9)}
     rms_values = []
     cc_values = []
 
     for i, snap in enumerate(snapshots):
-        # Get waveform
         waveform = snap.get('snapshot', {}).get('waveform')
         if waveform is None:
             waveform = snap.get('waveform')
@@ -51,27 +72,19 @@ def extract_tables(morph_map: dict, label: str) -> dict:
 
         w = np.array(waveform, dtype=np.float64)
 
-        # Get frequency from frame
         frame = snap.get('snapshot', {}).get('frame', {})
-        freq = frame.get('freq')
-
-        # Get RMS from frame
         rms = frame.get('rms_stage1', frame.get('rms_stage2', 0.0))
         rms_values.append(rms)
 
-        # Get CC value
         cc = snap.get('midi_cc_value', i)
         cc_values.append(cc)
 
-        # Run SSOT FFT
-        result = compute_all(w, freq_hz=freq, num_harmonics=8)
-        harm = result['harm_ratio_raw']  # [h1=1.0, h2, h3, ..., h8]
+        # Rectangular-window FFT for single-cycle waveforms
+        harm = extract_harmonics_rect(w, num_harmonics=8)
 
-        # Store h2-h8 (indices 1-7 in harm_ratio_raw)
+        # Store h2-h8 (indices 1-7 in ratios, since h1 is index 0)
         for h in range(2, 9):
-            idx = h - 1
-            val = harm[idx] if idx < len(harm) else 0.0
-            h_tables[h].append(val)
+            h_tables[h].append(harm[h - 1])
 
     # Normalize RMS so max = 1.0
     max_rms = max(rms_values) if rms_values else 1.0
@@ -100,7 +113,7 @@ def print_tables(data: dict, prefix: str):
     ccs = data['cc_values']
 
     print(f"    // =======================================================")
-    print(f"    // {label.upper()} HARMONIC TABLES (FFT from 1024-sample hardware waveforms)")
+    print(f"    // {label.upper()} HARMONIC TABLES (rectangular FFT, 1024-sample single-cycle waveforms)")
     print(f"    // {n} points: CC {', '.join(str(c) for c in ccs)}")
     print(f"    // =======================================================")
 
@@ -142,6 +155,21 @@ def main():
     sqr_data = extract_tables(sqr_map, "SQR")
     print(f"  Extracted {sqr_data['n']} points")
 
+    # Sanity check: CC 125 saw should follow ~1/n series
+    saw_h = saw_data['h_tables']
+    print(f"\n--- Sanity Check: SAW CC 125 ---")
+    print(f"  h2={saw_h[2][-1]:.4f} (ideal saw: 0.500)")
+    print(f"  h3={saw_h[3][-1]:.4f} (ideal saw: 0.333)")
+    print(f"  h4={saw_h[4][-1]:.4f} (ideal saw: 0.250)")
+    print(f"  h5={saw_h[5][-1]:.4f} (ideal saw: 0.200)")
+
+    sqr_h = sqr_data['h_tables']
+    print(f"\n--- Sanity Check: SQR CC 125 ---")
+    print(f"  h2={sqr_h[2][-1]:.4f} (ideal square: ~0)")
+    print(f"  h3={sqr_h[3][-1]:.4f} (ideal square: 0.333)")
+    print(f"  h5={sqr_h[5][-1]:.4f} (ideal square: 0.200)")
+    print(f"  h7={sqr_h[7][-1]:.4f} (ideal square: 0.143)")
+
     print("\n" + "=" * 70)
     print("SUPERCOLLIDER TABLE OUTPUT")
     print("=" * 70 + "\n")
@@ -149,7 +177,6 @@ def main():
     print_tables(saw_data, "Saw")
     print_tables(sqr_data, "Sqr")
 
-    # Summary
     print("    // =======================================================")
     print("    // INDEX MATH (26-point tables)")
     print("    // =======================================================")
