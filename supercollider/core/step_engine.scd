@@ -32,7 +32,7 @@ Dependencies: buses.scd (~clockTrigBus, ~midiTrigBus, ~busRegistry, ~genGroup, ~
 // === SYNTHDEF (loaded at file parse time, before server boot completes) ===
 
 SynthDef(\stepEngineSlot, {
-    |clockTrigBus, bpmBus, freqBus, midiTrigBusChan,
+    |clockTrigBus, freqBus, midiTrigBusChan,
      bufnum, mode=0, fabricIdx=6, stepCount=0,
      playMode=0, resetTrig=0|
 
@@ -41,7 +41,7 @@ SynthDef(\stepEngineSlot, {
     var posFwd, posRev, posPP, posRand, pos;
     var step, type, note, vel, gateFrac;
     var active, isNote;
-    var freq, freqHeld;
+    var freq, freqHeld, freqIn, freqOut;
     var trigPulse;
     var safeStepCount;
 
@@ -67,6 +67,7 @@ SynthDef(\stepEngineSlot, {
 
     // Read step data from buffer (4 channels: type, note, vel, gate)
     step = BufRd.kr(4, bufnum, pos, loop: 1, interpolation: 1);
+    // gateFrac: captured but not yet applied — reserved for v2.1 gate/envelope control
     type = step[0]; note = step[1]; vel = step[2]; gateFrac = step[3];
 
     // Active = mode > 0 AND we have steps
@@ -77,7 +78,10 @@ SynthDef(\stepEngineSlot, {
     // Sample-and-hold frequency: only updates on NOTE steps
     freq = note.midicps;
     freqHeld = Latch.kr(freq, edge * isNote);
-    ReplaceOut.kr(freqBus, freqHeld);
+    // P0.1: pass through current bus value when inactive — avoids clobbering MIDI/knob freq
+    freqIn = In.kr(freqBus);
+    freqOut = Select.kr(active, [freqIn, freqHeld]);
+    ReplaceOut.kr(freqBus, freqOut);
 
     // Generate trigger pulse: 2-sample audio pulse on NOTE steps
     trigPulse = Trig1.ar(K2A.ar(edge * isNote), SampleDur.ir * 2);
@@ -102,7 +106,6 @@ SynthDef(\stepEngineSlot, {
         var freqBusKey = ("gen_" ++ slot1 ++ "_freq").asSymbol;
         Synth(\stepEngineSlot, [
             \clockTrigBus, ~clockTrigBus.index,
-            \bpmBus, ~clockBus.index,
             \freqBus, ~busRegistry[freqBusKey].index,
             \midiTrigBusChan, ~midiTrigBus.index + i,
             \bufnum, ~stepBuf[i].bufnum,

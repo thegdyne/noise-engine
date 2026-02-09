@@ -164,18 +164,18 @@ All OSC message routing
         var slot = msg[1].asInteger;
         var source = msg[2].asInteger;
         var idx = slot - 1;
-        // Always mirror Python's intent
         if(idx >= 0 && (idx < 8), {
+            // Always mirror Python's intent
             ~genEnvSource[idx] = source;
+            if(~genEnvSourceForced[idx] ? false, {
+                // Step engine active — re-force to MIDI, ignore user change on bus
+                ~genParams[slot][\envSource].set(2);
+            }, {
+                // Normal — apply directly
+                ~genParams[slot][\envSource].set(source);
+            });
+            ("Gen " ++ slot ++ " env source: " ++ ["OFF", "CLK", "MIDI"][source]).postln;
         });
-        if(~genEnvSourceForced[idx] ? false, {
-            // Step engine active — re-force to MIDI, ignore user change on bus
-            ~genParams[slot][\envSource].set(2);
-        }, {
-            // Normal — apply directly
-            ~genParams[slot][\envSource].set(source);
-        });
-        ("Gen " ++ slot ++ " env source: " ++ ["OFF", "CLK", "MIDI"][source]).postln;
     }, '/noise/gen/envSource');
     
     OSCdef(\genClockRate, { |msg|
