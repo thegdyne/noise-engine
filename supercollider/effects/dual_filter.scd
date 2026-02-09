@@ -48,10 +48,6 @@ Features:
         var harmonicRatios, syncedFreq2;
         var lfo1, lfo2, tempoHz, sync1On, sync2On, sync1Freq, sync2Freq;
         var driveEff, freq1Eff, freq2Eff, reso1Eff, reso2Eff, syncAmtEff, harmonicsEff, mixEff;
-        // Inlined clock multipliers (SSOT: clock_registry.scd) — NO # prefix!
-        // #[...] is a literal array that does NOT evaluate expressions like 1/32.
-        // [...] (dynamic array) evaluates the division at SynthDef compile time.
-        var clockMults = [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
 
         // Bus unification: read from bus if valid index, otherwise use direct arg
         driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
@@ -72,13 +68,13 @@ Features:
         // Sine LFOs for filter cutoff modulation
         // sync1Idx/sync2Idx: -1 = off, 0-12 = clock rate index
         sync1On = (sync1Idx >= 0);
-        sync1Freq = Select.kr(sync1Idx.clip(0, 12), clockMults) * tempoHz;
+        sync1Freq = Select.kr(sync1Idx.clip(0, 12), ~clockRateMults) * tempoHz;
         lfo1 = SinOsc.kr(sync1Freq).range(0.01, 1);
         // When sync is off, force LFO to 1 (no modulation)
         lfo1 = Select.kr(sync1On, [DC.kr(1), lfo1]);
 
         sync2On = (sync2Idx >= 0);
-        sync2Freq = Select.kr(sync2Idx.clip(0, 12), clockMults) * tempoHz;
+        sync2Freq = Select.kr(sync2Idx.clip(0, 12), ~clockRateMults) * tempoHz;
         lfo2 = SinOsc.kr(sync2Freq).range(0.01, 1);
         // When sync is off, force LFO to 1 (no modulation)
         lfo2 = Select.kr(sync2On, [DC.kr(1), lfo2]);
