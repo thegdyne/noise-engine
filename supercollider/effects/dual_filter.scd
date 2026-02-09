@@ -28,6 +28,8 @@ Features:
     ~fbMode2 = 0;
     ~fbSync1Rate = 0;     // LFO rate multiplier (0 = free/off)
     ~fbSync2Rate = 0;
+    ~fbSync1Idx = -1;     // Clock rate index (-1 = off/FREE)
+    ~fbSync2Idx = -1;
     ~fbSyncAmt = 0.0;     // Sync modulation depth 0-1
     ~fbHarmonics = 0;     // 0=Free, 1-7 = sync ratios
     ~fbRouting = 0;       // 0=Serial, 1=Parallel
@@ -205,6 +207,8 @@ Features:
         \mode2, ~fbMode2,
         \sync1Rate, ~fbSync1Rate,
         \sync2Rate, ~fbSync2Rate,
+        \sync1Idx, ~fbSync1Idx,
+        \sync2Idx, ~fbSync2Idx,
         \syncAmt, ~fbSyncAmt,
         \harmonics, ~fbHarmonics,
         \routing, ~fbRouting,
@@ -257,6 +261,7 @@ Features:
         var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
         var mult = if (idx >= 0) { ~clockRateMults[idx] } { 0 };
         ~fbSync1Rate = mult;
+        ~fbSync1Idx = idx;
         if(~fbSynth.notNil) {
             ~fbSynth.set(\sync1Rate, mult);
             ~fbSynth.set(\sync1Idx, idx);
@@ -290,6 +295,7 @@ Features:
         var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
         var mult = if (idx >= 0) { ~clockRateMults[idx] } { 0 };
         ~fbSync2Rate = mult;
+        ~fbSync2Idx = idx;
         if(~fbSynth.notNil) {
             ~fbSynth.set(\sync2Rate, mult);
             ~fbSynth.set(\sync2Idx, idx);
