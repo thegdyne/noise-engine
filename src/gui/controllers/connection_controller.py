@@ -13,6 +13,7 @@ from src.gui.theme import COLORS
 from src.gui.crossmod_osc_bridge import CrossmodOSCBridge
 from src.audio.scope_controller import ScopeController
 from src.audio.telemetry_controller import TelemetryController
+from src.audio.wavetable_loader import upload_wavetables
 from src.utils.logger import logger
 
 
@@ -115,6 +116,12 @@ class ConnectionController:
                 
                 # Send initial mod source state
                 self.main.modulation._sync_mod_sources()
+
+                # Upload wavetable data to SC (b258_wt buffer banks)
+                try:
+                    upload_wavetables(self.main.osc.client)
+                except Exception as e:
+                    logger.warning(f"Wavetable upload failed: {e}", component="OSC")
 
                 # Auto-load Init.json on first connect
                 QTimer.singleShot(100, self.main.preset._init_preset)
