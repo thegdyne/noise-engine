@@ -100,6 +100,9 @@ SynthDef(\stepEngineSlot, {
     // Allocate per-slot buffers: 16 frames x 4 channels (type, note, vel, gate)
     ~stepBuf = Array.fill(8, { Buffer.alloc(s, 16, 4) });
 
+    // Wait for buffers to be ready on server before spawning synths that read them
+    s.sync;
+
     // Spawn persistent synths — one per slot, BEFORE generators in node order
     ~stepSynths = Array.fill(8, { |i|
         var slot1 = i + 1;
