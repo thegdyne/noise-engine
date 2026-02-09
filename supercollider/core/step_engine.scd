@@ -126,10 +126,10 @@ SynthDef(\stepEngineSlot, {
             var notes = msg[2..].collect(_.asInteger);
             var buf = ~stepBuf[slot0];
             if(notes.size > 0, {
-                // Pack notes into buffer: type=0 (NOTE), note=N, vel=100, gate=1.0
-                var data = Array.new(notes.size * 4);
+                // Pack notes into buffer: type=0 (NOTE), note=N, vel=127, gate=1.0
+                var data = [];
                 notes.do { |n|
-                    data = data ++ [0, n, 100, 1.0];  // type=NOTE, note, vel, gate
+                    data = data ++ [0, n, 127, 1.0];  // type=NOTE, note, vel, gate
                 };
                 buf.setn(0, data);
                 ~stepSynths[slot0].set(\stepCount, notes.size, \resetTrig, 1);
@@ -158,7 +158,7 @@ SynthDef(\stepEngineSlot, {
             var length = msg[2].asInteger;
             var raw = msg[3..];
             var buf = ~stepBuf[slot0];
-            var data = Array.new(16 * 4);  // Max 16 steps x 4 channels
+            var data = [];
             var numSteps = (raw.size / 4).asInteger.min(16);
 
             // Pack received steps
