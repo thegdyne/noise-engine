@@ -38,12 +38,17 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
                 // Track this note
                 ~keyboardActiveNotes[i][note] = true;
 
-                // Set frequency from note via unified bus system
-                // Use queueBaseUpdate so apply tick processes it (direct .set gets overwritten)
+                // Set frequency IMMEDIATELY on the bus so the trigger fires at the correct pitch.
+                // queueBaseUpdate alone has up to 5ms latency (200Hz apply tick),
+                // which causes the envelope to start at the old note's frequency.
+                if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
+                    ~busRegistry[freqBusKey].set(freq);
+                });
+                // Also queue for the modulation system (apply tick recalculates with mod offsets)
                 if(~queueBaseUpdate.notNil, {
                     ~queueBaseUpdate.(freqBusKey, freq);
                 });
-                
+
                 // Trigger envelope if generator exists
                 if(~generators[slot].notNil, {
                     if(needsRetrig, {
