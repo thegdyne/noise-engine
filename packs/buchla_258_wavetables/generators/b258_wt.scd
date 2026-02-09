@@ -14,21 +14,58 @@ Controls:
   P1 SQR: Position in sine→square table set (interpolated across 26 tables)
   P2 MIX: Crossfade between SAW and SQR tracks
 
-Processing policy: DC preserved, gain preserved (authentic amplitude rise),
-phase alignment assumed from captures.
-
-Data source: morph_map JSON captures from Buchla 258 hardware
+Buffer layout: 52 consecutive wavetable buffers at known bufnums
+  SAW: bufnums 1900-1925 (26 tables)
+  SQR: bufnums 1926-1951 (26 tables)
 */
 
+// === SYNTHDEF (defined FIRST so it always loads) ===
+// Buffer start indices are hardcoded defaults matching the allocation below.
+// VOsc needs consecutive bufnums — explicit allocation guarantees this.
+SynthDef(\b258_wt, { |out, freqBus, customBus0, sawBufStart=1900, sqrBufStart=1926|
+    var p, sawMorph, sqrMorph, mix;
+    var freq, sawBufPos, sqrBufPos;
+    var sawSig, sqrSig, sig;
+
+    p = In.kr(customBus0, 5);
+    sawMorph = Lag.kr(p[0], 0.05);  // P0 SAW: table position
+    sqrMorph = Lag.kr(p[1], 0.05);  // P1 SQR: table position
+    mix      = Lag.kr(p[2], 0.05);  // P2 MIX: crossfade
+
+    freq = In.kr(freqBus).clip(5, 20000);
+
+    // VOsc: floating-point buffer index interpolates between adjacent tables
+    // Range: bufStart to bufStart+25 (26 consecutive wavetable buffers)
+    sawBufPos = sawBufStart + (sawMorph.clip(0, 1) * 25);
+    sqrBufPos = sqrBufStart + (sqrMorph.clip(0, 1) * 25);
+
+    sawSig = VOsc.ar(sawBufPos, freq);
+    sqrSig = VOsc.ar(sqrBufPos, freq);
+
+    // Crossfade: MIX 0 = pure SAW track, MIX 1 = pure SQR track
+    sig = XFade2.ar(sawSig, sqrSig, mix.linlin(0, 1, -1, 1));
+
+    // Gentle output scaling (authentic gain preserved in tables)
+    sig = sig * 0.7;
+
+    // --- MANDATORY TAIL ---
+    sig = NumChannels.ar(sig, 2);
+    ReplaceOut.ar(out, sig);
+}).add;
+
+"  [x] b258_wt SynthDef loaded".postln;
+
 // === BUFFER ALLOCATION ===
-// 26 wavetable buffers per set, 2048 frames (SC wavetable format for 1024-pt tables)
-// Buffer.allocConsecutive assigns bufnums immediately (client-side)
-~b258_wt_sawBufs = Buffer.allocConsecutive(26, s, 2048, 1);
-~b258_wt_sqrBufs = Buffer.allocConsecutive(26, s, 2048, 1);
-~b258_wt_sawStart = ~b258_wt_sawBufs[0].bufnum;
-~b258_wt_sqrStart = ~b258_wt_sqrBufs[0].bufnum;
+// Explicit bufnums guarantee consecutive layout for VOsc.
+// Range 1900-1951 (well within s.options.numBuffers = 2048).
+~b258_wt_sawBufs = Array.fill(26, { |i| Buffer.alloc(s, 2048, 1, nil, 1900 + i) });
+~b258_wt_sqrBufs = Array.fill(26, { |i| Buffer.alloc(s, 2048, 1, nil, 1926 + i) });
+~b258_wt_sawStart = 1900;
+~b258_wt_sqrStart = 1926;
 ~b258_wt_sawLoaded = 0;
 ~b258_wt_sqrLoaded = 0;
+
+"  [x] b258_wt buffers allocated (1900-1951)".postln;
 
 // === OSC HANDLER: Receive waveform data from Python ===
 // msg format: /noise/b258_wt/load [tableType(0=saw,1=sqr), tableIndex(0-25), ...1024 floats...]
@@ -78,42 +115,4 @@ OSCdef(\b258_wt_info, { |msg, time, addr|
     );
 }, '/noise/b258_wt/query');
 
-// === SYNTHDEF ===
-// Captures buffer start indices at compile time (integer constants in UGen graph)
-(
-var sawStart = ~b258_wt_sawStart;
-var sqrStart = ~b258_wt_sqrStart;
-
-SynthDef(\b258_wt, { |out, freqBus, customBus0|
-    var p, sawMorph, sqrMorph, mix;
-    var freq, sawBufPos, sqrBufPos;
-    var sawSig, sqrSig, sig;
-
-    p = In.kr(customBus0, 5);
-    sawMorph = Lag.kr(p[0], 0.05);  // P0 SAW: table position
-    sqrMorph = Lag.kr(p[1], 0.05);  // P1 SQR: table position
-    mix      = Lag.kr(p[2], 0.05);  // P2 MIX: crossfade
-
-    freq = In.kr(freqBus).clip(5, 20000);
-
-    // VOsc: floating-point buffer index interpolates between adjacent tables
-    // Range: bufStart to bufStart+25 (26 consecutive wavetable buffers)
-    sawBufPos = sawStart + (sawMorph.clip(0, 1) * 25);
-    sqrBufPos = sqrStart + (sqrMorph.clip(0, 1) * 25);
-
-    sawSig = VOsc.ar(sawBufPos, freq);
-    sqrSig = VOsc.ar(sqrBufPos, freq);
-
-    // Crossfade: MIX 0 = pure SAW track, MIX 1 = pure SQR track
-    sig = XFade2.ar(sawSig, sqrSig, mix.linlin(0, 1, -1, 1));
-
-    // Gentle output scaling (authentic gain preserved in tables)
-    sig = sig * 0.7;
-
-    // --- MANDATORY TAIL ---
-    sig = NumChannels.ar(sig, 2);
-    ReplaceOut.ar(out, sig);
-}).add;
-);
-
-"  [x] b258_wt loaded (wavetable morph from 26-pt hardware telemetry, 52 buffers allocated)".postln;
+"  [x] b258_wt ready (wavetable morph from 26-pt hardware telemetry)".postln;
