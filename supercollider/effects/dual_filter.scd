@@ -73,16 +73,11 @@ Features:
         lfo1 = SinOsc.kr(sync1Freq).range(0.01, 1);
         // When sync is off, force LFO to 1 (no modulation)
         lfo1 = Select.kr(sync1On, [DC.kr(1), lfo1]);
-        // Debug: verify LFO freq is sane (remove after confirming)
-        Poll.kr(Impulse.kr(1), sync1Freq, "sync1Freq");
-        Poll.kr(Impulse.kr(1), syncAmtEff, "syncAmtEff");
 
         sync2On = (sync2Idx >= 0);
         sync2Freq = Select.kr(sync2Idx.clip(0, 12), mults) * tempoHz;
         lfo2 = SinOsc.kr(sync2Freq).range(0.01, 1);
-        // When sync is off, force LFO to 1 (no modulation)
         lfo2 = Select.kr(sync2On, [DC.kr(1), lfo2]);
-        Poll.kr(Impulse.kr(1), sync2Freq, "sync2Freq");
 
         // Smooth params
         freq1Eff = VarLag.kr(freq1Eff, 0.02, warp: \exp);
@@ -252,7 +247,6 @@ Features:
         };
         ~fbSync1Idx = idx;
         if(~fbSynth.notNil) { ~fbSynth.set(\sync1Idx, idx) };
-        ("  fbSync1 raw=" ++ v ++ " idx=" ++ idx).postln;
     }, '/noise/master/fb/sync1');
     
     OSCdef(\fbFreq2, { |msg|
@@ -286,7 +280,6 @@ Features:
         };
         ~fbSync2Idx = idx;
         if(~fbSynth.notNil) { ~fbSynth.set(\sync2Idx, idx) };
-        ("  fbSync2 raw=" ++ v ++ " idx=" ++ idx).postln;
     }, '/noise/master/fb/sync2');
     
     OSCdef(\fbSyncAmt, { |msg|
@@ -294,7 +287,6 @@ Features:
         ~fbSyncAmt = val;
         if(~fbSynth.notNil) { ~fbSynth.set(\syncAmt, val) };
         if(~queueBaseUpdate.notNil) { ~queueBaseUpdate.(\fx_fb_syncAmt, val) };
-        ("  fbSyncAmt raw=" ++ msg[1] ++ " val=" ++ val).postln;
     }, '/noise/master/fb/syncAmt');
 
     OSCdef(\fbHarmonics, { |msg|
