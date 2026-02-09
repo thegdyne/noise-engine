@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2025-02-09 by agent (B258 wavetable generator pack added)
+**Last updated:** 2025-02-09 by agent (fix modLFO typo, merge new_258 b258_wt)
 
 ---
 
@@ -11,7 +11,7 @@ Only actively-changing subsystems are tracked here. Stable systems belong in ARC
 | System | Status (Stable/Active/Built-unused/Planned/Blocked) | Key Files (repo paths) |
 |--------|------------------------------------------------------|------------------------|
 | Generators | Active | `src/config/__init__.py`, `packs/core/generators/`, `supercollider/core/helpers.scd` |
-| B258 Wavetable Pack | Active | `packs/buchla_258_wavetables/`, `src/audio/wavetable_loader.py`, `wavetables/` |
+| B258 Wavetable | Active | `packs/buchla_258/generators/b258_wt.*`, `tools/extract_b258_tables.py` |
 | Modulation | Active | `src/boids/boid_controller.py`, `src/gui/mod_matrix_window.py`, `supercollider/core/mod_slots.scd` |
 | Mixer/Master | Stable | `src/gui/mixer_panel.py`, `supercollider/core/channel_strips.scd`, `supercollider/core/master.scd` |
 | Presets | Stable | `src/presets/preset_manager.py`, `src/presets/preset_schema.py`, `src/presets/migrations.py` |
@@ -36,7 +36,7 @@ Not history — just what's true right now. One line per concept.
 - **Keyboard overlay:** Pure view pattern (v2.0), per-slot ARP/SEQ engines bound via controller, UI 1-indexed / OSC 0-indexed — `src/gui/keyboard_overlay.py`
 - **Telemetry:** Infrastructure observer tap (non-invasive), internal + external modes, stabilizer for persistence display — `src/audio/telemetry_controller.py`
 - **OSC connection:** Port 57120 forced, ping/pong handshake, heartbeat every 2s, 3 missed = CONNECTION LOST — `src/audio/osc_bridge.py`
-- **Wavetable loading:** Python reads morph map JSONs, sends raw 1024-sample waveforms via OSC, SC converts to wavetable format with Signal.asWavetable, loads into VOsc buffer banks — `src/audio/wavetable_loader.py`
+- **B258 Wavetable:** BufRd from 128-frame pre-processed WAV files (cubic spline interpolated from 26-pt hardware captures), needs WAV generation via `tools/extract_b258_tables.py` — `packs/buchla_258/generators/b258_wt.scd`
 - **OSC clock rate protocol:** Always send integer indices (-1=OFF, 0-12=clock rate), never string labels — prevents `~clockRateIndexOfLabel` silent -1 failures
 
 ### Modulation Domain Invariant
@@ -69,7 +69,7 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
-- 2025-02-09: Add B258 Wavetable generator pack (VOsc playback from 26-pt hardware telemetry, Python→SC buffer upload)
+- 2025-02-09: Fix modLFO typo (1t→1), merge new_258 b258_wt + b258_dna26, remove duplicate wavetable pack
 - 2026-02-09: Fix dual filter sync modulation (send idx not labels, SSOT clockMults, FREE→OFF)
 - 2026-02-09: Merge FILT SYNC panel into FILT, replace Phasor LFO with SinOsc.kr
 - 2026-02-09: Document modulation domain invariant (additive vs multiplicative exception)
