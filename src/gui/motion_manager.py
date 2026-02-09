@@ -33,10 +33,10 @@ from typing import Callable, List, Optional
 
 from PyQt5.QtCore import QTimer
 
-from src.model.sequencer import MotionMode
+from src.model.sequencer import MotionMode, StepType
 from src.gui.arp_engine import ArpEngine
 from src.gui.seq_engine import SeqEngine
-from src.config import FABRIC_IDX_TO_ARP_RATE
+from src.config import FABRIC_IDX_TO_ARP_RATE, ARP_RATE_TO_FABRIC_IDX, OSC_PATHS
 from src.utils.logger import logger
 
 # Clock tick interval in milliseconds (~10ms for smooth sequencing)
@@ -62,6 +62,7 @@ class MotionManager:
         send_note_on: Callable[[int, int, int], None],
         send_note_off: Callable[[int, int], None],
         get_bpm: Optional[Callable[[], float]] = None,
+        send_osc: Optional[Callable] = None,
     ):
         """
         Initialize MotionManager.
@@ -71,8 +72,10 @@ class MotionManager:
             send_note_on: Callback (slot, note, velocity)
             send_note_off: Callback (slot, note)
             get_bpm: Callback returning current BPM (default 120.0)
+            send_osc: Callback (path, *args) for sending OSC to SC step engine
         """
         self._get_bpm = get_bpm or (lambda: 120.0)
+        self._send_osc = send_osc
         self._slots: List[dict] = []
 
         for i in range(8):
@@ -89,6 +92,7 @@ class MotionManager:
                 'tick_accumulator': 0.0,
                 'pending_mode': None,
                 'pending_seq_start': False,
+                'slot_idx': i,
             })
 
         # QTimer-based clock for SEQ tick delivery
@@ -255,8 +259,10 @@ class MotionManager:
         1. Stop old mode (panic + reset)
         2. Update mode
         3. Start new mode if applicable (SEQ waits for sync boundary)
+        4. Send step mode OSC to SC step engine
         """
         old_mode = slot['mode']
+        slot_idx = slot['slot_idx']
 
         # Stop old mode
         if old_mode == MotionMode.SEQ:
@@ -264,6 +270,8 @@ class MotionManager:
             slot['seq'].reset_phase()
             slot['pending_seq_start'] = False
         elif old_mode == MotionMode.ARP:
+            # Clear SC step engine callback
+            slot['arp'].on_notes_changed = None
             # Only teardown ARP when switching TO another active mode (SEQ).
             # ARP→OFF is handled by toggle_arp(False) which preserves settings.
             if new_mode == MotionMode.SEQ:
@@ -272,8 +280,14 @@ class MotionManager:
         # Swap
         slot['mode'] = new_mode
 
+        # Send step mode to SC step engine
+        self._send_step_mode(slot_idx, new_mode)
+
         # Start new mode
         if new_mode == MotionMode.SEQ:
+            # Push SEQ data to SC step engine
+            self._push_seq_to_sc(slot)
+
             # If clock is already running (other slots active), wait for
             # next 1/16th sync boundary so all SEQs stay aligned.
             # If clock is NOT running, this is the first SEQ — start immediately
@@ -288,10 +302,87 @@ class MotionManager:
                 self._sync_phase = 0.0
                 slot['seq'].start()
 
+        elif new_mode == MotionMode.ARP:
+            # Install callback so ARP note changes propagate to SC step engine
+            idx = slot['slot_idx']
+            slot['arp'].on_notes_changed = lambda i=idx: self.push_arp_notes(i)
+            # Push ARP notes to SC step engine
+            self._push_arp_notes_to_sc(slot)
+
         logger.debug(
             f"MotionManager: handover executed {old_mode.name} -> {new_mode.name}",
             component="MOTION"
         )
+
+    # =========================================================================
+    # SC STEP ENGINE COMMUNICATION
+    # =========================================================================
+
+    def _send_step_mode(self, slot_idx: int, mode: MotionMode):
+        """Send step mode to SC step engine."""
+        if self._send_osc is None:
+            return
+        mode_val = {MotionMode.OFF: 0, MotionMode.ARP: 1, MotionMode.SEQ: 2}.get(mode, 0)
+        self._send_osc(OSC_PATHS['gen_step_mode'], [slot_idx + 1, mode_val])
+
+    def _push_arp_notes_to_sc(self, slot: dict):
+        """Push ARP expanded note list and rate to SC step engine."""
+        if self._send_osc is None:
+            return
+        slot_idx = slot['slot_idx']
+        arp: ArpEngine = slot['arp']
+
+        # Send rate as fabric index
+        rate_idx = arp.settings.rate_index
+        fabric_idx = ARP_RATE_TO_FABRIC_IDX.get(rate_idx, 6)
+        self._send_osc(OSC_PATHS['step_set_rate'], [slot_idx, fabric_idx])
+
+        # Send expanded note list
+        expanded = arp._get_expanded_list()
+        if expanded:
+            self._send_osc(OSC_PATHS['arp_set_notes'], [slot_idx] + expanded)
+
+    def _push_seq_to_sc(self, slot: dict):
+        """Push SEQ step data and rate to SC step engine."""
+        if self._send_osc is None:
+            return
+        slot_idx = slot['slot_idx']
+        seq: SeqEngine = slot['seq']
+
+        # Send rate as fabric index
+        rate_idx = seq.rate_index
+        fabric_idx = ARP_RATE_TO_FABRIC_IDX.get(rate_idx, 6)
+        self._send_osc(OSC_PATHS['step_set_rate'], [slot_idx, fabric_idx])
+
+        # Send play mode
+        play_mode_val = {
+            'FORWARD': 0, 'REVERSE': 1, 'PINGPONG': 2, 'RANDOM': 3
+        }.get(seq.settings.play_mode.name, 0)
+        self._send_osc(OSC_PATHS['seq_set_play_mode'], [slot_idx, play_mode_val])
+
+        # Send bulk step data: [slot, length, type1, note1, vel1, ...]
+        length = seq.settings.length
+        data = [slot_idx, length]
+        for step in seq.settings.steps[:length]:
+            step_type_val = {StepType.NOTE: 0, StepType.REST: 1, StepType.TIE: 2}.get(step.step_type, 1)
+            data.extend([step_type_val, step.note, step.velocity])
+        self._send_osc(OSC_PATHS['seq_set_bulk'], data)
+
+    def push_arp_notes(self, slot_idx: int):
+        """Public API: push current ARP notes to SC (called on note change)."""
+        if slot_idx < 0 or slot_idx >= 8:
+            return
+        slot = self._slots[slot_idx]
+        if slot['mode'] == MotionMode.ARP:
+            self._push_arp_notes_to_sc(slot)
+
+    def push_seq_data(self, slot_idx: int):
+        """Public API: push current SEQ data to SC (called on preset load/paste)."""
+        if slot_idx < 0 or slot_idx >= 8:
+            return
+        slot = self._slots[slot_idx]
+        if slot['mode'] == MotionMode.SEQ:
+            self._push_seq_to_sc(slot)
 
     # =========================================================================
     # SEQ ENGINE ACCESS

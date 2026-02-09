@@ -108,6 +108,9 @@ class SlotState:
     seq_length: int = 16  # 1-16
     seq_play_mode: int = 0  # 0=FORWARD, 1=REVERSE, 2=PINGPONG, 3=RANDOM
     seq_steps: list = field(default_factory=list)  # List of {step_type, note, velocity}
+    # Step engine (SC-side clock-locked ARP/SEQ triggering)
+    step_mode: bool = False  # True when SC step engine drives triggers for this slot
+    arp_notes: list = field(default_factory=list)  # Expanded note list for ARP mode
     # Analog output stage (per-slot)
     analog_enabled: int = 0  # 0=OFF (bypass), 1=ON
     analog_type: int = 0     # 0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD
@@ -704,6 +707,8 @@ class PresetState:
     boids: dict = field(default_factory=dict)  # BoidState.to_dict() or empty
     # Telemetry tuning state (phase_inverted, phase_offset, etc.)
     telemetry: dict = field(default_factory=dict)
+    # Step engine (SC-side clock-locked ARP/SEQ triggering)
+    step_engine_enabled: bool = False
     # R1.1 metadata additions
     tags: list = field(default_factory=list)  # list[str]
     rating: int = 0  # 0-5 integer rating
@@ -728,6 +733,8 @@ class PresetState:
             "midi_mappings": self.midi_mappings,
             "boids": self.boids,
             "telemetry": self.telemetry,
+            # Step engine
+            "step_engine_enabled": self.step_engine_enabled,
             # R1.1 metadata
             "tags": self.tags,
             "rating": self.rating,
@@ -770,6 +777,8 @@ class PresetState:
             midi_mappings=data.get("midi_mappings", {}),
             boids=data.get("boids", {}),
             telemetry=data.get("telemetry", {}),
+            # Step engine
+            step_engine_enabled=data.get("step_engine_enabled", False),
             # R1.1 metadata
             tags=list(data.get("tags", [])),
             rating=rating,

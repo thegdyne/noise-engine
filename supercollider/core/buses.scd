@@ -126,6 +126,9 @@ Default values are real values (not normalized):
     // Per-generator transpose (semitone offsets, 8 slots)
     ~genTranspose = Array.fill(8, { 0 });
 
+    // Per-generator step mode (true when SC step engine controls triggers)
+    ~genStepMode = Array.fill(8, { false });
+
     // Groups (order matters: clock -> generators -> strips -> fx)
     ~clockGroup = nil;
     ~genGroup = nil;

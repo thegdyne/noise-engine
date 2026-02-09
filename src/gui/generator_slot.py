@@ -370,6 +370,13 @@ class GeneratorSlot(QWidget):
             d["euclid_rot"] = arp.euclid_rot
             rst_idx = engine.runtime.rst_fabric_idx
             d["rst_rate"] = rst_idx if rst_idx is not None else 0
+            # Step engine: expanded ARP note list
+            d["arp_notes"] = list(engine._get_expanded_list())
+
+        # Step mode (SC step engine active for this slot)
+        if self._motion_manager is not None:
+            mode = self._motion_manager.get_mode(slot_idx)
+            d["step_mode"] = mode in (MotionMode.ARP, MotionMode.SEQ)
 
         # SEQ state
         if self._motion_manager is not None:
@@ -545,6 +552,9 @@ class GeneratorSlot(QWidget):
         )
         rst_rate = slot_state.rst_rate
         engine.runtime.rst_fabric_idx = rst_rate if rst_rate >= 4 else None
+        # arp_notes: restored from preset for state tracking;
+        # live notes are pushed to SC step engine by MotionManager callback
+        _ = slot_state.arp_notes  # read to satisfy apply/export symmetry
         if self._motion_manager is not None and slot_state.arp_enabled:
             self._motion_manager.set_mode(slot_idx, MotionMode.ARP)
 
@@ -579,6 +589,8 @@ class GeneratorSlot(QWidget):
                 )
         seq_engine.steps_version += 1
 
+        # step_mode: SC step engine state; restored via set_mode handover
+        _ = slot_state.step_mode  # read to satisfy apply/export symmetry
         if slot_state.seq_enabled:
             mm.set_mode(slot_idx, MotionMode.SEQ)
 
