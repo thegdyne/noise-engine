@@ -1,0 +1,38 @@
+{
+  "name": "B258 DNA26",
+  "synthdef": "b258_dna26",
+  "output_trim_db": -5.0,
+  "midi_retrig": false,
+  "custom_params": [
+    {
+      "key": "saw_morph",
+      "label": "SAW",
+      "tooltip": "Sine to Saw morph (26-point table interpolation from 0-5V hardware telemetry)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sqr_morph",
+      "label": "SQR",
+      "tooltip": "Sine to Square morph (26-point table interpolation from 0-5V hardware telemetry)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mix",
+      "label": "MIX",
+      "tooltip": "Blend SAW (0) and SQR (1) oscillators",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
+}

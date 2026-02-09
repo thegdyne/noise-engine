@@ -1,0 +1,52 @@
+{
+  "name": "B258 Wavetable",
+  "synthdef": "b258_wt",
+  "output_trim_db": -3.0,
+  "midi_retrig": false,
+  "wavetables": [
+    {
+      "key": "sawBufnum",
+      "file": "b258_wt_saw.wav",
+      "frames": 128,
+      "frame_size": 2048
+    },
+    {
+      "key": "sqrBufnum",
+      "file": "b258_wt_sqr.wav",
+      "frames": 128,
+      "frame_size": 2048
+    }
+  ],
+  "custom_params": [
+    {
+      "key": "saw_morph",
+      "label": "SAW",
+      "tooltip": "Sine to Saw morph (128-frame wavetable from hardware telemetry)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "sqr_morph",
+      "label": "SQR",
+      "tooltip": "Sine to Square morph (128-frame wavetable from hardware telemetry)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "mix",
+      "label": "MIX",
+      "tooltip": "Crossfade: SAW osc (0) to SQR osc (1)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
+}
