@@ -858,6 +858,7 @@ class ArpEngine:
         if self.settings.enabled and not self._get_expanded_list():
             self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
+        self._notify_notes_changed()
 
     def _handle_pattern_change(self, event: ArpEvent):
         """Handle pattern change."""

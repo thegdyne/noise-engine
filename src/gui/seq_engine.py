@@ -89,6 +89,9 @@ class SeqEngine:
         # Ping-pong direction: True = forward, False = reverse
         self._pingpong_forward: bool = True
 
+        # Callback for data changes (set by MotionManager to push to SC)
+        self.on_data_changed: Optional[Callable] = None
+
     # =========================================================================
     # PROPERTIES
     # =========================================================================
@@ -288,6 +291,8 @@ class SeqEngine:
         """Execute a single command with bounds safety."""
         cmd_type = cmd.get('type')
 
+        notify = False
+
         if cmd_type == 'SET_STEP':
             idx = max(0, min(cmd['index'], 15))
             self.settings.steps[idx] = SeqStep(
@@ -296,6 +301,7 @@ class SeqEngine:
                 velocity=cmd.get('velocity', 100),
             )
             self.steps_version += 1
+            notify = True
 
         elif cmd_type == 'SET_LENGTH':
             new_length = max(1, min(cmd['length'], 16))
@@ -303,28 +309,35 @@ class SeqEngine:
             if self.current_step_index >= new_length:
                 self.current_step_index = new_length - 1
             self.steps_version += 1
+            notify = True
 
         elif cmd_type == 'SET_RATE':
             new_index = max(0, min(cmd['rate_index'], len(SEQ_BEATS_PER_STEP) - 1))
             self._rate_index = new_index
             self.steps_version += 1
+            notify = True
 
         elif cmd_type == 'SET_PLAY_MODE':
             self.settings.play_mode = cmd['play_mode']
             self._pingpong_forward = True
             self.steps_version += 1
+            notify = True
 
         elif cmd_type == 'CLEAR_SEQUENCE':
             self.settings.steps = [SeqStep() for _ in range(16)]
             self.settings.length = 16
             self.current_step_index = 0
             self.steps_version += 1
+            notify = True
 
         elif cmd_type == 'TOGGLE_PLAYBACK':
             if self._playing:
                 self.stop()
             else:
                 self.start()
+
+        if notify and self.on_data_changed is not None:
+            self.on_data_changed()
 
     # =========================================================================
     # SETTINGS ACCESS

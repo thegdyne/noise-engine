@@ -9,6 +9,8 @@ Tests for:
 - v2: ARP clear on empty notes
 - v2: SEQ bulk with gate field
 - v2: envSource not sent from Python (D10: SC handles it)
+- v2: ARP rate change propagates to SC
+- v2: SEQ data changes propagate to SC during playback
 """
 import pytest
 from dataclasses import fields
@@ -473,3 +475,177 @@ class TestEnvSourceNotSentFromPython:
         ]
         assert len(env_source_calls) == 0, \
             f"Python should NOT send envSource OSC (D10: SC handles it), got: {env_source_calls}"
+
+
+# =============================================================================
+# v2: ARP RATE CHANGE PROPAGATES TO SC
+# =============================================================================
+
+class TestARPRatePropagatesToSC:
+    """v2: ARP rate changes push updated rate to SC step engine."""
+
+    def _make_motion_manager(self, send_osc=None):
+        """Create a MotionManager with mock dependencies."""
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_send_note_on = MagicMock()
+        mock_send_note_off = MagicMock()
+
+        engines = []
+        for i in range(8):
+            eng = ArpEngine(
+                slot_id=i,
+                send_note_on=mock_send_note_on,
+                send_note_off=mock_send_note_off,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            )
+            engines.append(eng)
+
+        mm = MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_send_note_on,
+            send_note_off=mock_send_note_off,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+        return mm, engines
+
+    def test_arp_rate_change_sends_rate_osc(self):
+        """Changing ARP rate while active sends updated rate to SC."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        from src.gui.arp_engine import ArpEvent, ArpEventType
+
+        # Enter ARP mode
+        mm.set_mode(0, MotionMode.ARP)
+        mock_osc.reset_mock()
+
+        # Change rate (triggers _handle_rate_change → _notify_notes_changed → push)
+        engines[0].post_event(ArpEvent(ArpEventType.RATE_CHANGE, {"rate_index": 3}))
+
+        rate_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['step_set_rate']
+        ]
+        assert len(rate_calls) >= 1, \
+            "ARP rate change should send step_set_rate OSC to SC"
+
+
+# =============================================================================
+# v2: SEQ DATA CHANGES PROPAGATE TO SC
+# =============================================================================
+
+class TestSEQDataPropagatesToSC:
+    """v2: SEQ rate/play_mode/step changes push to SC during playback."""
+
+    def _make_motion_manager(self, send_osc=None):
+        """Create a MotionManager with mock dependencies."""
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_send_note_on = MagicMock()
+        mock_send_note_off = MagicMock()
+
+        engines = []
+        for i in range(8):
+            eng = ArpEngine(
+                slot_id=i,
+                send_note_on=mock_send_note_on,
+                send_note_off=mock_send_note_off,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            )
+            engines.append(eng)
+
+        mm = MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_send_note_on,
+            send_note_off=mock_send_note_off,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+        return mm
+
+    def test_seq_rate_change_sends_osc(self):
+        """Changing SEQ rate while active sends updated data to SC."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        # Change rate via command queue, then process commands via tick
+        seq = mm.get_seq_engine(0)
+        seq.set_rate(3)
+        seq.tick(0.001)  # Process command queue
+
+        rate_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['step_set_rate']
+        ]
+        assert len(rate_calls) >= 1, \
+            "SEQ rate change should send step_set_rate OSC to SC"
+
+    def test_seq_play_mode_change_sends_osc(self):
+        """Changing SEQ play mode while active sends updated data to SC."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode, PlayMode
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        seq = mm.get_seq_engine(0)
+        seq.set_play_mode(PlayMode.REVERSE)
+        seq.tick(0.001)  # Process command queue
+
+        play_mode_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['seq_set_play_mode']
+        ]
+        assert len(play_mode_calls) >= 1, \
+            "SEQ play mode change should send seq_set_play_mode OSC to SC"
+
+    def test_seq_step_edit_sends_osc(self):
+        """Editing a SEQ step while active sends updated data to SC."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode, StepType
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        seq = mm.get_seq_engine(0)
+        seq.queue_command({
+            'type': 'SET_STEP',
+            'index': 0,
+            'step_type': StepType.NOTE,
+            'note': 72,
+            'velocity': 100,
+        })
+        seq.tick(0.001)  # Process command queue
+
+        bulk_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['seq_set_bulk']
+        ]
+        assert len(bulk_calls) >= 1, \
+            "SEQ step edit should send seq_set_bulk OSC to SC"
+
+    def test_seq_callback_cleared_on_mode_exit(self):
+        """SEQ on_data_changed callback is cleared when leaving SEQ mode."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+        seq = mm.get_seq_engine(0)
+        assert seq.on_data_changed is not None
+
+        mm.set_mode(0, MotionMode.OFF)
+        assert seq.on_data_changed is None

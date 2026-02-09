@@ -42,7 +42,7 @@ SynthDef(\stepEngineSlot, {
     var step, type, note, vel, gateFrac;
     var active, isNote;
     var freq, freqHeld, freqIn, freqOut;
-    var trigPulse;
+    var trigPulse, trigIn, trigOut;
     var safeStepCount;
 
     // Read all 13 clock fabric trigger channels
@@ -85,7 +85,10 @@ SynthDef(\stepEngineSlot, {
 
     // Generate trigger pulse: 2-sample audio pulse on NOTE steps
     trigPulse = Trig1.ar(K2A.ar(edge * isNote), SampleDur.ir * 2);
-    ReplaceOut.ar(midiTrigBusChan, trigPulse);
+    // Pass through current bus when inactive — avoids clobbering MIDI/keyboard triggers
+    trigIn = In.ar(midiTrigBusChan, 1);
+    trigOut = Select.ar(K2A.ar(active), [trigIn, trigPulse]);
+    ReplaceOut.ar(midiTrigBusChan, trigOut);
 
     // Send position to Python for UI playhead (replyID = bufnum for identification)
     SendReply.kr(edge * active, '/noise/step/event', [pos], bufnum);

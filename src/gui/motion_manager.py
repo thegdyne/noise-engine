@@ -266,6 +266,7 @@ class MotionManager:
 
         # Stop old mode
         if old_mode == MotionMode.SEQ:
+            slot['seq'].on_data_changed = None
             slot['seq'].panic()
             slot['seq'].reset_phase()
             slot['pending_seq_start'] = False
@@ -285,6 +286,9 @@ class MotionManager:
 
         # Start new mode
         if new_mode == MotionMode.SEQ:
+            # Install callback so SEQ data changes propagate to SC step engine
+            idx = slot['slot_idx']
+            slot['seq'].on_data_changed = lambda i=idx: self._on_seq_data_changed(i)
             # Push SEQ data to SC step engine
             self._push_seq_to_sc(slot)
 
@@ -375,6 +379,14 @@ class MotionManager:
         slot = self._slots[slot_idx]
         if slot['mode'] == MotionMode.ARP:
             self._push_arp_notes_to_sc(slot)
+
+    def _on_seq_data_changed(self, slot_idx: int):
+        """Callback from SeqEngine when data changes during playback."""
+        if slot_idx < 0 or slot_idx >= 8:
+            return
+        slot = self._slots[slot_idx]
+        if slot['mode'] == MotionMode.SEQ:
+            self._push_seq_to_sc(slot)
 
     def push_seq_data(self, slot_idx: int):
         """Public API: push current SEQ data to SC (called on preset load/paste)."""
