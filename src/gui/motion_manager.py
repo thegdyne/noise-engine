@@ -22,7 +22,7 @@ ARP clock integration (unified with SC fabric):
 - SC masterClock broadcasts fabric ticks via SendReply → OSCdef → Python OSC
 - on_fabric_tick() maps fabric indices to ARP rate indices
 - ARP promotes from fallback timer to master clock for grid-locked stepping
-- 1/12 (triplet) has no fabric match — stays on AUTO fallback timer
+- All ARP rates including 1/12 (triplet) have fabric matches
 """
 
 from __future__ import annotations
@@ -194,12 +194,16 @@ class MotionManager:
     # =========================================================================
 
     def on_fabric_tick(self, fabric_idx: int):
-        """Handle clock fabric tick from SC. Route to matching ARP slots."""
+        """Handle clock fabric tick from SC. Route to matching ARP slots.
+
+        Uses a short lock timeout (5ms) instead of blocking=False to
+        prevent silently dropped ticks under UI stress.
+        """
         arp_rate = FABRIC_IDX_TO_ARP_RATE.get(fabric_idx)
         now_ms = time.monotonic() * 1000.0
 
         for slot in self._slots:
-            if slot['lock'].acquire(blocking=False):
+            if slot['lock'].acquire(timeout=0.005):
                 try:
                     if slot['mode'] == MotionMode.ARP:
                         # R14: RST check FIRST — reset-before-step so this tick emits step 0

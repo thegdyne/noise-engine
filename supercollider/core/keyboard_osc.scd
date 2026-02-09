@@ -103,5 +103,4 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
     "  [x] Keyboard Overlay OSC handlers ready".postln;
 };
 
-// Call setup (safe to call multiple times - OSCdef replaces existing)
-~setupKeyboardOSC.();
+// Called from init.scd after dependencies (~triggerMidiGate, ~busRegistry, etc.) exist
