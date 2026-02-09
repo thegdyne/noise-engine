@@ -222,7 +222,7 @@ SynthDef(\modLFO, {
     // Polarity button now controls invert: 0=normal, 1=inverted
     sigA = sigA * 2 - 1;
     sigB = sigB * 2 - 1;
-    sigC = sigC * 2 - 1;
+    sigC = sigC * 2 - 1t;
     sigD = sigD * 2 - 1;
 
     // Apply effective polarity
