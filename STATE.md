@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-07 by agent (session clock unification)
+**Last updated:** 2026-02-09 by agent (dual filter sync fix, modulation invariant documented)
 
 ---
 
@@ -35,6 +35,22 @@ Not history — just what's true right now. One line per concept.
 - **Keyboard overlay:** Pure view pattern (v2.0), per-slot ARP/SEQ engines bound via controller, UI 1-indexed / OSC 0-indexed — `src/gui/keyboard_overlay.py`
 - **Telemetry:** Infrastructure observer tap (non-invasive), internal + external modes, stabilizer for persistence display — `src/audio/telemetry_controller.py`
 - **OSC connection:** Port 57120 forced, ping/pong handshake, heartbeat every 2s, 3 missed = CONNECTION LOST — `src/audio/osc_bridge.py`
+- **OSC clock rate protocol:** Always send integer indices (-1=OFF, 0-12=clock rate), never string labels — prevents `~clockRateIndexOfLabel` silent -1 failures
+
+### Modulation Domain Invariant
+
+1. **Standard Modulation (Unified Bus):**
+   - All 176 targets operate in **Normalized Space [0, 1]**.
+   - Summation is strictly **Additive**: `eff = clip(base + (mod * scale))`.
+
+2. **The "Sync LFO" Exception (Dual Filter Only):**
+   - **Domain:** Physical Unit Space (Hz).
+   - **Logic:** Multiplicative / Ratio-based.
+   - **Polarity:** Unipolar Negative (Down-only).
+   - **Intent:** To preserve logarithmic musical intervals during filter sweeps
+     without consuming normalized headroom in the main modulation bus.
+   - **Constraint:** Do not "refactor" to additive unless the entire
+     filter mapping logic is moved pre-linexp.
 
 ## Known Issues
 
@@ -51,5 +67,8 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2026-02-09: Fix dual filter sync modulation (send idx not labels, SSOT clockMults, FREE→OFF)
+- 2026-02-09: Merge FILT SYNC panel into FILT, replace Phasor LFO with SinOsc.kr
+- 2026-02-09: Document modulation domain invariant (additive vs multiplicative exception)
 - 2026-02-06: Fix FFT spectral leakage in fingerprint extractor (whole-cycle trim)
 - 2026-02-06: Added STATE.md automated project state tracking
