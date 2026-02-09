@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2025-02-09 by agent (fix modLFO typo, merge new_258 b258_wt)
+**Last updated:** 2025-02-09 by agent (b258_wt WAV generation + buffer loading)
 
 ---
 
@@ -36,7 +36,7 @@ Not history — just what's true right now. One line per concept.
 - **Keyboard overlay:** Pure view pattern (v2.0), per-slot ARP/SEQ engines bound via controller, UI 1-indexed / OSC 0-indexed — `src/gui/keyboard_overlay.py`
 - **Telemetry:** Infrastructure observer tap (non-invasive), internal + external modes, stabilizer for persistence display — `src/audio/telemetry_controller.py`
 - **OSC connection:** Port 57120 forced, ping/pong handshake, heartbeat every 2s, 3 missed = CONNECTION LOST — `src/audio/osc_bridge.py`
-- **B258 Wavetable:** BufRd from 128-frame pre-processed WAV files (cubic spline interpolated from 26-pt hardware captures), needs WAV generation via `tools/extract_b258_tables.py` — `packs/buchla_258/generators/b258_wt.scd`
+- **B258 Wavetable:** BufRd from 128-frame pre-processed WAV files (linear interpolation from 26-pt hardware captures), WAVs auto-loaded at boot, bufnums baked into SynthDef — `packs/buchla_258/generators/b258_wt.scd`, `tools/generate_b258_wavetables.py`
 - **OSC clock rate protocol:** Always send integer indices (-1=OFF, 0-12=clock rate), never string labels — prevents `~clockRateIndexOfLabel` silent -1 failures
 
 ### Modulation Domain Invariant
@@ -69,6 +69,7 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2025-02-09: b258_wt WAV generation tool + SC buffer auto-load (bufnums baked into SynthDef at boot)
 - 2025-02-09: Fix modLFO typo (1t→1), merge new_258 b258_wt + b258_dna26, remove duplicate wavetable pack
 - 2026-02-09: Fix dual filter sync modulation (send idx not labels, SSOT clockMults, FREE→OFF)
 - 2026-02-09: Merge FILT SYNC panel into FILT, replace Phasor LFO with SinOsc.kr
