@@ -564,8 +564,9 @@ class FilterModule(QWidget):
             self.f1_sync_btn.set_index(index)
         self.f1_sync_prev_index = index
         self._update_sync_btn_style(self.f1_sync_btn, index)
-        rate = FILTER_SYNC_MODES[index]
-        self._send_osc(OSC_PATHS['fb_sync1'], "" if rate == "FREE" else rate)
+        # Send integer idx: FREE -> -1, else (index - 1) aligns with SC clock registry 0..12
+        sc_idx = -1 if index == 0 else (index - 1)
+        self._send_osc(OSC_PATHS['fb_sync1'], sc_idx)
 
     def _on_f2_sync_changed(self, index):
         if self.f2_sync_prev_index == 0 and index != 0:
@@ -573,8 +574,9 @@ class FilterModule(QWidget):
             self.f2_sync_btn.set_index(index)
         self.f2_sync_prev_index = index
         self._update_sync_btn_style(self.f2_sync_btn, index)
-        rate = FILTER_SYNC_MODES[index]
-        self._send_osc(OSC_PATHS['fb_sync2'], "" if rate == "FREE" else rate)
+        # Send integer idx: FREE -> -1, else (index - 1) aligns with SC clock registry 0..12
+        sc_idx = -1 if index == 0 else (index - 1)
+        self._send_osc(OSC_PATHS['fb_sync2'], sc_idx)
 
     def _on_amt_changed(self, value):
         self._send_osc(OSC_PATHS['fb_sync_amt'], value / 200.0)
@@ -596,11 +598,11 @@ class FilterModule(QWidget):
         self._send_osc(OSC_PATHS['fb_freq2'], self.f2_slider.value() / 200.0)
         self._send_osc(OSC_PATHS['fb_reso2'], self.r2_slider.value() / 200.0)
         self._send_osc(OSC_PATHS['fb_mix'], self.mix_slider.value() / 200.0)
-        # Sync
-        rate1 = FILTER_SYNC_MODES[self.f1_sync_btn.index]
-        rate2 = FILTER_SYNC_MODES[self.f2_sync_btn.index]
-        self._send_osc(OSC_PATHS['fb_sync1'], "" if rate1 == "FREE" else rate1)
-        self._send_osc(OSC_PATHS['fb_sync2'], "" if rate2 == "FREE" else rate2)
+        # Sync — send integer idx: FREE -> -1, else (btn.index - 1) for SC 0..12
+        sc_idx1 = -1 if self.f1_sync_btn.index == 0 else (self.f1_sync_btn.index - 1)
+        sc_idx2 = -1 if self.f2_sync_btn.index == 0 else (self.f2_sync_btn.index - 1)
+        self._send_osc(OSC_PATHS['fb_sync1'], sc_idx1)
+        self._send_osc(OSC_PATHS['fb_sync2'], sc_idx2)
         self._send_osc(OSC_PATHS['fb_sync_amt'], self.amt_slider.value() / 200.0)
 
     def get_state(self) -> dict:

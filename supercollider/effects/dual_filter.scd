@@ -48,6 +48,8 @@ Features:
         var harmonicRatios, syncedFreq2;
         var lfo1, lfo2, tempoHz, sync1On, sync2On, sync1Freq, sync2Freq;
         var driveEff, freq1Eff, freq2Eff, reso1Eff, reso2Eff, syncAmtEff, harmonicsEff, mixEff;
+        // Inlined clock multipliers (SSOT: clock_registry.scd) to avoid compile-time dependency
+        var clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
 
         // Bus unification: read from bus if valid index, otherwise use direct arg
         driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
@@ -67,20 +69,17 @@ Features:
 
         // Sine LFOs for filter cutoff modulation
         // sync1Idx/sync2Idx: -1 = off, 0-12 = clock rate index
-        // Uses clock registry multipliers to derive LFO frequency from tempo
         sync1On = (sync1Idx >= 0);
-        sync1Freq = Select.kr(sync1Idx.clip(0, 12), ~clockRateMults) * tempoHz;
-        lfo1 = Select.kr(sync1On, [
-            DC.kr(1),
-            SinOsc.kr(sync1Freq).range(0.01, 1)  // Sine: 0.01-1 (never 0)
-        ]);
+        sync1Freq = Select.kr(sync1Idx.clip(0, 12), clockMults) * tempoHz;
+        lfo1 = SinOsc.kr(sync1Freq).range(0.01, 1);
+        // When sync is off, force LFO to 1 (no modulation)
+        lfo1 = Select.kr(sync1On, [DC.kr(1), lfo1]);
 
         sync2On = (sync2Idx >= 0);
-        sync2Freq = Select.kr(sync2Idx.clip(0, 12), ~clockRateMults) * tempoHz;
-        lfo2 = Select.kr(sync2On, [
-            DC.kr(1),
-            SinOsc.kr(sync2Freq).range(0.01, 1)  // Sine: 0.01-1 (never 0)
-        ]);
+        sync2Freq = Select.kr(sync2Idx.clip(0, 12), clockMults) * tempoHz;
+        lfo2 = SinOsc.kr(sync2Freq).range(0.01, 1);
+        // When sync is off, force LFO to 1 (no modulation)
+        lfo2 = Select.kr(sync2On, [DC.kr(1), lfo2]);
 
         // Smooth params
         freq1Eff = VarLag.kr(freq1Eff, 0.02, warp: \exp);
@@ -241,11 +240,16 @@ Features:
     }, '/noise/master/fb/mode1');
     
     OSCdef(\fbSync1, { |msg|
-        var rateStr = msg[1].asString;
-        var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
+        var v = msg[1];
+        var idx = if(v.isNumber) {
+            v.asInteger.clip(-1, 12)
+        } {
+            // Legacy fallback for string label senders
+            ~clockRateIndexOfLabel.(v.asString)
+        };
         ~fbSync1Idx = idx;
         if(~fbSynth.notNil) { ~fbSynth.set(\sync1Idx, idx) };
-        ("  Filter 1 sync: " ++ if(idx < 0, "FREE", rateStr)).postln;
+        ("  fbSync1 raw=" ++ v ++ " idx=" ++ idx).postln;
     }, '/noise/master/fb/sync1');
     
     OSCdef(\fbFreq2, { |msg|
@@ -270,11 +274,16 @@ Features:
     }, '/noise/master/fb/mode2');
     
     OSCdef(\fbSync2, { |msg|
-        var rateStr = msg[1].asString;
-        var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
+        var v = msg[1];
+        var idx = if(v.isNumber) {
+            v.asInteger.clip(-1, 12)
+        } {
+            // Legacy fallback for string label senders
+            ~clockRateIndexOfLabel.(v.asString)
+        };
         ~fbSync2Idx = idx;
         if(~fbSynth.notNil) { ~fbSynth.set(\sync2Idx, idx) };
-        ("  Filter 2 sync: " ++ if(idx < 0, "FREE", rateStr)).postln;
+        ("  fbSync2 raw=" ++ v ++ " idx=" ++ idx).postln;
     }, '/noise/master/fb/sync2');
     
     OSCdef(\fbSyncAmt, { |msg|
