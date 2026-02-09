@@ -94,6 +94,7 @@ class KeyboardController:
             send_note_on=self._send_midi_note_on,
             send_note_off=self._send_midi_note_off,
             get_bpm=self._get_current_bpm,
+            send_osc=self._send_osc_message,
         )
 
         # Install application-level event filter for global keyboard capture
@@ -401,6 +402,11 @@ class KeyboardController:
     def _send_all_notes_off(self, slot: int):
         if self.main.osc is not None and self.main.osc.client is not None:
             self.main.osc.client.send_message(f"/noise/slot/{slot}/midi/all_notes_off", [])
+
+    def _send_osc_message(self, path: str, args: list):
+        """Send generic OSC message to SC. Used by MotionManager for step engine."""
+        if self.main.osc is not None and self.main.osc.client is not None:
+            self.main.osc.client.send_message(path, args)
 
     # =========================================================================
     # MIDI MODE HELPERS

@@ -187,6 +187,26 @@ All OSC message routing
         ("Gen " ++ slot ++ " portamento: " ++ (value * 1000).round(1) ++ "ms").postln;
     }, '/noise/gen/portamento');
 
+    // Step mode: SC step engine controls triggers (suppresses direct MIDI/keyboard)
+    OSCdef(\genStepMode, { |msg|
+        var slot = msg[1].asInteger;
+        var mode = msg[2].asInteger;  // 0=OFF, 1=ARP, 2=SEQ
+        var idx = slot - 1;
+        if(idx >= 0 && idx < 8, {
+            ~genStepMode[idx] = mode > 0;
+            // Clean up any running MIDI retrig when entering step mode
+            if(mode > 0, {
+                ~stopMidiRetrig.(slot);
+            });
+            // Update step engine mode
+            if(~stepEngine.notNil, {
+                ~stepEngine[idx][\mode] = mode;
+                ~stepEngine[idx][\position] = 0;
+            });
+            ("Gen " ++ slot ++ " stepMode: " ++ ["OFF", "ARP", "SEQ"][mode]).postln;
+        });
+    }, '/noise/gen/stepMode');
+
     // Per-generator custom parameters
     // Path format: /noise/gen/custom/{slot}/{param_index}
     // Now uses boid offset support

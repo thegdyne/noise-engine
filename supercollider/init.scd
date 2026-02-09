@@ -202,6 +202,10 @@ s.waitForBoot({
     ~setupMIDI.();
     ~setupMIDIOSC.();
 
+    // Load Step Engine (after midi_handler for ~triggerMidiGate, after buses for ~genStepMode)
+    (~basePath +/+ "core/step_engine.scd").load;
+    ~setupStepEngine.();
+
     // Load keyboard overlay OSC handlers (after midi_handler for ~triggerMidiGate, ~startMidiRetrig)
     (~basePath +/+ "core/keyboard_osc.scd").load;
     ~setupKeyboardOSC.();
@@ -258,6 +262,7 @@ s.waitForBoot({
     if(~packGeneratorCount.notNil && (~packGeneratorCount > 0), {
         ("[x] " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
     });
+    "[x] Step engine ready (8 slots, clock-locked)".postln;
     "[x] 4 mod source slots ready".postln;
     "[x] 4 FX slots ready (UI Refresh)".postln;
     "[x] 8 cross-mod buses ready".postln;
