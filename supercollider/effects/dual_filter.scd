@@ -48,8 +48,10 @@ Features:
         var harmonicRatios, syncedFreq2;
         var lfo1, lfo2, tempoHz, sync1On, sync2On, sync1Freq, sync2Freq;
         var driveEff, freq1Eff, freq2Eff, reso1Eff, reso2Eff, syncAmtEff, harmonicsEff, mixEff;
-        // Inlined clock multipliers (SSOT: clock_registry.scd) to avoid compile-time dependency
-        var clockMults = #[1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
+        // Inlined clock multipliers (SSOT: clock_registry.scd) — NO # prefix!
+        // #[...] is a literal array that does NOT evaluate expressions like 1/32.
+        // [...] (dynamic array) evaluates the division at SynthDef compile time.
+        var clockMults = [1/32, 1/16, 1/12, 1/8, 1/4, 1/2, 1, 2, 4, 8, 12, 16, 32];
 
         // Bus unification: read from bus if valid index, otherwise use direct arg
         driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
