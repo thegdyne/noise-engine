@@ -129,6 +129,14 @@ Default values are real values (not normalized):
     // Per-generator step mode (true when SC step engine controls triggers)
     ~genStepMode = Array.fill(8, { false });
 
+    // Step engine: per-slot note/step data buffers (allocated in ~setupStepEngine)
+    ~stepBuf = nil;
+
+    // envSource auto-force state (D10: force envSource to MIDI when step engine active)
+    ~genEnvSource = Array.fill(8, { 0 });        // Mirror of Python's envSource setting
+    ~genEnvSourcePrev = Array.fill(8, { nil });   // Saved envSource before force
+    ~genEnvSourceForced = Array.fill(8, { false }); // true while step engine forces MIDI
+
     // Groups (order matters: clock -> generators -> strips -> fx)
     ~clockGroup = nil;
     ~genGroup = nil;

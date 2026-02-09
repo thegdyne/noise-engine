@@ -202,9 +202,8 @@ s.waitForBoot({
     ~setupMIDI.();
     ~setupMIDIOSC.();
 
-    // Load Step Engine (after midi_handler for ~triggerMidiGate, after buses for ~genStepMode)
+    // Load Step Engine SynthDef (setup deferred to post-boot, after ~startClock creates groups)
     (~basePath +/+ "core/step_engine.scd").load;
-    ~setupStepEngine.();
 
     // Load keyboard overlay OSC handlers (after midi_handler for ~triggerMidiGate, ~startMidiRetrig)
     (~basePath +/+ "core/keyboard_osc.scd").load;
@@ -218,6 +217,9 @@ s.waitForBoot({
 
     // Start audio
     ~startClock.();
+
+    // Boot step engine (after ~startClock creates ~genGroup, after s.sync compiles SynthDef)
+    ~setupStepEngine.();
 
     // Boot end-stage infrastructure (after groups exist from ~startClock,
     // after ~setupEndstage defined SynthDefs, after bus_unification allocated buses)

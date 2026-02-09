@@ -6,6 +6,9 @@ Tests for:
 - Migration backfill (old presets get defaults)
 - Config OSC path validation
 - MotionManager step mode handover
+- v2: ARP clear on empty notes
+- v2: SEQ bulk with gate field
+- v2: envSource not sent from Python (D10: SC handles it)
 """
 import pytest
 from dataclasses import fields
@@ -251,3 +254,222 @@ class TestMotionManagerStepMode:
         # Should not raise
         mm.set_mode(0, MotionMode.ARP)
         mm.set_mode(0, MotionMode.OFF)
+
+
+# =============================================================================
+# v2: ARP CLEAR ON EMPTY NOTES
+# =============================================================================
+
+class TestMotionManagerARPClear:
+    """v2: ARP always sends notes to SC, even when empty (clear signal)."""
+
+    def _make_motion_manager(self, send_osc=None):
+        """Create a MotionManager with mock dependencies."""
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_send_note_on = MagicMock()
+        mock_send_note_off = MagicMock()
+
+        engines = []
+        for i in range(8):
+            eng = ArpEngine(
+                slot_id=i,
+                send_note_on=mock_send_note_on,
+                send_note_off=mock_send_note_off,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            )
+            engines.append(eng)
+
+        mm = MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_send_note_on,
+            send_note_off=mock_send_note_off,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+        return mm, engines
+
+    def test_arp_empty_notes_sends_osc(self):
+        """Empty ARP notes still sends OSC (clear signal for SC buffer)."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        # Enter ARP mode (no keys held = empty note list)
+        mm.set_mode(0, MotionMode.ARP)
+
+        # Should have sent arp_set_notes even with empty list
+        arp_notes_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['arp_set_notes']
+        ]
+        assert len(arp_notes_calls) >= 1
+        # Payload should be [slot_idx] with no notes (just the slot index)
+        assert arp_notes_calls[0] == call(OSC_PATHS['arp_set_notes'], [0])
+
+    def test_arp_with_notes_sends_notes(self):
+        """ARP with held notes sends note list to SC."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        # Simulate holding a key before entering ARP
+        engines[0].key_press(60)
+        mm.set_mode(0, MotionMode.ARP)
+
+        arp_notes_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['arp_set_notes']
+        ]
+        assert len(arp_notes_calls) >= 1
+        # Payload should include slot_idx + at least one note
+        payload = arp_notes_calls[0][0][1]
+        assert payload[0] == 0  # slot_idx
+        assert len(payload) > 1  # has notes
+
+
+# =============================================================================
+# v2: SEQ BULK WITH GATE FIELD
+# =============================================================================
+
+class TestSEQBulkGate:
+    """v2: SEQ bulk payload includes gate field (4 values per step)."""
+
+    def _make_motion_manager(self, send_osc=None):
+        """Create a MotionManager with mock dependencies."""
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_send_note_on = MagicMock()
+        mock_send_note_off = MagicMock()
+
+        engines = []
+        for i in range(8):
+            eng = ArpEngine(
+                slot_id=i,
+                send_note_on=mock_send_note_on,
+                send_note_off=mock_send_note_off,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            )
+            engines.append(eng)
+
+        mm = MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_send_note_on,
+            send_note_off=mock_send_note_off,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+        return mm
+
+    def test_seq_bulk_has_gate_field(self):
+        """SEQ bulk payload has 4 values per step (type, note, vel, gate)."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+
+        bulk_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['seq_set_bulk']
+        ]
+        assert len(bulk_calls) >= 1
+        payload = bulk_calls[0][0][1]
+        # payload = [slot_idx, length, type1, note1, vel1, gate1, ...]
+        slot_idx = payload[0]
+        length = payload[1]
+        step_data = payload[2:]
+        # Each step has 4 values (type, note, vel, gate)
+        assert len(step_data) == length * 4, \
+            f"Expected {length * 4} values for {length} steps, got {len(step_data)}"
+
+    def test_seq_bulk_gate_defaults_to_one(self):
+        """Gate field defaults to 1.0 when SeqStep has no gate attr."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+
+        bulk_calls = [
+            c for c in mock_osc.call_args_list
+            if c[0][0] == OSC_PATHS['seq_set_bulk']
+        ]
+        assert len(bulk_calls) >= 1
+        payload = bulk_calls[0][0][1]
+        step_data = payload[2:]
+        # Check first step's gate value (index 3 in each group of 4)
+        if len(step_data) >= 4:
+            gate = step_data[3]
+            assert gate == 1.0, f"Expected gate=1.0, got {gate}"
+
+
+# =============================================================================
+# v2: ENVSOURCE NOT SENT FROM PYTHON (D10)
+# =============================================================================
+
+class TestEnvSourceNotSentFromPython:
+    """v2: Python does NOT send envSource OSC — SC handles D10 auto-force."""
+
+    def _make_motion_manager(self, send_osc=None):
+        """Create a MotionManager with mock dependencies."""
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_send_note_on = MagicMock()
+        mock_send_note_off = MagicMock()
+
+        engines = []
+        for i in range(8):
+            eng = ArpEngine(
+                slot_id=i,
+                send_note_on=mock_send_note_on,
+                send_note_off=mock_send_note_off,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            )
+            engines.append(eng)
+
+        mm = MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_send_note_on,
+            send_note_off=mock_send_note_off,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+        return mm
+
+    def test_arp_mode_no_envsource_osc(self):
+        """Entering ARP mode does NOT send envSource OSC from Python."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.ARP)
+
+        # Check no envSource OSC was sent
+        env_source_calls = [
+            c for c in mock_osc.call_args_list
+            if '/envSource' in str(c)
+        ]
+        assert len(env_source_calls) == 0, \
+            f"Python should NOT send envSource OSC (D10: SC handles it), got: {env_source_calls}"
+
+    def test_seq_mode_no_envsource_osc(self):
+        """Entering SEQ mode does NOT send envSource OSC from Python."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+
+        env_source_calls = [
+            c for c in mock_osc.call_args_list
+            if '/envSource' in str(c)
+        ]
+        assert len(env_source_calls) == 0, \
+            f"Python should NOT send envSource OSC (D10: SC handles it), got: {env_source_calls}"

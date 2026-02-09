@@ -337,10 +337,9 @@ class MotionManager:
         fabric_idx = ARP_RATE_TO_FABRIC_IDX.get(rate_idx, 6)
         self._send_osc(OSC_PATHS['step_set_rate'], [slot_idx, fabric_idx])
 
-        # Send expanded note list
+        # Send expanded note list (empty = clear on SC side)
         expanded = arp._get_expanded_list()
-        if expanded:
-            self._send_osc(OSC_PATHS['arp_set_notes'], [slot_idx] + expanded)
+        self._send_osc(OSC_PATHS['arp_set_notes'], [slot_idx] + expanded)
 
     def _push_seq_to_sc(self, slot: dict):
         """Push SEQ step data and rate to SC step engine."""
@@ -360,12 +359,13 @@ class MotionManager:
         }.get(seq.settings.play_mode.name, 0)
         self._send_osc(OSC_PATHS['seq_set_play_mode'], [slot_idx, play_mode_val])
 
-        # Send bulk step data: [slot, length, type1, note1, vel1, ...]
+        # Send bulk step data: [slot, length, type1, note1, vel1, gate1, ...]
         length = seq.settings.length
         data = [slot_idx, length]
         for step in seq.settings.steps[:length]:
             step_type_val = {StepType.NOTE: 0, StepType.REST: 1, StepType.TIE: 2}.get(step.step_type, 1)
-            data.extend([step_type_val, step.note, step.velocity])
+            gate = getattr(step, 'gate', 1.0)
+            data.extend([step_type_val, step.note, step.velocity, gate])
         self._send_osc(OSC_PATHS['seq_set_bulk'], data)
 
     def push_arp_notes(self, slot_idx: int):

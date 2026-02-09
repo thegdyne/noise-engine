@@ -159,10 +159,22 @@ All OSC message routing
     }, '/noise/gen/envEnabled');
     
     // Envelope source: 0=OFF, 1=CLK, 2=MIDI
+    // D10: Mirror Python's value; re-force to MIDI when step engine active
     OSCdef(\genEnvSource, { |msg|
         var slot = msg[1].asInteger;
         var source = msg[2].asInteger;
-        ~genParams[slot][\envSource].set(source);
+        var idx = slot - 1;
+        // Always mirror Python's intent
+        if(idx >= 0 && (idx < 8), {
+            ~genEnvSource[idx] = source;
+        });
+        if(~genEnvSourceForced[idx] ? false, {
+            // Step engine active — re-force to MIDI, ignore user change on bus
+            ~genParams[slot][\envSource].set(2);
+        }, {
+            // Normal — apply directly
+            ~genParams[slot][\envSource].set(source);
+        });
         ("Gen " ++ slot ++ " env source: " ++ ["OFF", "CLK", "MIDI"][source]).postln;
     }, '/noise/gen/envSource');
     
@@ -188,20 +200,37 @@ All OSC message routing
     }, '/noise/gen/portamento');
 
     // Step mode: SC step engine controls triggers (suppresses direct MIDI/keyboard)
+    // D10: Auto-force envSource to MIDI on enter, restore on exit
     OSCdef(\genStepMode, { |msg|
         var slot = msg[1].asInteger;
         var mode = msg[2].asInteger;  // 0=OFF, 1=ARP, 2=SEQ
         var idx = slot - 1;
-        if(idx >= 0 && idx < 8, {
+        if(idx >= 0 && (idx < 8), {
             ~genStepMode[idx] = mode > 0;
             // Clean up any running MIDI retrig when entering step mode
             if(mode > 0, {
                 ~stopMidiRetrig.(slot);
             });
-            // Update step engine mode
-            if(~stepEngine.notNil, {
-                ~stepEngine[idx][\mode] = mode;
-                ~stepEngine[idx][\position] = 0;
+            // Update persistent step engine synth
+            if(~stepSynths.notNil && ~stepSynths[idx].notNil, {
+                ~stepSynths[idx].set(\mode, mode, \resetTrig, 1);
+            });
+            // D10: envSource auto-force
+            if(mode > 0, {
+                // Entering step mode — save + force envSource to MIDI (2)
+                if(~genEnvSourceForced[idx].not, {
+                    ~genEnvSourcePrev[idx] = ~genEnvSource[idx];
+                    ~genEnvSourceForced[idx] = true;
+                });
+                ~genParams[slot][\envSource].set(2);
+            }, {
+                // Exiting step mode — restore saved envSource
+                if(~genEnvSourceForced[idx], {
+                    var prev = ~genEnvSourcePrev[idx] ? 0;
+                    ~genEnvSourceForced[idx] = false;
+                    ~genParams[slot][\envSource].set(prev);
+                    ~genEnvSourcePrev[idx] = nil;
+                });
             });
             ("Gen " ++ slot ++ " stepMode: " ++ ["OFF", "ARP", "SEQ"][mode]).postln;
         });
