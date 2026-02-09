@@ -9,7 +9,7 @@ Signal flow:
 Features:
   - Tube-style drive stage
   - Two resonant multimode filters (LP/BP/HP)
-  - Tempo-synced LFO modulation of cutoff (per-filter sync rates)
+  - Tempo-synced sine LFO modulation of cutoff (per-filter clock rates)
   - Harmonics sync (Filter2 = Filter1 / ratio)
   - Serial or parallel routing
   - Safety limiter for resonance
@@ -26,8 +26,6 @@ Features:
     ~fbFreq2 = 0.6;
     ~fbReso2 = 0.3;
     ~fbMode2 = 0;
-    ~fbSync1Rate = 0;     // LFO rate multiplier (0 = free/off)
-    ~fbSync2Rate = 0;
     ~fbSync1Idx = -1;     // Clock rate index (-1 = off/FREE)
     ~fbSync2Idx = -1;
     ~fbSyncAmt = 0.0;     // Sync modulation depth 0-1
@@ -36,10 +34,10 @@ Features:
     ~fbMix = 0.5;         // 50%
     ~fbBypass = 1;        // 1=bypassed
 
-    SynthDef(\dualFilter, { |inBus, outBus, bpmBus, clockTrigBus,
+    SynthDef(\dualFilter, { |inBus, outBus, bpmBus,
                              drive=0, freq1=0.6, reso1=0.3, mode1=0,
                              freq2=0.6, reso2=0.3, mode2=0,
-                             sync1Rate=0, sync2Rate=0, sync1Idx=(-1), sync2Idx=(-1), syncAmt=0,
+                             sync1Idx=(-1), sync2Idx=(-1), syncAmt=0,
                              harmonics=0, routing=0, mix=0.5, bypass=1,
                              driveBus=(-1), freq1Bus=(-1), freq2Bus=(-1),
                              reso1Bus=(-1), reso2Bus=(-1), syncAmtBus=(-1),
@@ -48,10 +46,8 @@ Features:
         var f1hz, f2hz, f1base, f2base, rq1, rq2;
         var filt1, filt2, filtSerial, filtParallel;
         var harmonicRatios, syncedFreq2;
-        var lfo1, lfo2, tempoHz;
+        var lfo1, lfo2, tempoHz, sync1On, sync2On, sync1Freq, sync2Freq;
         var driveEff, freq1Eff, freq2Eff, reso1Eff, reso2Eff, syncAmtEff, harmonicsEff, mixEff;
-        var allTrigs, sync1On, sync1IdxClamped, sync1Trig, sync1TrigK, phase1;
-        var sync2On, sync2IdxClamped, sync2Trig, sync2TrigK, phase2;
 
         // Bus unification: read from bus if valid index, otherwise use direct arg
         driveEff = Select.kr(driveBus >= 0, [drive, In.kr(driveBus)]);
@@ -62,39 +58,30 @@ Features:
         syncAmtEff = Select.kr(syncAmtBus >= 0, [syncAmt, In.kr(syncAmtBus)]);
         harmonicsEff = Select.kr(harmonicsBus >= 0, [harmonics, In.kr(harmonicsBus)]);
         mixEff = Select.kr(mixBus >= 0, [mix, In.kr(mixBus)]);
-        
+
         // Harmonic ratios: Free/1/2/3/4/5/8/16
         harmonicRatios = #[1, 1, 2, 3, 4, 5, 8, 16];
-        
+
         // Get tempo in Hz from BPM bus (BPM / 60 = beats per second)
-        tempoHz = In.kr(bpmBus) / 60;
+        tempoHz = In.kr(bpmBus).max(1) / 60;
 
-        // Phase-locked triangle LFOs using clock trigger reset
+        // Sine LFOs for filter cutoff modulation
         // sync1Idx/sync2Idx: -1 = off, 0-12 = clock rate index
-        allTrigs = In.ar(clockTrigBus, 13);
-
-        // LFO 1: phase-locked to clock
+        // Uses clock registry multipliers to derive LFO frequency from tempo
         sync1On = (sync1Idx >= 0);
-        sync1IdxClamped = sync1Idx.clip(0, 12);
-        sync1Trig = Select.ar(sync1IdxClamped, allTrigs) * sync1On;  // Gate when off
-        sync1TrigK = A2K.kr(Trig1.ar(sync1Trig, ControlDur.ir * 2));
-        phase1 = Phasor.kr(sync1TrigK, sync1Rate * tempoHz * ControlDur.ir, 0, 1, 0);
+        sync1Freq = Select.kr(sync1Idx.clip(0, 12), ~clockRateMults) * tempoHz;
         lfo1 = Select.kr(sync1On, [
             DC.kr(1),
-            (1 - (phase1 * 2 - 1).abs).linlin(0, 1, 0.01, 1)  // Triangle: 0.01-1 (never 0)
+            SinOsc.kr(sync1Freq).range(0.01, 1)  // Sine: 0.01-1 (never 0)
         ]);
 
-        // LFO 2: phase-locked to clock
         sync2On = (sync2Idx >= 0);
-        sync2IdxClamped = sync2Idx.clip(0, 12);
-        sync2Trig = Select.ar(sync2IdxClamped, allTrigs) * sync2On;  // Gate when off
-        sync2TrigK = A2K.kr(Trig1.ar(sync2Trig, ControlDur.ir * 2));
-        phase2 = Phasor.kr(sync2TrigK, sync2Rate * tempoHz * ControlDur.ir, 0, 1, 0);
+        sync2Freq = Select.kr(sync2Idx.clip(0, 12), ~clockRateMults) * tempoHz;
         lfo2 = Select.kr(sync2On, [
             DC.kr(1),
-            (1 - (phase2 * 2 - 1).abs).linlin(0, 1, 0.01, 1)  // Triangle: 0.01-1 (never 0)
+            SinOsc.kr(sync2Freq).range(0.01, 1)  // Sine: 0.01-1 (never 0)
         ]);
-        
+
         // Smooth params
         freq1Eff = VarLag.kr(freq1Eff, 0.02, warp: \exp);
         freq2Eff = VarLag.kr(freq2Eff, 0.02, warp: \exp);
@@ -197,7 +184,6 @@ Features:
         \inBus, ~masterBus,
         \outBus, ~masterBus,
         \bpmBus, ~clockBus.index,
-        \clockTrigBus, ~clockTrigBus.index,
         \drive, ~fbDrive,
         \freq1, ~fbFreq1,
         \reso1, ~fbReso1,
@@ -205,8 +191,6 @@ Features:
         \freq2, ~fbFreq2,
         \reso2, ~fbReso2,
         \mode2, ~fbMode2,
-        \sync1Rate, ~fbSync1Rate,
-        \sync2Rate, ~fbSync2Rate,
         \sync1Idx, ~fbSync1Idx,
         \sync2Idx, ~fbSync2Idx,
         \syncAmt, ~fbSyncAmt,
@@ -259,14 +243,9 @@ Features:
     OSCdef(\fbSync1, { |msg|
         var rateStr = msg[1].asString;
         var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
-        var mult = if (idx >= 0) { ~clockRateMults[idx] } { 0 };
-        ~fbSync1Rate = mult;
         ~fbSync1Idx = idx;
-        if(~fbSynth.notNil) {
-            ~fbSynth.set(\sync1Rate, mult);
-            ~fbSynth.set(\sync1Idx, idx);
-        };
-        ("  Filter 1 sync: " ++ if(mult == 0, "FREE", rateStr)).postln;
+        if(~fbSynth.notNil) { ~fbSynth.set(\sync1Idx, idx) };
+        ("  Filter 1 sync: " ++ if(idx < 0, "FREE", rateStr)).postln;
     }, '/noise/master/fb/sync1');
     
     OSCdef(\fbFreq2, { |msg|
@@ -293,14 +272,9 @@ Features:
     OSCdef(\fbSync2, { |msg|
         var rateStr = msg[1].asString;
         var idx = ~clockRateIndexOfLabel.(rateStr);  // -1 if OFF/invalid
-        var mult = if (idx >= 0) { ~clockRateMults[idx] } { 0 };
-        ~fbSync2Rate = mult;
         ~fbSync2Idx = idx;
-        if(~fbSynth.notNil) {
-            ~fbSynth.set(\sync2Rate, mult);
-            ~fbSynth.set(\sync2Idx, idx);
-        };
-        ("  Filter 2 sync: " ++ if(mult == 0, "FREE", rateStr)).postln;
+        if(~fbSynth.notNil) { ~fbSynth.set(\sync2Idx, idx) };
+        ("  Filter 2 sync: " ++ if(idx < 0, "FREE", rateStr)).postln;
     }, '/noise/master/fb/sync2');
     
     OSCdef(\fbSyncAmt, { |msg|

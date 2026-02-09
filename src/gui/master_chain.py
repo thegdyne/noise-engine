@@ -14,7 +14,7 @@ from PyQt5.QtGui import QFont, QPainter, QColor, QLinearGradient
 
 from .theme import COLORS, MONO_FONT, FONT_FAMILY, FONT_SIZES, get
 from .widgets import DragSlider, CycleButton
-from src.config import OSC_PATHS
+from src.config import OSC_PATHS, CLOCK_RATES, CLOCK_DEFAULT_INDEX
 
 # =============================================================================
 # SHARED CONSTANTS
@@ -240,7 +240,7 @@ class HeatModule(QWidget):
 # =============================================================================
 
 FILTER_LAYOUT = {
-    'width': 120,
+    'width': 186,
     'height': MODULE_HEIGHT,
 
     # Header
@@ -266,13 +266,30 @@ FILTER_LAYOUT = {
 
     # Routing button
     'routing_x': 30, 'routing_y': 132, 'routing_w': 40, 'routing_h': 14,
+
+    # Sync section (right side) — vertical separator + F1/F2 rate buttons + AMT slider
+    'sync_sep_x': 119,
+    'sync_lbl_x': 124, 'sync_lbl_y': 4, 'sync_lbl_w': 60, 'sync_lbl_h': 16,
+    'sync_btn_w': 36, 'sync_btn_h': 18,
+    'sync_f1_x': 126, 'sync_f1_y': 32,
+    'sync_f2_x': 126, 'sync_f2_y': 56,
+    'sync_f1_lbl_x': 164, 'sync_f1_lbl_y': 34,
+    'sync_f2_lbl_x': 164, 'sync_f2_lbl_y': 58,
+    'sync_amt_x': 144, 'sync_amt_y': 82, 'sync_amt_w': 18, 'sync_amt_h': 50,
+    'sync_amt_lbl_y': 134,
 }
 
 FL = FILTER_LAYOUT
 
+# Sync modes: FREE + SSOT clock rates
+FILTER_SYNC_MODES = ["FREE"] + CLOCK_RATES
+FILTER_SYNC_CLK_INDEX = 1 + CLOCK_DEFAULT_INDEX  # FREE shifts SSOT indices by +1
+assert FILTER_SYNC_MODES[0] == "FREE"
+assert FILTER_SYNC_MODES[FILTER_SYNC_CLK_INDEX] == "CLK"
+
 
 class FilterModule(QWidget):
-    """Dual filter module with flat absolute positioning."""
+    """Dual filter module with flat absolute positioning, includes sync controls."""
 
     MODES = ["LP", "BP", "HP"]
     ROUTINGS = ["SER", "PAR"]
@@ -287,6 +304,8 @@ class FilterModule(QWidget):
         self.routing = 0
         self.bypassed = True
         self.osc_bridge = None
+        self.f1_sync_prev_index = 0
+        self.f2_sync_prev_index = 0
 
         self.setFixedSize(FL['width'], FL['height'])
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -417,6 +436,63 @@ class FilterModule(QWidget):
         self.routing_btn.index_changed.connect(self._on_routing_changed)
         self.routing_btn.setStyleSheet(small_btn_style())
 
+        # === SYNC SECTION (right side) ===
+
+        # Vertical separator
+        self.sync_sep = QFrame(self)
+        self.sync_sep.setGeometry(FL['sync_sep_x'], FL['sep_y'], 1, FL['height'] - FL['sep_y'] - 4)
+        self.sync_sep.setStyleSheet(f"background-color: {get('accent_master_dim')};")
+
+        # Sync label
+        sync_lbl = QLabel("SYNC", self)
+        sync_lbl.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny'], QFont.Bold))
+        sync_lbl.setStyleSheet(f"color: {get('accent_master')};")
+        sync_lbl.setGeometry(FL['sync_lbl_x'], FL['sync_lbl_y'], FL['sync_lbl_w'], FL['sync_lbl_h'])
+
+        # F1 sync button
+        self.f1_sync_btn = CycleButton(FILTER_SYNC_MODES, initial_index=0, parent=self)
+        self.f1_sync_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        self.f1_sync_btn.setGeometry(FL['sync_f1_x'], FL['sync_f1_y'], FL['sync_btn_w'], FL['sync_btn_h'])
+        self.f1_sync_btn.setToolTip("F1 sync: click for CLK, drag to change rate")
+        self.f1_sync_btn.wrap = True
+        self.f1_sync_btn.index_changed.connect(self._on_f1_sync_changed)
+        self._update_sync_btn_style(self.f1_sync_btn, 0)
+
+        f1_sync_lbl = QLabel("F1", self)
+        f1_sync_lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        f1_sync_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        f1_sync_lbl.setGeometry(FL['sync_f1_lbl_x'], FL['sync_f1_lbl_y'], 20, 14)
+
+        # F2 sync button
+        self.f2_sync_btn = CycleButton(FILTER_SYNC_MODES, initial_index=0, parent=self)
+        self.f2_sync_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        self.f2_sync_btn.setGeometry(FL['sync_f2_x'], FL['sync_f2_y'], FL['sync_btn_w'], FL['sync_btn_h'])
+        self.f2_sync_btn.setToolTip("F2 sync: click for CLK, drag to change rate")
+        self.f2_sync_btn.wrap = True
+        self.f2_sync_btn.index_changed.connect(self._on_f2_sync_changed)
+        self._update_sync_btn_style(self.f2_sync_btn, 0)
+
+        f2_sync_lbl = QLabel("F2", self)
+        f2_sync_lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        f2_sync_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        f2_sync_lbl.setGeometry(FL['sync_f2_lbl_x'], FL['sync_f2_lbl_y'], 20, 14)
+
+        # AMT slider
+        self.amt_slider = DragSlider(parent=self)
+        self.amt_slider.setObjectName("fx_fb_syncAmt")
+        self.amt_slider.setGeometry(FL['sync_amt_x'], FL['sync_amt_y'], FL['sync_amt_w'], FL['sync_amt_h'])
+        self.amt_slider.setMinimum(0)
+        self.amt_slider.setMaximum(200)
+        self.amt_slider.setValue(0)
+        self.amt_slider.setToolTip("Clock sync modulation depth")
+        self.amt_slider.valueChanged.connect(self._on_amt_changed)
+
+        amt_lbl = QLabel("AMT", self)
+        amt_lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        amt_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
+        amt_lbl.setAlignment(Qt.AlignCenter)
+        amt_lbl.setGeometry(FL['sync_amt_x'] - 6, FL['sync_amt_lbl_y'], 30, 12)
+
     def _update_style(self):
         self.setStyleSheet(f"""
             QWidget#master_filter {{
@@ -461,6 +537,48 @@ class FilterModule(QWidget):
     def _on_mix_changed(self, value):
         self._send_osc(OSC_PATHS['fb_mix'], value / 200.0)
 
+    def _update_sync_btn_style(self, btn, index):
+        """Update sync button appearance based on mode."""
+        if index == 0:  # FREE
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {COLORS['background_dark']};
+                    color: {COLORS['text_dim']};
+                    border: 1px solid {COLORS['border']};
+                    border-radius: 3px;
+                }}
+            """)
+        else:  # Synced
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {get('accent_master_dim')};
+                    color: {COLORS['text']};
+                    border: 1px solid {get('accent_master')};
+                    border-radius: 3px;
+                }}
+            """)
+
+    def _on_f1_sync_changed(self, index):
+        if self.f1_sync_prev_index == 0 and index != 0:
+            index = FILTER_SYNC_CLK_INDEX
+            self.f1_sync_btn.set_index(index)
+        self.f1_sync_prev_index = index
+        self._update_sync_btn_style(self.f1_sync_btn, index)
+        rate = FILTER_SYNC_MODES[index]
+        self._send_osc(OSC_PATHS['fb_sync1'], "" if rate == "FREE" else rate)
+
+    def _on_f2_sync_changed(self, index):
+        if self.f2_sync_prev_index == 0 and index != 0:
+            index = FILTER_SYNC_CLK_INDEX
+            self.f2_sync_btn.set_index(index)
+        self.f2_sync_prev_index = index
+        self._update_sync_btn_style(self.f2_sync_btn, index)
+        rate = FILTER_SYNC_MODES[index]
+        self._send_osc(OSC_PATHS['fb_sync2'], "" if rate == "FREE" else rate)
+
+    def _on_amt_changed(self, value):
+        self._send_osc(OSC_PATHS['fb_sync_amt'], value / 200.0)
+
     def set_osc_bridge(self, osc_bridge):
         self.osc_bridge = osc_bridge
 
@@ -478,6 +596,12 @@ class FilterModule(QWidget):
         self._send_osc(OSC_PATHS['fb_freq2'], self.f2_slider.value() / 200.0)
         self._send_osc(OSC_PATHS['fb_reso2'], self.r2_slider.value() / 200.0)
         self._send_osc(OSC_PATHS['fb_mix'], self.mix_slider.value() / 200.0)
+        # Sync
+        rate1 = FILTER_SYNC_MODES[self.f1_sync_btn.index]
+        rate2 = FILTER_SYNC_MODES[self.f2_sync_btn.index]
+        self._send_osc(OSC_PATHS['fb_sync1'], "" if rate1 == "FREE" else rate1)
+        self._send_osc(OSC_PATHS['fb_sync2'], "" if rate2 == "FREE" else rate2)
+        self._send_osc(OSC_PATHS['fb_sync_amt'], self.amt_slider.value() / 200.0)
 
     def get_state(self) -> dict:
         return {
@@ -490,6 +614,9 @@ class FilterModule(QWidget):
             'f2': self.f2_slider.value(),
             'r2': self.r2_slider.value(),
             'mix': self.mix_slider.value(),
+            'f1_sync': FILTER_SYNC_MODES[self.f1_sync_btn.index],
+            'f2_sync': FILTER_SYNC_MODES[self.f2_sync_btn.index],
+            'amt': self.amt_slider.value(),
         }
 
     def set_state(self, state: dict):
@@ -520,235 +647,29 @@ class FilterModule(QWidget):
             self.r2_slider.setValue(state['r2'])
         if 'mix' in state:
             self.mix_slider.setValue(state['mix'])
-
-
-# =============================================================================
-# SYNC MODULE - Filter clock sync controls
-# =============================================================================
-
-SYNC_LAYOUT = {
-    'width': 70,
-    'height': MODULE_HEIGHT,
-
-    # Header
-    'title_x': 5, 'title_y': 4, 'title_w': 60, 'title_h': 16,
-
-    # Separator
-    'sep_y': 24,
-
-    # Sync buttons
-    'btn_w': 36, 'btn_h': 18,
-    'f1_x': 8, 'f1_y': 32,
-    'f2_x': 8, 'f2_y': 56,
-
-    # Labels for buttons
-    'f1_lbl_x': 46, 'f1_lbl_y': 34,
-    'f2_lbl_x': 46, 'f2_lbl_y': 58,
-
-    # AMT slider
-    'amt_x': 26, 'amt_y': 82, 'amt_w': 18, 'amt_h': 50,
-    'amt_lbl_y': 134,
-}
-
-SL = SYNC_LAYOUT
-
-# Sync modes: FREE + clock rates
-from src.config import CLOCK_RATES, CLOCK_DEFAULT_INDEX
-
-# Sync modes: FREE + SSOT clock rates
-FILTER_SYNC_MODES = ["FREE"] + CLOCK_RATES
-FILTER_SYNC_CLK_INDEX = 1 + CLOCK_DEFAULT_INDEX  # FREE shifts SSOT indices by +1
-
-# Sanity checks: catch future list drift
-assert FILTER_SYNC_MODES[0] == "FREE"
-assert FILTER_SYNC_MODES[FILTER_SYNC_CLK_INDEX] == "CLK"
-
-
-class SyncModule(QWidget):
-    """Filter sync module - clock sync for dual filter cutoffs."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setObjectName("master_sync")
-
-        self.f1_prev_index = 0
-        self.f2_prev_index = 0
-        self.osc_bridge = None
-
-        self.setFixedSize(SL['width'], SL['height'])
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-
-        self._build_ui()
-        self._update_style()
-
-    def _build_ui(self):
-        """Build all widgets with absolute positioning."""
-
-        # Title
-        self.title = QLabel("FILT SYNC", self)
-        self.title.setFont(QFont(FONT_FAMILY, FONT_SIZES['tiny'], QFont.Bold))
-        self.title.setStyleSheet(f"color: {get('accent_master')};")
-        self.title.setGeometry(SL['title_x'], SL['title_y'], SL['title_w'], SL['title_h'])
-
-        # Separator
-        self.separator = QFrame(self)
-        self.separator.setGeometry(4, SL['sep_y'], SL['width'] - 8, 1)
-        self.separator.setStyleSheet(f"background-color: {get('accent_master_dim')};")
-
-        # F1 sync button
-        self.f1_btn = CycleButton(FILTER_SYNC_MODES, initial_index=0, parent=self)
-        self.f1_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        self.f1_btn.setGeometry(SL['f1_x'], SL['f1_y'], SL['btn_w'], SL['btn_h'])
-        self.f1_btn.setToolTip("F1 sync: click for CLK, drag to change rate")
-        self.f1_btn.wrap = True
-        self.f1_btn.index_changed.connect(self._on_f1_changed)
-        self._update_btn_style(self.f1_btn, 0)
-
-        f1_lbl = QLabel("F1", self)
-        f1_lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        f1_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
-        f1_lbl.setGeometry(SL['f1_lbl_x'], SL['f1_lbl_y'], 20, 14)
-
-        # F2 sync button
-        self.f2_btn = CycleButton(FILTER_SYNC_MODES, initial_index=0, parent=self)
-        self.f2_btn.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        self.f2_btn.setGeometry(SL['f2_x'], SL['f2_y'], SL['btn_w'], SL['btn_h'])
-        self.f2_btn.setToolTip("F2 sync: click for CLK, drag to change rate")
-        self.f2_btn.wrap = True
-        self.f2_btn.index_changed.connect(self._on_f2_changed)
-        self._update_btn_style(self.f2_btn, 0)
-
-        f2_lbl = QLabel("F2", self)
-        f2_lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        f2_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
-        f2_lbl.setGeometry(SL['f2_lbl_x'], SL['f2_lbl_y'], 20, 14)
-
-        # AMT slider
-        self.amt_slider = DragSlider(parent=self)
-        self.amt_slider.setObjectName("fx_fb_syncAmt")
-        self.amt_slider.setGeometry(SL['amt_x'], SL['amt_y'], SL['amt_w'], SL['amt_h'])
-        self.amt_slider.setMinimum(0)
-        self.amt_slider.setMaximum(200)
-        self.amt_slider.setValue(0)
-        self.amt_slider.setToolTip("Clock sync modulation depth")
-        self.amt_slider.valueChanged.connect(self._on_amt_changed)
-
-        amt_lbl = QLabel("AMT", self)
-        amt_lbl.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
-        amt_lbl.setStyleSheet(f"color: {COLORS['text_dim']};")
-        amt_lbl.setAlignment(Qt.AlignCenter)
-        amt_lbl.setGeometry(SL['amt_x'] - 6, SL['amt_lbl_y'], 30, 12)
-
-    def _update_style(self):
-        self.setStyleSheet(f"""
-            QWidget#master_sync {{
-                background-color: {COLORS['background']};
-                border: 1px solid {get('accent_master_dim')};
-                border-radius: 4px;
-            }}
-        """)
-
-    def _update_btn_style(self, btn, index):
-        """Update sync button appearance based on mode."""
-        if index == 0:  # FREE
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {COLORS['background_dark']};
-                    color: {COLORS['text_dim']};
-                    border: 1px solid {COLORS['border']};
-                    border-radius: 3px;
-                }}
-            """)
-        else:  # Synced
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {get('accent_master_dim')};
-                    color: {COLORS['text']};
-                    border: 1px solid {get('accent_master')};
-                    border-radius: 3px;
-                }}
-            """)
-
-    def _on_f1_changed(self, index):
-        """Handle F1 sync rate change."""
-        # Leaving FREE: always land on CLK (consistent "enable sync" gesture)
-        if self.f1_prev_index == 0 and index != 0:
-            index = FILTER_SYNC_CLK_INDEX
-            self.f1_btn.set_index(index)
-
-        self.f1_prev_index = index
-        self._update_btn_style(self.f1_btn, index)
-        rate = FILTER_SYNC_MODES[index]
-        self._send_osc(OSC_PATHS['fb_sync1'], "" if rate == "FREE" else rate)
-
-    def _on_f2_changed(self, index):
-        """Handle F2 sync rate change."""
-        # Leaving FREE: always land on CLK (consistent "enable sync" gesture)
-        if self.f2_prev_index == 0 and index != 0:
-            index = FILTER_SYNC_CLK_INDEX
-            self.f2_btn.set_index(index)
-
-        self.f2_prev_index = index
-        self._update_btn_style(self.f2_btn, index)
-        rate = FILTER_SYNC_MODES[index]
-        self._send_osc(OSC_PATHS['fb_sync2'], "" if rate == "FREE" else rate)
-
-    def _on_amt_changed(self, value):
-        self._send_osc(OSC_PATHS['fb_sync_amt'], value / 200.0)
-
-    def set_osc_bridge(self, osc_bridge):
-        self.osc_bridge = osc_bridge
-
-    def _send_osc(self, path, value):
-        if self.osc_bridge and self.osc_bridge.client:
-            self.osc_bridge.client.send_message(path, [value])
-
-    def sync_state(self):
-        rate1 = FILTER_SYNC_MODES[self.f1_btn.index]
-        rate2 = FILTER_SYNC_MODES[self.f2_btn.index]
-        self._send_osc(OSC_PATHS['fb_sync1'], "" if rate1 == "FREE" else rate1)
-        self._send_osc(OSC_PATHS['fb_sync2'], "" if rate2 == "FREE" else rate2)
-        self._send_osc(OSC_PATHS['fb_sync_amt'], self.amt_slider.value() / 200.0)
-
-    def get_state(self) -> dict:
-        return {
-            'f1_sync': FILTER_SYNC_MODES[self.f1_btn.index],  # Store label, not index
-            'f2_sync': FILTER_SYNC_MODES[self.f2_btn.index],  # Store label, not index
-            'amt': self.amt_slider.value(),
-        }
-
-    def set_state(self, state: dict):
+        # Sync state
         if 'f1_sync' in state:
             label = state['f1_sync']
-            # Support both old format (int) and new format (str)
             if isinstance(label, int):
-                # Legacy: index-based state
                 idx = label if 0 <= label < len(FILTER_SYNC_MODES) else 0
             else:
-                # New: label-based state
                 idx = FILTER_SYNC_MODES.index(label) if label in FILTER_SYNC_MODES else 0
-
-            self.f1_btn.set_index(idx)
-            self.f1_prev_index = idx
-            self._update_btn_style(self.f1_btn, idx)
-
+            self.f1_sync_btn.set_index(idx)
+            self.f1_sync_prev_index = idx
+            self._update_sync_btn_style(self.f1_sync_btn, idx)
         if 'f2_sync' in state:
             label = state['f2_sync']
-            # Support both old format (int) and new format (str)
             if isinstance(label, int):
-                # Legacy: index-based state
                 idx = label if 0 <= label < len(FILTER_SYNC_MODES) else 0
             else:
-                # New: label-based state
                 idx = FILTER_SYNC_MODES.index(label) if label in FILTER_SYNC_MODES else 0
-
-            self.f2_btn.set_index(idx)
-            self.f2_prev_index = idx
-            self._update_btn_style(self.f2_btn, idx)
-
+            self.f2_sync_btn.set_index(idx)
+            self.f2_sync_prev_index = idx
+            self._update_sync_btn_style(self.f2_sync_btn, idx)
         if 'amt' in state:
             self.amt_slider.setValue(state['amt'])
+
+
 
 
 # =============================================================================
@@ -1744,15 +1665,12 @@ class MasterChain(QWidget):
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(0)
 
-        # Signal flow order: Heat → Filter → Sync → EQ → Comp → Limiter → Output
+        # Signal flow order: Heat → Filter → EQ → Comp → Limiter → Output
         self.heat = HeatModule()
         layout.addWidget(self.heat)
 
         self.filter = FilterModule()
         layout.addWidget(self.filter)
-
-        self.sync = SyncModule()
-        layout.addWidget(self.sync)
 
         self.eq = EQModule()
         layout.addWidget(self.eq)
@@ -1800,12 +1718,10 @@ class MasterChain(QWidget):
         self.osc_bridge = osc_bridge
         self.heat.set_osc_bridge(osc_bridge)
         self.filter.set_osc_bridge(osc_bridge)
-        self.sync.set_osc_bridge(osc_bridge)
 
     def sync_state(self):
         self.heat.sync_state()
         self.filter.sync_state()
-        self.sync.sync_state()
 
     def set_levels(self, left, right, peak_left=None, peak_right=None):
         self.output.set_levels(left, right, peak_left, peak_right)
@@ -1823,7 +1739,6 @@ class MasterChain(QWidget):
         """Get state in flat prefixed format matching MasterState schema."""
         heat = self.heat.get_state()
         flt = self.filter.get_state()
-        sync = self.sync.get_state()
         eq = self.eq.get_state()
         comp = self.comp.get_state()
         lim = self.limiter.get_state()
@@ -1848,10 +1763,10 @@ class MasterChain(QWidget):
             'filter_f2_mode': flt.get('f2_mode', 2),
             'filter_routing': flt.get('routing', 0),
             'filter_mix': flt.get('mix', 200),
-            # Sync
-            'sync_f1': sync.get('f1_sync', 0),
-            'sync_f2': sync.get('f2_sync', 0),
-            'sync_amt': sync.get('amt', 100),
+            # Sync (now part of filter module)
+            'sync_f1': flt.get('f1_sync', 'FREE'),
+            'sync_f2': flt.get('f2_sync', 'FREE'),
+            'sync_amt': flt.get('amt', 0),
             # EQ
             'eq_bypass': 1 if eq.get('bypass', False) else 0,
             'eq_lo': eq.get('lo', 120),
@@ -1883,7 +1798,8 @@ class MasterChain(QWidget):
             if 'filter' in state:
                 self.filter.set_state(state['filter'])
             if 'sync' in state:
-                self.sync.set_state(state['sync'])
+                # Legacy: sync was separate, now merged into filter
+                self.filter.set_state(state['sync'])
             if 'eq' in state:
                 self.eq.set_state(state['eq'])
             if 'comp' in state:
@@ -1901,7 +1817,7 @@ class MasterChain(QWidget):
                 'drive': state.get('heat_drive', 0),
                 'mix': state.get('heat_mix', 200),
             })
-            # Filter
+            # Filter (includes sync)
             self.filter.set_state({
                 'bypass': state.get('filter_bypass', 1) == 1,
                 'f1': state.get('filter_f1', 100),
@@ -1912,12 +1828,9 @@ class MasterChain(QWidget):
                 'f2_mode': state.get('filter_f2_mode', 2),
                 'routing': state.get('filter_routing', 0),
                 'mix': state.get('filter_mix', 200),
-            })
-            # Sync
-            self.sync.set_state({
-                'f1_sync': state.get('sync_f1', 0),
-                'f2_sync': state.get('sync_f2', 0),
-                'amt': state.get('sync_amt', 100),
+                'f1_sync': state.get('sync_f1', 'FREE'),
+                'f2_sync': state.get('sync_f2', 'FREE'),
+                'amt': state.get('sync_amt', 0),
             })
             # EQ
             self.eq.set_state({
