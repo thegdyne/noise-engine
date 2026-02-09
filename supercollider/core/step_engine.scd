@@ -34,7 +34,7 @@ Dependencies: buses.scd (~clockTrigBus, ~midiTrigBus, ~busRegistry, ~genGroup, ~
 SynthDef(\stepEngineSlot, {
     |clockTrigBus, freqBus, midiTrigBusChan,
      bufnum, mode=0, fabricIdx=6, stepCount=0,
-     playMode=0, resetTrig=0|
+     playMode=0|
 
     var allTrigs, tick, edge;
     var resetPulse, count;
@@ -52,8 +52,8 @@ SynthDef(\stepEngineSlot, {
     // Convert audio trigger to control-rate edge (one trigger per control block)
     edge = T2K.kr(tick);
 
-    // Position counter with reset support
-    resetPulse = Trig1.kr(resetTrig.tr(0), ControlDur.ir);
+    // Position counter with reset support (\resetTrig is a TrigControl — must use NamedControl syntax)
+    resetPulse = Trig1.kr(\resetTrig.tr(0), ControlDur.ir);
     count = PulseCount.kr(edge, resetPulse);
 
     // Compute position for each play mode
