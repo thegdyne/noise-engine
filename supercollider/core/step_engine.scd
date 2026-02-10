@@ -198,12 +198,13 @@ SynthDef(\stepEngineSlot, {
     }, '/noise/step/reset');
 
     // SEQ: set bulk step data (4-channel format)
-    // Format: [slot_0indexed, length, type1, note1, vel1, gate1, type2, ...]
+    // Format: [slot_0indexed, length, reset(0|1), type1, note1, vel1, gate1, type2, ...]
     OSCdef(\seqSetBulk, { |msg|
         var slot0 = msg[1].asInteger;
         if(slot0 >= 0 && (slot0 < 8), {
             var length = msg[2].asInteger;
-            var raw = msg[3..];
+            var reset = msg[3].asInteger;  // 0 = preserve phase, 1 = reset to step 0
+            var raw = msg[4..];
             var buf = ~stepBuf[slot0];
             var data = [];
             var numSteps = (raw.size / 4).asInteger.min(16);
@@ -224,8 +225,12 @@ SynthDef(\stepEngineSlot, {
             };
 
             buf.setn(0, data);
-            // playMode is set separately by seqSetPlayMode (called before bulk in handover)
-            ~stepSynths[slot0].set(\stepCount, length.min(16), \resetTrig, 1);
+            // Only reset phase when explicitly requested (mode entry / handover)
+            if(reset > 0, {
+                ~stepSynths[slot0].set(\stepCount, length.min(16), \resetTrig, 1);
+            }, {
+                ~stepSynths[slot0].set(\stepCount, length.min(16));
+            });
         });
     }, '/noise/seq/set_bulk');
 

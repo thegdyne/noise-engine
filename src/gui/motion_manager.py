@@ -275,7 +275,7 @@ class MotionManager:
             idx = slot['slot_idx']
             slot['seq'].on_data_changed = lambda i=idx: self._on_seq_data_changed(i)
             # Push SEQ data to SC step engine (buffer, rate, play mode)
-            self._push_seq_to_sc(slot)
+            self._push_seq_to_sc(slot, reset=1)
 
             # Multi-slot sync: first SEQ activates SC immediately,
             # subsequent SEQ slots defer SC activation to next bar downbeat.
@@ -360,8 +360,14 @@ class MotionManager:
             # Simple note list (empty = clear on SC side)
             self._send_osc(OSC_PATHS['arp_set_notes'], [slot_idx] + expanded)
 
-    def _push_seq_to_sc(self, slot: dict):
-        """Push SEQ step data and rate to SC step engine."""
+    def _push_seq_to_sc(self, slot: dict, reset: int = 0):
+        """Push SEQ step data and rate to SC step engine.
+
+        Args:
+            slot: Slot dict with seq engine
+            reset: 1 = reset playhead to step 0, 0 = preserve position.
+                   Only handover (mode entry) passes reset=1.
+        """
         if self._send_osc is None:
             return
         slot_idx = slot['slot_idx']
@@ -378,12 +384,12 @@ class MotionManager:
         }.get(seq.settings.play_mode.name, 0)
         self._send_osc(OSC_PATHS['seq_set_play_mode'], [slot_idx, play_mode_val])
 
-        # Send bulk step data: [slot, length, type1, note1, vel1, gate1, ...]
+        # Send bulk step data: [slot, length, reset, type1, note1, vel1, gate1, ...]
         length = seq.settings.length
-        data = [slot_idx, length]
+        data = [slot_idx, length, reset]
         for step in seq.settings.steps[:length]:
             step_type_val = {StepType.NOTE: 0, StepType.REST: 1, StepType.TIE: 2}.get(step.step_type, 1)
-            gate = getattr(step, 'gate', 1.0)
+            gate = float(getattr(step, 'gate', 1.0))
             data.extend([step_type_val, step.note, step.velocity, gate])
         self._send_osc(OSC_PATHS['seq_set_bulk'], data)
 
