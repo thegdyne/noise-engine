@@ -178,8 +178,6 @@ class TestMotionManagerStepMode:
 
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_send_note_on,
-            send_note_off=mock_send_note_off,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -287,8 +285,6 @@ class TestMotionManagerARPClear:
 
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_send_note_on,
-            send_note_off=mock_send_note_off,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -361,8 +357,6 @@ class TestSEQBulkGate:
 
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_send_note_on,
-            send_note_off=mock_send_note_off,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -439,8 +433,6 @@ class TestEnvSourceNotSentFromPython:
 
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_send_note_on,
-            send_note_off=mock_send_note_off,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -506,8 +498,6 @@ class TestARPRatePropagatesToSC:
 
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_send_note_on,
-            send_note_off=mock_send_note_off,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -564,8 +554,6 @@ class TestSEQDataPropagatesToSC:
 
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_send_note_on,
-            send_note_off=mock_send_note_off,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -701,8 +689,6 @@ class TestSEQMutationPropagation:
             ))
         return MotionManager(
             arp_engines=engines,
-            send_note_on=mock_fn,
-            send_note_off=mock_fn,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -757,8 +743,6 @@ class TestEuclideanARPBulk:
             ))
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_fn,
-            send_note_off=mock_fn,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )
@@ -940,8 +924,6 @@ class TestRSTResetsStepEngine:
             ))
         mm = MotionManager(
             arp_engines=engines,
-            send_note_on=mock_fn,
-            send_note_off=mock_fn,
             get_bpm=lambda: 120.0,
             send_osc=send_osc,
         )

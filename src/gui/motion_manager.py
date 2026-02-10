@@ -60,8 +60,6 @@ class MotionManager:
     def __init__(
         self,
         arp_engines: List[ArpEngine],
-        send_note_on: Callable[[int, int, int], None],
-        send_note_off: Callable[[int, int], None],
         get_bpm: Optional[Callable[[], float]] = None,
         send_osc: Optional[Callable] = None,
     ):
@@ -70,8 +68,6 @@ class MotionManager:
 
         Args:
             arp_engines: List of 8 ArpEngine instances (from ArpSlotManager)
-            send_note_on: Callback (slot, note, velocity)
-            send_note_off: Callback (slot, note)
             get_bpm: Callback returning current BPM (default 120.0)
             send_osc: Callback (path, *args) for sending OSC to SC step engine
         """
@@ -80,11 +76,7 @@ class MotionManager:
         self._slots: List[dict] = []
 
         for i in range(8):
-            seq = SeqEngine(
-                slot_id=i,
-                send_note_on=send_note_on,
-                send_note_off=send_note_off,
-            )
+            seq = SeqEngine(slot_id=i)
             self._slots.append({
                 'lock': threading.RLock(),
                 'arp': arp_engines[i],
@@ -418,6 +410,18 @@ class MotionManager:
         slot = self._slots[slot_idx]
         if slot['mode'] == MotionMode.SEQ:
             self._push_seq_to_sc(slot)
+
+    # =========================================================================
+    # SC STEP EVENT FEEDBACK
+    # =========================================================================
+
+    def on_step_event(self, slot_idx: int, position: int):
+        """Handle step event from SC SendReply — update SEQ playhead."""
+        if slot_idx < 0 or slot_idx >= 8:
+            return
+        slot = self._slots[slot_idx]
+        if slot['mode'] in (MotionMode.SEQ, MotionMode.ARP):
+            slot['seq'].update_playhead(position)
 
     # =========================================================================
     # SEQ ENGINE ACCESS

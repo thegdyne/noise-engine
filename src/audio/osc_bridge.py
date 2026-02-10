@@ -50,6 +50,8 @@ class OSCBridge(QObject):
     telem_stabilize_received = pyqtSignal()             # stabilize trigger
     # Clock tick from SC fabric
     clock_tick_received = pyqtSignal(int)  # fabric_idx
+    # Step event from SC step engine (playhead position)
+    step_event_received = pyqtSignal(int, int)  # slot_0indexed, position
 
     # Audio device signals
     audio_devices_received = pyqtSignal(list, str)  # devices list, current device
@@ -305,6 +307,9 @@ class OSCBridge(QObject):
 
         # Clock fabric tick (ARP clock unification)
         dispatcher.map(OSC_PATHS['clock_tick'], self._handle_clock_tick)
+
+        # Step engine playhead feedback
+        dispatcher.map(OSC_PATHS['step_event'], self._handle_step_event)
 
         # Telemetry (development tool)
         dispatcher.map(OSC_PATHS['telem_gen'], self._handle_telem_gen)
@@ -605,6 +610,18 @@ class OSCBridge(QObject):
             return
         if len(args) >= 1:
             self.clock_tick_received.emit(int(args[0]))
+
+    def _handle_step_event(self, address, *args):
+        """Handle step engine playhead position from SC SendReply.
+
+        SendReply format: [nodeID, replyID(=slotIdx), pos]
+        """
+        if self._shutdown or self._deleted:
+            return
+        if len(args) >= 3:
+            slot_idx = int(args[1])  # replyID = slotIdx
+            position = int(args[2])  # first value in SendReply data array
+            self.step_event_received.emit(slot_idx, position)
 
     def send(self, path_key, args):
         """Send OSC message using SSOT path key.

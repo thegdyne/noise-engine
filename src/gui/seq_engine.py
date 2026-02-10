@@ -51,15 +51,8 @@ class SeqEngine:
     manages step data, processes UI commands, and pushes changes to SC.
     """
 
-    def __init__(
-        self,
-        slot_id: int,
-        send_note_on: Callable[[int, int, int], None],
-        send_note_off: Callable[[int, int], None],
-    ):
+    def __init__(self, slot_id: int):
         self._slot_id = slot_id
-        self._send_note_on = send_note_on
-        self._send_note_off = send_note_off
 
         # Settings
         self.settings = SeqSettings()

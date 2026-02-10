@@ -91,8 +91,6 @@ class KeyboardController:
         # Create MotionManager (8 SEQ engines + mode coordination)
         self._motion_manager = MotionManager(
             arp_engines=self._arp_manager.engines,
-            send_note_on=self._send_midi_note_on,
-            send_note_off=self._send_midi_note_off,
             get_bpm=self._get_current_bpm,
             send_osc=self._send_osc_message,
         )
@@ -113,6 +111,7 @@ class KeyboardController:
         # Connect SC fabric clock ticks to MotionManager for ARP
         if hasattr(self.main, 'osc') and self.main.osc is not None:
             self.main.osc.clock_tick_received.connect(self._motion_manager.on_fabric_tick)
+            self.main.osc.step_event_received.connect(self._motion_manager.on_step_event)
 
     # =========================================================================
     # PROPERTIES

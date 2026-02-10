@@ -25,7 +25,7 @@ OSC inputs from Python (handled here):
 
 OSC output to Python:
 - /noise/step/event [slot_0indexed, position] — step event for UI playhead
-  (replyID = bufnum for slot identification)
+  (replyID = slotIdx for slot identification)
 
 Dependencies: buses.scd (~clockTrigBus, ~midiTrigBus, ~busRegistry, ~genGroup, ~stepBuf),
              midi_handler.scd (~stopMidiRetrig, ~triggerMidiGate)
@@ -36,7 +36,7 @@ Dependencies: buses.scd (~clockTrigBus, ~midiTrigBus, ~busRegistry, ~genGroup, ~
 SynthDef(\stepEngineSlot, {
     |clockTrigBus, freqBus, midiTrigBusChan,
      bufnum, mode=0, fabricIdx=6, stepCount=0,
-     playMode=0|
+     playMode=0, slotIdx=0|
 
     var allTrigs, tick, edge;
     var resetPulse, count;
@@ -92,8 +92,8 @@ SynthDef(\stepEngineSlot, {
     trigOut = Select.ar(K2A.ar(active), [trigIn, trigPulse]);
     ReplaceOut.ar(midiTrigBusChan, trigOut);
 
-    // Send position to Python for UI playhead (replyID = bufnum for identification)
-    SendReply.kr(edge * active, '/noise/step/event', [pos], bufnum);
+    // Send position to Python for UI playhead (replyID = slotIdx for identification)
+    SendReply.kr(edge * active, '/noise/step/event', [pos], slotIdx);
 }).add;
 
 
@@ -121,6 +121,7 @@ SynthDef(\stepEngineSlot, {
             \fabricIdx, 6,
             \stepCount, 0,
             \playMode, 0,
+            \slotIdx, i,
         ], target: ~genGroup, addAction: \addBefore);
     });
 
