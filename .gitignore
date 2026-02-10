@@ -118,8 +118,6 @@ packs/user/*
 !packs/nexus/
 !packs/external_telemetry/
 !packs/buchla_258/
-!packs/buchla_258/generators/b258_wt_*.wav
-!packs/buchla_258_wavetables/
 PROJECT_CONTEXT.md
 _utf8_backups_*/
 .context-cache/
