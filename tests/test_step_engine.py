@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, call
 
 from src.presets.preset_schema import SlotState, PresetState
 from src.config import OSC_PATHS, ARP_RATE_TO_FABRIC_IDX
+from src.model.sequencer import StepType, PlayMode
 from tests.helpers.state_helpers import autofill_nondefaults
 
 
@@ -649,3 +650,78 @@ class TestSEQDataPropagatesToSC:
 
         mm.set_mode(0, MotionMode.OFF)
         assert seq.on_data_changed is None
+
+
+# =============================================================================
+# v2: PARAMETRIZED SEQ MUTATION → OSC PROPAGATION
+# =============================================================================
+
+# Every mutating command type must trigger on_data_changed → OSC push.
+# If a new command type is added and forgets notify=True, this catches it.
+SEQ_MUTATION_COMMANDS = [
+    pytest.param(
+        {'type': 'SET_STEP', 'index': 0, 'step_type': StepType.NOTE, 'note': 72, 'velocity': 100},
+        id='SET_STEP',
+    ),
+    pytest.param(
+        {'type': 'SET_LENGTH', 'length': 8},
+        id='SET_LENGTH',
+    ),
+    pytest.param(
+        {'type': 'SET_RATE', 'rate_index': 4},
+        id='SET_RATE',
+    ),
+    pytest.param(
+        {'type': 'SET_PLAY_MODE', 'play_mode': PlayMode.REVERSE},
+        id='SET_PLAY_MODE',
+    ),
+    pytest.param(
+        {'type': 'CLEAR_SEQUENCE'},
+        id='CLEAR_SEQUENCE',
+    ),
+]
+
+
+class TestSEQMutationPropagation:
+    """Every SEQ mutation command must propagate to SC via on_data_changed."""
+
+    def _make_motion_manager(self, send_osc=None):
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_fn = MagicMock()
+        engines = []
+        for i in range(8):
+            engines.append(ArpEngine(
+                slot_id=i,
+                send_note_on=mock_fn,
+                send_note_off=mock_fn,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            ))
+        return MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_fn,
+            send_note_off=mock_fn,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+
+    @pytest.mark.parametrize("cmd", SEQ_MUTATION_COMMANDS)
+    def test_mutation_triggers_osc(self, cmd):
+        """Each mutating command sends at least one OSC message to SC."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        seq = mm.get_seq_engine(0)
+        seq.queue_command(cmd)
+        seq.tick(0.001)
+
+        osc_paths = {OSC_PATHS['step_set_rate'], OSC_PATHS['seq_set_play_mode'], OSC_PATHS['seq_set_bulk']}
+        propagated = [c for c in mock_osc.call_args_list if c[0][0] in osc_paths]
+        assert len(propagated) >= 1, \
+            f"Command {cmd['type']} must trigger OSC propagation to SC"
