@@ -420,7 +420,7 @@ class MotionManager:
         if slot_idx < 0 or slot_idx >= 8:
             return
         slot = self._slots[slot_idx]
-        if slot['mode'] in (MotionMode.SEQ, MotionMode.ARP):
+        if slot['mode'] == MotionMode.SEQ:
             slot['seq'].update_playhead(position)
 
     # =========================================================================
