@@ -25,6 +25,8 @@ from typing import Callable, Dict, List, Optional, Set
 
 from PyQt5.QtCore import QTimer
 
+from src.config import EUCLID_MAX_N
+
 
 # =============================================================================
 # ENUMERATIONS
@@ -1008,7 +1010,7 @@ class ArpEngine:
         """Handle Euclidean gate parameter change."""
         en = bool(event.data.get("enabled", False))
         n = int(event.data.get("n", 16))
-        n = max(1, min(64, n))
+        n = max(1, min(EUCLID_MAX_N, n))
         k = int(event.data.get("k", n))
         k = max(0, min(n, k))
         rot = int(event.data.get("rot", 0))
@@ -1024,6 +1026,8 @@ class ArpEngine:
         # Reset phase when enabling or changing N (keeps it predictable)
         if en or changed_n:
             self.runtime.euclid_step = 0
+
+        self._notify_notes_changed()
 
     def _handle_teardown(self, event: ArpEvent):
         """Handle teardown: stop timers first, then note-off, then reset."""
@@ -1056,7 +1060,7 @@ class ArpEngine:
         if not self.settings.euclid_enabled:
             return True
 
-        n = max(1, min(64, int(self.settings.euclid_n)))
+        n = max(1, min(EUCLID_MAX_N, int(self.settings.euclid_n)))
         k = max(0, min(n, int(self.settings.euclid_k)))
 
         # rot must be valid even when n==1

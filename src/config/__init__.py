@@ -245,6 +245,10 @@ BPM_DEFAULT = 120
 BPM_MIN = 20
 BPM_MAX = 300
 
+# === STEP ENGINE CONSTANTS ===
+STEP_BUFFER_FRAMES = 16      # Max steps per slot (SC Buffer.alloc frame count)
+EUCLID_MAX_N = 16            # Euclid pattern length limit (= STEP_BUFFER_FRAMES)
+
 # === ARP RATE <-> FABRIC INDEX MAPPING ===
 # ARP rate index -> fabric index (all rates now have fabric matches)
 # ARP rates: 0=1/32, 1=1/16, 2=1/12, 3=1/8, 4=1/4, 5=1/2, 6=1bar
@@ -1521,8 +1525,10 @@ OSC_PATHS = {
     # Step engine (SC-side clock-locked ARP/SEQ triggering)
     'gen_step_mode': '/noise/gen/stepMode',          # [slot_1indexed, mode] 0=OFF, 1=ARP, 2=SEQ
     'arp_set_notes': '/noise/arp/set_notes',          # [slot_0indexed, note1, note2, ...]
+    'arp_set_bulk': '/noise/arp/set_bulk',            # [slot_0indexed, stepCount, type1,note1,vel1,gate1, ...]
     'step_set_rate': '/noise/step/set_rate',          # [slot_0indexed, fabricIdx]
-    'seq_set_bulk': '/noise/seq/set_bulk',            # [slot_0indexed, length, type1, note1, vel1, ...]
+    'step_reset': '/noise/step/reset',                # [slot_0indexed] — reset SC PulseCount
+    'seq_set_bulk': '/noise/seq/set_bulk',            # [slot_0indexed, length, reset(0|1), type1, note1, vel1, gate1, ...]
     'seq_set_play_mode': '/noise/seq/set_play_mode',  # [slot_0indexed, playMode]
     'step_event': '/noise/step/event',                # SC -> Python: [slot_0indexed, position]
     # Connection management

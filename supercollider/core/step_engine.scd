@@ -17,13 +17,15 @@ Modes per slot:
 
 OSC inputs from Python (handled here):
 - /noise/arp/set_notes [slot_0indexed, note1, ...] — set ARP note list via buffer
+- /noise/arp/set_bulk [slot_0indexed, stepCount, type1,note1,vel1,gate1, ...] — Euclidean ARP buffer
 - /noise/step/set_rate [slot_0indexed, fabricIdx]  — set clock fabric index
+- /noise/step/reset [slot_0indexed] — reset SC PulseCount (RST)
 - /noise/seq/set_bulk [slot_0indexed, length, type1, note1, vel1, gate1, ...] — set SEQ steps
 - /noise/seq/set_play_mode [slot_0indexed, playMode] — set SEQ play mode
 
 OSC output to Python:
 - /noise/step/event [slot_0indexed, position] — step event for UI playhead
-  (replyID = bufnum for slot identification)
+  (replyID = slotIdx for slot identification)
 
 Dependencies: buses.scd (~clockTrigBus, ~midiTrigBus, ~busRegistry, ~genGroup, ~stepBuf),
              midi_handler.scd (~stopMidiRetrig, ~triggerMidiGate)
@@ -34,7 +36,7 @@ Dependencies: buses.scd (~clockTrigBus, ~midiTrigBus, ~busRegistry, ~genGroup, ~
 SynthDef(\stepEngineSlot, {
     |clockTrigBus, freqBus, midiTrigBusChan,
      bufnum, mode=0, fabricIdx=6, stepCount=0,
-     playMode=0|
+     playMode=0, slotIdx=0|
 
     var allTrigs, tick, edge;
     var resetPulse, count;
@@ -90,8 +92,8 @@ SynthDef(\stepEngineSlot, {
     trigOut = Select.ar(K2A.ar(active), [trigIn, trigPulse]);
     ReplaceOut.ar(midiTrigBusChan, trigOut);
 
-    // Send position to Python for UI playhead (replyID = bufnum for identification)
-    SendReply.kr(edge * active, '/noise/step/event', [pos], bufnum);
+    // Send position to Python for UI playhead (replyID = slotIdx for identification)
+    SendReply.kr(edge * active, '/noise/step/event', [pos], slotIdx);
 }).add;
 
 
@@ -119,6 +121,7 @@ SynthDef(\stepEngineSlot, {
             \fabricIdx, 6,
             \stepCount, 0,
             \playMode, 0,
+            \slotIdx, i,
         ], target: ~genGroup, addAction: \addBefore);
     });
 
@@ -147,6 +150,36 @@ SynthDef(\stepEngineSlot, {
         });
     }, '/noise/arp/set_notes');
 
+    // ARP: set Euclidean-encoded bulk buffer (NOTE + REST frames)
+    // Format: [slot_0indexed, stepCount, type1, note1, vel1, gate1, ...]
+    OSCdef(\arpSetBulk, { |msg|
+        var slot0 = msg[1].asInteger;
+        if(slot0 >= 0 && (slot0 < 8), {
+            var stepCount = msg[2].asInteger;
+            var raw = msg[3..];
+            var buf = ~stepBuf[slot0];
+            var data = [];
+            var numSteps = (raw.size / 4).asInteger.min(16);
+
+            numSteps.do { |i|
+                data = data ++ [
+                    raw[i*4].asInteger,      // type: 0=NOTE, 1=REST
+                    raw[i*4+1].asInteger,    // note
+                    raw[i*4+2].asInteger,    // velocity
+                    raw[i*4+3].asFloat       // gate fraction
+                ];
+            };
+
+            // Pad remaining frames as REST
+            (16 - numSteps).do {
+                data = data ++ [1, 60, 0, 0.0];
+            };
+
+            buf.setn(0, data);
+            ~stepSynths[slot0].set(\stepCount, stepCount.min(16), \resetTrig, 1);
+        });
+    }, '/noise/arp/set_bulk');
+
     // ARP/SEQ: set clock rate (fabric index)
     OSCdef(\stepSetRate, { |msg|
         var slot0 = msg[1].asInteger;
@@ -156,13 +189,22 @@ SynthDef(\stepEngineSlot, {
         });
     }, '/noise/step/set_rate');
 
+    // RST: reset PulseCount for a slot (phase reset without buffer change)
+    OSCdef(\stepReset, { |msg|
+        var slot0 = msg[1].asInteger;
+        if(slot0 >= 0 && (slot0 < 8), {
+            ~stepSynths[slot0].set(\resetTrig, 1);
+        });
+    }, '/noise/step/reset');
+
     // SEQ: set bulk step data (4-channel format)
-    // Format: [slot_0indexed, length, type1, note1, vel1, gate1, type2, ...]
+    // Format: [slot_0indexed, length, reset(0|1), type1, note1, vel1, gate1, type2, ...]
     OSCdef(\seqSetBulk, { |msg|
         var slot0 = msg[1].asInteger;
         if(slot0 >= 0 && (slot0 < 8), {
             var length = msg[2].asInteger;
-            var raw = msg[3..];
+            var reset = msg[3].asInteger;  // 0 = preserve phase, 1 = reset to step 0
+            var raw = msg[4..];
             var buf = ~stepBuf[slot0];
             var data = [];
             var numSteps = (raw.size / 4).asInteger.min(16);
@@ -183,8 +225,12 @@ SynthDef(\stepEngineSlot, {
             };
 
             buf.setn(0, data);
-            // playMode is set separately by seqSetPlayMode (called before bulk in handover)
-            ~stepSynths[slot0].set(\stepCount, length.min(16), \resetTrig, 1);
+            // Only reset phase when explicitly requested (mode entry / handover)
+            if(reset > 0, {
+                ~stepSynths[slot0].set(\stepCount, length.min(16), \resetTrig, 1);
+            }, {
+                ~stepSynths[slot0].set(\stepCount, length.min(16));
+            });
         });
     }, '/noise/seq/set_bulk');
 
