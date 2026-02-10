@@ -202,8 +202,12 @@ s.waitForBoot({
     ~setupMIDI.();
     ~setupMIDIOSC.();
 
-    // Load keyboard overlay OSC handlers
+    // Load Step Engine SynthDef (setup deferred to post-boot, after ~startClock creates groups)
+    (~basePath +/+ "core/step_engine.scd").load;
+
+    // Load keyboard overlay OSC handlers (after midi_handler for ~triggerMidiGate, ~startMidiRetrig)
     (~basePath +/+ "core/keyboard_osc.scd").load;
+    ~setupKeyboardOSC.();
 
     // Load audio device handler
     (~basePath +/+ "core/audio_device.scd").load;
@@ -213,6 +217,9 @@ s.waitForBoot({
 
     // Start audio
     ~startClock.();
+
+    // Boot step engine (after ~startClock creates ~genGroup, after s.sync compiles SynthDef)
+    ~setupStepEngine.();
 
     // Boot end-stage infrastructure (after groups exist from ~startClock,
     // after ~setupEndstage defined SynthDefs, after bus_unification allocated buses)
@@ -257,6 +264,7 @@ s.waitForBoot({
     if(~packGeneratorCount.notNil && (~packGeneratorCount > 0), {
         ("[x] " ++ ~packGeneratorCount ++ " pack generators loaded").postln;
     });
+    "[x] Step engine ready (8 slots, clock-locked)".postln;
     "[x] 4 mod source slots ready".postln;
     "[x] 4 FX slots ready (UI Refresh)".postln;
     "[x] 8 cross-mod buses ready".postln;

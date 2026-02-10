@@ -246,11 +246,10 @@ BPM_MIN = 20
 BPM_MAX = 300
 
 # === ARP RATE <-> FABRIC INDEX MAPPING ===
-# ARP rate index -> fabric index (direct matches only, 1/12 excluded)
+# ARP rate index -> fabric index (all rates now have fabric matches)
 # ARP rates: 0=1/32, 1=1/16, 2=1/12, 3=1/8, 4=1/4, 5=1/2, 6=1bar
-# Fabric:    4=/4,   5=/2,   6=CLK,  7=x2,  8=x4,  9=x8
-ARP_RATE_TO_FABRIC_IDX = {0: 9, 1: 8, 3: 7, 4: 6, 5: 5, 6: 4}
-# Note: ARP rate 2 (1/12 triplet) has no fabric match — uses fallback timer
+# Fabric:    2=/12,  4=/4,   5=/2,   6=CLK,  7=x2,  8=x4,  9=x8
+ARP_RATE_TO_FABRIC_IDX = {0: 9, 1: 8, 2: 2, 3: 7, 4: 6, 5: 5, 6: 4}
 
 # Inverse: fabric index -> ARP rate index
 FABRIC_IDX_TO_ARP_RATE = {v: k for k, v in ARP_RATE_TO_FABRIC_IDX.items()}
@@ -1519,6 +1518,13 @@ OSC_PATHS = {
     'midi_gate': '/noise/midi/gate',  # SC -> Python for LED flash
     'midi_cc': '/noise/midi/cc',  # SC -> Python for CC mapping
     'midi_retrig': '/noise/gen/midiRetrig',  # Flag for MIDI continuous retriggering
+    # Step engine (SC-side clock-locked ARP/SEQ triggering)
+    'gen_step_mode': '/noise/gen/stepMode',          # [slot_1indexed, mode] 0=OFF, 1=ARP, 2=SEQ
+    'arp_set_notes': '/noise/arp/set_notes',          # [slot_0indexed, note1, note2, ...]
+    'step_set_rate': '/noise/step/set_rate',          # [slot_0indexed, fabricIdx]
+    'seq_set_bulk': '/noise/seq/set_bulk',            # [slot_0indexed, length, type1, note1, vel1, ...]
+    'seq_set_play_mode': '/noise/seq/set_play_mode',  # [slot_0indexed, playMode]
+    'step_event': '/noise/step/event',                # SC -> Python: [slot_0indexed, position]
     # Connection management
     'ping': '/noise/ping',
     'pong': '/noise/pong',

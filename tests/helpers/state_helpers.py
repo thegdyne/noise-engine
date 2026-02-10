@@ -15,6 +15,7 @@ from dataclasses import fields, MISSING
 # Key format: "ClassName.field_name" for class-specific, or bare "field_name" for global
 _LIST_FIELD_OVERRIDES = {
     "seq_steps": [{"step_type": 0, "note": 60, "velocity": 100}],
+    "arp_notes": [60, 64, 67],
 }
 
 # Dict fields that need non-empty non-default values

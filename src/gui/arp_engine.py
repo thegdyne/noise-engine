@@ -292,6 +292,9 @@ class ArpEngine:
         # Legacy note tracking (for notes sent when ARP is off)
         self._legacy_note_on: Optional[int] = None  # Single slot, single legacy note
 
+        # Callback for SC step engine: push updated expanded list when notes change
+        self.on_notes_changed: Optional[Callable] = None
+
         # Initialize PRNG
         self._init_prng()
 
@@ -323,6 +326,11 @@ class ArpEngine:
     # =========================================================================
     # INIT
     # =========================================================================
+
+    def _notify_notes_changed(self):
+        """Notify SC step engine that the expanded note list may have changed."""
+        if self.on_notes_changed is not None:
+            self.on_notes_changed()
 
     def _init_prng(self):
         """Initialize PRNG with seed."""
@@ -735,6 +743,7 @@ class ArpEngine:
 
             if self._get_active_set():
                 self._state = ArpState.ENABLED_PLAYING
+            self._notify_notes_changed()
 
     def _handle_key_release(self, event: ArpEvent):
         """Handle key release event."""
@@ -757,6 +766,7 @@ class ArpEngine:
                 # Note-off for currently sounding note (not the released key)
                 self._note_off_currently_sounding()
                 self._state = ArpState.ENABLED_IDLE
+            self._notify_notes_changed()
 
     def _handle_arp_toggle(self, event: ArpEvent):
         """Handle ARP enable/disable toggle."""
@@ -828,6 +838,7 @@ class ArpEngine:
         if self.settings.enabled and not self._get_active_set():
             self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
+        self._notify_notes_changed()
 
     def _handle_rate_change(self, event: ArpEvent):
         """Handle rate change."""
@@ -847,6 +858,7 @@ class ArpEngine:
         if self.settings.enabled and not self._get_expanded_list():
             self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
+        self._notify_notes_changed()
 
     def _handle_pattern_change(self, event: ArpEvent):
         """Handle pattern change."""
@@ -858,6 +870,7 @@ class ArpEngine:
         if self.settings.enabled and not self._get_expanded_list():
             self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
+        self._notify_notes_changed()
 
     def _handle_octaves_change(self, event: ArpEvent):
         """Handle octaves change."""
@@ -877,6 +890,7 @@ class ArpEngine:
         if self.settings.enabled and not self._get_expanded_list():
             self._note_off_currently_sounding()
             self._state = ArpState.ENABLED_IDLE
+        self._notify_notes_changed()
 
     def _handle_bpm_change(self, event: ArpEvent):
         """Handle BPM change."""

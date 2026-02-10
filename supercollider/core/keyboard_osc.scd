@@ -34,16 +34,21 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
             var needsRetrig = ~genMidiRetrig[i];
             var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
 
-            if(isMuted.not, {
+            if(isMuted.not && (~genStepMode[i].not), {
                 // Track this note
                 ~keyboardActiveNotes[i][note] = true;
 
-                // Set frequency from note via unified bus system
-                // Use queueBaseUpdate so apply tick processes it (direct .set gets overwritten)
+                // Set frequency IMMEDIATELY on the bus so the trigger fires at the correct pitch.
+                // queueBaseUpdate alone has up to 5ms latency (200Hz apply tick),
+                // which causes the envelope to start at the old note's frequency.
+                if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
+                    ~busRegistry[freqBusKey].set(freq);
+                });
+                // Also queue for the modulation system (apply tick recalculates with mod offsets)
                 if(~queueBaseUpdate.notNil, {
                     ~queueBaseUpdate.(freqBusKey, freq);
                 });
-                
+
                 // Trigger envelope if generator exists
                 if(~generators[slot].notNil, {
                     if(needsRetrig, {
@@ -98,5 +103,4 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
     "  [x] Keyboard Overlay OSC handlers ready".postln;
 };
 
-// Call setup (safe to call multiple times - OSCdef replaces existing)
-~setupKeyboardOSC.();
+// Called from init.scd after dependencies (~triggerMidiGate, ~busRegistry, etc.) exist

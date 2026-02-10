@@ -89,6 +89,9 @@ class SeqEngine:
         # Ping-pong direction: True = forward, False = reverse
         self._pingpong_forward: bool = True
 
+        # Callback for data changes (set by MotionManager to push to SC)
+        self.on_data_changed: Optional[Callable] = None
+
     # =========================================================================
     # PROPERTIES
     # =========================================================================
@@ -284,6 +287,9 @@ class SeqEngine:
             except queue.Empty:
                 break
 
+    # Commands that mutate data and must notify SC
+    MUTATING_COMMANDS = {'SET_STEP', 'SET_LENGTH', 'SET_RATE', 'SET_PLAY_MODE', 'CLEAR_SEQUENCE'}
+
     def _execute_command(self, cmd: dict):
         """Execute a single command with bounds safety."""
         cmd_type = cmd.get('type')
@@ -325,6 +331,9 @@ class SeqEngine:
                 self.stop()
             else:
                 self.start()
+
+        if cmd_type in self.MUTATING_COMMANDS and self.on_data_changed is not None:
+            self.on_data_changed()
 
     # =========================================================================
     # SETTINGS ACCESS

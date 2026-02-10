@@ -41,8 +41,7 @@ OSC messages to Python:
     ~genMidiRetrig = Array.fill(8, { false });  // true = continuous retrig while key held
     ~genRetrigSynths = Array.fill(8, { nil });  // Active retrig synths per slot
 
-    // Per-generator transpose (semitones, -24 to +24)
-    ~genTranspose = Array.fill(8, { 0 });
+    // ~genTranspose is declared in buses.scd (SSOT)
 
     // MIDI connection state
     ~midiConnected = false;
@@ -154,13 +153,16 @@ OSC messages to Python:
         var amp = vel / 127.0;
         var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
 
-        if(genChannel == midiChannel && isMuted.not, {
-            // Set frequency from note via unified bus system
-            // Use queueBaseUpdate so apply tick processes it (direct .set gets overwritten)
+        if(genChannel == midiChannel && isMuted.not && (~genStepMode[i].not), {
+            // Set frequency IMMEDIATELY on the bus so the trigger fires at the correct pitch
+            if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
+                ~busRegistry[freqBusKey].set(freq);
+            });
+            // Also queue for the modulation system (apply tick recalculates with mod offsets)
             if(~queueBaseUpdate.notNil, {
                 ~queueBaseUpdate.(freqBusKey, freq);
             });
-            
+
             // Trigger envelope if generator exists
             if(~generators[slot].notNil, {
                 // Send gate to Python for LED
@@ -231,16 +233,17 @@ OSC messages to Python:
 // One-shot trigger synth for MIDI notes
 // Writes a trigger pulse to a single audio bus channel
 // Uses doneAction:2 to free itself after the pulse completes
+// ReplaceOut prevents bus accumulation when triggers overlap
 SynthDef(\midiTrigger, { |trigBus=0, amp=1, dur=0.01|
     var sig = EnvGen.ar(Env.perc(0.0005, dur, 1, -4), doneAction: 2) * amp;
-    Out.ar(trigBus, sig);
+    ReplaceOut.ar(trigBus, sig);
 }).add;
 
 // Continuous trigger synth for MIDI retrig mode
 // Sends triggers at specified rate while running
 SynthDef(\midiRetrigContinuous, { |trigBus=0, rate=30, amp=1|
     var trig = Impulse.ar(rate);
-    Out.ar(trigBus, trig * amp);
+    ReplaceOut.ar(trigBus, trig * amp);
 }).add;
 
 // OSC handlers for MIDI
