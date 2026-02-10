@@ -376,13 +376,16 @@ class TestSEQBulkGate:
         ]
         assert len(bulk_calls) >= 1
         payload = bulk_calls[0][0][1]
-        # payload = [slot_idx, length, type1, note1, vel1, gate1, ...]
+        # payload = [slot_idx, length, reset, type1, note1, vel1, gate1, ...]
         slot_idx = payload[0]
         length = payload[1]
-        step_data = payload[2:]
+        reset = payload[2]
+        step_data = payload[3:]
         # Each step has 4 values (type, note, vel, gate)
         assert len(step_data) == length * 4, \
             f"Expected {length * 4} values for {length} steps, got {len(step_data)}"
+        # Handover should reset playhead
+        assert reset == 1, f"Expected reset=1 from handover, got {reset}"
 
     def test_seq_bulk_gate_defaults_to_one(self):
         """Gate field defaults to 1.0 when SeqStep has no gate attr."""
@@ -398,7 +401,7 @@ class TestSEQBulkGate:
         ]
         assert len(bulk_calls) >= 1
         payload = bulk_calls[0][0][1]
-        step_data = payload[2:]
+        step_data = payload[3:]  # skip slot_idx, length, reset
         # Check first step's gate value (index 3 in each group of 4)
         if len(step_data) >= 4:
             gate = step_data[3]
