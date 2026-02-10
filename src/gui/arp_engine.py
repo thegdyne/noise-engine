@@ -1025,6 +1025,8 @@ class ArpEngine:
         if en or changed_n:
             self.runtime.euclid_step = 0
 
+        self._notify_notes_changed()
+
     def _handle_teardown(self, event: ArpEvent):
         """Handle teardown: stop timers first, then note-off, then reset."""
         # 1. Cancel timers (prevents new note-on after teardown)

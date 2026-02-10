@@ -732,3 +732,241 @@ class TestSEQMutationPropagation:
         table_types = {p.values[0]['type'] for p in SEQ_MUTATION_COMMANDS}
         assert table_types == SeqEngine.MUTATING_COMMANDS, \
             f"Test table {table_types} != engine {SeqEngine.MUTATING_COMMANDS}"
+
+
+# =============================================================================
+# v2: EUCLIDEAN ARP SENDS BULK WITH REST FRAMES
+# =============================================================================
+
+class TestEuclideanARPBulk:
+    """When Euclidean is enabled, ARP sends arp_set_bulk with NOTE/REST frames."""
+
+    def _make_motion_manager(self, send_osc=None):
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_fn = MagicMock()
+        engines = []
+        for i in range(8):
+            engines.append(ArpEngine(
+                slot_id=i,
+                send_note_on=mock_fn,
+                send_note_off=mock_fn,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            ))
+        mm = MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_fn,
+            send_note_off=mock_fn,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+        return mm, engines
+
+    def test_euclid_sends_bulk_not_notes(self):
+        """With Euclidean enabled, sends arp_set_bulk instead of arp_set_notes."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        from src.gui.arp_engine import ArpEventType, ArpEvent
+
+        # Hold a key and enable Euclidean
+        engines[0].key_press(60)
+        engines[0].set_euclid(True, 8, 5, 0)
+
+        # Enter ARP mode
+        mm.set_mode(0, MotionMode.ARP)
+
+        bulk_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_bulk']]
+        notes_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_notes']]
+        assert len(bulk_calls) >= 1, "Euclidean ARP must send arp_set_bulk"
+        assert len(notes_calls) == 0, "Euclidean ARP must NOT send arp_set_notes"
+
+    def test_euclid_bulk_has_correct_step_count(self):
+        """Euclidean bulk payload stepCount matches euclid_n."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+
+        engines[0].key_press(60)
+        engines[0].set_euclid(True, 8, 5, 0)
+        mm.set_mode(0, MotionMode.ARP)
+
+        bulk_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_bulk']]
+        payload = bulk_calls[0][0][1]
+        step_count = payload[1]
+        assert step_count == 8
+
+    def test_euclid_bulk_contains_rest_frames(self):
+        """E(5,8) has 3 rests — payload must contain REST type (1)."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+
+        engines[0].key_press(60)
+        engines[0].set_euclid(True, 8, 5, 0)
+        mm.set_mode(0, MotionMode.ARP)
+
+        bulk_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_bulk']]
+        payload = bulk_calls[0][0][1]
+        step_data = payload[2:]  # skip slot_idx, stepCount
+        # Extract types (every 4th value starting from 0)
+        types = [step_data[i * 4] for i in range(8)]
+        note_count = types.count(0)
+        rest_count = types.count(1)
+        assert note_count == 5, f"E(5,8) should have 5 hits, got {note_count}"
+        assert rest_count == 3, f"E(5,8) should have 3 rests, got {rest_count}"
+
+    def test_euclid_bulk_payload_is_4_per_step(self):
+        """Each step in bulk payload has 4 values (type, note, vel, gate)."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+
+        engines[0].key_press(60)
+        engines[0].set_euclid(True, 8, 5, 0)
+        mm.set_mode(0, MotionMode.ARP)
+
+        bulk_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_bulk']]
+        payload = bulk_calls[0][0][1]
+        step_count = payload[1]
+        step_data = payload[2:]
+        assert len(step_data) == step_count * 4
+
+    def test_euclid_disabled_sends_notes(self):
+        """With Euclidean disabled, sends arp_set_notes (not bulk)."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+
+        engines[0].key_press(60)
+        mm.set_mode(0, MotionMode.ARP)
+
+        bulk_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_bulk']]
+        notes_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_notes']]
+        assert len(bulk_calls) == 0
+        assert len(notes_calls) >= 1
+
+    def test_euclid_change_propagates_to_sc(self):
+        """Changing Euclidean params while ARP active re-pushes to SC."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+
+        engines[0].key_press(60)
+        engines[0].set_euclid(True, 8, 5, 0)
+        mm.set_mode(0, MotionMode.ARP)
+        mock_osc.reset_mock()
+
+        # Change K while active
+        engines[0].set_euclid(True, 8, 3, 0)
+
+        bulk_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_bulk']]
+        assert len(bulk_calls) >= 1, "Euclidean param change must re-push bulk to SC"
+
+
+# =============================================================================
+# v2: RST SENDS STEP_RESET TO SC
+# =============================================================================
+
+class TestRSTResetsStepEngine:
+    """RST tick fires step_reset OSC to reset SC PulseCount."""
+
+    def _make_motion_manager(self, send_osc=None):
+        from src.gui.arp_engine import ArpEngine
+        from src.gui.motion_manager import MotionManager
+
+        mock_fn = MagicMock()
+        engines = []
+        for i in range(8):
+            engines.append(ArpEngine(
+                slot_id=i,
+                send_note_on=mock_fn,
+                send_note_off=mock_fn,
+                get_velocity=lambda: 64,
+                get_bpm=lambda: 120.0,
+            ))
+        mm = MotionManager(
+            arp_engines=engines,
+            send_note_on=mock_fn,
+            send_note_off=mock_fn,
+            get_bpm=lambda: 120.0,
+            send_osc=send_osc,
+        )
+        return mm, engines
+
+    def test_rst_tick_sends_step_reset(self):
+        """When RST fabric tick matches, sends step_reset OSC."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.ARP)
+        mock_osc.reset_mock()
+
+        # Arm RST on fabric index 6 (CLK)
+        engines[0].runtime.rst_fabric_idx = 6
+
+        # Deliver matching tick
+        mm.on_fabric_tick(6)
+
+        reset_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_reset']]
+        assert len(reset_calls) >= 1, "RST tick must send step_reset OSC"
+        assert reset_calls[0] == call(OSC_PATHS['step_reset'], [0])
+
+    def test_rst_no_match_no_reset(self):
+        """Non-matching fabric tick does NOT send step_reset."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.ARP)
+        mock_osc.reset_mock()
+
+        # Arm RST on fabric index 6
+        engines[0].runtime.rst_fabric_idx = 6
+
+        # Deliver non-matching tick (fabric 8)
+        mm.on_fabric_tick(8)
+
+        reset_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_reset']]
+        assert len(reset_calls) == 0
+
+    def test_rst_off_no_reset(self):
+        """RST=OFF (None) does not send step_reset."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.ARP)
+        mock_osc.reset_mock()
+
+        # RST = OFF (default)
+        assert engines[0].runtime.rst_fabric_idx is None
+        mm.on_fabric_tick(6)
+
+        reset_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_reset']]
+        assert len(reset_calls) == 0
+
+
+# =============================================================================
+# v2: OSC PATH COVERAGE (new paths exist in config)
+# =============================================================================
+
+class TestNewOSCPathsExist:
+    """New OSC paths are registered in config."""
+
+    def test_arp_set_bulk_path_exists(self):
+        assert 'arp_set_bulk' in OSC_PATHS
+        assert OSC_PATHS['arp_set_bulk'] == '/noise/arp/set_bulk'
+
+    def test_step_reset_path_exists(self):
+        assert 'step_reset' in OSC_PATHS
+        assert OSC_PATHS['step_reset'] == '/noise/step/reset'
