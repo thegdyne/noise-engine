@@ -1,18 +1,23 @@
 """
 Sequence Engine — SH-101 Style Step Sequencer (Per-Slot)
 
-Implements a monophonic step sequencer with:
-- Accumulator-based timing (never drops clock time)
-- State machine: NOTE / REST / TIE transitions
-- Thread-safe command queue for UI edits
-- Snapshot-based UI reads (prevents tearing)
-- Slot-scoped OSC panic (only silences own slot)
+Data manager for step sequencer state. Note timing is handled entirely
+by the SC step engine SynthDef (clock-locked, ±1.3ms jitter).
 
-Key invariant: current_sounding_note is the SINGLE SOURCE OF TRUTH
-for whether a note is playing. Never look back at the step list.
+Python responsibilities:
+- Store step data (type, note, velocity, gate)
+- Thread-safe command queue for UI edits
+- Push data changes to SC via on_data_changed callback
+- Snapshot-based UI reads (prevents tearing)
+
+SC responsibilities (step_engine.scd):
+- Clock-locked step advancement via PulseCount + BufRd
+- Freq/trigger bus writes via ReplaceOut
+- Play mode (FWD/REV/PP/RAND) position computation
+- SendReply for UI playhead position
 
 Follows ArpEngine patterns:
-- Callback-based OSC emission (not direct osc_client)
+- Callback-based data propagation (not direct osc_client)
 - slot_id is 0-indexed, fixed at construction
 """
 
@@ -40,36 +45,14 @@ SEQ_DEFAULT_RATE_INDEX = 1  # 1/16 (standard SH-101 default)
 
 class SeqEngine:
     """
-    SH-101 style step sequencer engine (per-slot).
+    SH-101 style step sequencer data manager (per-slot).
 
-    Each engine targets exactly one slot. UI edits are queued via
-    command_queue and processed on the clock thread to avoid races.
+    Note timing is handled by SC's stepEngineSlot SynthDef. This class
+    manages step data, processes UI commands, and pushes changes to SC.
     """
 
-    def __init__(
-        self,
-        slot_id: int,
-        send_note_on: Callable[[int, int, int], None],
-        send_note_off: Callable[[int, int], None],
-    ):
-        """
-        Initialize sequencer engine for a single slot.
-
-        Args:
-            slot_id: Target slot (0-indexed, fixed for lifetime)
-            send_note_on: Callback (slot, note, velocity)
-            send_note_off: Callback (slot, note)
-        """
+    def __init__(self, slot_id: int):
         self._slot_id = slot_id
-        self._send_note_on = send_note_on
-        self._send_note_off = send_note_off
-
-        # Timing state
-        self.phase: float = 0.0
-        self.current_step_index: int = 0
-
-        # Audio state — SINGLE SOURCE OF TRUTH
-        self.current_sounding_note: Optional[int] = None
 
         # Settings
         self.settings = SeqSettings()
@@ -77,17 +60,17 @@ class SeqEngine:
         # Rate (index into SEQ_BEATS_PER_STEP)
         self._rate_index: int = SEQ_DEFAULT_RATE_INDEX
 
+        # Playhead position (updated from SC via step_event, not computed locally)
+        self.current_step_index: int = 0
+
         # Thread-safe edit queue
         self.command_queue: queue.Queue = queue.Queue()
 
         # Version counter for UI snapshot diffing
         self.steps_version: int = 0
 
-        # Playback state
+        # Playback state (for UI; actual timing is SC-side)
         self._playing: bool = False
-
-        # Ping-pong direction: True = forward, False = reverse
-        self._pingpong_forward: bool = True
 
         # Callback for data changes (set by MotionManager to push to SC)
         self.on_data_changed: Optional[Callable] = None
@@ -117,169 +100,11 @@ class SeqEngine:
         return self._playing
 
     # =========================================================================
-    # TICK (called by MotionManager from clock thread)
+    # COMMAND PROCESSING
     # =========================================================================
 
-    def tick(self, tick_duration_beats: float):
-        """
-        Advance sequencer by tick_duration_beats.
-
-        Accumulator pattern: handles variable tick rates and
-        multiple steps per tick if rate is very fast.
-        """
-        if not self._playing:
-            return
-
-        # Process any pending UI commands first
-        self._process_commands()
-
-        # Accumulate time
-        self.phase += tick_duration_beats
-
-        # Advance through steps
-        rate = self.rate
-        while self.phase >= rate:
-            self.phase -= rate
-            self._advance_step()
-
-    # =========================================================================
-    # STEP ADVANCEMENT
-    # =========================================================================
-
-    def _advance_step(self):
-        """Move to next step based on play mode and trigger appropriate action."""
-        length = self.settings.length
-
-        if self.settings.play_mode == PlayMode.FORWARD:
-            self.current_step_index = (self.current_step_index + 1) % length
-
-        elif self.settings.play_mode == PlayMode.REVERSE:
-            self.current_step_index = (self.current_step_index - 1) % length
-
-        elif self.settings.play_mode == PlayMode.PINGPONG:
-            if length <= 1:
-                self.current_step_index = 0
-            else:
-                if self._pingpong_forward:
-                    self.current_step_index += 1
-                    if self.current_step_index >= length - 1:
-                        self.current_step_index = length - 1
-                        self._pingpong_forward = False
-                else:
-                    self.current_step_index -= 1
-                    if self.current_step_index <= 0:
-                        self.current_step_index = 0
-                        self._pingpong_forward = True
-
-        elif self.settings.play_mode == PlayMode.RANDOM:
-            import random
-            self.current_step_index = random.randint(0, length - 1)
-
-        # Execute the step at current index
-        step = self.settings.steps[self.current_step_index]
-        self._execute_step(step)
-
-    def _execute_step(self, step: SeqStep):
-        """
-        State machine transition based on step type.
-
-        Transition table:
-          Any       + NOTE(P)  -> panic, note_on(P), sounding=P
-          Any       + REST     -> panic, sounding=None
-          None      + TIE      -> no-op (silence continues)
-          Pitch(P)  + TIE      -> no-op (sustain continues)
-        """
-        if step.step_type == StepType.NOTE:
-            self.panic()
-            self._note_on(step.note, step.velocity)
-            self.current_sounding_note = step.note
-
-        elif step.step_type == StepType.REST:
-            self.panic()
-
-        elif step.step_type == StepType.TIE:
-            # Sustain if playing, silence if not — no action needed.
-            # current_sounding_note unchanged (handles wrap case).
-            pass
-
-    # =========================================================================
-    # OSC EMISSION (slot-scoped)
-    # =========================================================================
-
-    def _note_on(self, note: int, velocity: int):
-        """Emit note-on to this engine's slot."""
-        self._send_note_on(self._slot_id, note, velocity)
-
-    def _note_off(self, note: int):
-        """Emit note-off to this engine's slot."""
-        self._send_note_off(self._slot_id, note)
-
-    def panic(self):
-        """
-        Slot-scoped note off. Only silences THIS slot.
-
-        Clears current_sounding_note after sending note-off.
-        """
-        if self.current_sounding_note is not None:
-            self._note_off(self.current_sounding_note)
-            self.current_sounding_note = None
-
-    # =========================================================================
-    # TRANSPORT
-    # =========================================================================
-
-    def start(self):
-        """Start sequencer playback."""
-        self._playing = True
-        # Execute first step immediately
-        if self.settings.length > 0:
-            step = self.settings.steps[self.current_step_index]
-            self._execute_step(step)
-
-    def stop(self):
-        """Stop sequencer playback and silence."""
-        self._playing = False
-        self.panic()
-
-    def reset_phase(self):
-        """Reset timing state for mode handover."""
-        self.phase = 0.0
-        self.current_step_index = 0
-        self._pingpong_forward = True
-
-    def reset(self):
-        """Full reset including audio state."""
-        self.stop()
-        self.reset_phase()
-
-    # =========================================================================
-    # UI SNAPSHOT (prevents tearing)
-    # =========================================================================
-
-    def get_ui_snapshot(self) -> dict:
-        """
-        Returns snapshot for UI rendering.
-        Prevents tearing from concurrent access.
-        """
-        return {
-            'playhead_index': self.current_step_index,
-            'active_note': self.current_sounding_note,
-            'steps_version': self.steps_version,
-            'length': self.settings.length,
-            'playing': self._playing,
-            'rate_index': self._rate_index,
-        }
-
-    # =========================================================================
-    # THREAD-SAFE COMMAND QUEUE (UI -> Engine)
-    # =========================================================================
-
-    def queue_command(self, command: dict):
-        """Thread-safe command queue for UI edits."""
-        self.command_queue.put(command)
-
-    def _process_commands(self):
-        """Process all queued commands (called from clock thread before tick)."""
+    def process_commands(self):
+        """Process all queued UI commands. Called from QTimer tick."""
         while not self.command_queue.empty():
             try:
                 cmd = self.command_queue.get_nowait()
@@ -317,7 +142,6 @@ class SeqEngine:
 
         elif cmd_type == 'SET_PLAY_MODE':
             self.settings.play_mode = cmd['play_mode']
-            self._pingpong_forward = True
             self.steps_version += 1
 
         elif cmd_type == 'CLEAR_SEQUENCE':
@@ -336,12 +160,51 @@ class SeqEngine:
             self.on_data_changed()
 
     # =========================================================================
-    # SETTINGS ACCESS
+    # TRANSPORT
     # =========================================================================
 
-    def get_settings(self) -> SeqSettings:
-        """Get current sequencer settings."""
-        return self.settings
+    def start(self):
+        """Mark sequencer as playing. Note timing is SC-side."""
+        self._playing = True
+
+    def stop(self):
+        """Stop sequencer playback."""
+        self._playing = False
+
+    def reset(self):
+        """Full reset for mode handover."""
+        self.stop()
+        self.current_step_index = 0
+
+    # =========================================================================
+    # SC PLAYHEAD FEEDBACK
+    # =========================================================================
+
+    def update_playhead(self, position: int):
+        """Update playhead position from SC step_event SendReply."""
+        self.current_step_index = position
+
+    # =========================================================================
+    # UI SNAPSHOT (prevents tearing)
+    # =========================================================================
+
+    def get_ui_snapshot(self) -> dict:
+        """Returns snapshot for UI rendering."""
+        return {
+            'playhead_index': self.current_step_index,
+            'steps_version': self.steps_version,
+            'length': self.settings.length,
+            'playing': self._playing,
+            'rate_index': self._rate_index,
+        }
+
+    # =========================================================================
+    # COMMAND QUEUE API (UI -> Engine)
+    # =========================================================================
+
+    def queue_command(self, command: dict):
+        """Thread-safe command queue for UI edits."""
+        self.command_queue.put(command)
 
     def set_rate(self, rate_index: int):
         """Set rate from UI (queued for thread safety)."""
@@ -358,3 +221,7 @@ class SeqEngine:
     def toggle_playback(self):
         """Toggle play/stop from UI (queued for thread safety)."""
         self.queue_command({'type': 'TOGGLE_PLAYBACK'})
+
+    def get_settings(self) -> SeqSettings:
+        """Get current sequencer settings."""
+        return self.settings

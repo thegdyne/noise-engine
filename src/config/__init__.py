@@ -245,6 +245,10 @@ BPM_DEFAULT = 120
 BPM_MIN = 20
 BPM_MAX = 300
 
+# === STEP ENGINE CONSTANTS ===
+STEP_BUFFER_FRAMES = 16      # Max steps per slot (SC Buffer.alloc frame count)
+EUCLID_MAX_N = 16            # Euclid pattern length limit (= STEP_BUFFER_FRAMES)
+
 # === ARP RATE <-> FABRIC INDEX MAPPING ===
 # ARP rate index -> fabric index (all rates now have fabric matches)
 # ARP rates: 0=1/32, 1=1/16, 2=1/12, 3=1/8, 4=1/4, 5=1/2, 6=1bar
