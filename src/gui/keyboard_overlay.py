@@ -26,7 +26,7 @@ from .arp_engine import (
     ARP_RATE_LABELS, ARP_DEFAULT_RATE_INDEX
 )
 from .seq_engine import SeqEngine, SEQ_RATE_LABELS, SEQ_DEFAULT_RATE_INDEX
-from src.model.sequencer import StepType, SeqStep, MotionMode
+from src.model.sequencer import StepType, MotionMode
 from src.config import CLOCK_RATES
 
 # Key -> semitone offset from C (within current octave span)
@@ -1278,10 +1278,8 @@ class KeyboardOverlay(QWidget):
             self.set_seq_recording(True)
             self._seq_rec_btn.setChecked(True)
 
-        self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-            step_type=StepType.REST,
-        )
-        self._seq_engine.steps_version += 1
+        self._seq_engine.set_step(self._seq_input_cursor, StepType.REST)
+        self._seq_engine.process_commands()
         self._advance_input_cursor()
         self._refresh_step_grid()
 
@@ -1293,10 +1291,8 @@ class KeyboardOverlay(QWidget):
             self.set_seq_recording(True)
             self._seq_rec_btn.setChecked(True)
 
-        self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-            step_type=StepType.TIE,
-        )
-        self._seq_engine.steps_version += 1
+        self._seq_engine.set_step(self._seq_input_cursor, StepType.TIE)
+        self._seq_engine.process_commands()
         self._advance_input_cursor()
         self._refresh_step_grid()
 
@@ -1304,10 +1300,8 @@ class KeyboardOverlay(QWidget):
         """Clear the entire sequence (all steps to REST, length to 16, cursor to 0)."""
         if self._seq_engine is None:
             return
-        self._seq_engine.settings.steps = [SeqStep() for _ in range(16)]
-        self._seq_engine.settings.length = 16
-        self._seq_engine.current_step_index = 0
-        self._seq_engine.steps_version += 1
+        self._seq_engine.clear_sequence()
+        self._seq_engine.process_commands()
         self._seq_input_cursor = 0
         # Update length button to reflect reset
         if hasattr(self, '_seq_length_btn'):
@@ -1399,10 +1393,8 @@ class KeyboardOverlay(QWidget):
 
         # SEQ recording mode — enter note at cursor
         if self._is_seq_recording_mode():
-            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-                step_type=StepType.NOTE, note=midi_note, velocity=self._velocity,
-            )
-            self._seq_engine.steps_version += 1
+            self._seq_engine.set_step(self._seq_input_cursor, StepType.NOTE, midi_note, self._velocity)
+            self._seq_engine.process_commands()
             self._advance_input_cursor()
             self._refresh_step_grid()
 
@@ -1773,12 +1765,8 @@ class KeyboardOverlay(QWidget):
             semitone = KEY_TO_SEMITONE[key]
             midi_note = self._compute_midi_note(semitone)
             if 0 <= midi_note <= 127:
-                # Write step directly for immediate grid display
-
-                self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-                    step_type=StepType.NOTE, note=midi_note, velocity=self._velocity,
-                )
-                self._seq_engine.steps_version += 1
+                self._seq_engine.set_step(self._seq_input_cursor, StepType.NOTE, midi_note, self._velocity)
+                self._seq_engine.process_commands()
                 self._advance_input_cursor()
                 self._refresh_step_grid()
 
@@ -1790,22 +1778,16 @@ class KeyboardOverlay(QWidget):
 
         # Space -> REST step
         if key == Qt.Key_Space:
-
-            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-                step_type=StepType.REST,
-            )
-            self._seq_engine.steps_version += 1
+            self._seq_engine.set_step(self._seq_input_cursor, StepType.REST)
+            self._seq_engine.process_commands()
             self._advance_input_cursor()
             self._refresh_step_grid()
             return
 
         # Tab -> TIE step
         if key == Qt.Key_Tab:
-
-            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-                step_type=StepType.TIE,
-            )
-            self._seq_engine.steps_version += 1
+            self._seq_engine.set_step(self._seq_input_cursor, StepType.TIE)
+            self._seq_engine.process_commands()
             self._advance_input_cursor()
             self._refresh_step_grid()
             return
@@ -1823,20 +1805,16 @@ class KeyboardOverlay(QWidget):
 
         # Backspace -> clear step to REST, move cursor back
         if key == Qt.Key_Backspace:
-            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-                step_type=StepType.REST,
-            )
-            self._seq_engine.steps_version += 1
+            self._seq_engine.set_step(self._seq_input_cursor, StepType.REST)
+            self._seq_engine.process_commands()
             self._move_input_cursor(-1)
             self._refresh_step_grid()
             return
 
         # Delete -> clear step to REST (cursor stays)
         if key == Qt.Key_Delete:
-            self._seq_engine.settings.steps[self._seq_input_cursor] = SeqStep(
-                step_type=StepType.REST,
-            )
-            self._seq_engine.steps_version += 1
+            self._seq_engine.set_step(self._seq_input_cursor, StepType.REST)
+            self._seq_engine.process_commands()
             self._refresh_step_grid()
             return
 

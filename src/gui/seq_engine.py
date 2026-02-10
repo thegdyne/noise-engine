@@ -218,6 +218,20 @@ class SeqEngine:
         """Set play mode from UI (queued for thread safety)."""
         self.queue_command({'type': 'SET_PLAY_MODE', 'play_mode': play_mode})
 
+    def set_step(self, index: int, step_type: StepType, note: int = 60, velocity: int = 100):
+        """Set a single step from UI (queued for thread safety)."""
+        self.queue_command({
+            'type': 'SET_STEP',
+            'index': index,
+            'step_type': step_type,
+            'note': note,
+            'velocity': velocity,
+        })
+
+    def clear_sequence(self):
+        """Clear entire sequence from UI (queued for thread safety)."""
+        self.queue_command({'type': 'CLEAR_SEQUENCE'})
+
     def toggle_playback(self):
         """Toggle play/stop from UI (queued for thread safety)."""
         self.queue_command({'type': 'TOGGLE_PLAYBACK'})
