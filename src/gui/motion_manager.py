@@ -7,15 +7,16 @@ Each slot has:
 - A per-slot RLock for thread-safe mode transitions
 
 Clock model:
-- QTimer fires every TICK_INTERVAL_MS (~10ms) for SEQ tick delivery
 - SC fabric ticks arrive via OSC for ARP master_tick() delivery
+- QTimer fires every TICK_INTERVAL_MS for SEQ sync boundary detection
+  and command queue processing (note timing is SC-side)
 - Timer auto-starts when any slot enters SEQ mode
-- Timer auto-stops when no slots need ticks
+- Timer auto-stops when no slots need it
 
 Sync model:
 - Global sync phase accumulates beats and wraps at SYNC_QUANTUM_BEATS (1 bar = 4 beats)
-- First slot to enter SEQ starts immediately and resets the sync phase
-- Subsequent slots entering SEQ wait for the next bar downbeat before starting
+- First slot to enter SEQ activates SC immediately and resets the sync phase
+- Subsequent slots entering SEQ wait for the next bar downbeat before SC activation
 - This keeps all slot sequencers aligned to the same bar grid
 
 ARP clock integration (unified with SC fabric):
@@ -36,7 +37,7 @@ from PyQt5.QtCore import QTimer
 from src.model.sequencer import MotionMode, StepType
 from src.gui.arp_engine import ArpEngine, euclidean_hit
 from src.gui.seq_engine import SeqEngine
-from src.config import FABRIC_IDX_TO_ARP_RATE, ARP_RATE_TO_FABRIC_IDX, OSC_PATHS
+from src.config import FABRIC_IDX_TO_ARP_RATE, ARP_RATE_TO_FABRIC_IDX, OSC_PATHS, EUCLID_MAX_N
 from src.utils.logger import logger
 
 # Clock tick interval in milliseconds (~10ms for smooth sequencing)
@@ -89,7 +90,6 @@ class MotionManager:
                 'arp': arp_engines[i],
                 'seq': seq,
                 'mode': MotionMode.OFF,
-                'tick_accumulator': 0.0,
                 'pending_mode': None,
                 'pending_seq_start': False,
                 'slot_idx': i,
@@ -155,43 +155,37 @@ class MotionManager:
             self._stop_clock()
 
     def on_tick(self, tick_duration_beats: float):
-        """Tick all SEQ slots with the given beat duration.
+        """Tick for SEQ sync boundaries and command queue processing.
 
-        ARP is no longer driven by QTimer — it uses SC fabric ticks
-        via on_fabric_tick() instead.
+        Note timing is SC-side. This only handles:
+        - Sync boundary detection for deferred SEQ starts
+        - Command queue draining for pending UI edits
         """
         # Check if a sync boundary is crossed this tick
         self._sync_phase += tick_duration_beats
         sync_crossed = False
         if self._sync_phase >= SYNC_QUANTUM_BEATS:
             sync_crossed = True
-            # Keep remainder so we don't drift
             self._sync_phase %= SYNC_QUANTUM_BEATS
 
         for slot in self._slots:
-            slot['tick_accumulator'] += tick_duration_beats
-
             if slot['lock'].acquire(blocking=False):
                 try:
                     if slot['pending_mode'] is not None:
                         self._execute_handover(slot, slot['pending_mode'])
                         slot['pending_mode'] = None
 
-                    # Start pending SEQ slots on sync boundary
+                    # Activate pending SEQ slots on sync boundary
                     if sync_crossed and slot['pending_seq_start']:
                         slot['pending_seq_start'] = False
+                        self._send_step_mode(slot['slot_idx'], MotionMode.SEQ)
                         slot['seq'].start()
 
-                    accumulated = slot['tick_accumulator']
-                    slot['tick_accumulator'] = 0.0
-                    self._process_slot(slot, accumulated)
+                    # Drain command queue (UI edits → SC data push)
+                    if slot['mode'] == MotionMode.SEQ:
+                        slot['seq'].process_commands()
                 finally:
                     slot['lock'].release()
-
-    def _process_slot(self, slot: dict, tick_duration_beats: float):
-        """Process tick for active mode with accumulated time."""
-        if slot['mode'] == MotionMode.SEQ:
-            slot['seq'].tick(tick_duration_beats)
 
     # =========================================================================
     # FABRIC TICK (from SC clock via OSC)
@@ -270,8 +264,7 @@ class MotionManager:
         # Stop old mode
         if old_mode == MotionMode.SEQ:
             slot['seq'].on_data_changed = None
-            slot['seq'].panic()
-            slot['seq'].reset_phase()
+            slot['seq'].reset()
             slot['pending_seq_start'] = False
         elif old_mode == MotionMode.ARP:
             # Clear SC step engine callback
@@ -284,37 +277,40 @@ class MotionManager:
         # Swap
         slot['mode'] = new_mode
 
-        # Send step mode to SC step engine
-        self._send_step_mode(slot_idx, new_mode)
-
         # Start new mode
         if new_mode == MotionMode.SEQ:
             # Install callback so SEQ data changes propagate to SC step engine
             idx = slot['slot_idx']
             slot['seq'].on_data_changed = lambda i=idx: self._on_seq_data_changed(i)
-            # Push SEQ data to SC step engine
+            # Push SEQ data to SC step engine (buffer, rate, play mode)
             self._push_seq_to_sc(slot)
 
-            # If clock is already running (other slots active), wait for
-            # next 1/16th sync boundary so all SEQs stay aligned.
-            # If clock is NOT running, this is the first SEQ — start immediately
-            # and reset the global sync phase so future slots align to us.
+            # Multi-slot sync: first SEQ activates SC immediately,
+            # subsequent SEQ slots defer SC activation to next bar downbeat.
             any_other_seq = any(
                 s['mode'] == MotionMode.SEQ and s is not slot
                 for s in self._slots
             )
             if any_other_seq:
                 slot['pending_seq_start'] = True
+                # Don't send step mode yet — SC stays in mode=0 until sync
             else:
                 self._sync_phase = 0.0
+                self._send_step_mode(slot_idx, new_mode)
                 slot['seq'].start()
 
         elif new_mode == MotionMode.ARP:
+            # Send step mode to SC (ARP activates immediately)
+            self._send_step_mode(slot_idx, new_mode)
             # Install callback so ARP note changes propagate to SC step engine
             idx = slot['slot_idx']
             slot['arp'].on_notes_changed = lambda i=idx: self.push_arp_notes(i)
             # Push ARP notes to SC step engine
             self._push_arp_notes_to_sc(slot)
+
+        else:
+            # OFF — tell SC to deactivate step engine
+            self._send_step_mode(slot_idx, new_mode)
 
         logger.debug(
             f"MotionManager: handover executed {old_mode.name} -> {new_mode.name}",
@@ -352,8 +348,8 @@ class MotionManager:
         expanded = arp._get_expanded_list()
 
         if arp.settings.euclid_enabled and expanded:
-            # Build Euclidean NOTE/REST buffer (N clamped to 16 = SC buffer max)
-            n = max(1, min(16, arp.settings.euclid_n))
+            # Build Euclidean NOTE/REST buffer (N clamped to SC buffer max)
+            n = max(1, min(EUCLID_MAX_N, arp.settings.euclid_n))
             k = max(0, min(n, arp.settings.euclid_k))
             rot = max(0, min(n - 1, arp.settings.euclid_rot)) if n > 1 else 0
             step_count = n
@@ -454,7 +450,7 @@ class MotionManager:
             return
         slot = self._slots[slot_idx]
         with slot['lock']:
-            slot['seq'].panic()
+            slot['seq'].stop()
             slot['arp'].teardown()
             slot['mode'] = MotionMode.OFF
             slot['pending_mode'] = None

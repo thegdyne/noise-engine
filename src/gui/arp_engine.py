@@ -25,6 +25,8 @@ from typing import Callable, Dict, List, Optional, Set
 
 from PyQt5.QtCore import QTimer
 
+from src.config import EUCLID_MAX_N
+
 
 # =============================================================================
 # ENUMERATIONS
@@ -1008,7 +1010,7 @@ class ArpEngine:
         """Handle Euclidean gate parameter change."""
         en = bool(event.data.get("enabled", False))
         n = int(event.data.get("n", 16))
-        n = max(1, min(16, n))  # SC buffer max 16 frames
+        n = max(1, min(EUCLID_MAX_N, n))
         k = int(event.data.get("k", n))
         k = max(0, min(n, k))
         rot = int(event.data.get("rot", 0))
@@ -1058,7 +1060,7 @@ class ArpEngine:
         if not self.settings.euclid_enabled:
             return True
 
-        n = max(1, min(16, int(self.settings.euclid_n)))  # SC buffer max 16 frames
+        n = max(1, min(EUCLID_MAX_N, int(self.settings.euclid_n)))
         k = max(0, min(n, int(self.settings.euclid_k)))
 
         # rot must be valid even when n==1

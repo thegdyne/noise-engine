@@ -583,7 +583,7 @@ class TestSEQDataPropagatesToSC:
         # Change rate via command queue, then process commands via tick
         seq = mm.get_seq_engine(0)
         seq.set_rate(3)
-        seq.tick(0.001)  # Process command queue
+        seq.process_commands()  # Drain command queue
 
         rate_calls = [
             c for c in mock_osc.call_args_list
@@ -603,7 +603,7 @@ class TestSEQDataPropagatesToSC:
 
         seq = mm.get_seq_engine(0)
         seq.set_play_mode(PlayMode.REVERSE)
-        seq.tick(0.001)  # Process command queue
+        seq.process_commands()  # Drain command queue
 
         play_mode_calls = [
             c for c in mock_osc.call_args_list
@@ -629,7 +629,7 @@ class TestSEQDataPropagatesToSC:
             'note': 72,
             'velocity': 100,
         })
-        seq.tick(0.001)  # Process command queue
+        seq.process_commands()  # Drain command queue
 
         bulk_calls = [
             c for c in mock_osc.call_args_list
@@ -719,7 +719,7 @@ class TestSEQMutationPropagation:
 
         seq = mm.get_seq_engine(0)
         seq.queue_command(cmd)
-        seq.tick(0.001)
+        seq.process_commands()  # Drain command queue
 
         osc_paths = {OSC_PATHS['step_set_rate'], OSC_PATHS['seq_set_play_mode'], OSC_PATHS['seq_set_bulk']}
         propagated = [c for c in mock_osc.call_args_list if c[0][0] in osc_paths]
@@ -870,6 +870,51 @@ class TestEuclideanARPBulk:
 
         bulk_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['arp_set_bulk']]
         assert len(bulk_calls) >= 1, "Euclidean param change must re-push bulk to SC"
+
+
+# =============================================================================
+# v2.1: EUCLID_MAX_N BOUNDARY TESTS
+# =============================================================================
+
+class TestEuclidMaxNBoundary:
+    """EUCLID_MAX_N is the single source of truth for Euclid N clamping."""
+
+    def test_euclid_n_at_max_boundary(self):
+        """N=EUCLID_MAX_N is accepted without clamping."""
+        from src.config import EUCLID_MAX_N
+        from src.gui.arp_engine import ArpEngine
+
+        mock_fn = MagicMock()
+        arp = ArpEngine(
+            slot_id=0,
+            send_note_on=mock_fn,
+            send_note_off=mock_fn,
+            get_velocity=lambda: 64,
+            get_bpm=lambda: 120.0,
+        )
+        arp.set_euclid(True, EUCLID_MAX_N, EUCLID_MAX_N, 0)
+        assert arp.settings.euclid_n == EUCLID_MAX_N
+
+    def test_euclid_n_above_max_clamped(self):
+        """N > EUCLID_MAX_N is clamped to EUCLID_MAX_N."""
+        from src.config import EUCLID_MAX_N
+        from src.gui.arp_engine import ArpEngine
+
+        mock_fn = MagicMock()
+        arp = ArpEngine(
+            slot_id=0,
+            send_note_on=mock_fn,
+            send_note_off=mock_fn,
+            get_velocity=lambda: 64,
+            get_bpm=lambda: 120.0,
+        )
+        arp.set_euclid(True, EUCLID_MAX_N + 10, EUCLID_MAX_N, 0)
+        assert arp.settings.euclid_n == EUCLID_MAX_N
+
+    def test_euclid_max_n_matches_config_constant(self):
+        """EUCLID_MAX_N and STEP_BUFFER_FRAMES must agree."""
+        from src.config import EUCLID_MAX_N, STEP_BUFFER_FRAMES
+        assert EUCLID_MAX_N == STEP_BUFFER_FRAMES
 
 
 # =============================================================================
