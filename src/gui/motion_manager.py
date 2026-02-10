@@ -214,7 +214,8 @@ class MotionManager:
                         if slot['arp'].runtime.rst_fabric_idx == fabric_idx:
                             slot['arp'].reset_on_tick(now_ms)
                             # Reset SC PulseCount so step engine phase matches Python
-                            self._send_osc(OSC_PATHS['step_reset'], [slot['slot_idx']])
+                            if self._send_osc is not None:
+                                self._send_osc(OSC_PATHS['step_reset'], [slot['slot_idx']])
 
                         # Deliver master tick for matching ARP rate
                         if arp_rate is not None:
@@ -351,11 +352,11 @@ class MotionManager:
         expanded = arp._get_expanded_list()
 
         if arp.settings.euclid_enabled and expanded:
-            # Build Euclidean NOTE/REST buffer
-            n = max(1, min(64, arp.settings.euclid_n))
+            # Build Euclidean NOTE/REST buffer (N clamped to 16 = SC buffer max)
+            n = max(1, min(16, arp.settings.euclid_n))
             k = max(0, min(n, arp.settings.euclid_k))
             rot = max(0, min(n - 1, arp.settings.euclid_rot)) if n > 1 else 0
-            step_count = min(n, 16)  # Buffer max 16 frames
+            step_count = n
 
             payload = [slot_idx, step_count]
             note_idx = 0

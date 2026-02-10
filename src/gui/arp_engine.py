@@ -1008,7 +1008,7 @@ class ArpEngine:
         """Handle Euclidean gate parameter change."""
         en = bool(event.data.get("enabled", False))
         n = int(event.data.get("n", 16))
-        n = max(1, min(64, n))
+        n = max(1, min(16, n))  # SC buffer max 16 frames
         k = int(event.data.get("k", n))
         k = max(0, min(n, k))
         rot = int(event.data.get("rot", 0))
@@ -1058,7 +1058,7 @@ class ArpEngine:
         if not self.settings.euclid_enabled:
             return True
 
-        n = max(1, min(64, int(self.settings.euclid_n)))
+        n = max(1, min(16, int(self.settings.euclid_n)))  # SC buffer max 16 frames
         k = max(0, min(n, int(self.settings.euclid_k)))
 
         # rot must be valid even when n==1
