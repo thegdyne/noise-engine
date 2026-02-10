@@ -725,3 +725,10 @@ class TestSEQMutationPropagation:
         propagated = [c for c in mock_osc.call_args_list if c[0][0] in osc_paths]
         assert len(propagated) >= 1, \
             f"Command {cmd['type']} must trigger OSC propagation to SC"
+
+    def test_table_matches_engine_mutating_commands(self):
+        """Test table must cover exactly SeqEngine.MUTATING_COMMANDS."""
+        from src.gui.seq_engine import SeqEngine
+        table_types = {p.values[0]['type'] for p in SEQ_MUTATION_COMMANDS}
+        assert table_types == SeqEngine.MUTATING_COMMANDS, \
+            f"Test table {table_types} != engine {SeqEngine.MUTATING_COMMANDS}"

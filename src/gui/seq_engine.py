@@ -287,11 +287,12 @@ class SeqEngine:
             except queue.Empty:
                 break
 
+    # Commands that mutate data and must notify SC
+    MUTATING_COMMANDS = {'SET_STEP', 'SET_LENGTH', 'SET_RATE', 'SET_PLAY_MODE', 'CLEAR_SEQUENCE'}
+
     def _execute_command(self, cmd: dict):
         """Execute a single command with bounds safety."""
         cmd_type = cmd.get('type')
-
-        notify = False
 
         if cmd_type == 'SET_STEP':
             idx = max(0, min(cmd['index'], 15))
@@ -301,7 +302,6 @@ class SeqEngine:
                 velocity=cmd.get('velocity', 100),
             )
             self.steps_version += 1
-            notify = True
 
         elif cmd_type == 'SET_LENGTH':
             new_length = max(1, min(cmd['length'], 16))
@@ -309,26 +309,22 @@ class SeqEngine:
             if self.current_step_index >= new_length:
                 self.current_step_index = new_length - 1
             self.steps_version += 1
-            notify = True
 
         elif cmd_type == 'SET_RATE':
             new_index = max(0, min(cmd['rate_index'], len(SEQ_BEATS_PER_STEP) - 1))
             self._rate_index = new_index
             self.steps_version += 1
-            notify = True
 
         elif cmd_type == 'SET_PLAY_MODE':
             self.settings.play_mode = cmd['play_mode']
             self._pingpong_forward = True
             self.steps_version += 1
-            notify = True
 
         elif cmd_type == 'CLEAR_SEQUENCE':
             self.settings.steps = [SeqStep() for _ in range(16)]
             self.settings.length = 16
             self.current_step_index = 0
             self.steps_version += 1
-            notify = True
 
         elif cmd_type == 'TOGGLE_PLAYBACK':
             if self._playing:
@@ -336,7 +332,7 @@ class SeqEngine:
             else:
                 self.start()
 
-        if notify and self.on_data_changed is not None:
+        if cmd_type in self.MUTATING_COMMANDS and self.on_data_changed is not None:
             self.on_data_changed()
 
     # =========================================================================
