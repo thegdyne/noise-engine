@@ -34,7 +34,7 @@ from typing import Callable, List, Optional
 from PyQt5.QtCore import QTimer
 
 from src.model.sequencer import MotionMode, StepType
-from src.gui.arp_engine import ArpEngine
+from src.gui.arp_engine import ArpEngine, euclidean_hit
 from src.gui.seq_engine import SeqEngine
 from src.config import FABRIC_IDX_TO_ARP_RATE, ARP_RATE_TO_FABRIC_IDX, OSC_PATHS
 from src.utils.logger import logger
@@ -213,6 +213,9 @@ class MotionManager:
                         # R14: RST check FIRST — reset-before-step so this tick emits step 0
                         if slot['arp'].runtime.rst_fabric_idx == fabric_idx:
                             slot['arp'].reset_on_tick(now_ms)
+                            # Reset SC PulseCount so step engine phase matches Python
+                            if self._send_osc is not None:
+                                self._send_osc(OSC_PATHS['step_reset'], [slot['slot_idx']])
 
                         # Deliver master tick for matching ARP rate
                         if arp_rate is not None:
@@ -330,7 +333,12 @@ class MotionManager:
         self._send_osc(OSC_PATHS['gen_step_mode'], [slot_idx + 1, mode_val])
 
     def _push_arp_notes_to_sc(self, slot: dict):
-        """Push ARP expanded note list and rate to SC step engine."""
+        """Push ARP expanded note list and rate to SC step engine.
+
+        When Euclidean is enabled, sends arp_set_bulk with NOTE/REST frames
+        so SC does the gating (no Python-time scheduling). Otherwise sends
+        the simple arp_set_notes list.
+        """
         if self._send_osc is None:
             return
         slot_idx = slot['slot_idx']
@@ -341,9 +349,28 @@ class MotionManager:
         fabric_idx = ARP_RATE_TO_FABRIC_IDX.get(rate_idx, 6)
         self._send_osc(OSC_PATHS['step_set_rate'], [slot_idx, fabric_idx])
 
-        # Send expanded note list (empty = clear on SC side)
         expanded = arp._get_expanded_list()
-        self._send_osc(OSC_PATHS['arp_set_notes'], [slot_idx] + expanded)
+
+        if arp.settings.euclid_enabled and expanded:
+            # Build Euclidean NOTE/REST buffer (N clamped to 16 = SC buffer max)
+            n = max(1, min(16, arp.settings.euclid_n))
+            k = max(0, min(n, arp.settings.euclid_k))
+            rot = max(0, min(n - 1, arp.settings.euclid_rot)) if n > 1 else 0
+            step_count = n
+
+            payload = [slot_idx, step_count]
+            note_idx = 0
+            for i in range(step_count):
+                if euclidean_hit(i, n, k, rot):
+                    note = expanded[note_idx % len(expanded)]
+                    payload += [0, note, 127, 1.0]  # NOTE
+                    note_idx += 1
+                else:
+                    payload += [1, 60, 0, 0.0]  # REST
+            self._send_osc(OSC_PATHS['arp_set_bulk'], payload)
+        else:
+            # Simple note list (empty = clear on SC side)
+            self._send_osc(OSC_PATHS['arp_set_notes'], [slot_idx] + expanded)
 
     def _push_seq_to_sc(self, slot: dict):
         """Push SEQ step data and rate to SC step engine."""

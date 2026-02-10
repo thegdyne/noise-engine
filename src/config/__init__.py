@@ -1521,7 +1521,9 @@ OSC_PATHS = {
     # Step engine (SC-side clock-locked ARP/SEQ triggering)
     'gen_step_mode': '/noise/gen/stepMode',          # [slot_1indexed, mode] 0=OFF, 1=ARP, 2=SEQ
     'arp_set_notes': '/noise/arp/set_notes',          # [slot_0indexed, note1, note2, ...]
+    'arp_set_bulk': '/noise/arp/set_bulk',            # [slot_0indexed, stepCount, type1,note1,vel1,gate1, ...]
     'step_set_rate': '/noise/step/set_rate',          # [slot_0indexed, fabricIdx]
+    'step_reset': '/noise/step/reset',                # [slot_0indexed] — reset SC PulseCount
     'seq_set_bulk': '/noise/seq/set_bulk',            # [slot_0indexed, length, type1, note1, vel1, ...]
     'seq_set_play_mode': '/noise/seq/set_play_mode',  # [slot_0indexed, playMode]
     'step_event': '/noise/step/event',                # SC -> Python: [slot_0indexed, position]
