@@ -97,6 +97,55 @@ Prefer explicit `Select.ar`/`Gate`/`LagUD` guard over "multiply by zero" if ther
 
 ---
 
+# File Format — .korgmultisample (Binary, NOT XML)
+
+**Important:** Despite some documentation suggesting XML, `.korgmultisample` files use a
+**binary protobuf-like** format. Verified against real files from Korg Sample Builder v1.2.7.
+
+## Overall structure
+1. **4-byte header:** `Korg` (ASCII)
+2. **Chunk 1** (LE uint32 size + data): Header info — contains "ExtendedFileInfo", "MultiSample" tags
+3. **Chunk 2** (LE uint32 size + data): Metadata — "SingleItem", app name/version, timestamp
+4. **Chunk 3** (LE uint32 size + data): Multisample data — name, zones, wav paths
+
+## Chunk 3 — Multisample data (protobuf field encoding)
+Fields use protobuf wire format: `(field_number << 3) | wire_type`
+
+### Top-level fields:
+- field 1 (bytes): Multisample name
+- field 2 (bytes): Author
+- field 3 (bytes): Category
+- field 4 (bytes): Comment
+- field 5 (bytes): Sample zone blocks (tag = 0x2a, repeated)
+- field 7 (bytes): UUID
+
+### Sample zone block (nested inside field 5):
+- field 1 (bytes): Nested sample data submessage
+  - sub-field 1 (bytes): wav file path (UTF-8 string, relative)
+  - sub-field 2 (varint): sample start frame
+  - sub-field 3 (varint): loop start frame
+  - sub-field 4 (varint): sample end frame
+  - sub-field 9 (varint): one_shot flag (1 = one-shot)
+  - sub-field 10 (varint): boost_12db flag
+- field 2 (varint): key_bottom (MIDI note 0-127)
+- field 3 (varint): key_top (MIDI note 0-127)
+- field 4 (varint): key_original / root note (MIDI note 0-127)
+- field 5 (varint): fixed_pitch flag
+- field 6 (float): tune (-999..999, normalized by 1000)
+- field 7 (float): level_left
+- field 8 (float): level_right
+- field 10 (varint): color (display color, ignored by engine)
+
+## Varint encoding
+Standard protobuf 7-bit variable-length: each byte uses bit 7 as continuation flag,
+bits 0-6 carry data in little-endian order.
+
+## Reference implementation
+Parser: `src/audio/korg_multisample.py`
+Format reference: [ConvertWithMoss](https://github.com/git-moss/ConvertWithMoss)
+
+---
+
 # Python — Loader / Allocations
 
 ## Bufnum allocation

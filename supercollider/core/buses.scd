@@ -31,7 +31,15 @@ Default values are real values (not normalized):
     
     // MIDI trigger bus - 8 audio channels, one per generator slot
     ~midiTrigBus = Bus.audio(s, 8);
-    
+
+    // MOLTI-SAMP: bufBus substrate (8 slots × 4ch control bus)
+    // ch0: noteMapBuf bufnum (-1 = none)
+    // ch1: zoneBufBuf bufnum (-1 = none)
+    // ch2: zoneCount (0 = none)
+    // ch3: reserved (0)
+    ~bufBuses = Array.fill(8, { Bus.control(s, 4) });
+    8.do { |i| ~bufBuses[i].setn([-1, -1, 0, 0]); };
+
     // Per-generator parameters (8 slots)
     // NOTE (Phase 6): Modulatable params (freq, cutoff, res, attack, decay, custom)
     // now use unified buses via ~busRegistry. Only non-modulatable params below

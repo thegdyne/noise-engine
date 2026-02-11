@@ -283,19 +283,30 @@ Invariants:
     });
 
     if(~genSubGroup[idx].notNil, {
-        var newGen;
+        var newGen, synthArgs;
 
         // Start channel strip (must exist before generator writes)
         ~startChannelStrip.(slotID);
 
-        // Create new generator in genSubGroup (addToTail)
-        // The generator writes to intermediate bus via ReplaceOut
-        newGen = Synth(genType, [
+        // Build base args for all generators
+        synthArgs = [
             \out, ~intermediateBus[idx].index,
             \freqBus, freqBusIdx,
             \customBus0, custom0Idx,
             \slotIndex, idx  // 0-based for telemetry routing (ignored by generators without this arg)
-        ], ~genSubGroup[idx], \addToTail);
+        ];
+
+        // MOLTI-SAMP: pass bufBus + midiTrigBus when starting forge_molti_samp
+        if(genType == \forge_molti_samp, {
+            synthArgs = synthArgs ++ [
+                \bufBus, ~bufBuses[idx].index,
+                \midiTrigBus, ~midiTrigBus.index
+            ];
+        });
+
+        // Create new generator in genSubGroup (addToTail)
+        // The generator writes to intermediate bus via ReplaceOut
+        newGen = Synth(genType, synthArgs, ~genSubGroup[idx], \addToTail);
 
         // Free the old generator/silence (ReplaceOut means no glitch during overlap)
         if(~generators[slotID].notNil, {

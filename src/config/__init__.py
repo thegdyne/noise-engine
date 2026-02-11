@@ -316,6 +316,8 @@ _CORE_GENERATOR_ORDER = [
     "PT Chaos",
     "Geiger",
     "Giant B0N0",
+    # Sampler
+    "MOLTI-SAMP",
     # Test / diagnostic
     "Scope Test",
 ]
