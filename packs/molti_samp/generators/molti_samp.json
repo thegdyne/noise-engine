@@ -41,7 +41,7 @@
       "key": "gain",
       "label": "GAN",
       "tooltip": "Output gain (-24dB to +6dB)",
-      "default": 0.75,
+      "default": 1.0,
       "min": 0.0,
       "max": 1.0,
       "curve": "lin",
