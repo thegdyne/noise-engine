@@ -1409,6 +1409,7 @@ FX_SLOT_DEFAULT_TYPES = ['Echo', 'Reverb', 'Chorus', 'LoFi']
 OSC_HOST = "127.0.0.1"
 OSC_SEND_PORT = 57120
 OSC_RECEIVE_PORT = 57121
+SC_SERVER_PORT = 57110   # scsynth default — for direct server commands (/b_alloc, /c_setn, etc.)
 
 OSC_PATHS = {
     'clock_bpm': '/noise/clock/bpm',

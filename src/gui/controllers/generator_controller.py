@@ -269,7 +269,10 @@ class GeneratorController:
             self._molti_loader = None  # Created when osc is available
         if self._molti_loader is None and self.main.osc_connected:
             from src.audio.molti_loader import MoltiLoader
-            self._molti_loader = MoltiLoader(self.main.osc.client, self._molti_pool)
+            from pythonosc import udp_client
+            from src.config import OSC_HOST, SC_SERVER_PORT
+            sc_server_client = udp_client.SimpleUDPClient(OSC_HOST, SC_SERVER_PORT)
+            self._molti_loader = MoltiLoader(sc_server_client, self._molti_pool)
         return self._molti_loader
 
     def on_molti_load_requested(self, slot_id):

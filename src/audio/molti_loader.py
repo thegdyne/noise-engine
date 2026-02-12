@@ -154,7 +154,7 @@ class MoltiLoader:
                 0  # reserved
             ])
             logger.info(
-                f"[MOLTI] bufBus updated: noteMap={note_map_bufnum}, "
+                f"[MOLTI] bufBus updated @ bus {buf_bus_index}: noteMap={note_map_bufnum}, "
                 f"zoneBuf={zone_buf_bufnum}, count={msdef.zone_count}",
                 component="MOLTI"
             )
