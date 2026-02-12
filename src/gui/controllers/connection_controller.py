@@ -6,7 +6,7 @@ Method names intentionally unchanged from MainFrame for wrapper compatibility.
 """
 from __future__ import annotations
 
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import Qt, QTimer
 
 from src.config import OSC_PATHS
 from src.gui.theme import COLORS
@@ -66,6 +66,12 @@ class ConnectionController:
             self.main.osc.bus_values_received.connect(self.main.modulation.on_bus_values_received)
             self.main.osc.scope_data_received.connect(self.main._on_scope_data)
             self.main.osc.scope_debug_done_received.connect(self.main._on_scope_debug_done)
+            # MOLTI-SAMP: re-load active slots when bufBus indices arrive (reconnect)
+            try:
+                self.main.osc.molti_buf_bus_received.connect(
+                    self.main.generator.molti_reload_all, Qt.UniqueConnection)
+            except TypeError:
+                pass  # Already connected
             if self.main.osc.connect():
                 self.main.osc_connected = True
                 # Initialize crossmod OSC bridge
@@ -196,10 +202,9 @@ class ConnectionController:
         # Resend current state
         self.main.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.main.master_bpm])
 
-        # Re-query MOLTI-SAMP bufBus indices, then re-load active MOLTI slots
+        # Re-query MOLTI-SAMP bufBus indices — reload is signal-driven
+        # (molti_buf_bus_received → molti_reload_all, connected once on first connect)
         self.main.osc.query_buf_buses()
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(500, self.main.generator.molti_reload_all)
 
         # Re-enable scope tap (reconnect signal + resync state)
         self.main.osc.scope_data_received.connect(self.main._on_scope_data)
