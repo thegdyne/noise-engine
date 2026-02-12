@@ -198,6 +198,7 @@ class PresetController:
         for i, slot_state in enumerate(state.slots):
             slot_id = i + 1
             if (slot_id <= 8
+                    and slot_state.generator
                     and "MOLTI" in slot_state.generator.upper()
                     and slot_state.molti_path):
                 from pathlib import Path
