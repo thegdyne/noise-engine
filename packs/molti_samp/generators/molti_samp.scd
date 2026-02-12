@@ -20,7 +20,7 @@ Infrastructure (via bufBus):
   - ch3: reserved
 */
 
-SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, slotIndex=0|
+SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, noteBus, slotIndex=0|
     // === VAR DECLARATIONS (must be at top of block) ===
     var p, sig;
     var noteMapBufNum, zoneBufBufNum, zoneCount;
@@ -51,12 +51,13 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     midiTrig = In.ar(midiTrigBus + slotIndex, 1);
     midiTrigK = A2K.kr(midiTrig);
 
-    // === CURRENT NOTE ===
-    // freqBus contains frequency in Hz; .cpsmidi converts to MIDI note number
-    currentNote = In.kr(freqBus).cpsmidi.round(1).clip(0, 127);
+    // === CURRENT NOTE (SC-side — raw MIDI note, no Hz round-trip) ===
+    // noteBus carries the integer MIDI note set by keyboard_osc / midi_handler / step_engine
+    // directly on the control bus. No .midicps → .cpsmidi conversion = no precision/timing issues.
+    currentNote = In.kr(noteBus + slotIndex).round(1).clip(0, 127);
 
-    // MIDI-only latch: only update note on MIDI trigger, NOT clock
-    lastNote = Latch.kr(currentNote, midiTrigK).round(1);  // belt + braces
+    // MIDI-only latch: lock note for duration of playback (ignore clock triggers)
+    lastNote = Latch.kr(currentNote, midiTrigK).round(1);
 
     // === ZONE LOOKUP (double indirection, SC-side) ===
     zoneIdxRaw = Select.kr(valid > 0, [
