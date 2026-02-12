@@ -25,10 +25,11 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
     var p, sig;
     var noteMapBufNum, zoneBufBufNum, zoneCount;
     var midiTrig, midiTrigK, currentNote, lastNote;
-    var zoneIdx, bufnum, numFrames;
+    var zoneIdx, bufnum, readBuf, numFrames;
     var phase, phaseK, phaseInc, startFrame, endFrame;
     var loopFlag, doneTrig, running;
     var valid, gainDb;
+    var safeBuf = LocalBuf(2, 2).clear;  // silent 2ch fallback (avoids buffer 0 mismatch)
 
     // === READ PARAMS ===
     p = In.kr(customBus0, 5);
@@ -71,14 +72,17 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
     // Second guard: bufnum itself must be valid
     valid = valid * (bufnum >= 0);
 
+    // Safe buffer: use real audio buffer when valid, silent LocalBuf otherwise
+    readBuf = Select.kr(valid > 0, [safeBuf, bufnum.max(0)]);
+
     // === PLAYBACK (single Phasor+BufRd core for both modes) ===
-    numFrames  = BufFrames.kr(bufnum.max(0));
+    numFrames  = BufFrames.kr(readBuf);
     startFrame = (p[1] * numFrames).round(1);
     endFrame   = (p[2] * numFrames).round(1).max(startFrame + 1);
     loopFlag   = (p[0] > 0.5).asInteger;  // explicit 0/1 for Select
 
     // Rate with TUNE (P5): +/-1 semitone around center
-    phaseInc = BufRateScale.kr(bufnum.max(0)) * p[4].linlin(0, 1, -1, 1).midiratio;
+    phaseInc = BufRateScale.kr(readBuf) * p[4].linlin(0, 1, -1, 1).midiratio;
 
     phase = Phasor.ar(
         trig: midiTrig,
@@ -96,7 +100,7 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
         1                                     // loop: always running
     ]);
 
-    sig = BufRd.ar(2, bufnum.max(0), phase, loop: 0) * running;
+    sig = BufRd.ar(2, readBuf, phase, loop: 0) * running;
 
     // === GAIN (P4: -24dB to +6dB) ===
     gainDb = p[3].linlin(0, 1, -24, 6);
