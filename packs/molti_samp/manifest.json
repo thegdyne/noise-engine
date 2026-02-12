@@ -1,0 +1,12 @@
+{
+  "pack_format": 1,
+  "pack_id": "molti_samp",
+  "name": "MOLTI Sampler",
+  "version": "1.0.0",
+  "author": "Noise Engine",
+  "description": "Multi-sample player for .korgmultisample files",
+  "enabled": true,
+  "generators": [
+    "molti_samp"
+  ]
+}

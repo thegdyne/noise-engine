@@ -132,7 +132,9 @@ Reusable functions for generator management
             // Start channel strip FIRST (must exist before generator writes to bus)
             ~startChannelStrip.(slotID);
 
-            // Build base args for all generators
+            // Build args for all generators
+            // bufBus always passed (SC ignores unknown args;
+            // any MOLTI-SAMP variant SynthDef will pick it up)
             synthArgs = [
                 \out, ~genBus[idx],  // Per-slot bus
                 \freqBus, freqBusIdx,
@@ -147,6 +149,7 @@ Reusable functions for generator management
                 \clockTrigBus, ~clockTrigBus.index,
                 \midiTrigBus, if(~midiTrigBus.notNil, { ~midiTrigBus.index }, { 0 }),
                 \slotIndex, idx,  // 0-indexed for MIDI trigger bus channel
+                \bufBus, ~bufBuses[idx].index,
                 // Custom params (5 per generator)
                 \customBus0, custom0Idx,
                 \customBus1, custom1Idx,
@@ -155,11 +158,6 @@ Reusable functions for generator management
                 \customBus4, custom4Idx,
                 \portamentoBus, params[\portamento].index
             ];
-
-            // MOLTI-SAMP: pass bufBus (midiTrigBus already in base args)
-            if(genType == \forge_molti_samp, {
-                synthArgs = synthArgs ++ [\bufBus, ~bufBuses[idx].index];
-            });
 
             // Start generator - routes to per-slot bus (not master)
             ~generators[slotID] = Synth(genType, synthArgs, ~genGroup, \addToHead);

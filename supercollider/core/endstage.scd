@@ -288,21 +288,17 @@ Invariants:
         // Start channel strip (must exist before generator writes)
         ~startChannelStrip.(slotID);
 
-        // Build base args for all generators
+        // Build args for all generators
+        // bufBus + midiTrigBus always passed (SC ignores unknown args;
+        // any MOLTI-SAMP variant SynthDef will pick them up)
         synthArgs = [
             \out, ~intermediateBus[idx].index,
             \freqBus, freqBusIdx,
             \customBus0, custom0Idx,
-            \slotIndex, idx  // 0-based for telemetry routing (ignored by generators without this arg)
+            \slotIndex, idx,
+            \bufBus, ~bufBuses[idx].index,
+            \midiTrigBus, ~midiTrigBus.index
         ];
-
-        // MOLTI-SAMP: pass bufBus + midiTrigBus when starting forge_molti_samp
-        if(genType == \forge_molti_samp, {
-            synthArgs = synthArgs ++ [
-                \bufBus, ~bufBuses[idx].index,
-                \midiTrigBus, ~midiTrigBus.index
-            ];
-        });
 
         // Create new generator in genSubGroup (addToTail)
         // The generator writes to intermediate bus via ReplaceOut

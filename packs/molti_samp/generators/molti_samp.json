@@ -1,0 +1,61 @@
+{
+  "name": "MOLTI Sampler",
+  "synthdef": "moltisamp_molti_samp",
+  "synthesis_method": "sampler/multisample",
+  "output_trim_db": 0.0,
+  "midi_retrig": true,
+  "pitch_target": null,
+  "custom_params": [
+    {
+      "key": "loop",
+      "label": "LOP",
+      "tooltip": "Loop mode (0=one-shot, 1=loop)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": "",
+      "steps": [0, 1]
+    },
+    {
+      "key": "start",
+      "label": "STA",
+      "tooltip": "Playback start point (normalized)",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "end",
+      "label": "END",
+      "tooltip": "Playback end point (normalized)",
+      "default": 1.0,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "gain",
+      "label": "GAN",
+      "tooltip": "Output gain (-24dB to +6dB)",
+      "default": 0.75,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    },
+    {
+      "key": "tune",
+      "label": "TUN",
+      "tooltip": "Fine tune (0.5=center, +/-1 semitone)",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "curve": "lin",
+      "unit": ""
+    }
+  ]
+}
