@@ -19,7 +19,7 @@ if (thisProcess.nowExecutingPath.isNil) {
 s.options.numAudioBusChannels = 512;     // Headroom for intermediate + FX routing
 s.options.numControlBusChannels = 4096;  // ~420 used (buses + bus_unification 176)
 s.options.memSize = 131072;              // 128MB — headroom for telemetry buffers
-s.options.numBuffers = 2048;             // Scope + telemetry wave capture buffers
+s.options.numBuffers = 8192;             // MOLTI-SAMP pool starts at 4000 (needs 4512+)
 s.options.maxNodes = 4096;               // Headroom for crossmod + FX chains
 );
 
