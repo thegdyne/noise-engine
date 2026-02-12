@@ -27,7 +27,7 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     var midiTrig, midiTrigK, currentNote, lastNote;
     var zoneIdx, zoneIdxRaw, bufnum, readBuf, numFrames;
     var phase, phaseInc, startFrame, endFrame;
-    var loopFlag, elapsed, running;
+    var loopFlag, elapsed, running, started, frameCount;
     var valid, gainDb;
     var safeBuf = LocalBuf(2, 2).clear;  // silent 2ch fallback (avoids buffer 0 mismatch)
 
@@ -99,10 +99,15 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
 
     // One-shot gate: Sweep counts elapsed playback frames at audio rate
     // (avoids A2K race that let Phasor wrap before the gate caught endFrame)
+    frameCount = (endFrame - startFrame);
+
+    // started=0 until first midiTrig, then stays 1 (subsequent trigs just restart Sweep)
+    started = (PulseCount.ar(midiTrig) > 0);
+
     elapsed = Sweep.ar(midiTrig, phaseInc.abs * SampleRate.ir);
     running = Select.ar(loopFlag, [
-        elapsed < (endFrame - startFrame),  // one-shot: 1 → 0 after one pass
-        DC.ar(1)                             // loop: always running
+        started * (elapsed < frameCount),  // one-shot: silent until first trig
+        DC.ar(1)                            // loop: always running
     ]);
 
     sig = BufRd.ar(2, readBuf, phase, loop: 0) * running;
