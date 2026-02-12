@@ -101,10 +101,11 @@ All OSC message routing
     }, '/clock/tick');
 
     // MOLTI-SAMP: report bufBus control bus indices to Python
+    // Reply to addr (the sender) — works even before ~pythonAddr handshake
     OSCdef(\moltiBufBusQuery, { |msg, time, addr|
-        if(~pythonAddr.notNil and: { ~bufBuses.notNil }) {
+        if(~bufBuses.notNil) {
             var indices = ~bufBuses.collect(_.index);
-            ~pythonAddr.sendMsg('/noise/molti/bufBusIndices', *indices);
+            addr.sendMsg('/noise/molti/bufBusIndices', *indices);
         };
     }, '/noise/molti/queryBufBus');
 

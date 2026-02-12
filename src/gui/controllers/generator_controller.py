@@ -367,9 +367,44 @@ class GeneratorController:
                 slot.set_molti_unloaded()
                 slot.molti_name_label.setText("LOAD FAILED")
 
+    def molti_reload_all(self):
+        """Re-load all MOLTI-SAMP slots that have a saved path.
+
+        Called after reconnect when SC has lost all buffers/tables.
+        Also resets the loader so it uses the new osc.client.
+        """
+        # Reset loader to pick up new osc.client after reconnect
+        if hasattr(self, '_molti_loader'):
+            self._molti_loader = None
+
+        for slot_id in range(1, 9):
+            slot = self.main.generator_grid.get_slot(slot_id)
+            if slot and slot.molti_path and slot.generator_type == "MOLTI-SAMP":
+                logger.info(f"[MOLTI] Reconnect: re-loading slot {slot_id}", component="MOLTI")
+                self._do_molti_load(slot_id, slot.molti_path)
+
     def _molti_unload(self, slot_id):
-        """Unload multisample from a slot (called on type change away from MOLTI-SAMP)."""
+        """Unload multisample from a slot (called on type change away from MOLTI-SAMP).
+
+        Always resets bufBus to [-1,-1,0,0]. If bufBus index is unknown,
+        queries SC synchronously (brief block) to avoid stale playback.
+        """
         loader = self._get_molti_loader()
-        if loader and self.main.osc_connected:
+        if not loader or not self.main.osc_connected:
+            return
+
+        buf_bus_idx = self.main.osc.get_buf_bus_index(slot_id - 1)
+        if buf_bus_idx < 0:
+            # Best-effort: query + short wait to get index before unload
+            import time
+            self.main.osc.query_buf_buses()
+            time.sleep(0.15)
             buf_bus_idx = self.main.osc.get_buf_bus_index(slot_id - 1)
-            loader.unload(slot_id - 1, buf_bus_idx if buf_bus_idx >= 0 else None)
+
+        loader.unload(slot_id - 1, buf_bus_idx if buf_bus_idx >= 0 else None)
+        if buf_bus_idx < 0:
+            logger.warning(
+                f"[MOLTI] Unloaded slot {slot_id} without bufBus reset "
+                "(indices unavailable — SC may output stale audio briefly)",
+                component="MOLTI"
+            )

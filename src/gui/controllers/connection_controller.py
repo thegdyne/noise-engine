@@ -196,8 +196,10 @@ class ConnectionController:
         # Resend current state
         self.main.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.main.master_bpm])
 
-        # Re-query MOLTI-SAMP bufBus indices
+        # Re-query MOLTI-SAMP bufBus indices, then re-load active MOLTI slots
         self.main.osc.query_buf_buses()
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(500, self.main.generator.molti_reload_all)
 
         # Re-enable scope tap (reconnect signal + resync state)
         self.main.osc.scope_data_received.connect(self.main._on_scope_data)
