@@ -148,6 +148,7 @@ Reusable functions for generator management
                 \clockRateBus, params[\clockRate].index,
                 \clockTrigBus, ~clockTrigBus.index,
                 \midiTrigBus, if(~midiTrigBus.notNil, { ~midiTrigBus.index }, { 0 }),
+                \noteBus, if(~noteBus.notNil, { ~noteBus.index }, { 0 }),
                 \slotIndex, idx,  // 0-indexed for MIDI trigger bus channel
                 \bufBus, ~bufBuses[idx].index,
                 // Custom params (5 per generator)

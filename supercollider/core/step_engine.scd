@@ -34,7 +34,7 @@ Dependencies: buses.scd (~clockTrigBus, ~midiTrigBus, ~busRegistry, ~genGroup, ~
 // === SYNTHDEF (loaded at file parse time, before server boot completes) ===
 
 SynthDef(\stepEngineSlot, {
-    |clockTrigBus, freqBus, midiTrigBusChan,
+    |clockTrigBus, freqBus, midiTrigBusChan, noteBusChan,
      bufnum, mode=0, fabricIdx=6, stepCount=0,
      playMode=0, slotIdx=0|
 
@@ -44,6 +44,7 @@ SynthDef(\stepEngineSlot, {
     var step, type, note, vel, gateFrac;
     var active, isNote;
     var freq, freqHeld, freqIn, freqOut;
+    var noteHeld, noteIn, noteOut;
     var trigPulse, trigIn, trigOut;
     var safeStepCount;
 
@@ -85,6 +86,13 @@ SynthDef(\stepEngineSlot, {
     freqOut = Select.kr(active, [freqIn, freqHeld]);
     ReplaceOut.kr(freqBus, freqOut);
 
+    // Raw MIDI note bus — same pattern as freqBus (SC-side, no Hz round-trip)
+    // MOLTI-SAMP reads this directly for zone lookup
+    noteHeld = Latch.kr(note, edge * isNote);
+    noteIn = In.kr(noteBusChan);
+    noteOut = Select.kr(active, [noteIn, noteHeld]);
+    ReplaceOut.kr(noteBusChan, noteOut);
+
     // Generate trigger pulse: 2-sample audio pulse on NOTE steps
     trigPulse = Trig1.ar(K2A.ar(edge * isNote), SampleDur.ir * 2);
     // Pass through current bus when inactive — avoids clobbering MIDI/keyboard triggers
@@ -116,6 +124,7 @@ SynthDef(\stepEngineSlot, {
             \clockTrigBus, ~clockTrigBus.index,
             \freqBus, ~busRegistry[freqBusKey].index,
             \midiTrigBusChan, ~midiTrigBus.index + i,
+            \noteBusChan, ~noteBus.index + i,
             \bufnum, ~stepBuf[i].bufnum,
             \mode, 0,
             \fabricIdx, 6,

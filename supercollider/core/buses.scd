@@ -32,6 +32,11 @@ Default values are real values (not normalized):
     // MIDI trigger bus - 8 audio channels, one per generator slot
     ~midiTrigBus = Bus.audio(s, 8);
 
+    // MIDI note bus — 8 control channels, raw MIDI note per slot (SC-side, no Hz round-trip)
+    // Written by keyboard_osc, midi_handler, step_engine; read by MOLTI-SAMP for zone lookup
+    ~noteBus = Bus.control(s, 8);
+    8.do { |i| ~noteBus.setAt(i, 60) };  // default middle C
+
     // MOLTI-SAMP: bufBus substrate (8 slots × 4ch control bus)
     // ch0: noteMapBuf bufnum (-1 = none)
     // ch1: zoneBufBuf bufnum (-1 = none)

@@ -158,6 +158,9 @@ OSC messages to Python:
             if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
                 ~busRegistry[freqBusKey].set(freq);
             });
+            // Set raw MIDI note on noteBus (SC-side, no Hz round-trip)
+            // MOLTI-SAMP reads this directly for zone lookup
+            if(~noteBus.notNil, { ~noteBus.setAt(i, note + transpose) });
             // Also queue for the modulation system (apply tick recalculates with mod offsets)
             if(~queueBaseUpdate.notNil, {
                 ~queueBaseUpdate.(freqBusKey, freq);

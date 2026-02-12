@@ -20,11 +20,11 @@ Infrastructure (via bufBus):
   - ch3: reserved
 */
 
-SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, slotIndex=0|
+SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, noteBus, slotIndex=0|
     // === VAR DECLARATIONS (must be at top of block) ===
     var p, sig;
     var noteMapBufNum, zoneBufBufNum, zoneCount;
-    var midiTrig, midiTrigK, midiTrigD, currentNote, lastNote;
+    var midiTrig, midiTrigK, currentNote, lastNote;
     var zoneIdx, zoneIdxRaw, bufnum, readBuf, numFrames;
     var phase, phaseInc, startFrame, endFrame;
     var loopFlag, elapsed, running, started, frameCount;
@@ -51,19 +51,13 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
     midiTrig = In.ar(midiTrigBus + slotIndex, 1);
     midiTrigK = A2K.kr(midiTrig);
 
-    // Delay trigger by 1 control block (~1.5ms) so the freqBus value
-    // is guaranteed to have propagated before we latch the note.
-    // Without this, the Latch can capture the PREVIOUS note's frequency
-    // when the /c_set and /s_new arrive in the same server command batch.
-    midiTrigD = DelayN.ar(midiTrig, ControlDur.ir, ControlDur.ir);
+    // === CURRENT NOTE (SC-side — raw MIDI note, no Hz round-trip) ===
+    // noteBus carries the integer MIDI note set by keyboard_osc / midi_handler / step_engine
+    // directly on the control bus. No .midicps → .cpsmidi conversion = no precision/timing issues.
+    currentNote = In.kr(noteBus + slotIndex).round(1).clip(0, 127);
 
-    // === CURRENT NOTE ===
-    // freqBus contains frequency in Hz; .cpsmidi converts to MIDI note number
-    currentNote = In.kr(freqBus).cpsmidi.round(1).clip(0, 127);
-
-    // MIDI-only latch: only update note on MIDI trigger, NOT clock
-    // Uses delayed trigger so zone lookup and playback start in sync
-    lastNote = Latch.kr(currentNote, Delay1.kr(midiTrigK)).round(1);
+    // MIDI-only latch: lock note for duration of playback (ignore clock triggers)
+    lastNote = Latch.kr(currentNote, midiTrigK).round(1);
 
     // === ZONE LOOKUP (double indirection, SC-side) ===
     zoneIdxRaw = Select.kr(valid > 0, [
@@ -82,8 +76,8 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
     valid = valid * (bufnum >= 0);
 
     // DEBUG: remove after diagnosis — fires on every MIDI trigger
-    SendReply.kr(Delay1.kr(midiTrigK), "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
-    SendReply.kr(Delay1.kr(midiTrigK), "/noise/molti/trig", [slotIndex, lastNote, p[0]]);
+    SendReply.kr(midiTrigK, "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
+    SendReply.kr(midiTrigK, "/noise/molti/trig", [slotIndex, lastNote, p[0]]);
 
     // Safe buffer: use real audio buffer when valid, silent LocalBuf otherwise
     readBuf = Select.kr(valid > 0, [safeBuf, bufnum.max(0)]);
@@ -97,9 +91,8 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
     // Rate with TUNE (P5): +/-1 semitone around center
     phaseInc = BufRateScale.kr(readBuf) * p[4].linlin(0, 1, -1, 1).midiratio;
 
-    // Use delayed trigger so Phasor resets AFTER zone lookup has updated readBuf
     phase = Phasor.ar(
-        trig: midiTrigD,
+        trig: midiTrig,
         rate: phaseInc,
         start: startFrame,
         end: endFrame,
@@ -111,9 +104,9 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
     frameCount = (endFrame - startFrame);
 
     // started=0 until first midiTrig, then stays 1 (subsequent trigs just restart Sweep)
-    started = (PulseCount.ar(midiTrigD) > 0);
+    started = (PulseCount.ar(midiTrig) > 0);
 
-    elapsed = Sweep.ar(midiTrigD, phaseInc.abs * SampleRate.ir);
+    elapsed = Sweep.ar(midiTrig, phaseInc.abs * SampleRate.ir);
     running = Select.ar(loopFlag, [
         started * (elapsed < frameCount),  // one-shot: silent until first trig
         DC.ar(1)                            // loop: always running

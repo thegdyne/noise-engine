@@ -297,7 +297,8 @@ Invariants:
             \customBus0, custom0Idx,
             \slotIndex, idx,
             \bufBus, ~bufBuses[idx].index,
-            \midiTrigBus, ~midiTrigBus.index
+            \midiTrigBus, ~midiTrigBus.index,
+            \noteBus, if(~noteBus.notNil, { ~noteBus.index }, { 0 })
         ];
 
         // Create new generator in genSubGroup (addToTail)
