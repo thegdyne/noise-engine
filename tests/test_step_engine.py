@@ -1000,3 +1000,226 @@ class TestNewOSCPathsExist:
     def test_step_reset_path_exists(self):
         assert 'step_reset' in OSC_PATHS
         assert OSC_PATHS['step_reset'] == '/noise/step/reset'
+
+
+# =============================================================================
+# ARCHITECTURAL INVARIANT: SC-SIDE TIMING
+# =============================================================================
+
+class TestSCOnlyTiming:
+    """All note timing must live in SC — Python is data-push + display only.
+
+    SeqEngine must NEVER:
+    - Advance steps on its own (no +=1 in a timer/tick path)
+    - Send note-on/off/gate/freq/trigger OSC
+    - Import or use QTimer, threading.Timer, time.sleep
+    - Compute midicps or similar audio-rate conversions
+
+    MotionManager QTimer must ONLY:
+    - Detect sync boundaries for deferred SEQ starts
+    - Drain command queues for pending UI edits
+    - It must NOT advance step indices or emit note triggers
+
+    Playhead updates flow: SC SendReply → OSCdef forward → Python OSC handler
+    → motion_manager.on_step_event → seq_engine.update_playhead
+    """
+
+    def test_seq_engine_has_no_timer_imports(self):
+        """SeqEngine must not import any timing primitives."""
+        import ast
+        import os
+        path = os.path.join(os.path.dirname(__file__), '..', 'src', 'gui', 'seq_engine.py')
+        with open(path) as f:
+            source = f.read()
+        tree = ast.parse(source)
+
+        banned = {'QTimer', 'Timer', 'sleep', 'singleShot', 'sched'}
+        found = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name in banned or (alias.asname and alias.asname in banned):
+                        found.add(alias.name)
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    name = alias.name.split('.')[-1]
+                    if name in banned:
+                        found.add(name)
+        assert not found, (
+            f"SeqEngine must not import timing primitives (SC owns timing): {found}"
+        )
+
+    def test_seq_engine_no_step_advancement(self):
+        """SeqEngine must never increment current_step_index in a tick path.
+
+        Only allowed mutations:
+        - = 0 (reset)
+        - = position (from SC SendReply via update_playhead)
+        - = new_length - 1 (clamp on length reduction)
+        Forbidden: += 1, += anything, = (self.current_step_index + 1)
+        """
+        import os, re
+        path = os.path.join(os.path.dirname(__file__), '..', 'src', 'gui', 'seq_engine.py')
+        with open(path) as f:
+            source = f.read()
+
+        # No +=
+        advances = re.findall(r'current_step_index\s*\+=', source)
+        assert not advances, (
+            f"SeqEngine must not advance step index (SC owns step advancement): "
+            f"found {len(advances)} occurrence(s) of current_step_index +="
+        )
+
+        # No wrap-around patterns like (current_step_index + 1) % length
+        wraps = re.findall(r'current_step_index\s*\+\s*1', source)
+        assert not wraps, (
+            f"SeqEngine must not compute next step (SC owns step advancement): "
+            f"found current_step_index + 1"
+        )
+
+    def test_seq_engine_sends_no_note_osc(self):
+        """SeqEngine must never send note/trigger/gate/freq OSC messages.
+
+        Scans executable code only (strips comments and docstrings via AST).
+        """
+        import ast, os
+        path = os.path.join(os.path.dirname(__file__), '..', 'src', 'gui', 'seq_engine.py')
+        with open(path) as f:
+            source = f.read()
+
+        # Extract all string literals (comments/docstrings) to exclude them
+        tree = ast.parse(source)
+        docstring_lines = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Expr) and isinstance(node.value, (ast.Constant, ast.Str)):
+                for ln in range(node.lineno, node.end_lineno + 1):
+                    docstring_lines.add(ln)
+
+        # Build code-only text (skip docstring lines and # comments)
+        code_lines = []
+        for i, line in enumerate(source.split('\n'), 1):
+            stripped = line.strip()
+            if i in docstring_lines or stripped.startswith('#'):
+                continue
+            code_lines.append(stripped)
+        code_only = '\n'.join(code_lines)
+
+        banned_patterns = [
+            'send_message', 'sendMsg', 'send_note', 'note_on', 'note_off',
+            'midi_gate', 'midicps', 'osc_client', 'osc_bridge',
+        ]
+        for pattern in banned_patterns:
+            assert pattern not in code_only, (
+                f"SeqEngine must not send audio/note OSC (SC owns timing): "
+                f"found '{pattern}' in executable code of seq_engine.py"
+            )
+
+    def test_motion_manager_tick_has_no_step_advancement(self):
+        """MotionManager on_tick must not advance any step index."""
+        import os, re
+        path = os.path.join(os.path.dirname(__file__), '..', 'src', 'gui', 'motion_manager.py')
+        with open(path) as f:
+            source = f.read()
+
+        # Extract on_tick method body
+        match = re.search(r'(def on_tick\(self.*?\n(?:(?!    def ).*\n)*)', source)
+        assert match, "on_tick method not found in MotionManager"
+        body = match.group(1)
+
+        assert 'current_step_index' not in body, (
+            "MotionManager.on_tick must not touch current_step_index "
+            "(playhead updates come from SC via on_step_event)"
+        )
+
+    def test_motion_manager_tick_sends_no_note_osc(self):
+        """MotionManager on_tick must not send note/trigger/gate OSC."""
+        import os, re
+        path = os.path.join(os.path.dirname(__file__), '..', 'src', 'gui', 'motion_manager.py')
+        with open(path) as f:
+            source = f.read()
+
+        match = re.search(r'(def on_tick\(self.*?\n(?:(?!    def ).*\n)*)', source)
+        assert match, "on_tick method not found in MotionManager"
+        body = match.group(1)
+
+        banned = ['note_on', 'note_off', 'midi_gate', '/noise/midi']
+        for pattern in banned:
+            assert pattern not in body, (
+                f"MotionManager.on_tick must not send note OSC (SC owns timing): "
+                f"found '{pattern}'"
+            )
+
+    def test_playhead_only_set_by_sc_feedback(self):
+        """SeqEngine.update_playhead is the ONLY path that sets playhead
+        from external position data. Verify it's a trivial assignment."""
+        from src.gui.seq_engine import SeqEngine
+        import inspect
+        source = inspect.getsource(SeqEngine.update_playhead)
+        assert 'self.current_step_index = position' in source
+        # Must not contain any conditional logic or side effects
+        lines = [l.strip() for l in source.split('\n')
+                 if l.strip() and not l.strip().startswith('#')
+                 and not l.strip().startswith('"""') and not l.strip().startswith('def ')]
+        assert len(lines) == 1, (
+            f"update_playhead must be a trivial assignment (no logic), "
+            f"got {len(lines)} statement(s): {lines}"
+        )
+
+    def test_sc_synthdef_has_sendreply_for_playhead(self):
+        """step_engine.scd must contain SendReply for /noise/step/event."""
+        import os
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'supercollider', 'core', 'step_engine.scd'
+        )
+        with open(path) as f:
+            source = f.read()
+        assert "SendReply" in source, "step_engine.scd must use SendReply"
+        assert "/noise/step/event" in source, (
+            "step_engine.scd must send /noise/step/event for playhead"
+        )
+
+    def test_sc_osc_handlers_has_step_event_forwarder(self):
+        """osc_handlers.scd must have an OSCdef that forwards
+        /noise/step/event to ~pythonAddr."""
+        import os
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'supercollider', 'core', 'osc_handlers.scd'
+        )
+        with open(path) as f:
+            source = f.read()
+        assert "stepEventForward" in source, (
+            "osc_handlers.scd must have OSCdef(\\stepEventForward) "
+            "to relay SendReply to Python"
+        )
+        assert "~pythonAddr.sendMsg('/noise/step/event'" in source, (
+            "stepEventForward must forward to ~pythonAddr"
+        )
+
+    def test_osc_bridge_step_event_signal_exists(self):
+        """OSCBridge must declare step_event_received signal."""
+        import os
+        path = os.path.join(os.path.dirname(__file__), '..', 'src', 'audio', 'osc_bridge.py')
+        with open(path) as f:
+            source = f.read()
+        assert 'step_event_received' in source, (
+            "OSCBridge must have step_event_received signal"
+        )
+        assert '_handle_step_event' in source, (
+            "OSCBridge must have _handle_step_event handler"
+        )
+
+    def test_full_signal_chain_wired(self):
+        """keyboard_controller must wire osc.step_event_received
+        to motion_manager.on_step_event."""
+        import os
+        path = os.path.join(
+            os.path.dirname(__file__), '..', 'src', 'gui', 'controllers', 'keyboard_controller.py'
+        )
+        with open(path) as f:
+            source = f.read()
+        assert 'step_event_received.connect' in source, (
+            "keyboard_controller must connect step_event_received signal"
+        )
+        assert 'on_step_event' in source, (
+            "keyboard_controller must wire to motion_manager.on_step_event"
+        )
