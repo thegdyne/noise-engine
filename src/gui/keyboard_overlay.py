@@ -1449,12 +1449,13 @@ class KeyboardOverlay(QWidget):
         if midi_note < 0 or midi_note > 127:
             return
 
-        # SEQ recording mode — enter note at cursor
+        # SEQ recording mode — enter note at cursor (silent, no audition)
         if self._is_seq_recording_mode():
             self._seq_engine.set_step(self._seq_input_cursor, StepType.NOTE, midi_note, self._velocity)
             self._seq_engine.process_commands()
             self._advance_input_cursor()
             self._refresh_step_grid()
+            return
 
         # Stop any previously held mouse note
         if self._mouse_held_note is not None:
@@ -1822,7 +1823,7 @@ class KeyboardOverlay(QWidget):
             self._handle_octave_change(OCTAVE_KEYS[key])
             return
 
-        # Note key -> NOTE step + audition
+        # Note key -> NOTE step (silent, no audition)
         if key in KEY_TO_SEMITONE:
             semitone = KEY_TO_SEMITONE[key]
             midi_note = self._compute_midi_note(semitone)
@@ -1831,11 +1832,6 @@ class KeyboardOverlay(QWidget):
                 self._seq_engine.process_commands()
                 self._advance_input_cursor()
                 self._refresh_step_grid()
-
-                # Audition: play note briefly so user hears what was entered
-                osc_slot = self._target_slot - 1
-                self._send_note_on(osc_slot, midi_note, self._velocity)
-                QTimer.singleShot(200, lambda n=midi_note, s=osc_slot: self._send_note_off(s, n))
             return
 
         # Space -> REST step
