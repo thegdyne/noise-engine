@@ -29,7 +29,6 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     var phase, phaseInc, startFrame, endFrame;
     var loopFlag, elapsed, running, started, frameCount;
     var valid, gainDb;
-    var safeBuf = LocalBuf(2, 2).clear;  // silent 2ch fallback (avoids buffer 0 mismatch)
 
     // === READ PARAMS ===
     p = In.kr(customBus0, 5);
@@ -82,17 +81,16 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     SendReply.kr(midiTrigK, "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
     SendReply.kr(midiTrigK, "/noise/molti/trig", [slotIndex, lastNote, p[0]]);
 
-    // Safe buffer: use real audio buffer when valid, silent LocalBuf otherwise
-    readBuf = Select.kr(valid > 0, [safeBuf, bufnum.max(0)]);
-
     // === PLAYBACK (Phasor + audio-rate one-shot gate) ===
-    numFrames  = BufFrames.kr(readBuf);
+    // When invalid, use safe constants so BufFrames/Phasor/BufRd never touch a bad bufnum.
+    readBuf   = bufnum.max(0);
+    numFrames = Select.kr(valid > 0, [2, BufFrames.kr(readBuf)]);
     startFrame = (p[1] * numFrames).round(1);
     endFrame   = (p[2] * numFrames).round(1).max(startFrame + 1);
     loopFlag   = (p[0] > 0.5);
 
     // Rate with TUNE (P5): +/-1 semitone around center
-    phaseInc = BufRateScale.kr(readBuf) * p[4].linlin(0, 1, -1, 1).midiratio;
+    phaseInc = Select.kr(valid > 0, [1, BufRateScale.kr(readBuf)]) * p[4].linlin(0, 1, -1, 1).midiratio;
 
     phase = Phasor.ar(
         trig: midiTrig,
@@ -103,7 +101,6 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     );
 
     // One-shot gate: Sweep counts elapsed playback frames at audio rate
-    // (avoids A2K race that let Phasor wrap before the gate caught endFrame)
     frameCount = (endFrame - startFrame);
 
     // started=0 until first midiTrig, then stays 1 (subsequent trigs just restart Sweep)
@@ -115,17 +112,15 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
         DC.ar(1)                            // loop: always running
     ]);
 
-    sig = BufRd.ar(2, readBuf, phase, loop: 0) * running;
+    // Gate BufRd behind valid — never read from a bad bufnum
+    sig = Select.ar(valid > 0, [
+        Silent.ar(2),
+        BufRd.ar(2, readBuf, phase, loop: 0) * running
+    ]);
 
     // === GAIN (P4: -24dB to +6dB) ===
     gainDb = p[3].linlin(0, 1, -24, 6);
     sig = sig * gainDb.dbamp;
-
-    // === SAFETY GATE: silence when infrastructure invalid ===
-    sig = Select.ar(valid > 0, [
-        Silent.ar(2),
-        sig
-    ]);
 
     // === MANDATORY TAIL ===
     sig = NumChannels.ar(sig, 2);
