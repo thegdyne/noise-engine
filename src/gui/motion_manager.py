@@ -43,6 +43,9 @@ from src.utils.logger import logger
 # Clock tick interval in milliseconds (~10ms for smooth sequencing)
 TICK_INTERVAL_MS = 10
 
+# Play mode name → SC integer (single source of truth for both push paths)
+_PLAY_MODE_VAL = {'FORWARD': 0, 'REVERSE': 1, 'PINGPONG': 2, 'RANDOM': 3}
+
 # Global sync resolution: 1 bar = 4 beats
 # New SEQ slots wait for the next bar downbeat before starting playback.
 SYNC_QUANTUM_BEATS = 4.0
@@ -391,9 +394,7 @@ class MotionManager:
         slot['last_seq_rate'] = rate_idx
 
         # Send play mode
-        play_mode_val = {
-            'FORWARD': 0, 'REVERSE': 1, 'PINGPONG': 2, 'RANDOM': 3
-        }.get(seq.settings.play_mode.name, 0)
+        play_mode_val = _PLAY_MODE_VAL.get(seq.settings.play_mode.name, 0)
         self._send_osc(OSC_PATHS['seq_set_play_mode'], [slot_idx, play_mode_val])
         slot['last_seq_play_mode'] = seq.settings.play_mode.name
 
@@ -435,6 +436,8 @@ class MotionManager:
         when they actually change — step_set_rate fires \\resetTrig on SC
         side, so resending it on every step edit would cause phase glitches.
         """
+        if self._send_osc is None:
+            return
         if slot_idx < 0 or slot_idx >= 8:
             return
         slot = self._slots[slot_idx]
