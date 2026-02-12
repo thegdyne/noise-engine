@@ -91,6 +91,9 @@ class ConnectionController:
                 # Query audio devices
                 self.main.osc.query_audio_devices()
 
+                # Query MOLTI-SAMP bufBus indices
+                self.main.osc.query_buf_buses()
+
                 # Initialize and enable scope tap
                 self.main.scope_controller = ScopeController(self.main.osc)
                 self.main.scope_controller.enable()
@@ -192,6 +195,9 @@ class ConnectionController:
         
         # Resend current state
         self.main.osc.client.send_message(OSC_PATHS['clock_bpm'], [self.main.master_bpm])
+
+        # Re-query MOLTI-SAMP bufBus indices
+        self.main.osc.query_buf_buses()
 
         # Re-enable scope tap (reconnect signal + resync state)
         self.main.osc.scope_data_received.connect(self.main._on_scope_data)

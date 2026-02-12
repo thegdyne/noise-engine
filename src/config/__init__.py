@@ -1660,6 +1660,9 @@ OSC_PATHS = {
     # Hardware send (route intermediate bus to physical outputs)
     'hw_send_enable': '/noise/telem/hw_send/enable',   # [slot, outPair, gainDB] Python → SC
     'hw_send_disable': '/noise/telem/hw_send/disable', # [slot] Python → SC
+    # MOLTI-SAMP
+    'molti_query_buf_bus': '/noise/molti/queryBufBus',      # Python → SC: request bufBus indices
+    'molti_buf_bus_indices': '/noise/molti/bufBusIndices',   # SC → Python: [idx0, idx1, ..., idx7]
 }
 
 # === TELEMETRY SOURCE POINTS ===

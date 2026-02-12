@@ -169,6 +169,11 @@ class GeneratorController:
         if self.main.telemetry_controller is not None:
             self.main.telemetry_controller.disable_hardware_send(slot_id - 1)
 
+        # MOLTI-SAMP: unload buffers when switching away
+        slot = self.main.generator_grid.get_slot(slot_id)
+        if slot and slot.molti_path and new_type != "MOLTI-SAMP":
+            self._molti_unload(slot_id)
+
         synth_name = GENERATORS.get(new_type)
 
         self.main.generator_grid.set_generator_type(slot_id, new_type)
@@ -250,3 +255,121 @@ class GeneratorController:
             self.main.osc.client.send_message(OSC_PATHS['gen_filter_type'], [slot_id, FILTER_TYPE_INDEX[filter_type]])
         
         logger.debug(f"Gen {slot_id} slot state synced (mute={slot.muted}, env={slot.env_source})", component="OSC")
+
+    # =========================================================================
+    # MOLTI-SAMP: Load / Unload
+    # =========================================================================
+
+    def _get_molti_loader(self):
+        """Lazy-init the shared MoltiLoader and MoltiBufPool."""
+        if not hasattr(self, '_molti_loader'):
+            from src.audio.molti_buf_pool import MoltiBufPool
+            from src.audio.molti_loader import MoltiLoader
+            self._molti_pool = MoltiBufPool()
+            self._molti_loader = None  # Created when osc is available
+        if self._molti_loader is None and self.main.osc_connected:
+            from src.audio.molti_loader import MoltiLoader
+            self._molti_loader = MoltiLoader(self.main.osc.client, self._molti_pool)
+        return self._molti_loader
+
+    def on_molti_load_requested(self, slot_id):
+        """Handle MOLTI-SAMP LOAD button click — open file dialog and load."""
+        from PyQt5.QtWidgets import QFileDialog
+        from pathlib import Path
+
+        slot = self.main.generator_grid.get_slot(slot_id)
+        if not slot:
+            return
+
+        # Check if a recent file was selected via right-click menu
+        filepath = getattr(slot, '_molti_recent_path', None)
+        slot._molti_recent_path = None
+
+        if not filepath:
+            # Open file dialog
+            start_dir = str(Path.home())
+            if slot.molti_path:
+                start_dir = str(Path(slot.molti_path).parent)
+            filepath, _ = QFileDialog.getOpenFileName(
+                self.main,
+                "Load Multisample",
+                start_dir,
+                "Korg Multisample (*.korgmultisample);;All Files (*)",
+            )
+
+        if not filepath:
+            return
+
+        self._do_molti_load(slot_id, filepath)
+
+    def _do_molti_load(self, slot_id, filepath):
+        """Execute multisample load (sync, sleep-based — interim)."""
+        if not self.main.osc_connected:
+            logger.warning("Cannot load multisample: not connected to SC", component="MOLTI")
+            return
+
+        # Ensure bufBus indices are available
+        buf_bus_idx = self.main.osc.get_buf_bus_index(slot_id - 1)
+        if buf_bus_idx < 0:
+            # Query SC and retry after brief wait
+            self.main.osc.query_buf_buses()
+            logger.info("[MOLTI] Querying bufBus indices from SC...", component="MOLTI")
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(300, lambda: self._do_molti_load_retry(slot_id, filepath))
+            return
+
+        self._do_molti_load_now(slot_id, filepath, buf_bus_idx)
+
+    def _do_molti_load_retry(self, slot_id, filepath):
+        """Retry load after bufBus query response."""
+        buf_bus_idx = self.main.osc.get_buf_bus_index(slot_id - 1)
+        if buf_bus_idx < 0:
+            logger.error("[MOLTI] bufBus index unavailable — cannot load", component="MOLTI")
+            slot = self.main.generator_grid.get_slot(slot_id)
+            if slot:
+                slot.molti_name_label.setText("NO BUFBUS")
+            return
+        self._do_molti_load_now(slot_id, filepath, buf_bus_idx)
+
+    def _do_molti_load_now(self, slot_id, filepath, buf_bus_idx):
+        """Load multisample synchronously (brief UI freeze — interim)."""
+        loader = self._get_molti_loader()
+        if not loader:
+            logger.error("[MOLTI] Loader unavailable — not connected", component="MOLTI")
+            return
+
+        slot = self.main.generator_grid.get_slot(slot_id)
+        if slot:
+            slot.molti_load_btn.setEnabled(False)
+            slot.molti_name_label.setText("loading...")
+
+        try:
+            result = loader.load(
+                slot=slot_id - 1,
+                filepath=filepath,
+                buf_bus_index=buf_bus_idx,
+            )
+            if slot:
+                slot.molti_load_btn.setEnabled(True)
+                slot.set_molti_loaded(result['name'], filepath)
+            logger.info(
+                f"[MOLTI] Slot {slot_id}: loaded '{result['name']}' "
+                f"({result['zone_count']} zones, {result['mapped_notes']}/128 notes)",
+                component="MOLTI"
+            )
+            from src.config.molti_recent import add_recent_file
+            add_recent_file(filepath)
+            self.main._mark_dirty()
+        except Exception as e:
+            logger.error(f"[MOLTI] Load failed: {e}", component="MOLTI")
+            if slot:
+                slot.molti_load_btn.setEnabled(True)
+                slot.set_molti_unloaded()
+                slot.molti_name_label.setText("LOAD FAILED")
+
+    def _molti_unload(self, slot_id):
+        """Unload multisample from a slot (called on type change away from MOLTI-SAMP)."""
+        loader = self._get_molti_loader()
+        if loader and self.main.osc_connected:
+            buf_bus_idx = self.main.osc.get_buf_bus_index(slot_id - 1)
+            loader.unload(slot_id - 1, buf_bus_idx if buf_bus_idx >= 0 else None)

@@ -100,6 +100,7 @@ class GeneratorSlot(QWidget):
     portamento_changed = pyqtSignal(int, float)  # slot_id, value (0-1)
     analog_enable_changed = pyqtSignal(int, int)  # slot_id, enabled (0|1)
     analog_type_changed = pyqtSignal(int, int)  # slot_id, type_index (0-3)
+    molti_load_requested = pyqtSignal(int)  # slot_id — user clicked LOAD on MOLTI-SAMP slot
     
     def __init__(self, slot_id, generator_type="Empty", parent=None):
         super().__init__(parent)
@@ -117,6 +118,11 @@ class GeneratorSlot(QWidget):
         self.portamento = 0  # Portamento time (0-1)
         self.analog_enabled = 0  # 0=OFF, 1=ON (sticky across generator changes)
         self.analog_type = 0  # 0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD (sticky)
+
+        # MOLTI-SAMP state
+        self.molti_path = None   # Path to loaded .korgmultisample file (str)
+        self.molti_name = ""     # Display name of loaded multisample
+        self._molti_recent_path = None  # Set by right-click recent menu before signal
 
         # State sources (injected via set_state_sources after construction)
         self._arp_manager = None
@@ -315,7 +321,26 @@ class GeneratorSlot(QWidget):
         # ----- SCOPE -----
         self.scope = SynthesisIcon(self)
         self.scope.setGeometry(5, L['slot_height'] - 55, 120, 50)
-        
+
+        # ----- MOLTI-SAMP LOAD BUTTON + NAME LABEL -----
+        from PyQt5.QtWidgets import QPushButton
+        self.molti_load_btn = QPushButton("LOAD", self)
+        self.molti_load_btn.setGeometry(5, L['slot_height'] - 55, 50, 22)
+        self.molti_load_btn.setFont(QFont(MONO_FONT, FONT_SIZES['small']))
+        self.molti_load_btn.setStyleSheet(button_style('submenu'))
+        self.molti_load_btn.setToolTip("Load .korgmultisample file (right-click for recent)")
+        self.molti_load_btn.clicked.connect(self._on_molti_load_clicked)
+        self.molti_load_btn.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.molti_load_btn.customContextMenuRequested.connect(self._on_molti_load_context)
+        self.molti_load_btn.hide()
+
+        self.molti_name_label = QLabel("", self)
+        self.molti_name_label.setGeometry(5, L['slot_height'] - 30, 120, 16)
+        self.molti_name_label.setFont(QFont(MONO_FONT, FONT_SIZES['micro']))
+        self.molti_name_label.setStyleSheet(f"color: {COLORS['text_dim']};")
+        self.molti_name_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.molti_name_label.hide()
+
         # Initial env style
         self.update_env_style()
     
@@ -352,6 +377,7 @@ class GeneratorSlot(QWidget):
             "portamento": self.portamento,
             "analog_enabled": self.analog_enabled,
             "analog_type": self.analog_type,
+            "molti_path": self.molti_path,
         }
 
         # ARP + Euclidean + RST state
@@ -507,6 +533,10 @@ class GeneratorSlot(QWidget):
         self.analog_type_changed.emit(self.slot_id, self.analog_type)
         self.analog_enable_changed.emit(self.slot_id, self.analog_enabled)
 
+        # MOLTI-SAMP path (restored from preset; actual loading is done by controller)
+        mp = state.get("molti_path")
+        self.molti_path = mp if mp else None
+
     def apply_state(self, slot_state: SlotState):
         """Apply full slot state from preset load — canonical import.
 
@@ -661,6 +691,14 @@ class GeneratorSlot(QWidget):
         
         self.update_custom_params(gen_type)
         self.scope.set_category(get_generator_synthesis_category(gen_type))
+
+        # MOLTI-SAMP: show/hide LOAD button and name label
+        is_molti = (gen_type == "MOLTI-SAMP")
+        self.molti_load_btn.setVisible(is_molti and enabled)
+        self.molti_name_label.setVisible(is_molti and enabled)
+        self.scope.setVisible(not is_molti)
+        if not is_molti:
+            self.set_molti_unloaded()
 
     def update_custom_params(self, gen_type):
         """Update custom param sliders for current generator type."""
@@ -862,6 +900,45 @@ class GeneratorSlot(QWidget):
             # Set type BEFORE enabling to prevent audible blips
             self.analog_type_changed.emit(self.slot_id, self.analog_type)
             self.analog_enable_changed.emit(self.slot_id, 1)
+
+    def _on_molti_load_clicked(self):
+        """Handle LOAD button click — request multisample load."""
+        self.molti_load_requested.emit(self.slot_id)
+
+    def _on_molti_load_context(self, pos):
+        """Handle right-click on LOAD button — show recent files menu."""
+        from src.config.molti_recent import get_recent_files
+        from PyQt5.QtWidgets import QMenu, QAction
+        recent = get_recent_files()
+        if not recent:
+            return
+        menu = QMenu(self)
+        for path_str in recent:
+            from pathlib import Path
+            name = Path(path_str).stem
+            action = menu.addAction(name)
+            action.setData(path_str)
+        action = menu.exec_(self.molti_load_btn.mapToGlobal(pos))
+        if action and action.data():
+            self._molti_recent_path = action.data()
+            self.molti_load_requested.emit(self.slot_id)
+
+    def set_molti_loaded(self, name: str, path: str):
+        """Update UI after multisample loaded."""
+        self.molti_name = name
+        self.molti_path = path
+        display = name if len(name) <= 16 else name[:14] + ".."
+        self.molti_name_label.setText(display)
+        self.molti_name_label.setToolTip(name)
+        self.molti_name_label.setStyleSheet(f"color: {COLORS['enabled_text']};")
+
+    def set_molti_unloaded(self):
+        """Reset MOLTI-SAMP UI state."""
+        self.molti_name = ""
+        self.molti_path = None
+        self._molti_recent_path = None
+        self.molti_name_label.setText("")
+        self.molti_name_label.setStyleSheet(f"color: {COLORS['text_dim']};")
 
     def on_filter_changed(self, filter_type):
         """Handle filter button change."""

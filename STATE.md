@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-09 by agent (dual filter sync fix, modulation invariant documented)
+**Last updated:** 2026-02-12 by agent (MOLTI-SAMP Phase 3+4: GUI integration + recent files)
 
 ---
 
@@ -11,6 +11,7 @@ Only actively-changing subsystems are tracked here. Stable systems belong in ARC
 | System | Status (Stable/Active/Built-unused/Planned/Blocked) | Key Files (repo paths) |
 |--------|------------------------------------------------------|------------------------|
 | Generators | Stable | `src/config/__init__.py`, `packs/core/generators/`, `supercollider/core/helpers.scd` |
+| MOLTI-SAMP | Active | `src/audio/korg_multisample.py`, `src/audio/molti_loader.py`, `packs/core/generators/molti_samp.scd` |
 | Modulation | Active | `src/boids/boid_controller.py`, `src/gui/mod_matrix_window.py`, `supercollider/core/mod_slots.scd` |
 | Mixer/Master | Stable | `src/gui/mixer_panel.py`, `supercollider/core/channel_strips.scd`, `supercollider/core/master.scd` |
 | Presets | Stable | `src/presets/preset_manager.py`, `src/presets/preset_schema.py`, `src/presets/migrations.py` |
@@ -36,6 +37,7 @@ Not history — just what's true right now. One line per concept.
 - **Telemetry:** Infrastructure observer tap (non-invasive), internal + external modes, stabilizer for persistence display — `src/audio/telemetry_controller.py`
 - **OSC connection:** Port 57120 forced, ping/pong handshake, heartbeat every 2s, 3 missed = CONNECTION LOST — `src/audio/osc_bridge.py`
 - **OSC clock rate protocol:** Always send integer indices (-1=OFF, 0-12=clock rate), never string labels — prevents `~clockRateIndexOfLabel` silent -1 failures
+- **MOLTI-SAMP:** Double indirection (noteMapBuf → zoneBufBuf → audio bufnum) for hardware-like MIDI→zone timing; binary protobuf parser; bufBus substrate via 8×4ch control buses — `docs/MOLTI_SAMP_SPEC_v0_0_2.md`
 
 ### Modulation Domain Invariant
 
@@ -67,6 +69,7 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2026-02-12: MOLTI-SAMP Phase 3+4: GUI LOAD button, file dialog, recent files, preset integration, bufBus query
 - 2026-02-09: Fix dual filter sync modulation (send idx not labels, SSOT clockMults, FREE→OFF)
 - 2026-02-09: Merge FILT SYNC panel into FILT, replace Phasor LFO with SinOsc.kr
 - 2026-02-09: Document modulation domain invariant (additive vs multiplicative exception)

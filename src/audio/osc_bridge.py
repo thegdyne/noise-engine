@@ -59,6 +59,9 @@ class OSCBridge(QObject):
     audio_device_ready = pyqtSignal(str)  # device name
     audio_device_error = pyqtSignal(str)  # error message
 
+    # MOLTI-SAMP signals
+    molti_buf_bus_received = pyqtSignal(list)  # [idx0, idx1, ..., idx7]
+
     # Connection constants
     PING_TIMEOUT_MS = 1000  # Wait 1 second for ping response
     HEARTBEAT_INTERVAL_MS = 2000  # Send heartbeat every 2 seconds
@@ -88,6 +91,9 @@ class OSCBridge(QObject):
         # Store connection params for reconnect
         self._host = None
         self._port = None
+
+        # MOLTI-SAMP bufBus indices (populated by SC query response)
+        self._buf_bus_indices = None  # List[int] of 8 control bus indices
 
         # Flag to prevent signal emission after deletion
         # Only shutdown() sets this True - disconnect() does NOT
@@ -311,6 +317,9 @@ class OSCBridge(QObject):
         # Step engine playhead feedback
         dispatcher.map(OSC_PATHS['step_event'], self._handle_step_event)
 
+        # MOLTI-SAMP bufBus indices from SC
+        dispatcher.map(OSC_PATHS['molti_buf_bus_indices'], self._handle_molti_buf_bus)
+
         # Telemetry (development tool)
         dispatcher.map(OSC_PATHS['telem_gen'], self._handle_telem_gen)
         dispatcher.map(OSC_PATHS['telem_wave'], self._handle_telem_wave)
@@ -495,6 +504,27 @@ class OSCBridge(QObject):
         from src.config import OSC_PATHS
         if self.client:
             self.client.send_message(OSC_PATHS['audio_device_set'], [device_name])
+
+    def _handle_molti_buf_bus(self, address, *args):
+        """Handle bufBus indices from SC (8 control bus indices)."""
+        if self._shutdown or self._deleted:
+            return
+        if len(args) >= 8:
+            self._buf_bus_indices = [int(args[i]) for i in range(8)]
+            self.molti_buf_bus_received.emit(self._buf_bus_indices)
+            logger.info(f"MOLTI bufBus indices received: {self._buf_bus_indices}", component="MOLTI")
+
+    def query_buf_buses(self):
+        """Request bufBus control bus indices from SC."""
+        from src.config import OSC_PATHS
+        if self.client:
+            self.client.send_message(OSC_PATHS['molti_query_buf_bus'], [1])
+
+    def get_buf_bus_index(self, slot: int) -> int:
+        """Get bufBus control bus index for a slot (0-7). Returns -1 if unknown."""
+        if self._buf_bus_indices and 0 <= slot < len(self._buf_bus_indices):
+            return self._buf_bus_indices[slot]
+        return -1
 
     def _default_handler(self, address, *args):
         """Default handler for unknown messages."""

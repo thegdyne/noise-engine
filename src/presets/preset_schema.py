@@ -114,6 +114,8 @@ class SlotState:
     # Analog output stage (per-slot)
     analog_enabled: int = 0  # 0=OFF (bypass), 1=ON
     analog_type: int = 0     # 0=CLEAN, 1=TAPE, 2=TUBE, 3=FOLD
+    # MOLTI-SAMP multisample path (None = not a multisample slot)
+    molti_path: Optional[str] = None
 
     PARAM_KEYS: ClassVar[FrozenSet[str]] = _SLOT_PARAM_KEYS
 

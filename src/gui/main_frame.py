@@ -307,6 +307,7 @@ class MainFrame(QMainWindow):
         self.generator_grid.generator_midi_channel_changed.connect(self.generator.on_generator_midi_channel)
         self.generator_grid.generator_analog_enable_changed.connect(self.generator.on_generator_analog_enable)
         self.generator_grid.generator_analog_type_changed.connect(self.generator.on_generator_analog_type)
+        self.generator_grid.generator_molti_load_requested.connect(self.generator.on_molti_load_requested)
         # Wire state sources into slots (Phase 2: canonical export)
         for _sid in range(1, 9):
             self.generator_grid.slots[_sid].set_state_sources(

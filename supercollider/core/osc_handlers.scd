@@ -100,6 +100,14 @@ All OSC message routing
         };
     }, '/clock/tick');
 
+    // MOLTI-SAMP: report bufBus control bus indices to Python
+    OSCdef(\moltiBufBusQuery, { |msg, time, addr|
+        if(~pythonAddr.notNil and: { ~bufBuses.notNil }) {
+            var indices = ~bufBuses.collect(_.index);
+            ~pythonAddr.sendMsg('/noise/molti/bufBusIndices', *indices);
+        };
+    }, '/noise/molti/queryBufBus');
+
     // Master clock BPM
     OSCdef(\clockBPM, { |msg|
         ~clockBus.set(msg[1]);

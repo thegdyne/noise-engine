@@ -29,6 +29,7 @@ class GeneratorGrid(QWidget):
     generator_mute_changed = pyqtSignal(int, bool)  # slot_id, muted
     generator_analog_enable_changed = pyqtSignal(int, int)  # slot_id, enabled (0|1)
     generator_analog_type_changed = pyqtSignal(int, int)  # slot_id, type_index (0-3)
+    generator_molti_load_requested = pyqtSignal(int)  # slot_id
 
     def __init__(self, rows=2, cols=4, parent=None):
         super().__init__(parent)
@@ -69,6 +70,7 @@ class GeneratorGrid(QWidget):
                 slot.midi_channel_changed.connect(self.on_midi_channel_changed)
                 slot.analog_enable_changed.connect(self.on_analog_enable_changed)
                 slot.analog_type_changed.connect(self.on_analog_type_changed)
+                slot.molti_load_requested.connect(self.on_molti_load_requested)
                 grid.addWidget(slot, row, col)
                 self.slots[slot_id] = slot
                 slot_id += 1
@@ -130,6 +132,10 @@ class GeneratorGrid(QWidget):
     def on_analog_type_changed(self, slot_id, type_index):
         """Forward analog type change."""
         self.generator_analog_type_changed.emit(slot_id, type_index)
+
+    def on_molti_load_requested(self, slot_id):
+        """Forward MOLTI-SAMP load request."""
+        self.generator_molti_load_requested.emit(slot_id)
         
     def get_slot(self, slot_id):
         """Get a specific slot."""
