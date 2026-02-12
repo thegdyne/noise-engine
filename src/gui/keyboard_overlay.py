@@ -110,7 +110,7 @@ class KeyboardOverlay(QWidget):
         self._on_arp_mode_changed = on_arp_mode_changed_fn
 
         # State - internally uses 1-indexed slot IDs (like UI)
-        self._octave = 4
+        self._octave = 1
         self._velocity = 100
         self._physical_keys_held: dict[int, int] = {}  # qt_key -> midi_note
         self._mouse_held_note: Optional[int] = None  # MIDI note from mouse-held key
