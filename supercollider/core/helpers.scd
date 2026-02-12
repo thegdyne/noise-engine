@@ -3,21 +3,21 @@ Helper Functions
 Reusable functions for generator management
 */
 
-// Early-define ~trigSelect at parse time so pack SynthDefs that reference it
-// during .add never hit 'Message trigSelect not understood' even if loaded
-// before ~setupHelpers.(). The canonical definition inside ~setupHelpers
-// overwrites this on first call.
-if(~trigSelect.isNil) {
-    ~trigSelect = { |envSource, clockRateIdx, clockTrigBus, midiTrigBus, slotIndex|
-        var allTrigs, clockTrig, allMidiTrigs, midiTrig, clkOn, clkIdx;
-        allTrigs = In.ar(clockTrigBus, 13);
-        clkOn = (clockRateIdx >= 0);
-        clkIdx = clockRateIdx.clip(0, 12);
-        clockTrig = Select.ar(clkIdx, allTrigs) * clkOn;
-        allMidiTrigs = In.ar(midiTrigBus, 8);
-        midiTrig = Select.ar(slotIndex.clip(0, 7), allMidiTrigs);
-        Select.ar(envSource.clip(0, 2), [DC.ar(0), clockTrig, midiTrig]);
-    };
+// SSOT trigger selector — defined at parse time so pack SynthDefs that
+// reference it during .add never hit 'Message trigSelect not understood'.
+// Shared by envVCA (amp gate) and any generator needing a rhythmic edge
+// (e.g. MOLTI Phasor reset). One definition, one place to edit.
+// envSource: 0=OFF, 1=CLK, 2=MIDI
+// NOTE: 13 clock rates and 8 MIDI channels must match buses.scd
+~trigSelect = { |envSource, clockRateIdx, clockTrigBus, midiTrigBus, slotIndex|
+    var allTrigs, clockTrig, allMidiTrigs, midiTrig, clkOn, clkIdx;
+    allTrigs = In.ar(clockTrigBus, 13);
+    clkOn = (clockRateIdx >= 0);
+    clkIdx = clockRateIdx.clip(0, 12);
+    clockTrig = Select.ar(clkIdx, allTrigs) * clkOn;
+    allMidiTrigs = In.ar(midiTrigBus, 8);
+    midiTrig = Select.ar(slotIndex.clip(0, 7), allMidiTrigs);
+    Select.ar(envSource.clip(0, 2), [DC.ar(0), clockTrig, midiTrig]);
 };
 
 ~setupHelpers = {
@@ -41,20 +41,7 @@ if(~trigSelect.isNil) {
         ])
     };
     
-    // SSOT trigger selector — shared by envVCA (amp gate) and any generator
-    // that needs a rhythmic edge (e.g. MOLTI Phasor reset).
-    // envSource: 0=OFF, 1=CLK, 2=MIDI
-    // NOTE: 13 clock rates and 8 MIDI channels must match buses.scd
-    ~trigSelect = { |envSource, clockRateIdx, clockTrigBus, midiTrigBus, slotIndex|
-        var allTrigs, clockTrig, allMidiTrigs, midiTrig, clkOn, clkIdx;
-        allTrigs = In.ar(clockTrigBus, 13);
-        clkOn = (clockRateIdx >= 0);
-        clkIdx = clockRateIdx.clip(0, 12);
-        clockTrig = Select.ar(clkIdx, allTrigs) * clkOn;
-        allMidiTrigs = In.ar(midiTrigBus, 8);
-        midiTrig = Select.ar(slotIndex.clip(0, 7), allMidiTrigs);
-        Select.ar(envSource.clip(0, 2), [DC.ar(0), clockTrig, midiTrig]);
-    };
+    // ~trigSelect defined at parse time (top of file) — single definition, no duplicate
 
     // Envelope VCA - applies envelope based on envSource (OFF/CLK/MIDI)
     // Uses ~trigSelect (SSOT for trigger routing)
