@@ -56,8 +56,11 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     // directly on the control bus. No .midicps → .cpsmidi conversion = no precision/timing issues.
     currentNote = In.kr(noteBus + slotIndex).round(1).clip(0, 127);
 
-    // MIDI-only latch: lock note for duration of playback (ignore clock triggers)
-    lastNote = Latch.kr(currentNote, midiTrigK).round(1);
+    // No latch needed: noteBus already holds the correct note (step_engine
+    // latches via noteHeld; keyboard_osc/midi_handler update atomically).
+    // Previous Latch.kr(currentNote, midiTrigK) caused A2K one-block-late
+    // zone lookup during ARP/SEQ stepping.
+    lastNote = currentNote;
 
     // === ZONE LOOKUP (double indirection, SC-side) ===
     zoneIdxRaw = Select.kr(valid > 0, [
