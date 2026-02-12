@@ -31,7 +31,7 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus,
     var zoneIdx, zoneIdxRaw, bufnum, readBuf, numFrames;
     var phase, phaseInc, startFrame, endFrame;
     var loopFlag, elapsed, running, started, frameCount;
-    var valid, gainDb;
+    var valid, gainDb, antiClick;
 
     // === READ PARAMS ===
     p = In.kr(customBus0, 5);
@@ -84,10 +84,6 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus,
     // Second guard: bufnum itself must be valid
     valid = valid * (bufnum >= 0);
 
-    // DEBUG: remove after diagnosis — fires on every trigger
-    SendReply.kr(trigK, "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
-    SendReply.kr(trigK, "/noise/molti/trig", [slotIndex, lastNote, p[0]]);
-
     // === PLAYBACK (Phasor + audio-rate one-shot gate) ===
     // When invalid, use safe constants so BufFrames/Phasor/BufRd never touch a bad bufnum.
     readBuf   = bufnum.max(0);
@@ -119,10 +115,13 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus,
         DC.ar(1)                            // loop: always running
     ]);
 
+    // Anti-click: 1ms attack / 5ms release smooths zone changes and note edges
+    antiClick = EnvGen.ar(Env.asr(0.001, 1, 0.005), gate: running, doneAction: 0);
+
     // Gate BufRd behind valid — never read from a bad bufnum
     sig = Select.ar(valid > 0, [
         Silent.ar(2),
-        BufRd.ar(2, readBuf, phase, loop: 0) * running
+        BufRd.ar(2, readBuf, phase, loop: 0) * antiClick
     ]);
 
     // === GAIN (P4: -24dB to +6dB) ===
