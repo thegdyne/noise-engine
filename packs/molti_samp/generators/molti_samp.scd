@@ -25,7 +25,7 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     var p, sig;
     var noteMapBufNum, zoneBufBufNum, zoneCount;
     var midiTrig, midiTrigK, currentNote, lastNote;
-    var zoneIdx, bufnum, readBuf, numFrames;
+    var zoneIdx, zoneIdxRaw, bufnum, readBuf, numFrames;
     var phase, phaseK, phaseInc, startFrame, endFrame;
     var loopFlag, doneTrig, running;
     var valid, gainDb;
@@ -53,20 +53,22 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
 
     // === CURRENT NOTE ===
     // freqBus contains frequency in Hz; .cpsmidi converts to MIDI note number
-    currentNote = In.kr(freqBus).cpsmidi.clip(0, 127);
+    currentNote = In.kr(freqBus).cpsmidi.round(1).clip(0, 127);
 
     // MIDI-only latch: only update note on MIDI trigger, NOT clock
-    lastNote = Latch.kr(currentNote, midiTrigK);
+    lastNote = Latch.kr(currentNote, midiTrigK).round(1);  // belt + braces
 
     // === ZONE LOOKUP (double indirection, SC-side) ===
-    zoneIdx = Select.kr(valid > 0, [
-        0,
+    zoneIdxRaw = Select.kr(valid > 0, [
+        -1,
         Index.kr(noteMapBufNum, lastNote)
     ]);
+    valid = valid * (zoneIdxRaw >= 0) * (zoneIdxRaw < zoneCount);
 
+    zoneIdx = zoneIdxRaw.clip(0, zoneCount - 1);
     bufnum = Select.kr(valid > 0, [
         0,
-        Index.kr(zoneBufBufNum, zoneIdx.clip(0, zoneCount - 1))
+        Index.kr(zoneBufBufNum, zoneIdx)
     ]);
 
     // Second guard: bufnum itself must be valid
