@@ -3,6 +3,23 @@ Helper Functions
 Reusable functions for generator management
 */
 
+// Early-define ~trigSelect at parse time so pack SynthDefs that reference it
+// during .add never hit 'Message trigSelect not understood' even if loaded
+// before ~setupHelpers.(). The canonical definition inside ~setupHelpers
+// overwrites this on first call.
+if(~trigSelect.isNil) {
+    ~trigSelect = { |envSource, clockRateIdx, clockTrigBus, midiTrigBus, slotIndex|
+        var allTrigs, clockTrig, allMidiTrigs, midiTrig, clkOn, clkIdx;
+        allTrigs = In.ar(clockTrigBus, 13);
+        clkOn = (clockRateIdx >= 0);
+        clkIdx = clockRateIdx.clip(0, 12);
+        clockTrig = Select.ar(clkIdx, allTrigs) * clkOn;
+        allMidiTrigs = In.ar(midiTrigBus, 8);
+        midiTrig = Select.ar(slotIndex.clip(0, 7), allMidiTrigs);
+        Select.ar(envSource.clip(0, 2), [DC.ar(0), clockTrig, midiTrig]);
+    };
+};
+
 ~setupHelpers = {
     "Setting up helpers...".postln;
     
@@ -41,9 +58,9 @@ Reusable functions for generator management
 
     // Envelope VCA - applies envelope based on envSource (OFF/CLK/MIDI)
     // Uses ~trigSelect (SSOT for trigger routing)
-    ~envVCA = { |sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex|
+    ~envVCA = { |sig, envSource, clockRateIdx, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex|
         var trig, env;
-        trig = ~trigSelect.(envSource, clockRate, clockTrigBus, midiTrigBus, slotIndex);
+        trig = ~trigSelect.(envSource, clockRateIdx, clockTrigBus, midiTrigBus, slotIndex);
         env = EnvGen.ar(Env.perc(attack, decay), trig);
         sig * Select.kr(envSource > 0, [1.0, env]) * amp
     };
