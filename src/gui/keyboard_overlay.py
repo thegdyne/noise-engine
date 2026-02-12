@@ -425,9 +425,9 @@ class KeyboardOverlay(QWidget):
         oct_title.setFont(QFont(FONT_FAMILY, 10))
         layout.addWidget(oct_title)
 
-        self._octave_label = QLabel(str(self._octave))
+        self._octave_label = QLabel(self._octave_display())
         self._octave_label.setFont(QFont(FONT_FAMILY, 12, QFont.Bold))
-        self._octave_label.setFixedWidth(24)
+        self._octave_label.setFixedWidth(64)
         layout.addWidget(self._octave_label)
 
         # Make header draggable
@@ -1603,6 +1603,10 @@ class KeyboardOverlay(QWidget):
         """Compute MIDI note from semitone offset and current octave."""
         return (self._octave + 1) * 12 + semitone
 
+    def _octave_display(self) -> str:
+        """Format octave label with C-note equivalent, e.g. '4 (C4)' or '-1 (C-1)'."""
+        return f"{self._octave} (C{self._octave})"
+
     def _handle_octave_change(self, delta: int):
         """Handle octave up/down with held note re-triggering."""
         new_octave = max(-1, min(7, self._octave + delta))
@@ -1612,7 +1616,7 @@ class KeyboardOverlay(QWidget):
 
         if self._arp_engine is None:
             self._octave = new_octave
-            self._octave_label.setText(str(self._octave))
+            self._octave_label.setText(self._octave_display())
             return
 
         if self._arp_engine.is_enabled():
@@ -1646,7 +1650,7 @@ class KeyboardOverlay(QWidget):
                     self._update_key_visual(key, False)
 
         self._octave = new_octave
-        self._octave_label.setText(str(self._octave))
+        self._octave_label.setText(self._octave_display())
 
     def _update_key_visual(self, qt_key: int, pressed: bool):
         """Update visual state of a key button."""
