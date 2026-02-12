@@ -289,8 +289,8 @@ Invariants:
         ~startChannelStrip.(slotID);
 
         // Build args for all generators
-        // bufBus + midiTrigBus always passed (SC ignores unknown args;
-        // any MOLTI-SAMP variant SynthDef will pick them up)
+        // SC ignores unknown args — all generators get these uniformly.
+        // MOLTI-SAMP uses bufBus/noteBus/trigger args; others ignore them.
         synthArgs = [
             \out, ~intermediateBus[idx].index,
             \freqBus, freqBusIdx,
@@ -298,7 +298,11 @@ Invariants:
             \slotIndex, idx,
             \bufBus, ~bufBuses[idx].index,
             \midiTrigBus, ~midiTrigBus.index,
-            \noteBus, if(~noteBus.notNil, { ~noteBus.index }, { 0 })
+            \noteBus, if(~noteBus.notNil, { ~noteBus.index }, { 0 }),
+            // Standard trigger args (SSOT — any generator can use ~trigSelect)
+            \clockTrigBus, ~clockTrigBus.index,
+            \envSourceBus, ~genParams[slotID][\envSource].index,
+            \clockRateIndexBus, ~genParams[slotID][\clockRate].index
         ];
 
         // Create new generator in genSubGroup (addToTail)

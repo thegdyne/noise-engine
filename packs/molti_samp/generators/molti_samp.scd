@@ -20,11 +20,14 @@ Infrastructure (via bufBus):
   - ch3: reserved
 */
 
-SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, noteBus, slotIndex=0|
+SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus,
+    midiTrigBus, noteBus, slotIndex=0,
+    clockTrigBus, envSourceBus, clockRateIndexBus|
     // === VAR DECLARATIONS (must be at top of block) ===
     var p, sig;
     var noteMapBufNum, zoneBufBufNum, zoneCount;
-    var midiTrig, midiTrigK, currentNote, lastNote;
+    var envSource, clockRateIdx, trig, trigK;
+    var currentNote, lastNote;
     var zoneIdx, zoneIdxRaw, bufnum, readBuf, numFrames;
     var phase, phaseInc, startFrame, endFrame;
     var loopFlag, elapsed, running, started, frameCount;
@@ -46,9 +49,13 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     // === SAFETY: guard invalid infrastructure ===
     valid = (noteMapBufNum >= 0) * (zoneBufBufNum >= 0) * (zoneCount > 0);
 
-    // === MIDI TRIGGER (audio-rate bus — always In.ar) ===
-    midiTrig = In.ar(midiTrigBus + slotIndex, 1);
-    midiTrigK = A2K.kr(midiTrig);
+    // === TRIGGER SOURCE (SSOT — same model as envVCA) ===
+    // Uses ~trigSelect: envSource selects OFF/CLK/MIDI, same as end-stage envelope.
+    // CLK mode gives sample-accurate re-triggering (audio-rate from clockTrigBus).
+    envSource = In.kr(envSourceBus);
+    clockRateIdx = In.kr(clockRateIndexBus);
+    trig = ~trigSelect.(envSource, clockRateIdx, clockTrigBus, midiTrigBus, slotIndex);
+    trigK = A2K.kr(trig);
 
     // === CURRENT NOTE (SC-side — raw MIDI note, no Hz round-trip) ===
     // noteBus carries the integer MIDI note set by keyboard_osc / midi_handler / step_engine
@@ -57,7 +64,7 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
 
     // No latch needed: noteBus already holds the correct note (step_engine
     // latches via noteHeld; keyboard_osc/midi_handler update atomically).
-    // Previous Latch.kr(currentNote, midiTrigK) caused A2K one-block-late
+    // Previous Latch.kr(currentNote, trigK) caused A2K one-block-late
     // zone lookup during ARP/SEQ stepping.
     lastNote = currentNote;
 
@@ -77,9 +84,9 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     // Second guard: bufnum itself must be valid
     valid = valid * (bufnum >= 0);
 
-    // DEBUG: remove after diagnosis — fires on every MIDI trigger
-    SendReply.kr(midiTrigK, "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
-    SendReply.kr(midiTrigK, "/noise/molti/trig", [slotIndex, lastNote, p[0]]);
+    // DEBUG: remove after diagnosis — fires on every trigger
+    SendReply.kr(trigK, "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
+    SendReply.kr(trigK, "/noise/molti/trig", [slotIndex, lastNote, p[0]]);
 
     // === PLAYBACK (Phasor + audio-rate one-shot gate) ===
     // When invalid, use safe constants so BufFrames/Phasor/BufRd never touch a bad bufnum.
@@ -93,7 +100,7 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     phaseInc = Select.kr(valid > 0, [1, BufRateScale.kr(readBuf)]) * p[4].linlin(0, 1, -1, 1).midiratio;
 
     phase = Phasor.ar(
-        trig: midiTrig,
+        trig: trig,
         rate: phaseInc,
         start: startFrame,
         end: endFrame,
@@ -103,10 +110,10 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     // One-shot gate: Sweep counts elapsed playback frames at audio rate
     frameCount = (endFrame - startFrame);
 
-    // started=0 until first midiTrig, then stays 1 (subsequent trigs just restart Sweep)
-    started = (PulseCount.ar(midiTrig) > 0);
+    // started=0 until first trig, then stays 1 (subsequent trigs just restart Sweep)
+    started = (PulseCount.ar(trig) > 0);
 
-    elapsed = Sweep.ar(midiTrig, phaseInc.abs * SampleRate.ir);
+    elapsed = Sweep.ar(trig, phaseInc.abs * SampleRate.ir);
     running = Select.ar(loopFlag, [
         started * (elapsed < frameCount),  // one-shot: silent until first trig
         DC.ar(1)                            // loop: always running

@@ -24,32 +24,27 @@ Reusable functions for generator management
         ])
     };
     
-    // Envelope VCA - applies envelope based on envSource (OFF/CLK/MIDI)
-    // This is the SINGLE SOURCE OF TRUTH for envelope triggering
-    // envSource: 0=OFF (drone), 1=CLK (clock), 2=MIDI (midi trigger)
+    // SSOT trigger selector — shared by envVCA (amp gate) and any generator
+    // that needs a rhythmic edge (e.g. MOLTI Phasor reset).
+    // envSource: 0=OFF, 1=CLK, 2=MIDI
     // NOTE: 13 clock rates and 8 MIDI channels must match buses.scd
-    ~envVCA = { |sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex|
-        var allTrigs, clockTrig, allMidiTrigs, midiTrig, trig, env;
-        
-        // Clock trigger - select from clock rate bus (13 rates)
+    ~trigSelect = { |envSource, clockRateIdx, clockTrigBus, midiTrigBus, slotIndex|
+        var allTrigs, clockTrig, allMidiTrigs, midiTrig, clkOn, clkIdx;
         allTrigs = In.ar(clockTrigBus, 13);
-        clockTrig = Select.ar(clockRate, allTrigs);
-        
-        // MIDI trigger - read all 8 channels and select by slotIndex
+        clkOn = (clockRateIdx >= 0);
+        clkIdx = clockRateIdx.clip(0, 12);
+        clockTrig = Select.ar(clkIdx, allTrigs) * clkOn;
         allMidiTrigs = In.ar(midiTrigBus, 8);
-        midiTrig = Select.ar(slotIndex, allMidiTrigs);
-        
-        // Select trigger based on envSource: 0=none, 1=clock, 2=midi
-        trig = Select.ar(envSource, [
-            DC.ar(0),      // 0: OFF - no triggers (drone)
-            clockTrig,     // 1: CLK - clock triggers only
-            midiTrig       // 2: MIDI - midi triggers only
-        ]);
-        
-        // Generate envelope
+        midiTrig = Select.ar(slotIndex.clip(0, 7), allMidiTrigs);
+        Select.ar(envSource.clip(0, 2), [DC.ar(0), clockTrig, midiTrig]);
+    };
+
+    // Envelope VCA - applies envelope based on envSource (OFF/CLK/MIDI)
+    // Uses ~trigSelect (SSOT for trigger routing)
+    ~envVCA = { |sig, envSource, clockRate, attack, decay, amp, clockTrigBus, midiTrigBus, slotIndex|
+        var trig, env;
+        trig = ~trigSelect.(envSource, clockRate, clockTrigBus, midiTrigBus, slotIndex);
         env = EnvGen.ar(Env.perc(attack, decay), trig);
-        
-        // Apply envelope only when envSource > 0, otherwise pass through (drone)
         sig * Select.kr(envSource > 0, [1.0, env]) * amp
     };
     
