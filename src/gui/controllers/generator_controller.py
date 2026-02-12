@@ -169,9 +169,9 @@ class GeneratorController:
         if self.main.telemetry_controller is not None:
             self.main.telemetry_controller.disable_hardware_send(slot_id - 1)
 
-        # MOLTI-SAMP: unload buffers when switching away
+        # MOLTI-SAMP: unload buffers when switching away from any MOLTI variant
         slot = self.main.generator_grid.get_slot(slot_id)
-        if slot and slot.molti_path and new_type != "MOLTI-SAMP":
+        if slot and slot.molti_path and "MOLTI" not in new_type.upper():
             self._molti_unload(slot_id)
 
         synth_name = GENERATORS.get(new_type)
@@ -379,7 +379,7 @@ class GeneratorController:
 
         for slot_id in range(1, 9):
             slot = self.main.generator_grid.get_slot(slot_id)
-            if slot and slot.molti_path and slot.generator_type == "MOLTI-SAMP":
+            if slot and slot.molti_path and "MOLTI" in slot.generator_type.upper():
                 logger.info(f"[MOLTI] Reconnect: re-loading slot {slot_id}", component="MOLTI")
                 self._do_molti_load(slot_id, slot.molti_path)
 

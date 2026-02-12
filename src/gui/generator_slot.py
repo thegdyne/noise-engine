@@ -693,7 +693,8 @@ class GeneratorSlot(QWidget):
         self.scope.set_category(get_generator_synthesis_category(gen_type))
 
         # MOLTI-SAMP: show/hide LOAD button and name label
-        is_molti = (gen_type == "MOLTI-SAMP")
+        # Substring match — covers core "MOLTI-SAMP" and pack variants like "MOLTI Sampler"
+        is_molti = ("MOLTI" in gen_type.upper())
         self.molti_load_btn.setVisible(is_molti and enabled)
         self.molti_name_label.setVisible(is_molti and enabled)
         self.scope.setVisible(not is_molti)

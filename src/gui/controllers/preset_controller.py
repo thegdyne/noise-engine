@@ -194,11 +194,11 @@ class PresetController:
                 slot_widget = self.main.generator_grid.slots[slot_id]
                 slot_widget.apply_state(slot_state)
 
-        # MOLTI-SAMP: reload multisamples from saved paths
+        # MOLTI-SAMP: reload multisamples from saved paths (any MOLTI variant)
         for i, slot_state in enumerate(state.slots):
             slot_id = i + 1
             if (slot_id <= 8
-                    and slot_state.generator == "MOLTI-SAMP"
+                    and "MOLTI" in slot_state.generator.upper()
                     and slot_state.molti_path):
                 from pathlib import Path
                 if Path(slot_state.molti_path).exists():
