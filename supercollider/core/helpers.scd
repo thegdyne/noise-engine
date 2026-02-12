@@ -127,11 +127,13 @@ Reusable functions for generator management
         });
 
         if(~genGroup.notNil, {
+            var synthArgs;
+
             // Start channel strip FIRST (must exist before generator writes to bus)
             ~startChannelStrip.(slotID);
 
-            // Start generator - routes to per-slot bus (not master)
-            ~generators[slotID] = Synth(genType, [
+            // Build base args for all generators
+            synthArgs = [
                 \out, ~genBus[idx],  // Per-slot bus
                 \freqBus, freqBusIdx,
                 \cutoffBus, cutoffBusIdx,
@@ -152,7 +154,15 @@ Reusable functions for generator management
                 \customBus3, custom3Idx,
                 \customBus4, custom4Idx,
                 \portamentoBus, params[\portamento].index
-            ], ~genGroup, \addToHead);
+            ];
+
+            // MOLTI-SAMP: pass bufBus (midiTrigBus already in base args)
+            if(genType == \forge_molti_samp, {
+                synthArgs = synthArgs ++ [\bufBus, ~bufBuses[idx].index];
+            });
+
+            // Start generator - routes to per-slot bus (not master)
+            ~generators[slotID] = Synth(genType, synthArgs, ~genGroup, \addToHead);
 
             // Start cross-mod follower (after generator, for envelope tracking)
             if(~startCrossModFollower.notNil, {

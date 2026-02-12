@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-12 by agent (MOLTI-SAMP Phase 3+4: GUI integration + recent files)
+**Last updated:** 2026-02-12 by agent (MOLTI-SAMP: pack registration verified, legacy startGenerator bufBus fix)
 
 ---
 
@@ -69,6 +69,7 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2026-02-12: MOLTI-SAMP pack registration: legacy startGenerator bufBus fix, P0 fixes (QTimer unload, signal-driven reconnect)
 - 2026-02-12: MOLTI-SAMP Phase 3+4: GUI LOAD button, file dialog, recent files, preset integration, bufBus query
 - 2026-02-09: Fix dual filter sync modulation (send idx not labels, SSOT clockMults, FREE→OFF)
 - 2026-02-09: Merge FILT SYNC panel into FILT, replace Phasor LFO with SinOsc.kr
