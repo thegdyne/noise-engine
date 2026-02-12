@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-12 by agent (MOLTI: substring visibility check for pack variants)
+**Last updated:** 2026-02-12 by agent (RST expanded to SEQ mode)
 
 ---
 
@@ -69,6 +69,7 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2026-02-12: RST expanded to SEQ mode — same fabric tick hook, shared state, dual UI sync
 - 2026-02-12: MOLTI visibility fix: substring match for pack variants (slot UI, unload, reload, preset load)
 - 2026-02-12: MOLTI-SAMP standalone pack (packs/molti_samp/), bufBus/midiTrigBus always-pass in both startGenerator paths
 - 2026-02-12: MOLTI-SAMP pack registration: legacy startGenerator bufBus fix, P0 fixes (QTimer unload, signal-driven reconnect)

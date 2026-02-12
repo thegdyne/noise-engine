@@ -195,15 +195,15 @@ class MotionManager:
         for slot in self._slots:
             if slot['lock'].acquire(timeout=0.005):
                 try:
-                    if slot['mode'] == MotionMode.ARP:
-                        # R14: RST check FIRST — reset-before-step so this tick emits step 0
+                    # RST for ARP + SEQ (SC resetTrig is mode-agnostic)
+                    if slot['mode'] in (MotionMode.ARP, MotionMode.SEQ):
                         if slot['arp'].runtime.rst_fabric_idx == fabric_idx:
                             slot['arp'].reset_on_tick(now_ms)
-                            # Reset SC PulseCount so step engine phase matches Python
                             if self._send_osc is not None:
                                 self._send_osc(OSC_PATHS['step_reset'], [slot['slot_idx']])
 
-                        # Deliver master tick for matching ARP rate
+                    # ARP master tick remains ARP-only
+                    if slot['mode'] == MotionMode.ARP:
                         if arp_rate is not None:
                             slot['arp'].master_tick(arp_rate, now_ms)
                 finally:
@@ -264,7 +264,12 @@ class MotionManager:
             # Only teardown ARP when switching TO another active mode (SEQ).
             # ARP→OFF is handled by toggle_arp(False) which preserves settings.
             if new_mode == MotionMode.SEQ:
+                # Preserve RST state across teardown (RST is slot-level, not mode-level)
+                saved_rst_idx = slot['arp'].runtime.rst_fabric_idx
+                saved_rst_count = slot['arp'].runtime.rst_fired_count
                 slot['arp'].teardown()
+                slot['arp'].runtime.rst_fabric_idx = saved_rst_idx
+                slot['arp'].runtime.rst_fired_count = saved_rst_count
 
         # Swap
         slot['mode'] = new_mode

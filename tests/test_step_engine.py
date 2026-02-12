@@ -986,6 +986,87 @@ class TestRSTResetsStepEngine:
         assert len(reset_calls) == 0
 
 
+class TestRSTResetsStepEngineSEQ(TestRSTResetsStepEngine):
+    """RST tick fires step_reset OSC for SEQ mode slots (same hook as ARP)."""
+
+    def test_rst_tick_sends_step_reset_in_seq_mode(self):
+        """When RST fabric tick matches in SEQ mode, sends step_reset OSC."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        engines[0].runtime.rst_fabric_idx = 6
+
+        mm.on_fabric_tick(6)
+
+        reset_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_reset']]
+        assert len(reset_calls) >= 1, "RST tick must send step_reset OSC in SEQ mode"
+        assert reset_calls[0] == call(OSC_PATHS['step_reset'], [0])
+
+    def test_rst_no_match_no_reset_in_seq_mode(self):
+        """Non-matching fabric tick does NOT send step_reset in SEQ mode."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        engines[0].runtime.rst_fabric_idx = 6
+        mm.on_fabric_tick(8)
+
+        assert not [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_reset']]
+
+    def test_rst_off_no_reset_in_seq_mode(self):
+        """RST=OFF (None) does not send step_reset in SEQ mode."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        assert engines[0].runtime.rst_fabric_idx is None
+        mm.on_fabric_tick(6)
+
+        assert not [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_reset']]
+
+    def test_rst_increments_fired_count_in_seq_mode(self):
+        """RST fire in SEQ mode increments rst_fired_count (for LED poll)."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+
+        engines[0].runtime.rst_fabric_idx = 6
+        before = engines[0].runtime.rst_fired_count
+
+        mm.on_fabric_tick(6)
+
+        assert engines[0].runtime.rst_fired_count == before + 1
+
+    def test_rst_shared_across_modes(self):
+        """RST armed in ARP mode fires when slot switches to SEQ mode."""
+        mock_osc = MagicMock()
+        mm, engines = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+
+        mm.set_mode(0, MotionMode.ARP)
+        engines[0].runtime.rst_fabric_idx = 6
+
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        mm.on_fabric_tick(6)
+
+        assert [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_reset']]
+
+
 # =============================================================================
 # v2: OSC PATH COVERAGE (new paths exist in config)
 # =============================================================================

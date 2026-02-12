@@ -157,6 +157,8 @@ class KeyboardOverlay(QWidget):
         self._seq_rec_btn: QPushButton = None
         self._seq_rest_btn: QPushButton = None
         self._seq_tie_btn: QPushButton = None
+        self._seq_rst_btn = None
+        self._seq_rst_led = None
 
         # Step grid UI
         self._seq_grid_frame: QFrame = None
@@ -215,6 +217,13 @@ class KeyboardOverlay(QWidget):
                 self._seq_rate_btn.set_index(self._seq_engine.rate_index)
                 self._seq_length_btn.set_index(self._seq_engine.settings.length - 1)
                 self._seq_play_btn.setChecked(self._seq_engine.is_playing)
+            if self._arp_engine is not None and self._seq_rst_btn is not None:
+                rst_idx = 0
+                if self._arp_engine.runtime.rst_fabric_idx is not None:
+                    rst_idx = self._arp_engine.runtime.rst_fabric_idx - 3
+                self._seq_rst_btn.blockSignals(True)
+                self._seq_rst_btn.set_index(rst_idx)
+                self._seq_rst_btn.blockSignals(False)
             self._refresh_step_grid()
             self._grid_refresh_timer.start()
         else:
@@ -299,6 +308,10 @@ class KeyboardOverlay(QWidget):
         self._arp_rst_btn.blockSignals(True)
         self._arp_rst_btn.set_index(rst_idx)
         self._arp_rst_btn.blockSignals(False)
+        if self._seq_rst_btn is not None:
+            self._seq_rst_btn.blockSignals(True)
+            self._seq_rst_btn.set_index(rst_idx)
+            self._seq_rst_btn.blockSignals(False)
         self._rst_last_fired_count = engine.runtime.rst_fired_count
         self._rst_led.setStyleSheet(self._rst_led_style(False))
 
@@ -603,7 +616,7 @@ class KeyboardOverlay(QWidget):
         self._rst_flash_off_timer = QTimer()
         self._rst_flash_off_timer.setSingleShot(True)
         self._rst_flash_off_timer.setInterval(120)
-        self._rst_flash_off_timer.timeout.connect(lambda: self._rst_led.setStyleSheet(self._rst_led_style(False)))
+        self._rst_flash_off_timer.timeout.connect(self._rst_flash_off)
 
         row2.addStretch()
         container.addLayout(row2)
@@ -700,6 +713,24 @@ class KeyboardOverlay(QWidget):
         self._seq_clear_btn.setToolTip("Clear entire sequence")
         self._seq_clear_btn.clicked.connect(self._on_seq_clear_clicked)
         layout.addWidget(self._seq_clear_btn)
+
+        layout.addSpacing(8)
+        rst_label = QLabel("RST:")
+        rst_label.setFont(QFont(FONT_FAMILY, 10))
+        layout.addWidget(rst_label)
+
+        rst_labels = ["OFF"] + CLOCK_RATES[4:10]  # match ARP
+        self._seq_rst_btn = CycleButton(rst_labels, 0)
+        self._seq_rst_btn.setFixedSize(44, 24)
+        self._seq_rst_btn.setFont(QFont(FONT_FAMILY, 9))
+        self._seq_rst_btn.setToolTip("One-shot reset: fires on next matching tick, then OFF")
+        self._seq_rst_btn.index_changed.connect(self._on_rst_changed)
+        layout.addWidget(self._seq_rst_btn)
+
+        self._seq_rst_led = QLabel()
+        self._seq_rst_led.setFixedSize(8, 8)
+        self._seq_rst_led.setStyleSheet(self._rst_led_style(False))
+        layout.addWidget(self._seq_rst_led)
 
         layout.addStretch()
 
@@ -1166,7 +1197,7 @@ class KeyboardOverlay(QWidget):
         self._arp_engine.set_euclid(enabled, n, k, rot)
 
     def _on_rst_changed(self, index):
-        """Arm or disarm ARP reset for current slot."""
+        """Arm or disarm reset for current slot (shared ARP + SEQ)."""
         engine = self._arp_engine
         if engine is None:
             return
@@ -1174,6 +1205,14 @@ class KeyboardOverlay(QWidget):
             engine.runtime.rst_fabric_idx = None
         else:
             engine.runtime.rst_fabric_idx = index + 3  # R5: UI index -> fabric index
+
+        # keep ARP + SEQ RST selectors locked together
+        for btn in (self._arp_rst_btn, self._seq_rst_btn):
+            if btn is None:
+                continue
+            btn.blockSignals(True)
+            btn.set_index(index)
+            btn.blockSignals(False)
 
     @staticmethod
     def _rst_led_style(active: bool) -> str:
@@ -1188,6 +1227,13 @@ class KeyboardOverlay(QWidget):
                      border: 1px solid #440044; }
         """
 
+    def _rst_flash_off(self):
+        """Turn off both RST LEDs (ARP and SEQ)."""
+        style = self._rst_led_style(False)
+        self._rst_led.setStyleSheet(style)
+        if self._seq_rst_led is not None:
+            self._seq_rst_led.setStyleSheet(style)
+
     def _poll_rst_state(self):
         """Poll ARP engine for RST fire events — flashes LED on each reset."""
         engine = self._arp_engine
@@ -1196,8 +1242,9 @@ class KeyboardOverlay(QWidget):
         count = engine.runtime.rst_fired_count
         if count != self._rst_last_fired_count:
             self._rst_last_fired_count = count
-            # Flash LED on
             self._rst_led.setStyleSheet(self._rst_led_style(True))
+            if self._seq_rst_led is not None:
+                self._seq_rst_led.setStyleSheet(self._rst_led_style(True))
             self._rst_flash_off_timer.start()
 
     # -------------------------------------------------------------------------
