@@ -608,7 +608,7 @@ class TestApplyExportSymmetry:
         "arp_enabled", "arp_rate", "arp_pattern", "arp_octaves", "arp_hold",
         "euclid_enabled", "euclid_n", "euclid_k", "euclid_rot", "rst_rate",
         "seq_enabled", "seq_rate", "seq_length", "seq_play_mode", "seq_steps",
-        "step_mode", "arp_notes",
+        "step_mode", "arp_notes", "molti_path",
     }
 
     def test_ui_plus_feature_fields_cover_all_slot_state(self):

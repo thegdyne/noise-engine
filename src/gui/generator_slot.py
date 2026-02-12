@@ -629,6 +629,8 @@ class GeneratorSlot(QWidget):
 
         # step_mode: SC step engine state; restored via set_mode handover
         _ = slot_state.step_mode  # read to satisfy apply/export symmetry
+        # molti_path: restored via set_state -> controller _do_molti_load
+        _ = slot_state.molti_path  # read to satisfy apply/export symmetry
         if slot_state.seq_enabled:
             mm.set_mode(slot_idx, MotionMode.SEQ)
 
