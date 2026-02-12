@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-12 by agent (SEQ phase glitch fix + playback persistence)
+**Last updated:** 2026-02-12 by agent (Step engine: merge keyboard triggers, edge-gated freq)
 
 ---
 
@@ -69,6 +69,7 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2026-02-12: Step engine: merge keyboard triggers + edge-gated freq/note (jam over running SEQ)
 - 2026-02-12: Fix SEQ phase glitch on step edit (split bulk-only push, no resetTrig on data change)
 - 2026-02-12: SEQ keeps playing when toggling ARP or closing overlay (treated like ARP+HOLD)
 - 2026-02-12: RST expanded to SEQ mode — same fabric tick hook, shared state, dual UI sync

@@ -43,8 +43,8 @@ SynthDef(\stepEngineSlot, {
     var posFwd, posRev, posPP, posRand, pos;
     var step, type, note, vel, gateFrac;
     var active, isNote;
-    var freq, freqHeld, freqIn, freqOut;
-    var noteHeld, noteIn, noteOut;
+    var freq, freqIn, freqOut;
+    var noteIn, noteOut;
     var trigPulse, trigIn, trigOut;
     var safeStepCount;
 
@@ -78,26 +78,23 @@ SynthDef(\stepEngineSlot, {
     // isNote = type is NOTE (0) AND we're active
     isNote = (type < 0.5) * active;
 
-    // Sample-and-hold frequency: only updates on NOTE steps
+    // Freq bus: override only on step NOTE edges, pass through otherwise.
+    // Between steps keyboard/MIDI freq writes persist (jam over sequence).
     freq = note.midicps;
-    freqHeld = Latch.kr(freq, edge * isNote);
-    // P0.1: pass through current bus value when inactive — avoids clobbering MIDI/knob freq
     freqIn = In.kr(freqBus);
-    freqOut = Select.kr(active, [freqIn, freqHeld]);
+    freqOut = Select.kr(edge * isNote, [freqIn, freq]);
     ReplaceOut.kr(freqBus, freqOut);
 
-    // Raw MIDI note bus — same pattern as freqBus (SC-side, no Hz round-trip)
-    // MOLTI-SAMP reads this directly for zone lookup
-    noteHeld = Latch.kr(note.clip(0, 127), edge * isNote);
+    // Note bus: same edge-gated pattern (MOLTI-SAMP reads this for zone lookup)
     noteIn = In.kr(noteBusChan);
-    noteOut = Select.kr(active, [noteIn, noteHeld]);
+    noteOut = Select.kr(edge * isNote, [noteIn, note.clip(0, 127)]);
     ReplaceOut.kr(noteBusChan, noteOut);
 
-    // Generate trigger pulse: 2-sample audio pulse on NOTE steps
+    // Trigger bus: merge step triggers with keyboard/MIDI triggers.
+    // Step adds its pulses on top — keyboard triggers pass through always.
     trigPulse = Trig1.ar(K2A.ar(edge * isNote), SampleDur.ir * 2);
-    // Pass through current bus when inactive — avoids clobbering MIDI/keyboard triggers
     trigIn = In.ar(midiTrigBusChan, 1);
-    trigOut = Select.ar(K2A.ar(active), [trigIn, trigPulse]);
+    trigOut = trigIn + (trigPulse * K2A.ar(active));
     ReplaceOut.ar(midiTrigBusChan, trigOut);
 
     // Send position to Python for UI playhead (replyID = slotIdx for identification)
