@@ -26,8 +26,8 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     var noteMapBufNum, zoneBufBufNum, zoneCount;
     var midiTrig, midiTrigK, currentNote, lastNote;
     var zoneIdx, zoneIdxRaw, bufnum, readBuf, numFrames;
-    var phase, phaseK, phaseInc, startFrame, endFrame;
-    var loopFlag, doneTrig, running;
+    var phase, phaseInc, startFrame, endFrame;
+    var loopFlag, elapsed, running;
     var valid, gainDb;
     var safeBuf = LocalBuf(2, 2).clear;  // silent 2ch fallback (avoids buffer 0 mismatch)
 
@@ -80,11 +80,11 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
     // Safe buffer: use real audio buffer when valid, silent LocalBuf otherwise
     readBuf = Select.kr(valid > 0, [safeBuf, bufnum.max(0)]);
 
-    // === PLAYBACK (single Phasor+BufRd core for both modes) ===
+    // === PLAYBACK (Phasor + audio-rate one-shot gate) ===
     numFrames  = BufFrames.kr(readBuf);
     startFrame = (p[1] * numFrames).round(1);
     endFrame   = (p[2] * numFrames).round(1).max(startFrame + 1);
-    loopFlag   = (p[0] > 0.5).asInteger;  // explicit 0/1 for Select
+    loopFlag   = (p[0] > 0.5);
 
     // Rate with TUNE (P5): +/-1 semitone around center
     phaseInc = BufRateScale.kr(readBuf) * p[4].linlin(0, 1, -1, 1).midiratio;
@@ -97,12 +97,12 @@ SynthDef(\moltisamp_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus
         resetPos: startFrame
     );
 
-    // One-shot gate: start on MIDI trig, stop when phase reaches endFrame
-    phaseK   = A2K.kr(phase);  // ar->kr value stream for comparison
-    doneTrig = Trig1.kr((phaseK >= (endFrame - 1)) * (1 - loopFlag), 0.001);
-    running = Select.kr(loopFlag, [
-        SetResetFF.kr(midiTrigK, doneTrig),  // one-shot: set on MIDI, reset at end
-        1                                     // loop: always running
+    // One-shot gate: Sweep counts elapsed playback frames at audio rate
+    // (avoids A2K race that let Phasor wrap before the gate caught endFrame)
+    elapsed = Sweep.ar(midiTrig, phaseInc.abs * SampleRate.ir);
+    running = Select.ar(loopFlag, [
+        elapsed < (endFrame - startFrame),  // one-shot: 1 → 0 after one pass
+        DC.ar(1)                             // loop: always running
     ]);
 
     sig = BufRd.ar(2, readBuf, phase, loop: 0) * running;
