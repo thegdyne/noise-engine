@@ -1121,10 +1121,16 @@ class KeyboardOverlay(QWidget):
         enabled = self._arp_toggle_btn.isChecked()
         self._arp_engine.toggle_arp(enabled)
 
+        # Check if SEQ is actively playing (treat like ARP+HOLD — don't kill it)
+        seq_playing = (
+            self._seq_engine is not None
+            and self._seq_engine.is_playing
+        )
+
         if enabled:
             self._arp_controls_frame.show()
 
-            # Disable SEQ when enabling ARP (mutually exclusive)
+            # Hide SEQ UI when showing ARP controls
             if self._seq_toggle_btn.isChecked():
                 self._seq_toggle_btn.setChecked(False)
                 self._seq_controls_frame.hide()
@@ -1133,20 +1139,25 @@ class KeyboardOverlay(QWidget):
                 self._seq_recording = False
                 if self._seq_rec_btn is not None:
                     self._seq_rec_btn.setChecked(False)
-                if self._seq_play_btn is not None:
-                    self._seq_play_btn.setChecked(False)
-                # Notify controller to switch MotionMode OFF for SEQ
-                if self._on_seq_mode_changed is not None and self._seq_engine is not None:
-                    self._on_seq_mode_changed(False, self._seq_engine.slot_id)
 
-            # Notify controller to switch MotionMode.ARP
-            if self._on_arp_mode_changed is not None:
-                self._on_arp_mode_changed(True, self._arp_engine.slot_id)
+                if not seq_playing:
+                    # SEQ idle — full teardown
+                    if self._seq_play_btn is not None:
+                        self._seq_play_btn.setChecked(False)
+                    if self._on_seq_mode_changed is not None and self._seq_engine is not None:
+                        self._on_seq_mode_changed(False, self._seq_engine.slot_id)
+
+            # Only switch to ARP mode if SEQ isn't playing
+            # (playing SEQ = held ARP — MotionMode stays SEQ)
+            if not seq_playing:
+                if self._on_arp_mode_changed is not None:
+                    self._on_arp_mode_changed(True, self._arp_engine.slot_id)
         else:
             self._arp_controls_frame.hide()
-            # Notify controller to switch MotionMode.OFF
-            if self._on_arp_mode_changed is not None:
-                self._on_arp_mode_changed(False, self._arp_engine.slot_id)
+            # Only switch to OFF if SEQ isn't playing
+            if not seq_playing:
+                if self._on_arp_mode_changed is not None:
+                    self._on_arp_mode_changed(False, self._arp_engine.slot_id)
 
         self._update_overlay_size()
 
