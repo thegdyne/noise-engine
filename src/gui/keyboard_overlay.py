@@ -1605,7 +1605,7 @@ class KeyboardOverlay(QWidget):
 
     def _handle_octave_change(self, delta: int):
         """Handle octave up/down with held note re-triggering."""
-        new_octave = max(0, min(7, self._octave + delta))
+        new_octave = max(-1, min(7, self._octave + delta))
 
         if new_octave == self._octave:
             return
