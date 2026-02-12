@@ -74,6 +74,9 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
     // Second guard: bufnum itself must be valid
     valid = valid * (bufnum >= 0);
 
+    // DEBUG: remove after diagnosis — fires on every MIDI trigger
+    SendReply.kr(midiTrigK, "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
+
     // Safe buffer: use real audio buffer when valid, silent LocalBuf otherwise
     readBuf = Select.kr(valid > 0, [safeBuf, bufnum.max(0)]);
 
