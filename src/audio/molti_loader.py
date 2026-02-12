@@ -134,15 +134,19 @@ class MoltiLoader:
         zone_buf = [audio_bufnums[i] for i in range(msdef.zone_count)]
 
         # 7. Allocate and write noteMapBuf (128 floats)
+        # CRITICAL: values MUST be float — python-osc sends ints as OSC 'i' type,
+        # but SC /b_setn expects float sample data. Int bytes misread as float
+        # would garble the table (e.g. int 3 → float ≈0.0, mapping all notes to zone 0).
         self.sc.send_message("/b_alloc", [note_map_bufnum, 128, 1])
         self._sync_wait(50)
-        self.sc.send_message("/b_setn", [note_map_bufnum, 0, 128] + note_map)
+        self.sc.send_message("/b_setn",
+            [note_map_bufnum, 0, 128] + [float(x) for x in note_map])
 
-        # 8. Allocate and write zoneBufBuf
+        # 8. Allocate and write zoneBufBuf (same float requirement)
         self.sc.send_message("/b_alloc", [zone_buf_bufnum, msdef.zone_count, 1])
         self._sync_wait(50)
         self.sc.send_message("/b_setn",
-            [zone_buf_bufnum, 0, msdef.zone_count] + zone_buf)
+            [zone_buf_bufnum, 0, msdef.zone_count] + [float(x) for x in zone_buf])
 
         # 9. Update bufBus (atomic — SC reads all 4 channels together)
         if buf_bus_index is not None:
