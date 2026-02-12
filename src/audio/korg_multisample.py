@@ -71,33 +71,28 @@ def _parse_protobuf_fields(data: bytes) -> list:
     fields = []
     pos = 0
     while pos < len(data):
-        if pos >= len(data):
-            break
-        tag = data[pos]
+        # Tags are varints (can be multi-byte for field numbers > 15)
+        tag, pos = _read_varint(data, pos)
         wire_type = tag & 0x07
         field_num = tag >> 3
 
         if wire_type == 0:  # varint
-            pos += 1
             val, pos = _read_varint(data, pos)
             fields.append((field_num, 'varint', val))
         elif wire_type == 2:  # length-delimited (bytes/string/nested)
-            pos += 1
             slen, pos = _read_varint(data, pos)
             sdata = data[pos:pos + slen]
             fields.append((field_num, 'bytes', sdata))
             pos += slen
         elif wire_type == 5:  # 32-bit fixed (float)
-            pos += 1
             if pos + 4 <= len(data):
                 val = struct.unpack('<f', data[pos:pos + 4])[0]
                 fields.append((field_num, 'float', val))
             pos += 4
         elif wire_type == 1:  # 64-bit fixed
-            pos += 1
             pos += 8
         else:
-            pos += 1
+            break  # Unknown wire type — stop parsing this block
     return fields
 
 
@@ -222,14 +217,20 @@ def parse_korgmultisample(filepath) -> MultisampleDef:
     category = ""
     comment = ""
 
-    # Read metadata fields until we hit sample blocks (tag 0x2a = field 5, wire 2)
-    while p < len(chunk3) and chunk3[p] != 0x2a:
-        tag = chunk3[p]
-        field_num = tag >> 3
+    # Read metadata fields until we hit sample blocks (field 5, wire 2)
+    # Tags are varints — peek-parse to check field number before consuming
+    while p < len(chunk3):
+        tag, next_p = _read_varint(chunk3, p)
         wire_type = tag & 0x07
+        field_num = tag >> 3
+
+        # Sample blocks are field 5 — stop metadata parsing
+        if field_num == 5 and wire_type == 2:
+            break
+
+        p = next_p  # Consume the tag
 
         if wire_type == 2:  # length-delimited
-            p += 1
             slen, p = _read_varint(chunk3, p)
             sdata = chunk3[p:p + slen]
             p += slen
@@ -245,18 +246,25 @@ def parse_korgmultisample(filepath) -> MultisampleDef:
             elif field_num == 7:
                 pass  # UUID
         elif wire_type == 0:
-            p += 1
             _, p = _read_varint(chunk3, p)
+        elif wire_type == 5:
+            p += 4
+        elif wire_type == 1:
+            p += 8
         else:
-            p += 1
+            break  # Unknown wire type
 
-    # Parse sample blocks (tag 0x2a = field 5, wire 2)
+    # Parse sample blocks (field 5, wire 2 — tag is varint)
     zones = []
     while p < len(chunk3):
-        if chunk3[p] != 0x2a:
+        tag, next_p = _read_varint(chunk3, p)
+        wire_type = tag & 0x07
+        field_num = tag >> 3
+
+        if field_num != 5 or wire_type != 2:
             break
 
-        p += 1
+        p = next_p
         block_len, p = _read_varint(chunk3, p)
         block = chunk3[p:p + block_len]
 
