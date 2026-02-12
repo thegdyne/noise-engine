@@ -629,6 +629,29 @@ class TestSEQDataPropagatesToSC:
         assert len(bulk_calls) >= 1, \
             "SEQ step edit should send seq_set_bulk OSC to SC"
 
+    def test_seq_step_edit_no_rate_osc(self):
+        """Step edit must NOT send step_set_rate (it fires resetTrig = phase glitch)."""
+        mock_osc = MagicMock()
+        mm = self._make_motion_manager(send_osc=mock_osc)
+
+        from src.model.sequencer import MotionMode
+        mm.set_mode(0, MotionMode.SEQ)
+        mock_osc.reset_mock()
+
+        seq = mm.get_seq_engine(0)
+        seq.queue_command({
+            'type': 'SET_STEP',
+            'index': 3,
+            'step_type': StepType.NOTE,
+            'note': 64,
+            'velocity': 100,
+        })
+        seq.process_commands()
+
+        rate_calls = [c for c in mock_osc.call_args_list if c[0][0] == OSC_PATHS['step_set_rate']]
+        assert len(rate_calls) == 0, \
+            "Step edit must NOT send step_set_rate (causes phase glitch)"
+
     def test_seq_callback_cleared_on_mode_exit(self):
         """SEQ on_data_changed callback is cleared when leaving SEQ mode."""
         mock_osc = MagicMock()

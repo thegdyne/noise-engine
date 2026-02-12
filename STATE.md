@@ -1,6 +1,6 @@
 # Noise Engine — Project State
 
-**Last updated:** 2026-02-12 by agent (RST expanded to SEQ mode)
+**Last updated:** 2026-02-12 by agent (SEQ phase glitch fix + playback persistence)
 
 ---
 
@@ -69,6 +69,8 @@ Current bugs and tech debt. Remove when fixed. Add when discovered.
 
 Reverse chronological. Keep the last 10 entries. Oldest entries get pruned.
 
+- 2026-02-12: Fix SEQ phase glitch on step edit (split bulk-only push, no resetTrig on data change)
+- 2026-02-12: SEQ keeps playing when toggling ARP or closing overlay (treated like ARP+HOLD)
 - 2026-02-12: RST expanded to SEQ mode — same fabric tick hook, shared state, dual UI sync
 - 2026-02-12: MOLTI visibility fix: substring match for pack variants (slot UI, unload, reload, preset load)
 - 2026-02-12: MOLTI-SAMP standalone pack (packs/molti_samp/), bufBus/midiTrigBus always-pass in both startGenerator paths

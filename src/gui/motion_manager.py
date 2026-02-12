@@ -85,6 +85,8 @@ class MotionManager:
                 'pending_mode': None,
                 'pending_seq_start': False,
                 'slot_idx': i,
+                'last_seq_rate': None,
+                'last_seq_play_mode': None,
             })
 
         # QTimer-based clock for SEQ tick delivery
@@ -366,28 +368,48 @@ class MotionManager:
             self._send_osc(OSC_PATHS['arp_set_notes'], [slot_idx] + expanded)
 
     def _push_seq_to_sc(self, slot: dict, reset: int = 0):
-        """Push SEQ step data and rate to SC step engine.
+        """Push SEQ step data, rate, and play mode to SC step engine.
 
         Args:
             slot: Slot dict with seq engine
             reset: 1 = reset playhead to step 0, 0 = preserve position.
                    Only handover (mode entry) passes reset=1.
+
+        Note: step_set_rate fires \\resetTrig on SC side, so only call
+        this on mode entry / preset load — NOT on every step edit.
+        Use _push_seq_bulk_only for step data updates during playback.
         """
         if self._send_osc is None:
             return
         slot_idx = slot['slot_idx']
         seq: SeqEngine = slot['seq']
 
-        # Send rate as fabric index
+        # Send rate as fabric index (SC fires resetTrig on rate change)
         rate_idx = seq.rate_index
         fabric_idx = ARP_RATE_TO_FABRIC_IDX.get(rate_idx, 6)
         self._send_osc(OSC_PATHS['step_set_rate'], [slot_idx, fabric_idx])
+        slot['last_seq_rate'] = rate_idx
 
         # Send play mode
         play_mode_val = {
             'FORWARD': 0, 'REVERSE': 1, 'PINGPONG': 2, 'RANDOM': 3
         }.get(seq.settings.play_mode.name, 0)
         self._send_osc(OSC_PATHS['seq_set_play_mode'], [slot_idx, play_mode_val])
+        slot['last_seq_play_mode'] = seq.settings.play_mode.name
+
+        # Send bulk step data
+        self._push_seq_bulk_only(slot, reset)
+
+    def _push_seq_bulk_only(self, slot: dict, reset: int = 0):
+        """Push only SEQ step buffer data to SC (no rate/play_mode).
+
+        Used by _on_seq_data_changed to avoid step_set_rate which
+        fires \\resetTrig on SC side — step edits must not reset phase.
+        """
+        if self._send_osc is None:
+            return
+        slot_idx = slot['slot_idx']
+        seq: SeqEngine = slot['seq']
 
         # Send bulk step data: [slot, length, reset, type1, note1, vel1, gate1, ...]
         length = seq.settings.length
@@ -407,12 +429,38 @@ class MotionManager:
             self._push_arp_notes_to_sc(slot)
 
     def _on_seq_data_changed(self, slot_idx: int):
-        """Callback from SeqEngine when data changes during playback."""
+        """Callback from SeqEngine when data changes during playback.
+
+        Sends bulk buffer data every time. Only sends rate/play_mode
+        when they actually change — step_set_rate fires \\resetTrig on SC
+        side, so resending it on every step edit would cause phase glitches.
+        """
         if slot_idx < 0 or slot_idx >= 8:
             return
         slot = self._slots[slot_idx]
-        if slot['mode'] == MotionMode.SEQ:
-            self._push_seq_to_sc(slot)
+        if slot['mode'] != MotionMode.SEQ:
+            return
+
+        seq: SeqEngine = slot['seq']
+
+        # Check if rate changed (step_set_rate fires resetTrig — only send when needed)
+        cur_rate = seq.rate_index
+        if slot['last_seq_rate'] != cur_rate:
+            slot['last_seq_rate'] = cur_rate
+            fabric_idx = ARP_RATE_TO_FABRIC_IDX.get(cur_rate, 6)
+            self._send_osc(OSC_PATHS['step_set_rate'], [slot_idx, fabric_idx])
+
+        # Check if play mode changed
+        cur_pm = seq.settings.play_mode.name
+        if slot['last_seq_play_mode'] != cur_pm:
+            slot['last_seq_play_mode'] = cur_pm
+            play_mode_val = {
+                'FORWARD': 0, 'REVERSE': 1, 'PINGPONG': 2, 'RANDOM': 3
+            }.get(cur_pm, 0)
+            self._send_osc(OSC_PATHS['seq_set_play_mode'], [slot_idx, play_mode_val])
+
+        # Always push step buffer data (no resetTrig)
+        self._push_seq_bulk_only(slot)
 
     def push_seq_data(self, slot_idx: int):
         """Public API: push current SEQ data to SC (called on preset load/paste)."""
