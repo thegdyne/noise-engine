@@ -642,15 +642,15 @@ class OSCBridge(QObject):
             self.clock_tick_received.emit(int(args[0]))
 
     def _handle_step_event(self, address, *args):
-        """Handle step engine playhead position from SC SendReply.
+        """Handle step engine playhead position forwarded from SC.
 
-        SendReply format: [nodeID, replyID(=slotIdx), pos]
+        Forwarded format from OSCdef(\\stepEventForward): [slotIdx, position]
         """
         if self._shutdown or self._deleted:
             return
-        if len(args) >= 3:
-            slot_idx = int(args[1])  # replyID = slotIdx
-            position = int(args[2])  # first value in SendReply data array
+        if len(args) >= 2:
+            slot_idx = int(args[0])
+            position = int(args[1])
             self.step_event_received.emit(slot_idx, position)
 
     def send(self, path_key, args):

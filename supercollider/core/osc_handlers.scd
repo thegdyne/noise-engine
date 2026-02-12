@@ -100,6 +100,15 @@ All OSC message routing
         };
     }, '/clock/tick');
 
+    // Step engine playhead relay (SC SendReply -> Python)
+    // SendReply format: [cmdName, nodeID, replyID(=slotIdx), pos]
+    // msg[2] = replyID = slotIdx, msg[3] = position
+    OSCdef(\stepEventForward, { |msg|
+        if(~pythonAddr.notNil) {
+            ~pythonAddr.sendMsg('/noise/step/event', msg[2].asInteger, msg[3].asInteger);
+        };
+    }, '/noise/step/event');
+
     // MOLTI-SAMP: report bufBus control bus indices to Python
     OSCdef(\moltiBufBusQuery, { |msg|
         if(~pythonAddr.notNil && ~bufBuses.notNil) {
