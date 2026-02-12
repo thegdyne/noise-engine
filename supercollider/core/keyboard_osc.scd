@@ -34,7 +34,7 @@ Useful for the QWERTY keyboard overlay and programmatic note triggering.
             var needsRetrig = ~genMidiRetrig[i];
             var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
 
-            if(isMuted.not && (~genStepMode[i].not), {
+            if(isMuted.not, {
                 // Track this note
                 ~keyboardActiveNotes[i][note] = true;
 

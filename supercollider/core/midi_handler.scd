@@ -153,7 +153,7 @@ OSC messages to Python:
         var amp = vel / 127.0;
         var freqBusKey = ("gen_" ++ slot ++ "_freq").asSymbol;
 
-        if(genChannel == midiChannel && isMuted.not && (~genStepMode[i].not), {
+        if(genChannel == midiChannel && isMuted.not, {
             // Set frequency IMMEDIATELY on the bus so the trigger fires at the correct pitch
             if(~busRegistry.notNil && ~busRegistry[freqBusKey].notNil, {
                 ~busRegistry[freqBusKey].set(freq);
