@@ -455,8 +455,16 @@ class GeneratorSlot(QWidget):
                     real_value = map_value(value, param_config)
                     self.parameter_changed.emit(self.slot_id, key, real_value)
         
-        # Custom params
+        # Custom params — only override if preset has explicit saved values
+        # (None defaults in SlotState are excluded by to_dict, so they won't appear here)
         custom_params = get_generator_custom_params(self.generator_type)
+        custom_override_keys = [f"custom_{i}" for i in range(MAX_CUSTOM_PARAMS) if f"custom_{i}" in params]
+        if custom_override_keys:
+            logger.debug(
+                f"Gen {self.slot_id} set_state: overriding customs {custom_override_keys} "
+                f"from preset (gen={self.generator_type})",
+                component="SLOT"
+            )
         for i in range(MAX_CUSTOM_PARAMS):
             key = f"custom_{i}"
             if key in params:
@@ -707,6 +715,13 @@ class GeneratorSlot(QWidget):
         pitch_target = get_generator_pitch_target(gen_type)
         midi_retrig = get_generator_midi_retrig(gen_type)
         retrig_param_index = get_generator_retrig_param_index(gen_type)
+        defaults = [p.get('default', 0.5) for p in custom_params]
+        logger.debug(
+            f"Gen {self.slot_id} update_custom_params: "
+            f"gen_id={gen_type}, has_manifest={len(custom_params) > 0}, "
+            f"defaults_len={len(defaults)}, defaults={defaults}",
+            component="SLOT"
+        )
         
         for i in range(MAX_CUSTOM_PARAMS):
             if i < len(custom_params):

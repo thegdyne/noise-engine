@@ -78,11 +78,13 @@ class SlotState:
     resonance: float = 0.0
     attack: float = 0.0
     decay: float = 0.73
-    custom_0: float = 0.5
-    custom_1: float = 0.5
-    custom_2: float = 0.5
-    custom_3: float = 0.5
-    custom_4: float = 0.5
+    # None = use generator-specific JSON defaults (set by update_custom_params).
+    # Only non-None when explicitly saved from a user session.
+    custom_0: Optional[float] = None
+    custom_1: Optional[float] = None
+    custom_2: Optional[float] = None
+    custom_3: Optional[float] = None
+    custom_4: Optional[float] = None
     filter_type: int = 0
     env_source: int = 0
     clock_rate: int = 4
@@ -128,7 +130,8 @@ class SlotState:
                 continue
             val = getattr(self, name)
             if name in self.PARAM_KEYS:
-                d["params"][name] = val
+                if val is not None:
+                    d["params"][name] = val
             elif name == "seq_steps":
                 d[name] = [dict(s) for s in val]  # deep defensive copy
             else:
