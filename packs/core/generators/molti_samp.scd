@@ -76,6 +76,7 @@ SynthDef(\forge_molti_samp, { |out, freqBus, customBus0, bufBus, midiTrigBus, sl
 
     // DEBUG: remove after diagnosis — fires on every MIDI trigger
     SendReply.kr(midiTrigK, "/noise/molti/debug", [lastNote, zoneIdxRaw, zoneIdx, bufnum, valid]);
+    SendReply.kr(midiTrigK, "/noise/molti/trig", [slotIndex, lastNote, p[0]]);
 
     // Safe buffer: use real audio buffer when valid, silent LocalBuf otherwise
     readBuf = Select.kr(valid > 0, [safeBuf, bufnum.max(0)]);

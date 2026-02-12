@@ -3,7 +3,7 @@
   "synthdef": "forge_molti_samp",
   "synthesis_method": "sampler/multisample",
   "output_trim_db": 0.0,
-  "midi_retrig": true,
+  "midi_retrig": false,
   "pitch_target": null,
   "custom_params": [
     {
