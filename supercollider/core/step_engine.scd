@@ -88,7 +88,7 @@ SynthDef(\stepEngineSlot, {
 
     // Raw MIDI note bus — same pattern as freqBus (SC-side, no Hz round-trip)
     // MOLTI-SAMP reads this directly for zone lookup
-    noteHeld = Latch.kr(note, edge * isNote);
+    noteHeld = Latch.kr(note.clip(0, 127), edge * isNote);
     noteIn = In.kr(noteBusChan);
     noteOut = Select.kr(active, [noteIn, noteHeld]);
     ReplaceOut.kr(noteBusChan, noteOut);
